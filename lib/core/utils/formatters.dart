@@ -1,0 +1,117 @@
+import 'package:intl/intl.dart';
+
+/// Every number and date the user sees is formatted here.
+///
+/// Belgian French conventions differ from English *and* from France in places,
+/// and getting them subtly wrong is exactly the kind of detail that makes an
+/// app read as machine-translated:
+///
+/// - Currency: `12,50 €` — comma decimal, symbol last, non-breaking space
+/// - Thousands: `1 250,00 €` — a space, never a comma
+/// - Dates: `22/08/2026`, and spelled-out months are lowercase (`août`)
+///
+/// `intl` produces all of that correctly from the `fr_BE` locale. The only real
+/// risk is somebody hand-rolling a format elsewhere, so this file is the single
+/// place any of it happens.
+abstract final class Formatters {
+  static const String locale = 'fr_BE';
+
+  // ---------------------------------------------------------------------------
+  // Money
+  // ---------------------------------------------------------------------------
+
+  static final NumberFormat _currency = NumberFormat.currency(
+    locale: locale,
+    symbol: '€',
+    decimalDigits: 2,
+  );
+
+  static final NumberFormat _currencyCompact = NumberFormat.currency(
+    locale: locale,
+    symbol: '€',
+    decimalDigits: 0,
+  );
+
+  /// `12,50 €`
+  static String price(double value) => _currency.format(value);
+
+  /// `1 248 €` — for dashboard tiles where the cents are noise.
+  static String priceCompact(double value) => _currencyCompact.format(value);
+
+  /// `+0,35 €` / `−0,20 €`
+  ///
+  /// Uses a real minus sign (U+2212) rather than a hyphen: at a glance in a
+  /// price-change column, a hyphen reads as a dash rather than as negative.
+  static String priceDelta(double value) {
+    final formatted = _currency.format(value.abs());
+    return value < 0 ? '−$formatted' : '+$formatted';
+  }
+
+  // ---------------------------------------------------------------------------
+  // Quantities
+  // ---------------------------------------------------------------------------
+
+  static final NumberFormat _quantity = NumberFormat.decimalPattern(locale)
+    ..maximumFractionDigits = 2
+    ..minimumFractionDigits = 0;
+
+  /// `48` / `2,5`
+  static String quantity(double value) => _quantity.format(value);
+
+  /// `48 kg` / `2,5 L`
+  static String quantityWithUnit(double value, String unitAbbreviation) =>
+      '${quantity(value)} $unitAbbreviation';
+
+  /// `+12 kg` / `−3 kg`, for movement rows.
+  static String quantityDelta(double value, String unitAbbreviation) {
+    final formatted = quantityWithUnit(value.abs(), unitAbbreviation);
+    return value < 0 ? '−$formatted' : '+$formatted';
+  }
+
+  /// `12 %`
+  ///
+  /// Takes 0.0–1.0. French puts a space before the percent sign.
+  static String percent(double fraction) =>
+      '${_quantity.format(fraction * 100)} %';
+
+  // ---------------------------------------------------------------------------
+  // Dates
+  // ---------------------------------------------------------------------------
+
+  static final DateFormat _shortDate = DateFormat('dd/MM/yyyy', locale);
+  static final DateFormat _longDate = DateFormat('d MMMM yyyy', locale);
+  static final DateFormat _dayMonth = DateFormat('d MMM', locale);
+  static final DateFormat _time = DateFormat('HH:mm', locale);
+
+  /// `22/08/2026`
+  static String date(DateTime value) => _shortDate.format(value);
+
+  /// `22 août 2026`
+  static String dateLong(DateTime value) => _longDate.format(value);
+
+  /// `22 août` — chart axes and compact rows.
+  static String dayMonth(DateTime value) => _dayMonth.format(value);
+
+  /// `14:32` — Belgium uses a 24-hour clock.
+  static String time(DateTime value) => _time.format(value);
+
+  /// `22/08/2026 à 14:32`
+  static String dateTime(DateTime value) =>
+      '${date(value)} à ${time(value)}';
+
+  /// `il y a 3 jours`, `hier`, `à l'instant`.
+  ///
+  /// Falls back to an absolute date beyond a month — "il y a 47 jours" is
+  /// harder to reason about than the date itself.
+  static String relative(DateTime value, {DateTime? now}) {
+    final reference = now ?? DateTime.now();
+    final difference = reference.difference(value);
+
+    if (difference.inMinutes < 1) return "à l'instant";
+    if (difference.inMinutes < 60) return 'il y a ${difference.inMinutes} min';
+    if (difference.inHours < 24) return 'il y a ${difference.inHours} h';
+    if (difference.inDays == 1) return 'hier';
+    if (difference.inDays < 30) return 'il y a ${difference.inDays} jours';
+    return date(value);
+  }
+}
