@@ -17,7 +17,7 @@ The full brief is in [`.claude/phase1.md`](.claude/phase1.md).
 | Stage | Scope | Status |
 |---|---|---|
 | 0 | Dependencies, l10n pipeline, folder skeleton, lints | Done |
-| 1 | Design system — palette, typography, spacing, theme | Not started |
+| 1 | Design system — palette, typography, spacing, theme | Done |
 | 2 | Models + mock data | Not started |
 | 3 | go_router shell + navigation | Not started |
 | 4 | Shared component library | Not started |
@@ -58,7 +58,29 @@ lib/
   mock_data/    ALL static data. Never inline fake lists in a widget.
   services/     Phase 2 stubs — empty classes, no logic
   l10n/         .arb translations + generated AppLocalizations
+  dev/          development-only. NOT shipped — removed at handoff.
 ```
+
+### The theme gallery
+
+`lib/dev/theme_gallery_page.dart` renders every design-system primitive on one page. Until
+the router lands in Stage 3 it is the app's `home`, so `flutter run` opens straight into it.
+
+It exists so contrast, hue separation and type sizing get judged once, before forty screens
+bake the mistakes in. Nothing under `features/` may import from `lib/dev/`.
+
+## Design system
+
+Defined in `lib/core/theme/`. Two rules the code deliberately enforces:
+
+- **Teal is for actions, green is for "en stock".** Different hues on purpose. If the primary
+  button and the in-stock badge share a hue, the status signal stops carrying meaning.
+- **Status is never colour alone.** Every status pairs a colour with an icon and a label —
+  roughly 1 in 12 men has a red/green colour vision deficiency, and the app's core signal is
+  red/amber/green.
+
+Sizing floors live in `AppSizing`: 48dp minimum tap target, 56dp buttons and inputs, 64dp
+table rows and stepper buttons. Nothing renders below 13pt.
 
 ## Conventions
 
