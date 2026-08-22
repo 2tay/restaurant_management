@@ -1,0 +1,25 @@
+# Configures the analyzer. Run with `flutter analyze`.
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  errors:
+    # Hardcoded user-facing strings are the main risk in a localized app, and
+    # unused imports pile up fast across ~40 screens. Treat both as errors.
+    unused_import: error
+    unused_local_variable: error
+  exclude:
+    - "**/*.g.dart"
+    - "**/generated_plugin_registrant.dart"
+
+linter:
+  rules:
+    - prefer_single_quotes
+    - require_trailing_commas
+    - avoid_print
+    - use_super_parameters
+    - sized_box_for_whitespace
+    - prefer_const_constructors
+    - prefer_const_declarations
+    - prefer_const_literals_to_create_immutables
+    - always_declare_return_types
+    - unawaited_futures

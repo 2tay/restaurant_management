@@ -1,0 +1,83 @@
+{
+  "@@locale": "fr",
+
+  "appTitle": "Gestion de Stock",
+  "@appTitle": {
+    "description": "Application name, shown on the login screen and in the app switcher."
+  },
+
+  "navDashboard": "Tableau de bord",
+  "@navDashboard": {
+    "description": "Sidebar label for the store dashboard."
+  },
+  "navInventory": "Inventaire",
+  "@navInventory": {
+    "description": "Sidebar label for the inventory list."
+  },
+  "navStockMovement": "Mouvements de stock",
+  "@navStockMovement": {
+    "description": "Sidebar label for stock in/out/adjustment history. One of the longest rail labels — size the NavigationRail against this string."
+  },
+  "navSuppliers": "Fournisseurs",
+  "@navSuppliers": {
+    "description": "Sidebar label for the suppliers list."
+  },
+  "navCatalog": "Catégories et unités",
+  "@navCatalog": {
+    "description": "Sidebar label for the category and unit-of-measure management screens."
+  },
+  "navAlerts": "Alertes",
+  "@navAlerts": {
+    "description": "Sidebar label for low-stock alerts and notifications."
+  },
+  "navReports": "Rapports",
+  "@navReports": {
+    "description": "Sidebar label for the reports section."
+  },
+  "navTeam": "Équipe",
+  "@navTeam": {
+    "description": "Sidebar label for team members and roles."
+  },
+  "navSettings": "Paramètres",
+  "@navSettings": {
+    "description": "Sidebar label for settings."
+  },
+
+  "stockStatusInStock": "En stock",
+  "@stockStatusInStock": {
+    "description": "Stock status badge — quantity is above the low-stock threshold."
+  },
+  "stockStatusLowStock": "Stock faible",
+  "@stockStatusLowStock": {
+    "description": "Stock status badge — quantity is at or below the low-stock threshold."
+  },
+  "stockStatusOutOfStock": "Rupture de stock",
+  "@stockStatusOutOfStock": {
+    "description": "Stock status badge — quantity is zero."
+  },
+
+  "actionAddItem": "Ajouter un article",
+  "@actionAddItem": {
+    "description": "Primary action on the inventory list and its empty state."
+  },
+  "actionAddDelivery": "Enregistrer une livraison",
+  "@actionAddDelivery": {
+    "description": "Quick action on the dashboard — opens the Stock In screen. Deliberately plain language, not 'create stock ingress record'."
+  },
+  "actionCancel": "Annuler",
+  "@actionCancel": {
+    "description": "Dismisses a dialog without applying changes."
+  },
+  "actionDelete": "Supprimer",
+  "@actionDelete": {
+    "description": "Confirms a destructive action in a confirmation dialog."
+  },
+  "actionSave": "Enregistrer",
+  "@actionSave": {
+    "description": "Commits a form."
+  },
+  "actionCreateNew": "+ Créer",
+  "@actionCreateNew": {
+    "description": "Inline option at the bottom of every category/unit dropdown, opening a create sheet without leaving the form."
+  }
+}
