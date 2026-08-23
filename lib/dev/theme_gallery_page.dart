@@ -11,14 +11,19 @@ import '../shared/widgets/widgets.dart';
 /// side by side.
 ///
 /// It exists so contrast, hue separation and type sizing get judged **once**,
-/// here, before forty screens bake the mistakes in. It is not part of the
-/// product: nothing in `features/` may import from `lib/dev/`, and this folder
-/// is removed at handoff (Stage 7).
+/// here, before forty screens bake the mistakes in.
 ///
-/// Strings are hardcoded French on purpose — this page never ships, so routing
-/// them through `AppLocalizations` would only add noise to the `.arb`. Real
-/// French copy rather than lorem, though: the point is to catch text that
-/// overflows at realistic length.
+/// **Kept at handoff rather than deleted.** The original plan was to remove it,
+/// but it is the fastest way for whoever builds Phase 2 to see what components
+/// exist and how they behave, and re-deriving that from forty screens is worse.
+/// It is not product: nothing outside `lib/dev/` imports it, it is reachable
+/// only at `/dev/gallery` and linked from nothing, and a production build should
+/// drop this folder and its route.
+///
+/// Strings are hardcoded French on purpose — this page is not shipped to users,
+/// so routing them through `AppLocalizations` would only add noise to the
+/// `.arb`. Real French copy rather than lorem, though: the point is to catch
+/// text that overflows at realistic length.
 class ThemeGalleryPage extends StatelessWidget {
   const ThemeGalleryPage({super.key});
 

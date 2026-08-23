@@ -17,8 +17,8 @@ abstract final class Routes {
   static const String stores = '/stores';
   static const String addStore = '/stores/add';
 
-  /// Development only — the design-system gallery. Removed with `lib/dev/` at
-  /// handoff (Stage 7).
+  /// Development only — the design-system gallery. Linked from nothing; a
+  /// production build should drop this route along with `lib/dev/`.
   static const String devGallery = '/dev/gallery';
 
   // --- Inside the shell -----------------------------------------------------

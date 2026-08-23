@@ -6,24 +6,32 @@ Multi-store stock and inventory management for restaurants, built with Flutter f
 The application UI is **French** (`fr_BE`) — the client is a Belgian restaurant. Code,
 comments, and documentation are in English.
 
-## Status — Phase 1 (UI only)
+---
+
+## Status: Phase 1 complete — UI only
 
 Phase 1 is a **demo-ready prototype, not a functioning app**. Every screen renders from
 static mock data in `lib/mock_data/`. There is no database, no networking, no persistence
-and no business logic. Phase 2 adds local-first storage and sync.
+and no business logic.
 
-The full brief is in [`.claude/phase1.md`](.claude/phase1.md).
+**Nothing you do in the app is saved.** Forms confirm and navigate; they change no data.
+Reload and the demo is exactly as it was. This is deliberate, and the screens that could
+mislead — login, export, sync — say so on screen rather than pretending.
 
 | Stage | Scope | Status |
 |---|---|---|
 | 0 | Dependencies, l10n pipeline, folder skeleton, lints | Done |
 | 1 | Design system — palette, typography, spacing, theme | Done |
-| 2 | Models + mock data | Not started |
-| 3 | go_router shell + navigation | Not started |
-| 4 | Shared component library | Not started |
-| 5 | Screens (~40) | Not started |
-| 6 | Polish pass | Not started |
-| 7 | Phase 2 stubs + handoff | Not started |
+| 2 | Models + mock data | Done |
+| 3 | go_router shell + navigation | Done |
+| 4 | Shared component library | Done |
+| 5 | Screens (37 routes across 35 page files) | Done |
+| 6 | Polish pass + UX audit | Done |
+| 7 | Phase 2 stubs + handoff | Done |
+
+The original brief is in [`.claude/phase1.md`](.claude/phase1.md).
+
+---
 
 ## Getting started
 
@@ -32,16 +40,36 @@ flutter pub get
 flutter run
 ```
 
-Requires Flutter 3.38+ (Dart 3.10+).
+Requires Flutter 3.38+ (Dart 3.10+). The app opens on the login screen; any credentials
+get you in, because nothing is authenticated.
+
+### The demo path
+
+Worth walking in this order — it is the order that tells the story:
+
+1. **Log in** → the store selector. Three stores; note the alert badges.
+2. **Brasserie du Sablon** → the dashboard. Stock value, what needs reordering, recent activity.
+3. **Inventaire** → master–detail. Select **Blanc de poulet**.
+4. On the item detail, the **Fournisseurs et prix** section shows three suppliers at three
+   different prices, and calls out that the default supplier costs 1,35 € more per kg than
+   the cheapest. This is the point of the product.
+5. **Historique des prix** on that supplier → six months of increases, 11,20 € to 12,80 €.
+6. **Rapports → Comparaison des prix** → the same finding as a report, opening on the item
+   with the largest gap.
+7. **Taverne Saint-Gilles** from the store switcher → a brand-new empty store, so every
+   empty state is real rather than described.
+8. **Paramètres → Synchronisation** → toggle offline mode to show the offline banner.
 
 ### Fonts
 
 The type scale expects **Inter**, which is not committed. Download the `.ttf` files
 (Regular / Medium / SemiBold / Bold) into `fonts/` and uncomment the `fonts:` block in
-`pubspec.yaml`. Without them the app falls back to Roboto.
+`pubspec.yaml`. Without them the app falls back to Roboto and looks noticeably more generic.
 
 `google_fonts` is deliberately not used — it fetches over the network at runtime, which is
 wrong for an app whose whole premise is working offline in a kitchen.
+
+---
 
 ## Project layout
 
@@ -50,54 +78,134 @@ feature without touching UI code.
 
 ```
 lib/
-  app/          MaterialApp + router wiring
+  app/          MaterialApp, router, route paths
   core/         theme, formatters, constants, responsive helpers
   features/     one folder per feature, presentation/ only in Phase 1
   shared/       cross-feature widgets (buttons, dialogs, states, shell)
   models/       immutable plain Dart classes — shape only, no logic
-  mock_data/    ALL static data. Never inline fake lists in a widget.
+  mock_data/    ALL static data + the lookups over it
   services/     Phase 2 stubs — empty classes, no logic
   l10n/         .arb translations + generated AppLocalizations
-  dev/          development-only. NOT shipped — removed at handoff.
+  dev/          development-only reference. Not product — see below.
+tool/
+  ux_audit.py   re-runnable check against the UX rules below
 ```
 
 ### The theme gallery
 
-`lib/dev/theme_gallery_page.dart` renders every design-system primitive on one page. Until
-the router lands in Stage 3 it is the app's `home`, so `flutter run` opens straight into it.
+`lib/dev/theme_gallery_page.dart` renders every design-system primitive and shared
+component on one page, interactively. Reachable at **`/dev/gallery`**, linked from nothing.
 
-It exists so contrast, hue separation and type sizing get judged once, before forty screens
-bake the mistakes in. Nothing under `features/` may import from `lib/dev/`.
+It was originally going to be deleted at handoff. It is kept because it is the fastest way
+to see what components exist and how they behave, and re-deriving that from 35 screens is
+worse. **A production build should drop `lib/dev/` and its route.** Nothing outside that
+folder imports it, so removing it is a two-line change.
 
-## Design system
+---
 
-Defined in `lib/core/theme/`. Two rules the code deliberately enforces:
+## Where Phase 2 plugs in
 
-- **Teal is for actions, green is for "en stock".** Different hues on purpose. If the primary
-  button and the in-stock badge share a hue, the status signal stops carrying meaning.
-- **Status is never colour alone.** Every status pairs a colour with an icon and a label —
-  roughly 1 in 12 men has a red/green colour vision deficiency, and the app's core signal is
-  red/amber/green.
+Four empty stubs in `lib/services/` mark the seams:
 
-Sizing floors live in `AppSizing`: 48dp minimum tap target, 56dp buttons and inputs, 64dp
-table rows and stepper buttons. Nothing renders below 13pt.
+| File | Phase 2 responsibility |
+|---|---|
+| `local_database_service.dart` | Local-first storage (drift/isar) |
+| `sync_service.dart` | Offline queue + conflict resolution |
+| `api_service.dart` | Remote API client |
+| `auth_service.dart` | Real authentication |
+
+**The migration path is `mock_data/mock_queries.dart`.** Screens never touch the mock lists
+directly; they call `MockQueries.itemsForStore(storeId)`, `MockQueries.pricesForItem(itemId)`
+and so on. Replace those with repositories returning the same shapes and the call sites
+barely move.
+
+The models are already Phase 2 ready: immutable, no `fromJson`, no persistence annotations,
+no methods with logic. Add serialization alongside them rather than inside them.
+
+Store scoping is structural rather than stateful — the store id is in the route path
+(`/store/:storeId/inventory`), so no screen can render without knowing which store it is
+for, and store switching is just navigation.
+
+---
 
 ## Conventions
 
 - **No hardcoded user-facing strings.** Everything goes through
-  `AppLocalizations.of(context)`. See [`lib/l10n/README.md`](lib/l10n/README.md).
-- **No formatting by hand.** Currency (`12,50 €`) and dates (`22/08/2026`) come from
-  `intl` with the `fr_BE` locale, via `core/utils/formatters.dart`.
+  `AppLocalizations.of(context)` — 413 keys, each with a translator description. See
+  [`lib/l10n/README.md`](lib/l10n/README.md). Adding Dutch is a translation job, not a
+  refactor.
+- **No formatting by hand.** Currency (`12,50 €`) and dates (`22/08/2026`) come from `intl`
+  with the `fr_BE` locale, via `core/utils/formatters.dart`.
 - **`intl` is pinned to exactly `0.20.2`** — `flutter_localizations` from the SDK requires
   it. Widening that constraint breaks `flutter pub get`.
+- **All static data lives in `mock_data/`.** A hardcoded list inside a widget is a bug.
 - **Models carry no logic** — no `fromJson`, no persistence annotations.
-- Run `flutter analyze` before committing; lints are strict and the tree is clean.
+- Run `flutter analyze` and `flutter test` before committing. Both are clean; lints are
+  strict and `unused_import` is an error.
 
-## Domain rules the UI must reflect
+---
 
-1. An item has **no single cost**. Price is an attribute of the *item–supplier link* — one
-   product can have several suppliers, each at their own price.
-2. Supplier prices **change over time**, and every change is a history entry.
-3. Categories and units are **created in-app**, not hardcoded. Every such dropdown offers
-   an inline "+ Créer".
-4. Once a store is selected, all data is **scoped to that store**.
+## Domain rules the UI enforces
+
+1. **An item has no single cost.** Price is an attribute of the *item–supplier link*, since
+   one product can come from several suppliers at different prices. `Item` has no price
+   field at all — the wrong model is impossible to write. The add/edit form explains the
+   absence on screen, because anyone who has used another inventory app will look for it.
+2. **Supplier prices change over time**, and every change is a history entry scoped to the
+   item–supplier *pair*. "What has this supplier charged us for chicken" is answerable;
+   "what has chicken cost" is not.
+3. **Categories and units are created in-app.** Every such dropdown carries an inline
+   "+ Créer" that opens a sheet without leaving the form — a cook who needs a "botte" unit
+   mid-form should not have to abandon it.
+4. **Store scoping**: once a store is selected, every screen shows that store's data only.
+
+---
+
+## UX rules, and how they are enforced
+
+The brief's users are standing, moving fast, with wet hands, mid-service. That drove:
+
+- Minimum tap target 48dp; buttons and inputs 56dp; stepper buttons and table rows 64dp
+- Nothing renders below 13pt
+- Status is **never** colour alone — every stock badge pairs colour with a distinct icon
+  shape and a text label
+- Every destructive action confirms first, and the dialog **names the record**
+- Every action that changes something fires an identical snackbar
+- Every list has a designed empty state, and distinguishes "nothing here yet" from "your
+  filters matched nothing"
+
+`python tool/ux_audit.py` re-checks the mechanical parts of that list. It currently reports
+zero violations. Re-run it after adding screens.
+
+---
+
+## Testing
+
+```bash
+flutter test
+```
+
+148 tests. The three that earn their keep:
+
+- **`router_test.dart`** walks all 37 routes three times — at the 1280×800 baseline, at
+  1024×600, and in portrait — asserting nothing throws or overflows. French labels run
+  15–25% longer than the English a layout was designed against, and this caught six real
+  overflow bugs during the build, including a navigation rail that silently grew to 380dp
+  to fit "Mouvements de stock" and stole 148dp from every screen.
+- **`mock_data_test.dart`** checks referential integrity across the hand-written dataset,
+  and asserts the demo-critical properties: all three stock statuses present, one store
+  empty, at least one item with three competing suppliers, at least one where the default
+  supplier is not the cheapest.
+- **`components_test.dart`** pins the component behaviour the brief depends on — the status
+  badge never using colour alone, the stepper accepting `2,5`, the dropdown's inline
+  "+ Créer".
+
+Dates in the mock data are anchored to `DateTime.now()` so the demo always looks current;
+nothing asserts on them.
+
+---
+
+## Out of scope for Phase 1
+
+Real authentication, any persistence, sync, network calls, repositories or business logic
+layers, real PDF/CSV export, and recipe/BOM costing (out of the MVP entirely).
