@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../app/routes.dart';
+import '../../../../app/navigation.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -75,7 +75,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
             label: l10n.forgotBackToLogin,
             icon: LucideIcons.arrowLeft,
             fullWidth: true,
-            onPressed: () => context.go(Routes.login),
+            onPressed: () => context.goSection(Routes.login),
           ),
         ],
       );
@@ -105,7 +105,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
         SecondaryButton(
           label: l10n.forgotBackToLogin,
           fullWidth: true,
-          onPressed: () => context.go(Routes.login),
+          onPressed: () => context.goSection(Routes.login),
         ),
       ],
     );

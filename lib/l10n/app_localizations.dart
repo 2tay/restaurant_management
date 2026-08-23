@@ -2571,6 +2571,96 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Plus cher que {supplier} de {amount} par {unit}.'**
   String linkSupplierDearerThan(String supplier, String amount, String unit);
+
+  /// Back control label naming where it leads, e.g. 'Retour à Inventaire'. Naming the destination means a rushed user does not have to guess.
+  ///
+  /// In fr, this message translates to:
+  /// **'Retour à {destination}'**
+  String backTo(String destination);
+
+  /// Back control label when the destination is too long to name.
+  ///
+  /// In fr, this message translates to:
+  /// **'Retour'**
+  String get backGeneric;
+
+  /// Screen-reader label for the breadcrumb trail.
+  ///
+  /// In fr, this message translates to:
+  /// **'Fil d\'ariane'**
+  String get breadcrumbLabel;
+
+  /// Title of the dialog shown when leaving a form with unsaved input. Narrow no-break space before the question mark.
+  ///
+  /// In fr, this message translates to:
+  /// **'Abandonner les modifications ?'**
+  String get discardChangesTitle;
+
+  /// Body of the unsaved-changes dialog.
+  ///
+  /// In fr, this message translates to:
+  /// **'Les informations saisies sur cette page seront perdues.'**
+  String get discardChangesBody;
+
+  /// Confirms leaving and losing the input. Sits on the right as the forward action.
+  ///
+  /// In fr, this message translates to:
+  /// **'Abandonner'**
+  String get discardChangesConfirm;
+
+  /// Returns to the form. Sits on the left as the dismissive action.
+  ///
+  /// In fr, this message translates to:
+  /// **'Continuer la saisie'**
+  String get discardChangesCancel;
+
+  /// Sub-navigation tab for the categories screen.
+  ///
+  /// In fr, this message translates to:
+  /// **'Catégories'**
+  String get catalogTabCategories;
+
+  /// Sub-navigation tab for the units screen.
+  ///
+  /// In fr, this message translates to:
+  /// **'Unités de mesure'**
+  String get catalogTabUnits;
+
+  /// Settings sub-navigation tab for store settings.
+  ///
+  /// In fr, this message translates to:
+  /// **'Établissement'**
+  String get settingsTabStore;
+
+  /// Settings sub-navigation tab for account settings.
+  ///
+  /// In fr, this message translates to:
+  /// **'Compte'**
+  String get settingsTabAccount;
+
+  /// Settings sub-navigation tab for notification preferences.
+  ///
+  /// In fr, this message translates to:
+  /// **'Notifications'**
+  String get settingsTabNotifications;
+
+  /// Settings sub-navigation tab for sync status.
+  ///
+  /// In fr, this message translates to:
+  /// **'Synchronisation'**
+  String get settingsTabSync;
+
+  /// Stock movement sub-navigation tab for the history list.
+  ///
+  /// In fr, this message translates to:
+  /// **'Historique'**
+  String get movementsTabHistory;
+
+  /// Accessible label on the inventory skeleton loader.
+  ///
+  /// In fr, this message translates to:
+  /// **'Chargement de l\'inventaire…'**
+  String get loadingItems;
 }
 
 class _AppLocalizationsDelegate

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../app/routes.dart';
+import '../../../../app/navigation.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/responsive.dart';
@@ -114,7 +114,7 @@ class InventoryListPage extends ConsumerWidget {
         PrimaryButton(
           label: l10n.actionAddItem,
           icon: LucideIcons.plus,
-          onPressed: () => context.go(Routes.toAddItem(storeId)),
+          onPressed: () => context.pushScreen(Routes.toAddItem(storeId)),
         ),
       ],
       child: canSplit
@@ -287,7 +287,7 @@ class _ListPane extends ConsumerWidget {
                         if (canSplit) {
                           notifier.select(item.id);
                         } else {
-                          context.go(Routes.toItem(storeId, item.id));
+                          context.pushScreen(Routes.toItem(storeId, item.id));
                         }
                       },
                     );
@@ -330,7 +330,7 @@ class _EmptyList extends StatelessWidget {
       message: l10n.emptyStateNoItemsBody,
       actionLabel: l10n.actionAddItem,
       actionIcon: LucideIcons.plus,
-      onAction: () => context.go(Routes.toAddItem(storeId)),
+      onAction: () => context.pushScreen(Routes.toAddItem(storeId)),
     );
   }
 }

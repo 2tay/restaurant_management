@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../../../app/navigation.dart';
+import '../../../../app/routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -55,6 +57,14 @@ class RolesPermissionsPage extends StatelessWidget {
     ];
 
     return ShellPage(
+      back: BackDestination(
+        label: l10n.teamTitle,
+        path: Routes.toTeam(storeId),
+      ),
+      crumbs: [
+        Crumb(l10n.teamTitle, Routes.toTeam(storeId)),
+        Crumb(l10n.rolesTitle),
+      ],
       title: l10n.rolesTitle,
       subtitle: l10n.rolesSubtitle,
       child: Column(

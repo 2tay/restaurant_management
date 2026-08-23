@@ -21,6 +21,7 @@ class ConfirmDialog extends StatelessWidget {
     required this.title,
     required this.confirmLabel,
     this.message,
+    this.cancelLabel,
     this.isDestructive = true,
     super.key,
   });
@@ -28,6 +29,11 @@ class ConfirmDialog extends StatelessWidget {
   final String title;
   final String? message;
   final String confirmLabel;
+
+  /// Overrides the default "Annuler". The discard-changes dialog uses
+  /// "Continuer la saisie", which says what staying does rather than making
+  /// the user infer it.
+  final String? cancelLabel;
 
   /// False for a confirmation that is merely significant rather than
   /// irreversible — leaving a form with unsaved changes, say.
@@ -39,6 +45,7 @@ class ConfirmDialog extends StatelessWidget {
     required String title,
     required String confirmLabel,
     String? message,
+    String? cancelLabel,
     bool isDestructive = true,
   }) async {
     final confirmed = await showDialog<bool>(
@@ -47,6 +54,7 @@ class ConfirmDialog extends StatelessWidget {
         title: title,
         message: message,
         confirmLabel: confirmLabel,
+        cancelLabel: cancelLabel,
         isDestructive: isDestructive,
       ),
     );
@@ -94,9 +102,11 @@ class ConfirmDialog extends StatelessWidget {
         AppSpacing.xl,
       ),
       actions: [
+        // Dismissive action on the left, confirming action on the right — the
+        // same convention as every form and header in the app.
         TextButton(
           onPressed: () => Navigator.of(context).pop(false),
-          child: Text(l10n.actionCancel),
+          child: Text(cancelLabel ?? l10n.actionCancel),
         ),
         const SizedBox(width: AppSpacing.sm),
         FilledButton(

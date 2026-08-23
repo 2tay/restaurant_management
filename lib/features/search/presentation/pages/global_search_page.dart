@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../app/routes.dart';
+import '../../../../app/navigation.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/formatters.dart';
@@ -63,6 +63,10 @@ class _GlobalSearchPageState extends State<GlobalSearchPage> {
     final total = items.length + suppliers.length + categories.length;
 
     return ShellPage(
+      back: BackDestination(
+        label: l10n.dashboardTitle,
+        path: Routes.toDashboard(widget.storeId),
+      ),
       title: l10n.searchTitle,
       scrollable: false,
       child: Column(
@@ -130,7 +134,7 @@ class _GlobalSearchPageState extends State<GlobalSearchPage> {
                                 supplier.contactName,
                                 supplier.city,
                               ),
-                              onTap: () => context.go(
+                              onTap: () => context.pushScreen(
                                 Routes.toSupplier(widget.storeId, supplier.id),
                               ),
                             ),
@@ -153,7 +157,7 @@ class _GlobalSearchPageState extends State<GlobalSearchPage> {
                               subtitle: l10n.categoriesItemCount(
                                 MockQueries.itemCountInCategory(category.id),
                               ),
-                              onTap: () => context.go(
+                              onTap: () => context.goSection(
                                 Routes.toCategories(widget.storeId),
                               ),
                             ),
@@ -185,7 +189,7 @@ class _ItemResult extends StatelessWidget {
     final unit = MockQueries.unitAbbreviationOf(item.unitId);
 
     return AppCard(
-      onTap: () => context.go(Routes.toItem(storeId, item.id)),
+      onTap: () => context.pushScreen(Routes.toItem(storeId, item.id)),
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.lg,
         vertical: AppSpacing.md,

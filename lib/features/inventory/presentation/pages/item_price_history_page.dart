@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../app/routes.dart';
+import '../../../../app/navigation.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
@@ -41,7 +41,7 @@ class ItemPriceHistoryPage extends StatelessWidget {
       return ShellPage(
         title: l10n.priceHistoryTitle,
         child: ErrorState(
-          onRetry: () => context.go(Routes.toInventory(storeId)),
+          onRetry: () => context.goSection(Routes.toInventory(storeId)),
         ),
       );
     }
@@ -57,13 +57,22 @@ class ItemPriceHistoryPage extends StatelessWidget {
     final totalChange = current.pricePerUnit - firstPrice;
 
     return ShellPage(
+      back: BackDestination(
+        label: item.name,
+        path: Routes.toItem(storeId, itemId),
+      ),
+      crumbs: [
+        Crumb(l10n.inventoryTitle, Routes.toInventory(storeId)),
+        Crumb(item.name, Routes.toItem(storeId, itemId)),
+        Crumb(l10n.priceHistoryTitle),
+      ],
       title: l10n.priceHistoryTitle,
       subtitle: l10n.priceHistoryFor(item.name, supplier.name),
       actions: [
         SecondaryButton(
           label: l10n.actionBack,
           icon: LucideIcons.arrowLeft,
-          onPressed: () => context.go(Routes.toItem(storeId, itemId)),
+          onPressed: () => context.pushScreen(Routes.toItem(storeId, itemId)),
         ),
       ],
       child: Column(

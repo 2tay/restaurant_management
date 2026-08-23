@@ -1483,4 +1483,52 @@ class AppLocalizationsFr extends AppLocalizations {
   String linkSupplierDearerThan(String supplier, String amount, String unit) {
     return 'Plus cher que $supplier de $amount par $unit.';
   }
+
+  @override
+  String backTo(String destination) {
+    return 'Retour à $destination';
+  }
+
+  @override
+  String get backGeneric => 'Retour';
+
+  @override
+  String get breadcrumbLabel => 'Fil d\'ariane';
+
+  @override
+  String get discardChangesTitle => 'Abandonner les modifications ?';
+
+  @override
+  String get discardChangesBody =>
+      'Les informations saisies sur cette page seront perdues.';
+
+  @override
+  String get discardChangesConfirm => 'Abandonner';
+
+  @override
+  String get discardChangesCancel => 'Continuer la saisie';
+
+  @override
+  String get catalogTabCategories => 'Catégories';
+
+  @override
+  String get catalogTabUnits => 'Unités de mesure';
+
+  @override
+  String get settingsTabStore => 'Établissement';
+
+  @override
+  String get settingsTabAccount => 'Compte';
+
+  @override
+  String get settingsTabNotifications => 'Notifications';
+
+  @override
+  String get settingsTabSync => 'Synchronisation';
+
+  @override
+  String get movementsTabHistory => 'Historique';
+
+  @override
+  String get loadingItems => 'Chargement de l\'inventaire…';
 }

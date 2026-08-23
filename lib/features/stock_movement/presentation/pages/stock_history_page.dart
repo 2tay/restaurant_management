@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../app/routes.dart';
+import '../../../../app/navigation.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../mock_data/mock_data.dart';
@@ -60,12 +60,13 @@ class _StockHistoryPageState extends State<StockHistoryPage> {
         SecondaryButton(
           label: l10n.actionLogUsage,
           icon: LucideIcons.arrowUpFromLine,
-          onPressed: () => context.go(Routes.toStockOut(widget.storeId)),
+          onPressed: () =>
+              context.pushScreen(Routes.toStockOut(widget.storeId)),
         ),
         PrimaryButton(
           label: l10n.actionAddDelivery,
           icon: LucideIcons.arrowDownToLine,
-          onPressed: () => context.go(Routes.toStockIn(widget.storeId)),
+          onPressed: () => context.pushScreen(Routes.toStockIn(widget.storeId)),
         ),
       ],
       child: Column(
@@ -140,7 +141,9 @@ class _StockHistoryPageState extends State<StockHistoryPage> {
                         ? l10n.actionAddDelivery
                         : l10n.inventoryClearFilters,
                     onAction: allMovements.isEmpty
-                        ? () => context.go(Routes.toStockIn(widget.storeId))
+                        ? () => context.pushScreen(
+                            Routes.toStockIn(widget.storeId),
+                          )
                         : _clearFilters,
                   )
                 : ListView.separated(
@@ -149,7 +152,7 @@ class _StockHistoryPageState extends State<StockHistoryPage> {
                         const SizedBox(height: AppSpacing.sm),
                     itemBuilder: (context, index) => MovementRow(
                       movement: movements[index],
-                      onTap: () => context.go(
+                      onTap: () => context.pushScreen(
                         Routes.toItem(widget.storeId, movements[index].itemId),
                       ),
                     ),

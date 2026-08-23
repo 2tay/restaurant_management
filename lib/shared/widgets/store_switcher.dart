@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../app/routes.dart';
+import '../../app/navigation.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../l10n/app_localizations.dart';
@@ -30,9 +30,9 @@ class StoreSwitcher extends StatelessWidget {
       shape: const RoundedRectangleBorder(borderRadius: AppRadius.mdAll),
       onSelected: (value) {
         if (value == _allStoresValue) {
-          context.go(Routes.stores);
+          context.goSection(Routes.stores);
         } else {
-          context.go(Routes.toDashboard(value));
+          context.goSection(Routes.toDashboard(value));
         }
       },
       itemBuilder: (context) => [

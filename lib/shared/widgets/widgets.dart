@@ -5,6 +5,7 @@
 /// problem.
 library;
 
+export 'app_breadcrumbs.dart';
 export 'app_card.dart';
 export 'app_dropdown.dart';
 export 'app_scaffold.dart';
@@ -12,16 +13,19 @@ export 'app_sidebar.dart';
 export 'app_snackbar.dart';
 export 'app_text_field.dart';
 export 'app_top_bar.dart';
+export 'back_control.dart';
 export 'confirm_dialog.dart';
 export 'data_table_wrapper.dart';
 export 'empty_state.dart';
 export 'error_state.dart';
 export 'filter_pill.dart';
+export 'form_scaffold.dart';
 export 'loading_state.dart';
 export 'offline_banner.dart';
 export 'primary_button.dart';
 export 'quantity_stepper.dart';
 export 'search_field.dart';
 export 'section_header.dart';
+export 'section_tabs.dart';
 export 'stock_status_badge.dart';
 export 'store_switcher.dart';

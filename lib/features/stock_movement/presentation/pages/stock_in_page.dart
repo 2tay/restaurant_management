@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../app/routes.dart';
+import '../../../../app/navigation.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
@@ -100,6 +100,8 @@ class _StockInPageState extends State<StockInPage> {
         : Formatters.quantity(price.pricePerUnit);
   }
 
+  bool get _isDirty => _itemId != null;
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -137,144 +139,132 @@ class _StockInPageState extends State<StockInPage> {
 
     final total = (_enteredPrice ?? 0) * _quantity;
 
-    return ShellPage(
+    return FormScaffold(
       title: l10n.stockInTitle,
       subtitle: l10n.stockInSubtitle,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 720),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            AppCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  AppDropdown<String>(
-                    label: l10n.stockInItem,
-                    value: _itemId,
-                    options: items,
-                    onChanged: _onItemChanged,
-                  ),
-                  const SizedBox(height: AppSpacing.lg),
-                  AppDropdown<String>(
-                    label: l10n.stockInSupplier,
-                    value: _supplierId,
-                    options: supplierOptions,
-                    enabled: item != null,
-                    onChanged: _onSupplierChanged,
-                  ),
-                  if (item != null && supplierOptions.isEmpty) ...[
-                    const SizedBox(height: AppSpacing.sm),
-                    _Hint(
-                      icon: LucideIcons.triangleAlert,
-                      colors: AppColors.lowStock,
-                      message: l10n.stockInNoSupplier,
-                      action: SecondaryButton(
-                        label: l10n.itemLinkSupplier,
-                        onPressed: () => context.go(
-                          Routes.toLinkSupplier(widget.storeId, item.id),
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-
-            AppCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    l10n.stockInQuantity,
-                    style: theme.textTheme.labelMedium,
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-                  QuantityStepper(
-                    value: _quantity,
-                    unitAbbreviation: unit,
-                    min: 0,
-                    onChanged: (value) => setState(() => _quantity = value),
-                  ),
-                  const SizedBox(height: AppSpacing.xl),
-
-                  AppTextField.currency(
-                    label: l10n.stockInUnitPrice(unit.isEmpty ? '—' : unit),
-                    controller: _priceController,
-                    enabled: _supplierId != null,
-                    onChanged: (_) => setState(() {}),
-                  ),
-                  if (_supplierId != null && !_priceWasEdited) ...[
-                    const SizedBox(height: AppSpacing.sm),
-                    Text(
-                      l10n.stockInPriceAutofilled(
-                        MockQueries.supplierNameOf(_supplierId),
-                      ),
-                      style: theme.textTheme.bodySmall,
-                    ),
-                  ],
-                  if (_priceWasEdited) ...[
-                    const SizedBox(height: AppSpacing.sm),
-                    _Hint(
-                      icon: LucideIcons.info,
-                      colors: AppColors.lowStock,
-                      message: l10n.stockInPriceChanged(
-                        Formatters.price(_autofilledPrice!),
-                      ),
-                    ),
-                  ],
-
-                  const SizedBox(height: AppSpacing.xl),
-                  Text(l10n.stockInDate, style: theme.textTheme.labelMedium),
-                  const SizedBox(height: AppSpacing.sm),
-                  _DateField(
-                    date: _date,
-                    onChanged: (value) => setState(() => _date = value),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-
-            if (_canSubmit && total > 0)
-              AppCard(
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        l10n.stockInTotal,
-                        style: theme.textTheme.titleSmall,
-                      ),
-                    ),
-                    Text(
-                      Formatters.price(total),
-                      style: AppTypography.numericLarge.copyWith(fontSize: 26),
-                    ),
-                  ],
-                ),
-              ),
-            const SizedBox(height: AppSpacing.xl),
-
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
+      back: BackDestination(
+        label: l10n.movementsTitle,
+        path: Routes.toMovements(widget.storeId),
+      ),
+      crumbs: [
+        Crumb(l10n.movementsTitle, Routes.toMovements(widget.storeId)),
+        Crumb(l10n.stockInTitle),
+      ],
+      submitLabel: l10n.stockInSubmit,
+      submitIcon: LucideIcons.arrowDownToLine,
+      onSubmit: _canSubmit ? _submit : null,
+      isDirty: _isDirty,
+      maxWidth: 720,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          AppCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                SecondaryButton(
-                  label: l10n.actionCancel,
-                  onPressed: () =>
-                      context.go(Routes.toMovements(widget.storeId)),
+                AppDropdown<String>(
+                  label: l10n.stockInItem,
+                  value: _itemId,
+                  options: items,
+                  onChanged: _onItemChanged,
                 ),
-                const SizedBox(width: AppSpacing.md),
-                PrimaryButton(
-                  label: l10n.stockInSubmit,
-                  icon: LucideIcons.arrowDownToLine,
-                  large: true,
-                  onPressed: _canSubmit ? _submit : null,
+                const SizedBox(height: AppSpacing.lg),
+                AppDropdown<String>(
+                  label: l10n.stockInSupplier,
+                  value: _supplierId,
+                  options: supplierOptions,
+                  enabled: item != null,
+                  onChanged: _onSupplierChanged,
+                ),
+                if (item != null && supplierOptions.isEmpty) ...[
+                  const SizedBox(height: AppSpacing.sm),
+                  _Hint(
+                    icon: LucideIcons.triangleAlert,
+                    colors: AppColors.lowStock,
+                    message: l10n.stockInNoSupplier,
+                    action: SecondaryButton(
+                      label: l10n.itemLinkSupplier,
+                      onPressed: () => context.pushScreen(
+                        Routes.toLinkSupplier(widget.storeId, item.id),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+
+          AppCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(l10n.stockInQuantity, style: theme.textTheme.labelMedium),
+                const SizedBox(height: AppSpacing.sm),
+                QuantityStepper(
+                  value: _quantity,
+                  unitAbbreviation: unit,
+                  min: 0,
+                  onChanged: (value) => setState(() => _quantity = value),
+                ),
+                const SizedBox(height: AppSpacing.xl),
+
+                AppTextField.currency(
+                  label: l10n.stockInUnitPrice(unit.isEmpty ? '—' : unit),
+                  controller: _priceController,
+                  enabled: _supplierId != null,
+                  onChanged: (_) => setState(() {}),
+                ),
+                if (_supplierId != null && !_priceWasEdited) ...[
+                  const SizedBox(height: AppSpacing.sm),
+                  Text(
+                    l10n.stockInPriceAutofilled(
+                      MockQueries.supplierNameOf(_supplierId),
+                    ),
+                    style: theme.textTheme.bodySmall,
+                  ),
+                ],
+                if (_priceWasEdited) ...[
+                  const SizedBox(height: AppSpacing.sm),
+                  _Hint(
+                    icon: LucideIcons.info,
+                    colors: AppColors.lowStock,
+                    message: l10n.stockInPriceChanged(
+                      Formatters.price(_autofilledPrice!),
+                    ),
+                  ),
+                ],
+
+                const SizedBox(height: AppSpacing.xl),
+                Text(l10n.stockInDate, style: theme.textTheme.labelMedium),
+                const SizedBox(height: AppSpacing.sm),
+                _DateField(
+                  date: _date,
+                  onChanged: (value) => setState(() => _date = value),
                 ),
               ],
             ),
-          ],
-        ),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+
+          if (_canSubmit && total > 0)
+            AppCard(
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      l10n.stockInTotal,
+                      style: theme.textTheme.titleSmall,
+                    ),
+                  ),
+                  Text(
+                    Formatters.price(total),
+                    style: AppTypography.numericLarge.copyWith(fontSize: 26),
+                  ),
+                ],
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -282,7 +272,7 @@ class _StockInPageState extends State<StockInPage> {
   void _submit() {
     final l10n = AppLocalizations.of(context);
     AppSnackBar.success(context, l10n.stockInRecorded);
-    context.go(Routes.toMovements(widget.storeId));
+    context.goSection(Routes.toMovements(widget.storeId));
   }
 }
 

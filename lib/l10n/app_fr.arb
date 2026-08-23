@@ -963,5 +963,40 @@
   "linkSupplierSamePriceAs": "Même prix que {supplier}.",
   "@linkSupplierSamePriceAs": {"description": "Live comparison when the entered price matches the current cheapest.", "placeholders": {"supplier": {"type": "String"}}},
   "linkSupplierDearerThan": "Plus cher que {supplier} de {amount} par {unit}.",
-  "@linkSupplierDearerThan": {"description": "Live comparison when the entered price is above the current cheapest.", "placeholders": {"supplier": {"type": "String"}, "amount": {"type": "String"}, "unit": {"type": "String"}}}
+  "@linkSupplierDearerThan": {"description": "Live comparison when the entered price is above the current cheapest.", "placeholders": {"supplier": {"type": "String"}, "amount": {"type": "String"}, "unit": {"type": "String"}}},
+"backTo": "Retour à {destination}",
+  "@backTo": {"description": "Back control label naming where it leads, e.g. 'Retour à Inventaire'. Naming the destination means a rushed user does not have to guess.", "placeholders": {"destination": {"type": "String"}}},
+  "backGeneric": "Retour",
+  "@backGeneric": {"description": "Back control label when the destination is too long to name."},
+  "breadcrumbLabel": "Fil d'ariane",
+  "@breadcrumbLabel": {"description": "Screen-reader label for the breadcrumb trail."},
+
+  "discardChangesTitle": "Abandonner les modifications ?",
+  "@discardChangesTitle": {"description": "Title of the dialog shown when leaving a form with unsaved input. Narrow no-break space before the question mark."},
+  "discardChangesBody": "Les informations saisies sur cette page seront perdues.",
+  "@discardChangesBody": {"description": "Body of the unsaved-changes dialog."},
+  "discardChangesConfirm": "Abandonner",
+  "@discardChangesConfirm": {"description": "Confirms leaving and losing the input. Sits on the right as the forward action."},
+  "discardChangesCancel": "Continuer la saisie",
+  "@discardChangesCancel": {"description": "Returns to the form. Sits on the left as the dismissive action."},
+
+  "catalogTabCategories": "Catégories",
+  "@catalogTabCategories": {"description": "Sub-navigation tab for the categories screen."},
+  "catalogTabUnits": "Unités de mesure",
+  "@catalogTabUnits": {"description": "Sub-navigation tab for the units screen."},
+
+  "settingsTabStore": "Établissement",
+  "@settingsTabStore": {"description": "Settings sub-navigation tab for store settings."},
+  "settingsTabAccount": "Compte",
+  "@settingsTabAccount": {"description": "Settings sub-navigation tab for account settings."},
+  "settingsTabNotifications": "Notifications",
+  "@settingsTabNotifications": {"description": "Settings sub-navigation tab for notification preferences."},
+  "settingsTabSync": "Synchronisation",
+  "@settingsTabSync": {"description": "Settings sub-navigation tab for sync status."},
+
+  "movementsTabHistory": "Historique",
+  "@movementsTabHistory": {"description": "Stock movement sub-navigation tab for the history list."},
+
+  "loadingItems": "Chargement de l'inventaire…",
+  "@loadingItems": {"description": "Accessible label on the inventory skeleton loader."}
 }

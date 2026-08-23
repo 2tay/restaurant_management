@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../app/routes.dart';
+import '../../../../app/navigation.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/responsive.dart';
@@ -58,7 +58,7 @@ class StoreSelectorPage extends StatelessWidget {
                       PrimaryButton(
                         label: l10n.storesAdd,
                         icon: LucideIcons.plus,
-                        onPressed: () => context.go(Routes.addStore),
+                        onPressed: () => context.goSection(Routes.addStore),
                       ),
                     ],
                   ),
@@ -79,14 +79,15 @@ class StoreSelectorPage extends StatelessWidget {
                       final store = mockStores[index];
                       return StoreCard(
                         store: store,
-                        onTap: () => context.go(Routes.toDashboard(store.id)),
+                        onTap: () =>
+                            context.goSection(Routes.toDashboard(store.id)),
                       );
                     },
                   ),
                   const SizedBox(height: AppSpacing.xxl),
                   Center(
                     child: TextButton.icon(
-                      onPressed: () => context.go(Routes.login),
+                      onPressed: () => context.goSection(Routes.login),
                       icon: const Icon(LucideIcons.logOut),
                       label: Text(l10n.actionLogout),
                     ),

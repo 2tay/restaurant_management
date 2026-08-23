@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../app/routes.dart';
+import '../../../../app/navigation.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/responsive.dart';
@@ -49,7 +49,8 @@ class _SuppliersListPageState extends State<SuppliersListPage> {
         PrimaryButton(
           label: l10n.suppliersAdd,
           icon: LucideIcons.plus,
-          onPressed: () => context.go(Routes.toAddSupplier(widget.storeId)),
+          onPressed: () =>
+              context.pushScreen(Routes.toAddSupplier(widget.storeId)),
         ),
       ],
       child: Column(
@@ -72,8 +73,9 @@ class _SuppliersListPageState extends State<SuppliersListPage> {
                           message: l10n.suppliersEmptyBody,
                           actionLabel: l10n.suppliersAdd,
                           actionIcon: LucideIcons.plus,
-                          onAction: () =>
-                              context.go(Routes.toAddSupplier(widget.storeId)),
+                          onAction: () => context.pushScreen(
+                            Routes.toAddSupplier(widget.storeId),
+                          ),
                         )
                       : EmptyState.noResults(l10n))
                 : GridView.builder(
@@ -109,7 +111,7 @@ class _SupplierCard extends StatelessWidget {
     final productCount = MockQueries.itemCountForSupplier(supplier.id);
 
     return AppCard(
-      onTap: () => context.go(Routes.toSupplier(storeId, supplier.id)),
+      onTap: () => context.pushScreen(Routes.toSupplier(storeId, supplier.id)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

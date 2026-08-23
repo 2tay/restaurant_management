@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../app/routes.dart';
+import '../../../../app/navigation.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
@@ -36,7 +36,7 @@ class SupplierDetailPage extends StatelessWidget {
       return ShellPage(
         title: l10n.suppliersTitle,
         child: ErrorState(
-          onRetry: () => context.go(Routes.toSuppliers(storeId)),
+          onRetry: () => context.goSection(Routes.toSuppliers(storeId)),
         ),
       );
     }
@@ -44,6 +44,14 @@ class SupplierDetailPage extends StatelessWidget {
     final prices = MockQueries.pricesForSupplier(supplierId);
 
     return ShellPage(
+      back: BackDestination(
+        label: l10n.suppliersTitle,
+        path: Routes.toSuppliers(storeId),
+      ),
+      crumbs: [
+        Crumb(l10n.suppliersTitle, Routes.toSuppliers(storeId)),
+        Crumb(supplier.name),
+      ],
       title: supplier.name,
       subtitle: '${supplier.postalCode} ${supplier.city}',
       actions: [
@@ -51,13 +59,13 @@ class SupplierDetailPage extends StatelessWidget {
           label: l10n.actionEdit,
           icon: LucideIcons.pencil,
           onPressed: () =>
-              context.go(Routes.toEditSupplier(storeId, supplierId)),
+              context.pushScreen(Routes.toEditSupplier(storeId, supplierId)),
         ),
         PrimaryButton(
           label: l10n.supplierEditPrices,
           icon: LucideIcons.scale,
           onPressed: () =>
-              context.go(Routes.toSupplierPricing(storeId, supplierId)),
+              context.pushScreen(Routes.toSupplierPricing(storeId, supplierId)),
         ),
       ],
       child: Column(
@@ -171,7 +179,8 @@ class SupplierDetailPage extends StatelessWidget {
         : price.pricePerUnit - cheapest.pricePerUnit;
 
     return DataRow(
-      onSelectChanged: (_) => context.go(Routes.toItem(storeId, itemId)),
+      onSelectChanged: (_) =>
+          context.pushScreen(Routes.toItem(storeId, itemId)),
       cells: [
         DataCell(Text(item?.name ?? '—')),
         DataCell(
@@ -213,7 +222,7 @@ class SupplierDetailPage extends StatelessWidget {
 
     if (confirmed && context.mounted) {
       AppSnackBar.success(context, l10n.supplierDeleted);
-      context.go(Routes.toSuppliers(storeId));
+      context.goSection(Routes.toSuppliers(storeId));
     }
   }
 }

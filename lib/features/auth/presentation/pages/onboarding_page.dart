@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../app/routes.dart';
+import '../../../../app/navigation.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -85,7 +85,7 @@ class OnboardingPage extends StatelessWidget {
                       label: l10n.onboardingStart,
                       icon: LucideIcons.arrowRight,
                       large: true,
-                      onPressed: () => context.go(Routes.stores),
+                      onPressed: () => context.goSection(Routes.stores),
                     ),
                   ),
                 ],

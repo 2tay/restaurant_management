@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../app/routes.dart';
+import '../../../../app/navigation.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/formatters.dart';
@@ -47,7 +47,7 @@ class StoreDashboardPage extends StatelessWidget {
           message: l10n.dashboardEmptyStoreBody,
           actionLabel: l10n.actionAddItem,
           actionIcon: LucideIcons.plus,
-          onAction: () => context.go(Routes.toAddItem(storeId)),
+          onAction: () => context.pushScreen(Routes.toAddItem(storeId)),
         ),
       );
     }
@@ -75,14 +75,15 @@ class StoreDashboardPage extends StatelessWidget {
                 value: Formatters.priceCompact(mockStockValuationTotal),
                 icon: LucideIcons.wallet,
                 caption: l10n.valuationBasis,
-                onTap: () => context.go(Routes.toValuationReport(storeId)),
+                onTap: () =>
+                    context.pushScreen(Routes.toValuationReport(storeId)),
               ),
               SummaryTile(
                 label: l10n.dashboardTileItems,
                 value: '${items.length}',
                 icon: LucideIcons.boxes,
                 caption: l10n.storesItemCount(items.length),
-                onTap: () => context.go(Routes.toInventory(storeId)),
+                onTap: () => context.goSection(Routes.toInventory(storeId)),
               ),
               SummaryTile(
                 label: l10n.dashboardTileLowStock,
@@ -93,7 +94,7 @@ class StoreDashboardPage extends StatelessWidget {
                 // on.
                 accent: alerts.isEmpty ? null : AppColors.lowStock,
                 caption: l10n.storesAlertCount(alerts.length),
-                onTap: () => context.go(Routes.toAlerts(storeId)),
+                onTap: () => context.goSection(Routes.toAlerts(storeId)),
               ),
               SummaryTile(
                 label: l10n.dashboardTileSuppliers,
@@ -102,7 +103,7 @@ class StoreDashboardPage extends StatelessWidget {
                 caption: l10n.suppliersProductCount(
                   MockQueries.itemsForStore(storeId).length,
                 ),
-                onTap: () => context.go(Routes.toSuppliers(storeId)),
+                onTap: () => context.goSection(Routes.toSuppliers(storeId)),
               ),
             ],
           ),
@@ -121,22 +122,22 @@ class StoreDashboardPage extends StatelessWidget {
                 label: l10n.actionAddDelivery,
                 icon: LucideIcons.arrowDownToLine,
                 emphasised: true,
-                onPressed: () => context.go(Routes.toStockIn(storeId)),
+                onPressed: () => context.pushScreen(Routes.toStockIn(storeId)),
               ),
               QuickActionButton(
                 label: l10n.actionLogUsage,
                 icon: LucideIcons.arrowUpFromLine,
-                onPressed: () => context.go(Routes.toStockOut(storeId)),
+                onPressed: () => context.pushScreen(Routes.toStockOut(storeId)),
               ),
               QuickActionButton(
                 label: l10n.actionAddItem,
                 icon: LucideIcons.plus,
-                onPressed: () => context.go(Routes.toAddItem(storeId)),
+                onPressed: () => context.pushScreen(Routes.toAddItem(storeId)),
               ),
               QuickActionButton(
                 label: l10n.navAlerts,
                 icon: LucideIcons.triangleAlert,
-                onPressed: () => context.go(Routes.toAlerts(storeId)),
+                onPressed: () => context.goSection(Routes.toAlerts(storeId)),
               ),
             ],
           ),
@@ -186,7 +187,7 @@ class _ActivityPanel extends StatelessWidget {
         SectionHeader(
           title: l10n.dashboardRecentActivity,
           trailing: TextButton(
-            onPressed: () => context.go(Routes.toMovements(storeId)),
+            onPressed: () => context.goSection(Routes.toMovements(storeId)),
             child: Text(l10n.actionViewAll),
           ),
         ),
@@ -197,7 +198,7 @@ class _ActivityPanel extends StatelessWidget {
               title: l10n.dashboardNoActivity,
               message: l10n.dashboardNoActivityBody,
               actionLabel: l10n.actionAddDelivery,
-              onAction: () => context.go(Routes.toStockIn(storeId)),
+              onAction: () => context.pushScreen(Routes.toStockIn(storeId)),
             ),
           )
         else
@@ -207,7 +208,7 @@ class _ActivityPanel extends StatelessWidget {
               child: MovementRow(
                 movement: movement,
                 onTap: () =>
-                    context.go(Routes.toItem(storeId, movement.itemId)),
+                    context.pushScreen(Routes.toItem(storeId, movement.itemId)),
               ),
             ),
       ],
@@ -235,7 +236,7 @@ class _AlertsPanel extends StatelessWidget {
           trailing: alerts.isEmpty
               ? null
               : TextButton(
-                  onPressed: () => context.go(Routes.toAlerts(storeId)),
+                  onPressed: () => context.goSection(Routes.toAlerts(storeId)),
                   child: Text(l10n.actionViewAll),
                 ),
         ),
@@ -274,7 +275,7 @@ class _AlertLine extends StatelessWidget {
     final unit = MockQueries.unitAbbreviationOf(item.unitId);
 
     return InkWell(
-      onTap: () => context.go(Routes.toItem(storeId, item.id)),
+      onTap: () => context.pushScreen(Routes.toItem(storeId, item.id)),
       child: Container(
         padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.lg,
