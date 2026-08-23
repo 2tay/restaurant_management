@@ -132,7 +132,7 @@ class _NotificationBell extends StatelessWidget {
       clipBehavior: Clip.none,
       children: [
         IconButton(
-          onPressed: () => context.pushScreen(Routes.toNotifications(storeId)),
+          onPressed: () => context.goSection(Routes.toNotifications(storeId)),
           icon: const Icon(LucideIcons.bell),
           tooltip: l10n.topBarNotifications,
         ),

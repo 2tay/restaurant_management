@@ -58,6 +58,12 @@ class _StockHistoryPageState extends State<StockHistoryPage> {
       scrollable: false,
       actions: [
         SecondaryButton(
+          label: l10n.actionAdjustStock,
+          icon: LucideIcons.clipboardCheck,
+          onPressed: () =>
+              context.pushScreen(Routes.toAdjustment(widget.storeId)),
+        ),
+        SecondaryButton(
           label: l10n.actionLogUsage,
           icon: LucideIcons.arrowUpFromLine,
           onPressed: () =>

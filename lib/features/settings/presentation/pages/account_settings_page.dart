@@ -23,6 +23,27 @@ class AccountSettingsPage extends StatelessWidget {
     final user = mockCurrentUser;
 
     return ShellPage(
+      tabs: SectionTabs(
+        currentPath: Routes.toAccountSettings(storeId),
+        tabs: [
+          SectionTab(
+            label: l10n.settingsTabStore,
+            path: Routes.toStoreSettings(storeId),
+          ),
+          SectionTab(
+            label: l10n.settingsTabAccount,
+            path: Routes.toAccountSettings(storeId),
+          ),
+          SectionTab(
+            label: l10n.settingsTabNotifications,
+            path: Routes.toNotificationSettings(storeId),
+          ),
+          SectionTab(
+            label: l10n.settingsTabSync,
+            path: Routes.toSyncStatus(storeId),
+          ),
+        ],
+      ),
       title: l10n.accountSettingsTitle,
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 720),

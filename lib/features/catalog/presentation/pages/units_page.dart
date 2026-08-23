@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../../../app/routes.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../mock_data/mock_data.dart';
 import '../../../../shared/widgets/widgets.dart';
@@ -26,6 +27,19 @@ class UnitsPage extends StatelessWidget {
     final units = MockQueries.unitsForStore(storeId);
 
     return ShellPage(
+      tabs: SectionTabs(
+        currentPath: Routes.toUnits(storeId),
+        tabs: [
+          SectionTab(
+            label: l10n.catalogTabCategories,
+            path: Routes.toCategories(storeId),
+          ),
+          SectionTab(
+            label: l10n.catalogTabUnits,
+            path: Routes.toUnits(storeId),
+          ),
+        ],
+      ),
       title: l10n.unitsTitle,
       subtitle: l10n.unitsSubtitle,
       actions: [

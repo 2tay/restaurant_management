@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../app/routes.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../shared/widgets/widgets.dart';
@@ -33,6 +34,27 @@ class _NotificationPreferencesPageState
     final l10n = AppLocalizations.of(context);
 
     return ShellPage(
+      tabs: SectionTabs(
+        currentPath: Routes.toNotificationSettings(widget.storeId),
+        tabs: [
+          SectionTab(
+            label: l10n.settingsTabStore,
+            path: Routes.toStoreSettings(widget.storeId),
+          ),
+          SectionTab(
+            label: l10n.settingsTabAccount,
+            path: Routes.toAccountSettings(widget.storeId),
+          ),
+          SectionTab(
+            label: l10n.settingsTabNotifications,
+            path: Routes.toNotificationSettings(widget.storeId),
+          ),
+          SectionTab(
+            label: l10n.settingsTabSync,
+            path: Routes.toSyncStatus(widget.storeId),
+          ),
+        ],
+      ),
       title: l10n.notificationPrefsTitle,
       subtitle: l10n.notificationPrefsSubtitle,
       child: ConstrainedBox(

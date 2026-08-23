@@ -46,6 +46,19 @@ class _NotificationsPageState extends State<NotificationsPage> {
         : all;
 
     return ShellPage(
+      tabs: SectionTabs(
+        currentPath: Routes.toNotifications(widget.storeId),
+        tabs: [
+          SectionTab(
+            label: l10n.alertsTitle,
+            path: Routes.toAlerts(widget.storeId),
+          ),
+          SectionTab(
+            label: l10n.notificationsTitle,
+            path: Routes.toNotifications(widget.storeId),
+          ),
+        ],
+      ),
       title: l10n.notificationsTitle,
       subtitle: l10n.notificationsUnread(unreadCount),
       scrollable: false,

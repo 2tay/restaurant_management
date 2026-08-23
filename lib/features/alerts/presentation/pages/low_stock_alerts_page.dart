@@ -29,6 +29,16 @@ class LowStockAlertsPage extends StatelessWidget {
     final alerts = MockQueries.lowStockItems(storeId);
 
     return ShellPage(
+      tabs: SectionTabs(
+        currentPath: Routes.toAlerts(storeId),
+        tabs: [
+          SectionTab(label: l10n.alertsTitle, path: Routes.toAlerts(storeId)),
+          SectionTab(
+            label: l10n.notificationsTitle,
+            path: Routes.toNotifications(storeId),
+          ),
+        ],
+      ),
       title: l10n.alertsTitle,
       subtitle: l10n.alertsSubtitle,
       scrollable: false,
