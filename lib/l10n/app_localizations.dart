@@ -3663,6 +3663,66 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Démonstration réinitialisée.'**
   String get demoResetDone;
+
+  /// Sole button on a dialog that explains why something cannot be done. Not 'OK' — the user is acknowledging an explanation, not approving an action.
+  ///
+  /// In fr, this message translates to:
+  /// **'Compris'**
+  String get actionUnderstood;
+
+  /// Title of the sheet used to rename a category.
+  ///
+  /// In fr, this message translates to:
+  /// **'Modifier la catégorie'**
+  String get editCategoryTitle;
+
+  /// Title of the sheet used to edit a unit.
+  ///
+  /// In fr, this message translates to:
+  /// **'Modifier l\'unité de mesure'**
+  String get editUnitTitle;
+
+  /// Inline error when the category name is already used in this store. Comparison ignores case and surrounding spaces.
+  ///
+  /// In fr, this message translates to:
+  /// **'Une catégorie porte déjà ce nom.'**
+  String get categoryNameTaken;
+
+  /// Inline error when the unit name is already used in this store.
+  ///
+  /// In fr, this message translates to:
+  /// **'Une unité porte déjà ce nom.'**
+  String get unitNameTaken;
+
+  /// Inline error when the unit abbreviation is already used. Checked as well as the name because the abbreviation is what appears next to every quantity in the app.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cette abréviation est déjà utilisée.'**
+  String get unitAbbreviationTaken;
+
+  /// Title of the dialog shown when a category cannot be deleted because items still use it.
+  ///
+  /// In fr, this message translates to:
+  /// **'Impossible de supprimer « {name} »'**
+  String categoryDeleteBlockedTitle(String name);
+
+  /// Explains why a category cannot be deleted and what to do about it. Naming the number and the fix is what makes it actionable.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =1{1 article est classé dans cette catégorie.} other{{count} articles sont classés dans cette catégorie.}} Reclassez-les avant de la supprimer.'**
+  String categoryDeleteBlockedBody(int count);
+
+  /// Title of the dialog shown when a unit cannot be deleted because items are measured in it.
+  ///
+  /// In fr, this message translates to:
+  /// **'Impossible de supprimer « {name} »'**
+  String unitDeleteBlockedTitle(String name);
+
+  /// Explains why a unit cannot be deleted and what to do about it.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =1{1 article est mesuré dans cette unité.} other{{count} articles sont mesurés dans cette unité.}} Changez leur unité avant de la supprimer.'**
+  String unitDeleteBlockedBody(int count);
 }
 
 class _AppLocalizationsDelegate

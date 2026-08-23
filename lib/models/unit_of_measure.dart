@@ -19,4 +19,14 @@ class UnitOfMeasure {
 
   /// Short form, e.g. "kg". Shown next to every quantity in the app.
   final String abbreviation;
+
+  /// See the note on [Category.copyWith] — a constructor convenience.
+  UnitOfMeasure copyWith({String? name, String? abbreviation}) {
+    return UnitOfMeasure(
+      id: id,
+      storeId: storeId,
+      name: name ?? this.name,
+      abbreviation: abbreviation ?? this.abbreviation,
+    );
+  }
 }

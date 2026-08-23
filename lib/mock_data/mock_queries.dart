@@ -143,6 +143,27 @@ abstract final class MockQueries {
 
   static String categoryNameOf(String id) => categoryById(id)?.name ?? '—';
 
+  /// The category of this store already using this name, if any.
+  ///
+  /// Case- and space-insensitive: "Boissons" and "boissons " are the same
+  /// category with a typo, and letting both exist means half the drinks end up
+  /// filed under the wrong one. [excludingId] lets a rename ignore itself.
+  static Category? categoryNamed(
+    String storeId,
+    String name, {
+    String? excludingId,
+  }) {
+    final needle = _normalise(name);
+    if (needle.isEmpty) return null;
+
+    for (final category in mockCategories) {
+      if (category.storeId != storeId) continue;
+      if (category.id == excludingId) continue;
+      if (_normalise(category.name) == needle) return category;
+    }
+    return null;
+  }
+
   static List<UnitOfMeasure> unitsForStore(String storeId) =>
       mockUnits.where((u) => u.storeId == storeId).toList();
 
@@ -156,6 +177,58 @@ abstract final class MockQueries {
   /// The short form shown next to every quantity — "kg", "bac".
   static String unitAbbreviationOf(String id) =>
       unitById(id)?.abbreviation ?? '';
+
+  /// The unit of this store already using this name, if any.
+  static UnitOfMeasure? unitNamed(
+    String storeId,
+    String name, {
+    String? excludingId,
+  }) => _findUnit(
+    storeId,
+    name,
+    excludingId,
+    (unit) => unit.name,
+  );
+
+  /// The unit of this store already using this abbreviation, if any.
+  ///
+  /// Checked as well as the name because the abbreviation is what appears next
+  /// to every quantity in the app: two units abbreviated "cs" would make the
+  /// inventory list unreadable however different their full names were.
+  static UnitOfMeasure? unitAbbreviated(
+    String storeId,
+    String abbreviation, {
+    String? excludingId,
+  }) => _findUnit(
+    storeId,
+    abbreviation,
+    excludingId,
+    (unit) => unit.abbreviation,
+  );
+
+  static UnitOfMeasure? _findUnit(
+    String storeId,
+    String value,
+    String? excludingId,
+    String Function(UnitOfMeasure unit) field,
+  ) {
+    final needle = _normalise(value);
+    if (needle.isEmpty) return null;
+
+    for (final unit in mockUnits) {
+      if (unit.storeId != storeId) continue;
+      if (unit.id == excludingId) continue;
+      if (_normalise(field(unit)) == needle) return unit;
+    }
+    return null;
+  }
+
+  /// How catalogue names are compared: trimmed and case-folded.
+  ///
+  /// Deliberately no accent folding — "Épicerie" and "Epicerie" are different
+  /// spellings a user might legitimately want to correct, and silently treating
+  /// them as the same name would block the correction.
+  static String _normalise(String value) => value.trim().toLowerCase();
 
   static int itemCountInCategory(String categoryId) =>
       mockItems.where((item) => item.categoryId == categoryId).length;

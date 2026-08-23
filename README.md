@@ -37,7 +37,7 @@ ones Phase 2 will reimplement against real storage.
 | 7 | Phase 2 stubs + handoff | Done |
 | 1.5 | Navigation fixes + UI polish pass | Done |
 | 1.6 | Purchase orders + receiving, item barcode | Done |
-| 1.7 | In-memory writes across the rest of the app | Stage 1 of 9 — foundation done |
+| 1.7 | In-memory writes across the rest of the app | Stages 1–2 of 9 — foundation, catalogue |
 
 The original brief is in [`.claude/phase1.md`](.claude/phase1.md).
 
@@ -152,9 +152,10 @@ through `MockQueries.itemsForStore(...)`, `MockQueries.onOrderQuantity(...)`; wr
 through the mutation classes. Replace both with repositories returning the same shapes and
 the call sites barely move.
 
-The write layer is split one file per aggregate — `order_mutations.dart` today, with items,
-catalogue, suppliers and movements to follow — **because that is how Phase 2's repositories
-will split**. A one-to-one seam is easier to walk across than one large class.
+The write layer is split one file per aggregate — `catalog_mutations.dart` and
+`order_mutations.dart` today, with items, suppliers and movements to follow — **because that
+is how Phase 2's repositories will split**. A one-to-one seam is easier to walk across than
+one large class.
 
 `mutations/mock_write.dart` holds what they all share:
 
@@ -211,7 +212,14 @@ for, and store switching is just navigation.
    "what has chicken cost" is not.
 3. **Categories and units are created in-app.** Every such dropdown carries an inline
    "+ Créer" that opens a sheet without leaving the form — a cook who needs a "botte" unit
-   mid-form should not have to abandon it.
+   mid-form should not have to abandon it. The sheet returns the record it created, and the
+   form selects it. Names are unique per store ignoring case and space ("Boissons" and
+   "boissons " are one category with a typo), and a unit's abbreviation is checked as well
+   as its name, because the abbreviation is what appears beside every quantity in the app.
+   **Neither can be deleted while anything uses it** — items reference them by id, so
+   removing one underneath them would leave articles rendering as "—" with no way to
+   recover what they said. Tapping delete explains the count and the fix rather than
+   offering a confirmation that then quietly fails.
 4. **Store scoping**: once a store is selected, every screen shows that store's data only.
 5. **An order never changes stock — only a receipt does.** Ordering 50 kg of tomatoes does
    not put 50 kg on the shelf; the goods are not there yet. Stock moves when a delivery
@@ -302,7 +310,7 @@ back gesture alike.
 flutter test
 ```
 
-257 tests. The six that earn their keep:
+280 tests. The seven that earn their keep:
 
 - **`navigation_test.dart`** pins the navigation contract: all 15 root screens show no back
   control and all 24 pushed screens do; push-then-pop returns you where you were and five
@@ -332,6 +340,11 @@ flutter test
   reset restores values rather than just list lengths. Its last test clears every mutable
   list and asserts the reset brings all of it back — which is what catches a new list
   somebody forgot to add to the snapshot.
+- **`catalog_test.dart`** pins the two catalogue rules — unique names, no deleting what is
+  in use — including the cases that are easy to get backwards: a rename must not collide
+  with itself, a refused write must not half-apply, and the same name in a different store
+  is fine because categories are per-store. It finishes by deleting every category and every
+  unit it can and asserting no item was left pointing at nothing.
 - **`orders_test.dart`** is the one that matters most, because the ordering rules are the
   part of this phase with actual behaviour. It runs them against the in-memory layer and
   restores the mock lists afterwards: that sending an order moves no stock but does count

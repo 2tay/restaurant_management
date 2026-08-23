@@ -46,12 +46,6 @@ class _AddEditItemPageState extends State<AddEditItemPage> {
   double _quantity = 0;
   double _threshold = 0;
 
-  /// Categories and units created inline during this session. Phase 1 persists
-  /// nothing, so they live here for as long as the form is open — enough to
-  /// demo the flow end to end.
-  final List<String> _newCategories = [];
-  final List<String> _newUnits = [];
-
   // Snapshot taken in initState. The dirty check compares against these rather
   // than tracking a flag, so undoing an edit back to its original value
   // correctly stops counting as unsaved.
@@ -119,11 +113,12 @@ class _AddEditItemPageState extends State<AddEditItemPage> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
 
+    // Read live rather than merged with a local list of pending creations:
+    // the inline "+ Créer" row now creates the real record, so there is no
+    // second kind of category to keep track of.
     final categories = [
       for (final c in MockQueries.categoriesForStore(widget.storeId))
         DropdownOption(value: c.id, label: c.name),
-      for (final name in _newCategories)
-        DropdownOption(value: 'new:$name', label: name),
     ];
 
     final units = [
@@ -133,8 +128,6 @@ class _AddEditItemPageState extends State<AddEditItemPage> {
           label: u.name,
           secondaryLabel: u.abbreviation,
         ),
-      for (final name in _newUnits)
-        DropdownOption(value: 'new:$name', label: name),
     ];
 
     final unitAbbreviation = _unitId == null
@@ -292,25 +285,27 @@ class _AddEditItemPageState extends State<AddEditItemPage> {
     );
   }
 
+  /// Creates a category and selects it, without the user leaving this form.
+  ///
+  /// The selection is the point: a cook halfway through adding "Persil plat"
+  /// who needs a "botte" unit should not have to abandon the article, go to a
+  /// settings screen, create the unit, and start again.
   Future<void> _createCategory() async {
-    final name = await CreateSheets.category(context);
-    if (name == null || !mounted) return;
+    final created = await CreateSheets.category(
+      context,
+      storeId: widget.storeId,
+    );
+    if (created == null || !mounted) return;
 
-    setState(() {
-      _newCategories.add(name);
-      _categoryId = 'new:$name';
-    });
+    setState(() => _categoryId = created.id);
     AppSnackBar.success(context, AppLocalizations.of(context).categoryCreated);
   }
 
   Future<void> _createUnit() async {
-    final name = await CreateSheets.unit(context);
-    if (name == null || !mounted) return;
+    final created = await CreateSheets.unit(context, storeId: widget.storeId);
+    if (created == null || !mounted) return;
 
-    setState(() {
-      _newUnits.add(name);
-      _unitId = 'new:$name';
-    });
+    setState(() => _unitId = created.id);
     AppSnackBar.success(context, AppLocalizations.of(context).unitCreated);
   }
 

@@ -1349,5 +1349,28 @@
   "demoResetConfirmAction": "Réinitialiser",
   "@demoResetConfirmAction": {"description": "Confirms the reset."},
   "demoResetDone": "Démonstration réinitialisée.",
-  "@demoResetDone": {"description": "Snackbar after resetting the demo data."}
+  "@demoResetDone": {"description": "Snackbar after resetting the demo data."},
+
+  "actionUnderstood": "Compris",
+  "@actionUnderstood": {"description": "Sole button on a dialog that explains why something cannot be done. Not 'OK' — the user is acknowledging an explanation, not approving an action."},
+
+  "editCategoryTitle": "Modifier la catégorie",
+  "@editCategoryTitle": {"description": "Title of the sheet used to rename a category."},
+  "editUnitTitle": "Modifier l'unité de mesure",
+  "@editUnitTitle": {"description": "Title of the sheet used to edit a unit."},
+  "categoryNameTaken": "Une catégorie porte déjà ce nom.",
+  "@categoryNameTaken": {"description": "Inline error when the category name is already used in this store. Comparison ignores case and surrounding spaces."},
+  "unitNameTaken": "Une unité porte déjà ce nom.",
+  "@unitNameTaken": {"description": "Inline error when the unit name is already used in this store."},
+  "unitAbbreviationTaken": "Cette abréviation est déjà utilisée.",
+  "@unitAbbreviationTaken": {"description": "Inline error when the unit abbreviation is already used. Checked as well as the name because the abbreviation is what appears next to every quantity in the app."},
+
+  "categoryDeleteBlockedTitle": "Impossible de supprimer « {name} »",
+  "@categoryDeleteBlockedTitle": {"description": "Title of the dialog shown when a category cannot be deleted because items still use it.", "placeholders": {"name": {"type": "String"}}},
+  "categoryDeleteBlockedBody": "{count, plural, =1{1 article est classé dans cette catégorie.} other{{count} articles sont classés dans cette catégorie.}} Reclassez-les avant de la supprimer.",
+  "@categoryDeleteBlockedBody": {"description": "Explains why a category cannot be deleted and what to do about it. Naming the number and the fix is what makes it actionable.", "placeholders": {"count": {"type": "int"}}},
+  "unitDeleteBlockedTitle": "Impossible de supprimer « {name} »",
+  "@unitDeleteBlockedTitle": {"description": "Title of the dialog shown when a unit cannot be deleted because items are measured in it.", "placeholders": {"name": {"type": "String"}}},
+  "unitDeleteBlockedBody": "{count, plural, =1{1 article est mesuré dans cette unité.} other{{count} articles sont mesurés dans cette unité.}} Changez leur unité avant de la supprimer.",
+  "@unitDeleteBlockedBody": {"description": "Explains why a unit cannot be deleted and what to do about it.", "placeholders": {"count": {"type": "int"}}}
 }

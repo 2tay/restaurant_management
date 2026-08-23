@@ -83,6 +83,46 @@ class ConfirmDialog extends StatelessWidget {
     );
   }
 
+  /// The other half of a delete decision: the times it cannot happen.
+  ///
+  /// A category with articles filed under it, a supplier with an open order —
+  /// deleting either would leave records pointing at nothing. Rather than a
+  /// disabled button the user has to interrogate, tapping delete explains what
+  /// is in the way and what to do about it.
+  ///
+  /// One action, because there is no choice to make. It is deliberately not a
+  /// snackbar: a snackbar is for reporting what happened, and nothing happened.
+  static Future<void> blocked(
+    BuildContext context, {
+    required String title,
+    required String message,
+  }) async {
+    final l10n = AppLocalizations.of(context);
+
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 460),
+          child: Text(message),
+        ),
+        actionsPadding: const EdgeInsets.fromLTRB(
+          AppSpacing.xl,
+          0,
+          AppSpacing.xl,
+          AppSpacing.xl,
+        ),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(l10n.actionUnderstood),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);

@@ -2183,4 +2183,54 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get demoResetDone => 'Démonstration réinitialisée.';
+
+  @override
+  String get actionUnderstood => 'Compris';
+
+  @override
+  String get editCategoryTitle => 'Modifier la catégorie';
+
+  @override
+  String get editUnitTitle => 'Modifier l\'unité de mesure';
+
+  @override
+  String get categoryNameTaken => 'Une catégorie porte déjà ce nom.';
+
+  @override
+  String get unitNameTaken => 'Une unité porte déjà ce nom.';
+
+  @override
+  String get unitAbbreviationTaken => 'Cette abréviation est déjà utilisée.';
+
+  @override
+  String categoryDeleteBlockedTitle(String name) {
+    return 'Impossible de supprimer « $name »';
+  }
+
+  @override
+  String categoryDeleteBlockedBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count articles sont classés dans cette catégorie.',
+      one: '1 article est classé dans cette catégorie.',
+    );
+    return '$_temp0 Reclassez-les avant de la supprimer.';
+  }
+
+  @override
+  String unitDeleteBlockedTitle(String name) {
+    return 'Impossible de supprimer « $name »';
+  }
+
+  @override
+  String unitDeleteBlockedBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count articles sont mesurés dans cette unité.',
+      one: '1 article est mesuré dans cette unité.',
+    );
+    return '$_temp0 Changez leur unité avant de la supprimer.';
+  }
 }

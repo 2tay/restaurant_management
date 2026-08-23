@@ -9,4 +9,10 @@ class Category {
   final String id;
   final String storeId;
   final String name;
+
+  /// Rebuilt rather than mutated, so the in-memory layer can replace the
+  /// element in the mock list on a rename. A constructor convenience, not
+  /// logic.
+  Category copyWith({String? name}) =>
+      Category(id: id, storeId: storeId, name: name ?? this.name);
 }

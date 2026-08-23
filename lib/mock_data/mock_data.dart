@@ -24,5 +24,6 @@ export 'mock_units.dart';
 
 // The write layer. One file per aggregate, because Phase 2 replaces each
 // with a repository and a one-to-one seam is easier to walk across.
+export 'mutations/catalog_mutations.dart';
 export 'mutations/mock_write.dart';
 export 'mutations/order_mutations.dart';
