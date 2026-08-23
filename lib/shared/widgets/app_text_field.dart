@@ -19,6 +19,7 @@ class AppTextField extends StatelessWidget {
     this.errorText,
     this.prefixIcon,
     this.suffixText,
+    this.suffixIcon,
     this.keyboardType,
     this.obscureText = false,
     this.enabled = true,
@@ -38,6 +39,15 @@ class AppTextField extends StatelessWidget {
   final String? errorText;
   final IconData? prefixIcon;
   final String? suffixText;
+
+  /// A control inside the trailing edge of the field.
+  ///
+  /// Exists so the barcode field can reserve the slot its future scan button
+  /// will occupy. Holding the space now means adding the camera later is a
+  /// widget swap rather than a reflow of the form around a control that
+  /// suddenly appeared.
+  final Widget? suffixIcon;
+
   final TextInputType? keyboardType;
   final bool obscureText;
   final bool enabled;
@@ -100,6 +110,7 @@ class AppTextField extends StatelessWidget {
             helperText: helperText,
             errorText: errorText,
             prefixIcon: prefixIcon == null ? null : Icon(prefixIcon),
+            suffixIcon: suffixIcon,
             suffixText: suffixText,
             suffixStyle: theme.textTheme.bodyLarge,
           ),

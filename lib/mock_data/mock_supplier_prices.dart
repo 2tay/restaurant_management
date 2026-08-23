@@ -320,12 +320,15 @@ final List<SupplierPrice> mockSupplierPrices = [
     effectiveDate: daysAgo(4),
     isDefault: true,
   ),
+  // Raised by the Crémerie delivery eleven days ago rather than by anybody
+  // editing a price screen — see `mock_goods_receipts.dart`. That is how price
+  // history is meant to get written.
   SupplierPrice(
     id: 'sp-creme-cremerie',
     itemId: ItemIds.creme,
     supplierId: SupplierIds.cremerie,
-    pricePerUnit: 3.60,
-    effectiveDate: daysAgo(22),
+    pricePerUnit: 4.25,
+    effectiveDate: daysAgo(11),
     isDefault: true,
   ),
   SupplierPrice(

@@ -144,6 +144,41 @@ record(
     'Navigation bypassing goSection/pushScreen',
 )
 
+# --- Barcode lookups stay collection-shaped -----------------------------------
+# Multiple barcodes per item is the likeliest next requirement here. A lookup
+# already shaped as "give me the matches" absorbs that as a model change; a
+# single-object lookup makes it a rewrite of every call site.
+single_barcode_lookup = [
+    f'{p}:{n}  {line.strip()}'
+    for p in dart_files(*ROOTS, 'lib/mock_data')
+    for n, line in enumerate(read(p).splitlines(), 1)
+    if re.search(r'(firstWhere|singleWhere)\([^)]*barcode', line)
+]
+record(
+    'single-object barcode lookups',
+    single_barcode_lookup,
+    'Barcode lookup that is not collection-shaped',
+)
+
+# --- Only a receipt moves stock -----------------------------------------------
+# The rule the whole orders feature rests on: an order never changes stock, and
+# every quantity change goes through a stock movement. Writing straight into
+# mockItems from a screen would bypass the movement log, which is the single
+# source of truth for stock levels.
+STOCK_WRITER = 'lib/mock_data/mock_mutations.dart'
+stock_writes = [
+    f'{p}:{n}  {line.strip()}'
+    for p in dart_files(*ROOTS, 'lib/mock_data')
+    if p != STOCK_WRITER
+    for n, line in enumerate(read(p).splitlines(), 1)
+    if re.search(r'mockItems\[[^\]]+\]\s*=', line)
+]
+record(
+    'stock writes outside the mutation layer',
+    stock_writes,
+    'Stock quantity changed without a movement',
+)
+
 # --- Product code never imports the dev gallery -------------------------------
 dev_imports = [
     p for p in dart_files(*ROOTS) if re.search(r"import '.*/dev/", read(p))

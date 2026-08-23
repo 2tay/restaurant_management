@@ -40,13 +40,22 @@ IconData reasonIcon(StockOutReason reason) => switch (reason) {
 };
 
 /// One-line description of a movement, for history rows.
+///
+/// A delivery received against a commande says so, and names it. Two entry
+/// paths land in this one log — somebody checking in an ordered delivery, and
+/// somebody who ran to the market and bought 5 kg of tomatoes — and the row has
+/// to make clear which is which without the user opening it.
 String movementDescription(
   AppLocalizations l10n,
   StockMovement movement,
-  String supplierName,
-) {
+  String supplierName, {
+  String? orderReference,
+}) {
   return switch (movement.type) {
-    StockMovementType.stockIn => '${l10n.movementTypeIn} — $supplierName',
+    StockMovementType.stockIn =>
+      orderReference == null
+          ? '${l10n.movementTypeIn} — $supplierName'
+          : '${l10n.movementFromOrder(orderReference)} — $supplierName',
     StockMovementType.stockOut =>
       movement.reason == null
           ? l10n.movementTypeOut

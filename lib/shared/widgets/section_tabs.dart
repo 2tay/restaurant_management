@@ -26,12 +26,25 @@ class SectionTab {
 /// Switching tabs uses `go` rather than `push` — moving between peers should
 /// replace, not stack, or back would walk through every tab the user browsed.
 class SectionTabs extends StatelessWidget {
-  const SectionTabs({required this.tabs, required this.currentPath, super.key});
+  const SectionTabs({
+    required this.tabs,
+    required this.currentPath,
+    this.onSelected,
+    super.key,
+  });
 
   final List<SectionTab> tabs;
 
   /// The path of the tab currently shown.
   final String currentPath;
+
+  /// Switches tabs in place instead of navigating.
+  ///
+  /// The order detail's Lines / Receipts tabs are two views of one screen
+  /// rather than two screens, so they have no routes of their own — but they
+  /// should look and behave exactly like the tabs that do. When this is set,
+  /// [SectionTab.path] is just an identifier.
+  final ValueChanged<String>? onSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -49,7 +62,9 @@ class SectionTabs extends StatelessWidget {
             _Tab(
               tab: tab,
               selected: tab.path == currentPath,
-              onTap: () => context.goSection(tab.path),
+              onTap: () => onSelected == null
+                  ? context.goSection(tab.path)
+                  : onSelected!(tab.path),
             ),
         ],
       ),

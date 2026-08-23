@@ -59,6 +59,12 @@ class AppSidebar extends StatelessWidget {
       matchSegment: 'movements',
     ),
     _Destination(
+      icon: LucideIcons.clipboardList,
+      label: _labelOrders,
+      pathBuilder: Routes.toOrders,
+      matchSegment: 'orders',
+    ),
+    _Destination(
       icon: LucideIcons.truck,
       label: _labelSuppliers,
       pathBuilder: Routes.toSuppliers,
@@ -101,6 +107,7 @@ class AppSidebar extends StatelessWidget {
   static String _labelDashboard(AppLocalizations l) => l.navDashboard;
   static String _labelInventory(AppLocalizations l) => l.navInventory;
   static String _labelMovements(AppLocalizations l) => l.navStockMovement;
+  static String _labelOrders(AppLocalizations l) => l.navOrders;
   static String _labelSuppliers(AppLocalizations l) => l.navSuppliers;
   static String _labelCatalog(AppLocalizations l) => l.navCatalog;
   static String _labelAlerts(AppLocalizations l) => l.navAlerts;
@@ -127,6 +134,11 @@ class AppSidebar extends StatelessWidget {
           ? AppSizing.railWidthExpanded
           : AppSizing.railWidthCollapsed,
       child: NavigationRail(
+        // Ten destinations at 48dp plus the header no longer fit the 600dp
+        // height of a small tablet in landscape. Scrolling is the honest fix:
+        // shrinking the entries to make them fit would put the rail under the
+        // touch-target floor, and dropping one would hide a section.
+        scrollable: true,
         extended: extended,
         selectedIndex: _selectedIndex(location),
         onDestinationSelected: (index) {

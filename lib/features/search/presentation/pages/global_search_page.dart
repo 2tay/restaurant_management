@@ -39,9 +39,11 @@ class _GlobalSearchPageState extends State<GlobalSearchPage> {
 
     final items = query.isEmpty
         ? <Item>[]
-        : MockQueries.itemsForStore(
-            widget.storeId,
-          ).where((item) => item.name.toLowerCase().contains(query)).toList();
+        // Matches on name or on an exact barcode — pasting a scanned code into
+        // the box finds the item.
+        : MockQueries.itemsForStore(widget.storeId)
+              .where((item) => MockQueries.itemMatchesSearch(item, query))
+              .toList();
 
     final suppliers = query.isEmpty
         ? <Supplier>[]

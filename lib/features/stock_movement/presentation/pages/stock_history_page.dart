@@ -158,6 +158,7 @@ class _StockHistoryPageState extends State<StockHistoryPage> {
                         const SizedBox(height: AppSpacing.sm),
                     itemBuilder: (context, index) => MovementRow(
                       movement: movements[index],
+                      storeId: widget.storeId,
                       onTap: () => context.pushScreen(
                         Routes.toItem(widget.storeId, movements[index].itemId),
                       ),

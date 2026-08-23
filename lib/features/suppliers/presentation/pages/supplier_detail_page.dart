@@ -11,12 +11,13 @@ import '../../../../l10n/app_localizations.dart';
 import '../../../../mock_data/mock_data.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
+import '../../../orders/presentation/widgets/order_row.dart';
 
 /// A supplier's contact details and everything they supply, with prices.
 ///
 /// The product table marks the rows where this supplier is the cheapest option,
 /// which turns "who is this supplier" into "is this supplier worth keeping".
-class SupplierDetailPage extends StatelessWidget {
+class SupplierDetailPage extends StatefulWidget {
   const SupplierDetailPage({
     required this.storeId,
     required this.supplierId,
@@ -31,6 +32,20 @@ class SupplierDetailPage extends StatelessWidget {
   /// surrounding page already provides the header and chrome, so this renders
   /// its body alone.
   final bool embedded;
+
+  @override
+  State<SupplierDetailPage> createState() => _SupplierDetailPageState();
+}
+
+class _SupplierDetailPageState extends State<SupplierDetailPage> {
+  static const String _tabDetails = 'details';
+  static const String _tabOrders = 'orders';
+
+  String _tab = _tabDetails;
+
+  String get storeId => widget.storeId;
+  String get supplierId => widget.supplierId;
+  bool get embedded => widget.embedded;
 
   @override
   Widget build(BuildContext context) {
@@ -48,9 +63,36 @@ class SupplierDetailPage extends StatelessWidget {
     }
 
     final prices = MockQueries.pricesForSupplier(supplierId);
-    final body = _body(context, l10n, theme, supplier, prices);
+    final orders = MockQueries.ordersForSupplier(supplierId);
 
-    if (embedded) return SingleChildScrollView(child: body);
+    final body = _tab == _tabOrders
+        ? _OrderHistory(storeId: storeId, orders: orders)
+        : _body(context, l10n, theme, supplier, prices);
+
+    final tabs = SectionTabs(
+      currentPath: _tab,
+      // Two views of one supplier rather than two screens, so they switch in
+      // place instead of navigating — but they look and behave like every other
+      // tab bar in the app.
+      onSelected: (value) => setState(() => _tab = value),
+      tabs: [
+        SectionTab(label: l10n.supplierTabDetails, path: _tabDetails),
+        SectionTab(label: l10n.supplierTabOrders, path: _tabOrders),
+      ],
+    );
+
+    if (embedded) {
+      return SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Align(alignment: Alignment.centerLeft, child: tabs),
+            const SizedBox(height: AppSpacing.xl),
+            body,
+          ],
+        ),
+      );
+    }
 
     return ShellPage(
       back: BackDestination(
@@ -63,6 +105,7 @@ class SupplierDetailPage extends StatelessWidget {
       ],
       title: supplier.name,
       subtitle: '${supplier.postalCode} ${supplier.city}',
+      tabs: tabs,
       actions: [
         SecondaryButton(
           label: l10n.actionEdit,
@@ -243,6 +286,60 @@ class SupplierDetailPage extends StatelessWidget {
       AppSnackBar.success(context, l10n.supplierDeleted);
       context.goSection(Routes.toSuppliers(storeId));
     }
+  }
+}
+
+/// Every commande ever placed with this supplier, newest first.
+///
+/// The question this answers is not "what do they sell" — the prices tab covers
+/// that — but "how do they actually behave": how often we order, how much we
+/// spend, and how many orders had to be closed short.
+class _OrderHistory extends StatelessWidget {
+  const _OrderHistory({required this.storeId, required this.orders});
+
+  final String storeId;
+  final List<PurchaseOrder> orders;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
+    if (orders.isEmpty) {
+      return AppCard(
+        child: EmptyState(
+          icon: LucideIcons.clipboardList,
+          title: l10n.supplierOrdersEmpty,
+          message: l10n.ordersEmptyBody,
+          actionLabel: l10n.ordersNewAction,
+          actionIcon: LucideIcons.plus,
+          onAction: () => context.pushScreen(Routes.toNewOrder(storeId)),
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SectionHeader(
+          title: l10n.supplierTabOrders,
+          count: orders.length,
+          trailing: SecondaryButton(
+            label: l10n.ordersNewAction,
+            icon: LucideIcons.plus,
+            onPressed: () => context.pushScreen(Routes.toNewOrder(storeId)),
+          ),
+        ),
+        for (final order in orders)
+          Padding(
+            padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+            child: OrderRow(
+              order: order,
+              onTap: () =>
+                  context.pushScreen(Routes.toOrder(storeId, order.id)),
+            ),
+          ),
+      ],
+    );
   }
 }
 

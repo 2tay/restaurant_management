@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../app/routes.dart';
@@ -7,11 +8,13 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/formatters.dart';
+import '../../../../core/utils/order_status.dart';
 import '../../../../core/utils/stock_status.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../mock_data/mock_data.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
+import '../../../orders/presentation/widgets/order_status_badge.dart';
 import '../../../stock_movement/presentation/widgets/movement_labels.dart';
 import 'supplier_price_row.dart';
 
@@ -46,6 +49,8 @@ class ItemDetailView extends StatelessWidget {
     final defaultPrice = MockQueries.defaultPriceForItem(item.id);
     final overpay = MockQueries.overpayPerUnit(item.id);
     final movements = MockQueries.movementsForItem(item.id).take(6).toList();
+    final onOrder = MockQueries.onOrderQuantity(storeId, item.id);
+    final openOrders = MockQueries.openOrdersForItem(storeId, item.id);
 
     return ListView(
       padding: EdgeInsets.zero,
@@ -69,10 +74,20 @@ class ItemDetailView extends StatelessWidget {
           child: Column(
             children: [
               _FactRow(
-                label: l10n.itemQuantityLabel,
+                label: l10n.itemOnHandLabel,
                 value: Formatters.quantityWithUnit(item.quantity, unit),
                 emphasis: true,
               ),
+              // Only when something is actually coming. A permanent "En
+              // commande : 0" row would be four words of noise on every item in
+              // the catalogue.
+              if (onOrder > 0) ...[
+                const Divider(height: AppSpacing.xl),
+                _FactRow(
+                  label: l10n.itemOnOrderLabel,
+                  value: Formatters.quantityWithUnit(onOrder, unit),
+                ),
+              ],
               const Divider(height: AppSpacing.xl),
               _FactRow(
                 label: l10n.itemThresholdLabel,
@@ -91,6 +106,14 @@ class ItemDetailView extends StatelessWidget {
                 label: l10n.itemUpdatedLabel,
                 value: Formatters.relative(item.updatedAt),
               ),
+              // Shown only when the item has one. A dash-filled "Code-barres :
+              // —" row on the thirty items that will never have a barcode
+              // would make the absence look like missing data rather than a
+              // fact about produce.
+              if (item.barcode != null) ...[
+                const Divider(height: AppSpacing.xl),
+                _BarcodeRow(barcode: item.barcode!),
+              ],
               if (item.note != null) ...[
                 const Divider(height: AppSpacing.xl),
                 _FactRow(label: l10n.itemNoteLabel, value: item.note!),
@@ -99,6 +122,33 @@ class ItemDetailView extends StatelessWidget {
           ),
         ),
         const SizedBox(height: AppSpacing.xl),
+
+        // --- Open orders -----------------------------------------------------
+        //
+        // Present only when something is on its way. This is the answer to
+        // "stock is low, has anybody done anything about it?", and it is the
+        // question a manager asks right before ordering the same thing twice.
+        if (openOrders.isNotEmpty) ...[
+          SectionHeader(
+            title: l10n.itemOpenOrdersTitle,
+            count: openOrders.length,
+          ),
+          AppCard(
+            padding: EdgeInsets.zero,
+            child: Column(
+              children: [
+                for (final order in openOrders)
+                  _OpenOrderLine(
+                    order: order,
+                    itemId: item.id,
+                    storeId: storeId,
+                    unitAbbreviation: unit,
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(height: AppSpacing.xl),
+        ],
 
         // --- Suppliers and prices --------------------------------------------
         //
@@ -267,6 +317,142 @@ class _OverpayNotice extends StatelessWidget {
   }
 }
 
+/// The barcode, in a monospaced style and copyable.
+///
+/// Tabular figures rather than the body font: a barcode is read one digit at a
+/// time, usually while comparing it against something printed, and proportional
+/// digits make that harder than it needs to be. Tapping copies it, which is the
+/// only thing anybody ever wants to do with one on screen.
+class _BarcodeRow extends StatelessWidget {
+  const _BarcodeRow({required this.barcode});
+
+  final String barcode;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+
+    return InkWell(
+      borderRadius: AppRadius.smAll,
+      onTap: () async {
+        await Clipboard.setData(ClipboardData(text: barcode));
+        if (context.mounted) AppSnackBar.success(context, l10n.itemBarcodeCopied);
+      },
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            flex: 2,
+            child: Text(
+              l10n.itemBarcodeShortLabel,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            flex: 3,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                Flexible(
+                  child: Text(
+                    barcode,
+                    textAlign: TextAlign.right,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTypography.numeric.copyWith(letterSpacing: 1),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Tooltip(
+                  message: l10n.itemBarcodeCopyTooltip,
+                  child: const Icon(
+                    LucideIcons.copy,
+                    size: AppSizing.iconSm,
+                    color: AppColors.textDisabled,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// One open commande carrying this item, with what is still outstanding on it.
+class _OpenOrderLine extends StatelessWidget {
+  const _OpenOrderLine({
+    required this.order,
+    required this.itemId,
+    required this.storeId,
+    required this.unitAbbreviation,
+  });
+
+  final PurchaseOrder order;
+  final String itemId;
+  final String storeId;
+  final String unitAbbreviation;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+
+    var outstanding = 0.0;
+    for (final line in order.lines) {
+      if (line.itemId == itemId) outstanding += lineOutstanding(line);
+    }
+
+    return InkWell(
+      onTap: () => context.pushScreen(Routes.toOrder(storeId, order.id)),
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.lg,
+          vertical: AppSpacing.md,
+        ),
+        decoration: const BoxDecoration(
+          border: Border(bottom: BorderSide(color: AppColors.hairline)),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    MockQueries.supplierNameOf(order.supplierId),
+                    style: theme.textTheme.titleSmall,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    '${order.reference} · ${l10n.orderSentOn(Formatters.date(order.sentAt ?? order.createdAt))}',
+                    style: theme.textTheme.bodySmall,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Text(
+              Formatters.quantityWithUnit(outstanding, unitAbbreviation),
+              style: AppTypography.numeric,
+            ),
+            const SizedBox(width: AppSpacing.md),
+            OrderStatusBadge(status: order.status, compact: true),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _FactRow extends StatelessWidget {
   const _FactRow({
     required this.label,
@@ -350,6 +536,9 @@ class _MovementLine extends StatelessWidget {
                     AppLocalizations.of(context),
                     movement,
                     MockQueries.supplierNameOf(movement.supplierId),
+                    orderReference: movement.orderId == null
+                        ? null
+                        : MockQueries.orderById(movement.orderId!)?.reference,
                   ),
                   style: theme.textTheme.bodyLarge,
                   maxLines: 1,

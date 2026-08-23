@@ -46,6 +46,16 @@ abstract final class Routes {
   static const String alerts = '$storeBase/alerts';
   static const String notifications = '$storeBase/notifications';
 
+  // Orders. `new` and `receipts` are declared before `:orderId` in the router
+  // for the same reason `new` precedes `:itemId` — go_router matches in order,
+  // and otherwise "new" would be read as an order id.
+  static const String orders = '$storeBase/orders';
+  static const String newOrder = '$orders/new';
+  static const String receiptDetail = '$orders/receipts/:receiptId';
+  static const String orderDetail = '$orders/:orderId';
+  static const String editOrder = '$orderDetail/edit';
+  static const String receiveOrder = '$orderDetail/receive';
+
   static const String suppliers = '$storeBase/suppliers';
   static const String addSupplier = '$suppliers/new';
   static const String supplierDetail = '$suppliers/:supplierId';
@@ -115,6 +125,22 @@ abstract final class Routes {
 
   static String toNotifications(String storeId) =>
       '/store/$storeId/notifications';
+
+  static String toOrders(String storeId) => '/store/$storeId/orders';
+
+  static String toNewOrder(String storeId) => '/store/$storeId/orders/new';
+
+  static String toOrder(String storeId, String orderId) =>
+      '/store/$storeId/orders/$orderId';
+
+  static String toEditOrder(String storeId, String orderId) =>
+      '/store/$storeId/orders/$orderId/edit';
+
+  static String toReceiveOrder(String storeId, String orderId) =>
+      '/store/$storeId/orders/$orderId/receive';
+
+  static String toReceipt(String storeId, String receiptId) =>
+      '/store/$storeId/orders/receipts/$receiptId';
 
   static String toSuppliers(String storeId) => '/store/$storeId/suppliers';
 

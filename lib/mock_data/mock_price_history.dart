@@ -198,6 +198,18 @@ final List<PriceHistoryEntry> mockPriceHistory = [
     changedAt: daysAgo(22),
     changedByName: 'Sylvie Dupont',
   ),
+  // Written by confirming a delivery, not by editing a price screen. This is
+  // the entry the receiving flow produces when the delivery note disagrees
+  // with the ordered price.
+  PriceHistoryEntry(
+    id: 'ph-creme-receipt',
+    itemId: ItemIds.creme,
+    supplierId: SupplierIds.cremerie,
+    oldPrice: 3.60,
+    newPrice: 4.25,
+    changedAt: daysAgo(11),
+    changedByName: 'Marc Delvaux',
+  ),
   PriceHistoryEntry(
     id: 'ph-cafe-1',
     itemId: ItemIds.cafe,

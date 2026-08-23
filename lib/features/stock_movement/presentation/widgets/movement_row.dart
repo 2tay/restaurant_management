@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../app/navigation.dart';
+import '../../../../app/routes.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -12,9 +15,18 @@ import 'movement_labels.dart';
 
 /// One entry in the movement history.
 class MovementRow extends StatelessWidget {
-  const MovementRow({required this.movement, this.onTap, super.key});
+  const MovementRow({
+    required this.movement,
+    this.storeId,
+    this.onTap,
+    super.key,
+  });
 
   final StockMovement movement;
+
+  /// Needed to link back to the receipt. Omitted where the row is decorative.
+  final String? storeId;
+
   final VoidCallback? onTap;
 
   @override
@@ -22,6 +34,9 @@ class MovementRow extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
 
+    final order = movement.orderId == null
+        ? null
+        : MockQueries.orderById(movement.orderId!);
     final item = MockQueries.itemById(movement.itemId);
     final unit = item == null
         ? ''
@@ -73,6 +88,7 @@ class MovementRow extends StatelessWidget {
                     l10n,
                     movement,
                     MockQueries.supplierNameOf(movement.supplierId),
+                    orderReference: order?.reference,
                   ),
                   style: theme.textTheme.bodySmall,
                   maxLines: 1,
@@ -123,6 +139,24 @@ class MovementRow extends StatelessWidget {
               ),
             ),
           ),
+          // Closes the trail in the other direction: from a quantity on the
+          // shelf back to the delivery, the order, and the supplier.
+          if (movement.receiptId != null && storeId != null) ...[
+            IconButton(
+              onPressed: () => context.pushScreen(
+                Routes.toReceipt(storeId!, movement.receiptId!),
+              ),
+              tooltip: l10n.movementViewReceipt,
+              icon: const Icon(LucideIcons.receiptText),
+              color: AppColors.textSecondary,
+              constraints: const BoxConstraints(
+                minWidth: AppSizing.minTapTarget,
+                minHeight: AppSizing.minTapTarget,
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+          ],
+
           const SizedBox(width: AppSpacing.md),
 
           SizedBox(

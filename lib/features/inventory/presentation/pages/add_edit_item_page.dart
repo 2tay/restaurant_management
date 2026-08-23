@@ -34,6 +34,12 @@ class AddEditItemPage extends StatefulWidget {
 class _AddEditItemPageState extends State<AddEditItemPage> {
   final _nameController = TextEditingController();
   final _noteController = TextEditingController();
+  final _barcodeController = TextEditingController();
+
+  /// Set when the entered barcode already belongs to another item. Validated at
+  /// save time rather than on every keystroke — flagging a duplicate while
+  /// somebody is still halfway through typing one is noise.
+  String? _barcodeConflictName;
 
   String? _categoryId;
   String? _unitId;
@@ -51,6 +57,7 @@ class _AddEditItemPageState extends State<AddEditItemPage> {
   // correctly stops counting as unsaved.
   String _initialName = '';
   String _initialNote = '';
+  String _initialBarcode = '';
   String? _initialCategoryId;
   String? _initialUnitId;
   double _initialQuantity = 0;
@@ -69,6 +76,7 @@ class _AddEditItemPageState extends State<AddEditItemPage> {
     if (existing != null) {
       _nameController.text = existing.name;
       _noteController.text = existing.note ?? '';
+      _barcodeController.text = existing.barcode ?? '';
       _categoryId = existing.categoryId;
       _unitId = existing.unitId;
       _quantity = existing.quantity;
@@ -77,6 +85,7 @@ class _AddEditItemPageState extends State<AddEditItemPage> {
 
     _initialName = _nameController.text.trim();
     _initialNote = _noteController.text.trim();
+    _initialBarcode = _barcodeController.text.trim();
     _initialCategoryId = _categoryId;
     _initialUnitId = _unitId;
     _initialQuantity = _quantity;
@@ -87,6 +96,7 @@ class _AddEditItemPageState extends State<AddEditItemPage> {
   void dispose() {
     _nameController.dispose();
     _noteController.dispose();
+    _barcodeController.dispose();
     super.dispose();
   }
 
@@ -99,6 +109,7 @@ class _AddEditItemPageState extends State<AddEditItemPage> {
   bool get _isDirty =>
       _nameController.text.trim() != _initialName ||
       _noteController.text.trim() != _initialNote ||
+      _barcodeController.text.trim() != _initialBarcode ||
       _categoryId != _initialCategoryId ||
       _unitId != _initialUnitId ||
       _quantity != _initialQuantity ||
@@ -187,6 +198,42 @@ class _AddEditItemPageState extends State<AddEditItemPage> {
                     ),
                   ],
                 ),
+                const SizedBox(height: AppSpacing.lg),
+
+                // Optional, and the label says so. Most restaurant stock —
+                // produce, meat, fish, bread — arrives loose with nothing to
+                // scan, so a field that looked required would be wrong far more
+                // often than it was right.
+                AppTextField(
+                  label: l10n.itemBarcodeLabel,
+                  controller: _barcodeController,
+                  hint: l10n.itemBarcodeHint,
+                  helperText: _barcodeConflictName == null
+                      ? l10n.itemBarcodeHelp
+                      : null,
+                  errorText: _barcodeConflictName == null
+                      ? null
+                      : l10n.itemBarcodeDuplicate(_barcodeConflictName!),
+                  // Numeric by default because most barcodes are digits, but
+                  // input is *not* restricted to them: internal and regional
+                  // codes contain letters, and a field that silently refuses a
+                  // real barcode is worse than one that accepts a wrong one.
+                  keyboardType: TextInputType.number,
+                  suffixIcon: IconButton(
+                    // The scan button's seat, kept warm. Disabled rather than
+                    // absent so adding the camera later is a swap rather than a
+                    // reflow of the field around a control that appeared.
+                    onPressed: null,
+                    tooltip: l10n.itemBarcodeScanTooltip,
+                    icon: const Icon(LucideIcons.scanLine),
+                  ),
+                  onChanged: (_) => setState(() {
+                    // Clearing on edit rather than on save: leaving a stale
+                    // error under a field the user has already fixed is how a
+                    // form starts feeling broken.
+                    _barcodeConflictName = null;
+                  }),
+                ),
               ],
             ),
           ),
@@ -269,6 +316,26 @@ class _AddEditItemPageState extends State<AddEditItemPage> {
 
   void _submit() {
     final l10n = AppLocalizations.of(context);
+
+    // Uniqueness is checked here rather than on every keystroke, and against
+    // the other items of *this store* only — two shops can stock the same
+    // product, and a barcode collision across them is not a collision.
+    final barcode = _barcodeController.text.trim();
+    if (barcode.isNotEmpty) {
+      final conflict = MockQueries.barcodeConflict(
+        widget.storeId,
+        barcode,
+        // Excluding the item being edited is what lets somebody save an item
+        // with its own barcode unchanged. Without it every edit would fail
+        // against itself.
+        excludingItemId: widget.itemId,
+      );
+      if (conflict != null) {
+        setState(() => _barcodeConflictName = conflict.name);
+        return;
+      }
+    }
+
     AppSnackBar.success(
       context,
       _isEditing ? l10n.itemUpdated : l10n.itemCreated,

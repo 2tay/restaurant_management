@@ -5,9 +5,13 @@
 library;
 
 export 'category.dart';
+export 'goods_receipt.dart';
+export 'goods_receipt_line.dart';
 export 'item.dart';
 export 'notification_item.dart';
 export 'price_history_entry.dart';
+export 'purchase_order.dart';
+export 'purchase_order_line.dart';
 export 'report_figures.dart';
 export 'stock_movement.dart';
 export 'store.dart';

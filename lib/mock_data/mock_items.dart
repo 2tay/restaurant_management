@@ -293,6 +293,7 @@ final List<Item> mockItems = [
     quantity: 3,
     lowStockThreshold: 4,
     updatedAt: hoursAgo(6),
+    barcode: '5412033201148',
     defaultSupplierId: SupplierIds.cremerie,
   ),
   Item(
@@ -304,6 +305,7 @@ final List<Item> mockItems = [
     quantity: 16,
     lowStockThreshold: 6,
     updatedAt: daysAgo(1),
+    barcode: '5412033207195',
     defaultSupplierId: SupplierIds.cremerie,
   ),
   Item(
@@ -315,6 +317,7 @@ final List<Item> mockItems = [
     quantity: 6.8,
     lowStockThreshold: 3,
     updatedAt: daysAgo(3),
+    barcode: '5400101340077',
     defaultSupplierId: SupplierIds.cremerie,
   ),
   Item(
@@ -326,6 +329,7 @@ final List<Item> mockItems = [
     quantity: 240,
     lowStockThreshold: 90,
     updatedAt: daysAgo(2),
+    barcode: '5410063011229',
     defaultSupplierId: SupplierIds.cremerie,
   ),
   Item(
@@ -337,6 +341,7 @@ final List<Item> mockItems = [
     quantity: 28,
     lowStockThreshold: 12,
     updatedAt: daysAgo(1),
+    barcode: '5400101122086',
     defaultSupplierId: SupplierIds.cremerie,
   ),
 
@@ -352,6 +357,7 @@ final List<Item> mockItems = [
     quantity: 2,
     lowStockThreshold: 3,
     updatedAt: hoursAgo(2),
+    barcode: '5412345001019',
     defaultSupplierId: SupplierIds.brasseurs,
   ),
   Item(
@@ -363,6 +369,7 @@ final List<Item> mockItems = [
     quantity: 7,
     lowStockThreshold: 2,
     updatedAt: daysAgo(4),
+    barcode: '5410908000114',
     defaultSupplierId: SupplierIds.brasseurs,
   ),
   Item(
@@ -374,6 +381,7 @@ final List<Item> mockItems = [
     quantity: 5,
     lowStockThreshold: 2,
     updatedAt: daysAgo(4),
+    barcode: '5411681000107',
     defaultSupplierId: SupplierIds.brasseurs,
   ),
   Item(
@@ -385,6 +393,7 @@ final List<Item> mockItems = [
     quantity: 9,
     lowStockThreshold: 4,
     updatedAt: daysAgo(3),
+    barcode: '5449000000996',
     defaultSupplierId: SupplierIds.grossisteCentral,
   ),
   Item(
@@ -396,6 +405,7 @@ final List<Item> mockItems = [
     quantity: 12,
     lowStockThreshold: 5,
     updatedAt: daysAgo(3),
+    barcode: '5410316901017',
     defaultSupplierId: SupplierIds.grossisteCentral,
   ),
   Item(
@@ -407,6 +417,7 @@ final List<Item> mockItems = [
     quantity: 34,
     lowStockThreshold: 12,
     updatedAt: daysAgo(7),
+    barcode: '3263280120158',
     defaultSupplierId: SupplierIds.horecaSelect,
   ),
   Item(
@@ -418,6 +429,7 @@ final List<Item> mockItems = [
     quantity: 13,
     lowStockThreshold: 5,
     updatedAt: daysAgo(5),
+    barcode: '5410127310014',
     defaultSupplierId: SupplierIds.horecaSelect,
   ),
 
@@ -433,6 +445,7 @@ final List<Item> mockItems = [
     quantity: 4,
     lowStockThreshold: 5,
     updatedAt: daysAgo(2),
+    barcode: '8410660301123',
     defaultSupplierId: SupplierIds.grossisteCentral,
   ),
   Item(
@@ -466,6 +479,7 @@ final List<Item> mockItems = [
     quantity: 2.4,
     lowStockThreshold: 1,
     updatedAt: daysAgo(12),
+    barcode: '5410041001225',
     defaultSupplierId: SupplierIds.grossisteCentral,
   ),
   Item(
@@ -477,6 +491,7 @@ final List<Item> mockItems = [
     quantity: 26,
     lowStockThreshold: 10,
     updatedAt: daysAgo(8),
+    barcode: '5400141002218',
     defaultSupplierId: SupplierIds.grossisteCentral,
   ),
   Item(
@@ -488,6 +503,7 @@ final List<Item> mockItems = [
     quantity: 8,
     lowStockThreshold: 3,
     updatedAt: daysAgo(9),
+    barcode: '3011360001238',
     defaultSupplierId: SupplierIds.grossisteCentral,
   ),
   Item(
@@ -499,6 +515,7 @@ final List<Item> mockItems = [
     quantity: 15,
     lowStockThreshold: 6,
     updatedAt: daysAgo(5),
+    barcode: '5410316414012',
     defaultSupplierId: SupplierIds.grossisteCentral,
   ),
 
@@ -514,6 +531,7 @@ final List<Item> mockItems = [
     quantity: 96,
     lowStockThreshold: 40,
     updatedAt: hoursAgo(4),
+    barcode: '5411188112204',
     defaultSupplierId: SupplierIds.grossisteCentral,
   ),
   Item(
@@ -525,6 +543,7 @@ final List<Item> mockItems = [
     quantity: 18,
     lowStockThreshold: 8,
     updatedAt: daysAgo(4),
+    barcode: '5410041220114',
     defaultSupplierId: SupplierIds.grossisteCentral,
   ),
 
@@ -552,6 +571,7 @@ final List<Item> mockItems = [
     quantity: 1.5,
     lowStockThreshold: 2,
     updatedAt: daysAgo(3),
+    barcode: '5411661000123',
     defaultSupplierId: SupplierIds.liegeGrossiste,
   ),
   Item(
@@ -563,6 +583,7 @@ final List<Item> mockItems = [
     quantity: 52,
     lowStockThreshold: 25,
     updatedAt: daysAgo(1),
+    barcode: '5411188112204',
     defaultSupplierId: SupplierIds.liegeGrossiste,
   ),
   Item(
@@ -585,6 +606,7 @@ final List<Item> mockItems = [
     quantity: 11,
     lowStockThreshold: 4,
     updatedAt: hoursAgo(9),
+    barcode: '5412345001019',
     defaultSupplierId: SupplierIds.liegeBrasseurs,
   ),
   Item(
@@ -596,6 +618,7 @@ final List<Item> mockItems = [
     quantity: 0,
     lowStockThreshold: 3,
     updatedAt: daysAgo(1),
+    barcode: '5410127310014',
     defaultSupplierId: SupplierIds.liegeGrossiste,
   ),
 ];

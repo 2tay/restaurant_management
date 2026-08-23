@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../app/routes.dart';
@@ -23,6 +24,7 @@ class _StoreSettingsPageState extends State<StoreSettingsPage> {
   final _postalCode = TextEditingController();
   final _city = TextEditingController();
   final _phone = TextEditingController();
+  final _staleDays = TextEditingController();
   String? _defaultUnitId;
 
   @override
@@ -38,11 +40,19 @@ class _StoreSettingsPageState extends State<StoreSettingsPage> {
     }
     final units = MockQueries.unitsForStore(widget.storeId);
     _defaultUnitId = units.isEmpty ? null : units.first.id;
+    _staleDays.text = '${MockSettings.stalePartialOrderDays}';
   }
 
   @override
   void dispose() {
-    for (final controller in [_name, _address, _postalCode, _city, _phone]) {
+    for (final controller in [
+      _name,
+      _address,
+      _postalCode,
+      _city,
+      _phone,
+      _staleDays,
+    ]) {
       controller.dispose();
     }
     super.dispose();
@@ -80,8 +90,7 @@ class _StoreSettingsPageState extends State<StoreSettingsPage> {
         PrimaryButton(
           label: l10n.actionSave,
           icon: LucideIcons.check,
-          onPressed: () =>
-              AppSnackBar.success(context, l10n.storeSettingsSaved),
+          onPressed: _save,
         ),
       ],
       child: ConstrainedBox(
@@ -149,9 +158,44 @@ class _StoreSettingsPageState extends State<StoreSettingsPage> {
                 onChanged: (value) => setState(() => _defaultUnitId = value),
               ),
             ),
+            const SizedBox(height: AppSpacing.xl),
+
+            SectionHeader(title: l10n.storeSettingsOrders),
+            AppCard(
+              child: SizedBox(
+                width: 260,
+                child: AppTextField(
+                  label: l10n.storeSettingsStaleDays,
+                  controller: _staleDays,
+                  helperText: l10n.storeSettingsStaleDaysHelp,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                  ],
+                  prefixIcon: LucideIcons.clock,
+                ),
+              ),
+            ),
           ],
         ),
       ),
     );
+  }
+
+  /// Nothing else on this screen persists in this phase, but the stale-order
+  /// threshold does — within the session — because the dashboard warning it
+  /// drives is only demonstrable if changing the number changes the warning.
+  void _save() {
+    final l10n = AppLocalizations.of(context);
+    final days = int.tryParse(_staleDays.text.trim());
+    if (days != null && days > 0) {
+      MockSettings.stalePartialOrderDays = days;
+    } else {
+      // Falling back rather than refusing: an empty or nonsense value should
+      // restore the default, not leave the dashboard with no threshold at all.
+      MockSettings.reset();
+      _staleDays.text = '${MockSettings.stalePartialOrderDays}';
+    }
+    AppSnackBar.success(context, l10n.storeSettingsSaved);
   }
 }

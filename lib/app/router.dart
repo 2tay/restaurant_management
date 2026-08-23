@@ -27,6 +27,12 @@ import '../features/inventory/presentation/pages/inventory_list_page.dart';
 import '../features/inventory/presentation/pages/item_detail_page.dart';
 import '../features/inventory/presentation/pages/item_price_history_page.dart';
 import '../features/inventory/presentation/pages/link_supplier_to_item_page.dart';
+import '../features/orders/presentation/pages/create_order_page.dart';
+import '../features/orders/presentation/pages/edit_order_page.dart';
+import '../features/orders/presentation/pages/order_detail_page.dart';
+import '../features/orders/presentation/pages/orders_list_page.dart';
+import '../features/orders/presentation/pages/receipt_detail_page.dart';
+import '../features/orders/presentation/pages/receive_order_page.dart';
 import '../features/stores/presentation/pages/add_store_page.dart';
 import '../features/stock_movement/presentation/pages/stock_adjustment_page.dart';
 import '../features/stock_movement/presentation/pages/stock_history_page.dart';
@@ -235,6 +241,73 @@ final GoRouter appRouter = GoRouter(
           pageBuilder: (context, state) => appPage(
             key: state.pageKey,
             child: NotificationsPage(storeId: _storeId(state)),
+          ),
+        ),
+
+        // --- Orders ----------------------------------------------------------
+        //
+        // `new` and `receipts` are declared before `:orderId` for the same
+        // ordering reason as the inventory routes: go_router matches in order,
+        // so a literal segment has to come first or it is read as an id.
+        GoRoute(
+          path: Routes.orders,
+          pageBuilder: (context, state) => appPage(
+            key: state.pageKey,
+            child: OrdersListPage(storeId: _storeId(state)),
+          ),
+        ),
+        GoRoute(
+          path: Routes.newOrder,
+          pageBuilder: (context, state) => appPage(
+            key: state.pageKey,
+            // Arriving from the low stock alerts screen carries the supplier
+            // and a request to pre-fill their low items, so the manager lands
+            // on a filled order rather than a blank one.
+            child: CreateOrderPage(
+              storeId: _storeId(state),
+              initialSupplierId: state.uri.queryParameters['supplier'],
+              prefillSuggested: state.uri.queryParameters['prefill'] == '1',
+            ),
+          ),
+        ),
+        GoRoute(
+          path: Routes.receiptDetail,
+          pageBuilder: (context, state) => appPage(
+            key: state.pageKey,
+            child: ReceiptDetailPage(
+              storeId: _storeId(state),
+              receiptId: state.pathParameters['receiptId']!,
+            ),
+          ),
+        ),
+        GoRoute(
+          path: Routes.orderDetail,
+          pageBuilder: (context, state) => appPage(
+            key: state.pageKey,
+            child: OrderDetailPage(
+              storeId: _storeId(state),
+              orderId: state.pathParameters['orderId']!,
+            ),
+          ),
+        ),
+        GoRoute(
+          path: Routes.editOrder,
+          pageBuilder: (context, state) => appPage(
+            key: state.pageKey,
+            child: EditOrderPage(
+              storeId: _storeId(state),
+              orderId: state.pathParameters['orderId']!,
+            ),
+          ),
+        ),
+        GoRoute(
+          path: Routes.receiveOrder,
+          pageBuilder: (context, state) => appPage(
+            key: state.pageKey,
+            child: ReceiveOrderPage(
+              storeId: _storeId(state),
+              orderId: state.pathParameters['orderId']!,
+            ),
           ),
         ),
 
