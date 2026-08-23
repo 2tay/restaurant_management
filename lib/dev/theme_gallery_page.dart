@@ -4,6 +4,8 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../core/theme/app_colors.dart';
 import '../core/theme/app_spacing.dart';
 import '../core/theme/app_typography.dart';
+import '../models/models.dart';
+import '../shared/widgets/widgets.dart';
 
 /// A development-only reference page rendering every design-system primitive
 /// side by side.
@@ -47,6 +49,7 @@ class ThemeGalleryPage extends StatelessWidget {
           _InputSection(),
           _SurfaceSection(),
           _FeedbackSection(),
+          _ComponentsSection(),
           _NavigationSection(),
           SizedBox(height: AppSpacing.xxxl),
         ],
@@ -67,90 +70,22 @@ class _StatusTriadSection extends StatelessWidget {
     return const _Section(
       title: 'Statuts de stock',
       note:
-          'Jamais la couleur seule : chaque statut porte une icône et un '
-          'libellé. Doit rester lisible à un bras de distance.',
+          'Le composant réel StockStatusBadge. Jamais la couleur seule : '
+          'chaque statut porte une icône et un libellé.',
       child: Wrap(
         spacing: AppSpacing.lg,
         runSpacing: AppSpacing.lg,
+        crossAxisAlignment: WrapCrossAlignment.center,
         children: [
-          _StatusBadgePreview(
-            colors: AppColors.inStock,
-            icon: LucideIcons.circleCheck,
-            label: 'En stock',
-          ),
-          _StatusBadgePreview(
-            colors: AppColors.lowStock,
-            icon: LucideIcons.triangleAlert,
-            label: 'Stock faible',
-          ),
-          _StatusBadgePreview(
-            colors: AppColors.outOfStock,
-            icon: LucideIcons.circleX,
-            label: 'Rupture de stock',
-          ),
+          StockStatusBadge(status: StockStatus.inStock),
+          StockStatusBadge(status: StockStatus.lowStock),
+          StockStatusBadge(status: StockStatus.outOfStock),
+          SizedBox(width: AppSpacing.xl),
+          StockStatusBadge(status: StockStatus.inStock, compact: true),
+          StockStatusBadge(status: StockStatus.lowStock, compact: true),
+          StockStatusBadge(status: StockStatus.outOfStock, compact: true),
         ],
       ),
-    );
-  }
-}
-
-/// A throwaway preview of the badge. The real, reusable `StockStatusBadge`
-/// widget is built in Stage 4 — this only proves the colours work.
-class _StatusBadgePreview extends StatelessWidget {
-  const _StatusBadgePreview({
-    required this.colors,
-    required this.icon,
-    required this.label,
-  });
-
-  final StockStatusColors colors;
-  final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.lg,
-            vertical: AppSpacing.md,
-          ),
-          decoration: BoxDecoration(
-            color: colors.container,
-            borderRadius: AppRadius.pillAll,
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: AppSizing.iconMd, color: colors.foreground),
-              const SizedBox(width: AppSpacing.sm),
-              Text(
-                label,
-                style: Theme.of(
-                  context,
-                ).textTheme.labelLarge?.copyWith(color: colors.foreground),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: AppSpacing.sm),
-        Row(
-          children: [
-            Container(
-              width: AppSpacing.lg,
-              height: AppSpacing.lg,
-              decoration: BoxDecoration(
-                color: colors.solid,
-                borderRadius: AppRadius.smAll,
-              ),
-            ),
-            const SizedBox(width: AppSpacing.sm),
-            Text('solid', style: Theme.of(context).textTheme.bodySmall),
-          ],
-        ),
-      ],
     );
   }
 }
@@ -731,6 +666,144 @@ class _NavigationSection extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+// =============================================================================
+// Shared component library
+// =============================================================================
+
+class _ComponentsSection extends StatefulWidget {
+  const _ComponentsSection();
+
+  @override
+  State<_ComponentsSection> createState() => _ComponentsSectionState();
+}
+
+class _ComponentsSectionState extends State<_ComponentsSection> {
+  double _quantity = 12;
+  String? _category = 'cat-viandes';
+
+  @override
+  Widget build(BuildContext context) {
+    return _Section(
+      title: 'Composants partagés',
+      note:
+          'Les composants réels de shared/widgets, interactifs. '
+          'Le pas-à-pas accepte le maintien pour répéter.',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'QuantityStepper',
+            style: Theme.of(context).textTheme.labelMedium,
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          QuantityStepper(
+            value: _quantity,
+            unitAbbreviation: 'kg',
+            onChanged: (value) => setState(() => _quantity = value),
+          ),
+          const SizedBox(height: AppSpacing.xl),
+
+          Text(
+            'AppDropdown — avec « + Créer » intégré',
+            style: Theme.of(context).textTheme.labelMedium,
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          SizedBox(
+            width: 380,
+            child: AppDropdown<String>(
+              label: 'Catégorie',
+              value: _category,
+              options: const [
+                DropdownOption(value: 'cat-legumes', label: 'Fruits & Légumes'),
+                DropdownOption(value: 'cat-viandes', label: 'Viandes'),
+                DropdownOption(value: 'cat-boissons', label: 'Boissons'),
+              ],
+              onChanged: (value) => setState(() => _category = value),
+              onCreateNew: () => AppSnackBar.success(
+                context,
+                'Ouvrirait le formulaire de création',
+              ),
+              createNewLabel: '+ Créer une catégorie',
+            ),
+          ),
+          const SizedBox(height: AppSpacing.xl),
+
+          Text('Boutons', style: Theme.of(context).textTheme.labelMedium),
+          const SizedBox(height: AppSpacing.sm),
+          Wrap(
+            spacing: AppSpacing.md,
+            runSpacing: AppSpacing.md,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              PrimaryButton(
+                label: 'Enregistrer une livraison',
+                icon: LucideIcons.truck,
+                onPressed: () =>
+                    AppSnackBar.success(context, 'Livraison enregistrée'),
+              ),
+              SecondaryButton(label: 'Annuler', onPressed: () {}),
+              DestructiveButton(
+                label: 'Supprimer',
+                icon: LucideIcons.trash2,
+                onPressed: () async {
+                  final confirmed = await ConfirmDialog.confirmDelete(
+                    context,
+                    name: 'Blanc de poulet',
+                    extraWarning:
+                        "L'historique des mouvements de cet article sera "
+                        'également supprimé.',
+                  );
+                  if (confirmed && context.mounted) {
+                    AppSnackBar.success(context, 'Article supprimé');
+                  }
+                },
+              ),
+              const PrimaryButton(label: 'Désactivé', onPressed: null),
+              const PrimaryButton(
+                label: 'En cours',
+                onPressed: null,
+                isBusy: true,
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.xl),
+
+          Text('États', style: Theme.of(context).textTheme.labelMedium),
+          const SizedBox(height: AppSpacing.sm),
+          SizedBox(
+            height: 320,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: AppCard(
+                    child: EmptyState(
+                      icon: LucideIcons.packageOpen,
+                      title: 'Aucun article pour le moment',
+                      message:
+                          'Ajoutez votre premier article pour commencer à '
+                          'suivre votre stock.',
+                      actionLabel: 'Ajouter un article',
+                      actionIcon: LucideIcons.plus,
+                      onAction: () {},
+                    ),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.lg),
+                const Expanded(child: AppCard(child: LoadingState())),
+                const SizedBox(width: AppSpacing.lg),
+                Expanded(
+                  child: AppCard(child: ErrorState(onRetry: () {})),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
