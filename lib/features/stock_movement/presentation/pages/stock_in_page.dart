@@ -271,6 +271,27 @@ class _StockInPageState extends State<StockInPage> {
 
   void _submit() {
     final l10n = AppLocalizations.of(context);
+
+    // No order behind it: somebody ran to the market. The movement carries no
+    // order or receipt reference, which is exactly how the history tells the
+    // two paths apart.
+    MovementMutations.recordStockIn(
+      storeId: widget.storeId,
+      itemId: _itemId!,
+      quantity: _quantity,
+      supplierId: _supplierId,
+      unitPrice: _enteredPrice,
+      occurredAt: _date,
+    );
+
+    // A price typed here that differs from the one on file is a real price
+    // change, recorded the same way receiving a delivery records one.
+    final price = MockQueries.priceFor(_itemId!, _supplierId!);
+    final entered = _enteredPrice;
+    if (price != null && entered != null && _priceWasEdited) {
+      SupplierMutations.updatePrice(price.id, entered, changedAt: _date);
+    }
+
     AppSnackBar.success(context, l10n.stockInRecorded);
     context.goSection(Routes.toMovements(widget.storeId));
   }

@@ -2233,4 +2233,106 @@ class AppLocalizationsFr extends AppLocalizations {
     );
     return '$_temp0 Changez leur unité avant de la supprimer.';
   }
+
+  @override
+  String get itemFormOpeningBalanceHelp =>
+      'Enregistré comme un ajustement d\'inventaire, pour que l\'historique des mouvements soit complet dès le départ.';
+
+  @override
+  String get itemFormAdjustStock => 'Ajuster le stock';
+
+  @override
+  String get itemFormQuantityLocked =>
+      'La quantité se modifie par un ajustement d\'inventaire, qui laisse une trace.';
+
+  @override
+  String itemDeleteBlockedTitle(String name) {
+    return 'Impossible de supprimer « $name »';
+  }
+
+  @override
+  String itemDeleteBlockedBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Cet article figure sur $count commandes en cours.',
+      one: 'Cet article figure sur 1 commande en cours.',
+    );
+    return '$_temp0 Réceptionnez ou clôturez-la avant de le supprimer.';
+  }
+
+  @override
+  String itemDeleteCascadeWarning(int movements, int suppliers) {
+    String _temp0 = intl.Intl.pluralLogic(
+      movements,
+      locale: localeName,
+      other: '$movements mouvements de stock',
+      one: '1 mouvement de stock',
+      zero: '',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      suppliers,
+      locale: localeName,
+      other: ' et $suppliers fournisseurs associés',
+      one: ' et 1 fournisseur associé',
+      zero: '',
+    );
+    return '$_temp0$_temp1 seront également supprimés.';
+  }
+
+  @override
+  String supplierDeleteBlockedTitle(String name) {
+    return 'Impossible de supprimer « $name »';
+  }
+
+  @override
+  String supplierDeleteBlockedBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count commandes en cours sont adressées à ce fournisseur.',
+      one: 'Une commande en cours est adressée à ce fournisseur.',
+    );
+    return '$_temp0 Réceptionnez-les, clôturez-les ou annulez-les d\'abord.';
+  }
+
+  @override
+  String get supplierPriceUpdated => 'Prix mis à jour.';
+
+  @override
+  String supplierDefaultChanged(String supplier) {
+    return '$supplier est maintenant le fournisseur par défaut.';
+  }
+
+  @override
+  String supplierPromotedToDefault(String supplier) {
+    return '$supplier devient le fournisseur par défaut.';
+  }
+
+  @override
+  String get memberEmailTaken =>
+      'Cette adresse est déjà utilisée par un membre.';
+
+  @override
+  String memberRemoveBlockedTitle(String name) {
+    return 'Impossible de retirer « $name »';
+  }
+
+  @override
+  String get memberRemoveBlockedBody =>
+      'C\'est le dernier propriétaire du compte. Nommez un autre propriétaire avant de retirer celui-ci.';
+
+  @override
+  String notificationsMarkedRead(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count notifications marquées comme lues.',
+      one: '1 notification marquée comme lue.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get storeCreated => 'Établissement créé.';
 }

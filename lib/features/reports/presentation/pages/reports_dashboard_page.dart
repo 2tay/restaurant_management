@@ -104,7 +104,7 @@ class ReportsDashboardPage extends ConsumerWidget {
             children: [
               SummaryTile(
                 label: l10n.dashboardTileStockValue,
-                value: Formatters.priceCompact(mockStockValuationTotal),
+                value: Formatters.priceCompact(MockQueries.stockValuation(storeId)),
                 icon: LucideIcons.wallet,
                 onTap: () =>
                     context.pushScreen(Routes.toValuationReport(storeId)),

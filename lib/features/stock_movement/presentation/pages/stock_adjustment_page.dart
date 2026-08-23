@@ -202,6 +202,19 @@ class _StockAdjustmentPageState extends State<StockAdjustmentPage> {
     }
 
     if (!mounted) return;
+
+    // Both figures are recorded, not just the difference: "we thought 40, we
+    // counted 31" is the useful record and "−9" on its own is not.
+    MovementMutations.recordAdjustment(
+      storeId: widget.storeId,
+      itemId: item.id,
+      systemQuantity: item.quantity,
+      countedQuantity: _counted,
+      note: _noteController.text.trim().isEmpty
+          ? null
+          : _noteController.text.trim(),
+    );
+
     AppSnackBar.success(context, l10n.adjustmentRecorded);
     context.goSection(Routes.toMovements(widget.storeId));
   }

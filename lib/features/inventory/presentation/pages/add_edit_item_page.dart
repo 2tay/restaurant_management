@@ -4,7 +4,9 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../app/routes.dart';
 import '../../../../app/navigation.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/utils/formatters.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../mock_data/mock_data.dart';
 import '../../../../shared/widgets/widgets.dart';
@@ -238,16 +240,41 @@ class _AddEditItemPageState extends State<AddEditItemPage> {
               children: [
                 Text(
                   _isEditing
-                      ? l10n.itemQuantityLabel
+                      ? l10n.itemOnHandLabel
                       : l10n.itemFormStartingQuantity,
                   style: Theme.of(context).textTheme.labelMedium,
                 ),
                 const SizedBox(height: AppSpacing.sm),
-                QuantityStepper(
-                  value: _quantity,
-                  unitAbbreviation: unitAbbreviation,
-                  onChanged: (value) => setState(() => _quantity = value),
-                ),
+                // Editable on create — the starting quantity is recorded as an
+                // opening-balance movement — and read-only afterwards.
+                //
+                // Dragging a stepper from 40 to 35 on a routine edit form would
+                // be an untraceable stock change: the most consequential thing
+                // in the app, done by accident, with nothing in the movement
+                // log to explain it. Adjusting stock has its own screen, and it
+                // asks for the counted figure and leaves a record.
+                if (_isEditing)
+                  _QuantityFact(
+                    value: Formatters.quantityWithUnit(
+                      _quantity,
+                      unitAbbreviation,
+                    ),
+                    onAdjust: () =>
+                        context.pushScreen(Routes.toAdjustment(widget.storeId)),
+                  )
+                else
+                  QuantityStepper(
+                    value: _quantity,
+                    unitAbbreviation: unitAbbreviation,
+                    onChanged: (value) => setState(() => _quantity = value),
+                  ),
+                if (!_isEditing) ...[
+                  const SizedBox(height: AppSpacing.sm),
+                  Text(
+                    l10n.itemFormOpeningBalanceHelp,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
                 const SizedBox(height: AppSpacing.xl),
                 Text(
                   l10n.itemThresholdLabel,
@@ -331,6 +358,36 @@ class _AddEditItemPageState extends State<AddEditItemPage> {
       }
     }
 
+    final note = _noteController.text.trim();
+
+    if (_isEditing) {
+      ItemMutations.update(
+        widget.itemId!,
+        name: _nameController.text.trim(),
+        categoryId: _categoryId,
+        unitId: _unitId,
+        lowStockThreshold: _threshold,
+        barcode: barcode,
+        clearBarcode: barcode.isEmpty,
+        note: note,
+        clearNote: note.isEmpty,
+      );
+    } else {
+      final created = ItemMutations.create(
+        storeId: widget.storeId,
+        name: _nameController.text.trim(),
+        categoryId: _categoryId!,
+        unitId: _unitId!,
+        // Recorded as an opening-balance movement rather than written onto the
+        // item, so the quantity and the movement log agree from day one.
+        quantity: _quantity,
+        lowStockThreshold: _threshold,
+        barcode: barcode.isEmpty ? null : barcode,
+        note: note.isEmpty ? null : note,
+      );
+      if (created == null) return;
+    }
+
     AppSnackBar.success(
       context,
       _isEditing ? l10n.itemUpdated : l10n.itemCreated,
@@ -344,6 +401,35 @@ class _AddEditItemPageState extends State<AddEditItemPage> {
     } else {
       context.goSection(Routes.toInventory(widget.storeId));
     }
+  }
+}
+
+/// The quantity on an edit form: stated, with the correct way to change it.
+///
+/// Read-only by design — see the note at the call site.
+class _QuantityFact extends StatelessWidget {
+  const _QuantityFact({required this.value, required this.onAdjust});
+
+  final String value;
+  final VoidCallback onAdjust;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
+    return Row(
+      children: [
+        Expanded(
+          child: Text(value, style: AppTypography.numericMedium),
+        ),
+        const SizedBox(width: AppSpacing.md),
+        SecondaryButton(
+          label: l10n.itemFormAdjustStock,
+          icon: LucideIcons.clipboardCheck,
+          onPressed: onAdjust,
+        ),
+      ],
+    );
   }
 }
 

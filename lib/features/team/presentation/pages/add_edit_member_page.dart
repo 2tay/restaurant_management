@@ -33,6 +33,10 @@ class _AddEditMemberPageState extends State<AddEditMemberPage> {
   final _email = TextEditingController();
 
   TeamRole _role = TeamRole.staff;
+
+  /// Set when the entered email is already on the team. Cleared on the next
+  /// keystroke so a corrected field stops complaining immediately.
+  bool _emailTaken = false;
   late Set<String> _storeIds = {widget.storeId};
 
   // Snapshot of how the form opened, for the unsaved-changes check.
@@ -133,6 +137,7 @@ class _AddEditMemberPageState extends State<AddEditMemberPage> {
                 AppTextField(
                   label: l10n.memberFormEmail,
                   controller: _email,
+                  errorText: _emailTaken ? l10n.memberEmailTaken : null,
                   prefixIcon: LucideIcons.mail,
                   keyboardType: TextInputType.emailAddress,
                   enabled: !_isEditing,
@@ -184,6 +189,30 @@ class _AddEditMemberPageState extends State<AddEditMemberPage> {
 
   void _submit() {
     final l10n = AppLocalizations.of(context);
+
+    final result = _isEditing
+        ? AccountMutations.updateMember(
+            widget.memberId!,
+            fullName: _name.text,
+            email: _email.text,
+            role: _role,
+            storeIds: _storeIds.toList(),
+          )
+        : AccountMutations.invite(
+            fullName: _name.text,
+            email: _email.text,
+            role: _role,
+            storeIds: _storeIds.toList(),
+          );
+
+    // Null means the email is already on the team — the only validation here
+    // that can fail. Flagged under the field rather than in a snackbar, so
+    // there is something to correct.
+    if (result == null) {
+      setState(() => _emailTaken = true);
+      return;
+    }
+
     AppSnackBar.success(
       context,
       _isEditing ? l10n.memberUpdated : l10n.memberInvited,
@@ -193,17 +222,30 @@ class _AddEditMemberPageState extends State<AddEditMemberPage> {
 
   Future<void> _confirmRemove() async {
     final l10n = AppLocalizations.of(context);
+    final id = widget.memberId;
+    if (id == null) return;
+
+    // An account nobody can administer is not a state to be able to reach by
+    // accident — there is no way back to it from inside the app.
+    if (AccountMutations.isLastOwner(id)) {
+      await ConfirmDialog.blocked(
+        context,
+        title: l10n.memberRemoveBlockedTitle(_name.text.trim()),
+        message: l10n.memberRemoveBlockedBody,
+      );
+      return;
+    }
 
     final confirmed = await ConfirmDialog.confirmDelete(
       context,
       name: _name.text.trim(),
       extraWarning: l10n.memberRemoveWarning,
     );
+    if (!confirmed || !mounted) return;
 
-    if (confirmed && mounted) {
-      AppSnackBar.success(context, l10n.memberRemoved);
-      context.goSection(Routes.toTeam(widget.storeId));
-    }
+    AccountMutations.removeMember(id);
+    AppSnackBar.success(context, l10n.memberRemoved);
+    context.goSection(Routes.toTeam(widget.storeId));
   }
 }
 

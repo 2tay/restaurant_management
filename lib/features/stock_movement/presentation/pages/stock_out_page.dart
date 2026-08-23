@@ -185,6 +185,18 @@ class _StockOutPageState extends State<StockOutPage> {
 
   void _submit() {
     final l10n = AppLocalizations.of(context);
+
+    // Recorded as entered even when it takes the item below zero. The warning
+    // above is the whole intervention: refusing would make staff either lie to
+    // the app or stop using it, and negative stock is itself a useful signal
+    // that a delivery went unrecorded.
+    MovementMutations.recordStockOut(
+      storeId: widget.storeId,
+      itemId: _itemId!,
+      quantity: _quantity,
+      reason: _reason,
+    );
+
     AppSnackBar.success(context, l10n.stockOutRecorded);
     context.goSection(Routes.toMovements(widget.storeId));
   }

@@ -8,6 +8,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/formatters.dart';
+import '../../../../core/utils/order_status.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../mock_data/mock_data.dart';
 import '../../../../models/models.dart';
@@ -221,7 +222,7 @@ class _SupplierDetailPageState extends ConsumerState<SupplierDetailPage> {
             icon: LucideIcons.trash2,
             filled: false,
             onPressed: () =>
-                _confirmDelete(context, supplier.name, prices.length),
+                _confirmDelete(context, supplier, prices.length),
           ),
         ),
       ],
@@ -273,23 +274,38 @@ class _SupplierDetailPageState extends ConsumerState<SupplierDetailPage> {
 
   Future<void> _confirmDelete(
     BuildContext context,
-    String name,
+    Supplier supplier,
     int productCount,
   ) async {
     final l10n = AppLocalizations.of(context);
 
+    // A supplier holding an open commande cannot go: the document is in their
+    // inbox, and anything already delivered against it produced stock
+    // movements that would be orphaned.
+    final openOrders = MockQueries.ordersForSupplier(supplier.id)
+        .where(orderIsOpen)
+        .length;
+    if (openOrders > 0) {
+      await ConfirmDialog.blocked(
+        context,
+        title: l10n.supplierDeleteBlockedTitle(supplier.name),
+        message: l10n.supplierDeleteBlockedBody(openOrders),
+      );
+      return;
+    }
+
     final confirmed = await ConfirmDialog.confirmDelete(
       context,
-      name: name,
+      name: supplier.name,
       extraWarning: productCount > 0
           ? l10n.supplierDeleteWarning(productCount)
           : null,
     );
+    if (!confirmed || !context.mounted) return;
 
-    if (confirmed && context.mounted) {
-      AppSnackBar.success(context, l10n.supplierDeleted);
-      context.goSection(Routes.toSuppliers(storeId));
-    }
+    SupplierMutations.delete(supplier.id);
+    AppSnackBar.success(context, l10n.supplierDeleted);
+    context.goSection(Routes.toSuppliers(storeId));
   }
 }
 

@@ -83,7 +83,9 @@ class StockValuationReportPage extends ConsumerWidget {
                         fit: BoxFit.scaleDown,
                         alignment: Alignment.centerLeft,
                         child: Text(
-                          Formatters.price(mockStockValuationTotal),
+                          Formatters.price(
+                            MockQueries.stockValuation(storeId),
+                          ),
                           style: theme.textTheme.displaySmall,
                         ),
                       ),
@@ -105,7 +107,8 @@ class StockValuationReportPage extends ConsumerWidget {
               DataColumn(label: Text(l10n.valuationColumnShare)),
             ],
             rows: [
-              for (final row in mockValuationByCategory) _row(context, row),
+              for (final row in MockQueries.valuationByCategory(storeId))
+                _row(context, row),
             ],
           ),
           const SizedBox(height: AppSpacing.xl),
@@ -119,7 +122,10 @@ class StockValuationReportPage extends ConsumerWidget {
               DataColumn(label: Text(l10n.valuationColumnValue), numeric: true),
               DataColumn(label: Text(l10n.valuationColumnShare)),
             ],
-            rows: [for (final row in mockValuationByItem) _row(context, row)],
+            rows: [
+              for (final row in MockQueries.valuationByItem(storeId))
+                _row(context, row),
+            ],
           ),
         ],
       ),

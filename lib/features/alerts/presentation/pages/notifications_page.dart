@@ -31,7 +31,6 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
   bool _unreadOnly = false;
 
   /// Ids marked read in this session. Phase 1 persists nothing.
-  final Set<String> _locallyRead = {};
 
   @override
   Widget build(BuildContext context) {
@@ -42,11 +41,11 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
 
     final all = MockQueries.notificationsForStore(widget.storeId);
     final unreadCount = all
-        .where((n) => !n.isRead && !_locallyRead.contains(n.id))
+        .where((n) => !n.isRead)
         .length;
 
     final shown = _unreadOnly
-        ? all.where((n) => !n.isRead && !_locallyRead.contains(n.id)).toList()
+        ? all.where((n) => !n.isRead).toList()
         : all;
 
     return ShellPage(
@@ -108,9 +107,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
                       final notification = shown[index];
                       return _NotificationCard(
                         notification: notification,
-                        isRead:
-                            notification.isRead ||
-                            _locallyRead.contains(notification.id),
+                        isRead: notification.isRead,
                         onTap: () => _open(notification),
                       );
                     },
@@ -123,16 +120,16 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
 
   void _markAllRead() {
     final l10n = AppLocalizations.of(context);
-    setState(() {
-      _locallyRead.addAll(
-        MockQueries.notificationsForStore(widget.storeId).map((n) => n.id),
-      );
-    });
-    AppSnackBar.success(context, l10n.notificationsAllRead);
+    final changed = AccountMutations.markAllRead(widget.storeId);
+
+    // Says how many rather than a bare acknowledgement, and stays quiet when
+    // there was nothing to do.
+    if (changed == 0) return;
+    AppSnackBar.success(context, l10n.notificationsMarkedRead(changed));
   }
 
   void _open(NotificationItem notification) {
-    setState(() => _locallyRead.add(notification.id));
+    AccountMutations.markRead(notification.id);
 
     // Deep-links to whatever the notification is about, so it is actionable
     // rather than merely informative.

@@ -8,6 +8,7 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/stock_status.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../mock_data/mock_data.dart';
+import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 import '../widgets/item_detail_view.dart';
 
@@ -68,26 +69,47 @@ class ItemDetailPage extends ConsumerWidget {
           label: l10n.actionDelete,
           icon: LucideIcons.trash2,
           filled: false,
-          onPressed: () => _confirmDelete(context, item.name),
+          onPressed: () => _confirmDelete(context, item),
         ),
       ],
       child: ItemDetailView(item: item, storeId: storeId, showTitle: false),
     );
   }
 
-  Future<void> _confirmDelete(BuildContext context, String name) async {
+  Future<void> _confirmDelete(BuildContext context, Item item) async {
     final l10n = AppLocalizations.of(context);
+
+    // An article on a commande a supplier is still holding cannot go: the
+    // document would be left referring to nothing. Explained before asking,
+    // rather than confirmed and then quietly refused.
+    final openOrders = MockQueries.openOrdersForItem(storeId, item.id);
+    if (openOrders.isNotEmpty) {
+      await ConfirmDialog.blocked(
+        context,
+        title: l10n.itemDeleteBlockedTitle(item.name),
+        message: l10n.itemDeleteBlockedBody(openOrders.length),
+      );
+      return;
+    }
+
+    // Deleting cascades to movements and supplier links, so the dialog states
+    // exactly what disappears. A confirmation that does not name its blast
+    // radius is a formality, not a safeguard.
+    final movements = MockQueries.movementsForItem(item.id).length;
+    final suppliers = MockQueries.pricesForItem(item.id).length;
 
     final confirmed = await ConfirmDialog.confirmDelete(
       context,
-      name: name,
-      extraWarning: l10n.itemRemoveSupplierWarning,
+      name: item.name,
+      extraWarning: movements == 0 && suppliers == 0
+          ? null
+          : l10n.itemDeleteCascadeWarning(movements, suppliers),
     );
+    if (!confirmed || !context.mounted) return;
 
-    if (confirmed && context.mounted) {
-      AppSnackBar.success(context, l10n.itemDeleted);
-      context.goSection(Routes.toInventory(storeId));
-    }
+    ItemMutations.delete(item.id);
+    AppSnackBar.success(context, l10n.itemDeleted);
+    context.goSection(Routes.toInventory(storeId));
   }
 }
 

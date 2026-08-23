@@ -4,10 +4,21 @@ import 'mock_suppliers.dart';
 
 /// Pre-computed report figures.
 ///
-/// Hardcoded rather than aggregated from the other mock lists — deriving them
-/// in a widget would mean writing the business logic Phase 1 exists to defer.
-/// The numbers are internally consistent with `mock_items` and
-/// `mock_supplier_prices` so nothing on screen contradicts anything else.
+/// Hardcoded rather than aggregated. The numbers are internally consistent with
+/// `mock_items` and `mock_supplier_prices`, so nothing on screen contradicts
+/// anything else — as long as nothing moves.
+///
+/// **The valuation figures below are no longer used.** Phase 1.7 made stock
+/// mutable, and a frozen total that does not follow a delivery makes the
+/// dashboard contradict the inventory two taps away. Valuation is now derived
+/// in `MockQueries.stockValuation` and friends. These are kept only as the
+/// reference the seeded dataset was balanced against.
+///
+/// The trend series are still static, and still used. Deriving usage and waste
+/// from the movement log is a real piece of work rather than a line change, and
+/// the movement log only covers the last few weeks in detail — a derived
+/// six-month trend would be mostly flat zero, which would look like a bug
+/// rather than like honesty. Phase 2 aggregates them properly.
 
 /// Total stock value across the Sablon inventory, in EUR.
 const double mockStockValuationTotal = 4812.65;

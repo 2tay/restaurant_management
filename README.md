@@ -13,17 +13,27 @@ comments, and documentation are in English.
 Still a **demo-ready prototype, not a functioning app**. Every screen renders from data in
 `lib/mock_data/`. There is no database, no networking, no persistence and no repositories.
 
-**Almost nothing you do is saved, with one deliberate exception.** Forms confirm and
-navigate; they change no data. The exception is the ordering flow added in Phase 1.6:
-sending a commande, receiving a delivery and closing an order short really do run, against
-the mock lists, **in memory for as long as the app is open**. A hot restart puts everything
-back.
+**What you do in the app now sticks — for as long as the app is open.** Creating an
+article, receiving a delivery, recording usage, renaming a category, changing a price,
+inviting a colleague: all of it runs against the mock lists in memory. A hot restart puts
+everything back, and so does **Paramètres → Synchronisation → Réinitialiser la
+démonstration**.
 
-That exception exists because the feature is not demonstrable otherwise — the entire point
-of receiving a delivery is that stock goes up and the price history gains an entry, and a
-screen that shows a success message while nothing moves teaches the client the wrong thing
-about what they are buying. The rules live in `mock_data/mock_mutations.dart` and are the
-ones Phase 2 will reimplement against real storage.
+The rules live in `mock_data/mutations/` and are the ones Phase 2 will reimplement against
+real storage. They are there because the app is not demonstrable otherwise — the entire
+point of receiving a delivery is that stock goes up and the price history gains an entry,
+and a screen that reports success while nothing moves teaches the client the wrong thing
+about what they are buying.
+
+**Still fake, deliberately:** login, export and sync. Those screens say so on themselves.
+Making two of the three half-work would be worse than leaving them honest.
+
+**Still frozen:** the usage and waste trend series on the reports. Stock valuation is now
+derived from live quantities, because a headline figure that does not follow a delivery
+makes the dashboard contradict the inventory two taps away. The trend charts are a bigger
+job — the movement log only covers the last few weeks in detail, so a derived six-month
+trend would be mostly flat zero, which reads as a bug rather than as honesty. Phase 2
+aggregates them properly.
 
 | Stage | Scope | Status |
 |---|---|---|
@@ -37,7 +47,7 @@ ones Phase 2 will reimplement against real storage.
 | 7 | Phase 2 stubs + handoff | Done |
 | 1.5 | Navigation fixes + UI polish pass | Done |
 | 1.6 | Purchase orders + receiving, item barcode | Done |
-| 1.7 | In-memory writes across the rest of the app | Stages 1–2 of 9 — foundation, catalogue |
+| 1.7 | In-memory writes across the rest of the app | Done |
 
 The original brief is in [`.claude/phase1.md`](.claude/phase1.md).
 
@@ -152,10 +162,17 @@ through `MockQueries.itemsForStore(...)`, `MockQueries.onOrderQuantity(...)`; wr
 through the mutation classes. Replace both with repositories returning the same shapes and
 the call sites barely move.
 
-The write layer is split one file per aggregate — `catalog_mutations.dart` and
-`order_mutations.dart` today, with items, suppliers and movements to follow — **because that
-is how Phase 2's repositories will split**. A one-to-one seam is easier to walk across than
-one large class.
+The write layer is split one file per aggregate — **because that is how Phase 2's
+repositories will split**. A one-to-one seam is easier to walk across than one large class.
+
+| File | Owns |
+|---|---|
+| `movement_mutations.dart` | Stock in, out, adjustments, opening balances. **The only file in the app that changes an item's quantity.** |
+| `item_mutations.dart` | Articles. Notably *not* their quantity. |
+| `catalog_mutations.dart` | Categories and units. |
+| `supplier_mutations.dart` | Suppliers, and the item–supplier links that carry prices. |
+| `order_mutations.dart` | Commandes and receiving. |
+| `account_mutations.dart` | Team, stores, notifications. |
 
 `mutations/mock_write.dart` holds what they all share:
 
@@ -221,27 +238,43 @@ for, and store switching is just navigation.
    recover what they said. Tapping delete explains the count and the fix rather than
    offering a confirmation that then quietly fails.
 4. **Store scoping**: once a store is selected, every screen shows that store's data only.
-5. **An order never changes stock — only a receipt does.** Ordering 50 kg of tomatoes does
+   A new store starts genuinely empty — categories, units, items and suppliers are all
+   per-store, so what the user sees next is every empty state in the app doing its job.
+5. **Every change to an item's quantity is a stock movement.** One file writes quantity —
+   `mutations/movement_mutations.dart` — and everything comes through it: receiving a
+   delivery, a manual stock-in, usage mid-service, a physical count, and the opening balance
+   on a brand-new article. So `quantity == opening balance + Σ movements` holds by
+   construction, and the history is a complete record rather than a partial one that looks
+   complete. Two consequences worth knowing:
+   - **Quantity is read-only on the edit item form.** Dragging a stepper from 40 to 35 there
+     would be an untraceable stock change hidden in a routine screen. The form states the
+     quantity and links to the adjustment screen, which asks for the counted figure and
+     leaves a record.
+   - **Stock can go negative.** Recording 10 kg out when 6 are on hand records 10, and the
+     item reads −4. Refusing would make staff either lie to the app or stop using it, and
+     negative stock is itself the signal that a delivery went unrecorded. The form warns
+     first; the adjustment screen is the fix.
+6. **An order never changes stock — only a receipt does.** Ordering 50 kg of tomatoes does
    not put 50 kg on the shelf; the goods are not there yet. Stock moves when a delivery
    arrives and somebody confirms what actually came through the door. Every screen respects
    this, and `test/orders_test.dart` asserts it three ways.
-6. **A commande goes to exactly one supplier**, so the supplier is step one of creating one
+7. **A commande goes to exactly one supplier**, so the supplier is step one of creating one
    rather than a field halfway down the form. Everything after depends on it: the item
    picker is filtered to what that supplier sells, and every price auto-fills from them.
-7. **A sent order is locked.** The supplier holds a copy; an order that quietly disagrees
+8. **A sent order is locked.** The supplier holds a copy; an order that quietly disagrees
    with the document in their inbox is worse than no order. Only drafts are editable, and
    only drafts can be deleted outright — a sent order is cancelled, which leaves a record.
-8. **Closing an order short records the shortfall, it does not rewrite the order.** Ordered
+9. **Closing an order short records the shortfall, it does not rewrite the order.** Ordered
    10, received 8, closed: the line still says 10 were ordered. That two-unit gap is the
    only evidence the supplier under-delivered, and it is what an owner needs.
-9. **Confirmed receipts are permanent** — never edited, never deleted. Corrections go
+10. **Confirmed receipts are permanent** — never edited, never deleted. Corrections go
    through a stock adjustment so both the original and the correction stay visible.
-10. **Prices are captured at receiving.** A delivery note that disagrees with the ordered
+11. **Prices are captured at receiving.** A delivery note that disagrees with the ordered
     price writes a price-history entry and updates that supplier's current price, which is
     how price history stays current without anyone maintaining it by hand. A move of more
     than `OrderRules.significantPriceChange` (15%) asks for confirmation first — that is
     usually either a real increase the owner must know about, or a typo.
-11. **A barcode is optional and unique per store.** Most restaurant stock — produce, meat,
+12. **A barcode is optional and unique per store.** Most restaurant stock — produce, meat,
     fish, bread — has none, so the field is labelled optional and its row is hidden on items
     without one. Lookups are written to return a *collection*, never a single item, so
     "several barcodes per item" stays a model change rather than a rewrite.
@@ -310,7 +343,7 @@ back gesture alike.
 flutter test
 ```
 
-280 tests. The seven that earn their keep:
+332 tests. The ones that earn their keep:
 
 - **`navigation_test.dart`** pins the navigation contract: all 15 root screens show no back
   control and all 24 pushed screens do; push-then-pop returns you where you were and five
@@ -345,6 +378,17 @@ flutter test
   with itself, a refused write must not half-apply, and the same name in a different store
   is fine because categories are per-store. It finishes by deleting every category and every
   unit it can and asserting no item was left pointing at nothing.
+- **`inventory_test.dart`** pins the invariant the whole app rests on:
+  `quantity == opening balance + Σ movements`, checked after an arbitrary sequence of
+  deliveries, usage and a correction. Also that editing an item cannot change its quantity,
+  that a stock-out is allowed to take an item to −4, that deleting an item on an open order
+  is refused, and that deleting every item in the store leaves no orphaned movement.
+- **`suppliers_test.dart`** pins the link rules — an item never has two defaults, removing
+  the default promotes the cheapest remaining one, a price change writes history for the
+  pair, and deleting a supplier keeps the movements and closed orders that name them, since
+  a movement records goods that really moved.
+- **`account_test.dart`** covers team, stores and notifications, including the two rules
+  worth having: the last owner cannot be removed, and a new store starts genuinely empty.
 - **`orders_test.dart`** is the one that matters most, because the ordering rules are the
   part of this phase with actual behaviour. It runs them against the in-memory layer and
   restores the mock lists afterwards: that sending an order moves no stock but does count

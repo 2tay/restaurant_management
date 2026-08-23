@@ -110,6 +110,12 @@ class _SupplierPricingPageState extends ConsumerState<SupplierPricingPage> {
 
   void _commit(SupplierPrice price, double value) {
     if ((value - price.pricePerUnit).abs() < 0.001) return;
+
+    // Writes a price-history entry for this item-supplier pair as well as
+    // moving the current price — the same path receiving a delivery takes, so
+    // the history reads the same however the change arrived.
+    SupplierMutations.updatePrice(price.id, value);
+
     AppSnackBar.success(context, AppLocalizations.of(context).priceUpdated);
   }
 }

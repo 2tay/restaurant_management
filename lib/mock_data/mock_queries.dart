@@ -357,6 +357,116 @@ abstract final class MockQueries {
   static List<TeamMember> teamForStore(String storeId) =>
       mockTeam.where((m) => m.storeIds.contains(storeId)).toList();
 
+  static TeamMember? teamMemberById(String id) {
+    for (final member in mockTeam) {
+      if (member.id == id) return member;
+    }
+    return null;
+  }
+
+  /// The member already using this email, if any.
+  ///
+  /// Email is the one team field worth guarding: it is how a real invitation
+  /// would be addressed in Phase 2, and two members sharing one makes that
+  /// ambiguous.
+  static TeamMember? teamMemberByEmail(String email, {String? excludingId}) {
+    final needle = _normalise(email);
+    if (needle.isEmpty) return null;
+
+    for (final member in mockTeam) {
+      if (member.id == excludingId) continue;
+      if (_normalise(member.email) == needle) return member;
+    }
+    return null;
+  }
+
+  /// How many owners the account has left.
+  ///
+  /// Guards the removal of the last one: an account nobody can administer is
+  /// not a state worth being able to reach by accident.
+  static int ownerCount() =>
+      mockTeam.where((member) => member.role == TeamRole.owner).length;
+
+  // ---------------------------------------------------------------------------
+  // Valuation
+  // ---------------------------------------------------------------------------
+
+  /// What the stock on hand is worth, at each item's default supplier price.
+  ///
+  /// **Derived rather than stored.** It used to be a constant in
+  /// `mock_reports.dart`, which was fine while nothing moved — but once
+  /// receiving a delivery raises a quantity, a headline figure that does not
+  /// follow makes the dashboard contradict the inventory two taps away.
+  ///
+  /// Items with no supplier on file contribute nothing rather than an invented
+  /// price. Understating is the safer direction: a valuation built partly on
+  /// guesses is worse than one that is visibly incomplete.
+  static double stockValuation(String storeId) {
+    var total = 0.0;
+    for (final item in itemsForStore(storeId)) {
+      total += _valueOf(item);
+    }
+    return total;
+  }
+
+  /// Stock value per category, largest first — the valuation report's breakdown.
+  static List<ValuationRow> valuationByCategory(String storeId) {
+    final values = <String, double>{};
+    final counts = <String, int>{};
+
+    for (final item in itemsForStore(storeId)) {
+      values[item.categoryId] =
+          (values[item.categoryId] ?? 0) + _valueOf(item);
+      counts[item.categoryId] = (counts[item.categoryId] ?? 0) + 1;
+    }
+
+    final total = stockValuation(storeId);
+    final rows =
+        values.entries
+            .map(
+              (entry) => ValuationRow(
+                label: categoryNameOf(entry.key),
+                itemCount: counts[entry.key] ?? 0,
+                totalValue: entry.value,
+                shareOfTotal: total == 0 ? 0 : entry.value / total,
+              ),
+            )
+            .toList()
+          ..sort((a, b) => b.totalValue.compareTo(a.totalValue));
+    return rows;
+  }
+
+  /// The most valuable individual items, largest first.
+  ///
+  /// [itemCount] carries the quantity on hand here rather than a count of
+  /// items, matching the column the report renders it in.
+  static List<ValuationRow> valuationByItem(String storeId, {int limit = 10}) {
+    final total = stockValuation(storeId);
+
+    final rows =
+        itemsForStore(storeId)
+            .map(
+              (item) => ValuationRow(
+                label: item.name,
+                itemCount: item.quantity.round(),
+                totalValue: _valueOf(item),
+                shareOfTotal: total == 0 ? 0 : _valueOf(item) / total,
+              ),
+            )
+            .where((row) => row.totalValue > 0)
+            .toList()
+          ..sort((a, b) => b.totalValue.compareTo(a.totalValue));
+
+    return rows.take(limit).toList();
+  }
+
+  /// What one item's stock on hand is worth. Zero when no supplier is on file:
+  /// understating beats inventing a price.
+  static double _valueOf(Item item) {
+    final price = defaultPriceForItem(item.id) ?? cheapestPriceForItem(item.id);
+    return price == null ? 0 : item.quantity * price.pricePerUnit;
+  }
+
   // ---------------------------------------------------------------------------
   // Commandes
   // ---------------------------------------------------------------------------

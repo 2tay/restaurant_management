@@ -261,10 +261,31 @@ class ItemDetailView extends StatelessWidget {
       extraWarning: l10n.itemRemoveSupplierWarning,
     );
 
-    if (confirmed && context.mounted) {
-      // Phase 1 changes no data — the confirmation is what is being designed
-      // here, not the mutation.
-      AppSnackBar.success(context, l10n.itemSupplierRemoved);
+    if (!confirmed || !context.mounted) return;
+
+    // Removing the default promotes the next cheapest supplier, so the item
+    // does not silently lose its price auto-fill everywhere. Working out which
+    // one before the removal, so it can be named.
+    final promoted = price.isDefault
+        ? MockQueries.pricesForItem(
+            price.itemId,
+          ).where((candidate) => candidate.id != price.id).firstOrNull
+        : null;
+
+    SupplierMutations.unlinkItem(price.id);
+
+    AppSnackBar.success(context, l10n.itemSupplierRemoved);
+
+    // Said out loud rather than left to be discovered: the default changing is
+    // a consequence the user did not ask for and would otherwise only notice
+    // the next time a form filled itself in with a different number.
+    if (promoted != null && context.mounted) {
+      AppSnackBar.warning(
+        context,
+        l10n.supplierPromotedToDefault(
+          MockQueries.supplierNameOf(promoted.supplierId),
+        ),
+      );
     }
   }
 }

@@ -3723,6 +3723,102 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'{count, plural, =1{1 article est mesuré dans cette unité.} other{{count} articles sont mesurés dans cette unité.}} Changez leur unité avant de la supprimer.'**
   String unitDeleteBlockedBody(int count);
+
+  /// Explains that a new item's starting quantity is recorded as an opening-balance movement rather than simply set.
+  ///
+  /// In fr, this message translates to:
+  /// **'Enregistré comme un ajustement d\'inventaire, pour que l\'historique des mouvements soit complet dès le départ.'**
+  String get itemFormOpeningBalanceHelp;
+
+  /// Link from the edit item form to the stock adjustment screen. Quantity is read-only when editing: changing it here would be an untraceable stock change hidden inside a routine form.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ajuster le stock'**
+  String get itemFormAdjustStock;
+
+  /// Explains why the quantity field is read-only on the edit item form.
+  ///
+  /// In fr, this message translates to:
+  /// **'La quantité se modifie par un ajustement d\'inventaire, qui laisse une trace.'**
+  String get itemFormQuantityLocked;
+
+  /// Title of the dialog shown when an item cannot be deleted because it is on an open order.
+  ///
+  /// In fr, this message translates to:
+  /// **'Impossible de supprimer « {name} »'**
+  String itemDeleteBlockedTitle(String name);
+
+  /// Explains why an item cannot be deleted. The open order is a document a supplier is holding, so removing the article would leave it referring to nothing.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =1{Cet article figure sur 1 commande en cours.} other{Cet article figure sur {count} commandes en cours.}} Réceptionnez ou clôturez-la avant de le supprimer.'**
+  String itemDeleteBlockedBody(int count);
+
+  /// States exactly what disappears alongside a deleted item. Naming the counts is what makes the confirmation honest rather than a formality.
+  ///
+  /// In fr, this message translates to:
+  /// **'{movements, plural, =0{} =1{1 mouvement de stock} other{{movements} mouvements de stock}}{suppliers, plural, =0{} =1{ et 1 fournisseur associé} other{ et {suppliers} fournisseurs associés}} seront également supprimés.'**
+  String itemDeleteCascadeWarning(int movements, int suppliers);
+
+  /// Title of the dialog shown when a supplier cannot be deleted because they have an open order.
+  ///
+  /// In fr, this message translates to:
+  /// **'Impossible de supprimer « {name} »'**
+  String supplierDeleteBlockedTitle(String name);
+
+  /// Explains why a supplier cannot be deleted.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =1{Une commande en cours est adressée à ce fournisseur.} other{{count} commandes en cours sont adressées à ce fournisseur.}} Réceptionnez-les, clôturez-les ou annulez-les d\'abord.'**
+  String supplierDeleteBlockedBody(int count);
+
+  /// Snackbar after changing a supplier's price for an item. The change is recorded in that item-supplier pair's price history.
+  ///
+  /// In fr, this message translates to:
+  /// **'Prix mis à jour.'**
+  String get supplierPriceUpdated;
+
+  /// Snackbar after promoting a supplier to an item's default.
+  ///
+  /// In fr, this message translates to:
+  /// **'{supplier} est maintenant le fournisseur par défaut.'**
+  String supplierDefaultChanged(String supplier);
+
+  /// Snackbar shown when removing an item's default supplier automatically promotes the next cheapest, so the change does not happen silently.
+  ///
+  /// In fr, this message translates to:
+  /// **'{supplier} devient le fournisseur par défaut.'**
+  String supplierPromotedToDefault(String supplier);
+
+  /// Inline error when inviting somebody whose email is already on the team.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cette adresse est déjà utilisée par un membre.'**
+  String get memberEmailTaken;
+
+  /// Title of the dialog shown when removing the last owner is refused.
+  ///
+  /// In fr, this message translates to:
+  /// **'Impossible de retirer « {name} »'**
+  String memberRemoveBlockedTitle(String name);
+
+  /// Explains why the last owner cannot be removed: an account nobody can administer has no recovery path from inside the app.
+  ///
+  /// In fr, this message translates to:
+  /// **'C\'est le dernier propriétaire du compte. Nommez un autre propriétaire avant de retirer celui-ci.'**
+  String get memberRemoveBlockedBody;
+
+  /// Snackbar after marking notifications read.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =1{1 notification marquée comme lue.} other{{count} notifications marquées comme lues.}}'**
+  String notificationsMarkedRead(int count);
+
+  /// Snackbar after creating a store.
+  ///
+  /// In fr, this message translates to:
+  /// **'Établissement créé.'**
+  String get storeCreated;
 }
 
 class _AppLocalizationsDelegate
