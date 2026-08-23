@@ -1,13 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:stock_inventory/app/router.dart';
 import 'package:stock_inventory/core/theme/app_theme.dart';
-import 'package:stock_inventory/dev/theme_gallery_page.dart';
 import 'package:stock_inventory/l10n/app_localizations.dart';
 
 /// Root of the application.
-///
-/// Stage 3 replaces [MaterialApp] with [MaterialApp.router] driven by
-/// `app/router.dart`, and drops the gallery `home` below.
 class StockInventoryApp extends StatelessWidget {
   const StockInventoryApp({super.key});
 
@@ -17,9 +14,10 @@ class StockInventoryApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return MaterialApp.router(
       onGenerateTitle: (context) => AppLocalizations.of(context).appTitle,
       debugShowCheckedModeBanner: false,
+      routerConfig: appRouter,
       locale: _locale,
       supportedLocales: const [_locale],
       localizationsDelegates: const [
@@ -29,10 +27,6 @@ class StockInventoryApp extends StatelessWidget {
         GlobalCupertinoLocalizations.delegate,
       ],
       theme: AppTheme.light,
-
-      // Temporary. The gallery is the only thing to look at until the router
-      // and real screens land in Stage 3.
-      home: const ThemeGalleryPage(),
     );
   }
 }

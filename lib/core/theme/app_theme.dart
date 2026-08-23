@@ -117,9 +117,7 @@ abstract final class AppTheme {
         labelStyle: textTheme.bodyMedium?.copyWith(
           color: AppColors.textSecondary,
         ),
-        hintStyle: textTheme.bodyLarge?.copyWith(
-          color: AppColors.textDisabled,
-        ),
+        hintStyle: textTheme.bodyLarge?.copyWith(color: AppColors.textDisabled),
         errorStyle: textTheme.bodySmall?.copyWith(color: AppColors.error),
       ),
 
@@ -149,9 +147,7 @@ abstract final class AppTheme {
         toolbarHeight: AppSizing.topBarHeight,
         centerTitle: false,
         titleTextStyle: textTheme.titleLarge,
-        shape: const Border(
-          bottom: BorderSide(color: AppColors.border),
-        ),
+        shape: const Border(bottom: BorderSide(color: AppColors.border)),
       ),
 
       // ---------------------------------------------------------------------
@@ -186,9 +182,7 @@ abstract final class AppTheme {
       // ---------------------------------------------------------------------
       snackBarTheme: SnackBarThemeData(
         backgroundColor: AppColors.neutral900,
-        contentTextStyle: textTheme.bodyLarge?.copyWith(
-          color: AppColors.white,
-        ),
+        contentTextStyle: textTheme.bodyLarge?.copyWith(color: AppColors.white),
         actionTextColor: AppColors.primary500,
         behavior: SnackBarBehavior.floating,
         shape: const RoundedRectangleBorder(borderRadius: AppRadius.mdAll),

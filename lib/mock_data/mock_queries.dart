@@ -63,12 +63,11 @@ abstract final class MockQueries {
     return items;
   }
 
-  static int _statusRank(Item item) =>
-      switch (stockStatusOf(item)) {
-        StockStatus.outOfStock => 0,
-        StockStatus.lowStock => 1,
-        StockStatus.inStock => 2,
-      };
+  static int _statusRank(Item item) => switch (stockStatusOf(item)) {
+    StockStatus.outOfStock => 0,
+    StockStatus.lowStock => 1,
+    StockStatus.inStock => 2,
+  };
 
   // ---------------------------------------------------------------------------
   // Catalog
@@ -129,9 +128,8 @@ abstract final class MockQueries {
 
   /// Every supplier offering this item, cheapest first.
   static List<SupplierPrice> pricesForItem(String itemId) {
-    final prices =
-        mockSupplierPrices.where((p) => p.itemId == itemId).toList()
-          ..sort((a, b) => a.pricePerUnit.compareTo(b.pricePerUnit));
+    final prices = mockSupplierPrices.where((p) => p.itemId == itemId).toList()
+      ..sort((a, b) => a.pricePerUnit.compareTo(b.pricePerUnit));
     return prices;
   }
 
@@ -180,10 +178,11 @@ abstract final class MockQueries {
     String itemId,
     String supplierId,
   ) {
-    final entries = mockPriceHistory
-        .where((e) => e.itemId == itemId && e.supplierId == supplierId)
-        .toList()
-      ..sort((a, b) => b.changedAt.compareTo(a.changedAt));
+    final entries =
+        mockPriceHistory
+            .where((e) => e.itemId == itemId && e.supplierId == supplierId)
+            .toList()
+          ..sort((a, b) => b.changedAt.compareTo(a.changedAt));
     return entries;
   }
 

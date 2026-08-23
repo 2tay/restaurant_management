@@ -66,7 +66,8 @@ class _StatusTriadSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return const _Section(
       title: 'Statuts de stock',
-      note: 'Jamais la couleur seule : chaque statut porte une icône et un '
+      note:
+          'Jamais la couleur seule : chaque statut porte une icône et un '
           'libellé. Doit rester lisible à un bras de distance.',
       child: Wrap(
         spacing: AppSpacing.lg,
@@ -127,10 +128,9 @@ class _StatusBadgePreview extends StatelessWidget {
               const SizedBox(width: AppSpacing.sm),
               Text(
                 label,
-                style: Theme.of(context)
-                    .textTheme
-                    .labelLarge
-                    ?.copyWith(color: colors.foreground),
+                style: Theme.of(
+                  context,
+                ).textTheme.labelLarge?.copyWith(color: colors.foreground),
               ),
             ],
           ),
@@ -166,7 +166,8 @@ class _PaletteSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return const _Section(
       title: 'Palette',
-      note: "L'action principale (sarcelle) et le statut « en stock » (vert) "
+      note:
+          "L'action principale (sarcelle) et le statut « en stock » (vert) "
           'sont volontairement de teintes différentes.',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -221,14 +222,23 @@ class _SwatchRow extends StatelessWidget {
       children: [
         Text(label, style: Theme.of(context).textTheme.labelMedium),
         const SizedBox(height: AppSpacing.sm),
-        Wrap(spacing: AppSpacing.sm, runSpacing: AppSpacing.sm, children: swatches),
+        Wrap(
+          spacing: AppSpacing.sm,
+          runSpacing: AppSpacing.sm,
+          children: swatches,
+        ),
       ],
     );
   }
 }
 
 class _Swatch extends StatelessWidget {
-  const _Swatch(this.name, this.color, {this.isDark = true, this.isKey = false});
+  const _Swatch(
+    this.name,
+    this.color, {
+    this.isDark = true,
+    this.isKey = false,
+  });
 
   final String name;
   final Color color;
@@ -260,17 +270,15 @@ class _Swatch extends StatelessWidget {
         children: [
           Text(
             name,
-            style: Theme.of(context)
-                .textTheme
-                .labelSmall
-                ?.copyWith(color: textColor),
+            style: Theme.of(
+              context,
+            ).textTheme.labelSmall?.copyWith(color: textColor),
           ),
           Text(
             '#${(color.toARGB32() & 0xFFFFFF).toRadixString(16).padLeft(6, '0').toUpperCase()}',
-            style: Theme.of(context)
-                .textTheme
-                .labelSmall
-                ?.copyWith(color: textColor),
+            style: Theme.of(
+              context,
+            ).textTheme.labelSmall?.copyWith(color: textColor),
           ),
         ],
       ),
@@ -290,24 +298,65 @@ class _TypographySection extends StatelessWidget {
     final t = Theme.of(context).textTheme;
     return _Section(
       title: 'Typographie',
-      note: 'Police Inter (repli automatique tant que les .ttf ne sont pas '
+      note:
+          'Police Inter (repli automatique tant que les .ttf ne sont pas '
           'dans fonts/). Rien en dessous de 13pt.',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _TypeRow('displaySmall / 36', 'Sélectionnez un établissement', t.displaySmall),
+          _TypeRow(
+            'displaySmall / 36',
+            'Sélectionnez un établissement',
+            t.displaySmall,
+          ),
           _TypeRow('headlineLarge / 32', 'Inventaire', t.headlineLarge),
-          _TypeRow('headlineMedium / 28', 'Mouvements de stock', t.headlineMedium),
-          _TypeRow('titleLarge / 22', 'Fournisseurs de cet article', t.titleLarge),
+          _TypeRow(
+            'headlineMedium / 28',
+            'Mouvements de stock',
+            t.headlineMedium,
+          ),
+          _TypeRow(
+            'titleLarge / 22',
+            'Fournisseurs de cet article',
+            t.titleLarge,
+          ),
           _TypeRow('titleMedium / 18', 'Blanc de poulet', t.titleMedium),
-          _TypeRow('bodyLarge / 17', 'Quantité en stock mise à jour hier à 14h32.', t.bodyLarge),
-          _TypeRow('bodyMedium / 15', 'Dernière livraison reçue il y a trois jours.', t.bodyMedium),
-          _TypeRow('bodySmall / 13', 'Modifié par Amélie Vandenberghe', t.bodySmall),
-          _TypeRow('labelLarge / 16', 'ENREGISTRER UNE LIVRAISON', t.labelLarge),
+          _TypeRow(
+            'bodyLarge / 17',
+            'Quantité en stock mise à jour hier à 14h32.',
+            t.bodyLarge,
+          ),
+          _TypeRow(
+            'bodyMedium / 15',
+            'Dernière livraison reçue il y a trois jours.',
+            t.bodyMedium,
+          ),
+          _TypeRow(
+            'bodySmall / 13',
+            'Modifié par Amélie Vandenberghe',
+            t.bodySmall,
+          ),
+          _TypeRow(
+            'labelLarge / 16',
+            'ENREGISTRER UNE LIVRAISON',
+            t.labelLarge,
+          ),
           const Divider(height: AppSpacing.xxl),
-          const _TypeRow('numericLarge / 34', '1 248,50 €', AppTypography.numericLarge),
-          const _TypeRow('numeric / 17', '12,50 € · 48 kg · 3 bacs', AppTypography.numeric),
-          const _TypeRow('numericSmall / 15', '22/08/2026', AppTypography.numericSmall),
+          const _TypeRow(
+            'numericLarge / 34',
+            '1 248,50 €',
+            AppTypography.numericLarge,
+          ),
+          const _TypeRow(
+            'numeric / 17',
+            '12,50 € · 48 kg · 3 bacs',
+            AppTypography.numeric,
+          ),
+          const _TypeRow(
+            'numericSmall / 15',
+            '22/08/2026',
+            AppTypography.numericSmall,
+          ),
           const SizedBox(height: AppSpacing.sm),
           Text(
             'Les chiffres utilisent des figures tabulaires : les colonnes de '
@@ -357,7 +406,8 @@ class _ButtonSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return _Section(
       title: 'Boutons',
-      note: 'Hauteur minimale 56dp. Une seule action principale par écran. '
+      note:
+          'Hauteur minimale 56dp. Une seule action principale par écran. '
           'Les libellés français sont longs : jamais de largeur fixe.',
       child: Wrap(
         spacing: AppSpacing.lg,
@@ -477,7 +527,10 @@ class _SurfaceSection extends StatelessWidget {
                   children: [
                     Text('Valeur du stock', style: t.labelMedium),
                     const SizedBox(height: AppSpacing.sm),
-                    const Text('12 480,75 €', style: AppTypography.numericLarge),
+                    const Text(
+                      '12 480,75 €',
+                      style: AppTypography.numericLarge,
+                    ),
                     const SizedBox(height: AppSpacing.xs),
                     Text('42 articles · 5 catégories', style: t.bodySmall),
                   ],
@@ -530,7 +583,8 @@ class _FeedbackSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return _Section(
       title: 'Retours utilisateur',
-      note: "Chaque action produit une confirmation visible. L'utilisateur ne "
+      note:
+          "Chaque action produit une confirmation visible. L'utilisateur ne "
           'doit jamais se demander « est-ce que ça a été enregistré ? »',
       child: Wrap(
         spacing: AppSpacing.lg,
@@ -571,10 +625,9 @@ class _FeedbackSection extends StatelessWidget {
                 const SizedBox(width: AppSpacing.sm),
                 Text(
                   'Mode hors ligne · 3 modifications en attente',
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodyMedium
-                      ?.copyWith(color: AppColors.offline),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(color: AppColors.offline),
                 ),
               ],
             ),
@@ -623,7 +676,8 @@ class _NavigationSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return _Section(
       title: 'Navigation',
-      note: 'Largeur du rail vérifiée contre « Mouvements de stock » et '
+      note:
+          'Largeur du rail vérifiée contre « Mouvements de stock » et '
           '« Catégories et unités » — les libellés les plus longs.',
       child: SizedBox(
         height: 460,
@@ -704,10 +758,7 @@ class _Section extends StatelessWidget {
           Text(title, style: t.headlineSmall),
           if (note != null) ...[
             const SizedBox(height: AppSpacing.xs),
-            SizedBox(
-              width: 720,
-              child: Text(note!, style: t.bodySmall),
-            ),
+            SizedBox(width: 720, child: Text(note!, style: t.bodySmall)),
           ],
           const SizedBox(height: AppSpacing.lg),
           child,

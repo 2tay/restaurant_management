@@ -94,23 +94,11 @@ abstract final class AppBreakpoints {
 /// Shadows. Used sparingly — this is a data tool, not a landing page.
 abstract final class AppElevation {
   static const List<BoxShadow> card = [
-    BoxShadow(
-      color: Color(0x0D0F1417),
-      blurRadius: 3,
-      offset: Offset(0, 1),
-    ),
-    BoxShadow(
-      color: Color(0x0A0F1417),
-      blurRadius: 8,
-      offset: Offset(0, 2),
-    ),
+    BoxShadow(color: Color(0x0D0F1417), blurRadius: 3, offset: Offset(0, 1)),
+    BoxShadow(color: Color(0x0A0F1417), blurRadius: 8, offset: Offset(0, 2)),
   ];
 
   static const List<BoxShadow> raised = [
-    BoxShadow(
-      color: Color(0x141F2933),
-      blurRadius: 16,
-      offset: Offset(0, 4),
-    ),
+    BoxShadow(color: Color(0x141F2933), blurRadius: 16, offset: Offset(0, 4)),
   ];
 }

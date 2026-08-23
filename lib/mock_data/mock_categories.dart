@@ -22,11 +22,7 @@ const List<Category> mockCategories = [
     storeId: StoreIds.sablon,
     name: 'Fruits & Légumes',
   ),
-  Category(
-    id: CategoryIds.viandes,
-    storeId: StoreIds.sablon,
-    name: 'Viandes',
-  ),
+  Category(id: CategoryIds.viandes, storeId: StoreIds.sablon, name: 'Viandes'),
   Category(
     id: CategoryIds.poissons,
     storeId: StoreIds.sablon,

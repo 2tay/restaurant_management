@@ -56,34 +56,38 @@ void main() {
       }
     });
 
-    test('every price history entry matches an existing item-supplier link',
-        () {
-      for (final entry in mockPriceHistory) {
-        expect(
-          MockQueries.priceFor(entry.itemId, entry.supplierId),
-          isNotNull,
-          reason: '${entry.id} has history but no current price',
-        );
-      }
-    });
-
-    test('every movement points at a real item, and deliveries at a supplier',
-        () {
-      final itemIds = mockItems.map((i) => i.id).toSet();
-      final supplierIds = mockSuppliers.map((s) => s.id).toSet();
-
-      for (final movement in mockStockMovements) {
-        expect(itemIds, contains(movement.itemId), reason: movement.id);
-
-        if (movement.type == StockMovementType.stockIn) {
+    test(
+      'every price history entry matches an existing item-supplier link',
+      () {
+        for (final entry in mockPriceHistory) {
           expect(
-            supplierIds,
-            contains(movement.supplierId),
-            reason: '${movement.id} is a delivery with no valid supplier',
+            MockQueries.priceFor(entry.itemId, entry.supplierId),
+            isNotNull,
+            reason: '${entry.id} has history but no current price',
           );
         }
-      }
-    });
+      },
+    );
+
+    test(
+      'every movement points at a real item, and deliveries at a supplier',
+      () {
+        final itemIds = mockItems.map((i) => i.id).toSet();
+        final supplierIds = mockSuppliers.map((s) => s.id).toSet();
+
+        for (final movement in mockStockMovements) {
+          expect(itemIds, contains(movement.itemId), reason: movement.id);
+
+          if (movement.type == StockMovementType.stockIn) {
+            expect(
+              supplierIds,
+              contains(movement.supplierId),
+              reason: '${movement.id} is a delivery with no valid supplier',
+            );
+          }
+        }
+      },
+    );
 
     test('notifications and team members point at real stores', () {
       final storeIds = mockStores.map((s) => s.id).toSet();
@@ -110,9 +114,9 @@ void main() {
 
     test('an item has at most one default supplier', () {
       for (final item in mockItems) {
-        final defaults = MockQueries.pricesForItem(item.id)
-            .where((p) => p.isDefault)
-            .length;
+        final defaults = MockQueries.pricesForItem(
+          item.id,
+        ).where((p) => p.isDefault).length;
         expect(defaults, lessThanOrEqualTo(1), reason: item.name);
       }
     });
@@ -138,9 +142,9 @@ void main() {
 
   group('the dataset demos what it needs to', () {
     test('all three stock statuses appear in the flagship store', () {
-      final statuses = MockQueries.itemsForStore(StoreIds.sablon)
-          .map(stockStatusOf)
-          .toSet();
+      final statuses = MockQueries.itemsForStore(
+        StoreIds.sablon,
+      ).map(stockStatusOf).toSet();
 
       expect(statuses, containsAll(StockStatus.values));
     });
@@ -160,8 +164,9 @@ void main() {
     test('at least one item is on a default supplier that is not cheapest', () {
       // Without this the price comparison report opens on nothing to say, and
       // it is the feature the app is sold on.
-      final overpaying =
-          mockItems.where((item) => MockQueries.overpayPerUnit(item.id) > 0);
+      final overpaying = mockItems.where(
+        (item) => MockQueries.overpayPerUnit(item.id) > 0,
+      );
 
       expect(overpaying, isNotEmpty);
     });

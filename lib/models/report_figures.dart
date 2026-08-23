@@ -32,10 +32,7 @@ class ValuationRow {
 
 /// One point on a usage or waste trend line.
 class TrendPoint {
-  const TrendPoint({
-    required this.date,
-    required this.value,
-  });
+  const TrendPoint({required this.date, required this.value});
 
   final DateTime date;
   final double value;

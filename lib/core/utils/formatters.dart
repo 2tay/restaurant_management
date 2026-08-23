@@ -96,8 +96,7 @@ abstract final class Formatters {
   static String time(DateTime value) => _time.format(value);
 
   /// `22/08/2026 à 14:32`
-  static String dateTime(DateTime value) =>
-      '${date(value)} à ${time(value)}';
+  static String dateTime(DateTime value) => '${date(value)} à ${time(value)}';
 
   /// `il y a 3 jours`, `hier`, `à l'instant`.
   ///

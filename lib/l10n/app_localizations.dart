@@ -124,13 +124,13 @@ abstract class AppLocalizations {
   /// **'Fournisseurs'**
   String get navSuppliers;
 
-  /// Sidebar label for the category and unit-of-measure management screens.
+  /// Sidebar label for the category and unit-of-measure management screens. The longest rail label.
   ///
   /// In fr, this message translates to:
   /// **'Catégories et unités'**
   String get navCatalog;
 
-  /// Sidebar label for low-stock alerts and notifications.
+  /// Sidebar label for low-stock alerts.
   ///
   /// In fr, this message translates to:
   /// **'Alertes'**
@@ -184,6 +184,18 @@ abstract class AppLocalizations {
   /// **'Enregistrer une livraison'**
   String get actionAddDelivery;
 
+  /// Quick action opening the Stock Out screen, for usage and waste.
+  ///
+  /// In fr, this message translates to:
+  /// **'Sortie de stock'**
+  String get actionLogUsage;
+
+  /// Opens the physical-count correction screen.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ajuster le stock'**
+  String get actionAdjustStock;
+
   /// Dismisses a dialog without applying changes.
   ///
   /// In fr, this message translates to:
@@ -202,11 +214,167 @@ abstract class AppLocalizations {
   /// **'Enregistrer'**
   String get actionSave;
 
+  /// Opens the edit form for the current record.
+  ///
+  /// In fr, this message translates to:
+  /// **'Modifier'**
+  String get actionEdit;
+
+  /// Navigates to the previous screen.
+  ///
+  /// In fr, this message translates to:
+  /// **'Retour'**
+  String get actionBack;
+
+  /// Closes a dialog or panel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Fermer'**
+  String get actionClose;
+
+  /// Generic confirm button in a non-destructive dialog.
+  ///
+  /// In fr, this message translates to:
+  /// **'Confirmer'**
+  String get actionConfirm;
+
+  /// Retries after an error state.
+  ///
+  /// In fr, this message translates to:
+  /// **'Réessayer'**
+  String get actionRetry;
+
+  /// Snackbar action reversing the change just made. Same French word as cancel — correct in both places.
+  ///
+  /// In fr, this message translates to:
+  /// **'Annuler'**
+  String get actionUndo;
+
   /// Inline option at the bottom of every category/unit dropdown, opening a create sheet without leaving the form.
   ///
   /// In fr, this message translates to:
   /// **'+ Créer'**
   String get actionCreateNew;
+
+  /// Search field label and tooltip in the top bar.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rechercher'**
+  String get actionSearch;
+
+  /// Opens filter options on a list screen.
+  ///
+  /// In fr, this message translates to:
+  /// **'Filtrer'**
+  String get actionFilter;
+
+  /// Opens the export dialog on a report. Visual only in Phase 1.
+  ///
+  /// In fr, this message translates to:
+  /// **'Exporter'**
+  String get actionExport;
+
+  /// Link from a dashboard summary card to the full list.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tout afficher'**
+  String get actionViewAll;
+
+  /// Tooltip on the top bar notification bell.
+  ///
+  /// In fr, this message translates to:
+  /// **'Notifications'**
+  String get topBarNotifications;
+
+  /// Tooltip on the top bar avatar.
+  ///
+  /// In fr, this message translates to:
+  /// **'Mon compte'**
+  String get topBarAccount;
+
+  /// Account menu entry returning to the login screen.
+  ///
+  /// In fr, this message translates to:
+  /// **'Se déconnecter'**
+  String get actionLogout;
+
+  /// Label above the store switcher in the top bar.
+  ///
+  /// In fr, this message translates to:
+  /// **'Établissement'**
+  String get storeSwitcherLabel;
+
+  /// Menu entry returning to the store selector.
+  ///
+  /// In fr, this message translates to:
+  /// **'Changer d\'établissement'**
+  String get storeSwitcherChange;
+
+  /// Offline banner headline. Offline is the app's normal state in a kitchen, not a failure — the tone should stay informational.
+  ///
+  /// In fr, this message translates to:
+  /// **'Mode hors ligne'**
+  String get offlineBannerTitle;
+
+  /// Count of local changes waiting to sync, shown in the offline banner.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =0{Aucune modification en attente} =1{1 modification en attente} other{{count} modifications en attente}}'**
+  String offlineBannerPending(int count);
+
+  /// Empty state on the inventory list for a brand-new store.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun article pour le moment'**
+  String get emptyStateNoItemsTitle;
+
+  /// Supporting line under the inventory empty state.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ajoutez votre premier article pour commencer à suivre votre stock.'**
+  String get emptyStateNoItemsBody;
+
+  /// Shown when a search or filter matches nothing.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun résultat'**
+  String get emptyStateNoResultsTitle;
+
+  /// Supporting line under the no-results empty state.
+  ///
+  /// In fr, this message translates to:
+  /// **'Essayez un autre terme ou modifiez vos filtres.'**
+  String get emptyStateNoResultsBody;
+
+  /// Accessible label on the loading state.
+  ///
+  /// In fr, this message translates to:
+  /// **'Chargement…'**
+  String get loadingLabel;
+
+  /// Generic error state headline.
+  ///
+  /// In fr, this message translates to:
+  /// **'Une erreur est survenue'**
+  String get errorStateTitle;
+
+  /// Generic error state supporting line.
+  ///
+  /// In fr, this message translates to:
+  /// **'Impossible d\'afficher ces données pour le moment.'**
+  String get errorStateBody;
+
+  /// Destructive confirmation dialog title. Note the narrow no-break space before the question mark, which French typography requires.
+  ///
+  /// In fr, this message translates to:
+  /// **'Supprimer {name} ?'**
+  String confirmDeleteTitle(String name);
+
+  /// Warning line in destructive confirmation dialogs.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cette action est irréversible.'**
+  String get confirmDeleteIrreversible;
 }
 
 class _AppLocalizationsDelegate

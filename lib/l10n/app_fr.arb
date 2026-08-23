@@ -24,11 +24,11 @@
   },
   "navCatalog": "Catégories et unités",
   "@navCatalog": {
-    "description": "Sidebar label for the category and unit-of-measure management screens."
+    "description": "Sidebar label for the category and unit-of-measure management screens. The longest rail label."
   },
   "navAlerts": "Alertes",
   "@navAlerts": {
-    "description": "Sidebar label for low-stock alerts and notifications."
+    "description": "Sidebar label for low-stock alerts."
   },
   "navReports": "Rapports",
   "@navReports": {
@@ -64,6 +64,14 @@
   "@actionAddDelivery": {
     "description": "Quick action on the dashboard — opens the Stock In screen. Deliberately plain language, not 'create stock ingress record'."
   },
+  "actionLogUsage": "Sortie de stock",
+  "@actionLogUsage": {
+    "description": "Quick action opening the Stock Out screen, for usage and waste."
+  },
+  "actionAdjustStock": "Ajuster le stock",
+  "@actionAdjustStock": {
+    "description": "Opens the physical-count correction screen."
+  },
   "actionCancel": "Annuler",
   "@actionCancel": {
     "description": "Dismisses a dialog without applying changes."
@@ -76,8 +84,127 @@
   "@actionSave": {
     "description": "Commits a form."
   },
+  "actionEdit": "Modifier",
+  "@actionEdit": {
+    "description": "Opens the edit form for the current record."
+  },
+  "actionBack": "Retour",
+  "@actionBack": {
+    "description": "Navigates to the previous screen."
+  },
+  "actionClose": "Fermer",
+  "@actionClose": {
+    "description": "Closes a dialog or panel."
+  },
+  "actionConfirm": "Confirmer",
+  "@actionConfirm": {
+    "description": "Generic confirm button in a non-destructive dialog."
+  },
+  "actionRetry": "Réessayer",
+  "@actionRetry": {
+    "description": "Retries after an error state."
+  },
+  "actionUndo": "Annuler",
+  "@actionUndo": {
+    "description": "Snackbar action reversing the change just made. Same French word as cancel — correct in both places."
+  },
   "actionCreateNew": "+ Créer",
   "@actionCreateNew": {
     "description": "Inline option at the bottom of every category/unit dropdown, opening a create sheet without leaving the form."
+  },
+  "actionSearch": "Rechercher",
+  "@actionSearch": {
+    "description": "Search field label and tooltip in the top bar."
+  },
+  "actionFilter": "Filtrer",
+  "@actionFilter": {
+    "description": "Opens filter options on a list screen."
+  },
+  "actionExport": "Exporter",
+  "@actionExport": {
+    "description": "Opens the export dialog on a report. Visual only in Phase 1."
+  },
+  "actionViewAll": "Tout afficher",
+  "@actionViewAll": {
+    "description": "Link from a dashboard summary card to the full list."
+  },
+
+  "topBarNotifications": "Notifications",
+  "@topBarNotifications": {
+    "description": "Tooltip on the top bar notification bell."
+  },
+  "topBarAccount": "Mon compte",
+  "@topBarAccount": {
+    "description": "Tooltip on the top bar avatar."
+  },
+  "actionLogout": "Se déconnecter",
+  "@actionLogout": {
+    "description": "Account menu entry returning to the login screen."
+  },
+  "storeSwitcherLabel": "Établissement",
+  "@storeSwitcherLabel": {
+    "description": "Label above the store switcher in the top bar."
+  },
+  "storeSwitcherChange": "Changer d'établissement",
+  "@storeSwitcherChange": {
+    "description": "Menu entry returning to the store selector."
+  },
+
+  "offlineBannerTitle": "Mode hors ligne",
+  "@offlineBannerTitle": {
+    "description": "Offline banner headline. Offline is the app's normal state in a kitchen, not a failure — the tone should stay informational."
+  },
+  "offlineBannerPending": "{count, plural, =0{Aucune modification en attente} =1{1 modification en attente} other{{count} modifications en attente}}",
+  "@offlineBannerPending": {
+    "description": "Count of local changes waiting to sync, shown in the offline banner.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+
+  "emptyStateNoItemsTitle": "Aucun article pour le moment",
+  "@emptyStateNoItemsTitle": {
+    "description": "Empty state on the inventory list for a brand-new store."
+  },
+  "emptyStateNoItemsBody": "Ajoutez votre premier article pour commencer à suivre votre stock.",
+  "@emptyStateNoItemsBody": {
+    "description": "Supporting line under the inventory empty state."
+  },
+  "emptyStateNoResultsTitle": "Aucun résultat",
+  "@emptyStateNoResultsTitle": {
+    "description": "Shown when a search or filter matches nothing."
+  },
+  "emptyStateNoResultsBody": "Essayez un autre terme ou modifiez vos filtres.",
+  "@emptyStateNoResultsBody": {
+    "description": "Supporting line under the no-results empty state."
+  },
+
+  "loadingLabel": "Chargement…",
+  "@loadingLabel": {
+    "description": "Accessible label on the loading state."
+  },
+  "errorStateTitle": "Une erreur est survenue",
+  "@errorStateTitle": {
+    "description": "Generic error state headline."
+  },
+  "errorStateBody": "Impossible d'afficher ces données pour le moment.",
+  "@errorStateBody": {
+    "description": "Generic error state supporting line."
+  },
+
+  "confirmDeleteTitle": "Supprimer {name} ?",
+  "@confirmDeleteTitle": {
+    "description": "Destructive confirmation dialog title. Note the narrow no-break space before the question mark, which French typography requires.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "confirmDeleteIrreversible": "Cette action est irréversible.",
+  "@confirmDeleteIrreversible": {
+    "description": "Warning line in destructive confirmation dialogs."
   }
 }

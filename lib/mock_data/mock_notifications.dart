@@ -14,7 +14,8 @@ final List<NotificationItem> mockNotifications = [
     storeId: StoreIds.sablon,
     kind: NotificationKind.outOfStock,
     title: 'Rupture de stock : Crevettes grises',
-    body: 'Il ne reste plus de crevettes grises. Dernier mouvement il y a 2 jours.',
+    body:
+        'Il ne reste plus de crevettes grises. Dernier mouvement il y a 2 jours.',
     createdAt: hoursAgo(2),
     isRead: false,
     relatedItemId: ItemIds.crevettes,
