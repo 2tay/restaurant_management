@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../app/routes.dart';
+import '../../../../app/navigation.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/formatters.dart';
@@ -40,6 +40,8 @@ class _StockOutPageState extends State<StockOutPage> {
     return item != null && _quantity > item.quantity;
   }
 
+  bool get _isDirty => _itemId != null;
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -63,129 +65,120 @@ class _StockOutPageState extends State<StockOutPage> {
         )
         .toList();
 
-    return ShellPage(
+    return FormScaffold(
       title: l10n.stockOutTitle,
       subtitle: l10n.stockOutSubtitle,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 720),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            AppCard(
-              child: AppDropdown<String>(
-                label: l10n.stockInItem,
-                value: _itemId,
-                options: items,
-                onChanged: (value) => setState(() => _itemId = value),
-              ),
+      back: BackDestination(
+        label: l10n.movementsTitle,
+        path: Routes.toMovements(widget.storeId),
+      ),
+      crumbs: [
+        Crumb(l10n.movementsTitle, Routes.toMovements(widget.storeId)),
+        Crumb(l10n.stockOutTitle),
+      ],
+      submitLabel: l10n.stockOutSubmit,
+      submitIcon: LucideIcons.arrowUpFromLine,
+      onSubmit: _canSubmit ? _submit : null,
+      isDirty: _isDirty,
+      maxWidth: 720,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          AppCard(
+            child: AppDropdown<String>(
+              label: l10n.stockInItem,
+              value: _itemId,
+              options: items,
+              onChanged: (value) => setState(() => _itemId = value),
             ),
-            const SizedBox(height: AppSpacing.lg),
+          ),
+          const SizedBox(height: AppSpacing.lg),
 
-            AppCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          l10n.stockOutQuantity,
-                          style: theme.textTheme.labelMedium,
-                        ),
-                      ),
-                      if (item != null)
-                        Text(
-                          l10n.stockOutAvailable(
-                            Formatters.quantityWithUnit(item.quantity, unit),
-                          ),
-                          style: theme.textTheme.bodySmall,
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-                  QuantityStepper(
-                    value: _quantity,
-                    unitAbbreviation: unit,
-                    onChanged: (value) => setState(() => _quantity = value),
-                  ),
-                  if (_exceedsStock) ...[
-                    const SizedBox(height: AppSpacing.md),
-                    // A warning rather than a hard block: stock counts drift,
-                    // and refusing to record something that actually left the
-                    // building would make the data worse, not better.
-                    Container(
-                      padding: const EdgeInsets.all(AppSpacing.md),
-                      decoration: BoxDecoration(
-                        color: AppColors.lowStock.container,
-                        borderRadius: AppRadius.mdAll,
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            LucideIcons.triangleAlert,
-                            size: AppSizing.iconMd,
-                            color: AppColors.lowStock.foreground,
-                          ),
-                          const SizedBox(width: AppSpacing.sm),
-                          Expanded(
-                            child: Text(
-                              l10n.stockOutExceedsStock,
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                color: AppColors.lowStock.foreground,
-                              ),
-                            ),
-                          ),
-                        ],
+          AppCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        l10n.stockOutQuantity,
+                        style: theme.textTheme.labelMedium,
                       ),
                     ),
-                  ],
-                ],
-              ),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-
-            AppCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(l10n.stockOutReason, style: theme.textTheme.labelMedium),
-                  const SizedBox(height: AppSpacing.md),
-                  Wrap(
-                    spacing: AppSpacing.md,
-                    runSpacing: AppSpacing.md,
-                    children: [
-                      for (final reason in StockOutReason.values)
-                        _ReasonChip(
-                          reason: reason,
-                          selected: _reason == reason,
-                          onTap: () => setState(() => _reason = reason),
+                    if (item != null)
+                      Text(
+                        l10n.stockOutAvailable(
+                          Formatters.quantityWithUnit(item.quantity, unit),
                         ),
-                    ],
+                        style: theme.textTheme.bodySmall,
+                      ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                QuantityStepper(
+                  value: _quantity,
+                  unitAbbreviation: unit,
+                  onChanged: (value) => setState(() => _quantity = value),
+                ),
+                if (_exceedsStock) ...[
+                  const SizedBox(height: AppSpacing.md),
+                  // A warning rather than a hard block: stock counts drift,
+                  // and refusing to record something that actually left the
+                  // building would make the data worse, not better.
+                  Container(
+                    padding: const EdgeInsets.all(AppSpacing.md),
+                    decoration: BoxDecoration(
+                      color: AppColors.lowStock.container,
+                      borderRadius: AppRadius.mdAll,
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          LucideIcons.triangleAlert,
+                          size: AppSizing.iconMd,
+                          color: AppColors.lowStock.foreground,
+                        ),
+                        const SizedBox(width: AppSpacing.sm),
+                        Expanded(
+                          child: Text(
+                            l10n.stockOutExceedsStock,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: AppColors.lowStock.foreground,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
-              ),
+              ],
             ),
-            const SizedBox(height: AppSpacing.xl),
+          ),
+          const SizedBox(height: AppSpacing.lg),
 
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
+          AppCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SecondaryButton(
-                  label: l10n.actionCancel,
-                  onPressed: () =>
-                      context.go(Routes.toMovements(widget.storeId)),
-                ),
-                const SizedBox(width: AppSpacing.md),
-                PrimaryButton(
-                  label: l10n.stockOutSubmit,
-                  icon: LucideIcons.arrowUpFromLine,
-                  large: true,
-                  onPressed: _canSubmit ? _submit : null,
+                Text(l10n.stockOutReason, style: theme.textTheme.labelMedium),
+                const SizedBox(height: AppSpacing.md),
+                Wrap(
+                  spacing: AppSpacing.md,
+                  runSpacing: AppSpacing.md,
+                  children: [
+                    for (final reason in StockOutReason.values)
+                      _ReasonChip(
+                        reason: reason,
+                        selected: _reason == reason,
+                        onTap: () => setState(() => _reason = reason),
+                      ),
+                  ],
                 ),
               ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -193,7 +186,7 @@ class _StockOutPageState extends State<StockOutPage> {
   void _submit() {
     final l10n = AppLocalizations.of(context);
     AppSnackBar.success(context, l10n.stockOutRecorded);
-    context.go(Routes.toMovements(widget.storeId));
+    context.goSection(Routes.toMovements(widget.storeId));
   }
 }
 

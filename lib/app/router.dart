@@ -39,6 +39,7 @@ import '../features/suppliers/presentation/pages/supplier_pricing_page.dart';
 import '../features/suppliers/presentation/pages/suppliers_list_page.dart';
 import '../mock_data/mock_data.dart';
 import '../shared/widgets/app_scaffold.dart';
+import 'page_transitions.dart';
 import 'routes.dart';
 
 /// The application router.
@@ -109,8 +110,10 @@ final GoRouter appRouter = GoRouter(
       routes: [
         GoRoute(
           path: Routes.dashboard,
-          builder: (context, state) =>
-              StoreDashboardPage(storeId: _storeId(state)),
+          pageBuilder: (context, state) => appPage(
+            key: state.pageKey,
+            child: StoreDashboardPage(storeId: _storeId(state)),
+          ),
         ),
 
         // --- Inventory -------------------------------------------------------
@@ -119,139 +122,196 @@ final GoRouter appRouter = GoRouter(
         // order — otherwise "new" would be read as an item id.
         GoRoute(
           path: Routes.inventory,
-          builder: (context, state) =>
-              InventoryListPage(storeId: _storeId(state)),
+          pageBuilder: (context, state) => appPage(
+            key: state.pageKey,
+            child: InventoryListPage(storeId: _storeId(state)),
+          ),
         ),
         GoRoute(
           path: Routes.addItem,
-          builder: (context, state) =>
-              AddEditItemPage(storeId: _storeId(state)),
+          pageBuilder: (context, state) => appPage(
+            key: state.pageKey,
+            child: AddEditItemPage(storeId: _storeId(state)),
+          ),
         ),
         GoRoute(
           path: Routes.itemDetail,
-          builder: (context, state) => ItemDetailPage(
-            storeId: _storeId(state),
-            itemId: state.pathParameters['itemId']!,
+          pageBuilder: (context, state) => appPage(
+            key: state.pageKey,
+            child: ItemDetailPage(
+              storeId: _storeId(state),
+              itemId: state.pathParameters['itemId']!,
+            ),
           ),
         ),
         GoRoute(
           path: Routes.editItem,
-          builder: (context, state) => AddEditItemPage(
-            storeId: _storeId(state),
-            itemId: state.pathParameters['itemId'],
+          pageBuilder: (context, state) => appPage(
+            key: state.pageKey,
+            child: AddEditItemPage(
+              storeId: _storeId(state),
+              itemId: state.pathParameters['itemId'],
+            ),
           ),
         ),
         GoRoute(
           path: Routes.linkSupplier,
-          builder: (context, state) => LinkSupplierToItemPage(
-            storeId: _storeId(state),
-            itemId: state.pathParameters['itemId']!,
+          pageBuilder: (context, state) => appPage(
+            key: state.pageKey,
+            child: LinkSupplierToItemPage(
+              storeId: _storeId(state),
+              itemId: state.pathParameters['itemId']!,
+            ),
           ),
         ),
         GoRoute(
           path: Routes.itemPriceHistory,
-          builder: (context, state) => ItemPriceHistoryPage(
-            storeId: _storeId(state),
-            itemId: state.pathParameters['itemId']!,
-            supplierId: state.pathParameters['supplierId']!,
+          pageBuilder: (context, state) => appPage(
+            key: state.pageKey,
+            child: ItemPriceHistoryPage(
+              storeId: _storeId(state),
+              itemId: state.pathParameters['itemId']!,
+              supplierId: state.pathParameters['supplierId']!,
+            ),
           ),
         ),
 
         // --- Catalog ---------------------------------------------------------
         GoRoute(
           path: Routes.categories,
-          builder: (context, state) => CategoriesPage(storeId: _storeId(state)),
+          pageBuilder: (context, state) => appPage(
+            key: state.pageKey,
+            child: CategoriesPage(storeId: _storeId(state)),
+          ),
         ),
         GoRoute(
           path: Routes.units,
-          builder: (context, state) => UnitsPage(storeId: _storeId(state)),
+          pageBuilder: (context, state) => appPage(
+            key: state.pageKey,
+            child: UnitsPage(storeId: _storeId(state)),
+          ),
         ),
 
         // --- Stock movement --------------------------------------------------
         GoRoute(
           path: Routes.movements,
-          builder: (context, state) =>
-              StockHistoryPage(storeId: _storeId(state)),
+          pageBuilder: (context, state) => appPage(
+            key: state.pageKey,
+            child: StockHistoryPage(storeId: _storeId(state)),
+          ),
         ),
         GoRoute(
           path: Routes.stockIn,
-          builder: (context, state) => StockInPage(storeId: _storeId(state)),
+          pageBuilder: (context, state) => appPage(
+            key: state.pageKey,
+            child: StockInPage(storeId: _storeId(state)),
+          ),
         ),
         GoRoute(
           path: Routes.stockOut,
-          builder: (context, state) => StockOutPage(storeId: _storeId(state)),
+          pageBuilder: (context, state) => appPage(
+            key: state.pageKey,
+            child: StockOutPage(storeId: _storeId(state)),
+          ),
         ),
         GoRoute(
           path: Routes.stockAdjustment,
-          builder: (context, state) =>
-              StockAdjustmentPage(storeId: _storeId(state)),
+          pageBuilder: (context, state) => appPage(
+            key: state.pageKey,
+            child: StockAdjustmentPage(storeId: _storeId(state)),
+          ),
         ),
 
         // --- Alerts ----------------------------------------------------------
         GoRoute(
           path: Routes.alerts,
-          builder: (context, state) =>
-              LowStockAlertsPage(storeId: _storeId(state)),
+          pageBuilder: (context, state) => appPage(
+            key: state.pageKey,
+            child: LowStockAlertsPage(storeId: _storeId(state)),
+          ),
         ),
         GoRoute(
           path: Routes.notifications,
-          builder: (context, state) =>
-              NotificationsPage(storeId: _storeId(state)),
+          pageBuilder: (context, state) => appPage(
+            key: state.pageKey,
+            child: NotificationsPage(storeId: _storeId(state)),
+          ),
         ),
 
         // --- Suppliers -------------------------------------------------------
         GoRoute(
           path: Routes.suppliers,
-          builder: (context, state) =>
-              SuppliersListPage(storeId: _storeId(state)),
+          pageBuilder: (context, state) => appPage(
+            key: state.pageKey,
+            child: SuppliersListPage(storeId: _storeId(state)),
+          ),
         ),
         GoRoute(
           path: Routes.addSupplier,
-          builder: (context, state) =>
-              AddEditSupplierPage(storeId: _storeId(state)),
+          pageBuilder: (context, state) => appPage(
+            key: state.pageKey,
+            child: AddEditSupplierPage(storeId: _storeId(state)),
+          ),
         ),
         GoRoute(
           path: Routes.supplierDetail,
-          builder: (context, state) => SupplierDetailPage(
-            storeId: _storeId(state),
-            supplierId: state.pathParameters['supplierId']!,
+          pageBuilder: (context, state) => appPage(
+            key: state.pageKey,
+            child: SupplierDetailPage(
+              storeId: _storeId(state),
+              supplierId: state.pathParameters['supplierId']!,
+            ),
           ),
         ),
         GoRoute(
           path: Routes.editSupplier,
-          builder: (context, state) => AddEditSupplierPage(
-            storeId: _storeId(state),
-            supplierId: state.pathParameters['supplierId'],
+          pageBuilder: (context, state) => appPage(
+            key: state.pageKey,
+            child: AddEditSupplierPage(
+              storeId: _storeId(state),
+              supplierId: state.pathParameters['supplierId'],
+            ),
           ),
         ),
         GoRoute(
           path: Routes.supplierPricing,
-          builder: (context, state) => SupplierPricingPage(
-            storeId: _storeId(state),
-            supplierId: state.pathParameters['supplierId']!,
+          pageBuilder: (context, state) => appPage(
+            key: state.pageKey,
+            child: SupplierPricingPage(
+              storeId: _storeId(state),
+              supplierId: state.pathParameters['supplierId']!,
+            ),
           ),
         ),
 
         // --- Reports ---------------------------------------------------------
         GoRoute(
           path: Routes.reports,
-          builder: (context, state) =>
-              ReportsDashboardPage(storeId: _storeId(state)),
+          pageBuilder: (context, state) => appPage(
+            key: state.pageKey,
+            child: ReportsDashboardPage(storeId: _storeId(state)),
+          ),
         ),
         GoRoute(
           path: Routes.valuationReport,
-          builder: (context, state) =>
-              StockValuationReportPage(storeId: _storeId(state)),
+          pageBuilder: (context, state) => appPage(
+            key: state.pageKey,
+            child: StockValuationReportPage(storeId: _storeId(state)),
+          ),
         ),
         GoRoute(
           path: Routes.comparisonReport,
-          builder: (context, state) =>
-              PriceComparisonReportPage(storeId: _storeId(state)),
+          pageBuilder: (context, state) => appPage(
+            key: state.pageKey,
+            child: PriceComparisonReportPage(storeId: _storeId(state)),
+          ),
         ),
         GoRoute(
           path: Routes.usageReport,
-          builder: (context, state) =>
-              UsageReportPage(storeId: _storeId(state)),
+          pageBuilder: (context, state) => appPage(
+            key: state.pageKey,
+            child: UsageReportPage(storeId: _storeId(state)),
+          ),
         ),
 
         // --- Team ------------------------------------------------------------
@@ -260,52 +320,73 @@ final GoRouter appRouter = GoRouter(
         // the inventory routes.
         GoRoute(
           path: Routes.team,
-          builder: (context, state) => TeamListPage(storeId: _storeId(state)),
+          pageBuilder: (context, state) => appPage(
+            key: state.pageKey,
+            child: TeamListPage(storeId: _storeId(state)),
+          ),
         ),
         GoRoute(
           path: Routes.addTeamMember,
-          builder: (context, state) =>
-              AddEditMemberPage(storeId: _storeId(state)),
+          pageBuilder: (context, state) => appPage(
+            key: state.pageKey,
+            child: AddEditMemberPage(storeId: _storeId(state)),
+          ),
         ),
         GoRoute(
           path: Routes.roles,
-          builder: (context, state) =>
-              RolesPermissionsPage(storeId: _storeId(state)),
+          pageBuilder: (context, state) => appPage(
+            key: state.pageKey,
+            child: RolesPermissionsPage(storeId: _storeId(state)),
+          ),
         ),
         GoRoute(
           path: Routes.editTeamMember,
-          builder: (context, state) => AddEditMemberPage(
-            storeId: _storeId(state),
-            memberId: state.pathParameters['memberId'],
+          pageBuilder: (context, state) => appPage(
+            key: state.pageKey,
+            child: AddEditMemberPage(
+              storeId: _storeId(state),
+              memberId: state.pathParameters['memberId'],
+            ),
           ),
         ),
 
         // --- Settings --------------------------------------------------------
         GoRoute(
           path: Routes.storeSettings,
-          builder: (context, state) =>
-              StoreSettingsPage(storeId: _storeId(state)),
+          pageBuilder: (context, state) => appPage(
+            key: state.pageKey,
+            child: StoreSettingsPage(storeId: _storeId(state)),
+          ),
         ),
         GoRoute(
           path: Routes.accountSettings,
-          builder: (context, state) =>
-              AccountSettingsPage(storeId: _storeId(state)),
+          pageBuilder: (context, state) => appPage(
+            key: state.pageKey,
+            child: AccountSettingsPage(storeId: _storeId(state)),
+          ),
         ),
         GoRoute(
           path: Routes.notificationSettings,
-          builder: (context, state) =>
-              NotificationPreferencesPage(storeId: _storeId(state)),
+          pageBuilder: (context, state) => appPage(
+            key: state.pageKey,
+            child: NotificationPreferencesPage(storeId: _storeId(state)),
+          ),
         ),
         GoRoute(
           path: Routes.syncStatus,
-          builder: (context, state) => SyncStatusPage(storeId: _storeId(state)),
+          pageBuilder: (context, state) => appPage(
+            key: state.pageKey,
+            child: SyncStatusPage(storeId: _storeId(state)),
+          ),
         ),
 
         // --- Global search ---------------------------------------------------
         GoRoute(
           path: Routes.search,
-          builder: (context, state) =>
-              GlobalSearchPage(storeId: _storeId(state)),
+          pageBuilder: (context, state) => appPage(
+            key: state.pageKey,
+            child: GlobalSearchPage(storeId: _storeId(state)),
+          ),
         ),
       ],
     ),

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../app/routes.dart';
+import '../../../../app/navigation.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/formatters.dart';
@@ -35,7 +35,7 @@ class ReportsDashboardPage extends StatelessWidget {
         children: [
           // The hook. Deliberately the largest thing on the screen.
           AppCard(
-            onTap: () => context.go(Routes.toComparisonReport(storeId)),
+            onTap: () => context.pushScreen(Routes.toComparisonReport(storeId)),
             padding: const EdgeInsets.all(AppSpacing.xl),
             child: Row(
               children: [
@@ -102,13 +102,14 @@ class ReportsDashboardPage extends StatelessWidget {
                 label: l10n.dashboardTileStockValue,
                 value: Formatters.priceCompact(mockStockValuationTotal),
                 icon: LucideIcons.wallet,
-                onTap: () => context.go(Routes.toValuationReport(storeId)),
+                onTap: () =>
+                    context.pushScreen(Routes.toValuationReport(storeId)),
               ),
               SummaryTile(
                 label: l10n.reportsUsage30Days,
                 value: Formatters.priceCompact(mockUsageLast30Days),
                 icon: LucideIcons.chartLine,
-                onTap: () => context.go(Routes.toUsageReport(storeId)),
+                onTap: () => context.pushScreen(Routes.toUsageReport(storeId)),
               ),
               SummaryTile(
                 label: l10n.reportsWasteShare,
@@ -116,7 +117,7 @@ class ReportsDashboardPage extends StatelessWidget {
                 icon: LucideIcons.trash2,
                 accent: AppColors.lowStock,
                 caption: Formatters.price(mockWasteValueLast30Days),
-                onTap: () => context.go(Routes.toUsageReport(storeId)),
+                onTap: () => context.pushScreen(Routes.toUsageReport(storeId)),
               ),
             ],
           ),
@@ -127,21 +128,22 @@ class ReportsDashboardPage extends StatelessWidget {
             icon: LucideIcons.scale,
             title: l10n.reportsComparison,
             body: l10n.reportsComparisonBody,
-            onOpen: () => context.go(Routes.toComparisonReport(storeId)),
+            onOpen: () =>
+                context.pushScreen(Routes.toComparisonReport(storeId)),
           ),
           const SizedBox(height: AppSpacing.md),
           _ReportCard(
             icon: LucideIcons.wallet,
             title: l10n.reportsValuation,
             body: l10n.reportsValuationBody,
-            onOpen: () => context.go(Routes.toValuationReport(storeId)),
+            onOpen: () => context.pushScreen(Routes.toValuationReport(storeId)),
           ),
           const SizedBox(height: AppSpacing.md),
           _ReportCard(
             icon: LucideIcons.chartColumn,
             title: l10n.reportsUsage,
             body: l10n.reportsUsageBody,
-            onOpen: () => context.go(Routes.toUsageReport(storeId)),
+            onOpen: () => context.pushScreen(Routes.toUsageReport(storeId)),
           ),
         ],
       ),

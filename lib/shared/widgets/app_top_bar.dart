@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../app/routes.dart';
+import '../../app/navigation.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/utils/responsive.dart';
@@ -42,7 +42,7 @@ class AppTopBar extends StatelessWidget implements PreferredSizeWidget {
           // an icon so the store name and the account controls keep their room.
           if (context.isRailCollapsed)
             IconButton(
-              onPressed: () => context.go(Routes.toSearch(store.id)),
+              onPressed: () => context.pushScreen(Routes.toSearch(store.id)),
               icon: const Icon(LucideIcons.search),
               tooltip: l10n.actionSearch,
             )
@@ -80,7 +80,7 @@ class _SearchAffordance extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
 
     return InkWell(
-      onTap: () => context.go(Routes.toSearch(storeId)),
+      onTap: () => context.pushScreen(Routes.toSearch(storeId)),
       borderRadius: AppRadius.mdAll,
       child: Container(
         height: AppSizing.minTapTarget,
@@ -132,7 +132,7 @@ class _NotificationBell extends StatelessWidget {
       clipBehavior: Clip.none,
       children: [
         IconButton(
-          onPressed: () => context.go(Routes.toNotifications(storeId)),
+          onPressed: () => context.goSection(Routes.toNotifications(storeId)),
           icon: const Icon(LucideIcons.bell),
           tooltip: l10n.topBarNotifications,
         ),
@@ -190,9 +190,9 @@ class _AccountButton extends StatelessWidget {
       onSelected: (value) {
         switch (value) {
           case 'account':
-            context.go(Routes.toAccountSettings(storeId));
+            context.goSection(Routes.toAccountSettings(storeId));
           case 'logout':
-            context.go(Routes.login);
+            context.goSection(Routes.login);
         }
       },
       itemBuilder: (context) => [

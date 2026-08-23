@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../app/routes.dart';
+import '../../../../app/navigation.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
@@ -46,7 +46,7 @@ class _SupplierPricingPageState extends State<SupplierPricingPage> {
       return ShellPage(
         title: l10n.supplierPricingTitle,
         child: ErrorState(
-          onRetry: () => context.go(Routes.toSuppliers(widget.storeId)),
+          onRetry: () => context.goSection(Routes.toSuppliers(widget.storeId)),
         ),
       );
     }
@@ -54,16 +54,20 @@ class _SupplierPricingPageState extends State<SupplierPricingPage> {
     final prices = MockQueries.pricesForSupplier(widget.supplierId);
 
     return ShellPage(
+      back: BackDestination(
+        label: supplier.name,
+        path: Routes.toSupplier(widget.storeId, widget.supplierId),
+      ),
+      crumbs: [
+        Crumb(l10n.suppliersTitle, Routes.toSuppliers(widget.storeId)),
+        Crumb(
+          supplier.name,
+          Routes.toSupplier(widget.storeId, widget.supplierId),
+        ),
+        Crumb(l10n.supplierPricingTitle),
+      ],
       title: l10n.supplierPricingTitle,
       subtitle: '${supplier.name} — ${l10n.supplierPricingSubtitle}',
-      actions: [
-        SecondaryButton(
-          label: l10n.actionBack,
-          icon: LucideIcons.arrowLeft,
-          onPressed: () =>
-              context.go(Routes.toSupplier(widget.storeId, widget.supplierId)),
-        ),
-      ],
       child: prices.isEmpty
           ? AppCard(
               child: EmptyState(
@@ -85,7 +89,7 @@ class _SupplierPricingPageState extends State<SupplierPricingPage> {
                       onChanged: (value) =>
                           setState(() => _edited[price.itemId] = value),
                       onCommit: (value) => _commit(price, value),
-                      onViewHistory: () => context.go(
+                      onViewHistory: () => context.pushScreen(
                         Routes.toPriceHistory(
                           widget.storeId,
                           price.itemId,

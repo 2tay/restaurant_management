@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../../../app/navigation.dart';
+import '../../../../app/routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
@@ -27,6 +29,14 @@ class StockValuationReportPage extends StatelessWidget {
     final theme = Theme.of(context);
 
     return ShellPage(
+      back: BackDestination(
+        label: l10n.reportsTitle,
+        path: Routes.toReports(storeId),
+      ),
+      crumbs: [
+        Crumb(l10n.reportsTitle, Routes.toReports(storeId)),
+        Crumb(l10n.valuationTitle),
+      ],
       title: l10n.valuationTitle,
       subtitle: l10n.valuationBasis,
       actions: [

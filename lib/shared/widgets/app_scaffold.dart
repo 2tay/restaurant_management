@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 
+import '../../app/navigation.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_spacing.dart';
 import '../../models/models.dart';
+import 'app_breadcrumbs.dart';
 import 'app_sidebar.dart';
 import 'app_top_bar.dart';
+import 'back_control.dart';
 import 'offline_banner.dart';
 
 /// The application shell: navigation rail on the left, top bar above, content
@@ -44,12 +48,16 @@ class AppScaffold extends StatelessWidget {
   }
 }
 
-/// Standard page body inside the shell: a title row and scrollable content.
+/// Standard page body inside the shell.
 ///
-/// Most screens use this rather than their own `Scaffold`, so page padding,
-/// title placement and the primary-action slot stay identical everywhere. A
-/// user who has learned where the button is on one screen has learned it on all
-/// of them.
+/// Every screen uses this, which is what makes the header convention hold
+/// without exception:
+///
+/// - **Left**: back control, breadcrumbs, title, subtitle
+/// - **Right**: actions — create, save, export, search, filter
+///
+/// A user who has learned where the button is on one screen has learned it on
+/// all of them, which is the whole point during a busy shift.
 class ShellPage extends StatelessWidget {
   const ShellPage({
     required this.title,
@@ -58,6 +66,12 @@ class ShellPage extends StatelessWidget {
     this.actions = const [],
     this.scrollable = true,
     this.padding,
+    this.back,
+    this.crumbs = const [],
+    this.onBack,
+    this.tabs,
+    this.footer,
+    this.maxContentWidth,
     super.key,
   });
 
@@ -65,7 +79,7 @@ class ShellPage extends StatelessWidget {
   final String? subtitle;
 
   /// Buttons on the title row. The primary action goes last, nearest the
-  /// right-hand edge where the thumb is.
+  /// right-hand edge.
   final List<Widget> actions;
 
   final Widget child;
@@ -75,59 +89,59 @@ class ShellPage extends StatelessWidget {
 
   final EdgeInsetsGeometry? padding;
 
+  /// Null on root screens reached from the sidebar: the rail is their
+  /// navigation, and a back control there would be lying about the stack.
+  final BackDestination? back;
+
+  /// Shown when the screen is more than one level deep.
+  final List<Crumb> crumbs;
+
+  /// Intercepts back — forms use it to confirm before discarding input.
+  final Future<void> Function()? onBack;
+
+  /// Sub-navigation within a section, e.g. Catégories | Unités.
+  final Widget? tabs;
+
+  /// Pinned to the bottom of the content area, above the page edge. Used for
+  /// form action bars so they stay reachable on a long form.
+  final Widget? footer;
+
+  /// Caps line length on very wide screens. Text measured across 1600dp is
+  /// uncomfortable to read regardless of how much room there is.
+  final double? maxContentWidth;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    final titleBlock = Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(title, style: theme.textTheme.headlineMedium),
-        if (subtitle != null) ...[
-          const SizedBox(height: 4),
-          Text(subtitle!, style: theme.textTheme.bodyMedium),
-        ],
-      ],
-    );
-
-    // Two long French action labels plus a title do not fit across a 1024dp
-    // tablet — "Enregistrer une livraison" alone is most of a button. Rather
-    // than shrink the buttons or clip the title, the header stacks below a
-    // threshold and puts the actions on their own row.
     final header = Padding(
-      padding: const EdgeInsets.only(bottom: 24),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          if (actions.isEmpty) return titleBlock;
-
-          final actionRow = Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            alignment: WrapAlignment.end,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: actions,
-          );
-
-          if (constraints.maxWidth < 820) {
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [titleBlock, const SizedBox(height: 16), actionRow],
-            );
-          }
-
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(flex: 3, child: titleBlock),
-              const SizedBox(width: 24),
-              Flexible(flex: 2, child: actionRow),
-            ],
-          );
-        },
+      padding: const EdgeInsets.only(bottom: AppSpacing.xl),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (back != null) ...[
+            Align(
+              alignment: Alignment.centerLeft,
+              child: BackControl(destination: back!, onBack: onBack),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+          ],
+          if (crumbs.length > 1) ...[
+            AppBreadcrumbs(crumbs: crumbs),
+            const SizedBox(height: AppSpacing.sm),
+          ],
+          _TitleRow(
+            title: title,
+            subtitle: subtitle,
+            actions: actions,
+            theme: theme,
+          ),
+          if (tabs != null) ...[const SizedBox(height: AppSpacing.lg), tabs!],
+        ],
       ),
     );
 
-    final content = Column(
+    Widget body = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         header,
@@ -135,11 +149,97 @@ class ShellPage extends StatelessWidget {
       ],
     );
 
-    final padded = Padding(
-      padding: padding ?? const EdgeInsets.all(24),
-      child: content,
+    if (maxContentWidth != null) {
+      body = Align(
+        alignment: Alignment.topLeft,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: maxContentWidth!),
+          child: body,
+        ),
+      );
+    }
+
+    final content = scrollable
+        ? SingleChildScrollView(
+            padding: padding ?? AppSpacing.pageInsets,
+            child: body,
+          )
+        : Padding(padding: padding ?? AppSpacing.pageInsets, child: body);
+
+    if (footer == null) return content;
+
+    // The footer sits outside the scroll view so it stays put while the form
+    // scrolls under it.
+    return Column(
+      children: [
+        Expanded(child: content),
+        footer!,
+      ],
+    );
+  }
+}
+
+class _TitleRow extends StatelessWidget {
+  const _TitleRow({
+    required this.title,
+    required this.subtitle,
+    required this.actions,
+    required this.theme,
+  });
+
+  final String title;
+  final String? subtitle;
+  final List<Widget> actions;
+  final ThemeData theme;
+
+  @override
+  Widget build(BuildContext context) {
+    final titleBlock = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title, style: theme.textTheme.headlineMedium),
+        if (subtitle != null) ...[
+          const SizedBox(height: AppSpacing.xs),
+          Text(subtitle!, style: theme.textTheme.bodyMedium),
+        ],
+      ],
     );
 
-    return scrollable ? SingleChildScrollView(child: padded) : padded;
+    if (actions.isEmpty) return titleBlock;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final actionRow = Wrap(
+          spacing: AppSpacing.md,
+          runSpacing: AppSpacing.md,
+          alignment: WrapAlignment.end,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: actions,
+        );
+
+        // Two long French action labels plus a title do not fit across a
+        // 1024dp tablet. Below this the actions take their own row rather than
+        // squeezing the title.
+        if (constraints.maxWidth < 820) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              titleBlock,
+              const SizedBox(height: AppSpacing.lg),
+              actionRow,
+            ],
+          );
+        }
+
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(flex: 3, child: titleBlock),
+            const SizedBox(width: AppSpacing.xl),
+            Flexible(flex: 2, child: actionRow),
+          ],
+        );
+      },
+    );
   }
 }

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../app/routes.dart';
+import '../../../../app/navigation.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -23,6 +23,27 @@ class AccountSettingsPage extends StatelessWidget {
     final user = mockCurrentUser;
 
     return ShellPage(
+      tabs: SectionTabs(
+        currentPath: Routes.toAccountSettings(storeId),
+        tabs: [
+          SectionTab(
+            label: l10n.settingsTabStore,
+            path: Routes.toStoreSettings(storeId),
+          ),
+          SectionTab(
+            label: l10n.settingsTabAccount,
+            path: Routes.toAccountSettings(storeId),
+          ),
+          SectionTab(
+            label: l10n.settingsTabNotifications,
+            path: Routes.toNotificationSettings(storeId),
+          ),
+          SectionTab(
+            label: l10n.settingsTabSync,
+            path: Routes.toSyncStatus(storeId),
+          ),
+        ],
+      ),
       title: l10n.accountSettingsTitle,
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 720),
@@ -96,7 +117,7 @@ class AccountSettingsPage extends StatelessWidget {
                   ),
                   SecondaryButton(
                     label: l10n.accountChangePassword,
-                    onPressed: () => context.go(Routes.forgotPassword),
+                    onPressed: () => context.goSection(Routes.forgotPassword),
                   ),
                 ],
               ),
@@ -124,7 +145,8 @@ class AccountSettingsPage extends StatelessWidget {
                               color: AppColors.primary600,
                             )
                           : const Icon(LucideIcons.chevronRight),
-                      onTap: () => context.go(Routes.toDashboard(store.id)),
+                      onTap: () =>
+                          context.goSection(Routes.toDashboard(store.id)),
                     ),
                 ],
               ),

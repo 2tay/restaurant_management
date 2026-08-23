@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../app/routes.dart';
+import '../../../../app/navigation.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
@@ -80,6 +80,14 @@ class _PriceComparisonReportPageState extends State<PriceComparisonReportPage> {
         : MockQueries.unitAbbreviationOf(item.unitId);
 
     return ShellPage(
+      back: BackDestination(
+        label: l10n.reportsTitle,
+        path: Routes.toReports(widget.storeId),
+      ),
+      crumbs: [
+        Crumb(l10n.reportsTitle, Routes.toReports(widget.storeId)),
+        Crumb(l10n.comparisonTitle),
+      ],
       title: l10n.comparisonTitle,
       subtitle: l10n.comparisonSubtitle,
       actions: [
@@ -130,8 +138,9 @@ class _PriceComparisonReportPageState extends State<PriceComparisonReportPage> {
                 message: l10n.comparisonSingleSupplierBody,
                 actionLabel: l10n.itemLinkSupplier,
                 actionIcon: LucideIcons.plus,
-                onAction: () =>
-                    context.go(Routes.toLinkSupplier(widget.storeId, item.id)),
+                onAction: () => context.pushScreen(
+                  Routes.toLinkSupplier(widget.storeId, item.id),
+                ),
               ),
             )
           else ...[
@@ -190,7 +199,7 @@ class _PriceComparisonReportPageState extends State<PriceComparisonReportPage> {
                   : AppColors.lowStock.container,
             )
           : null,
-      onSelectChanged: (_) => context.go(
+      onSelectChanged: (_) => context.pushScreen(
         Routes.toPriceHistory(widget.storeId, itemId, price.supplierId),
       ),
       cells: [

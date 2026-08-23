@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../../../app/routes.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../mock_data/mock_data.dart';
@@ -53,6 +54,27 @@ class _StoreSettingsPageState extends State<StoreSettingsPage> {
     final units = MockQueries.unitsForStore(widget.storeId);
 
     return ShellPage(
+      tabs: SectionTabs(
+        currentPath: Routes.toStoreSettings(widget.storeId),
+        tabs: [
+          SectionTab(
+            label: l10n.settingsTabStore,
+            path: Routes.toStoreSettings(widget.storeId),
+          ),
+          SectionTab(
+            label: l10n.settingsTabAccount,
+            path: Routes.toAccountSettings(widget.storeId),
+          ),
+          SectionTab(
+            label: l10n.settingsTabNotifications,
+            path: Routes.toNotificationSettings(widget.storeId),
+          ),
+          SectionTab(
+            label: l10n.settingsTabSync,
+            path: Routes.toSyncStatus(widget.storeId),
+          ),
+        ],
+      ),
       title: l10n.storeSettingsTitle,
       actions: [
         PrimaryButton(

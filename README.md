@@ -28,6 +28,7 @@ mislead — login, export, sync — say so on screen rather than pretending.
 | 5 | Screens (37 routes across 35 page files) | Done |
 | 6 | Polish pass + UX audit | Done |
 | 7 | Phase 2 stubs + handoff | Done |
+| 1.5 | Navigation fixes + UI polish pass | Done |
 
 The original brief is in [`.claude/phase1.md`](.claude/phase1.md).
 
@@ -174,8 +175,28 @@ The brief's users are standing, moving fast, with wet hands, mid-service. That d
 - Every list has a designed empty state, and distinguishes "nothing here yet" from "your
   filters matched nothing"
 
-`python tool/ux_audit.py` re-checks the mechanical parts of that list. It currently reports
-zero violations. Re-run it after adding screens.
+`python tool/ux_audit.py` re-checks the mechanical parts of that list — plus that every
+colour comes from `app_colors.dart`, every text style from `app_typography.dart`, every
+padding value from the spacing scale, and that no screen navigates with a raw `context.go()`.
+It currently reports zero violations. Re-run it after adding screens.
+
+## Navigation
+
+The convention lives in `lib/app/navigation.dart` and is not optional:
+
+- **`goSection(path)`** — the sidebar's nine destinations, and anything meaning "leave here
+  entirely". Replaces the stack.
+- **`pushScreen(path)`** — anything the user comes back from. Stacks, so back works.
+- **`backTo(fallback)`** — pops when it can, otherwise lands on a sensible parent. The
+  fallback matters: a deep link opens a screen with an empty stack.
+
+Every pushed screen carries a labelled back control top-left ("Retour à Inventaire") and,
+when more than one level deep, breadcrumbs. Root screens deliberately carry neither.
+
+Forms use `FormScaffold`, which owns three rules so no screen re-implements them: Cancel
+bottom-left and submit bottom-right, the action bar pinned, and unsaved input confirmed
+before it is lost — through the back control, the Cancel button, and the Android system
+back gesture alike.
 
 ---
 
@@ -185,9 +206,16 @@ zero violations. Re-run it after adding screens.
 flutter test
 ```
 
-148 tests. The three that earn their keep:
+189 tests. The four that earn their keep:
 
-- **`router_test.dart`** walks all 37 routes three times — at the 1280×800 baseline, at
+- **`navigation_test.dart`** pins the navigation contract: all 14 root screens show no back
+  control and all 19 pushed screens do; push-then-pop returns you where you were and five
+  cycles leave the stack as it started; switching section clears anything pushed on top; the
+  sidebar highlights the right section from a nested screen; a dirty form raises the discard
+  dialog and a clean one does not; and dialog buttons are checked by measured screen
+  position, not by assumption.
+
+- **`router_test.dart`** walks every route three times — at the 1280×800 baseline, at
   1024×600, and in portrait — asserting nothing throws or overflows. French labels run
   15–25% longer than the English a layout was designed against, and this caught six real
   overflow bugs during the build, including a navigation rail that silently grew to 380dp

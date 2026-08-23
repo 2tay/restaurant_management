@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../app/routes.dart';
+import '../../../../app/navigation.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -46,6 +46,16 @@ class _AddEditItemPageState extends State<AddEditItemPage> {
   final List<String> _newCategories = [];
   final List<String> _newUnits = [];
 
+  // Snapshot taken in initState. The dirty check compares against these rather
+  // than tracking a flag, so undoing an edit back to its original value
+  // correctly stops counting as unsaved.
+  String _initialName = '';
+  String _initialNote = '';
+  String? _initialCategoryId;
+  String? _initialUnitId;
+  double _initialQuantity = 0;
+  double _initialThreshold = 0;
+
   bool get _isEditing => widget.itemId != null;
 
   @override
@@ -64,6 +74,13 @@ class _AddEditItemPageState extends State<AddEditItemPage> {
       _quantity = existing.quantity;
       _threshold = existing.lowStockThreshold;
     }
+
+    _initialName = _nameController.text.trim();
+    _initialNote = _noteController.text.trim();
+    _initialCategoryId = _categoryId;
+    _initialUnitId = _unitId;
+    _initialQuantity = _quantity;
+    _initialThreshold = _threshold;
   }
 
   @override
@@ -77,6 +94,15 @@ class _AddEditItemPageState extends State<AddEditItemPage> {
       _nameController.text.trim().isNotEmpty &&
       _categoryId != null &&
       _unitId != null;
+
+  /// True once the user has typed or picked something worth protecting.
+  bool get _isDirty =>
+      _nameController.text.trim() != _initialName ||
+      _noteController.text.trim() != _initialNote ||
+      _categoryId != _initialCategoryId ||
+      _unitId != _initialUnitId ||
+      _quantity != _initialQuantity ||
+      _threshold != _initialThreshold;
 
   @override
   Widget build(BuildContext context) {
@@ -104,125 +130,117 @@ class _AddEditItemPageState extends State<AddEditItemPage> {
         ? ''
         : MockQueries.unitAbbreviationOf(_unitId!);
 
-    return ShellPage(
+    return FormScaffold(
       title: _isEditing ? l10n.editItemTitle : l10n.addItemTitle,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 760),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            AppCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  AppTextField(
-                    label: l10n.itemFormName,
-                    controller: _nameController,
-                    hint: l10n.itemFormNameHint,
-                    autofocus: !_isEditing,
-                    onChanged: (_) => setState(() {}),
-                  ),
-                  const SizedBox(height: AppSpacing.lg),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: AppDropdown<String>(
-                          label: l10n.itemCategoryLabel,
-                          value: _categoryId,
-                          options: categories,
-                          hint: l10n.inventoryFilterAll,
-                          onChanged: (value) =>
-                              setState(() => _categoryId = value),
-                          onCreateNew: _createCategory,
-                          createNewLabel: l10n.itemFormCreateCategory,
-                        ),
-                      ),
-                      const SizedBox(width: AppSpacing.lg),
-                      Expanded(
-                        child: AppDropdown<String>(
-                          label: l10n.itemUnitLabel,
-                          value: _unitId,
-                          options: units,
-                          onChanged: (value) => setState(() => _unitId = value),
-                          onCreateNew: _createUnit,
-                          createNewLabel: l10n.itemFormCreateUnit,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-
-            AppCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    _isEditing
-                        ? l10n.itemQuantityLabel
-                        : l10n.itemFormStartingQuantity,
-                    style: Theme.of(context).textTheme.labelMedium,
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-                  QuantityStepper(
-                    value: _quantity,
-                    unitAbbreviation: unitAbbreviation,
-                    onChanged: (value) => setState(() => _quantity = value),
-                  ),
-                  const SizedBox(height: AppSpacing.xl),
-                  Text(
-                    l10n.itemThresholdLabel,
-                    style: Theme.of(context).textTheme.labelMedium,
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-                  QuantityStepper(
-                    value: _threshold,
-                    unitAbbreviation: unitAbbreviation,
-                    onChanged: (value) => setState(() => _threshold = value),
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-                  Text(
-                    l10n.itemFormThresholdHelp,
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-
-            // The explanation for the missing cost field.
-            _NoCostNotice(),
-            const SizedBox(height: AppSpacing.lg),
-
-            AppCard(
-              child: AppTextField(
-                label: l10n.itemNoteLabel,
-                controller: _noteController,
-                maxLines: 3,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.xl),
-
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
+      back: BackDestination(
+        label: l10n.inventoryTitle,
+        path: Routes.toInventory(widget.storeId),
+      ),
+      crumbs: [
+        Crumb(l10n.inventoryTitle, Routes.toInventory(widget.storeId)),
+        Crumb(_isEditing ? l10n.editItemTitle : l10n.addItemTitle),
+      ],
+      submitLabel: l10n.actionSave,
+      submitIcon: LucideIcons.check,
+      onSubmit: _canSubmit ? _submit : null,
+      isDirty: _isDirty,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          AppCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                SecondaryButton(
-                  label: l10n.actionCancel,
-                  onPressed: () => _leave(),
+                AppTextField(
+                  label: l10n.itemFormName,
+                  controller: _nameController,
+                  hint: l10n.itemFormNameHint,
+                  autofocus: !_isEditing,
+                  onChanged: (_) => setState(() {}),
                 ),
-                const SizedBox(width: AppSpacing.md),
-                PrimaryButton(
-                  label: l10n.actionSave,
-                  icon: LucideIcons.check,
-                  onPressed: _canSubmit ? _submit : null,
+                const SizedBox(height: AppSpacing.lg),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: AppDropdown<String>(
+                        label: l10n.itemCategoryLabel,
+                        value: _categoryId,
+                        options: categories,
+                        hint: l10n.inventoryFilterAll,
+                        onChanged: (value) =>
+                            setState(() => _categoryId = value),
+                        onCreateNew: _createCategory,
+                        createNewLabel: l10n.itemFormCreateCategory,
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.lg),
+                    Expanded(
+                      child: AppDropdown<String>(
+                        label: l10n.itemUnitLabel,
+                        value: _unitId,
+                        options: units,
+                        onChanged: (value) => setState(() => _unitId = value),
+                        onCreateNew: _createUnit,
+                        createNewLabel: l10n.itemFormCreateUnit,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
-          ],
-        ),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+
+          AppCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _isEditing
+                      ? l10n.itemQuantityLabel
+                      : l10n.itemFormStartingQuantity,
+                  style: Theme.of(context).textTheme.labelMedium,
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                QuantityStepper(
+                  value: _quantity,
+                  unitAbbreviation: unitAbbreviation,
+                  onChanged: (value) => setState(() => _quantity = value),
+                ),
+                const SizedBox(height: AppSpacing.xl),
+                Text(
+                  l10n.itemThresholdLabel,
+                  style: Theme.of(context).textTheme.labelMedium,
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                QuantityStepper(
+                  value: _threshold,
+                  unitAbbreviation: unitAbbreviation,
+                  onChanged: (value) => setState(() => _threshold = value),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                Text(
+                  l10n.itemFormThresholdHelp,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+
+          // The explanation for the missing cost field.
+          _NoCostNotice(),
+          const SizedBox(height: AppSpacing.lg),
+
+          AppCard(
+            child: AppTextField(
+              label: l10n.itemNoteLabel,
+              controller: _noteController,
+              maxLines: 3,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -260,9 +278,9 @@ class _AddEditItemPageState extends State<AddEditItemPage> {
 
   void _leave() {
     if (_isEditing) {
-      context.go(Routes.toItem(widget.storeId, widget.itemId!));
+      context.pushScreen(Routes.toItem(widget.storeId, widget.itemId!));
     } else {
-      context.go(Routes.toInventory(widget.storeId));
+      context.goSection(Routes.toInventory(widget.storeId));
     }
   }
 }

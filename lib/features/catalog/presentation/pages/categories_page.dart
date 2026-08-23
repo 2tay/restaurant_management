@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../../../app/routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -24,6 +25,19 @@ class CategoriesPage extends StatelessWidget {
     final categories = MockQueries.categoriesForStore(storeId);
 
     return ShellPage(
+      tabs: SectionTabs(
+        currentPath: Routes.toCategories(storeId),
+        tabs: [
+          SectionTab(
+            label: l10n.catalogTabCategories,
+            path: Routes.toCategories(storeId),
+          ),
+          SectionTab(
+            label: l10n.catalogTabUnits,
+            path: Routes.toUnits(storeId),
+          ),
+        ],
+      ),
       title: l10n.categoriesTitle,
       subtitle: l10n.categoriesSubtitle,
       actions: [

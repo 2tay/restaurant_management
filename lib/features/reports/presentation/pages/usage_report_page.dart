@@ -2,6 +2,8 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../../../app/navigation.dart';
+import '../../../../app/routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
@@ -46,6 +48,14 @@ class _UsageReportPageState extends State<UsageReportPage> {
     final total = usage.fold<double>(0, (sum, point) => sum + point.value);
 
     return ShellPage(
+      back: BackDestination(
+        label: l10n.reportsTitle,
+        path: Routes.toReports(widget.storeId),
+      ),
+      crumbs: [
+        Crumb(l10n.reportsTitle, Routes.toReports(widget.storeId)),
+        Crumb(l10n.usageReportTitle),
+      ],
       title: l10n.usageReportTitle,
       subtitle: l10n.reportsUsageBody,
       actions: [
@@ -184,7 +194,7 @@ class _UsageChart extends StatelessWidget {
                 padding: const EdgeInsets.only(right: AppSpacing.sm),
                 child: Text(
                   Formatters.priceCompact(value),
-                  style: AppTypography.numericSmall.copyWith(fontSize: 13),
+                  style: AppTypography.chartLabel,
                   textAlign: TextAlign.right,
                 ),
               ),
@@ -206,7 +216,7 @@ class _UsageChart extends StatelessWidget {
                   padding: const EdgeInsets.only(top: AppSpacing.sm),
                   child: Text(
                     Formatters.dayMonth(points[index].date),
-                    style: AppTypography.numericSmall.copyWith(fontSize: 13),
+                    style: AppTypography.chartLabel,
                   ),
                 );
               },
@@ -275,7 +285,7 @@ class _WasteChart extends StatelessWidget {
                 padding: const EdgeInsets.only(right: AppSpacing.sm),
                 child: Text(
                   Formatters.percent(value),
-                  style: AppTypography.numericSmall.copyWith(fontSize: 13),
+                  style: AppTypography.chartLabel,
                   textAlign: TextAlign.right,
                 ),
               ),
@@ -295,7 +305,7 @@ class _WasteChart extends StatelessWidget {
                   padding: const EdgeInsets.only(top: AppSpacing.sm),
                   child: Text(
                     Formatters.dayMonth(points[index].date),
-                    style: AppTypography.numericSmall.copyWith(fontSize: 13),
+                    style: AppTypography.chartLabel,
                   ),
                 );
               },

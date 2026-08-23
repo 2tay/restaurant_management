@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../app/routes.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/formatters.dart';
@@ -32,6 +33,27 @@ class SyncStatusPage extends ConsumerWidget {
     final pending = ref.watch(pendingChangesProvider);
 
     return ShellPage(
+      tabs: SectionTabs(
+        currentPath: Routes.toSyncStatus(storeId),
+        tabs: [
+          SectionTab(
+            label: l10n.settingsTabStore,
+            path: Routes.toStoreSettings(storeId),
+          ),
+          SectionTab(
+            label: l10n.settingsTabAccount,
+            path: Routes.toAccountSettings(storeId),
+          ),
+          SectionTab(
+            label: l10n.settingsTabNotifications,
+            path: Routes.toNotificationSettings(storeId),
+          ),
+          SectionTab(
+            label: l10n.settingsTabSync,
+            path: Routes.toSyncStatus(storeId),
+          ),
+        ],
+      ),
       title: l10n.syncTitle,
       subtitle: l10n.syncSubtitle,
       child: ConstrainedBox(

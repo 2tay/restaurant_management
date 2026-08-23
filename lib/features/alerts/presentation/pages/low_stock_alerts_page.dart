@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../app/routes.dart';
+import '../../../../app/navigation.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/formatters.dart';
@@ -29,6 +29,16 @@ class LowStockAlertsPage extends StatelessWidget {
     final alerts = MockQueries.lowStockItems(storeId);
 
     return ShellPage(
+      tabs: SectionTabs(
+        currentPath: Routes.toAlerts(storeId),
+        tabs: [
+          SectionTab(label: l10n.alertsTitle, path: Routes.toAlerts(storeId)),
+          SectionTab(
+            label: l10n.notificationsTitle,
+            path: Routes.toNotifications(storeId),
+          ),
+        ],
+      ),
       title: l10n.alertsTitle,
       subtitle: l10n.alertsSubtitle,
       scrollable: false,
@@ -36,7 +46,7 @@ class LowStockAlertsPage extends StatelessWidget {
         SecondaryButton(
           label: l10n.actionAddDelivery,
           icon: LucideIcons.arrowDownToLine,
-          onPressed: () => context.go(Routes.toStockIn(storeId)),
+          onPressed: () => context.pushScreen(Routes.toStockIn(storeId)),
         ),
       ],
       child: alerts.isEmpty
@@ -73,7 +83,7 @@ class _AlertCard extends StatelessWidget {
     final defaultPrice = MockQueries.defaultPriceForItem(item.id);
 
     return AppCard(
-      onTap: () => context.go(Routes.toItem(storeId, item.id)),
+      onTap: () => context.pushScreen(Routes.toItem(storeId, item.id)),
       accentColor: colors.solid,
       child: Row(
         children: [
@@ -137,7 +147,7 @@ class _AlertCard extends StatelessWidget {
                   MockQueries.supplierNameOf(defaultPrice.supplierId),
                 ),
                 icon: LucideIcons.truck,
-                onPressed: () => context.go(Routes.toStockIn(storeId)),
+                onPressed: () => context.pushScreen(Routes.toStockIn(storeId)),
               ),
             ),
         ],

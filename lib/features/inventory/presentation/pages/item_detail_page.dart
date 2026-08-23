@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../app/routes.dart';
+import '../../../../app/navigation.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/stock_status.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -34,12 +34,20 @@ class ItemDetailPage extends StatelessWidget {
         title: l10n.inventoryTitle,
         child: ErrorState(
           message: l10n.errorStateBody,
-          onRetry: () => context.go(Routes.toInventory(storeId)),
+          onRetry: () => context.goSection(Routes.toInventory(storeId)),
         ),
       );
     }
 
     return ShellPage(
+      back: BackDestination(
+        label: l10n.inventoryTitle,
+        path: Routes.toInventory(storeId),
+      ),
+      crumbs: [
+        Crumb(l10n.inventoryTitle, Routes.toInventory(storeId)),
+        Crumb(item.name),
+      ],
       title: item.name,
       subtitle: MockQueries.categoryNameOf(item.categoryId),
       scrollable: false,
@@ -48,7 +56,8 @@ class ItemDetailPage extends StatelessWidget {
         SecondaryButton(
           label: l10n.actionEdit,
           icon: LucideIcons.pencil,
-          onPressed: () => context.go(Routes.toEditItem(storeId, item.id)),
+          onPressed: () =>
+              context.pushScreen(Routes.toEditItem(storeId, item.id)),
         ),
         DestructiveButton(
           label: l10n.actionDelete,
@@ -72,7 +81,7 @@ class ItemDetailPage extends StatelessWidget {
 
     if (confirmed && context.mounted) {
       AppSnackBar.success(context, l10n.itemDeleted);
-      context.go(Routes.toInventory(storeId));
+      context.goSection(Routes.toInventory(storeId));
     }
   }
 }

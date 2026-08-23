@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../app/routes.dart';
+import '../../../../app/navigation.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -52,7 +52,7 @@ class _AddStorePageState extends State<AddStorePage> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   TextButton.icon(
-                    onPressed: () => context.go(Routes.stores),
+                    onPressed: () => context.goSection(Routes.stores),
                     icon: const Icon(LucideIcons.arrowLeft),
                     label: Text(l10n.actionBack),
                   ),
@@ -123,7 +123,7 @@ class _AddStorePageState extends State<AddStorePage> {
                     children: [
                       SecondaryButton(
                         label: l10n.actionCancel,
-                        onPressed: () => context.go(Routes.stores),
+                        onPressed: () => context.goSection(Routes.stores),
                       ),
                       const SizedBox(width: AppSpacing.md),
                       PrimaryButton(
@@ -155,6 +155,6 @@ class _AddStorePageState extends State<AddStorePage> {
   void _submit() {
     final l10n = AppLocalizations.of(context);
     AppSnackBar.success(context, l10n.addStoreCreated);
-    context.go(Routes.stores);
+    context.goSection(Routes.stores);
   }
 }

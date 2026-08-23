@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../app/routes.dart';
+import '../../../../app/navigation.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/formatters.dart';
@@ -30,12 +30,12 @@ class TeamListPage extends StatelessWidget {
         SecondaryButton(
           label: l10n.rolesTitle,
           icon: LucideIcons.shieldCheck,
-          onPressed: () => context.go(Routes.toRoles(storeId)),
+          onPressed: () => context.pushScreen(Routes.toRoles(storeId)),
         ),
         PrimaryButton(
           label: l10n.teamInvite,
           icon: LucideIcons.userPlus,
-          onPressed: () => context.go(Routes.toAddTeamMember(storeId)),
+          onPressed: () => context.pushScreen(Routes.toAddTeamMember(storeId)),
         ),
       ],
       child: members.isEmpty
@@ -45,7 +45,8 @@ class TeamListPage extends StatelessWidget {
               message: l10n.teamEmptyBody,
               actionLabel: l10n.teamInvite,
               actionIcon: LucideIcons.userPlus,
-              onAction: () => context.go(Routes.toAddTeamMember(storeId)),
+              onAction: () =>
+                  context.pushScreen(Routes.toAddTeamMember(storeId)),
             )
           : ListView.separated(
               itemCount: members.length,
@@ -76,7 +77,8 @@ class _MemberRow extends StatelessWidget {
         .join();
 
     return AppCard(
-      onTap: () => context.go(Routes.toEditTeamMember(storeId, member.id)),
+      onTap: () =>
+          context.pushScreen(Routes.toEditTeamMember(storeId, member.id)),
       child: Row(
         children: [
           Container(
@@ -154,7 +156,7 @@ class _MemberRow extends StatelessWidget {
 
           IconButton(
             onPressed: () =>
-                context.go(Routes.toEditTeamMember(storeId, member.id)),
+                context.pushScreen(Routes.toEditTeamMember(storeId, member.id)),
             icon: const Icon(LucideIcons.pencil),
             tooltip: l10n.actionEdit,
           ),

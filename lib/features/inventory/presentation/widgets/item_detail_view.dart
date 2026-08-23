@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../app/routes.dart';
+import '../../../../app/navigation.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
@@ -112,7 +112,7 @@ class ItemDetailView extends StatelessWidget {
             label: l10n.itemLinkSupplier,
             icon: LucideIcons.plus,
             onPressed: () =>
-                context.go(Routes.toLinkSupplier(storeId, item.id)),
+                context.pushScreen(Routes.toLinkSupplier(storeId, item.id)),
           ),
         ),
 
@@ -135,7 +135,7 @@ class ItemDetailView extends StatelessWidget {
               actionLabel: l10n.itemLinkSupplier,
               actionIcon: LucideIcons.plus,
               onAction: () =>
-                  context.go(Routes.toLinkSupplier(storeId, item.id)),
+                  context.pushScreen(Routes.toLinkSupplier(storeId, item.id)),
             ),
           )
         else
@@ -153,7 +153,7 @@ class ItemDetailView extends StatelessWidget {
                     price: price,
                     unitAbbreviation: unit,
                     isCheapest: prices.length > 1 && price.id == cheapest?.id,
-                    onViewHistory: () => context.go(
+                    onViewHistory: () => context.pushScreen(
                       Routes.toPriceHistory(storeId, item.id, price.supplierId),
                     ),
                     onRemove: () => _confirmRemoveSupplier(context, price),
@@ -167,7 +167,7 @@ class ItemDetailView extends StatelessWidget {
         SectionHeader(
           title: l10n.itemMovementsTitle,
           trailing: TextButton(
-            onPressed: () => context.go(Routes.toMovements(storeId)),
+            onPressed: () => context.goSection(Routes.toMovements(storeId)),
             child: Text(l10n.actionViewAll),
           ),
         ),
@@ -301,10 +301,7 @@ class _FactRow extends StatelessWidget {
             value,
             textAlign: TextAlign.right,
             style: emphasis
-                ? AppTypography.numeric.copyWith(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w700,
-                  )
+                ? AppTypography.numericMedium
                 : theme.textTheme.bodyLarge,
           ),
         ),

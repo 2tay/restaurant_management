@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../app/routes.dart';
+import '../../../../app/navigation.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
@@ -95,100 +95,85 @@ class _StockAdjustmentPageState extends State<StockAdjustmentPage> {
         )
         .toList();
 
-    return ShellPage(
+    return FormScaffold(
       title: l10n.adjustmentTitle,
       subtitle: l10n.adjustmentSubtitle,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 720),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
+      back: BackDestination(
+        label: l10n.movementsTitle,
+        path: Routes.toMovements(widget.storeId),
+      ),
+      crumbs: [
+        Crumb(l10n.movementsTitle, Routes.toMovements(widget.storeId)),
+        Crumb(l10n.adjustmentTitle),
+      ],
+      submitLabel: l10n.adjustmentSubmit,
+      submitIcon: LucideIcons.clipboardCheck,
+      onSubmit: _hasChange ? _submit : null,
+      isDirty: _hasChange,
+      maxWidth: 720,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          AppCard(
+            child: AppDropdown<String>(
+              label: l10n.stockInItem,
+              value: _itemId,
+              options: items,
+              onChanged: _onItemChanged,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+
+          if (item != null) ...[
             AppCard(
-              child: AppDropdown<String>(
-                label: l10n.stockInItem,
-                value: _itemId,
-                options: items,
-                onChanged: _onItemChanged,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          l10n.adjustmentSystemQuantity,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ),
+                      Text(
+                        Formatters.quantityWithUnit(item.quantity, unit),
+                        style: AppTypography.numeric,
+                      ),
+                    ],
+                  ),
+                  const Divider(height: AppSpacing.xl),
+                  Text(
+                    l10n.adjustmentCountedQuantity,
+                    style: theme.textTheme.labelMedium,
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  QuantityStepper(
+                    value: _counted,
+                    unitAbbreviation: unit,
+                    onChanged: (value) => setState(() => _counted = value),
+                  ),
+                  const SizedBox(height: AppSpacing.xl),
+                  _DifferenceRow(delta: _delta, unit: unit),
+                ],
               ),
             ),
             const SizedBox(height: AppSpacing.lg),
 
-            if (item != null) ...[
-              AppCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            l10n.adjustmentSystemQuantity,
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                        ),
-                        Text(
-                          Formatters.quantityWithUnit(item.quantity, unit),
-                          style: AppTypography.numeric,
-                        ),
-                      ],
-                    ),
-                    const Divider(height: AppSpacing.xl),
-                    Text(
-                      l10n.adjustmentCountedQuantity,
-                      style: theme.textTheme.labelMedium,
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    QuantityStepper(
-                      value: _counted,
-                      unitAbbreviation: unit,
-                      onChanged: (value) => setState(() => _counted = value),
-                    ),
-                    const SizedBox(height: AppSpacing.xl),
-                    _DifferenceRow(delta: _delta, unit: unit),
-                  ],
-                ),
+            AppCard(
+              child: AppTextField(
+                label: l10n.adjustmentNote,
+                controller: _noteController,
+                hint: l10n.adjustmentNoteHint,
+                maxLines: 2,
               ),
-              const SizedBox(height: AppSpacing.lg),
-
-              AppCard(
-                child: AppTextField(
-                  label: l10n.adjustmentNote,
-                  controller: _noteController,
-                  hint: l10n.adjustmentNoteHint,
-                  maxLines: 2,
-                ),
-              ),
-              const SizedBox(height: AppSpacing.xl),
-            ],
-
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                if (item != null && !_hasChange)
-                  Expanded(
-                    child: Text(
-                      l10n.adjustmentNoChange,
-                      style: theme.textTheme.bodySmall,
-                    ),
-                  ),
-                SecondaryButton(
-                  label: l10n.actionCancel,
-                  onPressed: () =>
-                      context.go(Routes.toMovements(widget.storeId)),
-                ),
-                const SizedBox(width: AppSpacing.md),
-                PrimaryButton(
-                  label: l10n.adjustmentSubmit,
-                  icon: LucideIcons.clipboardCheck,
-                  large: true,
-                  onPressed: _hasChange ? _submit : null,
-                ),
-              ],
             ),
+            const SizedBox(height: AppSpacing.xl),
           ],
-        ),
+        ],
       ),
     );
   }
@@ -218,7 +203,7 @@ class _StockAdjustmentPageState extends State<StockAdjustmentPage> {
 
     if (!mounted) return;
     AppSnackBar.success(context, l10n.adjustmentRecorded);
-    context.go(Routes.toMovements(widget.storeId));
+    context.goSection(Routes.toMovements(widget.storeId));
   }
 }
 
@@ -259,8 +244,7 @@ class _DifferenceRow extends StatelessWidget {
           ),
           Text(
             isNeutral ? '—' : Formatters.quantityDelta(delta, unit),
-            style: AppTypography.numericLarge.copyWith(
-              fontSize: 26,
+            style: AppTypography.numericHero.copyWith(
               color: colors?.foreground ?? AppColors.textSecondary,
             ),
           ),

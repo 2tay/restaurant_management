@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../app/routes.dart';
+import '../../../../app/navigation.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -35,6 +35,12 @@ class _AddEditMemberPageState extends State<AddEditMemberPage> {
   TeamRole _role = TeamRole.staff;
   late Set<String> _storeIds = {widget.storeId};
 
+  // Snapshot of how the form opened, for the unsaved-changes check.
+  String _initialName = '';
+  String _initialEmail = '';
+  TeamRole _initialRole = TeamRole.staff;
+  Set<String> _initialStoreIds = {};
+
   bool get _isEditing => widget.memberId != null;
 
   TeamMember? get _member {
@@ -55,6 +61,11 @@ class _AddEditMemberPageState extends State<AddEditMemberPage> {
       _role = existing.role;
       _storeIds = existing.storeIds.toSet();
     }
+
+    _initialName = _name.text.trim();
+    _initialEmail = _email.text.trim();
+    _initialRole = _role;
+    _initialStoreIds = _storeIds.toSet();
   }
 
   @override
@@ -69,103 +80,104 @@ class _AddEditMemberPageState extends State<AddEditMemberPage> {
       _email.text.trim().isNotEmpty &&
       _storeIds.isNotEmpty;
 
+  bool get _isDirty =>
+      _name.text.trim() != _initialName ||
+      _email.text.trim() != _initialEmail ||
+      _role != _initialRole ||
+      !_setEquals(_storeIds, _initialStoreIds);
+
+  static bool _setEquals(Set<String> a, Set<String> b) =>
+      a.length == b.length && a.every(b.contains);
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
 
-    return ShellPage(
+    return FormScaffold(
       title: _isEditing ? l10n.editMemberTitle : l10n.inviteTitle,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 720),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            AppCard(
-              child: Column(
-                children: [
-                  AppTextField(
-                    label: l10n.memberFormName,
-                    controller: _name,
-                    prefixIcon: LucideIcons.user,
-                    autofocus: !_isEditing,
-                    onChanged: (_) => setState(() {}),
-                  ),
-                  const SizedBox(height: AppSpacing.lg),
-                  AppTextField(
-                    label: l10n.memberFormEmail,
-                    controller: _email,
-                    prefixIcon: LucideIcons.mail,
-                    keyboardType: TextInputType.emailAddress,
-                    enabled: !_isEditing,
-                    onChanged: (_) => setState(() {}),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-
-            SectionHeader(title: l10n.memberFormRole),
-            for (final role in TeamRole.values)
-              Padding(
-                padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                child: _RoleOption(
-                  role: role,
-                  selected: _role == role,
-                  onTap: () => setState(() => _role = role),
-                ),
-              ),
-            const SizedBox(height: AppSpacing.lg),
-
-            SectionHeader(title: l10n.memberFormStores),
-            AppCard(
-              padding: EdgeInsets.zero,
-              child: Column(
-                children: [
-                  for (final store in mockStores)
-                    CheckboxListTile(
-                      value: _storeIds.contains(store.id),
-                      onChanged: (checked) => setState(() {
-                        if (checked ?? false) {
-                          _storeIds.add(store.id);
-                        } else {
-                          _storeIds.remove(store.id);
-                        }
-                      }),
-                      title: Text(store.name),
-                      subtitle: Text(store.city),
-                      controlAffinity: ListTileControlAffinity.leading,
-                    ),
-                ],
-              ),
-            ),
-            const SizedBox(height: AppSpacing.xl),
-
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
+      back: BackDestination(
+        label: l10n.teamTitle,
+        path: Routes.toTeam(widget.storeId),
+      ),
+      crumbs: [
+        Crumb(l10n.teamTitle, Routes.toTeam(widget.storeId)),
+        Crumb(_isEditing ? l10n.editMemberTitle : l10n.inviteTitle),
+      ],
+      submitLabel: _isEditing ? l10n.actionSave : l10n.teamInvite,
+      submitIcon: _isEditing ? LucideIcons.check : LucideIcons.mail,
+      onSubmit: _canSubmit ? _submit : null,
+      isDirty: _isDirty,
+      maxWidth: 720,
+      secondaryAction: _isEditing
+          ? DestructiveButton(
+              label: l10n.actionDelete,
+              icon: LucideIcons.trash2,
+              filled: false,
+              onPressed: _confirmRemove,
+            )
+          : null,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          AppCard(
+            child: Column(
               children: [
-                if (_isEditing) ...[
-                  DestructiveButton(
-                    label: l10n.actionDelete,
-                    icon: LucideIcons.trash2,
-                    filled: false,
-                    onPressed: _confirmRemove,
-                  ),
-                  const Spacer(),
-                ],
-                SecondaryButton(
-                  label: l10n.actionCancel,
-                  onPressed: () => context.go(Routes.toTeam(widget.storeId)),
+                AppTextField(
+                  label: l10n.memberFormName,
+                  controller: _name,
+                  prefixIcon: LucideIcons.user,
+                  autofocus: !_isEditing,
+                  onChanged: (_) => setState(() {}),
                 ),
-                const SizedBox(width: AppSpacing.md),
-                PrimaryButton(
-                  label: _isEditing ? l10n.actionSave : l10n.teamInvite,
-                  icon: _isEditing ? LucideIcons.check : LucideIcons.mail,
-                  onPressed: _canSubmit ? _submit : null,
+                const SizedBox(height: AppSpacing.lg),
+                AppTextField(
+                  label: l10n.memberFormEmail,
+                  controller: _email,
+                  prefixIcon: LucideIcons.mail,
+                  keyboardType: TextInputType.emailAddress,
+                  enabled: !_isEditing,
+                  onChanged: (_) => setState(() {}),
                 ),
               ],
             ),
-          ],
-        ),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+
+          SectionHeader(title: l10n.memberFormRole),
+          for (final role in TeamRole.values)
+            Padding(
+              padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+              child: _RoleOption(
+                role: role,
+                selected: _role == role,
+                onTap: () => setState(() => _role = role),
+              ),
+            ),
+          const SizedBox(height: AppSpacing.lg),
+
+          SectionHeader(title: l10n.memberFormStores),
+          AppCard(
+            padding: EdgeInsets.zero,
+            child: Column(
+              children: [
+                for (final store in mockStores)
+                  CheckboxListTile(
+                    value: _storeIds.contains(store.id),
+                    onChanged: (checked) => setState(() {
+                      if (checked ?? false) {
+                        _storeIds.add(store.id);
+                      } else {
+                        _storeIds.remove(store.id);
+                      }
+                    }),
+                    title: Text(store.name),
+                    subtitle: Text(store.city),
+                    controlAffinity: ListTileControlAffinity.leading,
+                  ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -176,7 +188,7 @@ class _AddEditMemberPageState extends State<AddEditMemberPage> {
       context,
       _isEditing ? l10n.memberUpdated : l10n.memberInvited,
     );
-    context.go(Routes.toTeam(widget.storeId));
+    context.goSection(Routes.toTeam(widget.storeId));
   }
 
   Future<void> _confirmRemove() async {
@@ -190,7 +202,7 @@ class _AddEditMemberPageState extends State<AddEditMemberPage> {
 
     if (confirmed && mounted) {
       AppSnackBar.success(context, l10n.memberRemoved);
-      context.go(Routes.toTeam(widget.storeId));
+      context.goSection(Routes.toTeam(widget.storeId));
     }
   }
 }

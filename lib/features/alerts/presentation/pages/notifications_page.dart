@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../app/routes.dart';
+import '../../../../app/navigation.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/formatters.dart';
@@ -46,6 +46,19 @@ class _NotificationsPageState extends State<NotificationsPage> {
         : all;
 
     return ShellPage(
+      tabs: SectionTabs(
+        currentPath: Routes.toNotifications(widget.storeId),
+        tabs: [
+          SectionTab(
+            label: l10n.alertsTitle,
+            path: Routes.toAlerts(widget.storeId),
+          ),
+          SectionTab(
+            label: l10n.notificationsTitle,
+            path: Routes.toNotifications(widget.storeId),
+          ),
+        ],
+      ),
       title: l10n.notificationsTitle,
       subtitle: l10n.notificationsUnread(unreadCount),
       scrollable: false,
@@ -120,9 +133,11 @@ class _NotificationsPageState extends State<NotificationsPage> {
     // Deep-links to whatever the notification is about, so it is actionable
     // rather than merely informative.
     if (notification.relatedItemId != null) {
-      context.go(Routes.toItem(widget.storeId, notification.relatedItemId!));
+      context.pushScreen(
+        Routes.toItem(widget.storeId, notification.relatedItemId!),
+      );
     } else if (notification.relatedSupplierId != null) {
-      context.go(
+      context.pushScreen(
         Routes.toSupplier(widget.storeId, notification.relatedSupplierId!),
       );
     }
