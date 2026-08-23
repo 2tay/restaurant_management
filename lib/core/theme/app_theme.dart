@@ -124,13 +124,16 @@ abstract final class AppTheme {
       // ---------------------------------------------------------------------
       // Surfaces
       // ---------------------------------------------------------------------
-      cardTheme: const CardThemeData(
+      // Matches AppCard: lifted rather than outlined.
+      cardTheme: CardThemeData(
         color: AppColors.surface,
-        elevation: 0,
+        elevation: 1,
+        shadowColor: AppColors.neutral950.withValues(alpha: 0.10),
+        surfaceTintColor: Colors.transparent,
         margin: EdgeInsets.zero,
-        shape: RoundedRectangleBorder(
+        shape: const RoundedRectangleBorder(
           borderRadius: AppRadius.lgAll,
-          side: BorderSide(color: AppColors.border),
+          side: BorderSide(color: AppColors.hairline),
         ),
         clipBehavior: Clip.antiAlias,
       ),
@@ -192,7 +195,8 @@ abstract final class AppTheme {
       dialogTheme: DialogThemeData(
         backgroundColor: AppColors.surface,
         surfaceTintColor: Colors.transparent,
-        elevation: 8,
+        elevation: 6,
+        shadowColor: AppColors.neutral950.withValues(alpha: 0.18),
         shape: const RoundedRectangleBorder(borderRadius: AppRadius.lgAll),
         titleTextStyle: textTheme.headlineSmall,
         contentTextStyle: textTheme.bodyLarge,

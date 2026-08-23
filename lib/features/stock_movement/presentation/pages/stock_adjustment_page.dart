@@ -244,8 +244,7 @@ class _DifferenceRow extends StatelessWidget {
           ),
           Text(
             isNeutral ? '—' : Formatters.quantityDelta(delta, unit),
-            style: AppTypography.numericLarge.copyWith(
-              fontSize: 26,
+            style: AppTypography.numericHero.copyWith(
               color: colors?.foreground ?? AppColors.textSecondary,
             ),
           ),

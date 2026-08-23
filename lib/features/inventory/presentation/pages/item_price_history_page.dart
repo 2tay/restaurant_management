@@ -68,13 +68,6 @@ class ItemPriceHistoryPage extends StatelessWidget {
       ],
       title: l10n.priceHistoryTitle,
       subtitle: l10n.priceHistoryFor(item.name, supplier.name),
-      actions: [
-        SecondaryButton(
-          label: l10n.actionBack,
-          icon: LucideIcons.arrowLeft,
-          onPressed: () => context.pushScreen(Routes.toItem(storeId, itemId)),
-        ),
-      ],
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -205,7 +198,7 @@ class _PriceChart extends StatelessWidget {
                 padding: const EdgeInsets.only(right: AppSpacing.sm),
                 child: Text(
                   Formatters.priceCompact(value),
-                  style: AppTypography.numericSmall.copyWith(fontSize: 13),
+                  style: AppTypography.chartLabel,
                   textAlign: TextAlign.right,
                 ),
               ),
@@ -225,7 +218,7 @@ class _PriceChart extends StatelessWidget {
                   padding: const EdgeInsets.only(top: AppSpacing.sm),
                   child: Text(
                     Formatters.dayMonth(ordered[index - 1].changedAt),
-                    style: AppTypography.numericSmall.copyWith(fontSize: 13),
+                    style: AppTypography.chartLabel,
                   ),
                 );
               },
@@ -392,10 +385,7 @@ class _SummaryTile extends StatelessWidget {
               Expanded(
                 child: Text(
                   value,
-                  style: AppTypography.numericLarge.copyWith(
-                    fontSize: 28,
-                    color: valueColor,
-                  ),
+                  style: AppTypography.numericHero.copyWith(color: valueColor),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),

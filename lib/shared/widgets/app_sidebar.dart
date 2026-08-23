@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../app/navigation.dart';
 import '../../app/routes.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
@@ -129,7 +130,7 @@ class AppSidebar extends StatelessWidget {
         extended: extended,
         selectedIndex: _selectedIndex(location),
         onDestinationSelected: (index) {
-          context.go(_destinations[index].pathBuilder(storeId));
+          context.goSection(_destinations[index].pathBuilder(storeId));
         },
         leading: Padding(
           padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),

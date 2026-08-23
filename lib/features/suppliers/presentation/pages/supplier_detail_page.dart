@@ -20,11 +20,17 @@ class SupplierDetailPage extends StatelessWidget {
   const SupplierDetailPage({
     required this.storeId,
     required this.supplierId,
+    this.embedded = false,
     super.key,
   });
 
   final String storeId;
   final String supplierId;
+
+  /// True when shown in the right-hand pane of the suppliers split view. The
+  /// surrounding page already provides the header and chrome, so this renders
+  /// its body alone.
+  final bool embedded;
 
   @override
   Widget build(BuildContext context) {
@@ -42,6 +48,9 @@ class SupplierDetailPage extends StatelessWidget {
     }
 
     final prices = MockQueries.pricesForSupplier(supplierId);
+    final body = _body(context, l10n, theme, supplier, prices);
+
+    if (embedded) return SingleChildScrollView(child: body);
 
     return ShellPage(
       back: BackDestination(
@@ -68,97 +77,107 @@ class SupplierDetailPage extends StatelessWidget {
               context.pushScreen(Routes.toSupplierPricing(storeId, supplierId)),
         ),
       ],
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          SectionHeader(title: l10n.supplierContact),
-          AppCard(
-            child: Column(
-              children: [
-                _ContactRow(
-                  icon: LucideIcons.user,
-                  label: l10n.supplierFormContactName,
-                  value: supplier.contactName,
-                ),
-                const Divider(height: AppSpacing.xl),
-                _ContactRow(
-                  icon: LucideIcons.mail,
-                  label: l10n.supplierFormEmail,
-                  value: supplier.email,
-                ),
-                const Divider(height: AppSpacing.xl),
-                _ContactRow(
-                  icon: LucideIcons.phone,
-                  label: l10n.supplierFormPhone,
-                  value: supplier.phone,
-                ),
-                const Divider(height: AppSpacing.xl),
-                _ContactRow(
-                  icon: LucideIcons.mapPin,
-                  label: l10n.addStoreAddress,
-                  value:
-                      '${supplier.addressLine}, ${supplier.postalCode} ${supplier.city}',
-                ),
-                if (supplier.note != null) ...[
-                  const Divider(height: AppSpacing.xl),
-                  _ContactRow(
-                    icon: LucideIcons.info,
-                    label: l10n.supplierFormNote,
-                    value: supplier.note!,
-                  ),
-                ],
-              ],
-            ),
-          ),
-          const SizedBox(height: AppSpacing.xl),
+      child: body,
+    );
+  }
 
-          SectionHeader(
-            title: l10n.supplierProducts,
-            count: prices.isEmpty ? null : prices.length,
+  Widget _body(
+    BuildContext context,
+    AppLocalizations l10n,
+    ThemeData theme,
+    Supplier supplier,
+    List<SupplierPrice> prices,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SectionHeader(title: l10n.supplierContact),
+        AppCard(
+          child: Column(
+            children: [
+              _ContactRow(
+                icon: LucideIcons.user,
+                label: l10n.supplierFormContactName,
+                value: supplier.contactName,
+              ),
+              const Divider(height: AppSpacing.xl),
+              _ContactRow(
+                icon: LucideIcons.mail,
+                label: l10n.supplierFormEmail,
+                value: supplier.email,
+              ),
+              const Divider(height: AppSpacing.xl),
+              _ContactRow(
+                icon: LucideIcons.phone,
+                label: l10n.supplierFormPhone,
+                value: supplier.phone,
+              ),
+              const Divider(height: AppSpacing.xl),
+              _ContactRow(
+                icon: LucideIcons.mapPin,
+                label: l10n.addStoreAddress,
+                value:
+                    '${supplier.addressLine}, ${supplier.postalCode} ${supplier.city}',
+              ),
+              if (supplier.note != null) ...[
+                const Divider(height: AppSpacing.xl),
+                _ContactRow(
+                  icon: LucideIcons.info,
+                  label: l10n.supplierFormNote,
+                  value: supplier.note!,
+                ),
+              ],
+            ],
           ),
-          if (prices.isEmpty)
-            AppCard(
-              child: Padding(
-                padding: const EdgeInsets.all(AppSpacing.lg),
-                child: Text(
-                  l10n.supplierProductsEmpty,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
+        ),
+        const SizedBox(height: AppSpacing.xl),
+
+        SectionHeader(
+          title: l10n.supplierProducts,
+          count: prices.isEmpty ? null : prices.length,
+        ),
+        if (prices.isEmpty)
+          AppCard(
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpacing.lg),
+              child: Text(
+                l10n.supplierProductsEmpty,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: AppColors.textSecondary,
                 ),
               ),
-            )
-          else
-            DataTableWrapper(
-              minWidth: 680,
-              columns: [
-                DataColumn(label: Text(l10n.supplierPricingColumnProduct)),
-                DataColumn(
-                  label: Text(l10n.supplierPricingColumnPrice),
-                  numeric: true,
-                ),
-                DataColumn(label: Text(l10n.supplierPricingColumnUpdated)),
-                DataColumn(label: Text(l10n.supplierPricingColumnCompare)),
-              ],
-              rows: [
-                for (final price in prices)
-                  _productRow(context, l10n, price.itemId, price),
-              ],
             ),
-          const SizedBox(height: AppSpacing.xl),
-
-          Align(
-            alignment: Alignment.centerLeft,
-            child: DestructiveButton(
-              label: l10n.actionDelete,
-              icon: LucideIcons.trash2,
-              filled: false,
-              onPressed: () =>
-                  _confirmDelete(context, supplier.name, prices.length),
-            ),
+          )
+        else
+          DataTableWrapper(
+            minWidth: 680,
+            columns: [
+              DataColumn(label: Text(l10n.supplierPricingColumnProduct)),
+              DataColumn(
+                label: Text(l10n.supplierPricingColumnPrice),
+                numeric: true,
+              ),
+              DataColumn(label: Text(l10n.supplierPricingColumnUpdated)),
+              DataColumn(label: Text(l10n.supplierPricingColumnCompare)),
+            ],
+            rows: [
+              for (final price in prices)
+                _productRow(context, l10n, price.itemId, price),
+            ],
           ),
-        ],
-      ),
+        const SizedBox(height: AppSpacing.xl),
+
+        Align(
+          alignment: Alignment.centerLeft,
+          child: DestructiveButton(
+            label: l10n.actionDelete,
+            icon: LucideIcons.trash2,
+            filled: false,
+            onPressed: () =>
+                _confirmDelete(context, supplier.name, prices.length),
+          ),
+        ),
+      ],
     );
   }
 

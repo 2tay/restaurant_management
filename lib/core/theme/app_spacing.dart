@@ -1,4 +1,4 @@
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 
 /// Spacing, sizing and radius constants.
 ///
@@ -91,14 +91,67 @@ abstract final class AppBreakpoints {
   static const double compact = 600;
 }
 
-/// Shadows. Used sparingly — this is a data tool, not a landing page.
+/// Elevation, as soft shadows rather than borders.
+///
+/// Phase 1 outlined every surface. A screen of hairline-boxed rectangles reads
+/// as a spreadsheet; the same content on softly lifted surfaces reads as an
+/// application. The shadows are deliberately low-opacity and short-offset —
+/// enough to separate a card from the page, not enough to look like a
+/// drop-shadow effect.
 abstract final class AppElevation {
+  /// The resting state of a card.
   static const List<BoxShadow> card = [
-    BoxShadow(color: Color(0x0D0F1417), blurRadius: 3, offset: Offset(0, 1)),
-    BoxShadow(color: Color(0x0A0F1417), blurRadius: 8, offset: Offset(0, 2)),
+    BoxShadow(color: Color(0x0F0F1417), blurRadius: 2, offset: Offset(0, 1)),
+    BoxShadow(color: Color(0x0A0F1417), blurRadius: 6, offset: Offset(0, 2)),
   ];
 
-  static const List<BoxShadow> raised = [
-    BoxShadow(color: Color(0x141F2933), blurRadius: 16, offset: Offset(0, 4)),
+  /// A card under the pointer, or one holding the current selection.
+  static const List<BoxShadow> cardHovered = [
+    BoxShadow(color: Color(0x140F1417), blurRadius: 4, offset: Offset(0, 2)),
+    BoxShadow(color: Color(0x140F1417), blurRadius: 14, offset: Offset(0, 6)),
   ];
+
+  /// Dialogs, menus, and the pinned form action bar.
+  static const List<BoxShadow> raised = [
+    BoxShadow(color: Color(0x1F1F2933), blurRadius: 24, offset: Offset(0, 8)),
+  ];
+
+  /// Sits under a sticky table header so rows appear to scroll beneath it.
+  static const List<BoxShadow> stickyHeader = [
+    BoxShadow(color: Color(0x120F1417), blurRadius: 6, offset: Offset(0, 3)),
+  ];
+}
+
+/// Motion.
+///
+/// Short and quick. The user is mid-service; animation here exists to show that
+/// one screen came from another, not to be admired. Anything over about 250ms
+/// starts to feel like waiting.
+///
+/// Every duration must go through [AppMotion.duration], which returns
+/// [Duration.zero] when the platform asks for reduced motion.
+abstract final class AppMotion {
+  /// Hover, press, selection — near-instant feedback.
+  static const Duration fast = Duration(milliseconds: 120);
+
+  /// The default: panel expansion, list item entrance, elevation change.
+  static const Duration normal = Duration(milliseconds: 180);
+
+  /// Page transitions, which travel further.
+  static const Duration page = Duration(milliseconds: 220);
+
+  /// Decelerating — things arriving should settle rather than stop dead.
+  static const Curve enter = Curves.easeOutCubic;
+
+  /// Symmetric, for state changes that are not arrivals.
+  static const Curve standard = Curves.easeInOut;
+
+  /// Collapses to zero when the OS accessibility setting asks it to.
+  ///
+  /// Honouring `disableAnimations` is not optional politeness: for a user with
+  /// vestibular sensitivity, motion they did not ask for is a symptom trigger.
+  static Duration duration(BuildContext context, Duration value) =>
+      MediaQuery.maybeDisableAnimationsOf(context) ?? false
+      ? Duration.zero
+      : value;
 }

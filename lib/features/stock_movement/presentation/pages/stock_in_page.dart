@@ -259,7 +259,7 @@ class _StockInPageState extends State<StockInPage> {
                   ),
                   Text(
                     Formatters.price(total),
-                    style: AppTypography.numericLarge.copyWith(fontSize: 26),
+                    style: AppTypography.numericHero,
                   ),
                 ],
               ),

@@ -3,13 +3,17 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 
-/// A bordered surface.
+/// A surface.
 ///
-/// Borders rather than shadows: this is a dense data tool, and a screen of
-/// floating shadowed cards reads as decoration. The border does the same
-/// grouping job and stays legible under bright kitchen lighting where soft
-/// shadows disappear.
-class AppCard extends StatelessWidget {
+/// Phase 1 drew these as hairline-bordered rectangles, which made every screen
+/// read as a spreadsheet. They are now softly lifted instead: a low-opacity
+/// shadow separates the card from the page without announcing itself.
+///
+/// Interactive cards respond. Hover lifts them slightly, press settles them
+/// back down, and the selected card in a master–detail list is outlined in the
+/// action colour so the connection to the detail pane is unmistakable. Without
+/// that, a split view is two unrelated panels sitting next to each other.
+class AppCard extends StatefulWidget {
   const AppCard({
     required this.child,
     this.onTap,
@@ -21,59 +25,98 @@ class AppCard extends StatelessWidget {
 
   final Widget child;
 
-  /// Makes the whole card tappable, with a ripple.
+  /// Makes the whole card tappable, with hover and press feedback.
   final VoidCallback? onTap;
 
   final EdgeInsetsGeometry? padding;
 
-  /// Highlights the card in a master–detail list.
+  /// Highlights the card whose detail is currently open.
   final bool selected;
 
-  /// Draws a thick left edge — used to carry stock status onto a card without
-  /// relying on the border colour alone.
+  /// A thick left edge — carries stock status onto a card without relying on
+  /// the surface colour, which has to stay neutral.
   final Color? accentColor;
+
+  @override
+  State<AppCard> createState() => _AppCardState();
+}
+
+class _AppCardState extends State<AppCard> {
+  bool _hovered = false;
+  bool _pressed = false;
+
+  bool get _isInteractive => widget.onTap != null;
 
   @override
   Widget build(BuildContext context) {
     final content = Padding(
-      padding: padding ?? AppSpacing.cardInsets,
-      child: child,
+      padding: widget.padding ?? AppSpacing.cardInsets,
+      child: widget.child,
     );
 
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: AppRadius.lgAll,
-        border: Border.all(
-          color: selected ? AppColors.primary600 : AppColors.border,
-          width: selected ? 2 : 1,
+    final lifted = _isInteractive && (_hovered || widget.selected);
+
+    return MouseRegion(
+      cursor: _isInteractive ? SystemMouseCursors.click : MouseCursor.defer,
+      onEnter: _isInteractive ? (_) => setState(() => _hovered = true) : null,
+      onExit: _isInteractive ? (_) => setState(() => _hovered = false) : null,
+      child: AnimatedContainer(
+        duration: AppMotion.duration(context, AppMotion.fast),
+        curve: AppMotion.standard,
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: AppRadius.lgAll,
+          border: widget.selected
+              ? Border.all(color: AppColors.primary600, width: 2)
+              : Border.all(color: AppColors.hairline),
+          // Pressed drops back to resting so the card appears to sink under
+          // the finger rather than staying lifted.
+          boxShadow: _pressed
+              ? AppElevation.card
+              : lifted
+              ? AppElevation.cardHovered
+              : AppElevation.card,
         ),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          // The accent stripe is a positioned child rather than a Row sibling
-          // or a thicker left border. A Row would need
-          // CrossAxisAlignment.stretch, which demands a bounded height, and
-          // these cards live in ListViews where height is unbounded. A
-          // non-uniform Border cannot be painted with a borderRadius at all.
-          // Stack sizes itself to the content and lets the stripe fill.
-          child: accentColor == null
-              ? content
-              : Stack(
-                  children: [
-                    content,
-                    Positioned(
-                      left: 0,
-                      top: 0,
-                      bottom: 0,
-                      width: 5,
-                      child: ColoredBox(color: accentColor!),
+        child: ClipRRect(
+          borderRadius: AppRadius.lgAll,
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: widget.onTap,
+              onTapDown: _isInteractive
+                  ? (_) => setState(() => _pressed = true)
+                  : null,
+              onTapUp: _isInteractive
+                  ? (_) => setState(() => _pressed = false)
+                  : null,
+              onTapCancel: _isInteractive
+                  ? () => setState(() => _pressed = false)
+                  : null,
+              hoverColor: AppColors.primary600.withValues(alpha: 0.03),
+              splashColor: AppColors.primary600.withValues(alpha: 0.06),
+              // The accent stripe is a positioned child rather than a Row
+              // sibling or a thicker left border. A Row would need
+              // CrossAxisAlignment.stretch, which demands a bounded height, and
+              // these cards live in ListViews where height is unbounded. A
+              // non-uniform Border cannot be painted with a borderRadius at
+              // all. Stack sizes itself to the content and lets the stripe
+              // fill.
+              child: widget.accentColor == null
+                  ? content
+                  : Stack(
+                      children: [
+                        content,
+                        Positioned(
+                          left: 0,
+                          top: 0,
+                          bottom: 0,
+                          width: 5,
+                          child: ColoredBox(color: widget.accentColor!),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+            ),
+          ),
         ),
       ),
     );

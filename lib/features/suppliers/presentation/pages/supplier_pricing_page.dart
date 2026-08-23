@@ -68,15 +68,6 @@ class _SupplierPricingPageState extends State<SupplierPricingPage> {
       ],
       title: l10n.supplierPricingTitle,
       subtitle: '${supplier.name} — ${l10n.supplierPricingSubtitle}',
-      actions: [
-        SecondaryButton(
-          label: l10n.actionBack,
-          icon: LucideIcons.arrowLeft,
-          onPressed: () => context.pushScreen(
-            Routes.toSupplier(widget.storeId, widget.supplierId),
-          ),
-        ),
-      ],
       child: prices.isEmpty
           ? AppCard(
               child: EmptyState(

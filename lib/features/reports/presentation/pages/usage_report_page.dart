@@ -194,7 +194,7 @@ class _UsageChart extends StatelessWidget {
                 padding: const EdgeInsets.only(right: AppSpacing.sm),
                 child: Text(
                   Formatters.priceCompact(value),
-                  style: AppTypography.numericSmall.copyWith(fontSize: 13),
+                  style: AppTypography.chartLabel,
                   textAlign: TextAlign.right,
                 ),
               ),
@@ -216,7 +216,7 @@ class _UsageChart extends StatelessWidget {
                   padding: const EdgeInsets.only(top: AppSpacing.sm),
                   child: Text(
                     Formatters.dayMonth(points[index].date),
-                    style: AppTypography.numericSmall.copyWith(fontSize: 13),
+                    style: AppTypography.chartLabel,
                   ),
                 );
               },
@@ -285,7 +285,7 @@ class _WasteChart extends StatelessWidget {
                 padding: const EdgeInsets.only(right: AppSpacing.sm),
                 child: Text(
                   Formatters.percent(value),
-                  style: AppTypography.numericSmall.copyWith(fontSize: 13),
+                  style: AppTypography.chartLabel,
                   textAlign: TextAlign.right,
                 ),
               ),
@@ -305,7 +305,7 @@ class _WasteChart extends StatelessWidget {
                   padding: const EdgeInsets.only(top: AppSpacing.sm),
                   child: Text(
                     Formatters.dayMonth(points[index].date),
-                    style: AppTypography.numericSmall.copyWith(fontSize: 13),
+                    style: AppTypography.chartLabel,
                   ),
                 );
               },

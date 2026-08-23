@@ -148,6 +148,41 @@ abstract final class AppTypography {
     color: AppColors.textPrimary,
   );
 
+  /// An emphasised figure inside a card — a running total, a computed
+  /// difference. Between [numeric] and [numericLarge].
+  static const TextStyle numericMedium = TextStyle(
+    fontSize: 22,
+    height: 1.25,
+    fontWeight: FontWeight.w700,
+    fontFeatures: _tabular,
+    color: AppColors.textPrimary,
+  );
+
+  /// A headline figure that is not a full dashboard tile — the line total on
+  /// the delivery form, the computed adjustment gap.
+  static const TextStyle numericHero = TextStyle(
+    fontSize: 26,
+    height: 1.2,
+    fontWeight: FontWeight.w700,
+    letterSpacing: -0.3,
+    fontFeatures: _tabular,
+    color: AppColors.textPrimary,
+  );
+
+  /// Chart axis labels.
+  ///
+  /// Its own style rather than an inline fontSize override: axis labels are the
+  /// densest text in the app and the one place tempted below the readable
+  /// floor. Naming it puts the floor in the type scale instead of burying it
+  /// in a chart widget.
+  static const TextStyle chartLabel = TextStyle(
+    fontSize: _minReadable,
+    height: 1.2,
+    fontWeight: FontWeight.w500,
+    fontFeatures: _tabular,
+    color: AppColors.textSecondary,
+  );
+
   /// Secondary figures — "il y a 3 jours", row counts, deltas.
   static const TextStyle numericSmall = TextStyle(
     fontSize: 15,

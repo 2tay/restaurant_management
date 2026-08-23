@@ -105,6 +105,11 @@ abstract final class AppColors {
   static const Color border = Color(0xFFD6DCE1);
   static const Color borderStrong = Color(0xFFB4BDC4);
 
+  /// A near-invisible edge for elevated surfaces. Cards are separated by their
+  /// shadow, not by an outline; this only stops white-on-white going mushy at
+  /// the boundary.
+  static const Color hairline = Color(0xFFE9EDF0);
+
   /// Body text. Deliberately not pure black — slate reads softer on a bright
   /// kitchen screen without giving up contrast (12.6:1 on [surface]).
   static const Color textPrimary = neutral900;

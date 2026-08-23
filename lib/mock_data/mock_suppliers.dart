@@ -18,7 +18,7 @@ abstract final class SupplierIds {
 /// Putting a real company's name next to invented pricing in a client demo
 /// would be misleading, and the demo reads just as true without it.
 const List<Supplier> mockSuppliers = [
-Supplier(
+  Supplier(
     id: SupplierIds.grossisteCentral,
     storeId: StoreIds.sablon,
     name: 'Grossiste Central Bruxelles',

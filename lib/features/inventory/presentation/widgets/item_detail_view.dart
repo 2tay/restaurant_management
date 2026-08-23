@@ -301,10 +301,7 @@ class _FactRow extends StatelessWidget {
             value,
             textAlign: TextAlign.right,
             style: emphasis
-                ? AppTypography.numeric.copyWith(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w700,
-                  )
+                ? AppTypography.numericMedium
                 : theme.textTheme.bodyLarge,
           ),
         ),
