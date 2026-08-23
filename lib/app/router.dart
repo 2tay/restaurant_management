@@ -2,6 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../dev/theme_gallery_page.dart';
+import '../features/alerts/presentation/pages/low_stock_alerts_page.dart';
+import '../features/alerts/presentation/pages/notifications_page.dart';
+import '../features/dashboard/presentation/pages/store_dashboard_page.dart';
+import '../features/reports/presentation/pages/price_comparison_report_page.dart';
+import '../features/reports/presentation/pages/reports_dashboard_page.dart';
+import '../features/reports/presentation/pages/stock_valuation_report_page.dart';
+import '../features/reports/presentation/pages/usage_report_page.dart';
+import '../features/search/presentation/pages/global_search_page.dart';
+import '../features/settings/presentation/pages/account_settings_page.dart';
+import '../features/settings/presentation/pages/notification_preferences_page.dart';
+import '../features/settings/presentation/pages/store_settings_page.dart';
+import '../features/settings/presentation/pages/sync_status_page.dart';
+import '../features/team/presentation/pages/add_edit_member_page.dart';
+import '../features/team/presentation/pages/roles_permissions_page.dart';
+import '../features/team/presentation/pages/team_list_page.dart';
 import '../features/auth/presentation/pages/forgot_password_page.dart';
 import '../features/auth/presentation/pages/login_page.dart';
 import '../features/auth/presentation/pages/onboarding_page.dart';
@@ -24,7 +39,6 @@ import '../features/suppliers/presentation/pages/supplier_pricing_page.dart';
 import '../features/suppliers/presentation/pages/suppliers_list_page.dart';
 import '../mock_data/mock_data.dart';
 import '../shared/widgets/app_scaffold.dart';
-import '../shared/widgets/placeholder_page.dart';
 import 'routes.dart';
 
 /// The application router.
@@ -38,8 +52,6 @@ import 'routes.dart';
 ///   `/store/:storeId/`. The shell resolves the store once and hands it to
 ///   [AppScaffold], so the rail and top bar persist across navigations.
 ///
-/// Screens still to be built resolve to [PlaceholderPage]; Stage 5 swaps them
-/// out one at a time.
 
 /// Pulls the store id out of a store-scoped route.
 ///
@@ -97,10 +109,8 @@ final GoRouter appRouter = GoRouter(
       routes: [
         GoRoute(
           path: Routes.dashboard,
-          builder: (context, state) => const PlaceholderPage(
-            title: 'Tableau de bord',
-            note: 'features/dashboard',
-          ),
+          builder: (context, state) =>
+              StoreDashboardPage(storeId: _storeId(state)),
         ),
 
         // --- Inventory -------------------------------------------------------
@@ -180,17 +190,13 @@ final GoRouter appRouter = GoRouter(
         // --- Alerts ----------------------------------------------------------
         GoRoute(
           path: Routes.alerts,
-          builder: (context, state) => const PlaceholderPage(
-            title: 'Alertes de stock',
-            note: 'features/alerts',
-          ),
+          builder: (context, state) =>
+              LowStockAlertsPage(storeId: _storeId(state)),
         ),
         GoRoute(
           path: Routes.notifications,
-          builder: (context, state) => const PlaceholderPage(
-            title: 'Notifications',
-            note: 'features/alerts',
-          ),
+          builder: (context, state) =>
+              NotificationsPage(storeId: _storeId(state)),
         ),
 
         // --- Suppliers -------------------------------------------------------
@@ -229,31 +235,23 @@ final GoRouter appRouter = GoRouter(
         // --- Reports ---------------------------------------------------------
         GoRoute(
           path: Routes.reports,
-          builder: (context, state) => const PlaceholderPage(
-            title: 'Rapports',
-            note: 'features/reports',
-          ),
+          builder: (context, state) =>
+              ReportsDashboardPage(storeId: _storeId(state)),
         ),
         GoRoute(
           path: Routes.valuationReport,
-          builder: (context, state) => const PlaceholderPage(
-            title: 'Valorisation du stock',
-            note: 'features/reports',
-          ),
+          builder: (context, state) =>
+              StockValuationReportPage(storeId: _storeId(state)),
         ),
         GoRoute(
           path: Routes.comparisonReport,
-          builder: (context, state) => const PlaceholderPage(
-            title: 'Comparaison des prix',
-            note: 'features/reports',
-          ),
+          builder: (context, state) =>
+              PriceComparisonReportPage(storeId: _storeId(state)),
         ),
         GoRoute(
           path: Routes.usageReport,
-          builder: (context, state) => const PlaceholderPage(
-            title: 'Consommation',
-            note: 'features/reports',
-          ),
+          builder: (context, state) =>
+              UsageReportPage(storeId: _storeId(state)),
         ),
 
         // --- Team ------------------------------------------------------------
@@ -262,66 +260,52 @@ final GoRouter appRouter = GoRouter(
         // the inventory routes.
         GoRoute(
           path: Routes.team,
-          builder: (context, state) =>
-              const PlaceholderPage(title: 'Équipe', note: 'features/team'),
+          builder: (context, state) => TeamListPage(storeId: _storeId(state)),
         ),
         GoRoute(
           path: Routes.addTeamMember,
-          builder: (context, state) => const PlaceholderPage(
-            title: 'Inviter un membre',
-            note: 'features/team',
-          ),
+          builder: (context, state) =>
+              AddEditMemberPage(storeId: _storeId(state)),
         ),
         GoRoute(
           path: Routes.roles,
-          builder: (context, state) => const PlaceholderPage(
-            title: 'Rôles et permissions',
-            note: 'features/team',
-          ),
+          builder: (context, state) =>
+              RolesPermissionsPage(storeId: _storeId(state)),
         ),
         GoRoute(
           path: Routes.editTeamMember,
-          builder: (context, state) => const PlaceholderPage(
-            title: 'Modifier le membre',
-            note: 'features/team',
+          builder: (context, state) => AddEditMemberPage(
+            storeId: _storeId(state),
+            memberId: state.pathParameters['memberId'],
           ),
         ),
 
         // --- Settings --------------------------------------------------------
         GoRoute(
           path: Routes.storeSettings,
-          builder: (context, state) => const PlaceholderPage(
-            title: "Paramètres de l'établissement",
-            note: 'features/settings',
-          ),
+          builder: (context, state) =>
+              StoreSettingsPage(storeId: _storeId(state)),
         ),
         GoRoute(
           path: Routes.accountSettings,
-          builder: (context, state) => const PlaceholderPage(
-            title: 'Paramètres du compte',
-            note: 'features/settings',
-          ),
+          builder: (context, state) =>
+              AccountSettingsPage(storeId: _storeId(state)),
         ),
         GoRoute(
           path: Routes.notificationSettings,
-          builder: (context, state) => const PlaceholderPage(
-            title: 'Préférences de notification',
-            note: 'features/settings',
-          ),
+          builder: (context, state) =>
+              NotificationPreferencesPage(storeId: _storeId(state)),
         ),
         GoRoute(
           path: Routes.syncStatus,
-          builder: (context, state) => const PlaceholderPage(
-            title: 'État de la synchronisation',
-            note: 'features/settings',
-          ),
+          builder: (context, state) => SyncStatusPage(storeId: _storeId(state)),
         ),
 
         // --- Global search ---------------------------------------------------
         GoRoute(
           path: Routes.search,
           builder: (context, state) =>
-              const PlaceholderPage(title: 'Recherche', note: 'shared/widgets'),
+              GlobalSearchPage(storeId: _storeId(state)),
         ),
       ],
     ),
