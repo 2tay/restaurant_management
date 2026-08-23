@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../dev/theme_gallery_page.dart';
+import '../features/auth/presentation/pages/forgot_password_page.dart';
+import '../features/auth/presentation/pages/login_page.dart';
+import '../features/auth/presentation/pages/onboarding_page.dart';
+import '../features/stores/presentation/pages/add_store_page.dart';
+import '../features/stores/presentation/pages/store_selector_page.dart';
 import '../mock_data/mock_data.dart';
 import '../shared/widgets/app_scaffold.dart';
 import '../shared/widgets/placeholder_page.dart';
@@ -30,45 +35,22 @@ final GoRouter appRouter = GoRouter(
     // -------------------------------------------------------------------------
     // Auth and store selection — no shell
     // -------------------------------------------------------------------------
-    GoRoute(
-      path: Routes.login,
-      builder: (context, state) => const PlaceholderPage(
-        title: 'Connexion',
-        note: 'features/auth',
-        standalone: true,
-      ),
-    ),
+    GoRoute(path: Routes.login, builder: (context, state) => const LoginPage()),
     GoRoute(
       path: Routes.forgotPassword,
-      builder: (context, state) => const PlaceholderPage(
-        title: 'Mot de passe oublié',
-        note: 'features/auth',
-        standalone: true,
-      ),
+      builder: (context, state) => const ForgotPasswordPage(),
     ),
     GoRoute(
       path: Routes.onboarding,
-      builder: (context, state) => const PlaceholderPage(
-        title: 'Bienvenue',
-        note: 'features/auth',
-        standalone: true,
-      ),
+      builder: (context, state) => const OnboardingPage(),
     ),
     GoRoute(
       path: Routes.stores,
-      builder: (context, state) => const PlaceholderPage(
-        title: 'Vos établissements',
-        note: 'features/stores',
-        standalone: true,
-      ),
+      builder: (context, state) => const StoreSelectorPage(),
     ),
     GoRoute(
       path: Routes.addStore,
-      builder: (context, state) => const PlaceholderPage(
-        title: 'Ajouter un établissement',
-        note: 'features/stores',
-        standalone: true,
-      ),
+      builder: (context, state) => const AddStorePage(),
     ),
 
     // Development only. Reachable at /dev/gallery, linked from nothing —

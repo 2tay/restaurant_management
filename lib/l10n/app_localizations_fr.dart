@@ -162,4 +162,146 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get confirmDeleteIrreversible => 'Cette action est irréversible.';
+
+  @override
+  String get loginTitle => 'Connexion';
+
+  @override
+  String get loginSubtitle =>
+      'Connectez-vous pour accéder à vos établissements.';
+
+  @override
+  String get loginEmail => 'Adresse e-mail';
+
+  @override
+  String get loginPassword => 'Mot de passe';
+
+  @override
+  String get loginRemember => 'Rester connecté';
+
+  @override
+  String get loginForgot => 'Mot de passe oublié ?';
+
+  @override
+  String get loginSubmit => 'Se connecter';
+
+  @override
+  String get loginDemoNotice =>
+      'Prototype de démonstration — aucune authentification réelle.';
+
+  @override
+  String get forgotTitle => 'Réinitialiser le mot de passe';
+
+  @override
+  String get forgotBody =>
+      'Saisissez votre adresse e-mail et nous vous enverrons un lien de réinitialisation.';
+
+  @override
+  String get forgotSubmit => 'Envoyer le lien';
+
+  @override
+  String get forgotSentTitle => 'Vérifiez votre boîte mail';
+
+  @override
+  String forgotSentBody(String email) {
+    return 'Si un compte existe pour $email, un lien de réinitialisation vient d\'être envoyé.';
+  }
+
+  @override
+  String get forgotBackToLogin => 'Retour à la connexion';
+
+  @override
+  String get onboardingTitle => 'Bienvenue';
+
+  @override
+  String get onboardingBody =>
+      'Suivez votre stock, vos fournisseurs et vos prix sur tous vos établissements, depuis une seule application.';
+
+  @override
+  String get onboardingStart => 'Commencer';
+
+  @override
+  String get onboardingFeatureStock => 'Un stock toujours à jour';
+
+  @override
+  String get onboardingFeatureStockBody =>
+      'Enregistrez les livraisons et les sorties en quelques secondes, même en plein service.';
+
+  @override
+  String get onboardingFeaturePrices => 'Comparez vos fournisseurs';
+
+  @override
+  String get onboardingFeaturePricesBody =>
+      'Chaque fournisseur a son prix pour un même produit. Voyez lequel vous coûte le moins cher.';
+
+  @override
+  String get onboardingFeatureAlerts => 'Ne tombez plus en rupture';
+
+  @override
+  String get onboardingFeatureAlertsBody =>
+      'Recevez une alerte dès qu\'un article passe sous son seuil.';
+
+  @override
+  String get storesTitle => 'Vos établissements';
+
+  @override
+  String get storesSubtitle =>
+      'Sélectionnez l\'établissement que vous souhaitez gérer.';
+
+  @override
+  String get storesAdd => 'Ajouter un établissement';
+
+  @override
+  String storesItemCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count articles',
+      one: '1 article',
+      zero: 'Aucun article',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String storesAlertCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count alertes',
+      one: '1 alerte',
+      zero: 'Aucune alerte',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get storesNewBadge => 'Nouveau';
+
+  @override
+  String get addStoreTitle => 'Ajouter un établissement';
+
+  @override
+  String get addStoreName => 'Nom de l\'établissement';
+
+  @override
+  String get addStoreNameHint => 'Ex. : Brasserie du Sablon';
+
+  @override
+  String get addStoreAddress => 'Adresse';
+
+  @override
+  String get addStorePostalCode => 'Code postal';
+
+  @override
+  String get addStoreCity => 'Commune';
+
+  @override
+  String get addStorePhone => 'Téléphone';
+
+  @override
+  String get addStoreSubmit => 'Créer l\'établissement';
+
+  @override
+  String get addStoreCreated => 'Établissement créé';
 }

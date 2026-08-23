@@ -375,6 +375,234 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Cette action est irréversible.'**
   String get confirmDeleteIrreversible;
+
+  /// Login screen heading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Connexion'**
+  String get loginTitle;
+
+  /// Supporting line under the login heading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Connectez-vous pour accéder à vos établissements.'**
+  String get loginSubtitle;
+
+  /// Email field label on the login form.
+  ///
+  /// In fr, this message translates to:
+  /// **'Adresse e-mail'**
+  String get loginEmail;
+
+  /// Password field label.
+  ///
+  /// In fr, this message translates to:
+  /// **'Mot de passe'**
+  String get loginPassword;
+
+  /// Remember-me toggle on the login form.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rester connecté'**
+  String get loginRemember;
+
+  /// Link to the password reset screen. Narrow no-break space before the question mark.
+  ///
+  /// In fr, this message translates to:
+  /// **'Mot de passe oublié ?'**
+  String get loginForgot;
+
+  /// Primary action on the login form.
+  ///
+  /// In fr, this message translates to:
+  /// **'Se connecter'**
+  String get loginSubmit;
+
+  /// Honest notice on the login screen. Phase 1 authenticates nothing and the demo should not imply otherwise.
+  ///
+  /// In fr, this message translates to:
+  /// **'Prototype de démonstration — aucune authentification réelle.'**
+  String get loginDemoNotice;
+
+  /// Password reset screen heading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Réinitialiser le mot de passe'**
+  String get forgotTitle;
+
+  /// Instructions on the password reset screen.
+  ///
+  /// In fr, this message translates to:
+  /// **'Saisissez votre adresse e-mail et nous vous enverrons un lien de réinitialisation.'**
+  String get forgotBody;
+
+  /// Primary action on the password reset form.
+  ///
+  /// In fr, this message translates to:
+  /// **'Envoyer le lien'**
+  String get forgotSubmit;
+
+  /// Confirmation state heading after requesting a reset link.
+  ///
+  /// In fr, this message translates to:
+  /// **'Vérifiez votre boîte mail'**
+  String get forgotSentTitle;
+
+  /// Confirmation body. Deliberately does not confirm whether the account exists, which would leak which addresses are registered.
+  ///
+  /// In fr, this message translates to:
+  /// **'Si un compte existe pour {email}, un lien de réinitialisation vient d\'être envoyé.'**
+  String forgotSentBody(String email);
+
+  /// Link back to the login screen.
+  ///
+  /// In fr, this message translates to:
+  /// **'Retour à la connexion'**
+  String get forgotBackToLogin;
+
+  /// Onboarding screen heading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Bienvenue'**
+  String get onboardingTitle;
+
+  /// Onboarding supporting text.
+  ///
+  /// In fr, this message translates to:
+  /// **'Suivez votre stock, vos fournisseurs et vos prix sur tous vos établissements, depuis une seule application.'**
+  String get onboardingBody;
+
+  /// Primary action on onboarding.
+  ///
+  /// In fr, this message translates to:
+  /// **'Commencer'**
+  String get onboardingStart;
+
+  /// Onboarding feature bullet — inventory tracking.
+  ///
+  /// In fr, this message translates to:
+  /// **'Un stock toujours à jour'**
+  String get onboardingFeatureStock;
+
+  /// Body for the inventory onboarding bullet.
+  ///
+  /// In fr, this message translates to:
+  /// **'Enregistrez les livraisons et les sorties en quelques secondes, même en plein service.'**
+  String get onboardingFeatureStockBody;
+
+  /// Onboarding feature bullet — price comparison.
+  ///
+  /// In fr, this message translates to:
+  /// **'Comparez vos fournisseurs'**
+  String get onboardingFeaturePrices;
+
+  /// Body for the price comparison onboarding bullet.
+  ///
+  /// In fr, this message translates to:
+  /// **'Chaque fournisseur a son prix pour un même produit. Voyez lequel vous coûte le moins cher.'**
+  String get onboardingFeaturePricesBody;
+
+  /// Onboarding feature bullet — low stock alerts.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ne tombez plus en rupture'**
+  String get onboardingFeatureAlerts;
+
+  /// Body for the alerts onboarding bullet.
+  ///
+  /// In fr, this message translates to:
+  /// **'Recevez une alerte dès qu\'un article passe sous son seuil.'**
+  String get onboardingFeatureAlertsBody;
+
+  /// Store selector heading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Vos établissements'**
+  String get storesTitle;
+
+  /// Store selector supporting line.
+  ///
+  /// In fr, this message translates to:
+  /// **'Sélectionnez l\'établissement que vous souhaitez gérer.'**
+  String get storesSubtitle;
+
+  /// Action opening the add-store form.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ajouter un établissement'**
+  String get storesAdd;
+
+  /// Item count on a store card.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =0{Aucun article} =1{1 article} other{{count} articles}}'**
+  String storesItemCount(int count);
+
+  /// Low-stock alert count badge on a store card.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =0{Aucune alerte} =1{1 alerte} other{{count} alertes}}'**
+  String storesAlertCount(int count);
+
+  /// Badge on a store created recently and still empty.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nouveau'**
+  String get storesNewBadge;
+
+  /// Add-store screen heading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ajouter un établissement'**
+  String get addStoreTitle;
+
+  /// Store name field label.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nom de l\'établissement'**
+  String get addStoreName;
+
+  /// Placeholder for the store name field.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ex. : Brasserie du Sablon'**
+  String get addStoreNameHint;
+
+  /// Street address field label.
+  ///
+  /// In fr, this message translates to:
+  /// **'Adresse'**
+  String get addStoreAddress;
+
+  /// Belgian postal code field label.
+  ///
+  /// In fr, this message translates to:
+  /// **'Code postal'**
+  String get addStorePostalCode;
+
+  /// City field label. 'Commune' is the Belgian administrative term.
+  ///
+  /// In fr, this message translates to:
+  /// **'Commune'**
+  String get addStoreCity;
+
+  /// Phone field label.
+  ///
+  /// In fr, this message translates to:
+  /// **'Téléphone'**
+  String get addStorePhone;
+
+  /// Primary action on the add-store form.
+  ///
+  /// In fr, this message translates to:
+  /// **'Créer l\'établissement'**
+  String get addStoreSubmit;
+
+  /// Snackbar shown after creating a store.
+  ///
+  /// In fr, this message translates to:
+  /// **'Établissement créé'**
+  String get addStoreCreated;
 }
 
 class _AppLocalizationsDelegate

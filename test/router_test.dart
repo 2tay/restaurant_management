@@ -170,6 +170,28 @@ void main() {
     }
   });
 
+  // Every French label is longer than the English it was designed against, and
+  // a Row with an unbounded Text in it overflows silently until somebody looks
+  // at that exact screen at that exact width. Walking every route a second time
+  // at the narrow breakpoint turns that into a failing test instead of
+  // something the client finds during the demo.
+  group('every route survives the narrow breakpoint', () {
+    for (final route in _allRoutes()) {
+      testWidgets('${route.label} at 1024x600', (tester) async {
+        await _pumpAt(tester, _smallTablet);
+
+        appRouter.go(route.path);
+        await tester.pumpAndSettle();
+
+        expect(
+          tester.takeException(),
+          isNull,
+          reason: '${route.path} overflowed or threw at 1024x600',
+        );
+      });
+    }
+  });
+
   group('the shell holds together across tablet sizes', () {
     // The rail is pinned to a fixed width on purpose — left to size itself it
     // grew to fit the longest French label and stole 148dp from the content
