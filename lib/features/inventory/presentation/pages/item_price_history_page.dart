@@ -216,7 +216,7 @@ class _PriceChart extends StatelessWidget {
                   padding: const EdgeInsets.only(top: AppSpacing.sm),
                   child: Text(
                     Formatters.dayMonth(ordered[index - 1].changedAt),
-                    style: AppTypography.numericSmall.copyWith(fontSize: 12),
+                    style: AppTypography.numericSmall.copyWith(fontSize: 13),
                   ),
                 );
               },

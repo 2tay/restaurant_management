@@ -6,6 +6,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/utils/formatters.dart';
+import '../../l10n/app_localizations.dart';
 
 /// Quantity entry, built for wet hands and no patience.
 ///
@@ -115,13 +116,15 @@ class _QuantityStepperState extends State<QuantityStepper> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         _StepperButton(
           icon: LucideIcons.minus,
           onPressed: widget.value > widget.min ? () => _nudge(-_step) : null,
-          semanticLabel: 'Diminuer',
+          semanticLabel: l10n.a11yDecrease,
         ),
         const SizedBox(width: AppSpacing.sm),
         SizedBox(
@@ -152,7 +155,7 @@ class _QuantityStepperState extends State<QuantityStepper> {
         _StepperButton(
           icon: LucideIcons.plus,
           onPressed: widget.value < widget.max ? () => _nudge(_step) : null,
-          semanticLabel: 'Augmenter',
+          semanticLabel: l10n.a11yIncrease,
         ),
       ],
     );

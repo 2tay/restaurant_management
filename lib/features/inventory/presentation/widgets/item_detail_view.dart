@@ -12,6 +12,7 @@ import '../../../../l10n/app_localizations.dart';
 import '../../../../mock_data/mock_data.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
+import '../../../stock_movement/presentation/widgets/movement_labels.dart';
 import 'supplier_price_row.dart';
 
 /// The body of the item detail screen.
@@ -348,7 +349,11 @@ class _MovementLine extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  movementLabel(context, movement),
+                  movementDescription(
+                    AppLocalizations.of(context),
+                    movement,
+                    MockQueries.supplierNameOf(movement.supplierId),
+                  ),
                   style: theme.textTheme.bodyLarge,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -374,27 +379,5 @@ class _MovementLine extends StatelessWidget {
         ],
       ),
     );
-  }
-}
-
-/// Plain-language description of a movement.
-///
-/// "Livraison — Grossiste Central", not "Stock ingress record". The brief is
-/// explicit about this and it is the difference between staff using the history
-/// screen and ignoring it.
-String movementLabel(BuildContext context, StockMovement movement) {
-  switch (movement.type) {
-    case StockMovementType.stockIn:
-      return 'Livraison — ${MockQueries.supplierNameOf(movement.supplierId)}';
-    case StockMovementType.stockOut:
-      return switch (movement.reason) {
-        StockOutReason.sale => 'Vente',
-        StockOutReason.waste => 'Perte',
-        StockOutReason.spoilage => 'Produit abîmé',
-        StockOutReason.transfer => 'Transfert',
-        null => 'Sortie de stock',
-      };
-    case StockMovementType.adjustment:
-      return 'Ajustement après comptage';
   }
 }

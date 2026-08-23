@@ -19,7 +19,6 @@ export 'error_state.dart';
 export 'filter_pill.dart';
 export 'loading_state.dart';
 export 'offline_banner.dart';
-export 'placeholder_page.dart';
 export 'primary_button.dart';
 export 'quantity_stepper.dart';
 export 'search_field.dart';

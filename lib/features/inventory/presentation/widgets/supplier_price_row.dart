@@ -56,34 +56,36 @@ class SupplierPriceRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
+                // A Wrap, not a Row. An item can carry both badges at once —
+                // the default supplier that is also the cheapest — and on a
+                // narrow pane the name plus two tags does not fit one line.
+                // Wrapping drops the tags below the name instead of clipping
+                // them, and they are exactly the part that must stay readable.
+                Wrap(
+                  spacing: AppSpacing.sm,
+                  runSpacing: AppSpacing.xs,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    Flexible(
-                      child: Text(
-                        supplier?.name ?? '—',
-                        style: theme.textTheme.titleSmall,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                    Text(
+                      supplier?.name ?? '—',
+                      style: theme.textTheme.titleSmall,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    if (price.isDefault) ...[
-                      const SizedBox(width: AppSpacing.sm),
+                    if (price.isDefault)
                       _Tag(
                         label: l10n.itemDefaultSupplier,
                         background: AppColors.primaryContainer,
                         foreground: AppColors.onPrimaryContainer,
                         icon: LucideIcons.star,
                       ),
-                    ],
-                    if (isCheapest) ...[
-                      const SizedBox(width: AppSpacing.sm),
+                    if (isCheapest)
                       _Tag(
                         label: l10n.itemCheapest,
                         background: AppColors.inStock.container,
                         foreground: AppColors.inStock.foreground,
                         icon: LucideIcons.trendingDown,
                       ),
-                    ],
                   ],
                 ),
                 const SizedBox(height: 2),
@@ -162,7 +164,7 @@ class _Tag extends StatelessWidget {
             label,
             style: Theme.of(
               context,
-            ).textTheme.labelSmall?.copyWith(color: foreground, fontSize: 12),
+            ).textTheme.labelSmall?.copyWith(color: foreground),
           ),
         ],
       ),

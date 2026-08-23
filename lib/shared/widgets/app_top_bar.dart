@@ -145,7 +145,9 @@ class _NotificationBell extends StatelessWidget {
                 horizontal: AppSpacing.xs,
                 vertical: 1,
               ),
-              constraints: const BoxConstraints(minWidth: 18),
+              // Sized for a 13pt numeral rather than shrinking the text: the
+              // readable floor applies to the unread count too.
+              constraints: const BoxConstraints(minWidth: 22),
               decoration: BoxDecoration(
                 color: AppColors.error,
                 borderRadius: AppRadius.pillAll,
@@ -154,10 +156,9 @@ class _NotificationBell extends StatelessWidget {
               child: Text(
                 '$unreadCount',
                 textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: AppColors.white,
-                  fontSize: 11,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.labelSmall?.copyWith(color: AppColors.white),
               ),
             ),
           ),

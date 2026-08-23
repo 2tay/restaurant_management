@@ -28,6 +28,10 @@ const Size _smallTablet = Size(1024, 600);
 /// breakpoint, so the rail drops to icons only.
 const Size _narrowTablet = Size(800, 1000);
 
+/// A 10" tablet rotated to portrait. Not a design target, but the app does not
+/// lock orientation, so every screen must degrade rather than break.
+const Size _portraitTablet = Size(800, 1280);
+
 /// Every navigable path, with real ids substituted for path parameters.
 List<({String label, String path, bool inShell})> _allRoutes() {
   const store = StoreIds.sablon;
@@ -187,6 +191,26 @@ void main() {
           tester.takeException(),
           isNull,
           reason: '${route.path} overflowed or threw at 1024x600',
+        );
+      });
+    }
+  });
+
+  // The brief asks for landscape-first but requires portrait to stay usable.
+  // Nothing in the app locks orientation, so a user can rotate at any moment
+  // and every screen has to survive it.
+  group('every route survives portrait', () {
+    for (final route in _allRoutes()) {
+      testWidgets('${route.label} at 800x1280', (tester) async {
+        await _pumpAt(tester, _portraitTablet);
+
+        appRouter.go(route.path);
+        await tester.pumpAndSettle();
+
+        expect(
+          tester.takeException(),
+          isNull,
+          reason: '${route.path} broke in portrait',
         );
       });
     }

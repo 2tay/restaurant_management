@@ -70,7 +70,7 @@ class _LoginPageState extends State<LoginPage> {
               _obscurePassword ? LucideIcons.eye : LucideIcons.eyeOff,
               size: AppSizing.iconSm,
             ),
-            label: Text(_obscurePassword ? 'Afficher' : 'Masquer'),
+            label: Text(_obscurePassword ? l10n.actionShow : l10n.actionHide),
           ),
         ),
         const SizedBox(height: AppSpacing.md),

@@ -123,11 +123,17 @@ class _PermissionMark extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return Icon(
       granted ? LucideIcons.circleCheck : LucideIcons.minus,
       size: AppSizing.iconMd,
       color: granted ? AppColors.inStock.solid : AppColors.textDisabled,
-      semanticLabel: granted ? 'Autorisé' : 'Non autorisé',
+      // The icon alone conveys nothing to a screen reader, and this table is
+      // entirely icons.
+      semanticLabel: granted
+          ? l10n.a11yPermissionGranted
+          : l10n.a11yPermissionDenied,
     );
   }
 }

@@ -202,12 +202,21 @@ class _PriceComparisonHint extends StatelessWidget {
     final isBetter = difference < 0;
     final supplierName = MockQueries.supplierNameOf(cheapest.supplierId);
 
+    final l10n = AppLocalizations.of(context);
     final colors = isBetter ? AppColors.inStock : AppColors.lowStock;
     final message = isBetter
-        ? 'Meilleur prix que $supplierName (${Formatters.priceDelta(difference)} par $unit).'
+        ? l10n.linkSupplierCheaperThan(
+            supplierName,
+            Formatters.price(difference.abs()),
+            unit,
+          )
         : difference == 0
-        ? 'Même prix que $supplierName.'
-        : 'Plus cher que $supplierName de ${Formatters.price(difference)} par $unit.';
+        ? l10n.linkSupplierSamePriceAs(supplierName)
+        : l10n.linkSupplierDearerThan(
+            supplierName,
+            Formatters.price(difference),
+            unit,
+          );
 
     return Container(
       padding: const EdgeInsets.all(AppSpacing.lg),

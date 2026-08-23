@@ -940,5 +940,28 @@
   "searchSectionCategories": "Catégories",
   "@searchSectionCategories": {"description": "Search results section: categories."},
   "searchResultCount": "{count, plural, =0{Aucun résultat} =1{1 résultat} other{{count} résultats}}",
-  "@searchResultCount": {"description": "Total search result count.", "placeholders": {"count": {"type": "int"}}}
+  "@searchResultCount": {"description": "Total search result count.", "placeholders": {"count": {"type": "int"}}},
+
+  "storesCreatedOn": "Créé le {date}",
+  "@storesCreatedOn": {"description": "When a store was created, shown on its card in the selector.", "placeholders": {"date": {"type": "String"}}},
+  "actionShow": "Afficher",
+  "@actionShow": {"description": "Reveals the masked password on the login form."},
+  "actionHide": "Masquer",
+  "@actionHide": {"description": "Re-masks the password on the login form."},
+
+  "a11yDecrease": "Diminuer",
+  "@a11yDecrease": {"description": "Screen-reader label for the quantity stepper's minus button."},
+  "a11yIncrease": "Augmenter",
+  "@a11yIncrease": {"description": "Screen-reader label for the quantity stepper's plus button."},
+  "a11yPermissionGranted": "Autorisé",
+  "@a11yPermissionGranted": {"description": "Screen-reader label for a granted permission in the roles matrix, since the tick icon alone conveys nothing to a screen reader."},
+  "a11yPermissionDenied": "Non autorisé",
+  "@a11yPermissionDenied": {"description": "Screen-reader label for a permission a role does not have."},
+
+  "linkSupplierCheaperThan": "Meilleur prix que {supplier} : {amount} de moins par {unit}.",
+  "@linkSupplierCheaperThan": {"description": "Live comparison while a new supplier price is being typed, when it beats the current cheapest.", "placeholders": {"supplier": {"type": "String"}, "amount": {"type": "String"}, "unit": {"type": "String"}}},
+  "linkSupplierSamePriceAs": "Même prix que {supplier}.",
+  "@linkSupplierSamePriceAs": {"description": "Live comparison when the entered price matches the current cheapest.", "placeholders": {"supplier": {"type": "String"}}},
+  "linkSupplierDearerThan": "Plus cher que {supplier} de {amount} par {unit}.",
+  "@linkSupplierDearerThan": {"description": "Live comparison when the entered price is above the current cheapest.", "placeholders": {"supplier": {"type": "String"}, "amount": {"type": "String"}, "unit": {"type": "String"}}}
 }

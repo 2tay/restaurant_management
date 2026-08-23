@@ -113,7 +113,7 @@ class StoreCard extends StatelessWidget {
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 Text(
-                  'Créé le ${Formatters.date(store.createdAt)}',
+                  l10n.storesCreatedOn(Formatters.date(store.createdAt)),
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: AppColors.textDisabled,
                   ),

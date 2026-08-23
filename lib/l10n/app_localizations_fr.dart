@@ -1445,4 +1445,42 @@ class AppLocalizationsFr extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String storesCreatedOn(String date) {
+    return 'Créé le $date';
+  }
+
+  @override
+  String get actionShow => 'Afficher';
+
+  @override
+  String get actionHide => 'Masquer';
+
+  @override
+  String get a11yDecrease => 'Diminuer';
+
+  @override
+  String get a11yIncrease => 'Augmenter';
+
+  @override
+  String get a11yPermissionGranted => 'Autorisé';
+
+  @override
+  String get a11yPermissionDenied => 'Non autorisé';
+
+  @override
+  String linkSupplierCheaperThan(String supplier, String amount, String unit) {
+    return 'Meilleur prix que $supplier : $amount de moins par $unit.';
+  }
+
+  @override
+  String linkSupplierSamePriceAs(String supplier) {
+    return 'Même prix que $supplier.';
+  }
+
+  @override
+  String linkSupplierDearerThan(String supplier, String amount, String unit) {
+    return 'Plus cher que $supplier de $amount par $unit.';
+  }
 }

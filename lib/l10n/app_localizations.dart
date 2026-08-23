@@ -2511,6 +2511,66 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'{count, plural, =0{Aucun résultat} =1{1 résultat} other{{count} résultats}}'**
   String searchResultCount(int count);
+
+  /// When a store was created, shown on its card in the selector.
+  ///
+  /// In fr, this message translates to:
+  /// **'Créé le {date}'**
+  String storesCreatedOn(String date);
+
+  /// Reveals the masked password on the login form.
+  ///
+  /// In fr, this message translates to:
+  /// **'Afficher'**
+  String get actionShow;
+
+  /// Re-masks the password on the login form.
+  ///
+  /// In fr, this message translates to:
+  /// **'Masquer'**
+  String get actionHide;
+
+  /// Screen-reader label for the quantity stepper's minus button.
+  ///
+  /// In fr, this message translates to:
+  /// **'Diminuer'**
+  String get a11yDecrease;
+
+  /// Screen-reader label for the quantity stepper's plus button.
+  ///
+  /// In fr, this message translates to:
+  /// **'Augmenter'**
+  String get a11yIncrease;
+
+  /// Screen-reader label for a granted permission in the roles matrix, since the tick icon alone conveys nothing to a screen reader.
+  ///
+  /// In fr, this message translates to:
+  /// **'Autorisé'**
+  String get a11yPermissionGranted;
+
+  /// Screen-reader label for a permission a role does not have.
+  ///
+  /// In fr, this message translates to:
+  /// **'Non autorisé'**
+  String get a11yPermissionDenied;
+
+  /// Live comparison while a new supplier price is being typed, when it beats the current cheapest.
+  ///
+  /// In fr, this message translates to:
+  /// **'Meilleur prix que {supplier} : {amount} de moins par {unit}.'**
+  String linkSupplierCheaperThan(String supplier, String amount, String unit);
+
+  /// Live comparison when the entered price matches the current cheapest.
+  ///
+  /// In fr, this message translates to:
+  /// **'Même prix que {supplier}.'**
+  String linkSupplierSamePriceAs(String supplier);
+
+  /// Live comparison when the entered price is above the current cheapest.
+  ///
+  /// In fr, this message translates to:
+  /// **'Plus cher que {supplier} de {amount} par {unit}.'**
+  String linkSupplierDearerThan(String supplier, String amount, String unit);
 }
 
 class _AppLocalizationsDelegate
