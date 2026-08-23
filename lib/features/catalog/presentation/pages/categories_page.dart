@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../app/routes.dart';
@@ -14,13 +15,17 @@ import '../widgets/create_sheets.dart';
 /// Exists because categories are user-created rather than hardcoded. Deleting
 /// one warns how many items still reference it — a silent delete would leave
 /// articles orphaned with no way to tell.
-class CategoriesPage extends StatelessWidget {
+class CategoriesPage extends ConsumerWidget {
   const CategoriesPage({required this.storeId, super.key});
 
   final String storeId;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // The per-category item counts move whenever an item is created,
+    // recategorised or deleted.
+    ref.watch(mockDataRevisionProvider);
+
     final l10n = AppLocalizations.of(context);
     final categories = MockQueries.categoriesForStore(storeId);
 

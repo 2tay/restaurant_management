@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
@@ -18,7 +19,7 @@ import '../../../../shared/widgets/widgets.dart';
 /// Scoped to the pair, never to the item alone. "What has this supplier charged
 /// us for chicken over six months" is answerable; "what has chicken cost" is
 /// not, because several suppliers charge different amounts at the same time.
-class ItemPriceHistoryPage extends StatelessWidget {
+class ItemPriceHistoryPage extends ConsumerWidget {
   const ItemPriceHistoryPage({
     required this.storeId,
     required this.itemId,
@@ -31,7 +32,10 @@ class ItemPriceHistoryPage extends StatelessWidget {
   final String supplierId;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Receiving a delivery at a different price appends to this history.
+    ref.watch(mockDataRevisionProvider);
+
     final l10n = AppLocalizations.of(context);
     final item = MockQueries.itemById(itemId);
     final supplier = MockQueries.supplierById(supplierId);

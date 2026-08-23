@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../app/navigation.dart';
@@ -24,7 +25,7 @@ import '../widgets/order_summary_card.dart';
 /// Reachable from the order it belongs to and from any stock movement it
 /// generated, which is what closes the trail: quantity → movement → receipt →
 /// order → supplier.
-class ReceiptDetailPage extends StatelessWidget {
+class ReceiptDetailPage extends ConsumerWidget {
   const ReceiptDetailPage({
     required this.storeId,
     required this.receiptId,
@@ -35,7 +36,10 @@ class ReceiptDetailPage extends StatelessWidget {
   final String receiptId;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // The receipt itself is immutable, but the order it belongs to is not.
+    ref.watch(mockDataRevisionProvider);
+
     final l10n = AppLocalizations.of(context);
     final receipt = MockQueries.receiptById(receiptId);
 
@@ -122,22 +126,20 @@ class ReceiptDetailPage extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.xl),
 
-          SectionHeader(
-            title: l10n.orderTabLines,
-            count: receipt.lines.length,
-          ),
+          SectionHeader(title: l10n.orderTabLines, count: receipt.lines.length),
           DataTableWrapper(
             minWidth: 900,
             columns: [
               DataColumn(label: Text(l10n.orderColumnItem)),
               DataColumn(label: Text(l10n.receiveColumnOrdered), numeric: true),
-              DataColumn(label: Text(l10n.receiveColumnReceived), numeric: true),
+              DataColumn(
+                label: Text(l10n.receiveColumnReceived),
+                numeric: true,
+              ),
               DataColumn(label: Text(l10n.orderColumnUnitPrice), numeric: true),
               DataColumn(label: Text(l10n.receiptColumnNote)),
             ],
-            rows: [
-              for (final line in receipt.lines) _row(context, l10n, line),
-            ],
+            rows: [for (final line in receipt.lines) _row(context, l10n, line)],
           ),
 
           if (receipt.note != null) ...[
@@ -236,11 +238,7 @@ class ReceiptDetailPage extends StatelessWidget {
 }
 
 class _Flag extends StatelessWidget {
-  const _Flag({
-    required this.label,
-    required this.icon,
-    required this.colors,
-  });
+  const _Flag({required this.label, required this.icon, required this.colors});
 
   final String label;
   final IconData icon;

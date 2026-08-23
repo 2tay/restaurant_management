@@ -166,9 +166,7 @@ class _ReceiveOrderPageState extends State<ReceiveOrderPage> {
                   key: ValueKey('${line.itemId}-${line.wasUnordered}'),
                   draft: line,
                   onChanged: () => setState(() {}),
-                  onRemove: line.wasUnordered
-                      ? () => _removeLine(line)
-                      : null,
+                  onRemove: line.wasUnordered ? () => _removeLine(line) : null,
                 ),
               ),
 
@@ -293,7 +291,7 @@ class _ReceiveOrderPageState extends State<ReceiveOrderPage> {
       if (!mounted) return;
     }
 
-    MockOperations.confirmReceipt(
+    OrderMutations.confirmReceipt(
       orderId: widget.orderId,
       lines: [
         for (final line in _lines)
@@ -364,9 +362,9 @@ class _UnorderedItemSheetState extends State<_UnorderedItemSheet> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
 
-    final items = MockQueries.itemsForStore(widget.storeId)
-        .where((item) => !widget.excludedItemIds.contains(item.id))
-        .toList();
+    final items = MockQueries.itemsForStore(
+      widget.storeId,
+    ).where((item) => !widget.excludedItemIds.contains(item.id)).toList();
 
     return Padding(
       padding: EdgeInsets.only(
@@ -419,10 +417,7 @@ class _UnorderedItemSheetState extends State<_UnorderedItemSheet> {
   void _submit() {
     final price = MockQueries.priceFor(_itemId!, widget.supplierId);
     Navigator.of(context).pop(
-      _UnorderedChoice(
-        itemId: _itemId!,
-        unitPrice: price?.pricePerUnit ?? 0,
-      ),
+      _UnorderedChoice(itemId: _itemId!, unitPrice: price?.pricePerUnit ?? 0),
     );
   }
 }

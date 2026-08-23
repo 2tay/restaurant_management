@@ -160,16 +160,17 @@ record(
     'Barcode lookup that is not collection-shaped',
 )
 
-# --- Only a receipt moves stock -----------------------------------------------
-# The rule the whole orders feature rests on: an order never changes stock, and
-# every quantity change goes through a stock movement. Writing straight into
-# mockItems from a screen would bypass the movement log, which is the single
-# source of truth for stock levels.
-STOCK_WRITER = 'lib/mock_data/mock_mutations.dart'
+# --- The mock lists are written in one place only -----------------------------
+# Two rules, one check. Stock levels have a single source of truth — the movement
+# log — so a screen assigning into mockItems would bypass it. And every other
+# list has to go through the mutation layer too, or the reset snapshot and the
+# change signal both stop being reliable.
+MUTATION_LAYER = 'lib/mock_data/mutations/'
+
 stock_writes = [
     f'{p}:{n}  {line.strip()}'
     for p in dart_files(*ROOTS, 'lib/mock_data')
-    if p != STOCK_WRITER
+    if not p.startswith(MUTATION_LAYER)
     for n, line in enumerate(read(p).splitlines(), 1)
     if re.search(r'mockItems\[[^\]]+\]\s*=', line)
 ]
@@ -177,6 +178,25 @@ record(
     'stock writes outside the mutation layer',
     stock_writes,
     'Stock quantity changed without a movement',
+)
+
+# `.clear()` and `.addAll()` are how the reset refills the live lists, so they
+# are only legitimate inside the mutation layer as well.
+list_write = re.compile(
+    r'(?<![\w.])(mock[A-Z]\w*)\s*(?:\.\s*(add|addAll|insert|remove|removeWhere|'
+    r'removeAt|clear|sort|replaceRange)\s*\(|\[[^\]]+\]\s*=)'
+)
+direct_writes = [
+    f'{p}:{n}  {line.strip()}'
+    for p in dart_files(*ROOTS, 'lib/mock_data')
+    if not p.startswith(MUTATION_LAYER)
+    for n, line in enumerate(read(p).splitlines(), 1)
+    if list_write.search(line) and not line.strip().startswith('//')
+]
+record(
+    'mock lists written outside the mutation layer',
+    direct_writes,
+    'Mock data edited without going through mutations/',
 )
 
 # --- Product code never imports the dev gallery -------------------------------

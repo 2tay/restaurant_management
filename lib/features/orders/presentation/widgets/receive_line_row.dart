@@ -78,8 +78,7 @@ class ReceiveLineDraft {
   );
 
   /// True when the price on the delivery note differs from the ordered price.
-  bool get priceWasEdited =>
-      (actualUnitPrice - orderedUnitPrice).abs() > 0.001;
+  bool get priceWasEdited => (actualUnitPrice - orderedUnitPrice).abs() > 0.001;
 
   ReceiptDraftLine toDraftLine() => ReceiptDraftLine(
     itemId: itemId,
@@ -139,10 +138,7 @@ class ReceiveLineRow extends StatelessWidget {
                   runSpacing: AppSpacing.sm,
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    Text(
-                      item?.name ?? '—',
-                      style: theme.textTheme.titleSmall,
-                    ),
+                    Text(item?.name ?? '—', style: theme.textTheme.titleSmall),
                     if (draft.wasUnordered)
                       _Flag(
                         label: l10n.receiveUnorderedBadge,
@@ -380,9 +376,7 @@ class _Choice extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
-                selected
-                    ? LucideIcons.circleCheck
-                    : LucideIcons.circle,
+                selected ? LucideIcons.circleCheck : LucideIcons.circle,
                 size: AppSizing.iconSm,
                 color: AppColors.lowStock.foreground,
               ),
@@ -403,11 +397,7 @@ class _Choice extends StatelessWidget {
 
 /// A small pill flagging something about a line — unordered, over-delivered.
 class _Flag extends StatelessWidget {
-  const _Flag({
-    required this.label,
-    required this.icon,
-    required this.colors,
-  });
+  const _Flag({required this.label, required this.icon, required this.colors});
 
   final String label;
   final IconData icon;

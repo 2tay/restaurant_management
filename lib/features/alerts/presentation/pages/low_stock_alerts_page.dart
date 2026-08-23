@@ -249,9 +249,7 @@ class _AlertCard extends StatelessWidget {
         ),
         if (shortfall > 0)
           Text(
-            l10n.alertsShortfall(
-              Formatters.quantityWithUnit(shortfall, unit),
-            ),
+            l10n.alertsShortfall(Formatters.quantityWithUnit(shortfall, unit)),
             style: theme.textTheme.bodySmall,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../app/routes.dart';
@@ -17,16 +18,16 @@ import '../../../../shared/widgets/widgets.dart';
 /// the three things that happen without anyone doing them. Unread entries carry
 /// a dot and a tinted background — a bold font alone is too subtle at arm's
 /// length.
-class NotificationsPage extends StatefulWidget {
+class NotificationsPage extends ConsumerStatefulWidget {
   const NotificationsPage({required this.storeId, super.key});
 
   final String storeId;
 
   @override
-  State<NotificationsPage> createState() => _NotificationsPageState();
+  ConsumerState<NotificationsPage> createState() => _NotificationsPageState();
 }
 
-class _NotificationsPageState extends State<NotificationsPage> {
+class _NotificationsPageState extends ConsumerState<NotificationsPage> {
   bool _unreadOnly = false;
 
   /// Ids marked read in this session. Phase 1 persists nothing.
@@ -34,6 +35,9 @@ class _NotificationsPageState extends State<NotificationsPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Alerts are generated from stock levels, which a delivery moves.
+    ref.watch(mockDataRevisionProvider);
+
     final l10n = AppLocalizations.of(context);
 
     final all = MockQueries.notificationsForStore(widget.storeId);

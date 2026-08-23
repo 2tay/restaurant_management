@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../app/routes.dart';
@@ -14,7 +15,7 @@ import '../widgets/item_detail_view.dart';
 ///
 /// Reached on narrow tablets, or by deep link. On a wide tablet the same
 /// content appears in the inventory split view instead.
-class ItemDetailPage extends StatelessWidget {
+class ItemDetailPage extends ConsumerWidget {
   const ItemDetailPage({
     required this.storeId,
     required this.itemId,
@@ -25,7 +26,11 @@ class ItemDetailPage extends StatelessWidget {
   final String itemId;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Quantity, suppliers, prices and open orders can all change from a screen
+    // pushed above this one.
+    ref.watch(mockDataRevisionProvider);
+
     final l10n = AppLocalizations.of(context);
     final item = MockQueries.itemById(itemId);
 

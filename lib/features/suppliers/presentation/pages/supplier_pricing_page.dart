@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../app/routes.dart';
@@ -18,7 +19,7 @@ import '../../../../shared/widgets/widgets.dart';
 /// says so above the table, because a price edit that silently produces an
 /// audit record is a surprise, and a price edit that produces nothing makes
 /// the history screen a mystery.
-class SupplierPricingPage extends StatefulWidget {
+class SupplierPricingPage extends ConsumerStatefulWidget {
   const SupplierPricingPage({
     required this.storeId,
     required this.supplierId,
@@ -29,16 +30,20 @@ class SupplierPricingPage extends StatefulWidget {
   final String supplierId;
 
   @override
-  State<SupplierPricingPage> createState() => _SupplierPricingPageState();
+  ConsumerState<SupplierPricingPage> createState() =>
+      _SupplierPricingPageState();
 }
 
-class _SupplierPricingPageState extends State<SupplierPricingPage> {
+class _SupplierPricingPageState extends ConsumerState<SupplierPricingPage> {
   /// Prices edited in this session, keyed by item id. Phase 1 persists nothing,
   /// so the table reflects local edits only until the screen is left.
   final Map<String, double> _edited = {};
 
   @override
   Widget build(BuildContext context) {
+    // Receiving a delivery can change a price this screen is editing.
+    ref.watch(mockDataRevisionProvider);
+
     final l10n = AppLocalizations.of(context);
     final supplier = MockQueries.supplierById(widget.supplierId);
 

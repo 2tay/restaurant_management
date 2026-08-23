@@ -16,44 +16,48 @@ abstract final class CategoryIds {
   static const String liegeCuisine = 'cat-liege-cuisine';
 }
 
-const List<Category> mockCategories = [
-  Category(
+final List<Category> mockCategories = [
+  const Category(
     id: CategoryIds.legumes,
     storeId: StoreIds.sablon,
     name: 'Fruits & Légumes',
   ),
-  Category(id: CategoryIds.viandes, storeId: StoreIds.sablon, name: 'Viandes'),
-  Category(
+  const Category(
+    id: CategoryIds.viandes,
+    storeId: StoreIds.sablon,
+    name: 'Viandes',
+  ),
+  const Category(
     id: CategoryIds.poissons,
     storeId: StoreIds.sablon,
     name: 'Poissons & Fruits de mer',
   ),
-  Category(
+  const Category(
     id: CategoryIds.laitiers,
     storeId: StoreIds.sablon,
     name: 'Produits laitiers',
   ),
-  Category(
+  const Category(
     id: CategoryIds.boissons,
     storeId: StoreIds.sablon,
     name: 'Boissons',
   ),
-  Category(
+  const Category(
     id: CategoryIds.epicerie,
     storeId: StoreIds.sablon,
     name: 'Épicerie sèche',
   ),
-  Category(
+  const Category(
     id: CategoryIds.surgeles,
     storeId: StoreIds.sablon,
     name: 'Surgelés',
   ),
-  Category(
+  const Category(
     id: CategoryIds.liegeBoissons,
     storeId: StoreIds.liege,
     name: 'Boissons',
   ),
-  Category(
+  const Category(
     id: CategoryIds.liegeCuisine,
     storeId: StoreIds.liege,
     name: 'Cuisine',

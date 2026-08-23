@@ -8,7 +8,6 @@ library;
 export 'mock_categories.dart';
 export 'mock_goods_receipts.dart';
 export 'mock_items.dart';
-export 'mock_mutations.dart';
 export 'mock_notifications.dart';
 export 'mock_price_history.dart';
 export 'mock_purchase_orders.dart';
@@ -22,3 +21,8 @@ export 'mock_supplier_prices.dart';
 export 'mock_suppliers.dart';
 export 'mock_team.dart';
 export 'mock_units.dart';
+
+// The write layer. One file per aggregate, because Phase 2 replaces each
+// with a repository and a one-to-one seam is easier to walk across.
+export 'mutations/mock_write.dart';
+export 'mutations/order_mutations.dart';

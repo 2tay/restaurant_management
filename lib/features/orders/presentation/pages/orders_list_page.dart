@@ -193,7 +193,10 @@ class OrdersListPage extends ConsumerWidget {
     );
   }
 
-  List<PurchaseOrder> _visible(List<PurchaseOrder> orders, OrdersFilter filter) {
+  List<PurchaseOrder> _visible(
+    List<PurchaseOrder> orders,
+    OrdersFilter filter,
+  ) {
     final now = DateTime.now();
 
     return orders.where((order) {
@@ -329,10 +332,7 @@ class _SupplierMenu extends StatelessWidget {
         ),
         const PopupMenuDivider(),
         for (final supplier in suppliers)
-          PopupMenuItem<String>(
-            value: supplier.id,
-            child: Text(supplier.name),
-          ),
+          PopupMenuItem<String>(value: supplier.id, child: Text(supplier.name)),
       ],
       child: FilterPill(
         label: l10n.inventoryFilterSupplier,

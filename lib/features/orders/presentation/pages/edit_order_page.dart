@@ -52,8 +52,7 @@ class EditOrderPage extends StatelessWidget {
         title: l10n.orderDetailTitle(order.reference),
         child: ErrorState(
           message: l10n.orderLockedNotice,
-          onRetry: () =>
-              context.goSection(Routes.toOrder(storeId, order.id)),
+          onRetry: () => context.goSection(Routes.toOrder(storeId, order.id)),
         ),
       );
     }

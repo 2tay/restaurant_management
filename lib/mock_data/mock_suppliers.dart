@@ -17,8 +17,8 @@ abstract final class SupplierIds {
 /// Names are plausible-but-invented rather than real Belgian wholesalers.
 /// Putting a real company's name next to invented pricing in a client demo
 /// would be misleading, and the demo reads just as true without it.
-const List<Supplier> mockSuppliers = [
-  Supplier(
+final List<Supplier> mockSuppliers = [
+  const Supplier(
     id: SupplierIds.grossisteCentral,
     storeId: StoreIds.sablon,
     name: 'Grossiste Central Bruxelles',
@@ -30,7 +30,7 @@ const List<Supplier> mockSuppliers = [
     city: 'Anderlecht',
     note: 'Livraison les mardis et vendredis avant 10h.',
   ),
-  Supplier(
+  const Supplier(
     id: SupplierIds.horecaSelect,
     storeId: StoreIds.sablon,
     name: 'Horeca Select',
@@ -42,7 +42,7 @@ const List<Supplier> mockSuppliers = [
     city: 'Zaventem',
     note: 'Commande minimum 250 €.',
   ),
-  Supplier(
+  const Supplier(
     id: SupplierIds.maraicher,
     storeId: StoreIds.sablon,
     name: 'Maraîcher Vandenbroucke',
@@ -54,7 +54,7 @@ const List<Supplier> mockSuppliers = [
     city: 'Ternat',
     note: 'Produits de saison, livraison directe du champ.',
   ),
-  Supplier(
+  const Supplier(
     id: SupplierIds.boucherie,
     storeId: StoreIds.sablon,
     name: 'Boucherie Lambrechts',
@@ -65,7 +65,7 @@ const List<Supplier> mockSuppliers = [
     postalCode: '1000',
     city: 'Bruxelles',
   ),
-  Supplier(
+  const Supplier(
     id: SupplierIds.brasseurs,
     storeId: StoreIds.sablon,
     name: 'Brasseurs Réunis',
@@ -77,7 +77,7 @@ const List<Supplier> mockSuppliers = [
     city: 'Antwerpen',
     note: 'Reprise des bacs vides à chaque livraison.',
   ),
-  Supplier(
+  const Supplier(
     id: SupplierIds.cremerie,
     storeId: StoreIds.sablon,
     name: 'Crémerie du Brabant',
@@ -88,7 +88,7 @@ const List<Supplier> mockSuppliers = [
     postalCode: '1300',
     city: 'Wavre',
   ),
-  Supplier(
+  const Supplier(
     id: SupplierIds.maree,
     storeId: StoreIds.sablon,
     name: 'Marée du Nord',
@@ -100,7 +100,7 @@ const List<Supplier> mockSuppliers = [
     city: 'Oostende',
     note: 'Arrivage frais du jour, commande avant 6h.',
   ),
-  Supplier(
+  const Supplier(
     id: SupplierIds.liegeGrossiste,
     storeId: StoreIds.liege,
     name: 'Grossiste Meuse',
@@ -111,7 +111,7 @@ const List<Supplier> mockSuppliers = [
     postalCode: '4000',
     city: 'Liège',
   ),
-  Supplier(
+  const Supplier(
     id: SupplierIds.liegeBrasseurs,
     storeId: StoreIds.liege,
     name: 'Brasseurs Réunis',

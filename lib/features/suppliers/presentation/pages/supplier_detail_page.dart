@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../app/routes.dart';
@@ -17,7 +18,7 @@ import '../../../orders/presentation/widgets/order_row.dart';
 ///
 /// The product table marks the rows where this supplier is the cheapest option,
 /// which turns "who is this supplier" into "is this supplier worth keeping".
-class SupplierDetailPage extends StatefulWidget {
+class SupplierDetailPage extends ConsumerStatefulWidget {
   const SupplierDetailPage({
     required this.storeId,
     required this.supplierId,
@@ -34,10 +35,10 @@ class SupplierDetailPage extends StatefulWidget {
   final bool embedded;
 
   @override
-  State<SupplierDetailPage> createState() => _SupplierDetailPageState();
+  ConsumerState<SupplierDetailPage> createState() => _SupplierDetailPageState();
 }
 
-class _SupplierDetailPageState extends State<SupplierDetailPage> {
+class _SupplierDetailPageState extends ConsumerState<SupplierDetailPage> {
   static const String _tabDetails = 'details';
   static const String _tabOrders = 'orders';
 
@@ -49,6 +50,9 @@ class _SupplierDetailPageState extends State<SupplierDetailPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Prices, linked items and the order history all move under this screen.
+    ref.watch(mockDataRevisionProvider);
+
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final supplier = MockQueries.supplierById(supplierId);

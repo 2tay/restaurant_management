@@ -169,9 +169,7 @@ class _StoreSettingsPageState extends State<StoreSettingsPage> {
                   controller: _staleDays,
                   helperText: l10n.storeSettingsStaleDaysHelp,
                   keyboardType: TextInputType.number,
-                  inputFormatters: [
-                    FilteringTextInputFormatter.digitsOnly,
-                  ],
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   prefixIcon: LucideIcons.clock,
                 ),
               ),

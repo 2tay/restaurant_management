@@ -330,7 +330,10 @@ class _OrderFormPageState extends State<OrderFormPage> {
           },
           onAddAll: (items) {
             setState(() => _addItems(items));
-            AppSnackBar.success(context, l10n.orderSuggestedAdded(items.length));
+            AppSnackBar.success(
+              context,
+              l10n.orderSuggestedAdded(items.length),
+            );
           },
         ),
         const SizedBox(height: AppSpacing.xl),
@@ -411,10 +414,7 @@ class _OrderFormPageState extends State<OrderFormPage> {
                   style: Theme.of(context).textTheme.titleSmall,
                 ),
               ),
-              Text(
-                Formatters.price(_total),
-                style: AppTypography.numericHero,
-              ),
+              Text(Formatters.price(_total), style: AppTypography.numericHero),
             ],
           ),
         ),
@@ -426,8 +426,9 @@ class _OrderFormPageState extends State<OrderFormPage> {
   // Submit
   // ---------------------------------------------------------------------------
 
-  List<PurchaseOrderLine> _toLines() =>
-      [for (final line in _lines) line.toLine()];
+  List<PurchaseOrderLine> _toLines() => [
+    for (final line in _lines) line.toLine(),
+  ];
 
   String? get _note {
     final text = _noteController.text.trim();
@@ -438,7 +439,7 @@ class _OrderFormPageState extends State<OrderFormPage> {
     final l10n = AppLocalizations.of(context);
 
     if (_isEditing) {
-      MockOperations.updateDraft(
+      OrderMutations.updateDraft(
         widget.orderId!,
         supplierId: _supplierId,
         lines: _toLines(),
@@ -450,7 +451,7 @@ class _OrderFormPageState extends State<OrderFormPage> {
       return;
     }
 
-    final order = MockOperations.createDraft(
+    final order = OrderMutations.createDraft(
       storeId: widget.storeId,
       supplierId: _supplierId!,
       lines: _toLines(),
@@ -478,7 +479,7 @@ class _OrderFormPageState extends State<OrderFormPage> {
 
     final orderId = _isEditing
         ? widget.orderId!
-        : MockOperations.createDraft(
+        : OrderMutations.createDraft(
             storeId: widget.storeId,
             supplierId: _supplierId!,
             lines: _toLines(),
@@ -486,7 +487,7 @@ class _OrderFormPageState extends State<OrderFormPage> {
           ).id;
 
     if (_isEditing) {
-      MockOperations.updateDraft(
+      OrderMutations.updateDraft(
         orderId,
         supplierId: _supplierId,
         lines: _toLines(),
@@ -494,7 +495,7 @@ class _OrderFormPageState extends State<OrderFormPage> {
       );
     }
 
-    MockOperations.send(orderId);
+    OrderMutations.send(orderId);
     _snapshot();
 
     if (!mounted) return;
@@ -647,7 +648,10 @@ class _ChosenSupplier extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(l10n.orderStepSupplier, style: theme.textTheme.labelMedium),
+                Text(
+                  l10n.orderStepSupplier,
+                  style: theme.textTheme.labelMedium,
+                ),
                 Text(
                   name,
                   style: theme.textTheme.titleMedium,

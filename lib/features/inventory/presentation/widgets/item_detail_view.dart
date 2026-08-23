@@ -337,7 +337,9 @@ class _BarcodeRow extends StatelessWidget {
       borderRadius: AppRadius.smAll,
       onTap: () async {
         await Clipboard.setData(ClipboardData(text: barcode));
-        if (context.mounted) AppSnackBar.success(context, l10n.itemBarcodeCopied);
+        if (context.mounted) {
+          AppSnackBar.success(context, l10n.itemBarcodeCopied);
+        }
       },
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,

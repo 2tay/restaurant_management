@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../app/navigation.dart';
@@ -20,21 +21,24 @@ import 'supplier_detail_page.dart';
 ///
 /// Below the split breakpoint, tapping a card pushes the detail as its own
 /// page.
-class SuppliersListPage extends StatefulWidget {
+class SuppliersListPage extends ConsumerStatefulWidget {
   const SuppliersListPage({required this.storeId, super.key});
 
   final String storeId;
 
   @override
-  State<SuppliersListPage> createState() => _SuppliersListPageState();
+  ConsumerState<SuppliersListPage> createState() => _SuppliersListPageState();
 }
 
-class _SuppliersListPageState extends State<SuppliersListPage> {
+class _SuppliersListPageState extends ConsumerState<SuppliersListPage> {
   String _query = '';
   String? _selectedId;
 
   @override
   Widget build(BuildContext context) {
+    // Suppliers are creatable and deletable, and each row counts their items.
+    ref.watch(mockDataRevisionProvider);
+
     final l10n = AppLocalizations.of(context);
     final all = MockQueries.suppliersForStore(widget.storeId);
     final suppliers = _filtered(all);

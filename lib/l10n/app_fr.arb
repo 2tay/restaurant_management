@@ -1334,5 +1334,20 @@
   "@storeSettingsStaleDaysHelp": {"description": "Helper text for the stale partial order threshold."},
 
   "permissionReceiveDeliveries": "Réceptionner les livraisons",
-  "@permissionReceiveDeliveries": {"description": "Manager-level permission. Receiving affects both stock and money, so it is not a general staff action."}
+  "@permissionReceiveDeliveries": {"description": "Manager-level permission. Receiving affects both stock and money, so it is not a general staff action."},
+
+  "demoResetTitle": "Réinitialiser la démonstration",
+  "@demoResetTitle": {"description": "Section and action that puts the prototype's data back to how it shipped. Present because a client demo gets walked several times in one sitting and the second run should not start from the first one's leftovers."},
+  "demoResetBody": "Remet les articles, les stocks, les commandes et les prix dans leur état d'origine. Les modifications faites pendant la démonstration ne sont conservées que le temps de la session.",
+  "@demoResetBody": {"description": "Explains what the reset action does and, implicitly, that nothing persists anyway."},
+  "demoResetNothing": "Aucune modification à annuler.",
+  "@demoResetNothing": {"description": "Shown in place of the reset action when nothing has been changed yet."},
+  "demoResetConfirmTitle": "Réinitialiser la démonstration ?",
+  "@demoResetConfirmTitle": {"description": "Confirmation before resetting."},
+  "demoResetConfirmBody": "Tout ce qui a été créé, modifié ou réceptionné depuis le démarrage sera annulé.",
+  "@demoResetConfirmBody": {"description": "Body of the reset confirmation."},
+  "demoResetConfirmAction": "Réinitialiser",
+  "@demoResetConfirmAction": {"description": "Confirms the reset."},
+  "demoResetDone": "Démonstration réinitialisée.",
+  "@demoResetDone": {"description": "Snackbar after resetting the demo data."}
 }

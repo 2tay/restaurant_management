@@ -6,44 +6,15 @@
 //
 //   **An order never changes stock. Only a receipt does.**
 //
-// The mock lists are global and mutable, so every test restores them.
+// The mock lists are global and mutable, so every test restores them — see
+// test/support/mock_reset.dart.
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stock_inventory/core/utils/order_status.dart';
 import 'package:stock_inventory/mock_data/mock_data.dart';
 import 'package:stock_inventory/models/models.dart';
 
-/// Snapshots every list a mutation can touch and puts them back afterwards.
-void restoreMockData() {
-  final orders = List<PurchaseOrder>.of(mockPurchaseOrders);
-  final receipts = List<GoodsReceipt>.of(mockGoodsReceipts);
-  final movements = List<StockMovement>.of(mockStockMovements);
-  final items = List<Item>.of(mockItems);
-  final prices = List<SupplierPrice>.of(mockSupplierPrices);
-  final history = List<PriceHistoryEntry>.of(mockPriceHistory);
-
-  addTearDown(() {
-    mockPurchaseOrders
-      ..clear()
-      ..addAll(orders);
-    mockGoodsReceipts
-      ..clear()
-      ..addAll(receipts);
-    mockStockMovements
-      ..clear()
-      ..addAll(movements);
-    mockItems
-      ..clear()
-      ..addAll(items);
-    mockSupplierPrices
-      ..clear()
-      ..addAll(prices);
-    mockPriceHistory
-      ..clear()
-      ..addAll(history);
-    MockSettings.reset();
-  });
-}
+import 'support/mock_reset.dart';
 
 double quantityOf(String itemId) => MockQueries.itemById(itemId)!.quantity;
 
@@ -143,7 +114,7 @@ void main() {
     test('creating a draft leaves quantities alone', () {
       final before = quantityOf(ItemIds.tomates);
 
-      MockOperations.createDraft(
+      OrderMutations.createDraft(
         storeId: StoreIds.sablon,
         supplierId: SupplierIds.maraicher,
         lines: const [
@@ -163,7 +134,7 @@ void main() {
       final before = quantityOf(ItemIds.tomates);
       final movementsBefore = mockStockMovements.length;
 
-      MockOperations.send(OrderIds.draftMaraicher);
+      OrderMutations.send(OrderIds.draftMaraicher);
 
       expect(
         MockQueries.orderById(OrderIds.draftMaraicher)!.status,
@@ -179,7 +150,7 @@ void main() {
         ItemIds.tomates,
       );
 
-      MockOperations.send(OrderIds.draftMaraicher);
+      OrderMutations.send(OrderIds.draftMaraicher);
 
       expect(
         MockQueries.onOrderQuantity(StoreIds.sablon, ItemIds.tomates),
@@ -191,12 +162,12 @@ void main() {
 
   group('status transitions', () {
     test('a sent order is locked against editing', () {
-      MockOperations.send(OrderIds.draftMaraicher);
+      OrderMutations.send(OrderIds.draftMaraicher);
       final order = MockQueries.orderById(OrderIds.draftMaraicher)!;
 
       expect(orderIsEditable(order), isFalse);
 
-      MockOperations.updateDraft(order.id, lines: const []);
+      OrderMutations.updateDraft(order.id, lines: const []);
       expect(
         MockQueries.orderById(order.id)!.lines, isNotEmpty,
         reason: 'the supplier already holds this document',
@@ -204,10 +175,10 @@ void main() {
     });
 
     test('a draft can be deleted; a sent order cannot', () {
-      MockOperations.deleteDraft(OrderIds.draftMaraicher);
+      OrderMutations.deleteDraft(OrderIds.draftMaraicher);
       expect(MockQueries.orderById(OrderIds.draftMaraicher), isNull);
 
-      MockOperations.deleteDraft(OrderIds.sentGrossiste);
+      OrderMutations.deleteDraft(OrderIds.sentGrossiste);
       expect(MockQueries.orderById(OrderIds.sentGrossiste), isNotNull);
     });
 
@@ -221,7 +192,7 @@ void main() {
         isFalse,
       );
 
-      MockOperations.cancel(OrderIds.partialBoucherie);
+      OrderMutations.cancel(OrderIds.partialBoucherie);
       expect(
         MockQueries.orderById(OrderIds.partialBoucherie)!.status,
         PurchaseOrderStatus.partial,
@@ -229,7 +200,7 @@ void main() {
     });
 
     test('closing short records the shortfall instead of erasing it', () {
-      MockOperations.closeShort(OrderIds.partialBoucherie);
+      OrderMutations.closeShort(OrderIds.partialBoucherie);
       final order = MockQueries.orderById(OrderIds.partialBoucherie)!;
 
       expect(order.status, PurchaseOrderStatus.received);
@@ -258,8 +229,8 @@ void main() {
       final before = quantityOf(ItemIds.poulet);
       final movementsBefore = mockStockMovements.length;
 
-      MockOperations.send(OrderIds.sentGrossiste);
-      final receipt = MockOperations.confirmReceipt(
+      OrderMutations.send(OrderIds.sentGrossiste);
+      final receipt = OrderMutations.confirmReceipt(
         orderId: OrderIds.sentGrossiste,
         lines: const [
           ReceiptDraftLine(
@@ -285,7 +256,7 @@ void main() {
     });
 
     test('a partly delivered order stays open on the untouched lines', () {
-      MockOperations.confirmReceipt(
+      OrderMutations.confirmReceipt(
         orderId: OrderIds.sentGrossiste,
         lines: const [
           ReceiptDraftLine(
@@ -315,7 +286,7 @@ void main() {
     test('closing a line short settles it without inventing stock', () {
       final before = quantityOf(ItemIds.riz);
 
-      MockOperations.confirmReceipt(
+      OrderMutations.confirmReceipt(
         orderId: OrderIds.sentGrossiste,
         lines: const [
           ReceiptDraftLine(
@@ -341,7 +312,7 @@ void main() {
     test('receiving every line closes the order', () {
       final order = MockQueries.orderById(OrderIds.sentGrossiste)!;
 
-      MockOperations.confirmReceipt(
+      OrderMutations.confirmReceipt(
         orderId: order.id,
         lines: [
           for (final line in order.lines)
@@ -365,7 +336,7 @@ void main() {
     test('over-delivery is accepted and recorded', () {
       final before = quantityOf(ItemIds.mayonnaise);
 
-      MockOperations.confirmReceipt(
+      OrderMutations.confirmReceipt(
         orderId: OrderIds.sentGrossiste,
         lines: const [
           ReceiptDraftLine(
@@ -391,7 +362,7 @@ void main() {
         OrderIds.sentGrossiste,
       )!.lines.length;
 
-      final receipt = MockOperations.confirmReceipt(
+      final receipt = OrderMutations.confirmReceipt(
         orderId: OrderIds.sentGrossiste,
         lines: const [
           ReceiptDraftLine(
@@ -415,7 +386,7 @@ void main() {
     });
 
     test('a confirmed receipt is attached to its order', () {
-      final receipt = MockOperations.confirmReceipt(
+      final receipt = OrderMutations.confirmReceipt(
         orderId: OrderIds.sentGrossiste,
         lines: const [
           ReceiptDraftLine(
@@ -447,7 +418,7 @@ void main() {
         SupplierIds.grossisteCentral,
       ).length;
 
-      MockOperations.confirmReceipt(
+      OrderMutations.confirmReceipt(
         orderId: OrderIds.sentGrossiste,
         lines: const [
           ReceiptDraftLine(
@@ -483,7 +454,7 @@ void main() {
         SupplierIds.grossisteCentral,
       ).length;
 
-      MockOperations.confirmReceipt(
+      OrderMutations.confirmReceipt(
         orderId: OrderIds.sentGrossiste,
         lines: const [
           ReceiptDraftLine(

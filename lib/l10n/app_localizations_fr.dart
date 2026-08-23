@@ -2160,4 +2160,27 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get permissionReceiveDeliveries => 'Réceptionner les livraisons';
+
+  @override
+  String get demoResetTitle => 'Réinitialiser la démonstration';
+
+  @override
+  String get demoResetBody =>
+      'Remet les articles, les stocks, les commandes et les prix dans leur état d\'origine. Les modifications faites pendant la démonstration ne sont conservées que le temps de la session.';
+
+  @override
+  String get demoResetNothing => 'Aucune modification à annuler.';
+
+  @override
+  String get demoResetConfirmTitle => 'Réinitialiser la démonstration ?';
+
+  @override
+  String get demoResetConfirmBody =>
+      'Tout ce qui a été créé, modifié ou réceptionné depuis le démarrage sera annulé.';
+
+  @override
+  String get demoResetConfirmAction => 'Réinitialiser';
+
+  @override
+  String get demoResetDone => 'Démonstration réinitialisée.';
 }

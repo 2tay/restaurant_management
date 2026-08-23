@@ -211,7 +211,7 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
     );
     if (!confirmed || !mounted) return;
 
-    MockOperations.send(order.id);
+    OrderMutations.send(order.id);
     AppSnackBar.success(context, l10n.orderSent(supplierName));
   }
 
@@ -225,7 +225,7 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
     );
     if (!confirmed || !mounted) return;
 
-    MockOperations.deleteDraft(order.id);
+    OrderMutations.deleteDraft(order.id);
     AppSnackBar.success(context, l10n.orderDeleted);
     context.goSection(Routes.toOrders(widget.storeId));
   }
@@ -241,7 +241,7 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
     );
     if (!confirmed || !mounted) return;
 
-    MockOperations.cancel(order.id);
+    OrderMutations.cancel(order.id);
     AppSnackBar.success(context, l10n.orderCancelled);
   }
 
@@ -257,7 +257,7 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
     );
     if (!confirmed || !mounted) return;
 
-    MockOperations.closeShort(order.id);
+    OrderMutations.closeShort(order.id);
     AppSnackBar.success(context, l10n.orderClosed);
   }
 }
@@ -289,14 +289,8 @@ class _Header extends StatelessWidget {
           value: Formatters.price(orderTotal(order)),
           emphasis: true,
         ),
-        OrderFigure(
-          label: l10n.orderTabLines,
-          value: '${order.lines.length}',
-        ),
-        OrderFigure(
-          label: l10n.orderTabReceipts,
-          value: '$receiptCount',
-        ),
+        OrderFigure(label: l10n.orderTabLines, value: '${order.lines.length}'),
+        OrderFigure(label: l10n.orderTabReceipts, value: '$receiptCount'),
       ],
       footnote: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -398,9 +392,7 @@ class _LinesTable extends StatelessWidget {
         DataColumn(label: Text(l10n.orderColumnLineTotal), numeric: true),
         DataColumn(label: Text(l10n.orderTabReceipts)),
       ],
-      rows: [
-        for (final line in order.lines) _row(context, l10n, line),
-      ],
+      rows: [for (final line in order.lines) _row(context, l10n, line)],
     );
   }
 
@@ -476,11 +468,7 @@ class _LineState extends StatelessWidget {
 }
 
 class _Pill extends StatelessWidget {
-  const _Pill({
-    required this.label,
-    required this.icon,
-    required this.colors,
-  });
+  const _Pill({required this.label, required this.icon, required this.colors});
 
   final String label;
   final IconData icon;

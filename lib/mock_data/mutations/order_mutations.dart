@@ -1,63 +1,28 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../core/utils/order_status.dart';
-import '../models/models.dart';
-import 'mock_goods_receipts.dart';
-import 'mock_items.dart';
-import 'mock_price_history.dart';
-import 'mock_purchase_orders.dart';
-import 'mock_queries.dart';
-import 'mock_stock_movements.dart';
-import 'mock_supplier_prices.dart';
-import 'mock_team.dart';
+import '../../core/utils/order_status.dart';
+import '../../models/models.dart';
+import '../mock_goods_receipts.dart';
+import '../mock_items.dart';
+import '../mock_price_history.dart';
+import '../mock_purchase_orders.dart';
+import '../mock_queries.dart';
+import '../mock_stock_movements.dart';
+import '../mock_supplier_prices.dart';
+import '../mock_team.dart';
+import 'mock_write.dart';
 
-/// Writes against the mock lists.
+/// Writes against the commandes.
 ///
-/// The counterpart to [MockQueries], which only reads. This exists because the
-/// ordering flow is not demonstrable as a set of static screens: the whole
-/// point of receiving a delivery is that stock goes up and the price history
-/// gains an entry, and a screen that shows a success message while nothing
-/// moves teaches the client the wrong thing about what they are buying.
-///
-/// **It is still not a data layer.** No repository, no storage, no network —
-/// these are list edits held in memory for as long as the app is open, and a
-/// hot restart puts everything back. What matters is that the *rules* are here
-/// and correct, because Phase 2 reimplements exactly these against real
-/// local-first storage, and the screens calling them barely move.
-///
-/// The one rule everything else defends:
+/// The rule everything here defends:
 /// **an order never changes stock — only a receipt does.**
-abstract final class MockOperations {
+///
+/// Shares its plumbing — ids, the change signal, the reset snapshot — with
+/// every other mutation family through [MockWrite].
+abstract final class OrderMutations {
   // ---------------------------------------------------------------------------
-  // Change notification
+  // References
   // ---------------------------------------------------------------------------
-
-  /// Bumped after every write.
-  ///
-  /// Screens read the mock lists directly at build time, so without a signal a
-  /// page already on screen keeps showing what it read before the mutation —
-  /// most visibly when the receiving screen pops back to an order detail that
-  /// still says nothing has arrived.
-  ///
-  /// A revision counter rather than fine-grained events: with a dataset this
-  /// size, "something changed, look again" is both correct and cheaper to
-  /// reason about than a dependency graph. Phase 2 replaces it with whatever
-  /// the storage layer's own change stream is.
-  static final ValueNotifier<int> revision = ValueNotifier<int>(0);
-
-  static void _changed() => revision.value++;
-
-  // ---------------------------------------------------------------------------
-  // Ids and references
-  // ---------------------------------------------------------------------------
-
-  static int _sequence = 0;
-
-  static String _id(String prefix) {
-    _sequence++;
-    return '$prefix-new-$_sequence';
-  }
 
   /// The next human-readable commande number.
   ///
@@ -86,7 +51,7 @@ abstract final class MockOperations {
     String? note,
   }) {
     final order = PurchaseOrder(
-      id: _id('po'),
+      id: MockWrite.id('po'),
       storeId: storeId,
       supplierId: supplierId,
       reference: _nextReference(storeId),
@@ -96,7 +61,7 @@ abstract final class MockOperations {
       note: note,
     );
     mockPurchaseOrders.add(order);
-    _changed();
+    MockWrite.changed();
     return order;
   }
 
@@ -146,7 +111,7 @@ abstract final class MockOperations {
     if (order == null || order.status != PurchaseOrderStatus.draft) return;
 
     mockPurchaseOrders.removeWhere((candidate) => candidate.id == orderId);
-    _changed();
+    MockWrite.changed();
   }
 
   /// Sent → cancelled, only while nothing has been received.
@@ -221,12 +186,12 @@ abstract final class MockOperations {
     final order = MockQueries.orderById(orderId)!;
     final receivedBy = receivedByName ?? mockCurrentUser.fullName;
     final now = DateTime.now();
-    final receiptId = _id('gr');
+    final receiptId = MockWrite.id('gr');
 
     final receiptLines = [
       for (final line in lines)
         GoodsReceiptLine(
-          id: _id('grl'),
+          id: MockWrite.id('grl'),
           itemId: line.itemId,
           quantityOrdered: line.quantityOrdered,
           quantityReceived: line.quantityReceived,
@@ -268,7 +233,7 @@ abstract final class MockOperations {
     }
 
     _applyReceiptToOrder(order, lines, closedAt: now);
-    _changed();
+    MockWrite.changed();
     return receipt;
   }
 
@@ -283,7 +248,7 @@ abstract final class MockOperations {
     mockStockMovements.insert(
       0,
       StockMovement(
-        id: _id('mv'),
+        id: MockWrite.id('mv'),
         storeId: order.storeId,
         itemId: line.itemId,
         type: StockMovementType.stockIn,
@@ -330,7 +295,7 @@ abstract final class MockOperations {
     if (index == -1) {
       mockSupplierPrices.add(
         SupplierPrice(
-          id: _id('sp'),
+          id: MockWrite.id('sp'),
           itemId: line.itemId,
           supplierId: order.supplierId,
           pricePerUnit: line.actualUnitPrice,
@@ -346,7 +311,7 @@ abstract final class MockOperations {
 
     mockPriceHistory.add(
       PriceHistoryEntry(
-        id: _id('ph'),
+        id: MockWrite.id('ph'),
         itemId: line.itemId,
         supplierId: order.supplierId,
         oldPrice: current.pricePerUnit,
@@ -415,7 +380,7 @@ abstract final class MockOperations {
     );
     if (index == -1) return;
     mockPurchaseOrders[index] = order;
-    _changed();
+    MockWrite.changed();
   }
 }
 
@@ -459,21 +424,3 @@ class ReceiptDraftLine {
 
   final String? note;
 }
-
-/// Exposes [MockOperations.revision] to the widget tree.
-///
-/// Screens that show anything a write can change watch this, so a receipt
-/// confirmed on one screen is visible on the one underneath it.
-class MockDataRevision extends Notifier<int> {
-  @override
-  int build() {
-    void listener() => state = MockOperations.revision.value;
-    MockOperations.revision.addListener(listener);
-    ref.onDispose(() => MockOperations.revision.removeListener(listener));
-    return MockOperations.revision.value;
-  }
-}
-
-final mockDataRevisionProvider = NotifierProvider<MockDataRevision, int>(
-  MockDataRevision.new,
-);

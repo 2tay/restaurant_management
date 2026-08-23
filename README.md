@@ -37,6 +37,7 @@ ones Phase 2 will reimplement against real storage.
 | 7 | Phase 2 stubs + handoff | Done |
 | 1.5 | Navigation fixes + UI polish pass | Done |
 | 1.6 | Purchase orders + receiving, item barcode | Done |
+| 1.7 | In-memory writes across the rest of the app | Stage 1 of 9 — foundation done |
 
 The original brief is in [`.claude/phase1.md`](.claude/phase1.md).
 
@@ -83,7 +84,8 @@ Worth walking in this order — it is the order that tells the story:
     commandes** groups them by supplier and pre-fills a draft.
 11. **Taverne Saint-Gilles** from the store switcher → a brand-new empty store, so every
     empty state is real rather than described.
-12. **Paramètres → Synchronisation** → toggle offline mode to show the offline banner.
+12. **Paramètres → Synchronisation** → toggle offline mode to show the offline banner, and
+    **Réinitialiser la démonstration** to put everything back before the next walkthrough.
 
 Barcodes are woven through rather than being their own step: about half the catalogue has
 one (beverages and packaged dry goods; nothing fresh). Copy one from a beverage's detail
@@ -113,6 +115,7 @@ lib/
   shared/       cross-feature widgets (buttons, dialogs, states, shell)
   models/       immutable plain Dart classes — shape only, no logic
   mock_data/    ALL static data, the lookups over it, and the in-memory writes
+    mutations/  the write layer — one file per aggregate, plus shared plumbing
   services/     Phase 2 stubs — empty classes, no logic
   l10n/         .arb translations + generated AppLocalizations
   dev/          development-only reference. Not product — see below.
@@ -143,15 +146,29 @@ Four empty stubs in `lib/services/` mark the seams:
 | `api_service.dart` | Remote API client |
 | `auth_service.dart` | Real authentication |
 
-**The migration path is `mock_data/mock_queries.dart` and `mock_data/mock_mutations.dart`.**
-Screens never touch the mock lists directly. Reads go through `MockQueries.itemsForStore(...)`,
-`MockQueries.onOrderQuantity(...)` and so on; the writes Phase 1.6 added go through
-`MockOperations.send(...)`, `MockOperations.confirmReceipt(...)` and friends. Replace both
-with repositories returning the same shapes and the call sites barely move.
+**The migration path is `mock_data/mock_queries.dart` for reads and
+`mock_data/mutations/` for writes.** Screens never touch the mock lists directly. Reads go
+through `MockQueries.itemsForStore(...)`, `MockQueries.onOrderQuantity(...)`; writes go
+through the mutation classes. Replace both with repositories returning the same shapes and
+the call sites barely move.
 
-`MockOperations.revision` is a change counter that screens watch through
-`mockDataRevisionProvider`, so a receipt confirmed on one screen is visible on the one
-underneath it. Phase 2 swaps it for whatever change stream the storage layer exposes.
+The write layer is split one file per aggregate — `order_mutations.dart` today, with items,
+catalogue, suppliers and movements to follow — **because that is how Phase 2's repositories
+will split**. A one-to-one seam is easier to walk across than one large class.
+
+`mutations/mock_write.dart` holds what they all share:
+
+| | |
+|---|---|
+| `MockWrite.revision` | A change counter, exposed to widgets as `mockDataRevisionProvider`. Screens showing anything a write can change watch it, so a receipt confirmed on one screen is visible on the one underneath. Phase 2 swaps it for the storage layer's own change stream. |
+| `MockWrite.id(prefix)` | Ids for records created in-session — `item-new-7`, obviously generated. |
+| `MockWrite.captureSeed()` / `reset()` | The pristine snapshot behind **Paramètres → Synchronisation → Réinitialiser la démonstration**. Captured in `main()` before the first frame; the models are immutable, so copying the lists is a true deep snapshot. |
+
+The reset exists because a client demo gets walked several times in one sitting and the
+second run should not start from the first one's leftovers — and the only other way back is
+a hot restart, which is not something to do in front of anybody. The test suite uses the
+same snapshot to isolate tests from each other, so the mechanism is exercised on every run
+rather than only when somebody taps the button.
 
 The rules those writes implement — the status transitions, what a receipt does to stock and
 price history, what counts as on order — are pinned by `test/orders_test.dart`. That file is
@@ -248,7 +265,12 @@ Phase 1.6 added two invariants to it that are about semantics rather than style:
   would bypass the movement log, and the movement log is the single source of truth for
   stock levels
 
-Eleven checks, currently zero violations. Re-run it after adding screens.
+Phase 1.7 generalised the second of those: **no mock list is written outside
+`mock_data/mutations/`** at all, not just `mockItems`. A screen calling `mockSuppliers.add(...)`
+would bypass both the reset snapshot and the change signal, and neither failure is visible
+until a demo starts behaving strangely halfway through.
+
+Twelve checks, currently zero violations. Re-run it after adding screens.
 
 ## Navigation
 
@@ -280,7 +302,7 @@ back gesture alike.
 flutter test
 ```
 
-247 tests. The five that earn their keep:
+257 tests. The six that earn their keep:
 
 - **`navigation_test.dart`** pins the navigation contract: all 15 root screens show no back
   control and all 24 pushed screens do; push-then-pop returns you where you were and five
@@ -304,6 +326,12 @@ flutter test
 - **`components_test.dart`** pins the component behaviour the brief depends on — the status
   badge never using colour alone, the stepper accepting `2,5`, the dropdown's inline
   "+ Créer".
+- **`mock_write_test.dart`** pins the write foundation: that the change counter climbs on
+  every write and keeps climbing across a reset (so screens listening to it redraw when the
+  data goes *backwards*), that generated ids never collide with seeded ones, and that a
+  reset restores values rather than just list lengths. Its last test clears every mutable
+  list and asserts the reset brings all of it back — which is what catches a new list
+  somebody forgot to add to the snapshot.
 - **`orders_test.dart`** is the one that matters most, because the ordering rules are the
   part of this phase with actual behaviour. It runs them against the in-memory layer and
   restores the mock lists afterwards: that sending an order moves no stock but does count

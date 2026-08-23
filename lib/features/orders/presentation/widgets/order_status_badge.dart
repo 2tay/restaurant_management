@@ -15,7 +15,11 @@ import '../../../../models/models.dart';
 ///
 /// The mapping from status to colour lives here and nowhere else.
 class OrderStatusBadge extends StatelessWidget {
-  const OrderStatusBadge({required this.status, this.compact = false, super.key});
+  const OrderStatusBadge({
+    required this.status,
+    this.compact = false,
+    super.key,
+  });
 
   final PurchaseOrderStatus status;
 

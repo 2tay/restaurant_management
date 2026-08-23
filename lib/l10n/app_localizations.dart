@@ -3621,6 +3621,48 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Réceptionner les livraisons'**
   String get permissionReceiveDeliveries;
+
+  /// Section and action that puts the prototype's data back to how it shipped. Present because a client demo gets walked several times in one sitting and the second run should not start from the first one's leftovers.
+  ///
+  /// In fr, this message translates to:
+  /// **'Réinitialiser la démonstration'**
+  String get demoResetTitle;
+
+  /// Explains what the reset action does and, implicitly, that nothing persists anyway.
+  ///
+  /// In fr, this message translates to:
+  /// **'Remet les articles, les stocks, les commandes et les prix dans leur état d\'origine. Les modifications faites pendant la démonstration ne sont conservées que le temps de la session.'**
+  String get demoResetBody;
+
+  /// Shown in place of the reset action when nothing has been changed yet.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucune modification à annuler.'**
+  String get demoResetNothing;
+
+  /// Confirmation before resetting.
+  ///
+  /// In fr, this message translates to:
+  /// **'Réinitialiser la démonstration ?'**
+  String get demoResetConfirmTitle;
+
+  /// Body of the reset confirmation.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tout ce qui a été créé, modifié ou réceptionné depuis le démarrage sera annulé.'**
+  String get demoResetConfirmBody;
+
+  /// Confirms the reset.
+  ///
+  /// In fr, this message translates to:
+  /// **'Réinitialiser'**
+  String get demoResetConfirmAction;
+
+  /// Snackbar after resetting the demo data.
+  ///
+  /// In fr, this message translates to:
+  /// **'Démonstration réinitialisée.'**
+  String get demoResetDone;
 }
 
 class _AppLocalizationsDelegate

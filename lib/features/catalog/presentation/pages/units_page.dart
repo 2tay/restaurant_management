@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../app/routes.dart';
@@ -16,13 +17,16 @@ import 'categories_page.dart';
 /// The unit list is where the case for user-created units is clearest: a
 /// Belgian kitchen counts beer in `bac` and produce in `caisse`, and no
 /// hardcoded list ships with those.
-class UnitsPage extends StatelessWidget {
+class UnitsPage extends ConsumerWidget {
   const UnitsPage({required this.storeId, super.key});
 
   final String storeId;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Same as categories: the usage count per unit is live.
+    ref.watch(mockDataRevisionProvider);
+
     final l10n = AppLocalizations.of(context);
     final units = MockQueries.unitsForStore(storeId);
 

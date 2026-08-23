@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../app/routes.dart';
@@ -17,13 +18,16 @@ import '../../../dashboard/presentation/widgets/summary_tile.dart';
 /// Leads with the potential annual saving rather than with stock value. Stock
 /// value is a number an owner already roughly knows; "you could save 3 480 € a
 /// year" is the one that makes them open a report.
-class ReportsDashboardPage extends StatelessWidget {
+class ReportsDashboardPage extends ConsumerWidget {
   const ReportsDashboardPage({required this.storeId, super.key});
 
   final String storeId;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // The headline figures are derived from live stock.
+    ref.watch(mockDataRevisionProvider);
+
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
 

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../app/routes.dart';
@@ -28,16 +29,16 @@ enum HistoryPeriod {
 /// Filterable by type, period, item and user — the four questions actually
 /// asked of a stock log: "what came in this week", "who logged that", "what
 /// happened to the chicken", "how much did we throw away".
-class StockHistoryPage extends StatefulWidget {
+class StockHistoryPage extends ConsumerStatefulWidget {
   const StockHistoryPage({required this.storeId, super.key});
 
   final String storeId;
 
   @override
-  State<StockHistoryPage> createState() => _StockHistoryPageState();
+  ConsumerState<StockHistoryPage> createState() => _StockHistoryPageState();
 }
 
-class _StockHistoryPageState extends State<StockHistoryPage> {
+class _StockHistoryPageState extends ConsumerState<StockHistoryPage> {
   StockMovementType? _type;
   HistoryPeriod _period = HistoryPeriod.last30;
   String? _itemId;
@@ -45,6 +46,9 @@ class _StockHistoryPageState extends State<StockHistoryPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Every movement recorded anywhere in the app lands in this list.
+    ref.watch(mockDataRevisionProvider);
+
     final l10n = AppLocalizations.of(context);
     final movements = _filtered();
     final allMovements = MockQueries.movementsForStore(widget.storeId);

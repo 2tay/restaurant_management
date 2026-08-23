@@ -66,9 +66,7 @@ class OrderSummaryCard extends StatelessWidget {
           Wrap(
             spacing: AppSpacing.xxl,
             runSpacing: AppSpacing.lg,
-            children: [
-              for (final figure in figures) _Figure(figure: figure),
-            ],
+            children: [for (final figure in figures) _Figure(figure: figure)],
           ),
           if (footnote != null) ...[
             const Divider(height: AppSpacing.xl),

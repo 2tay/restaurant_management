@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../app/routes.dart';
@@ -15,11 +16,14 @@ import '../widgets/store_card.dart';
 ///
 /// Outside the shell: there is no store context yet, so there is nothing for a
 /// navigation rail to navigate within.
-class StoreSelectorPage extends StatelessWidget {
+class StoreSelectorPage extends ConsumerWidget {
   const StoreSelectorPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Each card carries that store's item and alert counts.
+    ref.watch(mockDataRevisionProvider);
+
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
 

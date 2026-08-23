@@ -154,6 +154,10 @@ class SyncStatusPage extends ConsumerWidget {
                 ],
               ),
             ),
+            const SizedBox(height: AppSpacing.xl),
+
+            SectionHeader(title: l10n.demoResetTitle),
+            _DemoReset(storeId: storeId),
             const SizedBox(height: AppSpacing.lg),
 
             Container(
@@ -183,6 +187,89 @@ class SyncStatusPage extends ConsumerWidget {
         ),
       ),
     );
+  }
+}
+
+/// Puts the demo data back to how it shipped.
+///
+/// It lives on this screen rather than behind a developer flag because it is
+/// not a developer tool — a client demo gets walked several times in one
+/// sitting, and the second walkthrough should not start from the first one's
+/// leftovers. The only other way back is a hot restart, which is not something
+/// to do in front of anybody.
+///
+/// This screen already exists to say "none of this is real yet", so it is the
+/// honest place for it.
+class _DemoReset extends ConsumerWidget {
+  const _DemoReset({required this.storeId});
+
+  final String storeId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+
+    // Watched so the button enables itself the moment anything is changed on
+    // another screen.
+    ref.watch(mockDataRevisionProvider);
+    final hasChanges = MockWrite.hasChanges;
+
+    return AppCard(
+      child: Row(
+        children: [
+          Container(
+            width: 56,
+            height: 56,
+            decoration: const BoxDecoration(
+              color: AppColors.surfaceVariant,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              LucideIcons.undo2,
+              size: 26,
+              color: AppColors.textSecondary,
+            ),
+          ),
+          const SizedBox(width: AppSpacing.lg),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(l10n.demoResetTitle, style: theme.textTheme.titleSmall),
+                const SizedBox(height: AppSpacing.xxs),
+                Text(
+                  hasChanges ? l10n.demoResetBody : l10n.demoResetNothing,
+                  style: theme.textTheme.bodySmall,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          // Disabled rather than hidden when there is nothing to undo: a
+          // control that vanishes leaves the user hunting for it.
+          DestructiveButton(
+            label: l10n.demoResetConfirmAction,
+            icon: LucideIcons.undo2,
+            filled: false,
+            onPressed: hasChanges ? () => _confirm(context, l10n) : null,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _confirm(BuildContext context, AppLocalizations l10n) async {
+    final confirmed = await ConfirmDialog.show(
+      context,
+      title: l10n.demoResetConfirmTitle,
+      message: l10n.demoResetConfirmBody,
+      confirmLabel: l10n.demoResetConfirmAction,
+    );
+    if (!confirmed || !context.mounted) return;
+
+    MockWrite.reset();
+    AppSnackBar.success(context, l10n.demoResetDone);
   }
 }
 
