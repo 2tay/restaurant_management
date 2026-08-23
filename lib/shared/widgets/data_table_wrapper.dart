@@ -39,12 +39,17 @@ class DataTableWrapper extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: LayoutBuilder(
         builder: (context, constraints) {
+          // Floor the table at the wider of the available width and [minWidth],
+          // then always allow horizontal scrolling. A DataTable sizes itself to
+          // its content, and content can exceed the pane at any width — French
+          // product names are long and the pricing table has four columns — so
+          // "only scroll when narrow" is not a safe assumption.
+          final floor = constraints.maxWidth < minWidth
+              ? minWidth
+              : constraints.maxWidth;
+
           final table = ConstrainedBox(
-            constraints: BoxConstraints(
-              minWidth: constraints.maxWidth < minWidth
-                  ? minWidth
-                  : constraints.maxWidth,
-            ),
+            constraints: BoxConstraints(minWidth: floor),
             child: DataTable(
               columns: columns,
               rows: rows,
@@ -57,8 +62,6 @@ class DataTableWrapper extends StatelessWidget {
               showCheckboxColumn: false,
             ),
           );
-
-          if (constraints.maxWidth >= minWidth) return table;
 
           return SingleChildScrollView(
             scrollDirection: Axis.horizontal,

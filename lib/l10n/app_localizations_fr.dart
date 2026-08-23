@@ -836,4 +836,613 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get adjustmentNoChange => 'Aucun écart — rien à enregistrer.';
+
+  @override
+  String get suppliersTitle => 'Fournisseurs';
+
+  @override
+  String get suppliersSubtitle =>
+      'Vos fournisseurs et les produits qu\'ils livrent.';
+
+  @override
+  String get suppliersAdd => 'Ajouter un fournisseur';
+
+  @override
+  String get suppliersSearchHint => 'Rechercher un fournisseur…';
+
+  @override
+  String get suppliersEmpty => 'Aucun fournisseur';
+
+  @override
+  String get suppliersEmptyBody =>
+      'Ajoutez un fournisseur pour enregistrer ses prix et vos livraisons.';
+
+  @override
+  String suppliersProductCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count produits',
+      one: '1 produit',
+      zero: 'Aucun produit',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get supplierContact => 'Contact';
+
+  @override
+  String get supplierProducts => 'Produits fournis';
+
+  @override
+  String get supplierProductsEmpty => 'Aucun produit associé à ce fournisseur';
+
+  @override
+  String get supplierEditPrices => 'Modifier les tarifs';
+
+  @override
+  String get supplierCreated => 'Fournisseur créé';
+
+  @override
+  String get supplierUpdated => 'Fournisseur modifié';
+
+  @override
+  String get supplierDeleted => 'Fournisseur supprimé';
+
+  @override
+  String supplierDeleteWarning(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count produits sont fournis par ce fournisseur. Leurs prix et historiques seront perdus.',
+      one:
+          '1 produit est fourni par ce fournisseur. Son prix et son historique seront perdus.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get supplierFormName => 'Nom du fournisseur';
+
+  @override
+  String get supplierFormNameHint => 'Ex. : Grossiste Central Bruxelles';
+
+  @override
+  String get supplierFormContactName => 'Personne de contact';
+
+  @override
+  String get supplierFormEmail => 'E-mail';
+
+  @override
+  String get supplierFormPhone => 'Téléphone';
+
+  @override
+  String get supplierFormNote => 'Note';
+
+  @override
+  String get supplierFormNoteHint =>
+      'Ex. : livraison les mardis et vendredis avant 10h';
+
+  @override
+  String get addSupplierTitle => 'Ajouter un fournisseur';
+
+  @override
+  String get editSupplierTitle => 'Modifier le fournisseur';
+
+  @override
+  String get supplierPricingTitle => 'Tarifs';
+
+  @override
+  String get supplierPricingSubtitle =>
+      'Modifiez un prix pour l\'enregistrer dans l\'historique.';
+
+  @override
+  String get supplierPricingColumnProduct => 'Produit';
+
+  @override
+  String get supplierPricingColumnPrice => 'Prix unitaire';
+
+  @override
+  String get supplierPricingColumnUpdated => 'Dernière mise à jour';
+
+  @override
+  String get supplierPricingColumnCompare => 'Écart au meilleur prix';
+
+  @override
+  String get supplierPricingBest => 'Meilleur';
+
+  @override
+  String get priceUpdated => 'Prix mis à jour';
+
+  @override
+  String get dashboardTitle => 'Tableau de bord';
+
+  @override
+  String dashboardGreeting(String name) {
+    return 'Bonjour $name';
+  }
+
+  @override
+  String get dashboardTileStockValue => 'Valeur du stock';
+
+  @override
+  String get dashboardTileItems => 'Articles suivis';
+
+  @override
+  String get dashboardTileLowStock => 'À réapprovisionner';
+
+  @override
+  String get dashboardTileSuppliers => 'Fournisseurs';
+
+  @override
+  String get dashboardQuickActions => 'Actions rapides';
+
+  @override
+  String get dashboardRecentActivity => 'Activité récente';
+
+  @override
+  String get dashboardNoActivity => 'Aucune activité pour le moment';
+
+  @override
+  String get dashboardNoActivityBody =>
+      'Enregistrez une livraison ou une sortie pour commencer.';
+
+  @override
+  String get dashboardAlertsTitle => 'Articles à surveiller';
+
+  @override
+  String get dashboardAllGood => 'Tout est en stock';
+
+  @override
+  String get dashboardAllGoodBody => 'Aucun article sous son seuil d\'alerte.';
+
+  @override
+  String get dashboardEmptyStore => 'Cet établissement est vide';
+
+  @override
+  String get dashboardEmptyStoreBody =>
+      'Commencez par ajouter vos articles pour suivre votre stock.';
+
+  @override
+  String get alertsTitle => 'Alertes de stock';
+
+  @override
+  String get alertsSubtitle =>
+      'Articles à réapprovisionner, les plus urgents en premier.';
+
+  @override
+  String get alertsEmpty => 'Aucune alerte';
+
+  @override
+  String get alertsEmptyBody =>
+      'Tous vos articles sont au-dessus de leur seuil d\'alerte.';
+
+  @override
+  String alertsShortfall(String quantity) {
+    return 'Il manque $quantity pour atteindre le seuil';
+  }
+
+  @override
+  String alertsOrderFrom(String supplier) {
+    return 'Commander chez $supplier';
+  }
+
+  @override
+  String get notificationsTitle => 'Notifications';
+
+  @override
+  String get notificationsEmpty => 'Aucune notification';
+
+  @override
+  String get notificationsEmptyBody =>
+      'Les alertes de stock et les changements de prix apparaîtront ici.';
+
+  @override
+  String get notificationsMarkAllRead => 'Tout marquer comme lu';
+
+  @override
+  String get notificationsAllRead => 'Toutes les notifications sont lues';
+
+  @override
+  String notificationsUnread(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count non lues',
+      one: '1 non lue',
+      zero: 'Aucune non lue',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get notificationsFilterAll => 'Toutes';
+
+  @override
+  String get notificationsFilterUnread => 'Non lues';
+
+  @override
+  String get reportsTitle => 'Rapports';
+
+  @override
+  String get reportsSubtitle =>
+      'Valeur de votre stock, consommation et comparaison des prix.';
+
+  @override
+  String get reportsValuation => 'Valorisation du stock';
+
+  @override
+  String get reportsValuationBody =>
+      'Combien vaut ce que vous avez en réserve, par catégorie et par article.';
+
+  @override
+  String get reportsComparison => 'Comparaison des prix';
+
+  @override
+  String get reportsComparisonBody =>
+      'Le même produit chez plusieurs fournisseurs, prix côte à côte.';
+
+  @override
+  String get reportsUsage => 'Consommation et pertes';
+
+  @override
+  String get reportsUsageBody =>
+      'Ce qui sort de votre stock, et la part perdue.';
+
+  @override
+  String get reportsPotentialSaving => 'Économie potentielle';
+
+  @override
+  String get reportsPotentialSavingBody =>
+      'Estimation annuelle si chaque article était commandé au meilleur prix disponible.';
+
+  @override
+  String get reportsUsage30Days => 'Consommation (30 jours)';
+
+  @override
+  String get reportsWasteShare => 'Part de pertes';
+
+  @override
+  String get reportsOpen => 'Ouvrir le rapport';
+
+  @override
+  String get reportsExportTitle => 'Exporter le rapport';
+
+  @override
+  String get reportsExportBody =>
+      'Choisissez un format. Le fichier sera téléchargé sur cet appareil.';
+
+  @override
+  String get reportsExportPdf => 'Document PDF';
+
+  @override
+  String get reportsExportCsv => 'Tableur CSV';
+
+  @override
+  String get reportsExportUnavailable =>
+      'L\'export sera disponible dans une prochaine version.';
+
+  @override
+  String get valuationTitle => 'Valorisation du stock';
+
+  @override
+  String get valuationTotal => 'Valeur totale';
+
+  @override
+  String get valuationByCategory => 'Par catégorie';
+
+  @override
+  String get valuationByItem => 'Articles les plus valorisés';
+
+  @override
+  String get valuationBasis =>
+      'Valorisé au prix du fournisseur par défaut de chaque article.';
+
+  @override
+  String get valuationColumnCategory => 'Catégorie';
+
+  @override
+  String get valuationColumnItems => 'Articles';
+
+  @override
+  String get valuationColumnValue => 'Valeur';
+
+  @override
+  String get valuationColumnShare => 'Part';
+
+  @override
+  String get comparisonTitle => 'Comparaison des prix';
+
+  @override
+  String get comparisonSubtitle =>
+      'Sélectionnez un article pour comparer les prix de tous ses fournisseurs.';
+
+  @override
+  String get comparisonPickItem => 'Article à comparer';
+
+  @override
+  String get comparisonColumnSupplier => 'Fournisseur';
+
+  @override
+  String get comparisonColumnPrice => 'Prix';
+
+  @override
+  String get comparisonColumnDifference => 'Écart';
+
+  @override
+  String get comparisonColumnUpdated => 'Mis à jour';
+
+  @override
+  String get comparisonSingleSupplier => 'Un seul fournisseur pour cet article';
+
+  @override
+  String get comparisonSingleSupplierBody =>
+      'Associez un second fournisseur pour pouvoir comparer les prix.';
+
+  @override
+  String get usageReportTitle => 'Consommation et pertes';
+
+  @override
+  String get usageTrend => 'Consommation quotidienne';
+
+  @override
+  String get usageWasteTrend => 'Part de pertes par semaine';
+
+  @override
+  String get usageTotal => 'Total consommé';
+
+  @override
+  String get usageWasteValue => 'Valeur des pertes';
+
+  @override
+  String get teamTitle => 'Équipe';
+
+  @override
+  String get teamSubtitle =>
+      'Qui a accès à cet établissement, et avec quels droits.';
+
+  @override
+  String get teamInvite => 'Inviter un membre';
+
+  @override
+  String get teamEmpty => 'Aucun membre';
+
+  @override
+  String get teamEmptyBody =>
+      'Invitez vos collaborateurs pour qu\'ils puissent enregistrer les mouvements de stock.';
+
+  @override
+  String get teamPending => 'Invitation en attente';
+
+  @override
+  String teamLastActive(String when) {
+    return 'Actif $when';
+  }
+
+  @override
+  String teamStoreAccess(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count établissements',
+      one: '1 établissement',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get roleOwner => 'Propriétaire';
+
+  @override
+  String get roleManager => 'Gérant';
+
+  @override
+  String get roleStaff => 'Employé';
+
+  @override
+  String get roleOwnerBody =>
+      'Accès complet à tous les établissements, à la facturation et à l\'équipe.';
+
+  @override
+  String get roleManagerBody =>
+      'Accès complet aux établissements assignés, sauf les paramètres du compte.';
+
+  @override
+  String get roleStaffBody =>
+      'Peut enregistrer les livraisons et les sorties, et consulter l\'inventaire.';
+
+  @override
+  String get inviteTitle => 'Inviter un membre';
+
+  @override
+  String get editMemberTitle => 'Modifier le membre';
+
+  @override
+  String get memberFormName => 'Nom complet';
+
+  @override
+  String get memberFormEmail => 'Adresse e-mail';
+
+  @override
+  String get memberFormRole => 'Rôle';
+
+  @override
+  String get memberFormStores => 'Établissements accessibles';
+
+  @override
+  String get memberInvited => 'Invitation envoyée';
+
+  @override
+  String get memberUpdated => 'Membre modifié';
+
+  @override
+  String get memberRemoved => 'Membre retiré';
+
+  @override
+  String get memberRemoveWarning =>
+      'Cette personne perdra immédiatement l\'accès à l\'application.';
+
+  @override
+  String get rolesTitle => 'Rôles et permissions';
+
+  @override
+  String get rolesSubtitle => 'Ce que chaque rôle peut faire.';
+
+  @override
+  String get permissionViewInventory => 'Consulter l\'inventaire';
+
+  @override
+  String get permissionRecordMovements => 'Enregistrer les mouvements';
+
+  @override
+  String get permissionEditItems => 'Créer et modifier les articles';
+
+  @override
+  String get permissionManageSuppliers => 'Gérer les fournisseurs et les prix';
+
+  @override
+  String get permissionViewReports => 'Consulter les rapports';
+
+  @override
+  String get permissionManageTeam => 'Gérer l\'équipe';
+
+  @override
+  String get permissionManageAccount => 'Gérer le compte et les établissements';
+
+  @override
+  String get storeSettingsTitle => 'Paramètres de l\'établissement';
+
+  @override
+  String get storeSettingsGeneral => 'Informations générales';
+
+  @override
+  String get storeSettingsPreferences => 'Préférences';
+
+  @override
+  String get storeSettingsDefaultUnit => 'Unité par défaut';
+
+  @override
+  String get storeSettingsSaved => 'Paramètres enregistrés';
+
+  @override
+  String get accountSettingsTitle => 'Paramètres du compte';
+
+  @override
+  String get accountProfile => 'Profil';
+
+  @override
+  String get accountSecurity => 'Sécurité';
+
+  @override
+  String get accountChangePassword => 'Changer le mot de passe';
+
+  @override
+  String get accountLinkedStores => 'Établissements liés';
+
+  @override
+  String get notificationPrefsTitle => 'Préférences de notification';
+
+  @override
+  String get notificationPrefsSubtitle =>
+      'Choisissez ce dont vous souhaitez être averti.';
+
+  @override
+  String get notificationPrefLowStock => 'Alertes de stock faible';
+
+  @override
+  String get notificationPrefLowStockBody =>
+      'Recevez une alerte dès qu\'un article passe sous son seuil.';
+
+  @override
+  String get notificationPrefPriceChange => 'Changements de prix';
+
+  @override
+  String get notificationPrefPriceChangeBody =>
+      'Soyez averti quand un fournisseur modifie un prix.';
+
+  @override
+  String get notificationPrefLargeAdjustment => 'Ajustements importants';
+
+  @override
+  String get notificationPrefLargeAdjustmentBody =>
+      'Soyez averti lorsqu\'un comptage corrige fortement le stock.';
+
+  @override
+  String get notificationPrefDeliveries => 'Livraisons enregistrées';
+
+  @override
+  String get notificationPrefDeliveriesBody =>
+      'Recevez un résumé de chaque livraison enregistrée.';
+
+  @override
+  String get syncTitle => 'État de la synchronisation';
+
+  @override
+  String get syncSubtitle =>
+      'L\'application fonctionne hors ligne et se synchronise dès que la connexion revient.';
+
+  @override
+  String get syncLastSynced => 'Dernière synchronisation';
+
+  @override
+  String get syncPending => 'Modifications en attente';
+
+  @override
+  String get syncNow => 'Synchroniser maintenant';
+
+  @override
+  String get syncStarted => 'Synchronisation en cours…';
+
+  @override
+  String get syncOnline => 'Connecté';
+
+  @override
+  String get syncOffline => 'Hors ligne';
+
+  @override
+  String get syncDemoToggle => 'Simuler le mode hors ligne';
+
+  @override
+  String get syncDemoToggleBody =>
+      'Pour la démonstration : affiche la bannière hors ligne dans toute l\'application.';
+
+  @override
+  String get syncPhase2Note =>
+      'La synchronisation réelle sera ajoutée en phase 2. Les valeurs ci-dessus sont fictives.';
+
+  @override
+  String get searchTitle => 'Recherche';
+
+  @override
+  String get searchHint => 'Article, fournisseur, catégorie…';
+
+  @override
+  String get searchPrompt => 'Que cherchez-vous ?';
+
+  @override
+  String get searchPromptBody =>
+      'Recherchez parmi vos articles, fournisseurs et catégories.';
+
+  @override
+  String get searchSectionItems => 'Articles';
+
+  @override
+  String get searchSectionSuppliers => 'Fournisseurs';
+
+  @override
+  String get searchSectionCategories => 'Catégories';
+
+  @override
+  String searchResultCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count résultats',
+      one: '1 résultat',
+      zero: 'Aucun résultat',
+    );
+    return '$_temp0';
+  }
 }

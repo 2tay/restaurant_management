@@ -1467,6 +1467,1050 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Aucun écart — rien à enregistrer.'**
   String get adjustmentNoChange;
+
+  /// Suppliers list heading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Fournisseurs'**
+  String get suppliersTitle;
+
+  /// Supporting line on the suppliers list.
+  ///
+  /// In fr, this message translates to:
+  /// **'Vos fournisseurs et les produits qu\'ils livrent.'**
+  String get suppliersSubtitle;
+
+  /// Primary action on the suppliers list.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ajouter un fournisseur'**
+  String get suppliersAdd;
+
+  /// Placeholder in the supplier search field.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rechercher un fournisseur…'**
+  String get suppliersSearchHint;
+
+  /// Empty state on the suppliers list.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun fournisseur'**
+  String get suppliersEmpty;
+
+  /// Supporting line for the suppliers empty state.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ajoutez un fournisseur pour enregistrer ses prix et vos livraisons.'**
+  String get suppliersEmptyBody;
+
+  /// How many products a supplier provides.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =0{Aucun produit} =1{1 produit} other{{count} produits}}'**
+  String suppliersProductCount(int count);
+
+  /// Section heading for a supplier's contact details.
+  ///
+  /// In fr, this message translates to:
+  /// **'Contact'**
+  String get supplierContact;
+
+  /// Section heading listing the products a supplier provides.
+  ///
+  /// In fr, this message translates to:
+  /// **'Produits fournis'**
+  String get supplierProducts;
+
+  /// Empty state when a supplier supplies nothing yet.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun produit associé à ce fournisseur'**
+  String get supplierProductsEmpty;
+
+  /// Opens the editable pricing table for a supplier.
+  ///
+  /// In fr, this message translates to:
+  /// **'Modifier les tarifs'**
+  String get supplierEditPrices;
+
+  /// Snackbar confirming supplier creation.
+  ///
+  /// In fr, this message translates to:
+  /// **'Fournisseur créé'**
+  String get supplierCreated;
+
+  /// Snackbar confirming a supplier was edited.
+  ///
+  /// In fr, this message translates to:
+  /// **'Fournisseur modifié'**
+  String get supplierUpdated;
+
+  /// Snackbar confirming supplier deletion.
+  ///
+  /// In fr, this message translates to:
+  /// **'Fournisseur supprimé'**
+  String get supplierDeleted;
+
+  /// Extra warning when deleting a supplier that still supplies products.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =1{1 produit est fourni par ce fournisseur. Son prix et son historique seront perdus.} other{{count} produits sont fournis par ce fournisseur. Leurs prix et historiques seront perdus.}}'**
+  String supplierDeleteWarning(int count);
+
+  /// Supplier name field label.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nom du fournisseur'**
+  String get supplierFormName;
+
+  /// Placeholder for the supplier name field.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ex. : Grossiste Central Bruxelles'**
+  String get supplierFormNameHint;
+
+  /// Contact person field label.
+  ///
+  /// In fr, this message translates to:
+  /// **'Personne de contact'**
+  String get supplierFormContactName;
+
+  /// Supplier email field label.
+  ///
+  /// In fr, this message translates to:
+  /// **'E-mail'**
+  String get supplierFormEmail;
+
+  /// Supplier phone field label.
+  ///
+  /// In fr, this message translates to:
+  /// **'Téléphone'**
+  String get supplierFormPhone;
+
+  /// Free-text note on a supplier — delivery days, minimum order.
+  ///
+  /// In fr, this message translates to:
+  /// **'Note'**
+  String get supplierFormNote;
+
+  /// Placeholder for the supplier note field.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ex. : livraison les mardis et vendredis avant 10h'**
+  String get supplierFormNoteHint;
+
+  /// Add-supplier form heading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ajouter un fournisseur'**
+  String get addSupplierTitle;
+
+  /// Edit-supplier form heading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Modifier le fournisseur'**
+  String get editSupplierTitle;
+
+  /// Supplier pricing table heading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tarifs'**
+  String get supplierPricingTitle;
+
+  /// Explains that editing a price creates a history entry.
+  ///
+  /// In fr, this message translates to:
+  /// **'Modifiez un prix pour l\'enregistrer dans l\'historique.'**
+  String get supplierPricingSubtitle;
+
+  /// Product column header in the pricing table.
+  ///
+  /// In fr, this message translates to:
+  /// **'Produit'**
+  String get supplierPricingColumnProduct;
+
+  /// Unit price column header.
+  ///
+  /// In fr, this message translates to:
+  /// **'Prix unitaire'**
+  String get supplierPricingColumnPrice;
+
+  /// Last-updated column header.
+  ///
+  /// In fr, this message translates to:
+  /// **'Dernière mise à jour'**
+  String get supplierPricingColumnUpdated;
+
+  /// Column showing how this supplier's price compares to the cheapest available.
+  ///
+  /// In fr, this message translates to:
+  /// **'Écart au meilleur prix'**
+  String get supplierPricingColumnCompare;
+
+  /// Marks a row where this supplier is the cheapest option.
+  ///
+  /// In fr, this message translates to:
+  /// **'Meilleur'**
+  String get supplierPricingBest;
+
+  /// Snackbar confirming a price change was recorded.
+  ///
+  /// In fr, this message translates to:
+  /// **'Prix mis à jour'**
+  String get priceUpdated;
+
+  /// Store dashboard heading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tableau de bord'**
+  String get dashboardTitle;
+
+  /// Greeting on the dashboard. Vouvoiement is used everywhere else; a first-name greeting is warm without being familiar.
+  ///
+  /// In fr, this message translates to:
+  /// **'Bonjour {name}'**
+  String dashboardGreeting(String name);
+
+  /// Summary tile: total value of everything in stock.
+  ///
+  /// In fr, this message translates to:
+  /// **'Valeur du stock'**
+  String get dashboardTileStockValue;
+
+  /// Summary tile: how many items are tracked.
+  ///
+  /// In fr, this message translates to:
+  /// **'Articles suivis'**
+  String get dashboardTileItems;
+
+  /// Summary tile: items at or below threshold.
+  ///
+  /// In fr, this message translates to:
+  /// **'À réapprovisionner'**
+  String get dashboardTileLowStock;
+
+  /// Summary tile: supplier count.
+  ///
+  /// In fr, this message translates to:
+  /// **'Fournisseurs'**
+  String get dashboardTileSuppliers;
+
+  /// Section heading above the large quick-action buttons.
+  ///
+  /// In fr, this message translates to:
+  /// **'Actions rapides'**
+  String get dashboardQuickActions;
+
+  /// Section heading for the recent movement feed.
+  ///
+  /// In fr, this message translates to:
+  /// **'Activité récente'**
+  String get dashboardRecentActivity;
+
+  /// Empty state for the activity feed.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucune activité pour le moment'**
+  String get dashboardNoActivity;
+
+  /// Supporting line for the empty activity feed.
+  ///
+  /// In fr, this message translates to:
+  /// **'Enregistrez une livraison ou une sortie pour commencer.'**
+  String get dashboardNoActivityBody;
+
+  /// Dashboard section listing items needing attention.
+  ///
+  /// In fr, this message translates to:
+  /// **'Articles à surveiller'**
+  String get dashboardAlertsTitle;
+
+  /// Shown when nothing is below threshold.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tout est en stock'**
+  String get dashboardAllGood;
+
+  /// Supporting line when there are no alerts.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun article sous son seuil d\'alerte.'**
+  String get dashboardAllGoodBody;
+
+  /// Dashboard empty state for a brand-new store.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cet établissement est vide'**
+  String get dashboardEmptyStore;
+
+  /// Supporting line for the empty-store dashboard.
+  ///
+  /// In fr, this message translates to:
+  /// **'Commencez par ajouter vos articles pour suivre votre stock.'**
+  String get dashboardEmptyStoreBody;
+
+  /// Low stock alerts screen heading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Alertes de stock'**
+  String get alertsTitle;
+
+  /// Supporting line on the alerts screen.
+  ///
+  /// In fr, this message translates to:
+  /// **'Articles à réapprovisionner, les plus urgents en premier.'**
+  String get alertsSubtitle;
+
+  /// Empty state when nothing is below threshold.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucune alerte'**
+  String get alertsEmpty;
+
+  /// Supporting line for the no-alerts state.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tous vos articles sont au-dessus de leur seuil d\'alerte.'**
+  String get alertsEmptyBody;
+
+  /// How far below its threshold an item is.
+  ///
+  /// In fr, this message translates to:
+  /// **'Il manque {quantity} pour atteindre le seuil'**
+  String alertsShortfall(String quantity);
+
+  /// Action suggesting the item's default supplier.
+  ///
+  /// In fr, this message translates to:
+  /// **'Commander chez {supplier}'**
+  String alertsOrderFrom(String supplier);
+
+  /// Notification centre heading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Notifications'**
+  String get notificationsTitle;
+
+  /// Empty state in the notification centre.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucune notification'**
+  String get notificationsEmpty;
+
+  /// Supporting line for the empty notification centre.
+  ///
+  /// In fr, this message translates to:
+  /// **'Les alertes de stock et les changements de prix apparaîtront ici.'**
+  String get notificationsEmptyBody;
+
+  /// Action clearing the unread state on every notification.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tout marquer comme lu'**
+  String get notificationsMarkAllRead;
+
+  /// Snackbar confirming everything was marked read.
+  ///
+  /// In fr, this message translates to:
+  /// **'Toutes les notifications sont lues'**
+  String get notificationsAllRead;
+
+  /// Unread notification count.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =0{Aucune non lue} =1{1 non lue} other{{count} non lues}}'**
+  String notificationsUnread(int count);
+
+  /// Shows every notification.
+  ///
+  /// In fr, this message translates to:
+  /// **'Toutes'**
+  String get notificationsFilterAll;
+
+  /// Shows only unread notifications.
+  ///
+  /// In fr, this message translates to:
+  /// **'Non lues'**
+  String get notificationsFilterUnread;
+
+  /// Reports dashboard heading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rapports'**
+  String get reportsTitle;
+
+  /// Supporting line on the reports dashboard.
+  ///
+  /// In fr, this message translates to:
+  /// **'Valeur de votre stock, consommation et comparaison des prix.'**
+  String get reportsSubtitle;
+
+  /// Stock valuation report name.
+  ///
+  /// In fr, this message translates to:
+  /// **'Valorisation du stock'**
+  String get reportsValuation;
+
+  /// Describes the valuation report.
+  ///
+  /// In fr, this message translates to:
+  /// **'Combien vaut ce que vous avez en réserve, par catégorie et par article.'**
+  String get reportsValuationBody;
+
+  /// Price comparison report name.
+  ///
+  /// In fr, this message translates to:
+  /// **'Comparaison des prix'**
+  String get reportsComparison;
+
+  /// Describes the price comparison report.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le même produit chez plusieurs fournisseurs, prix côte à côte.'**
+  String get reportsComparisonBody;
+
+  /// Usage report name.
+  ///
+  /// In fr, this message translates to:
+  /// **'Consommation et pertes'**
+  String get reportsUsage;
+
+  /// Describes the usage report.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ce qui sort de votre stock, et la part perdue.'**
+  String get reportsUsageBody;
+
+  /// Headline tile: estimated annual saving from switching to cheapest suppliers.
+  ///
+  /// In fr, this message translates to:
+  /// **'Économie potentielle'**
+  String get reportsPotentialSaving;
+
+  /// Explains how the potential saving is estimated.
+  ///
+  /// In fr, this message translates to:
+  /// **'Estimation annuelle si chaque article était commandé au meilleur prix disponible.'**
+  String get reportsPotentialSavingBody;
+
+  /// Tile: value consumed in the last 30 days.
+  ///
+  /// In fr, this message translates to:
+  /// **'Consommation (30 jours)'**
+  String get reportsUsage30Days;
+
+  /// Tile: waste and spoilage as a share of consumption.
+  ///
+  /// In fr, this message translates to:
+  /// **'Part de pertes'**
+  String get reportsWasteShare;
+
+  /// Action opening a report from its card.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ouvrir le rapport'**
+  String get reportsOpen;
+
+  /// Export dialog heading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Exporter le rapport'**
+  String get reportsExportTitle;
+
+  /// Export dialog instructions.
+  ///
+  /// In fr, this message translates to:
+  /// **'Choisissez un format. Le fichier sera téléchargé sur cet appareil.'**
+  String get reportsExportBody;
+
+  /// PDF export option.
+  ///
+  /// In fr, this message translates to:
+  /// **'Document PDF'**
+  String get reportsExportPdf;
+
+  /// CSV export option.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tableur CSV'**
+  String get reportsExportCsv;
+
+  /// Honest note in the export dialog. Phase 1 generates no files and the demo should not pretend otherwise.
+  ///
+  /// In fr, this message translates to:
+  /// **'L\'export sera disponible dans une prochaine version.'**
+  String get reportsExportUnavailable;
+
+  /// Valuation report heading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Valorisation du stock'**
+  String get valuationTitle;
+
+  /// Total stock value label.
+  ///
+  /// In fr, this message translates to:
+  /// **'Valeur totale'**
+  String get valuationTotal;
+
+  /// Section heading for the category breakdown.
+  ///
+  /// In fr, this message translates to:
+  /// **'Par catégorie'**
+  String get valuationByCategory;
+
+  /// Section heading for the highest-value items.
+  ///
+  /// In fr, this message translates to:
+  /// **'Articles les plus valorisés'**
+  String get valuationByItem;
+
+  /// States how the valuation is computed. Necessary because an item has several supplier prices.
+  ///
+  /// In fr, this message translates to:
+  /// **'Valorisé au prix du fournisseur par défaut de chaque article.'**
+  String get valuationBasis;
+
+  /// Category column header.
+  ///
+  /// In fr, this message translates to:
+  /// **'Catégorie'**
+  String get valuationColumnCategory;
+
+  /// Item-count column header.
+  ///
+  /// In fr, this message translates to:
+  /// **'Articles'**
+  String get valuationColumnItems;
+
+  /// Value column header.
+  ///
+  /// In fr, this message translates to:
+  /// **'Valeur'**
+  String get valuationColumnValue;
+
+  /// Share-of-total column header.
+  ///
+  /// In fr, this message translates to:
+  /// **'Part'**
+  String get valuationColumnShare;
+
+  /// Price comparison report heading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Comparaison des prix'**
+  String get comparisonTitle;
+
+  /// Supporting line on the comparison report.
+  ///
+  /// In fr, this message translates to:
+  /// **'Sélectionnez un article pour comparer les prix de tous ses fournisseurs.'**
+  String get comparisonSubtitle;
+
+  /// Item picker on the comparison report.
+  ///
+  /// In fr, this message translates to:
+  /// **'Article à comparer'**
+  String get comparisonPickItem;
+
+  /// Supplier column header.
+  ///
+  /// In fr, this message translates to:
+  /// **'Fournisseur'**
+  String get comparisonColumnSupplier;
+
+  /// Price column header.
+  ///
+  /// In fr, this message translates to:
+  /// **'Prix'**
+  String get comparisonColumnPrice;
+
+  /// Difference-from-cheapest column header.
+  ///
+  /// In fr, this message translates to:
+  /// **'Écart'**
+  String get comparisonColumnDifference;
+
+  /// Last-updated column header.
+  ///
+  /// In fr, this message translates to:
+  /// **'Mis à jour'**
+  String get comparisonColumnUpdated;
+
+  /// Shown when there is nothing to compare.
+  ///
+  /// In fr, this message translates to:
+  /// **'Un seul fournisseur pour cet article'**
+  String get comparisonSingleSupplier;
+
+  /// Supporting line when an item has only one supplier.
+  ///
+  /// In fr, this message translates to:
+  /// **'Associez un second fournisseur pour pouvoir comparer les prix.'**
+  String get comparisonSingleSupplierBody;
+
+  /// Usage report heading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Consommation et pertes'**
+  String get usageReportTitle;
+
+  /// Chart title for the daily consumption line.
+  ///
+  /// In fr, this message translates to:
+  /// **'Consommation quotidienne'**
+  String get usageTrend;
+
+  /// Chart title for the weekly waste share.
+  ///
+  /// In fr, this message translates to:
+  /// **'Part de pertes par semaine'**
+  String get usageWasteTrend;
+
+  /// Total value consumed over the period.
+  ///
+  /// In fr, this message translates to:
+  /// **'Total consommé'**
+  String get usageTotal;
+
+  /// Value of waste and spoilage over the period.
+  ///
+  /// In fr, this message translates to:
+  /// **'Valeur des pertes'**
+  String get usageWasteValue;
+
+  /// Team list heading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Équipe'**
+  String get teamTitle;
+
+  /// Supporting line on the team list.
+  ///
+  /// In fr, this message translates to:
+  /// **'Qui a accès à cet établissement, et avec quels droits.'**
+  String get teamSubtitle;
+
+  /// Primary action on the team list.
+  ///
+  /// In fr, this message translates to:
+  /// **'Inviter un membre'**
+  String get teamInvite;
+
+  /// Empty state on the team list.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun membre'**
+  String get teamEmpty;
+
+  /// Supporting line for the empty team list.
+  ///
+  /// In fr, this message translates to:
+  /// **'Invitez vos collaborateurs pour qu\'ils puissent enregistrer les mouvements de stock.'**
+  String get teamEmptyBody;
+
+  /// Badge on a member who has not accepted their invitation.
+  ///
+  /// In fr, this message translates to:
+  /// **'Invitation en attente'**
+  String get teamPending;
+
+  /// When a member was last active, using a relative phrase.
+  ///
+  /// In fr, this message translates to:
+  /// **'Actif {when}'**
+  String teamLastActive(String when);
+
+  /// How many stores a member can access.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =1{1 établissement} other{{count} établissements}}'**
+  String teamStoreAccess(int count);
+
+  /// Team role: full access to everything including billing.
+  ///
+  /// In fr, this message translates to:
+  /// **'Propriétaire'**
+  String get roleOwner;
+
+  /// Team role: full access to assigned stores.
+  ///
+  /// In fr, this message translates to:
+  /// **'Gérant'**
+  String get roleManager;
+
+  /// Team role: can record movements and read inventory.
+  ///
+  /// In fr, this message translates to:
+  /// **'Employé'**
+  String get roleStaff;
+
+  /// Describes the owner role.
+  ///
+  /// In fr, this message translates to:
+  /// **'Accès complet à tous les établissements, à la facturation et à l\'équipe.'**
+  String get roleOwnerBody;
+
+  /// Describes the manager role.
+  ///
+  /// In fr, this message translates to:
+  /// **'Accès complet aux établissements assignés, sauf les paramètres du compte.'**
+  String get roleManagerBody;
+
+  /// Describes the staff role.
+  ///
+  /// In fr, this message translates to:
+  /// **'Peut enregistrer les livraisons et les sorties, et consulter l\'inventaire.'**
+  String get roleStaffBody;
+
+  /// Invite form heading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Inviter un membre'**
+  String get inviteTitle;
+
+  /// Edit member form heading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Modifier le membre'**
+  String get editMemberTitle;
+
+  /// Member name field label.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nom complet'**
+  String get memberFormName;
+
+  /// Member email field label.
+  ///
+  /// In fr, this message translates to:
+  /// **'Adresse e-mail'**
+  String get memberFormEmail;
+
+  /// Role picker label.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rôle'**
+  String get memberFormRole;
+
+  /// Store access section label on the member form.
+  ///
+  /// In fr, this message translates to:
+  /// **'Établissements accessibles'**
+  String get memberFormStores;
+
+  /// Snackbar confirming an invitation was sent.
+  ///
+  /// In fr, this message translates to:
+  /// **'Invitation envoyée'**
+  String get memberInvited;
+
+  /// Snackbar confirming a member was edited.
+  ///
+  /// In fr, this message translates to:
+  /// **'Membre modifié'**
+  String get memberUpdated;
+
+  /// Snackbar confirming a member was removed.
+  ///
+  /// In fr, this message translates to:
+  /// **'Membre retiré'**
+  String get memberRemoved;
+
+  /// Extra warning when removing a team member.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cette personne perdra immédiatement l\'accès à l\'application.'**
+  String get memberRemoveWarning;
+
+  /// Roles matrix screen heading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rôles et permissions'**
+  String get rolesTitle;
+
+  /// Supporting line on the roles screen.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ce que chaque rôle peut faire.'**
+  String get rolesSubtitle;
+
+  /// Permission row: read the item list.
+  ///
+  /// In fr, this message translates to:
+  /// **'Consulter l\'inventaire'**
+  String get permissionViewInventory;
+
+  /// Permission row: log deliveries and stock-outs.
+  ///
+  /// In fr, this message translates to:
+  /// **'Enregistrer les mouvements'**
+  String get permissionRecordMovements;
+
+  /// Permission row: manage the item catalogue.
+  ///
+  /// In fr, this message translates to:
+  /// **'Créer et modifier les articles'**
+  String get permissionEditItems;
+
+  /// Permission row: manage suppliers and their prices.
+  ///
+  /// In fr, this message translates to:
+  /// **'Gérer les fournisseurs et les prix'**
+  String get permissionManageSuppliers;
+
+  /// Permission row: open the reports section.
+  ///
+  /// In fr, this message translates to:
+  /// **'Consulter les rapports'**
+  String get permissionViewReports;
+
+  /// Permission row: invite and remove members.
+  ///
+  /// In fr, this message translates to:
+  /// **'Gérer l\'équipe'**
+  String get permissionManageTeam;
+
+  /// Permission row: account settings and creating stores.
+  ///
+  /// In fr, this message translates to:
+  /// **'Gérer le compte et les établissements'**
+  String get permissionManageAccount;
+
+  /// Store settings heading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Paramètres de l\'établissement'**
+  String get storeSettingsTitle;
+
+  /// Section heading for store name and address.
+  ///
+  /// In fr, this message translates to:
+  /// **'Informations générales'**
+  String get storeSettingsGeneral;
+
+  /// Section heading for store-level preferences.
+  ///
+  /// In fr, this message translates to:
+  /// **'Préférences'**
+  String get storeSettingsPreferences;
+
+  /// Preferred unit pre-selected on new items.
+  ///
+  /// In fr, this message translates to:
+  /// **'Unité par défaut'**
+  String get storeSettingsDefaultUnit;
+
+  /// Snackbar confirming settings were saved.
+  ///
+  /// In fr, this message translates to:
+  /// **'Paramètres enregistrés'**
+  String get storeSettingsSaved;
+
+  /// Account settings heading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Paramètres du compte'**
+  String get accountSettingsTitle;
+
+  /// Section heading for the user's own details.
+  ///
+  /// In fr, this message translates to:
+  /// **'Profil'**
+  String get accountProfile;
+
+  /// Section heading for password and security.
+  ///
+  /// In fr, this message translates to:
+  /// **'Sécurité'**
+  String get accountSecurity;
+
+  /// Action opening the password change flow.
+  ///
+  /// In fr, this message translates to:
+  /// **'Changer le mot de passe'**
+  String get accountChangePassword;
+
+  /// Section listing the stores on this account.
+  ///
+  /// In fr, this message translates to:
+  /// **'Établissements liés'**
+  String get accountLinkedStores;
+
+  /// Notification preferences heading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Préférences de notification'**
+  String get notificationPrefsTitle;
+
+  /// Supporting line on the notification preferences screen.
+  ///
+  /// In fr, this message translates to:
+  /// **'Choisissez ce dont vous souhaitez être averti.'**
+  String get notificationPrefsSubtitle;
+
+  /// Toggle: notify when an item drops below its threshold.
+  ///
+  /// In fr, this message translates to:
+  /// **'Alertes de stock faible'**
+  String get notificationPrefLowStock;
+
+  /// Describes the low stock notification toggle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Recevez une alerte dès qu\'un article passe sous son seuil.'**
+  String get notificationPrefLowStockBody;
+
+  /// Toggle: notify when a supplier price changes.
+  ///
+  /// In fr, this message translates to:
+  /// **'Changements de prix'**
+  String get notificationPrefPriceChange;
+
+  /// Describes the price change notification toggle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Soyez averti quand un fournisseur modifie un prix.'**
+  String get notificationPrefPriceChangeBody;
+
+  /// Toggle: notify on large stock corrections.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ajustements importants'**
+  String get notificationPrefLargeAdjustment;
+
+  /// Describes the large adjustment notification toggle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Soyez averti lorsqu\'un comptage corrige fortement le stock.'**
+  String get notificationPrefLargeAdjustmentBody;
+
+  /// Toggle: notify when a delivery is recorded.
+  ///
+  /// In fr, this message translates to:
+  /// **'Livraisons enregistrées'**
+  String get notificationPrefDeliveries;
+
+  /// Describes the deliveries notification toggle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Recevez un résumé de chaque livraison enregistrée.'**
+  String get notificationPrefDeliveriesBody;
+
+  /// Sync status screen heading.
+  ///
+  /// In fr, this message translates to:
+  /// **'État de la synchronisation'**
+  String get syncTitle;
+
+  /// Explains the offline-first model. Reassurance, not an apology.
+  ///
+  /// In fr, this message translates to:
+  /// **'L\'application fonctionne hors ligne et se synchronise dès que la connexion revient.'**
+  String get syncSubtitle;
+
+  /// When data last reached the server.
+  ///
+  /// In fr, this message translates to:
+  /// **'Dernière synchronisation'**
+  String get syncLastSynced;
+
+  /// Count of local changes not yet synced.
+  ///
+  /// In fr, this message translates to:
+  /// **'Modifications en attente'**
+  String get syncPending;
+
+  /// Action forcing a sync.
+  ///
+  /// In fr, this message translates to:
+  /// **'Synchroniser maintenant'**
+  String get syncNow;
+
+  /// Snackbar shown when a sync is triggered.
+  ///
+  /// In fr, this message translates to:
+  /// **'Synchronisation en cours…'**
+  String get syncStarted;
+
+  /// Connection status: online.
+  ///
+  /// In fr, this message translates to:
+  /// **'Connecté'**
+  String get syncOnline;
+
+  /// Connection status: offline.
+  ///
+  /// In fr, this message translates to:
+  /// **'Hors ligne'**
+  String get syncOffline;
+
+  /// Debug toggle letting the offline experience be demoed on demand. The brief asks for this explicitly.
+  ///
+  /// In fr, this message translates to:
+  /// **'Simuler le mode hors ligne'**
+  String get syncDemoToggle;
+
+  /// Explains that the offline toggle is a demo aid, not a real setting.
+  ///
+  /// In fr, this message translates to:
+  /// **'Pour la démonstration : affiche la bannière hors ligne dans toute l\'application.'**
+  String get syncDemoToggleBody;
+
+  /// Honest note that sync is not implemented in Phase 1.
+  ///
+  /// In fr, this message translates to:
+  /// **'La synchronisation réelle sera ajoutée en phase 2. Les valeurs ci-dessus sont fictives.'**
+  String get syncPhase2Note;
+
+  /// Global search screen heading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Recherche'**
+  String get searchTitle;
+
+  /// Placeholder in the global search field.
+  ///
+  /// In fr, this message translates to:
+  /// **'Article, fournisseur, catégorie…'**
+  String get searchHint;
+
+  /// Prompt shown before anything is typed.
+  ///
+  /// In fr, this message translates to:
+  /// **'Que cherchez-vous ?'**
+  String get searchPrompt;
+
+  /// Supporting line under the search prompt.
+  ///
+  /// In fr, this message translates to:
+  /// **'Recherchez parmi vos articles, fournisseurs et catégories.'**
+  String get searchPromptBody;
+
+  /// Search results section: items.
+  ///
+  /// In fr, this message translates to:
+  /// **'Articles'**
+  String get searchSectionItems;
+
+  /// Search results section: suppliers.
+  ///
+  /// In fr, this message translates to:
+  /// **'Fournisseurs'**
+  String get searchSectionSuppliers;
+
+  /// Search results section: categories.
+  ///
+  /// In fr, this message translates to:
+  /// **'Catégories'**
+  String get searchSectionCategories;
+
+  /// Total search result count.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =0{Aucun résultat} =1{1 résultat} other{{count} résultats}}'**
+  String searchResultCount(int count);
 }
 
 class _AppLocalizationsDelegate

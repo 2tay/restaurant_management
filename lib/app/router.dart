@@ -18,6 +18,10 @@ import '../features/stock_movement/presentation/pages/stock_history_page.dart';
 import '../features/stock_movement/presentation/pages/stock_in_page.dart';
 import '../features/stock_movement/presentation/pages/stock_out_page.dart';
 import '../features/stores/presentation/pages/store_selector_page.dart';
+import '../features/suppliers/presentation/pages/add_edit_supplier_page.dart';
+import '../features/suppliers/presentation/pages/supplier_detail_page.dart';
+import '../features/suppliers/presentation/pages/supplier_pricing_page.dart';
+import '../features/suppliers/presentation/pages/suppliers_list_page.dart';
 import '../mock_data/mock_data.dart';
 import '../shared/widgets/app_scaffold.dart';
 import '../shared/widgets/placeholder_page.dart';
@@ -192,37 +196,33 @@ final GoRouter appRouter = GoRouter(
         // --- Suppliers -------------------------------------------------------
         GoRoute(
           path: Routes.suppliers,
-          builder: (context, state) => const PlaceholderPage(
-            title: 'Fournisseurs',
-            note: 'features/suppliers',
-          ),
+          builder: (context, state) =>
+              SuppliersListPage(storeId: _storeId(state)),
         ),
         GoRoute(
           path: Routes.addSupplier,
-          builder: (context, state) => const PlaceholderPage(
-            title: 'Ajouter un fournisseur',
-            note: 'features/suppliers',
-          ),
+          builder: (context, state) =>
+              AddEditSupplierPage(storeId: _storeId(state)),
         ),
         GoRoute(
           path: Routes.supplierDetail,
-          builder: (context, state) => const PlaceholderPage(
-            title: 'Détail du fournisseur',
-            note: 'features/suppliers',
+          builder: (context, state) => SupplierDetailPage(
+            storeId: _storeId(state),
+            supplierId: state.pathParameters['supplierId']!,
           ),
         ),
         GoRoute(
           path: Routes.editSupplier,
-          builder: (context, state) => const PlaceholderPage(
-            title: 'Modifier le fournisseur',
-            note: 'features/suppliers',
+          builder: (context, state) => AddEditSupplierPage(
+            storeId: _storeId(state),
+            supplierId: state.pathParameters['supplierId'],
           ),
         ),
         GoRoute(
           path: Routes.supplierPricing,
-          builder: (context, state) => const PlaceholderPage(
-            title: 'Tarifs du fournisseur',
-            note: 'features/suppliers',
+          builder: (context, state) => SupplierPricingPage(
+            storeId: _storeId(state),
+            supplierId: state.pathParameters['supplierId']!,
           ),
         ),
 
