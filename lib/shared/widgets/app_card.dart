@@ -54,13 +54,24 @@ class AppCard extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
+          // The accent stripe is a positioned child rather than a Row sibling
+          // or a thicker left border. A Row would need
+          // CrossAxisAlignment.stretch, which demands a bounded height, and
+          // these cards live in ListViews where height is unbounded. A
+          // non-uniform Border cannot be painted with a borderRadius at all.
+          // Stack sizes itself to the content and lets the stripe fill.
           child: accentColor == null
               ? content
-              : Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+              : Stack(
                   children: [
-                    Container(width: 5, color: accentColor),
-                    Expanded(child: content),
+                    content,
+                    Positioned(
+                      left: 0,
+                      top: 0,
+                      bottom: 0,
+                      width: 5,
+                      child: ColoredBox(color: accentColor!),
+                    ),
                   ],
                 ),
         ),

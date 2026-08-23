@@ -304,4 +304,264 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get addStoreCreated => 'Établissement créé';
+
+  @override
+  String get inventoryTitle => 'Inventaire';
+
+  @override
+  String get inventorySearchHint => 'Rechercher un article…';
+
+  @override
+  String get inventoryFilterCategory => 'Catégorie';
+
+  @override
+  String get inventoryFilterSupplier => 'Fournisseur';
+
+  @override
+  String get inventoryFilterAll => 'Toutes';
+
+  @override
+  String get inventoryFilterAllSuppliers => 'Tous';
+
+  @override
+  String get inventoryFilterLowOnly => 'Stock faible uniquement';
+
+  @override
+  String inventoryCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count articles',
+      one: '1 article',
+      zero: 'Aucun article',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get inventoryClearFilters => 'Effacer les filtres';
+
+  @override
+  String get inventorySelectPrompt => 'Sélectionnez un article';
+
+  @override
+  String get inventorySelectPromptBody =>
+      'Choisissez un article dans la liste pour voir son détail, ses fournisseurs et ses prix.';
+
+  @override
+  String get itemQuantityLabel => 'Quantité en stock';
+
+  @override
+  String get itemThresholdLabel => 'Seuil d\'alerte';
+
+  @override
+  String get itemCategoryLabel => 'Catégorie';
+
+  @override
+  String get itemUnitLabel => 'Unité';
+
+  @override
+  String get itemUpdatedLabel => 'Mis à jour';
+
+  @override
+  String get itemNoteLabel => 'Note';
+
+  @override
+  String get itemSuppliersTitle => 'Fournisseurs et prix';
+
+  @override
+  String get itemSuppliersSubtitle =>
+      'Un même produit peut avoir plusieurs fournisseurs, chacun avec son prix.';
+
+  @override
+  String get itemNoSuppliersTitle => 'Aucun fournisseur associé';
+
+  @override
+  String get itemNoSuppliersBody =>
+      'Associez un fournisseur pour enregistrer un prix et suivre son évolution.';
+
+  @override
+  String get itemLinkSupplier => 'Associer un fournisseur';
+
+  @override
+  String get itemDefaultSupplier => 'Par défaut';
+
+  @override
+  String get itemCheapest => 'Meilleur prix';
+
+  @override
+  String itemOverpayWarning(String amount, String unit, String supplier) {
+    return 'Vous payez $amount de plus par $unit qu\'avec $supplier.';
+  }
+
+  @override
+  String itemPriceUpdated(String date) {
+    return 'Mis à jour le $date';
+  }
+
+  @override
+  String get itemViewPriceHistory => 'Historique des prix';
+
+  @override
+  String get itemMovementsTitle => 'Mouvements récents';
+
+  @override
+  String get itemNoMovements => 'Aucun mouvement enregistré';
+
+  @override
+  String get itemDeleted => 'Article supprimé';
+
+  @override
+  String get itemSupplierRemoved => 'Fournisseur dissocié';
+
+  @override
+  String get itemRemoveSupplierWarning =>
+      'Le prix enregistré et son historique pour ce fournisseur seront perdus.';
+
+  @override
+  String get addItemTitle => 'Ajouter un article';
+
+  @override
+  String get editItemTitle => 'Modifier l\'article';
+
+  @override
+  String get itemFormName => 'Nom de l\'article';
+
+  @override
+  String get itemFormNameHint => 'Ex. : Blanc de poulet';
+
+  @override
+  String get itemFormStartingQuantity => 'Quantité de départ';
+
+  @override
+  String get itemFormThresholdHelp =>
+      'Vous serez alerté lorsque le stock atteindra ce niveau ou passera en dessous.';
+
+  @override
+  String get itemFormNoCostTitle => 'Pas de prix sur cette page';
+
+  @override
+  String get itemFormNoCostBody =>
+      'Le prix dépend du fournisseur. Associez un ou plusieurs fournisseurs à cet article pour enregistrer leurs prix respectifs.';
+
+  @override
+  String get itemCreated => 'Article créé';
+
+  @override
+  String get itemUpdated => 'Article modifié';
+
+  @override
+  String get itemFormCreateCategory => '+ Créer une catégorie';
+
+  @override
+  String get itemFormCreateUnit => '+ Créer une unité';
+
+  @override
+  String get createCategoryTitle => 'Nouvelle catégorie';
+
+  @override
+  String get createCategoryName => 'Nom de la catégorie';
+
+  @override
+  String get createCategoryHint => 'Ex. : Fruits & Légumes';
+
+  @override
+  String get categoryCreated => 'Catégorie créée';
+
+  @override
+  String get createUnitTitle => 'Nouvelle unité de mesure';
+
+  @override
+  String get createUnitName => 'Nom complet';
+
+  @override
+  String get createUnitNameHint => 'Ex. : Kilogramme';
+
+  @override
+  String get createUnitAbbreviation => 'Abréviation';
+
+  @override
+  String get createUnitAbbreviationHint => 'Ex. : kg';
+
+  @override
+  String get unitCreated => 'Unité créée';
+
+  @override
+  String get linkSupplierTitle => 'Associer un fournisseur';
+
+  @override
+  String linkSupplierFor(String item) {
+    return 'Pour $item';
+  }
+
+  @override
+  String get linkSupplierPick => 'Fournisseur';
+
+  @override
+  String get linkSupplierCreate => '+ Créer un fournisseur';
+
+  @override
+  String linkSupplierPrice(String unit) {
+    return 'Prix par $unit';
+  }
+
+  @override
+  String get linkSupplierPriceHelp =>
+      'Le prix de ce fournisseur pour cet article. Chaque modification sera enregistrée dans l\'historique.';
+
+  @override
+  String get linkSupplierSetDefault => 'Définir comme fournisseur par défaut';
+
+  @override
+  String get linkSupplierSetDefaultHelp =>
+      'Ce fournisseur sera présélectionné lors de l\'enregistrement d\'une livraison.';
+
+  @override
+  String get linkSupplierSubmit => 'Associer';
+
+  @override
+  String get supplierLinked => 'Fournisseur associé';
+
+  @override
+  String get priceHistoryTitle => 'Historique des prix';
+
+  @override
+  String priceHistoryFor(String item, String supplier) {
+    return '$item — $supplier';
+  }
+
+  @override
+  String get priceHistoryCurrent => 'Prix actuel';
+
+  @override
+  String priceHistorySince(String date) {
+    return 'Depuis le $date';
+  }
+
+  @override
+  String get priceHistoryTotalChange => 'Évolution totale';
+
+  @override
+  String priceHistoryChanges(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count modifications',
+      one: '1 modification',
+      zero: 'Aucune modification',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get priceHistoryEmpty => 'Aucune modification de prix';
+
+  @override
+  String get priceHistoryEmptyBody =>
+      'Le prix n\'a pas changé depuis son enregistrement.';
+
+  @override
+  String priceHistoryChangedBy(String name) {
+    return 'Par $name';
+  }
 }

@@ -5,6 +5,11 @@ import '../dev/theme_gallery_page.dart';
 import '../features/auth/presentation/pages/forgot_password_page.dart';
 import '../features/auth/presentation/pages/login_page.dart';
 import '../features/auth/presentation/pages/onboarding_page.dart';
+import '../features/inventory/presentation/pages/add_edit_item_page.dart';
+import '../features/inventory/presentation/pages/inventory_list_page.dart';
+import '../features/inventory/presentation/pages/item_detail_page.dart';
+import '../features/inventory/presentation/pages/item_price_history_page.dart';
+import '../features/inventory/presentation/pages/link_supplier_to_item_page.dart';
 import '../features/stores/presentation/pages/add_store_page.dart';
 import '../features/stores/presentation/pages/store_selector_page.dart';
 import '../mock_data/mock_data.dart';
@@ -25,6 +30,13 @@ import 'routes.dart';
 ///
 /// Screens still to be built resolve to [PlaceholderPage]; Stage 5 swaps them
 /// out one at a time.
+
+/// Pulls the store id out of a store-scoped route.
+///
+/// The `!` is safe: every route using this sits under `/store/:storeId/`, so
+/// go_router cannot match it without the parameter present.
+String _storeId(GoRouterState state) => state.pathParameters['storeId']!;
+
 final GoRouter appRouter = GoRouter(
   // Phase 1 has no authentication, so the app opens on the login screen and
   // every button simply navigates onward. There is no redirect guard here on
@@ -87,44 +99,41 @@ final GoRouter appRouter = GoRouter(
         // order — otherwise "new" would be read as an item id.
         GoRoute(
           path: Routes.inventory,
-          builder: (context, state) => const PlaceholderPage(
-            title: 'Inventaire',
-            note: 'features/inventory',
-          ),
+          builder: (context, state) =>
+              InventoryListPage(storeId: _storeId(state)),
         ),
         GoRoute(
           path: Routes.addItem,
-          builder: (context, state) => const PlaceholderPage(
-            title: 'Ajouter un article',
-            note: 'features/inventory',
-          ),
+          builder: (context, state) =>
+              AddEditItemPage(storeId: _storeId(state)),
         ),
         GoRoute(
           path: Routes.itemDetail,
-          builder: (context, state) => const PlaceholderPage(
-            title: "Détail de l'article",
-            note: 'features/inventory',
+          builder: (context, state) => ItemDetailPage(
+            storeId: _storeId(state),
+            itemId: state.pathParameters['itemId']!,
           ),
         ),
         GoRoute(
           path: Routes.editItem,
-          builder: (context, state) => const PlaceholderPage(
-            title: "Modifier l'article",
-            note: 'features/inventory',
+          builder: (context, state) => AddEditItemPage(
+            storeId: _storeId(state),
+            itemId: state.pathParameters['itemId'],
           ),
         ),
         GoRoute(
           path: Routes.linkSupplier,
-          builder: (context, state) => const PlaceholderPage(
-            title: 'Associer un fournisseur',
-            note: 'features/inventory',
+          builder: (context, state) => LinkSupplierToItemPage(
+            storeId: _storeId(state),
+            itemId: state.pathParameters['itemId']!,
           ),
         ),
         GoRoute(
           path: Routes.itemPriceHistory,
-          builder: (context, state) => const PlaceholderPage(
-            title: 'Historique des prix',
-            note: 'features/inventory',
+          builder: (context, state) => ItemPriceHistoryPage(
+            storeId: _storeId(state),
+            itemId: state.pathParameters['itemId']!,
+            supplierId: state.pathParameters['supplierId']!,
           ),
         ),
 

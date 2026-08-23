@@ -603,6 +603,444 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Établissement créé'**
   String get addStoreCreated;
+
+  /// Inventory list heading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Inventaire'**
+  String get inventoryTitle;
+
+  /// Placeholder in the inventory search field.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rechercher un article…'**
+  String get inventorySearchHint;
+
+  /// Category filter label on the inventory list.
+  ///
+  /// In fr, this message translates to:
+  /// **'Catégorie'**
+  String get inventoryFilterCategory;
+
+  /// Supplier filter label on the inventory list.
+  ///
+  /// In fr, this message translates to:
+  /// **'Fournisseur'**
+  String get inventoryFilterSupplier;
+
+  /// Filter option clearing the category filter. Feminine, agreeing with 'catégories'.
+  ///
+  /// In fr, this message translates to:
+  /// **'Toutes'**
+  String get inventoryFilterAll;
+
+  /// Filter option clearing the supplier filter. Masculine, agreeing with 'fournisseurs'.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tous'**
+  String get inventoryFilterAllSuppliers;
+
+  /// Toggle limiting the list to items needing attention.
+  ///
+  /// In fr, this message translates to:
+  /// **'Stock faible uniquement'**
+  String get inventoryFilterLowOnly;
+
+  /// Result count under the inventory search.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =0{Aucun article} =1{1 article} other{{count} articles}}'**
+  String inventoryCount(int count);
+
+  /// Clears all active inventory filters.
+  ///
+  /// In fr, this message translates to:
+  /// **'Effacer les filtres'**
+  String get inventoryClearFilters;
+
+  /// Placeholder in the detail pane of the inventory split view.
+  ///
+  /// In fr, this message translates to:
+  /// **'Sélectionnez un article'**
+  String get inventorySelectPrompt;
+
+  /// Supporting line in the empty detail pane.
+  ///
+  /// In fr, this message translates to:
+  /// **'Choisissez un article dans la liste pour voir son détail, ses fournisseurs et ses prix.'**
+  String get inventorySelectPromptBody;
+
+  /// Label above an item's current quantity.
+  ///
+  /// In fr, this message translates to:
+  /// **'Quantité en stock'**
+  String get itemQuantityLabel;
+
+  /// Label for the low-stock threshold.
+  ///
+  /// In fr, this message translates to:
+  /// **'Seuil d\'alerte'**
+  String get itemThresholdLabel;
+
+  /// Label for an item's category.
+  ///
+  /// In fr, this message translates to:
+  /// **'Catégorie'**
+  String get itemCategoryLabel;
+
+  /// Label for an item's unit of measure.
+  ///
+  /// In fr, this message translates to:
+  /// **'Unité'**
+  String get itemUnitLabel;
+
+  /// Label for when the item last changed.
+  ///
+  /// In fr, this message translates to:
+  /// **'Mis à jour'**
+  String get itemUpdatedLabel;
+
+  /// Label for the free-text note on an item.
+  ///
+  /// In fr, this message translates to:
+  /// **'Note'**
+  String get itemNoteLabel;
+
+  /// Section heading listing every supplier for this item with their price.
+  ///
+  /// In fr, this message translates to:
+  /// **'Fournisseurs et prix'**
+  String get itemSuppliersTitle;
+
+  /// States the core domain rule on the item detail screen: price belongs to the item-supplier link, not to the item.
+  ///
+  /// In fr, this message translates to:
+  /// **'Un même produit peut avoir plusieurs fournisseurs, chacun avec son prix.'**
+  String get itemSuppliersSubtitle;
+
+  /// Empty state when an item has no supplier links.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun fournisseur associé'**
+  String get itemNoSuppliersTitle;
+
+  /// Supporting line for the no-suppliers empty state.
+  ///
+  /// In fr, this message translates to:
+  /// **'Associez un fournisseur pour enregistrer un prix et suivre son évolution.'**
+  String get itemNoSuppliersBody;
+
+  /// Action opening the link-supplier form.
+  ///
+  /// In fr, this message translates to:
+  /// **'Associer un fournisseur'**
+  String get itemLinkSupplier;
+
+  /// Badge marking the supplier normally used for this item.
+  ///
+  /// In fr, this message translates to:
+  /// **'Par défaut'**
+  String get itemDefaultSupplier;
+
+  /// Badge marking the cheapest supplier for this item.
+  ///
+  /// In fr, this message translates to:
+  /// **'Meilleur prix'**
+  String get itemCheapest;
+
+  /// Shown when the default supplier is not the cheapest. This is the app's key selling point made concrete.
+  ///
+  /// In fr, this message translates to:
+  /// **'Vous payez {amount} de plus par {unit} qu\'avec {supplier}.'**
+  String itemOverpayWarning(String amount, String unit, String supplier);
+
+  /// When a supplier's price for this item last changed.
+  ///
+  /// In fr, this message translates to:
+  /// **'Mis à jour le {date}'**
+  String itemPriceUpdated(String date);
+
+  /// Link to the price history for one item-supplier pair.
+  ///
+  /// In fr, this message translates to:
+  /// **'Historique des prix'**
+  String get itemViewPriceHistory;
+
+  /// Section heading for this item's stock movement history.
+  ///
+  /// In fr, this message translates to:
+  /// **'Mouvements récents'**
+  String get itemMovementsTitle;
+
+  /// Empty state for an item with no movement history.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun mouvement enregistré'**
+  String get itemNoMovements;
+
+  /// Snackbar confirming an item was deleted.
+  ///
+  /// In fr, this message translates to:
+  /// **'Article supprimé'**
+  String get itemDeleted;
+
+  /// Snackbar confirming a supplier link was removed from an item.
+  ///
+  /// In fr, this message translates to:
+  /// **'Fournisseur dissocié'**
+  String get itemSupplierRemoved;
+
+  /// Extra warning in the remove-supplier-link confirmation.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le prix enregistré et son historique pour ce fournisseur seront perdus.'**
+  String get itemRemoveSupplierWarning;
+
+  /// Add-item form heading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ajouter un article'**
+  String get addItemTitle;
+
+  /// Edit-item form heading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Modifier l\'article'**
+  String get editItemTitle;
+
+  /// Item name field label.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nom de l\'article'**
+  String get itemFormName;
+
+  /// Placeholder for the item name field.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ex. : Blanc de poulet'**
+  String get itemFormNameHint;
+
+  /// Opening stock quantity on the add-item form.
+  ///
+  /// In fr, this message translates to:
+  /// **'Quantité de départ'**
+  String get itemFormStartingQuantity;
+
+  /// Helper text explaining the low-stock threshold.
+  ///
+  /// In fr, this message translates to:
+  /// **'Vous serez alerté lorsque le stock atteindra ce niveau ou passera en dessous.'**
+  String get itemFormThresholdHelp;
+
+  /// Heading of the note explaining why the item form has no cost field.
+  ///
+  /// In fr, this message translates to:
+  /// **'Pas de prix sur cette page'**
+  String get itemFormNoCostTitle;
+
+  /// Explains that price lives on the item-supplier link. Without this the missing cost field reads as an oversight.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le prix dépend du fournisseur. Associez un ou plusieurs fournisseurs à cet article pour enregistrer leurs prix respectifs.'**
+  String get itemFormNoCostBody;
+
+  /// Snackbar confirming item creation.
+  ///
+  /// In fr, this message translates to:
+  /// **'Article créé'**
+  String get itemCreated;
+
+  /// Snackbar confirming item edit.
+  ///
+  /// In fr, this message translates to:
+  /// **'Article modifié'**
+  String get itemUpdated;
+
+  /// Inline create option in the category dropdown.
+  ///
+  /// In fr, this message translates to:
+  /// **'+ Créer une catégorie'**
+  String get itemFormCreateCategory;
+
+  /// Inline create option in the unit dropdown.
+  ///
+  /// In fr, this message translates to:
+  /// **'+ Créer une unité'**
+  String get itemFormCreateUnit;
+
+  /// Heading of the inline category creation sheet.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nouvelle catégorie'**
+  String get createCategoryTitle;
+
+  /// Category name field label.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nom de la catégorie'**
+  String get createCategoryName;
+
+  /// Placeholder for the category name field.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ex. : Fruits & Légumes'**
+  String get createCategoryHint;
+
+  /// Snackbar confirming category creation.
+  ///
+  /// In fr, this message translates to:
+  /// **'Catégorie créée'**
+  String get categoryCreated;
+
+  /// Heading of the inline unit creation sheet.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nouvelle unité de mesure'**
+  String get createUnitTitle;
+
+  /// Unit full name field label, e.g. Kilogramme.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nom complet'**
+  String get createUnitName;
+
+  /// Placeholder for the unit name field.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ex. : Kilogramme'**
+  String get createUnitNameHint;
+
+  /// Unit short form field label, e.g. kg.
+  ///
+  /// In fr, this message translates to:
+  /// **'Abréviation'**
+  String get createUnitAbbreviation;
+
+  /// Placeholder for the unit abbreviation field.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ex. : kg'**
+  String get createUnitAbbreviationHint;
+
+  /// Snackbar confirming unit creation.
+  ///
+  /// In fr, this message translates to:
+  /// **'Unité créée'**
+  String get unitCreated;
+
+  /// Link-supplier form heading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Associer un fournisseur'**
+  String get linkSupplierTitle;
+
+  /// Subtitle naming the item a supplier is being linked to.
+  ///
+  /// In fr, this message translates to:
+  /// **'Pour {item}'**
+  String linkSupplierFor(String item);
+
+  /// Supplier picker label.
+  ///
+  /// In fr, this message translates to:
+  /// **'Fournisseur'**
+  String get linkSupplierPick;
+
+  /// Inline create option in the supplier picker.
+  ///
+  /// In fr, this message translates to:
+  /// **'+ Créer un fournisseur'**
+  String get linkSupplierCreate;
+
+  /// Price field label, naming the item's unit.
+  ///
+  /// In fr, this message translates to:
+  /// **'Prix par {unit}'**
+  String linkSupplierPrice(String unit);
+
+  /// Helper text under the price field.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le prix de ce fournisseur pour cet article. Chaque modification sera enregistrée dans l\'historique.'**
+  String get linkSupplierPriceHelp;
+
+  /// Toggle marking this supplier as the default for the item.
+  ///
+  /// In fr, this message translates to:
+  /// **'Définir comme fournisseur par défaut'**
+  String get linkSupplierSetDefault;
+
+  /// Explains what the default-supplier toggle does.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ce fournisseur sera présélectionné lors de l\'enregistrement d\'une livraison.'**
+  String get linkSupplierSetDefaultHelp;
+
+  /// Primary action on the link-supplier form.
+  ///
+  /// In fr, this message translates to:
+  /// **'Associer'**
+  String get linkSupplierSubmit;
+
+  /// Snackbar confirming a supplier was linked to an item.
+  ///
+  /// In fr, this message translates to:
+  /// **'Fournisseur associé'**
+  String get supplierLinked;
+
+  /// Price history screen heading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Historique des prix'**
+  String get priceHistoryTitle;
+
+  /// Subtitle naming the item-supplier pair. Price history is always scoped to a pair, never to an item alone.
+  ///
+  /// In fr, this message translates to:
+  /// **'{item} — {supplier}'**
+  String priceHistoryFor(String item, String supplier);
+
+  /// Label above the current price on the history screen.
+  ///
+  /// In fr, this message translates to:
+  /// **'Prix actuel'**
+  String get priceHistoryCurrent;
+
+  /// How long the current price has been in effect.
+  ///
+  /// In fr, this message translates to:
+  /// **'Depuis le {date}'**
+  String priceHistorySince(String date);
+
+  /// Label for the overall price movement across the recorded history.
+  ///
+  /// In fr, this message translates to:
+  /// **'Évolution totale'**
+  String get priceHistoryTotalChange;
+
+  /// Count of recorded price changes.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =0{Aucune modification} =1{1 modification} other{{count} modifications}}'**
+  String priceHistoryChanges(int count);
+
+  /// Empty state when a supplier price has never changed.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucune modification de prix'**
+  String get priceHistoryEmpty;
+
+  /// Supporting line for the empty price history state.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le prix n\'a pas changé depuis son enregistrement.'**
+  String get priceHistoryEmptyBody;
+
+  /// Who recorded a price change.
+  ///
+  /// In fr, this message translates to:
+  /// **'Par {name}'**
+  String priceHistoryChangedBy(String name);
 }
 
 class _AppLocalizationsDelegate
