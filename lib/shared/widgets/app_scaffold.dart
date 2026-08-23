@@ -79,30 +79,51 @@ class ShellPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
+    final titleBlock = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title, style: theme.textTheme.headlineMedium),
+        if (subtitle != null) ...[
+          const SizedBox(height: 4),
+          Text(subtitle!, style: theme.textTheme.bodyMedium),
+        ],
+      ],
+    );
+
+    // Two long French action labels plus a title do not fit across a 1024dp
+    // tablet — "Enregistrer une livraison" alone is most of a button. Rather
+    // than shrink the buttons or clip the title, the header stacks below a
+    // threshold and puts the actions on their own row.
     final header = Padding(
       padding: const EdgeInsets.only(bottom: 24),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: theme.textTheme.headlineMedium),
-                if (subtitle != null) ...[
-                  const SizedBox(height: 4),
-                  Text(subtitle!, style: theme.textTheme.bodyMedium),
-                ],
-              ],
-            ),
-          ),
-          if (actions.isNotEmpty) ...[
-            const SizedBox(width: 24),
-            // Wraps so long French button labels drop to a second line rather
-            // than squeezing the title.
-            Wrap(spacing: 12, runSpacing: 12, children: actions),
-          ],
-        ],
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          if (actions.isEmpty) return titleBlock;
+
+          final actionRow = Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            alignment: WrapAlignment.end,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: actions,
+          );
+
+          if (constraints.maxWidth < 820) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [titleBlock, const SizedBox(height: 16), actionRow],
+            );
+          }
+
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(flex: 3, child: titleBlock),
+              const SizedBox(width: 24),
+              Flexible(flex: 2, child: actionRow),
+            ],
+          );
+        },
       ),
     );
 

@@ -5,12 +5,18 @@ import '../dev/theme_gallery_page.dart';
 import '../features/auth/presentation/pages/forgot_password_page.dart';
 import '../features/auth/presentation/pages/login_page.dart';
 import '../features/auth/presentation/pages/onboarding_page.dart';
+import '../features/catalog/presentation/pages/categories_page.dart';
+import '../features/catalog/presentation/pages/units_page.dart';
 import '../features/inventory/presentation/pages/add_edit_item_page.dart';
 import '../features/inventory/presentation/pages/inventory_list_page.dart';
 import '../features/inventory/presentation/pages/item_detail_page.dart';
 import '../features/inventory/presentation/pages/item_price_history_page.dart';
 import '../features/inventory/presentation/pages/link_supplier_to_item_page.dart';
 import '../features/stores/presentation/pages/add_store_page.dart';
+import '../features/stock_movement/presentation/pages/stock_adjustment_page.dart';
+import '../features/stock_movement/presentation/pages/stock_history_page.dart';
+import '../features/stock_movement/presentation/pages/stock_in_page.dart';
+import '../features/stock_movement/presentation/pages/stock_out_page.dart';
 import '../features/stores/presentation/pages/store_selector_page.dart';
 import '../mock_data/mock_data.dart';
 import '../shared/widgets/app_scaffold.dart';
@@ -140,47 +146,31 @@ final GoRouter appRouter = GoRouter(
         // --- Catalog ---------------------------------------------------------
         GoRoute(
           path: Routes.categories,
-          builder: (context, state) => const PlaceholderPage(
-            title: 'Catégories',
-            note: 'features/catalog',
-          ),
+          builder: (context, state) => CategoriesPage(storeId: _storeId(state)),
         ),
         GoRoute(
           path: Routes.units,
-          builder: (context, state) => const PlaceholderPage(
-            title: 'Unités de mesure',
-            note: 'features/catalog',
-          ),
+          builder: (context, state) => UnitsPage(storeId: _storeId(state)),
         ),
 
         // --- Stock movement --------------------------------------------------
         GoRoute(
           path: Routes.movements,
-          builder: (context, state) => const PlaceholderPage(
-            title: 'Mouvements de stock',
-            note: 'features/stock_movement',
-          ),
+          builder: (context, state) =>
+              StockHistoryPage(storeId: _storeId(state)),
         ),
         GoRoute(
           path: Routes.stockIn,
-          builder: (context, state) => const PlaceholderPage(
-            title: 'Enregistrer une livraison',
-            note: 'features/stock_movement',
-          ),
+          builder: (context, state) => StockInPage(storeId: _storeId(state)),
         ),
         GoRoute(
           path: Routes.stockOut,
-          builder: (context, state) => const PlaceholderPage(
-            title: 'Sortie de stock',
-            note: 'features/stock_movement',
-          ),
+          builder: (context, state) => StockOutPage(storeId: _storeId(state)),
         ),
         GoRoute(
           path: Routes.stockAdjustment,
-          builder: (context, state) => const PlaceholderPage(
-            title: 'Ajustement de stock',
-            note: 'features/stock_movement',
-          ),
+          builder: (context, state) =>
+              StockAdjustmentPage(storeId: _storeId(state)),
         ),
 
         // --- Alerts ----------------------------------------------------------

@@ -564,4 +564,276 @@ class AppLocalizationsFr extends AppLocalizations {
   String priceHistoryChangedBy(String name) {
     return 'Par $name';
   }
+
+  @override
+  String get categoriesTitle => 'Catégories';
+
+  @override
+  String get categoriesSubtitle =>
+      'Les catégories servent à classer et filtrer vos articles.';
+
+  @override
+  String get categoriesAdd => 'Ajouter une catégorie';
+
+  @override
+  String get categoriesEmpty => 'Aucune catégorie';
+
+  @override
+  String get categoriesEmptyBody =>
+      'Créez une première catégorie pour organiser vos articles.';
+
+  @override
+  String categoriesItemCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count articles',
+      one: '1 article',
+      zero: 'Aucun article',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String categoriesInUseWarning(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count articles utilisent cette catégorie et devront être reclassés.',
+      one: '1 article utilise cette catégorie et devra être reclassé.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get categoryDeleted => 'Catégorie supprimée';
+
+  @override
+  String get categoryUpdated => 'Catégorie modifiée';
+
+  @override
+  String get unitsTitle => 'Unités de mesure';
+
+  @override
+  String get unitsSubtitle =>
+      'Kilogramme, litre, bac, caisse — définissez les unités utilisées dans votre cuisine.';
+
+  @override
+  String get unitsAdd => 'Ajouter une unité';
+
+  @override
+  String get unitsEmpty => 'Aucune unité de mesure';
+
+  @override
+  String get unitsEmptyBody =>
+      'Créez une première unité pour pouvoir ajouter des articles.';
+
+  @override
+  String unitsInUseWarning(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count articles utilisent cette unité.',
+      one: '1 article utilise cette unité.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get unitDeleted => 'Unité supprimée';
+
+  @override
+  String get unitUpdated => 'Unité modifiée';
+
+  @override
+  String get movementsTitle => 'Mouvements de stock';
+
+  @override
+  String get movementsSubtitle =>
+      'Historique de toutes les entrées, sorties et corrections.';
+
+  @override
+  String get movementsEmpty => 'Aucun mouvement';
+
+  @override
+  String get movementsEmptyBody =>
+      'Les livraisons et sorties de stock apparaîtront ici.';
+
+  @override
+  String movementsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count mouvements',
+      one: '1 mouvement',
+      zero: 'Aucun mouvement',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get movementsFilterType => 'Type';
+
+  @override
+  String get movementsFilterAllTypes => 'Tous les types';
+
+  @override
+  String get movementsFilterPeriod => 'Période';
+
+  @override
+  String get movementsFilterUser => 'Utilisateur';
+
+  @override
+  String get movementsFilterAllUsers => 'Tous';
+
+  @override
+  String get periodLast7Days => '7 derniers jours';
+
+  @override
+  String get periodLast30Days => '30 derniers jours';
+
+  @override
+  String get periodLast90Days => '90 derniers jours';
+
+  @override
+  String get periodAll => 'Tout l\'historique';
+
+  @override
+  String get movementTypeIn => 'Livraison';
+
+  @override
+  String get movementTypeOut => 'Sortie';
+
+  @override
+  String get movementTypeAdjustment => 'Ajustement';
+
+  @override
+  String get reasonSale => 'Vente';
+
+  @override
+  String get reasonWaste => 'Perte';
+
+  @override
+  String get reasonSpoilage => 'Produit abîmé';
+
+  @override
+  String get reasonTransfer => 'Transfert';
+
+  @override
+  String get stockInTitle => 'Enregistrer une livraison';
+
+  @override
+  String get stockInSubtitle =>
+      'Ajoutez au stock les articles que vous venez de recevoir.';
+
+  @override
+  String get stockInItem => 'Article';
+
+  @override
+  String get stockInSupplier => 'Fournisseur';
+
+  @override
+  String get stockInQuantity => 'Quantité reçue';
+
+  @override
+  String stockInUnitPrice(String unit) {
+    return 'Prix payé par $unit';
+  }
+
+  @override
+  String stockInPriceAutofilled(String supplier) {
+    return 'Prix actuel de $supplier. Modifiez-le si la facture diffère.';
+  }
+
+  @override
+  String stockInPriceChanged(String old) {
+    return 'Ce prix diffère du prix enregistré ($old). L\'écart sera ajouté à l\'historique.';
+  }
+
+  @override
+  String get stockInDate => 'Date de réception';
+
+  @override
+  String get stockInTotal => 'Total de la ligne';
+
+  @override
+  String get stockInSubmit => 'Enregistrer la livraison';
+
+  @override
+  String get stockInRecorded => 'Livraison enregistrée';
+
+  @override
+  String get stockInNoSupplier =>
+      'Cet article n\'a pas encore de fournisseur associé.';
+
+  @override
+  String get stockOutTitle => 'Sortie de stock';
+
+  @override
+  String get stockOutSubtitle =>
+      'Enregistrez ce qui a été vendu, utilisé ou perdu.';
+
+  @override
+  String get stockOutQuantity => 'Quantité sortie';
+
+  @override
+  String get stockOutReason => 'Motif';
+
+  @override
+  String stockOutAvailable(String quantity) {
+    return 'Disponible : $quantity';
+  }
+
+  @override
+  String get stockOutExceedsStock => 'La quantité dépasse le stock disponible.';
+
+  @override
+  String get stockOutSubmit => 'Enregistrer la sortie';
+
+  @override
+  String get stockOutRecorded => 'Sortie enregistrée';
+
+  @override
+  String get adjustmentTitle => 'Ajustement de stock';
+
+  @override
+  String get adjustmentSubtitle =>
+      'Corrigez le stock enregistré après un comptage physique.';
+
+  @override
+  String get adjustmentSystemQuantity => 'Quantité au système';
+
+  @override
+  String get adjustmentCountedQuantity => 'Quantité comptée';
+
+  @override
+  String get adjustmentDifference => 'Écart';
+
+  @override
+  String get adjustmentNote => 'Motif de l\'écart';
+
+  @override
+  String get adjustmentNoteHint => 'Ex. : épluchures non comptabilisées';
+
+  @override
+  String get adjustmentSubmit => 'Enregistrer l\'ajustement';
+
+  @override
+  String get adjustmentRecorded => 'Ajustement enregistré';
+
+  @override
+  String get adjustmentLargeConfirmTitle => 'Confirmer cet ajustement ?';
+
+  @override
+  String adjustmentLargeConfirmBody(
+    String amount,
+    String item,
+    String percent,
+  ) {
+    return 'Vous retirez $amount du stock de $item, soit une baisse de $percent. Vérifiez votre comptage avant de confirmer.';
+  }
+
+  @override
+  String get adjustmentNoChange => 'Aucun écart — rien à enregistrer.';
 }

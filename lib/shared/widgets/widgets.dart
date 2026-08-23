@@ -16,6 +16,7 @@ export 'confirm_dialog.dart';
 export 'data_table_wrapper.dart';
 export 'empty_state.dart';
 export 'error_state.dart';
+export 'filter_pill.dart';
 export 'loading_state.dart';
 export 'offline_banner.dart';
 export 'placeholder_page.dart';

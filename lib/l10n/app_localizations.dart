@@ -1041,6 +1041,432 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Par {name}'**
   String priceHistoryChangedBy(String name);
+
+  /// Categories management screen heading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Catégories'**
+  String get categoriesTitle;
+
+  /// Supporting line on the categories screen.
+  ///
+  /// In fr, this message translates to:
+  /// **'Les catégories servent à classer et filtrer vos articles.'**
+  String get categoriesSubtitle;
+
+  /// Primary action on the categories screen.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ajouter une catégorie'**
+  String get categoriesAdd;
+
+  /// Empty state on the categories screen.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucune catégorie'**
+  String get categoriesEmpty;
+
+  /// Supporting line for the categories empty state.
+  ///
+  /// In fr, this message translates to:
+  /// **'Créez une première catégorie pour organiser vos articles.'**
+  String get categoriesEmptyBody;
+
+  /// How many items use a category.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =0{Aucun article} =1{1 article} other{{count} articles}}'**
+  String categoriesItemCount(int count);
+
+  /// Extra warning when deleting a category that items still reference.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =1{1 article utilise cette catégorie et devra être reclassé.} other{{count} articles utilisent cette catégorie et devront être reclassés.}}'**
+  String categoriesInUseWarning(int count);
+
+  /// Snackbar confirming category deletion.
+  ///
+  /// In fr, this message translates to:
+  /// **'Catégorie supprimée'**
+  String get categoryDeleted;
+
+  /// Snackbar confirming a category was renamed.
+  ///
+  /// In fr, this message translates to:
+  /// **'Catégorie modifiée'**
+  String get categoryUpdated;
+
+  /// Units management screen heading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Unités de mesure'**
+  String get unitsTitle;
+
+  /// Supporting line on the units screen. Names Belgian-specific units on purpose.
+  ///
+  /// In fr, this message translates to:
+  /// **'Kilogramme, litre, bac, caisse — définissez les unités utilisées dans votre cuisine.'**
+  String get unitsSubtitle;
+
+  /// Primary action on the units screen.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ajouter une unité'**
+  String get unitsAdd;
+
+  /// Empty state on the units screen.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucune unité de mesure'**
+  String get unitsEmpty;
+
+  /// Supporting line for the units empty state.
+  ///
+  /// In fr, this message translates to:
+  /// **'Créez une première unité pour pouvoir ajouter des articles.'**
+  String get unitsEmptyBody;
+
+  /// Extra warning when deleting a unit that items still reference.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =1{1 article utilise cette unité.} other{{count} articles utilisent cette unité.}}'**
+  String unitsInUseWarning(int count);
+
+  /// Snackbar confirming unit deletion.
+  ///
+  /// In fr, this message translates to:
+  /// **'Unité supprimée'**
+  String get unitDeleted;
+
+  /// Snackbar confirming a unit was edited.
+  ///
+  /// In fr, this message translates to:
+  /// **'Unité modifiée'**
+  String get unitUpdated;
+
+  /// Movement history screen heading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Mouvements de stock'**
+  String get movementsTitle;
+
+  /// Supporting line on the movement history screen.
+  ///
+  /// In fr, this message translates to:
+  /// **'Historique de toutes les entrées, sorties et corrections.'**
+  String get movementsSubtitle;
+
+  /// Empty state on the movement history screen.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun mouvement'**
+  String get movementsEmpty;
+
+  /// Supporting line for the movements empty state.
+  ///
+  /// In fr, this message translates to:
+  /// **'Les livraisons et sorties de stock apparaîtront ici.'**
+  String get movementsEmptyBody;
+
+  /// Result count on the movement history.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =0{Aucun mouvement} =1{1 mouvement} other{{count} mouvements}}'**
+  String movementsCount(int count);
+
+  /// Movement type filter label.
+  ///
+  /// In fr, this message translates to:
+  /// **'Type'**
+  String get movementsFilterType;
+
+  /// Clears the movement type filter.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tous les types'**
+  String get movementsFilterAllTypes;
+
+  /// Date range filter label.
+  ///
+  /// In fr, this message translates to:
+  /// **'Période'**
+  String get movementsFilterPeriod;
+
+  /// User filter label on the movement history.
+  ///
+  /// In fr, this message translates to:
+  /// **'Utilisateur'**
+  String get movementsFilterUser;
+
+  /// Clears the user filter.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tous'**
+  String get movementsFilterAllUsers;
+
+  /// Date range option.
+  ///
+  /// In fr, this message translates to:
+  /// **'7 derniers jours'**
+  String get periodLast7Days;
+
+  /// Date range option.
+  ///
+  /// In fr, this message translates to:
+  /// **'30 derniers jours'**
+  String get periodLast30Days;
+
+  /// Date range option.
+  ///
+  /// In fr, this message translates to:
+  /// **'90 derniers jours'**
+  String get periodLast90Days;
+
+  /// Date range option covering everything.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tout l\'historique'**
+  String get periodAll;
+
+  /// Stock-in movement type. Plain language, not 'stock ingress'.
+  ///
+  /// In fr, this message translates to:
+  /// **'Livraison'**
+  String get movementTypeIn;
+
+  /// Stock-out movement type.
+  ///
+  /// In fr, this message translates to:
+  /// **'Sortie'**
+  String get movementTypeOut;
+
+  /// Adjustment movement type.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ajustement'**
+  String get movementTypeAdjustment;
+
+  /// Stock-out reason: sold to a customer.
+  ///
+  /// In fr, this message translates to:
+  /// **'Vente'**
+  String get reasonSale;
+
+  /// Stock-out reason: thrown away, dropped, burnt.
+  ///
+  /// In fr, this message translates to:
+  /// **'Perte'**
+  String get reasonWaste;
+
+  /// Stock-out reason: expired or spoiled.
+  ///
+  /// In fr, this message translates to:
+  /// **'Produit abîmé'**
+  String get reasonSpoilage;
+
+  /// Stock-out reason: moved to another store.
+  ///
+  /// In fr, this message translates to:
+  /// **'Transfert'**
+  String get reasonTransfer;
+
+  /// Stock-in screen heading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Enregistrer une livraison'**
+  String get stockInTitle;
+
+  /// Supporting line on the stock-in screen.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ajoutez au stock les articles que vous venez de recevoir.'**
+  String get stockInSubtitle;
+
+  /// Item picker label on the stock-in form.
+  ///
+  /// In fr, this message translates to:
+  /// **'Article'**
+  String get stockInItem;
+
+  /// Supplier picker on the stock-in form. Selecting one auto-fills its current price.
+  ///
+  /// In fr, this message translates to:
+  /// **'Fournisseur'**
+  String get stockInSupplier;
+
+  /// Received quantity label.
+  ///
+  /// In fr, this message translates to:
+  /// **'Quantité reçue'**
+  String get stockInQuantity;
+
+  /// Price actually paid, which may differ from the supplier's listed price.
+  ///
+  /// In fr, this message translates to:
+  /// **'Prix payé par {unit}'**
+  String stockInUnitPrice(String unit);
+
+  /// Explains that the price was pre-filled from the supplier and can be corrected.
+  ///
+  /// In fr, this message translates to:
+  /// **'Prix actuel de {supplier}. Modifiez-le si la facture diffère.'**
+  String stockInPriceAutofilled(String supplier);
+
+  /// Warning shown when the entered delivery price differs from the stored supplier price.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ce prix diffère du prix enregistré ({old}). L\'écart sera ajouté à l\'historique.'**
+  String stockInPriceChanged(String old);
+
+  /// Delivery date field label.
+  ///
+  /// In fr, this message translates to:
+  /// **'Date de réception'**
+  String get stockInDate;
+
+  /// Quantity multiplied by unit price.
+  ///
+  /// In fr, this message translates to:
+  /// **'Total de la ligne'**
+  String get stockInTotal;
+
+  /// Primary action on the stock-in form.
+  ///
+  /// In fr, this message translates to:
+  /// **'Enregistrer la livraison'**
+  String get stockInSubmit;
+
+  /// Snackbar confirming a delivery was recorded.
+  ///
+  /// In fr, this message translates to:
+  /// **'Livraison enregistrée'**
+  String get stockInRecorded;
+
+  /// Shown when the selected item has no supplier links yet.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cet article n\'a pas encore de fournisseur associé.'**
+  String get stockInNoSupplier;
+
+  /// Stock-out screen heading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Sortie de stock'**
+  String get stockOutTitle;
+
+  /// Supporting line on the stock-out screen.
+  ///
+  /// In fr, this message translates to:
+  /// **'Enregistrez ce qui a été vendu, utilisé ou perdu.'**
+  String get stockOutSubtitle;
+
+  /// Quantity leaving stock.
+  ///
+  /// In fr, this message translates to:
+  /// **'Quantité sortie'**
+  String get stockOutQuantity;
+
+  /// Reason picker label on the stock-out form.
+  ///
+  /// In fr, this message translates to:
+  /// **'Motif'**
+  String get stockOutReason;
+
+  /// How much is currently in stock, shown next to the quantity stepper.
+  ///
+  /// In fr, this message translates to:
+  /// **'Disponible : {quantity}'**
+  String stockOutAvailable(String quantity);
+
+  /// Warning when removing more than is in stock.
+  ///
+  /// In fr, this message translates to:
+  /// **'La quantité dépasse le stock disponible.'**
+  String get stockOutExceedsStock;
+
+  /// Primary action on the stock-out form.
+  ///
+  /// In fr, this message translates to:
+  /// **'Enregistrer la sortie'**
+  String get stockOutSubmit;
+
+  /// Snackbar confirming a stock-out was recorded.
+  ///
+  /// In fr, this message translates to:
+  /// **'Sortie enregistrée'**
+  String get stockOutRecorded;
+
+  /// Stock adjustment screen heading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ajustement de stock'**
+  String get adjustmentTitle;
+
+  /// Supporting line on the adjustment screen.
+  ///
+  /// In fr, this message translates to:
+  /// **'Corrigez le stock enregistré après un comptage physique.'**
+  String get adjustmentSubtitle;
+
+  /// What the app currently believes is in stock.
+  ///
+  /// In fr, this message translates to:
+  /// **'Quantité au système'**
+  String get adjustmentSystemQuantity;
+
+  /// What the physical count found.
+  ///
+  /// In fr, this message translates to:
+  /// **'Quantité comptée'**
+  String get adjustmentCountedQuantity;
+
+  /// Counted minus system.
+  ///
+  /// In fr, this message translates to:
+  /// **'Écart'**
+  String get adjustmentDifference;
+
+  /// Free-text explanation for the adjustment.
+  ///
+  /// In fr, this message translates to:
+  /// **'Motif de l\'écart'**
+  String get adjustmentNote;
+
+  /// Placeholder for the adjustment reason field.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ex. : épluchures non comptabilisées'**
+  String get adjustmentNoteHint;
+
+  /// Primary action on the adjustment form.
+  ///
+  /// In fr, this message translates to:
+  /// **'Enregistrer l\'ajustement'**
+  String get adjustmentSubmit;
+
+  /// Snackbar confirming an adjustment.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ajustement enregistré'**
+  String get adjustmentRecorded;
+
+  /// Confirmation dialog title for a large downward adjustment. The brief requires confirmation for these.
+  ///
+  /// In fr, this message translates to:
+  /// **'Confirmer cet ajustement ?'**
+  String get adjustmentLargeConfirmTitle;
+
+  /// Body of the large-adjustment confirmation, stating the size of the correction.
+  ///
+  /// In fr, this message translates to:
+  /// **'Vous retirez {amount} du stock de {item}, soit une baisse de {percent}. Vérifiez votre comptage avant de confirmer.'**
+  String adjustmentLargeConfirmBody(String amount, String item, String percent);
+
+  /// Shown when counted equals system, so there is nothing to correct.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun écart — rien à enregistrer.'**
+  String get adjustmentNoChange;
 }
 
 class _AppLocalizationsDelegate

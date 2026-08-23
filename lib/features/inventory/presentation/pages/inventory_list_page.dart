@@ -384,47 +384,7 @@ class _FilterMenu extends StatelessWidget {
         for (final entry in options.entries)
           PopupMenuItem<String>(value: entry.key, child: Text(entry.value)),
       ],
-      child: Container(
-        height: AppSizing.minTapTarget,
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-        decoration: BoxDecoration(
-          color: selectedLabel == null
-              ? AppColors.surface
-              : AppColors.primaryContainer,
-          borderRadius: AppRadius.pillAll,
-          border: Border.all(
-            color: selectedLabel == null
-                ? AppColors.border
-                : AppColors.primary600,
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 200),
-              child: Text(
-                selectedLabel ?? label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: selectedLabel == null
-                      ? AppColors.textSecondary
-                      : AppColors.onPrimaryContainer,
-                ),
-              ),
-            ),
-            const SizedBox(width: AppSpacing.xs),
-            Icon(
-              LucideIcons.chevronDown,
-              size: AppSizing.iconSm,
-              color: selectedLabel == null
-                  ? AppColors.textSecondary
-                  : AppColors.onPrimaryContainer,
-            ),
-          ],
-        ),
-      ),
+      child: FilterPill(label: label, selectedLabel: selectedLabel),
     );
   }
 }
