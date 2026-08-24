@@ -4,7 +4,9 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../app/routes.dart';
 import '../../../../app/navigation.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/utils/formatters.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../mock_data/mock_data.dart';
 import '../../../../shared/widgets/widgets.dart';
@@ -34,23 +36,24 @@ class AddEditItemPage extends StatefulWidget {
 class _AddEditItemPageState extends State<AddEditItemPage> {
   final _nameController = TextEditingController();
   final _noteController = TextEditingController();
+  final _barcodeController = TextEditingController();
+
+  /// Set when the entered barcode already belongs to another item. Validated at
+  /// save time rather than on every keystroke — flagging a duplicate while
+  /// somebody is still halfway through typing one is noise.
+  String? _barcodeConflictName;
 
   String? _categoryId;
   String? _unitId;
   double _quantity = 0;
   double _threshold = 0;
 
-  /// Categories and units created inline during this session. Phase 1 persists
-  /// nothing, so they live here for as long as the form is open — enough to
-  /// demo the flow end to end.
-  final List<String> _newCategories = [];
-  final List<String> _newUnits = [];
-
   // Snapshot taken in initState. The dirty check compares against these rather
   // than tracking a flag, so undoing an edit back to its original value
   // correctly stops counting as unsaved.
   String _initialName = '';
   String _initialNote = '';
+  String _initialBarcode = '';
   String? _initialCategoryId;
   String? _initialUnitId;
   double _initialQuantity = 0;
@@ -69,6 +72,7 @@ class _AddEditItemPageState extends State<AddEditItemPage> {
     if (existing != null) {
       _nameController.text = existing.name;
       _noteController.text = existing.note ?? '';
+      _barcodeController.text = existing.barcode ?? '';
       _categoryId = existing.categoryId;
       _unitId = existing.unitId;
       _quantity = existing.quantity;
@@ -77,6 +81,7 @@ class _AddEditItemPageState extends State<AddEditItemPage> {
 
     _initialName = _nameController.text.trim();
     _initialNote = _noteController.text.trim();
+    _initialBarcode = _barcodeController.text.trim();
     _initialCategoryId = _categoryId;
     _initialUnitId = _unitId;
     _initialQuantity = _quantity;
@@ -87,6 +92,7 @@ class _AddEditItemPageState extends State<AddEditItemPage> {
   void dispose() {
     _nameController.dispose();
     _noteController.dispose();
+    _barcodeController.dispose();
     super.dispose();
   }
 
@@ -99,6 +105,7 @@ class _AddEditItemPageState extends State<AddEditItemPage> {
   bool get _isDirty =>
       _nameController.text.trim() != _initialName ||
       _noteController.text.trim() != _initialNote ||
+      _barcodeController.text.trim() != _initialBarcode ||
       _categoryId != _initialCategoryId ||
       _unitId != _initialUnitId ||
       _quantity != _initialQuantity ||
@@ -108,11 +115,12 @@ class _AddEditItemPageState extends State<AddEditItemPage> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
 
+    // Read live rather than merged with a local list of pending creations:
+    // the inline "+ Créer" row now creates the real record, so there is no
+    // second kind of category to keep track of.
     final categories = [
       for (final c in MockQueries.categoriesForStore(widget.storeId))
         DropdownOption(value: c.id, label: c.name),
-      for (final name in _newCategories)
-        DropdownOption(value: 'new:$name', label: name),
     ];
 
     final units = [
@@ -122,8 +130,6 @@ class _AddEditItemPageState extends State<AddEditItemPage> {
           label: u.name,
           secondaryLabel: u.abbreviation,
         ),
-      for (final name in _newUnits)
-        DropdownOption(value: 'new:$name', label: name),
     ];
 
     final unitAbbreviation = _unitId == null
@@ -187,6 +193,42 @@ class _AddEditItemPageState extends State<AddEditItemPage> {
                     ),
                   ],
                 ),
+                const SizedBox(height: AppSpacing.lg),
+
+                // Optional, and the label says so. Most restaurant stock —
+                // produce, meat, fish, bread — arrives loose with nothing to
+                // scan, so a field that looked required would be wrong far more
+                // often than it was right.
+                AppTextField(
+                  label: l10n.itemBarcodeLabel,
+                  controller: _barcodeController,
+                  hint: l10n.itemBarcodeHint,
+                  helperText: _barcodeConflictName == null
+                      ? l10n.itemBarcodeHelp
+                      : null,
+                  errorText: _barcodeConflictName == null
+                      ? null
+                      : l10n.itemBarcodeDuplicate(_barcodeConflictName!),
+                  // Numeric by default because most barcodes are digits, but
+                  // input is *not* restricted to them: internal and regional
+                  // codes contain letters, and a field that silently refuses a
+                  // real barcode is worse than one that accepts a wrong one.
+                  keyboardType: TextInputType.number,
+                  suffixIcon: IconButton(
+                    // The scan button's seat, kept warm. Disabled rather than
+                    // absent so adding the camera later is a swap rather than a
+                    // reflow of the field around a control that appeared.
+                    onPressed: null,
+                    tooltip: l10n.itemBarcodeScanTooltip,
+                    icon: const Icon(LucideIcons.scanLine),
+                  ),
+                  onChanged: (_) => setState(() {
+                    // Clearing on edit rather than on save: leaving a stale
+                    // error under a field the user has already fixed is how a
+                    // form starts feeling broken.
+                    _barcodeConflictName = null;
+                  }),
+                ),
               ],
             ),
           ),
@@ -198,16 +240,41 @@ class _AddEditItemPageState extends State<AddEditItemPage> {
               children: [
                 Text(
                   _isEditing
-                      ? l10n.itemQuantityLabel
+                      ? l10n.itemOnHandLabel
                       : l10n.itemFormStartingQuantity,
                   style: Theme.of(context).textTheme.labelMedium,
                 ),
                 const SizedBox(height: AppSpacing.sm),
-                QuantityStepper(
-                  value: _quantity,
-                  unitAbbreviation: unitAbbreviation,
-                  onChanged: (value) => setState(() => _quantity = value),
-                ),
+                // Editable on create — the starting quantity is recorded as an
+                // opening-balance movement — and read-only afterwards.
+                //
+                // Dragging a stepper from 40 to 35 on a routine edit form would
+                // be an untraceable stock change: the most consequential thing
+                // in the app, done by accident, with nothing in the movement
+                // log to explain it. Adjusting stock has its own screen, and it
+                // asks for the counted figure and leaves a record.
+                if (_isEditing)
+                  _QuantityFact(
+                    value: Formatters.quantityWithUnit(
+                      _quantity,
+                      unitAbbreviation,
+                    ),
+                    onAdjust: () =>
+                        context.pushScreen(Routes.toAdjustment(widget.storeId)),
+                  )
+                else
+                  QuantityStepper(
+                    value: _quantity,
+                    unitAbbreviation: unitAbbreviation,
+                    onChanged: (value) => setState(() => _quantity = value),
+                  ),
+                if (!_isEditing) ...[
+                  const SizedBox(height: AppSpacing.sm),
+                  Text(
+                    l10n.itemFormOpeningBalanceHelp,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
                 const SizedBox(height: AppSpacing.xl),
                 Text(
                   l10n.itemThresholdLabel,
@@ -245,30 +312,82 @@ class _AddEditItemPageState extends State<AddEditItemPage> {
     );
   }
 
+  /// Creates a category and selects it, without the user leaving this form.
+  ///
+  /// The selection is the point: a cook halfway through adding "Persil plat"
+  /// who needs a "botte" unit should not have to abandon the article, go to a
+  /// settings screen, create the unit, and start again.
   Future<void> _createCategory() async {
-    final name = await CreateSheets.category(context);
-    if (name == null || !mounted) return;
+    final created = await CreateSheets.category(
+      context,
+      storeId: widget.storeId,
+    );
+    if (created == null || !mounted) return;
 
-    setState(() {
-      _newCategories.add(name);
-      _categoryId = 'new:$name';
-    });
+    setState(() => _categoryId = created.id);
     AppSnackBar.success(context, AppLocalizations.of(context).categoryCreated);
   }
 
   Future<void> _createUnit() async {
-    final name = await CreateSheets.unit(context);
-    if (name == null || !mounted) return;
+    final created = await CreateSheets.unit(context, storeId: widget.storeId);
+    if (created == null || !mounted) return;
 
-    setState(() {
-      _newUnits.add(name);
-      _unitId = 'new:$name';
-    });
+    setState(() => _unitId = created.id);
     AppSnackBar.success(context, AppLocalizations.of(context).unitCreated);
   }
 
   void _submit() {
     final l10n = AppLocalizations.of(context);
+
+    // Uniqueness is checked here rather than on every keystroke, and against
+    // the other items of *this store* only — two shops can stock the same
+    // product, and a barcode collision across them is not a collision.
+    final barcode = _barcodeController.text.trim();
+    if (barcode.isNotEmpty) {
+      final conflict = MockQueries.barcodeConflict(
+        widget.storeId,
+        barcode,
+        // Excluding the item being edited is what lets somebody save an item
+        // with its own barcode unchanged. Without it every edit would fail
+        // against itself.
+        excludingItemId: widget.itemId,
+      );
+      if (conflict != null) {
+        setState(() => _barcodeConflictName = conflict.name);
+        return;
+      }
+    }
+
+    final note = _noteController.text.trim();
+
+    if (_isEditing) {
+      ItemMutations.update(
+        widget.itemId!,
+        name: _nameController.text.trim(),
+        categoryId: _categoryId,
+        unitId: _unitId,
+        lowStockThreshold: _threshold,
+        barcode: barcode,
+        clearBarcode: barcode.isEmpty,
+        note: note,
+        clearNote: note.isEmpty,
+      );
+    } else {
+      final created = ItemMutations.create(
+        storeId: widget.storeId,
+        name: _nameController.text.trim(),
+        categoryId: _categoryId!,
+        unitId: _unitId!,
+        // Recorded as an opening-balance movement rather than written onto the
+        // item, so the quantity and the movement log agree from day one.
+        quantity: _quantity,
+        lowStockThreshold: _threshold,
+        barcode: barcode.isEmpty ? null : barcode,
+        note: note.isEmpty ? null : note,
+      );
+      if (created == null) return;
+    }
+
     AppSnackBar.success(
       context,
       _isEditing ? l10n.itemUpdated : l10n.itemCreated,
@@ -282,6 +401,35 @@ class _AddEditItemPageState extends State<AddEditItemPage> {
     } else {
       context.goSection(Routes.toInventory(widget.storeId));
     }
+  }
+}
+
+/// The quantity on an edit form: stated, with the correct way to change it.
+///
+/// Read-only by design — see the note at the call site.
+class _QuantityFact extends StatelessWidget {
+  const _QuantityFact({required this.value, required this.onAdjust});
+
+  final String value;
+  final VoidCallback onAdjust;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
+    return Row(
+      children: [
+        Expanded(
+          child: Text(value, style: AppTypography.numericMedium),
+        ),
+        const SizedBox(width: AppSpacing.md),
+        SecondaryButton(
+          label: l10n.itemFormAdjustStock,
+          icon: LucideIcons.clipboardCheck,
+          onPressed: onAdjust,
+        ),
+      ],
+    );
   }
 }
 

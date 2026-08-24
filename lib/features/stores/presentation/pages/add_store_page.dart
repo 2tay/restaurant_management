@@ -6,6 +6,7 @@ import '../../../../app/navigation.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../../mock_data/mock_data.dart';
 import '../../../../shared/widgets/widgets.dart';
 
 /// Create a new store.
@@ -154,6 +155,18 @@ class _AddStorePageState extends State<AddStorePage> {
 
   void _submit() {
     final l10n = AppLocalizations.of(context);
+
+    // Starts with no categories, units, items or suppliers — correct rather
+    // than lazy, since all four are per-store by design. What the user sees
+    // next is every empty state in the app, doing its job.
+    AccountMutations.createStore(
+      name: _name.text,
+      addressLine: _address.text,
+      postalCode: _postalCode.text,
+      city: _city.text,
+      phone: _phone.text,
+    );
+
     AppSnackBar.success(context, l10n.addStoreCreated);
     context.goSection(Routes.stores);
   }

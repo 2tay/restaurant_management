@@ -8,15 +8,32 @@ comments, and documentation are in English.
 
 ---
 
-## Status: Phase 1 complete — UI only
+## Status: Phase 1.6 complete — UI, plus the ordering rules in memory
 
-Phase 1 is a **demo-ready prototype, not a functioning app**. Every screen renders from
-static mock data in `lib/mock_data/`. There is no database, no networking, no persistence
-and no business logic.
+Still a **demo-ready prototype, not a functioning app**. Every screen renders from data in
+`lib/mock_data/`. There is no database, no networking, no persistence and no repositories.
 
-**Nothing you do in the app is saved.** Forms confirm and navigate; they change no data.
-Reload and the demo is exactly as it was. This is deliberate, and the screens that could
-mislead — login, export, sync — say so on screen rather than pretending.
+**What you do in the app now sticks — for as long as the app is open.** Creating an
+article, receiving a delivery, recording usage, renaming a category, changing a price,
+inviting a colleague: all of it runs against the mock lists in memory. A hot restart puts
+everything back, and so does **Paramètres → Synchronisation → Réinitialiser la
+démonstration**.
+
+The rules live in `mock_data/mutations/` and are the ones Phase 2 will reimplement against
+real storage. They are there because the app is not demonstrable otherwise — the entire
+point of receiving a delivery is that stock goes up and the price history gains an entry,
+and a screen that reports success while nothing moves teaches the client the wrong thing
+about what they are buying.
+
+**Still fake, deliberately:** login, export and sync. Those screens say so on themselves.
+Making two of the three half-work would be worse than leaving them honest.
+
+**Still frozen:** the usage and waste trend series on the reports. Stock valuation is now
+derived from live quantities, because a headline figure that does not follow a delivery
+makes the dashboard contradict the inventory two taps away. The trend charts are a bigger
+job — the movement log only covers the last few weeks in detail, so a derived six-month
+trend would be mostly flat zero, which reads as a bug rather than as honesty. Phase 2
+aggregates them properly.
 
 | Stage | Scope | Status |
 |---|---|---|
@@ -29,6 +46,8 @@ mislead — login, export, sync — say so on screen rather than pretending.
 | 6 | Polish pass + UX audit | Done |
 | 7 | Phase 2 stubs + handoff | Done |
 | 1.5 | Navigation fixes + UI polish pass | Done |
+| 1.6 | Purchase orders + receiving, item barcode | Done |
+| 1.7 | In-memory writes across the rest of the app | Done |
 
 The original brief is in [`.claude/phase1.md`](.claude/phase1.md).
 
@@ -57,9 +76,30 @@ Worth walking in this order — it is the order that tells the story:
 5. **Historique des prix** on that supplier → six months of increases, 11,20 € to 12,80 €.
 6. **Rapports → Comparaison des prix** → the same finding as a report, opening on the item
    with the largest gap.
-7. **Taverne Saint-Gilles** from the store switcher → a brand-new empty store, so every
-   empty state is real rather than described.
-8. **Paramètres → Synchronisation** → toggle offline mode to show the offline banner.
+7. **Commandes** → the orders list. Every status is represented, and the Boucherie order is
+   flagged stale — partial for nine days, past the seven-day threshold.
+8. **CMD-2026-017** (Grossiste Central, *Envoyée*) → **Réceptionner la livraison**. This is
+   the walkthrough that sells the feature:
+   - quantities arrive pre-filled with what is outstanding, because that is what usually
+     turns up
+   - drop the **Riz** quantity below what was ordered → the short-delivery control appears
+     inline, defaulted to **Clôturer l'écart**
+   - change the **Blanc de poulet** price from 12,80 € to 14,50 € → confirming asks you to
+     verify it, because that is a 13% jump past the threshold
+   - confirm → stock rises, a stock movement appears carrying the order reference, and the
+     chicken's price history gains an entry
+9. Back on **Inventaire → Blanc de poulet**: the quantity has moved, **Historique des prix**
+   has the new entry, and the movement links back to the receipt it came from.
+10. **Alertes** → each low item now says whether anything is already on order. **Créer les
+    commandes** groups them by supplier and pre-fills a draft.
+11. **Taverne Saint-Gilles** from the store switcher → a brand-new empty store, so every
+    empty state is real rather than described.
+12. **Paramètres → Synchronisation** → toggle offline mode to show the offline banner, and
+    **Réinitialiser la démonstration** to put everything back before the next walkthrough.
+
+Barcodes are woven through rather than being their own step: about half the catalogue has
+one (beverages and packaged dry goods; nothing fresh). Copy one from a beverage's detail
+screen, paste it into the inventory search, and it finds the item.
 
 ### Fonts
 
@@ -84,7 +124,8 @@ lib/
   features/     one folder per feature, presentation/ only in Phase 1
   shared/       cross-feature widgets (buttons, dialogs, states, shell)
   models/       immutable plain Dart classes — shape only, no logic
-  mock_data/    ALL static data + the lookups over it
+  mock_data/    ALL static data, the lookups over it, and the in-memory writes
+    mutations/  the write layer — one file per aggregate, plus shared plumbing
   services/     Phase 2 stubs — empty classes, no logic
   l10n/         .arb translations + generated AppLocalizations
   dev/          development-only reference. Not product — see below.
@@ -115,10 +156,41 @@ Four empty stubs in `lib/services/` mark the seams:
 | `api_service.dart` | Remote API client |
 | `auth_service.dart` | Real authentication |
 
-**The migration path is `mock_data/mock_queries.dart`.** Screens never touch the mock lists
-directly; they call `MockQueries.itemsForStore(storeId)`, `MockQueries.pricesForItem(itemId)`
-and so on. Replace those with repositories returning the same shapes and the call sites
-barely move.
+**The migration path is `mock_data/mock_queries.dart` for reads and
+`mock_data/mutations/` for writes.** Screens never touch the mock lists directly. Reads go
+through `MockQueries.itemsForStore(...)`, `MockQueries.onOrderQuantity(...)`; writes go
+through the mutation classes. Replace both with repositories returning the same shapes and
+the call sites barely move.
+
+The write layer is split one file per aggregate — **because that is how Phase 2's
+repositories will split**. A one-to-one seam is easier to walk across than one large class.
+
+| File | Owns |
+|---|---|
+| `movement_mutations.dart` | Stock in, out, adjustments, opening balances. **The only file in the app that changes an item's quantity.** |
+| `item_mutations.dart` | Articles. Notably *not* their quantity. |
+| `catalog_mutations.dart` | Categories and units. |
+| `supplier_mutations.dart` | Suppliers, and the item–supplier links that carry prices. |
+| `order_mutations.dart` | Commandes and receiving. |
+| `account_mutations.dart` | Team, stores, notifications. |
+
+`mutations/mock_write.dart` holds what they all share:
+
+| | |
+|---|---|
+| `MockWrite.revision` | A change counter, exposed to widgets as `mockDataRevisionProvider`. Screens showing anything a write can change watch it, so a receipt confirmed on one screen is visible on the one underneath. Phase 2 swaps it for the storage layer's own change stream. |
+| `MockWrite.id(prefix)` | Ids for records created in-session — `item-new-7`, obviously generated. |
+| `MockWrite.captureSeed()` / `reset()` | The pristine snapshot behind **Paramètres → Synchronisation → Réinitialiser la démonstration**. Captured in `main()` before the first frame; the models are immutable, so copying the lists is a true deep snapshot. |
+
+The reset exists because a client demo gets walked several times in one sitting and the
+second run should not start from the first one's leftovers — and the only other way back is
+a hot restart, which is not something to do in front of anybody. The test suite uses the
+same snapshot to isolate tests from each other, so the mechanism is exercised on every run
+rather than only when somebody taps the button.
+
+The rules those writes implement — the status transitions, what a receipt does to stock and
+price history, what counts as on order — are pinned by `test/orders_test.dart`. That file is
+the specification; the screens are the cheap part.
 
 The models are already Phase 2 ready: immutable, no `fromJson`, no persistence annotations,
 no methods with logic. Add serialization alongside them rather than inside them.
@@ -132,7 +204,7 @@ for, and store switching is just navigation.
 ## Conventions
 
 - **No hardcoded user-facing strings.** Everything goes through
-  `AppLocalizations.of(context)` — 413 keys, each with a translator description. See
+  `AppLocalizations.of(context)` — every key carries a translator description. See
   [`lib/l10n/README.md`](lib/l10n/README.md). Adding Dutch is a translation job, not a
   refactor.
 - **No formatting by hand.** Currency (`12,50 €`) and dates (`22/08/2026`) come from `intl`
@@ -157,8 +229,55 @@ for, and store switching is just navigation.
    "what has chicken cost" is not.
 3. **Categories and units are created in-app.** Every such dropdown carries an inline
    "+ Créer" that opens a sheet without leaving the form — a cook who needs a "botte" unit
-   mid-form should not have to abandon it.
+   mid-form should not have to abandon it. The sheet returns the record it created, and the
+   form selects it. Names are unique per store ignoring case and space ("Boissons" and
+   "boissons " are one category with a typo), and a unit's abbreviation is checked as well
+   as its name, because the abbreviation is what appears beside every quantity in the app.
+   **Neither can be deleted while anything uses it** — items reference them by id, so
+   removing one underneath them would leave articles rendering as "—" with no way to
+   recover what they said. Tapping delete explains the count and the fix rather than
+   offering a confirmation that then quietly fails.
 4. **Store scoping**: once a store is selected, every screen shows that store's data only.
+   A new store starts genuinely empty — categories, units, items and suppliers are all
+   per-store, so what the user sees next is every empty state in the app doing its job.
+5. **Every change to an item's quantity is a stock movement.** One file writes quantity —
+   `mutations/movement_mutations.dart` — and everything comes through it: receiving a
+   delivery, a manual stock-in, usage mid-service, a physical count, and the opening balance
+   on a brand-new article. So `quantity == opening balance + Σ movements` holds by
+   construction, and the history is a complete record rather than a partial one that looks
+   complete. Two consequences worth knowing:
+   - **Quantity is read-only on the edit item form.** Dragging a stepper from 40 to 35 there
+     would be an untraceable stock change hidden in a routine screen. The form states the
+     quantity and links to the adjustment screen, which asks for the counted figure and
+     leaves a record.
+   - **Stock can go negative.** Recording 10 kg out when 6 are on hand records 10, and the
+     item reads −4. Refusing would make staff either lie to the app or stop using it, and
+     negative stock is itself the signal that a delivery went unrecorded. The form warns
+     first; the adjustment screen is the fix.
+6. **An order never changes stock — only a receipt does.** Ordering 50 kg of tomatoes does
+   not put 50 kg on the shelf; the goods are not there yet. Stock moves when a delivery
+   arrives and somebody confirms what actually came through the door. Every screen respects
+   this, and `test/orders_test.dart` asserts it three ways.
+7. **A commande goes to exactly one supplier**, so the supplier is step one of creating one
+   rather than a field halfway down the form. Everything after depends on it: the item
+   picker is filtered to what that supplier sells, and every price auto-fills from them.
+8. **A sent order is locked.** The supplier holds a copy; an order that quietly disagrees
+   with the document in their inbox is worse than no order. Only drafts are editable, and
+   only drafts can be deleted outright — a sent order is cancelled, which leaves a record.
+9. **Closing an order short records the shortfall, it does not rewrite the order.** Ordered
+   10, received 8, closed: the line still says 10 were ordered. That two-unit gap is the
+   only evidence the supplier under-delivered, and it is what an owner needs.
+10. **Confirmed receipts are permanent** — never edited, never deleted. Corrections go
+   through a stock adjustment so both the original and the correction stay visible.
+11. **Prices are captured at receiving.** A delivery note that disagrees with the ordered
+    price writes a price-history entry and updates that supplier's current price, which is
+    how price history stays current without anyone maintaining it by hand. A move of more
+    than `OrderRules.significantPriceChange` (15%) asks for confirmation first — that is
+    usually either a real increase the owner must know about, or a typo.
+12. **A barcode is optional and unique per store.** Most restaurant stock — produce, meat,
+    fish, bread — has none, so the field is labelled optional and its row is hidden on items
+    without one. Lookups are written to return a *collection*, never a single item, so
+    "several barcodes per item" stays a model change rather than a rewrite.
 
 ---
 
@@ -178,13 +297,27 @@ The brief's users are standing, moving fast, with wet hands, mid-service. That d
 `python tool/ux_audit.py` re-checks the mechanical parts of that list — plus that every
 colour comes from `app_colors.dart`, every text style from `app_typography.dart`, every
 padding value from the spacing scale, and that no screen navigates with a raw `context.go()`.
-It currently reports zero violations. Re-run it after adding screens.
+
+Phase 1.6 added two invariants to it that are about semantics rather than style:
+
+- **no single-object barcode lookups** — a `firstWhere` on a barcode anywhere is flagged,
+  because it is the shape that makes "several barcodes per item" expensive later
+- **no stock writes outside `mock_mutations.dart`** — a screen assigning into `mockItems`
+  would bypass the movement log, and the movement log is the single source of truth for
+  stock levels
+
+Phase 1.7 generalised the second of those: **no mock list is written outside
+`mock_data/mutations/`** at all, not just `mockItems`. A screen calling `mockSuppliers.add(...)`
+would bypass both the reset snapshot and the change signal, and neither failure is visible
+until a demo starts behaving strangely halfway through.
+
+Twelve checks, currently zero violations. Re-run it after adding screens.
 
 ## Navigation
 
 The convention lives in `lib/app/navigation.dart` and is not optional:
 
-- **`goSection(path)`** — the sidebar's nine destinations, and anything meaning "leave here
+- **`goSection(path)`** — the sidebar's ten destinations, and anything meaning "leave here
   entirely". Replaces the stack.
 - **`pushScreen(path)`** — anything the user comes back from. Stacks, so back works.
 - **`backTo(fallback)`** — pops when it can, otherwise lands on a sensible parent. The
@@ -192,6 +325,10 @@ The convention lives in `lib/app/navigation.dart` and is not optional:
 
 Every pushed screen carries a labelled back control top-left ("Retour à Inventaire") and,
 when more than one level deep, breadcrumbs. Root screens deliberately carry neither.
+
+Two screens use tabs that switch in place rather than navigating — the order detail's
+Lines / Receipts and the supplier's Fiche / Commandes. They are two views of one record, not
+two records, so they share `SectionTabs` for the look but take a callback instead of a path.
 
 Forms use `FormScaffold`, which owns three rules so no screen re-implements them: Cancel
 bottom-left and submit bottom-right, the action bar pinned, and unsaved input confirmed
@@ -206,10 +343,10 @@ back gesture alike.
 flutter test
 ```
 
-189 tests. The four that earn their keep:
+332 tests. The ones that earn their keep:
 
-- **`navigation_test.dart`** pins the navigation contract: all 14 root screens show no back
-  control and all 19 pushed screens do; push-then-pop returns you where you were and five
+- **`navigation_test.dart`** pins the navigation contract: all 15 root screens show no back
+  control and all 24 pushed screens do; push-then-pop returns you where you were and five
   cycles leave the stack as it started; switching section clears anything pushed on top; the
   sidebar highlights the right section from a nested screen; a dirty form raises the discard
   dialog and a clean one does not; and dialog buttons are checked by measured screen
@@ -219,7 +356,10 @@ flutter test
   1024×600, and in portrait — asserting nothing throws or overflows. French labels run
   15–25% longer than the English a layout was designed against, and this caught six real
   overflow bugs during the build, including a navigation rail that silently grew to 380dp
-  to fit "Mouvements de stock" and stole 148dp from every screen.
+  to fit "Mouvements de stock" and stole 148dp from every screen. It caught two more in
+  Phase 1.6: `SectionHeader` laid its action button out unbounded, so "Associer un
+  fournisseur" ran off the 434dp detail pane the moment content above it shifted, and the
+  low-stock row gained one column too many to survive portrait.
 - **`mock_data_test.dart`** checks referential integrity across the hand-written dataset,
   and asserts the demo-critical properties: all three stock statuses present, one store
   empty, at least one item with three competing suppliers, at least one where the default
@@ -227,6 +367,37 @@ flutter test
 - **`components_test.dart`** pins the component behaviour the brief depends on — the status
   badge never using colour alone, the stepper accepting `2,5`, the dropdown's inline
   "+ Créer".
+- **`mock_write_test.dart`** pins the write foundation: that the change counter climbs on
+  every write and keeps climbing across a reset (so screens listening to it redraw when the
+  data goes *backwards*), that generated ids never collide with seeded ones, and that a
+  reset restores values rather than just list lengths. Its last test clears every mutable
+  list and asserts the reset brings all of it back — which is what catches a new list
+  somebody forgot to add to the snapshot.
+- **`catalog_test.dart`** pins the two catalogue rules — unique names, no deleting what is
+  in use — including the cases that are easy to get backwards: a rename must not collide
+  with itself, a refused write must not half-apply, and the same name in a different store
+  is fine because categories are per-store. It finishes by deleting every category and every
+  unit it can and asserting no item was left pointing at nothing.
+- **`inventory_test.dart`** pins the invariant the whole app rests on:
+  `quantity == opening balance + Σ movements`, checked after an arbitrary sequence of
+  deliveries, usage and a correction. Also that editing an item cannot change its quantity,
+  that a stock-out is allowed to take an item to −4, that deleting an item on an open order
+  is refused, and that deleting every item in the store leaves no orphaned movement.
+- **`suppliers_test.dart`** pins the link rules — an item never has two defaults, removing
+  the default promotes the cheapest remaining one, a price change writes history for the
+  pair, and deleting a supplier keeps the movements and closed orders that name them, since
+  a movement records goods that really moved.
+- **`account_test.dart`** covers team, stores and notifications, including the two rules
+  worth having: the last owner cannot be removed, and a new store starts genuinely empty.
+- **`orders_test.dart`** is the one that matters most, because the ordering rules are the
+  part of this phase with actual behaviour. It runs them against the in-memory layer and
+  restores the mock lists afterwards: that sending an order moves no stock but does count
+  towards "on order", that a sent order refuses edits and a partially received one refuses
+  cancellation, that receiving generates one stock movement per line carrying its order and
+  receipt references, that closing short settles the line without inventing stock and stops
+  it counting as on the way, that a changed price writes history and an unchanged one does
+  not, and that the seeded dataset actually covers every status and every receipt outcome
+  the walkthrough needs.
 
 Dates in the mock data are anchored to `DateTime.now()` so the demo always looks current;
 nothing asserts on them.

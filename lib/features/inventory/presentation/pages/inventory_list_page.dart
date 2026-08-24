@@ -101,6 +101,11 @@ class InventoryListPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
+
+    // Receiving a delivery changes quantities under this screen, so it has to
+    // redraw when one lands rather than showing what it read on the way in.
+    ref.watch(mockDataRevisionProvider);
+
     final filter = ref.watch(inventoryFilterProvider);
     final items = _visibleItems(filter);
     final canSplit = context.canSplitView;
@@ -159,9 +164,9 @@ class InventoryListPage extends ConsumerWidget {
     final query = filter.query.trim().toLowerCase();
 
     final items = MockQueries.itemsForStore(storeId).where((item) {
-      if (query.isNotEmpty && !item.name.toLowerCase().contains(query)) {
-        return false;
-      }
+      // Shared with global search so "paste a barcode, find the item" cannot
+      // be true on one screen and false on the other.
+      if (!MockQueries.itemMatchesSearch(item, query)) return false;
       if (filter.categoryId != null && item.categoryId != filter.categoryId) {
         return false;
       }

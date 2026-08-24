@@ -309,7 +309,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get inventoryTitle => 'Inventaire';
 
   @override
-  String get inventorySearchHint => 'Rechercher un article…';
+  String get inventorySearchHint => 'Rechercher un article ou un code-barres…';
 
   @override
   String get inventoryFilterCategory => 'Catégorie';
@@ -1416,7 +1416,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get searchTitle => 'Recherche';
 
   @override
-  String get searchHint => 'Article, fournisseur, catégorie…';
+  String get searchHint => 'Article, code-barres, fournisseur…';
 
   @override
   String get searchPrompt => 'Que cherchez-vous ?';
@@ -1531,4 +1531,808 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get loadingItems => 'Chargement de l\'inventaire…';
+
+  @override
+  String get itemBarcodeLabel => 'Code-barres (facultatif)';
+
+  @override
+  String get itemBarcodeShortLabel => 'Code-barres';
+
+  @override
+  String get itemBarcodeHint => '5412345001019';
+
+  @override
+  String get itemBarcodeHelp =>
+      'Facultatif. Les produits frais — légumes, viande, poisson — n\'en ont généralement pas.';
+
+  @override
+  String get itemBarcodeScanTooltip =>
+      'Scanner un code-barres (bientôt disponible)';
+
+  @override
+  String itemBarcodeDuplicate(String item) {
+    return 'Ce code-barres est déjà utilisé par « $item ».';
+  }
+
+  @override
+  String get itemBarcodeCopied => 'Code-barres copié.';
+
+  @override
+  String get itemBarcodeCopyTooltip => 'Copier le code-barres';
+
+  @override
+  String get navOrders => 'Commandes';
+
+  @override
+  String get ordersTitle => 'Commandes';
+
+  @override
+  String get ordersSubtitle => 'Commandes fournisseurs et réceptions';
+
+  @override
+  String get ordersNewAction => 'Nouvelle commande';
+
+  @override
+  String ordersCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count commandes',
+      one: '1 commande',
+      zero: 'Aucune commande',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get ordersEmptyTitle => 'Aucune commande';
+
+  @override
+  String get ordersEmptyBody =>
+      'Une commande part chez un fournisseur et ne modifie pas le stock. Le stock bouge à la réception de la livraison.';
+
+  @override
+  String get ordersEmptyAction => 'Créer votre première commande';
+
+  @override
+  String get ordersFilterStatus => 'Statut';
+
+  @override
+  String get ordersFilterAllStatuses => 'Tous les statuts';
+
+  @override
+  String get ordersFilterPeriod => 'Période';
+
+  @override
+  String get ordersFilterAllPeriods => 'Toutes les dates';
+
+  @override
+  String get ordersFilterLast7 => '7 derniers jours';
+
+  @override
+  String get ordersFilterLast30 => '30 derniers jours';
+
+  @override
+  String get ordersFilterLast90 => '90 derniers jours';
+
+  @override
+  String ordersColumnLines(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count lignes',
+      one: '1 ligne',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get ordersOpenOnly => 'En cours';
+
+  @override
+  String get orderStatusDraft => 'Brouillon';
+
+  @override
+  String get orderStatusSent => 'Envoyée';
+
+  @override
+  String get orderStatusPartial => 'Partielle';
+
+  @override
+  String get orderStatusReceived => 'Reçue';
+
+  @override
+  String get orderStatusCancelled => 'Annulée';
+
+  @override
+  String orderDetailTitle(String reference) {
+    return 'Commande $reference';
+  }
+
+  @override
+  String orderCreatedOn(String date) {
+    return 'Créée le $date';
+  }
+
+  @override
+  String orderSentOn(String date) {
+    return 'Envoyée le $date';
+  }
+
+  @override
+  String orderClosedOn(String date) {
+    return 'Clôturée le $date';
+  }
+
+  @override
+  String get orderTotalLabel => 'Total de la commande';
+
+  @override
+  String get orderTabLines => 'Lignes';
+
+  @override
+  String get orderTabReceipts => 'Réceptions';
+
+  @override
+  String get orderColumnItem => 'Article';
+
+  @override
+  String get orderColumnOrdered => 'Commandé';
+
+  @override
+  String get orderColumnReceived => 'Reçu';
+
+  @override
+  String get orderColumnUnitPrice => 'Prix unitaire';
+
+  @override
+  String get orderColumnLineTotal => 'Total';
+
+  @override
+  String get orderReceiptsEmpty =>
+      'Aucune livraison enregistrée pour cette commande.';
+
+  @override
+  String get orderNoteLabel => 'Note';
+
+  @override
+  String get orderNoteHint => 'Ex. livraison souhaitée mardi avant 10h';
+
+  @override
+  String get orderLockedNotice =>
+      'Cette commande est envoyée : ses lignes ne sont plus modifiables. Le fournisseur en détient déjà une copie.';
+
+  @override
+  String orderShortfallNotice(String quantity) {
+    return '$quantity non livrés sur cette commande.';
+  }
+
+  @override
+  String get orderLineClosedShort => 'Clôturée';
+
+  @override
+  String orderLineOutstanding(String quantity) {
+    return '$quantity en attente';
+  }
+
+  @override
+  String get orderActionSend => 'Envoyer la commande';
+
+  @override
+  String get orderActionSaveDraft => 'Enregistrer le brouillon';
+
+  @override
+  String get orderActionEdit => 'Modifier';
+
+  @override
+  String get orderActionDelete => 'Supprimer le brouillon';
+
+  @override
+  String get orderActionCancel => 'Annuler la commande';
+
+  @override
+  String get orderActionReceive => 'Réceptionner la livraison';
+
+  @override
+  String get orderActionCloseShort => 'Clôturer la commande';
+
+  @override
+  String get orderActionCreate => 'Créer une commande';
+
+  @override
+  String orderSendConfirmTitle(String supplier) {
+    return 'Envoyer la commande à $supplier ?';
+  }
+
+  @override
+  String get orderSendConfirmBody =>
+      'Une fois envoyée, la commande n\'est plus modifiable. Elle ne modifie pas le stock : seule la réception de la livraison le fait.';
+
+  @override
+  String get orderSendConfirmAction => 'Envoyer';
+
+  @override
+  String orderSent(String supplier) {
+    return 'Commande envoyée à $supplier.';
+  }
+
+  @override
+  String get orderDraftSaved => 'Brouillon enregistré.';
+
+  @override
+  String get orderDraftUpdated => 'Brouillon mis à jour.';
+
+  @override
+  String get orderDeleteWarning =>
+      'Ce brouillon n\'a jamais été envoyé : sa suppression ne laisse aucune trace.';
+
+  @override
+  String get orderDeleted => 'Brouillon supprimé.';
+
+  @override
+  String orderCancelConfirmTitle(String reference) {
+    return 'Annuler la commande $reference ?';
+  }
+
+  @override
+  String get orderCancelConfirmBody =>
+      'Le fournisseur détient déjà ce document. L\'annulation est définitive et ne peut pas être reprise.';
+
+  @override
+  String get orderCancelConfirmAction => 'Annuler la commande';
+
+  @override
+  String get orderCancelled => 'Commande annulée.';
+
+  @override
+  String orderCloseConfirmTitle(String reference) {
+    return 'Clôturer la commande $reference ?';
+  }
+
+  @override
+  String orderCloseConfirmBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count lignes encore en attente seront clôturées comme non livrées.',
+      one: '1 ligne encore en attente sera clôturée comme non livrée.',
+    );
+    return '$_temp0 L\'écart reste enregistré.';
+  }
+
+  @override
+  String get orderCloseConfirmAction => 'Clôturer';
+
+  @override
+  String get orderClosed => 'Commande clôturée.';
+
+  @override
+  String get createOrderTitle => 'Nouvelle commande';
+
+  @override
+  String get editOrderTitle => 'Modifier la commande';
+
+  @override
+  String get orderStepSupplier => 'Fournisseur';
+
+  @override
+  String get orderStepLines => 'Articles';
+
+  @override
+  String get orderSupplierPrompt => 'Choisissez un fournisseur';
+
+  @override
+  String get orderSupplierPromptBody =>
+      'Une commande part chez un seul fournisseur. Ce choix filtre les articles proposés et remplit automatiquement les prix.';
+
+  @override
+  String get orderSupplierSearchHint => 'Rechercher un fournisseur…';
+
+  @override
+  String get orderSupplierChange => 'Changer de fournisseur';
+
+  @override
+  String get orderChangeSupplierTitle => 'Changer de fournisseur ?';
+
+  @override
+  String orderChangeSupplierBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Les $count lignes déjà saisies seront supprimées.',
+      one: 'La ligne déjà saisie sera supprimée.',
+    );
+    return '$_temp0 Les articles et les prix dépendent du fournisseur choisi.';
+  }
+
+  @override
+  String get orderChangeSupplierAction => 'Changer et vider';
+
+  @override
+  String get orderAddLine => 'Ajouter un article';
+
+  @override
+  String get orderLinePickerLabel => 'Article';
+
+  @override
+  String get orderLineQuantity => 'Quantité';
+
+  @override
+  String orderLineUnitPrice(String unit) {
+    return 'Prix / $unit';
+  }
+
+  @override
+  String get orderLineTotal => 'Total ligne';
+
+  @override
+  String get orderRemoveLine => 'Retirer cette ligne';
+
+  @override
+  String get orderLineRemoved => 'Ligne retirée.';
+
+  @override
+  String get orderLinesEmptyTitle => 'Aucun article';
+
+  @override
+  String orderLinesEmptyBody(String supplier) {
+    return 'Ajoutez les articles à commander chez $supplier.';
+  }
+
+  @override
+  String orderPriceAutofilled(String supplier) {
+    return 'Prix actuel de $supplier. Modifiable.';
+  }
+
+  @override
+  String orderSuggestedTitle(String supplier) {
+    return 'En stock faible chez $supplier';
+  }
+
+  @override
+  String get orderSuggestedSubtitle =>
+      'Articles de ce fournisseur à réapprovisionner.';
+
+  @override
+  String get orderSuggestedAddAll => 'Tout ajouter';
+
+  @override
+  String get orderSuggestedAdd => 'Ajouter';
+
+  @override
+  String orderSuggestedAdded(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count articles ajoutés.',
+      one: '1 article ajouté.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get orderSuggestedEmpty =>
+      'Aucun article de ce fournisseur n\'est en stock faible.';
+
+  @override
+  String orderSuggestedShortfall(String quantity) {
+    return 'Il manque $quantity';
+  }
+
+  @override
+  String orderAlreadyOnOrder(String quantity) {
+    return 'Déjà commandé : $quantity';
+  }
+
+  @override
+  String orderAlreadyOnOrderDetail(String quantity, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count commandes en cours',
+      one: '1 commande en cours',
+    );
+    return '$quantity attendus sur $_temp0.';
+  }
+
+  @override
+  String get itemOnHandLabel => 'En stock';
+
+  @override
+  String get itemOnOrderLabel => 'En commande';
+
+  @override
+  String get itemOpenOrdersTitle => 'Commandes en cours';
+
+  @override
+  String get itemNoOpenOrders => 'Aucune commande en cours pour cet article.';
+
+  @override
+  String receiveOrderTitle(String reference) {
+    return 'Réception — $reference';
+  }
+
+  @override
+  String get receiveOrderSubtitle =>
+      'Vérifiez ligne par ligne ce qui est réellement arrivé.';
+
+  @override
+  String get receiveColumnOrdered => 'Commandé';
+
+  @override
+  String get receiveColumnReceived => 'Reçu';
+
+  @override
+  String receiveColumnPrice(String unit) {
+    return 'Prix réel / $unit';
+  }
+
+  @override
+  String get receiveLineNote => 'Note';
+
+  @override
+  String get receiveLineNoteHint =>
+      'Ex. 2 cageots abîmés, repris par le chauffeur';
+
+  @override
+  String receiveShortTitle(String quantity) {
+    return 'Livraison incomplète : il manque $quantity';
+  }
+
+  @override
+  String get receiveShortClose => 'Clôturer l\'écart';
+
+  @override
+  String get receiveShortKeepOpen => 'Le reste doit arriver';
+
+  @override
+  String receiveOverBadge(String quantity) {
+    return 'Sur-livraison de $quantity';
+  }
+
+  @override
+  String get receiveUnorderedBadge => 'Non commandé';
+
+  @override
+  String get receiveAddUnordered => 'Ajouter un article non commandé';
+
+  @override
+  String get receiveUnorderedAdded =>
+      'Article non commandé ajouté à la réception.';
+
+  @override
+  String get receiveUnorderedRemoved => 'Ligne retirée de la réception.';
+
+  @override
+  String get receiveSummaryTitle => 'Récapitulatif';
+
+  @override
+  String get receiveSummaryLines => 'Lignes reçues';
+
+  @override
+  String get receiveSummaryValue => 'Valeur reçue';
+
+  @override
+  String get receiveSummaryDiscrepancies => 'Écarts';
+
+  @override
+  String get receiveConfirm => 'Confirmer la réception';
+
+  @override
+  String get receiveConfirmed =>
+      'Réception enregistrée — le stock a été mis à jour.';
+
+  @override
+  String get receiveNothing => 'Indiquez au moins une quantité reçue.';
+
+  @override
+  String receiveOrderedPrice(String price) {
+    return 'Prix commandé : $price';
+  }
+
+  @override
+  String get receivePriceConfirmTitle => 'Confirmer ce prix ?';
+
+  @override
+  String receivePriceConfirmBody(
+    String item,
+    String oldPrice,
+    String newPrice,
+  ) {
+    return '$item était à $oldPrice, maintenant $newPrice. Confirmez-vous ce prix ?';
+  }
+
+  @override
+  String get receivePriceConfirmAction => 'Confirmer le prix';
+
+  @override
+  String get receiveNoteLabel => 'Note de réception';
+
+  @override
+  String get receiveNoteHint => 'Ex. chauffeur en retard, palette échangée';
+
+  @override
+  String get receiveManagerNotice =>
+      'La réception modifie le stock et les prix : elle est réservée aux gérants.';
+
+  @override
+  String receiptDetailTitle(String date) {
+    return 'Réception du $date';
+  }
+
+  @override
+  String receiptReceivedBy(String name) {
+    return 'Réceptionnée par $name';
+  }
+
+  @override
+  String receiptOrderReference(String reference) {
+    return 'Commande $reference';
+  }
+
+  @override
+  String get receiptReadOnlyNotice =>
+      'Une réception confirmée ne peut être ni modifiée ni supprimée. Toute correction passe par un ajustement de stock, pour que l\'historique reste vérifiable.';
+
+  @override
+  String get receiptValueLabel => 'Valeur de la réception';
+
+  @override
+  String get receiptColumnNote => 'Note';
+
+  @override
+  String receiptPriceChanged(String oldPrice, String newPrice) {
+    return '$oldPrice → $newPrice';
+  }
+
+  @override
+  String movementFromOrder(String reference) {
+    return 'Réception — commande $reference';
+  }
+
+  @override
+  String get movementViewReceipt => 'Voir la réception';
+
+  @override
+  String get dashboardTileOnOrder => 'En attente de livraison';
+
+  @override
+  String dashboardOnOrderCaption(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count commandes ouvertes',
+      one: '1 commande ouverte',
+      zero: 'Rien en cours',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String dashboardStaleOrdersTitle(int count, int days) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count commandes partielles ouvertes depuis plus de $days jours',
+      one: '1 commande partielle ouverte depuis plus de $days jours',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get dashboardStaleOrdersBody =>
+      'Une commande laissée ouverte gonfle la quantité « en commande » et fausse l\'alerte de double commande.';
+
+  @override
+  String get dashboardStaleOrdersAction => 'Voir les commandes';
+
+  @override
+  String alertsOnOrder(String quantity) {
+    return '$quantity en commande';
+  }
+
+  @override
+  String get alertsNothingOnOrder => 'Rien en commande';
+
+  @override
+  String get alertsCreateOrders => 'Créer les commandes';
+
+  @override
+  String get supplierTabDetails => 'Fiche';
+
+  @override
+  String get supplierTabOrders => 'Commandes';
+
+  @override
+  String get supplierOrdersEmpty =>
+      'Aucune commande passée chez ce fournisseur.';
+
+  @override
+  String get storeSettingsOrders => 'Commandes';
+
+  @override
+  String get storeSettingsStaleDays => 'Alerte commande partielle (jours)';
+
+  @override
+  String get storeSettingsStaleDaysHelp =>
+      'Une commande partiellement reçue est signalée sur le tableau de bord passé ce délai. Par défaut : 7 jours.';
+
+  @override
+  String get permissionReceiveDeliveries => 'Réceptionner les livraisons';
+
+  @override
+  String get demoResetTitle => 'Réinitialiser la démonstration';
+
+  @override
+  String get demoResetBody =>
+      'Remet les articles, les stocks, les commandes et les prix dans leur état d\'origine. Les modifications faites pendant la démonstration ne sont conservées que le temps de la session.';
+
+  @override
+  String get demoResetNothing => 'Aucune modification à annuler.';
+
+  @override
+  String get demoResetConfirmTitle => 'Réinitialiser la démonstration ?';
+
+  @override
+  String get demoResetConfirmBody =>
+      'Tout ce qui a été créé, modifié ou réceptionné depuis le démarrage sera annulé.';
+
+  @override
+  String get demoResetConfirmAction => 'Réinitialiser';
+
+  @override
+  String get demoResetDone => 'Démonstration réinitialisée.';
+
+  @override
+  String get actionUnderstood => 'Compris';
+
+  @override
+  String get editCategoryTitle => 'Modifier la catégorie';
+
+  @override
+  String get editUnitTitle => 'Modifier l\'unité de mesure';
+
+  @override
+  String get categoryNameTaken => 'Une catégorie porte déjà ce nom.';
+
+  @override
+  String get unitNameTaken => 'Une unité porte déjà ce nom.';
+
+  @override
+  String get unitAbbreviationTaken => 'Cette abréviation est déjà utilisée.';
+
+  @override
+  String categoryDeleteBlockedTitle(String name) {
+    return 'Impossible de supprimer « $name »';
+  }
+
+  @override
+  String categoryDeleteBlockedBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count articles sont classés dans cette catégorie.',
+      one: '1 article est classé dans cette catégorie.',
+    );
+    return '$_temp0 Reclassez-les avant de la supprimer.';
+  }
+
+  @override
+  String unitDeleteBlockedTitle(String name) {
+    return 'Impossible de supprimer « $name »';
+  }
+
+  @override
+  String unitDeleteBlockedBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count articles sont mesurés dans cette unité.',
+      one: '1 article est mesuré dans cette unité.',
+    );
+    return '$_temp0 Changez leur unité avant de la supprimer.';
+  }
+
+  @override
+  String get itemFormOpeningBalanceHelp =>
+      'Enregistré comme un ajustement d\'inventaire, pour que l\'historique des mouvements soit complet dès le départ.';
+
+  @override
+  String get itemFormAdjustStock => 'Ajuster le stock';
+
+  @override
+  String get itemFormQuantityLocked =>
+      'La quantité se modifie par un ajustement d\'inventaire, qui laisse une trace.';
+
+  @override
+  String itemDeleteBlockedTitle(String name) {
+    return 'Impossible de supprimer « $name »';
+  }
+
+  @override
+  String itemDeleteBlockedBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Cet article figure sur $count commandes en cours.',
+      one: 'Cet article figure sur 1 commande en cours.',
+    );
+    return '$_temp0 Réceptionnez ou clôturez-la avant de le supprimer.';
+  }
+
+  @override
+  String itemDeleteCascadeWarning(int movements, int suppliers) {
+    String _temp0 = intl.Intl.pluralLogic(
+      movements,
+      locale: localeName,
+      other: '$movements mouvements de stock',
+      one: '1 mouvement de stock',
+      zero: '',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      suppliers,
+      locale: localeName,
+      other: ' et $suppliers fournisseurs associés',
+      one: ' et 1 fournisseur associé',
+      zero: '',
+    );
+    return '$_temp0$_temp1 seront également supprimés.';
+  }
+
+  @override
+  String supplierDeleteBlockedTitle(String name) {
+    return 'Impossible de supprimer « $name »';
+  }
+
+  @override
+  String supplierDeleteBlockedBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count commandes en cours sont adressées à ce fournisseur.',
+      one: 'Une commande en cours est adressée à ce fournisseur.',
+    );
+    return '$_temp0 Réceptionnez-les, clôturez-les ou annulez-les d\'abord.';
+  }
+
+  @override
+  String get supplierPriceUpdated => 'Prix mis à jour.';
+
+  @override
+  String supplierDefaultChanged(String supplier) {
+    return '$supplier est maintenant le fournisseur par défaut.';
+  }
+
+  @override
+  String supplierPromotedToDefault(String supplier) {
+    return '$supplier devient le fournisseur par défaut.';
+  }
+
+  @override
+  String get memberEmailTaken =>
+      'Cette adresse est déjà utilisée par un membre.';
+
+  @override
+  String memberRemoveBlockedTitle(String name) {
+    return 'Impossible de retirer « $name »';
+  }
+
+  @override
+  String get memberRemoveBlockedBody =>
+      'C\'est le dernier propriétaire du compte. Nommez un autre propriétaire avant de retirer celui-ci.';
+
+  @override
+  String notificationsMarkedRead(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count notifications marquées comme lues.',
+      one: '1 notification marquée comme lue.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get storeCreated => 'Établissement créé.';
 }

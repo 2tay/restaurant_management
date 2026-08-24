@@ -34,6 +34,7 @@ class FormScaffold extends StatelessWidget {
     this.submitIcon,
     this.isDirty = false,
     this.secondaryAction,
+    this.submitSecondary,
     this.maxWidth = 760,
     super.key,
   });
@@ -58,6 +59,14 @@ class FormScaffold extends StatelessWidget {
   /// An extra action on the left of the bar, beside Cancel. Used for Delete on
   /// edit forms, which is dismissive-adjacent and belongs on that side.
   final Widget? secondaryAction;
+
+  /// A second forward action, placed to the left of the primary submit.
+  ///
+  /// The order form needs it: `Save draft` and `Send order` are both
+  /// constructive, so both belong on the right, with the more consequential one
+  /// nearest the edge. Putting `Save draft` on the left with Cancel would file
+  /// it as a way out of the form, which is the opposite of what it does.
+  final Widget? submitSecondary;
 
   final double maxWidth;
 
@@ -97,10 +106,19 @@ class FormScaffold extends StatelessWidget {
               ?secondaryAction,
             ],
           ),
-          trailing: PrimaryButton(
-            label: submitLabel,
-            icon: submitIcon,
-            onPressed: onSubmit,
+          trailing: Wrap(
+            spacing: AppSpacing.md,
+            runSpacing: AppSpacing.sm,
+            alignment: WrapAlignment.end,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              ?submitSecondary,
+              PrimaryButton(
+                label: submitLabel,
+                icon: submitIcon,
+                onPressed: onSubmit,
+              ),
+            ],
           ),
         ),
         child: child,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../app/navigation.dart';
@@ -18,13 +19,16 @@ import '../widgets/export_dialog.dart';
 /// States its basis on screen: each item is valued at its **default** supplier's
 /// price. With several prices per item the total would otherwise be ambiguous,
 /// and an unexplained number in a financial report is a number nobody trusts.
-class StockValuationReportPage extends StatelessWidget {
+class StockValuationReportPage extends ConsumerWidget {
   const StockValuationReportPage({required this.storeId, super.key});
 
   final String storeId;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Valuation is quantity times price, and both move.
+    ref.watch(mockDataRevisionProvider);
+
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
 
@@ -79,7 +83,9 @@ class StockValuationReportPage extends StatelessWidget {
                         fit: BoxFit.scaleDown,
                         alignment: Alignment.centerLeft,
                         child: Text(
-                          Formatters.price(mockStockValuationTotal),
+                          Formatters.price(
+                            MockQueries.stockValuation(storeId),
+                          ),
                           style: theme.textTheme.displaySmall,
                         ),
                       ),
@@ -101,7 +107,8 @@ class StockValuationReportPage extends StatelessWidget {
               DataColumn(label: Text(l10n.valuationColumnShare)),
             ],
             rows: [
-              for (final row in mockValuationByCategory) _row(context, row),
+              for (final row in MockQueries.valuationByCategory(storeId))
+                _row(context, row),
             ],
           ),
           const SizedBox(height: AppSpacing.xl),
@@ -115,7 +122,10 @@ class StockValuationReportPage extends StatelessWidget {
               DataColumn(label: Text(l10n.valuationColumnValue), numeric: true),
               DataColumn(label: Text(l10n.valuationColumnShare)),
             ],
-            rows: [for (final row in mockValuationByItem) _row(context, row)],
+            rows: [
+              for (final row in MockQueries.valuationByItem(storeId))
+                _row(context, row),
+            ],
           ),
         ],
       ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../app/routes.dart';
@@ -22,17 +23,18 @@ import '../widgets/export_dialog.dart';
 /// Opens on an item where the store is actually overpaying rather than on the
 /// alphabetically first one — a report that opens on "you already have the best
 /// price" teaches the user it has nothing to say.
-class PriceComparisonReportPage extends StatefulWidget {
+class PriceComparisonReportPage extends ConsumerStatefulWidget {
   const PriceComparisonReportPage({required this.storeId, super.key});
 
   final String storeId;
 
   @override
-  State<PriceComparisonReportPage> createState() =>
+  ConsumerState<PriceComparisonReportPage> createState() =>
       _PriceComparisonReportPageState();
 }
 
-class _PriceComparisonReportPageState extends State<PriceComparisonReportPage> {
+class _PriceComparisonReportPageState
+    extends ConsumerState<PriceComparisonReportPage> {
   String? _itemId;
 
   @override
@@ -67,6 +69,9 @@ class _PriceComparisonReportPageState extends State<PriceComparisonReportPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Prices captured at receiving feed straight into this comparison.
+    ref.watch(mockDataRevisionProvider);
+
     final l10n = AppLocalizations.of(context);
 
     final items = MockQueries.itemsForStore(widget.storeId);

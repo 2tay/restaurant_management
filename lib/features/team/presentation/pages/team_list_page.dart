@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../app/routes.dart';
@@ -12,13 +13,16 @@ import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 
 /// Who can get into this store, and with what rights.
-class TeamListPage extends StatelessWidget {
+class TeamListPage extends ConsumerWidget {
   const TeamListPage({required this.storeId, super.key});
 
   final String storeId;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Members are creatable and removable.
+    ref.watch(mockDataRevisionProvider);
+
     final l10n = AppLocalizations.of(context);
     final members = MockQueries.teamForStore(storeId);
 

@@ -212,6 +212,34 @@ class _AddEditSupplierPageState extends State<AddEditSupplierPage> {
 
   void _submit() {
     final l10n = AppLocalizations.of(context);
+
+    if (_isEditing) {
+      SupplierMutations.update(
+        widget.supplierId!,
+        name: _name.text,
+        contactName: _contactName.text,
+        email: _email.text,
+        phone: _phone.text,
+        addressLine: _address.text,
+        postalCode: _postalCode.text,
+        city: _city.text,
+        note: _note.text,
+        clearNote: _note.text.trim().isEmpty,
+      );
+    } else {
+      SupplierMutations.create(
+        storeId: widget.storeId,
+        name: _name.text,
+        contactName: _contactName.text,
+        email: _email.text,
+        phone: _phone.text,
+        addressLine: _address.text,
+        postalCode: _postalCode.text,
+        city: _city.text,
+        note: _note.text,
+      );
+    }
+
     AppSnackBar.success(
       context,
       _isEditing ? l10n.supplierUpdated : l10n.supplierCreated,

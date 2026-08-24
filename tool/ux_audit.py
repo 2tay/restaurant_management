@@ -144,6 +144,61 @@ record(
     'Navigation bypassing goSection/pushScreen',
 )
 
+# --- Barcode lookups stay collection-shaped -----------------------------------
+# Multiple barcodes per item is the likeliest next requirement here. A lookup
+# already shaped as "give me the matches" absorbs that as a model change; a
+# single-object lookup makes it a rewrite of every call site.
+single_barcode_lookup = [
+    f'{p}:{n}  {line.strip()}'
+    for p in dart_files(*ROOTS, 'lib/mock_data')
+    for n, line in enumerate(read(p).splitlines(), 1)
+    if re.search(r'(firstWhere|singleWhere)\([^)]*barcode', line)
+]
+record(
+    'single-object barcode lookups',
+    single_barcode_lookup,
+    'Barcode lookup that is not collection-shaped',
+)
+
+# --- The mock lists are written in one place only -----------------------------
+# Two rules, one check. Stock levels have a single source of truth — the movement
+# log — so a screen assigning into mockItems would bypass it. And every other
+# list has to go through the mutation layer too, or the reset snapshot and the
+# change signal both stop being reliable.
+MUTATION_LAYER = 'lib/mock_data/mutations/'
+
+stock_writes = [
+    f'{p}:{n}  {line.strip()}'
+    for p in dart_files(*ROOTS, 'lib/mock_data')
+    if not p.startswith(MUTATION_LAYER)
+    for n, line in enumerate(read(p).splitlines(), 1)
+    if re.search(r'mockItems\[[^\]]+\]\s*=', line)
+]
+record(
+    'stock writes outside the mutation layer',
+    stock_writes,
+    'Stock quantity changed without a movement',
+)
+
+# `.clear()` and `.addAll()` are how the reset refills the live lists, so they
+# are only legitimate inside the mutation layer as well.
+list_write = re.compile(
+    r'(?<![\w.])(mock[A-Z]\w*)\s*(?:\.\s*(add|addAll|insert|remove|removeWhere|'
+    r'removeAt|clear|sort|replaceRange)\s*\(|\[[^\]]+\]\s*=)'
+)
+direct_writes = [
+    f'{p}:{n}  {line.strip()}'
+    for p in dart_files(*ROOTS, 'lib/mock_data')
+    if not p.startswith(MUTATION_LAYER)
+    for n, line in enumerate(read(p).splitlines(), 1)
+    if list_write.search(line) and not line.strip().startswith('//')
+]
+record(
+    'mock lists written outside the mutation layer',
+    direct_writes,
+    'Mock data edited without going through mutations/',
+)
+
 # --- Product code never imports the dev gallery -------------------------------
 dev_imports = [
     p for p in dart_files(*ROOTS) if re.search(r"import '.*/dev/", read(p))

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../app/routes.dart';
@@ -12,6 +13,7 @@ import '../../../../l10n/app_localizations.dart';
 import '../../../../mock_data/mock_data.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
+import '../../../orders/presentation/pages/orders_list_page.dart';
 import '../../../stock_movement/presentation/widgets/movement_row.dart';
 import '../widgets/summary_tile.dart';
 
@@ -23,19 +25,25 @@ import '../widgets/summary_tile.dart';
 ///
 /// Ordered by what a manager walking in wants: how much is this worth, what is
 /// about to run out, what do I need to do, what just happened.
-class StoreDashboardPage extends StatelessWidget {
+class StoreDashboardPage extends ConsumerWidget {
   const StoreDashboardPage({required this.storeId, super.key});
 
   final String storeId;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
+
+    // The dashboard summarises everything a write can touch — stock levels,
+    // open orders, recent movements — so it redraws whenever one lands.
+    ref.watch(mockDataRevisionProvider);
 
     final items = MockQueries.itemsForStore(storeId);
     final alerts = MockQueries.lowStockItems(storeId);
     final suppliers = MockQueries.suppliersForStore(storeId);
     final activity = MockQueries.recentActivity(storeId);
+    final openOrders = MockQueries.openOrders(storeId);
+    final staleOrders = MockQueries.staleOrders(storeId);
 
     if (items.isEmpty) {
       return ShellPage(
@@ -62,6 +70,15 @@ class StoreDashboardPage extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // The real defence against orders left half-open. Whatever anybody
+          // tapped at receiving time, an order sitting in `partial` past the
+          // store's threshold keeps inflating the "on order" quantity — which
+          // makes the double-order indicator lie — until somebody closes it.
+          if (staleOrders.isNotEmpty) ...[
+            _StaleOrdersWarning(storeId: storeId, count: staleOrders.length),
+            const SizedBox(height: AppSpacing.xl),
+          ],
+
           GridView.count(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -72,7 +89,7 @@ class StoreDashboardPage extends StatelessWidget {
             children: [
               SummaryTile(
                 label: l10n.dashboardTileStockValue,
-                value: Formatters.priceCompact(mockStockValuationTotal),
+                value: Formatters.priceCompact(MockQueries.stockValuation(storeId)),
                 icon: LucideIcons.wallet,
                 caption: l10n.valuationBasis,
                 onTap: () =>
@@ -95,6 +112,13 @@ class StoreDashboardPage extends StatelessWidget {
                 accent: alerts.isEmpty ? null : AppColors.lowStock,
                 caption: l10n.storesAlertCount(alerts.length),
                 onTap: () => context.goSection(Routes.toAlerts(storeId)),
+              ),
+              SummaryTile(
+                label: l10n.dashboardTileOnOrder,
+                value: '${openOrders.length}',
+                icon: LucideIcons.clipboardList,
+                caption: l10n.dashboardOnOrderCaption(openOrders.length),
+                onTap: () => context.goSection(Routes.toOrders(storeId)),
               ),
               SummaryTile(
                 label: l10n.dashboardTileSuppliers,
@@ -171,6 +195,77 @@ class StoreDashboardPage extends StatelessWidget {
   }
 }
 
+/// Orders left half-received for longer than the store's threshold.
+///
+/// Stated on the dashboard rather than left to the orders list because nobody
+/// goes looking for a problem they do not know they have. An order stuck in
+/// `partial` is invisible by nature: the goods that did arrive were booked in
+/// and everything looked fine.
+class _StaleOrdersWarning extends ConsumerWidget {
+  const _StaleOrdersWarning({required this.storeId, required this.count});
+
+  final String storeId;
+  final int count;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(
+        color: AppColors.lowStock.container,
+        borderRadius: AppRadius.mdAll,
+      ),
+      child: Row(
+        children: [
+          Icon(
+            LucideIcons.clock,
+            size: AppSizing.iconLg,
+            color: AppColors.lowStock.foreground,
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  l10n.dashboardStaleOrdersTitle(
+                    count,
+                    MockSettings.stalePartialOrderDays,
+                  ),
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    color: AppColors.lowStock.foreground,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  l10n.dashboardStaleOrdersBody,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: AppColors.lowStock.foreground,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          SecondaryButton(
+            label: l10n.dashboardStaleOrdersAction,
+            icon: LucideIcons.clipboardList,
+            onPressed: () {
+              // Land on the orders that need doing something about, not on
+              // ninety days of history the user then has to filter down.
+              ref.read(ordersFilterProvider.notifier).showOpenOnly();
+              context.goSection(Routes.toOrders(storeId));
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _ActivityPanel extends StatelessWidget {
   const _ActivityPanel({required this.storeId, required this.activity});
 
@@ -207,6 +302,7 @@ class _ActivityPanel extends StatelessWidget {
               padding: const EdgeInsets.only(bottom: AppSpacing.sm),
               child: MovementRow(
                 movement: movement,
+                storeId: storeId,
                 onTap: () =>
                     context.pushScreen(Routes.toItem(storeId, movement.itemId)),
               ),

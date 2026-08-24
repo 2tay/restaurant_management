@@ -176,6 +176,13 @@ class _LinkSupplierToItemPageState extends State<LinkSupplierToItemPage> {
 
   void _submit(String itemId) {
     final l10n = AppLocalizations.of(context);
+
+    SupplierMutations.linkItem(
+      itemId: itemId,
+      supplierId: _supplierId!,
+      pricePerUnit: _parsedPrice ?? 0,
+    );
+
     AppSnackBar.success(context, l10n.supplierLinked);
     context.pushScreen(Routes.toItem(widget.storeId, itemId));
   }

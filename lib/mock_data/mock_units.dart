@@ -19,68 +19,68 @@ abstract final class UnitIds {
 /// Note `bac` and `caisse`: a Belgian kitchen counts beer by the crate and
 /// produce by the case, and no hardcoded unit list would have guessed that.
 /// This is exactly why units are user-created.
-const List<UnitOfMeasure> mockUnits = [
-  UnitOfMeasure(
+final List<UnitOfMeasure> mockUnits = [
+  const UnitOfMeasure(
     id: UnitIds.kg,
     storeId: StoreIds.sablon,
     name: 'Kilogramme',
     abbreviation: 'kg',
   ),
-  UnitOfMeasure(
+  const UnitOfMeasure(
     id: UnitIds.gramme,
     storeId: StoreIds.sablon,
     name: 'Gramme',
     abbreviation: 'g',
   ),
-  UnitOfMeasure(
+  const UnitOfMeasure(
     id: UnitIds.litre,
     storeId: StoreIds.sablon,
     name: 'Litre',
     abbreviation: 'L',
   ),
-  UnitOfMeasure(
+  const UnitOfMeasure(
     id: UnitIds.centilitre,
     storeId: StoreIds.sablon,
     name: 'Centilitre',
     abbreviation: 'cl',
   ),
-  UnitOfMeasure(
+  const UnitOfMeasure(
     id: UnitIds.piece,
     storeId: StoreIds.sablon,
     name: 'Pièce',
     abbreviation: 'pce',
   ),
-  UnitOfMeasure(
+  const UnitOfMeasure(
     id: UnitIds.caisse,
     storeId: StoreIds.sablon,
     name: 'Caisse',
     abbreviation: 'caisse',
   ),
-  UnitOfMeasure(
+  const UnitOfMeasure(
     id: UnitIds.bac,
     storeId: StoreIds.sablon,
     name: 'Bac',
     abbreviation: 'bac',
   ),
-  UnitOfMeasure(
+  const UnitOfMeasure(
     id: UnitIds.botte,
     storeId: StoreIds.sablon,
     name: 'Botte',
     abbreviation: 'botte',
   ),
-  UnitOfMeasure(
+  const UnitOfMeasure(
     id: UnitIds.liegeKg,
     storeId: StoreIds.liege,
     name: 'Kilogramme',
     abbreviation: 'kg',
   ),
-  UnitOfMeasure(
+  const UnitOfMeasure(
     id: UnitIds.liegeBac,
     storeId: StoreIds.liege,
     name: 'Bac',
     abbreviation: 'bac',
   ),
-  UnitOfMeasure(
+  const UnitOfMeasure(
     id: UnitIds.liegePiece,
     storeId: StoreIds.liege,
     name: 'Pièce',

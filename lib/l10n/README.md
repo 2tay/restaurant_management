@@ -36,5 +36,11 @@ in; regenerate and commit them whenever an `.arb` changes.
 Formatting (currency `12,50 €`, dates `22/08/2026`) is **not** handled here — it lives in
 `core/utils/formatters.dart` and comes from `intl` with the `fr_BE` locale. Don't hand-roll it.
 
-Copy style: vouvoiement throughout, and French typographic spacing — a narrow no-break space
-(U+202F) before `?`, `!`, `:` and inside `« »`.
+Copy style: vouvoiement throughout, and French typographic spacing before `?`, `!`, `:` and
+inside `« »`.
+
+**The file uses a regular space (U+0020) for that, not the narrow no-break space (U+202F).**
+Match it. Mixing the two is worse than consistently using either: the narrow space is
+invisible in most editors and in every diff, so a file with both ends up with spacing nobody
+can see or verify. Switching to U+202F is a reasonable thing to want — but it is a single
+sweep over every key, not something to introduce one string at a time.

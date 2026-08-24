@@ -2,78 +2,79 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../../mock_data/mock_data.dart';
+import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 
-/// The inline creation sheets behind every category and unit dropdown's
-/// "+ Créer" row.
+/// The sheets behind every "+ Créer" row and every catalogue edit button.
 ///
 /// These exist so the brief's rule — categories and units are created in-app —
 /// does not cost the user their place in a form. A cook adding "Persil plat"
 /// who needs a "botte" unit creates it here and carries on; they never leave
 /// the item form.
 ///
-/// Both return the created name, or null if cancelled. Phase 1 stores nothing;
-/// the caller uses the returned value to update its own local selection.
+/// Each returns the **record it created or changed**, or null if cancelled.
+/// Returning the record rather than a name is what lets the item form select
+/// what the user just made — which is the entire point of the inline row.
+///
+/// Uniqueness is validated inside the sheet, under the field, while it is still
+/// open. Reporting a clash after the sheet has closed would leave the user
+/// looking at a snackbar with nothing to correct.
 abstract final class CreateSheets {
-  /// Returns the new category name.
-  static Future<String?> category(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    return _showSingleFieldSheet(
-      context,
-      title: l10n.createCategoryTitle,
-      label: l10n.createCategoryName,
-      hint: l10n.createCategoryHint,
-    );
-  }
-
-  /// Returns the new unit's full name. The abbreviation is captured too but,
-  /// with no persistence in Phase 1, only the name is handed back for display.
-  static Future<String?> unit(BuildContext context) {
-    return showModalBottomSheet<String>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (context) => const _CreateUnitSheet(),
-    );
-  }
-
-  static Future<String?> _showSingleFieldSheet(
+  /// Creates a category, or renames [existing] when one is given.
+  static Future<Category?> category(
     BuildContext context, {
-    required String title,
-    required String label,
-    required String hint,
+    required String storeId,
+    Category? existing,
   }) {
-    return showModalBottomSheet<String>(
+    return showModalBottomSheet<Category>(
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
       builder: (context) =>
-          _SingleFieldSheet(title: title, label: label, hint: hint),
+          _CategorySheet(storeId: storeId, existing: existing),
+    );
+  }
+
+  /// Creates a unit, or edits [existing] when one is given.
+  static Future<UnitOfMeasure?> unit(
+    BuildContext context, {
+    required String storeId,
+    UnitOfMeasure? existing,
+  }) {
+    return showModalBottomSheet<UnitOfMeasure>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (context) => _UnitSheet(storeId: storeId, existing: existing),
     );
   }
 }
 
-class _SingleFieldSheet extends StatefulWidget {
-  const _SingleFieldSheet({
-    required this.title,
-    required this.label,
-    required this.hint,
-  });
+class _CategorySheet extends StatefulWidget {
+  const _CategorySheet({required this.storeId, this.existing});
 
-  final String title;
-  final String label;
-  final String hint;
+  final String storeId;
+  final Category? existing;
 
   @override
-  State<_SingleFieldSheet> createState() => _SingleFieldSheetState();
+  State<_CategorySheet> createState() => _CategorySheetState();
 }
 
-class _SingleFieldSheetState extends State<_SingleFieldSheet> {
-  final _controller = TextEditingController();
+class _CategorySheetState extends State<_CategorySheet> {
+  late final TextEditingController _name = TextEditingController(
+    text: widget.existing?.name ?? '',
+  );
+
+  /// Set when the entered name is already taken. Cleared on the next keystroke
+  /// so a corrected field stops complaining immediately.
+  bool _taken = false;
+
+  bool get _isEditing => widget.existing != null;
 
   @override
   void dispose() {
-    _controller.dispose();
+    _name.dispose();
     super.dispose();
   }
 
@@ -82,53 +83,70 @@ class _SingleFieldSheetState extends State<_SingleFieldSheet> {
     final l10n = AppLocalizations.of(context);
 
     return _SheetShell(
-      title: widget.title,
+      title: _isEditing ? l10n.editCategoryTitle : l10n.createCategoryTitle,
       children: [
         AppTextField(
-          label: widget.label,
-          controller: _controller,
-          hint: widget.hint,
+          label: l10n.createCategoryName,
+          controller: _name,
+          hint: l10n.createCategoryHint,
+          errorText: _taken ? l10n.categoryNameTaken : null,
           autofocus: true,
           textInputAction: TextInputAction.done,
-          onChanged: (_) => setState(() {}),
+          onChanged: (_) => setState(() => _taken = false),
           onSubmitted: (_) => _submit(),
         ),
         const SizedBox(height: AppSpacing.xl),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            SecondaryButton(
-              label: l10n.actionCancel,
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-            const SizedBox(width: AppSpacing.md),
-            PrimaryButton(
-              label: l10n.actionSave,
-              onPressed: _controller.text.trim().isEmpty ? null : _submit,
-            ),
-          ],
+        _SheetActions(
+          onCancel: () => Navigator.of(context).pop(),
+          onSubmit: _name.text.trim().isEmpty ? null : _submit,
         ),
       ],
     );
   }
 
   void _submit() {
-    final value = _controller.text.trim();
-    if (value.isEmpty) return;
-    Navigator.of(context).pop(value);
+    final name = _name.text.trim();
+    if (name.isEmpty) return;
+
+    final result = _isEditing
+        ? CatalogMutations.renameCategory(widget.existing!.id, name)
+        : CatalogMutations.createCategory(
+            storeId: widget.storeId,
+            name: name,
+          );
+
+    // Null means the name collides — the only way these can fail once the
+    // field is non-empty.
+    if (result == null) {
+      setState(() => _taken = true);
+      return;
+    }
+    Navigator.of(context).pop(result);
   }
 }
 
-class _CreateUnitSheet extends StatefulWidget {
-  const _CreateUnitSheet();
+class _UnitSheet extends StatefulWidget {
+  const _UnitSheet({required this.storeId, this.existing});
+
+  final String storeId;
+  final UnitOfMeasure? existing;
 
   @override
-  State<_CreateUnitSheet> createState() => _CreateUnitSheetState();
+  State<_UnitSheet> createState() => _UnitSheetState();
 }
 
-class _CreateUnitSheetState extends State<_CreateUnitSheet> {
-  final _name = TextEditingController();
-  final _abbreviation = TextEditingController();
+class _UnitSheetState extends State<_UnitSheet> {
+  late final TextEditingController _name = TextEditingController(
+    text: widget.existing?.name ?? '',
+  );
+  late final TextEditingController _abbreviation = TextEditingController(
+    text: widget.existing?.abbreviation ?? '',
+  );
+
+  bool _nameTaken = false;
+  bool _abbreviationTaken = false;
+
+  bool get _isEditing => widget.existing != null;
 
   @override
   void dispose() {
@@ -145,7 +163,7 @@ class _CreateUnitSheetState extends State<_CreateUnitSheet> {
     final l10n = AppLocalizations.of(context);
 
     return _SheetShell(
-      title: l10n.createUnitTitle,
+      title: _isEditing ? l10n.editUnitTitle : l10n.createUnitTitle,
       children: [
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -156,8 +174,9 @@ class _CreateUnitSheetState extends State<_CreateUnitSheet> {
                 label: l10n.createUnitName,
                 controller: _name,
                 hint: l10n.createUnitNameHint,
+                errorText: _nameTaken ? l10n.unitNameTaken : null,
                 autofocus: true,
-                onChanged: (_) => setState(() {}),
+                onChanged: (_) => setState(() => _nameTaken = false),
               ),
             ),
             const SizedBox(width: AppSpacing.lg),
@@ -167,28 +186,84 @@ class _CreateUnitSheetState extends State<_CreateUnitSheet> {
                 label: l10n.createUnitAbbreviation,
                 controller: _abbreviation,
                 hint: l10n.createUnitAbbreviationHint,
-                onChanged: (_) => setState(() {}),
+                errorText: _abbreviationTaken
+                    ? l10n.unitAbbreviationTaken
+                    : null,
+                onChanged: (_) =>
+                    setState(() => _abbreviationTaken = false),
               ),
             ),
           ],
         ),
         const SizedBox(height: AppSpacing.xl),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            SecondaryButton(
-              label: l10n.actionCancel,
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-            const SizedBox(width: AppSpacing.md),
-            PrimaryButton(
-              label: l10n.actionSave,
-              onPressed: _canSubmit
-                  ? () => Navigator.of(context).pop(_name.text.trim())
-                  : null,
-            ),
-          ],
+        _SheetActions(
+          onCancel: () => Navigator.of(context).pop(),
+          onSubmit: _canSubmit ? _submit : null,
         ),
+      ],
+    );
+  }
+
+  void _submit() {
+    final name = _name.text.trim();
+    final abbreviation = _abbreviation.text.trim();
+
+    final result = _isEditing
+        ? CatalogMutations.updateUnit(
+            widget.existing!.id,
+            name: name,
+            abbreviation: abbreviation,
+          )
+        : CatalogMutations.createUnit(
+            storeId: widget.storeId,
+            name: name,
+            abbreviation: abbreviation,
+          );
+
+    if (result != null) {
+      Navigator.of(context).pop(result);
+      return;
+    }
+
+    // The mutation reports failure as a single null, so the sheet works out
+    // which of the two fields to flag. Asking the query layer directly keeps
+    // the mutation's contract simple and puts the error under the right field.
+    setState(() {
+      _nameTaken =
+          MockQueries.unitNamed(
+            widget.storeId,
+            name,
+            excludingId: widget.existing?.id,
+          ) !=
+          null;
+      _abbreviationTaken =
+          MockQueries.unitAbbreviated(
+            widget.storeId,
+            abbreviation,
+            excludingId: widget.existing?.id,
+          ) !=
+          null;
+    });
+  }
+}
+
+/// Cancel left, save right — the same convention as every form in the app.
+class _SheetActions extends StatelessWidget {
+  const _SheetActions({required this.onCancel, required this.onSubmit});
+
+  final VoidCallback onCancel;
+  final VoidCallback? onSubmit;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        SecondaryButton(label: l10n.actionCancel, onPressed: onCancel),
+        const SizedBox(width: AppSpacing.md),
+        PrimaryButton(label: l10n.actionSave, onPressed: onSubmit),
       ],
     );
   }

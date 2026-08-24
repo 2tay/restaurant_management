@@ -1,5 +1,6 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../app/navigation.dart';
@@ -21,20 +22,23 @@ import '../widgets/export_dialog.dart';
 /// Two charts: daily consumption value, and waste as a share of it. Waste is
 /// shown as a share rather than an absolute, because absolute waste rises with
 /// a busy week and tells you nothing on its own.
-class UsageReportPage extends StatefulWidget {
+class UsageReportPage extends ConsumerStatefulWidget {
   const UsageReportPage({required this.storeId, super.key});
 
   final String storeId;
 
   @override
-  State<UsageReportPage> createState() => _UsageReportPageState();
+  ConsumerState<UsageReportPage> createState() => _UsageReportPageState();
 }
 
-class _UsageReportPageState extends State<UsageReportPage> {
+class _UsageReportPageState extends ConsumerState<UsageReportPage> {
   int _rangeDays = 30;
 
   @override
   Widget build(BuildContext context) {
+    // Usage is read from the movement log, which every stock-out appends to.
+    ref.watch(mockDataRevisionProvider);
+
     final l10n = AppLocalizations.of(context);
 
     final usage = mockUsageTrend

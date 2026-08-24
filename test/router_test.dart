@@ -39,6 +39,13 @@ List<({String label, String path, bool inShell})> _allRoutes() {
   final supplier = mockSuppliers.first.id;
   final member = mockTeam.first.id;
 
+  // A draft and a partially received order, because the detail screen renders
+  // a different action row for each status and only one of them can be wrong
+  // at a time.
+  const draftOrder = OrderIds.draftMaraicher;
+  const openOrder = OrderIds.partialBoucherie;
+  const receipt = ReceiptIds.cremerieFinal;
+
   return [
     (label: 'login', path: Routes.login, inShell: false),
     (label: 'forgot password', path: Routes.forgotPassword, inShell: false),
@@ -75,6 +82,34 @@ List<({String label, String path, bool inShell})> _allRoutes() {
     (
       label: 'notifications',
       path: Routes.toNotifications(store),
+      inShell: true,
+    ),
+
+    (label: 'orders', path: Routes.toOrders(store), inShell: true),
+    (label: 'new order', path: Routes.toNewOrder(store), inShell: true),
+    (
+      label: 'order detail (draft)',
+      path: Routes.toOrder(store, draftOrder),
+      inShell: true,
+    ),
+    (
+      label: 'order detail (partial)',
+      path: Routes.toOrder(store, openOrder),
+      inShell: true,
+    ),
+    (
+      label: 'edit order',
+      path: Routes.toEditOrder(store, draftOrder),
+      inShell: true,
+    ),
+    (
+      label: 'receive order',
+      path: Routes.toReceiveOrder(store, openOrder),
+      inShell: true,
+    ),
+    (
+      label: 'receipt detail',
+      path: Routes.toReceipt(store, receipt),
       inShell: true,
     ),
 

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../app/routes.dart';
@@ -6,21 +7,29 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../mock_data/mock_data.dart';
+import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 import '../widgets/create_sheets.dart';
 
 /// Manage the store's categories.
 ///
-/// Exists because categories are user-created rather than hardcoded. Deleting
-/// one warns how many items still reference it — a silent delete would leave
-/// articles orphaned with no way to tell.
-class CategoriesPage extends StatelessWidget {
+/// Exists because categories are user-created rather than hardcoded.
+///
+/// Deleting one that is still in use is **refused**, not warned about. Items
+/// reference their category by id, so removing one underneath them would leave
+/// those articles rendering as "—" with no way for anyone to work out what they
+/// used to say. The dialog names the count and the fix instead.
+class CategoriesPage extends ConsumerWidget {
   const CategoriesPage({required this.storeId, super.key});
 
   final String storeId;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // The per-category item counts move whenever an item is created,
+    // recategorised or deleted.
+    ref.watch(mockDataRevisionProvider);
+
     final l10n = AppLocalizations.of(context);
     final categories = MockQueries.categoriesForStore(storeId);
 
@@ -71,14 +80,8 @@ class CategoriesPage extends StatelessWidget {
                         subtitle: l10n.categoriesItemCount(
                           MockQueries.itemCountInCategory(category.id),
                         ),
-                        onEdit: () => _rename(context, category.name),
-                        onDelete: () => _delete(
-                          context,
-                          name: category.name,
-                          usageCount: MockQueries.itemCountInCategory(
-                            category.id,
-                          ),
-                        ),
+                        onEdit: () => _edit(context, category),
+                        onDelete: () => _delete(context, category),
                       ),
                   ],
                 ),
@@ -88,37 +91,44 @@ class CategoriesPage extends StatelessWidget {
   }
 
   Future<void> _create(BuildContext context) async {
-    final name = await CreateSheets.category(context);
-    if (name == null || !context.mounted) return;
+    final created = await CreateSheets.category(context, storeId: storeId);
+    if (created == null || !context.mounted) return;
     AppSnackBar.success(context, AppLocalizations.of(context).categoryCreated);
   }
 
-  Future<void> _rename(BuildContext context, String current) async {
-    final name = await CreateSheets.category(context);
-    if (name == null || !context.mounted) return;
+  Future<void> _edit(BuildContext context, Category category) async {
+    final renamed = await CreateSheets.category(
+      context,
+      storeId: storeId,
+      existing: category,
+    );
+    if (renamed == null || !context.mounted) return;
     AppSnackBar.success(context, AppLocalizations.of(context).categoryUpdated);
   }
 
-  Future<void> _delete(
-    BuildContext context, {
-    required String name,
-    required int usageCount,
-  }) async {
+  Future<void> _delete(BuildContext context, Category category) async {
     final l10n = AppLocalizations.of(context);
+    final usageCount = MockQueries.itemCountInCategory(category.id);
+
+    // Checked before asking rather than after confirming: offering a delete
+    // that then quietly fails is worse than not offering it.
+    if (usageCount > 0) {
+      await ConfirmDialog.blocked(
+        context,
+        title: l10n.categoryDeleteBlockedTitle(category.name),
+        message: l10n.categoryDeleteBlockedBody(usageCount),
+      );
+      return;
+    }
 
     final confirmed = await ConfirmDialog.confirmDelete(
       context,
-      name: name,
-      // Naming the blast radius rather than a generic warning: "3 articles
-      // devront être reclassés" is actionable, "êtes-vous sûr ?" is not.
-      extraWarning: usageCount > 0
-          ? l10n.categoriesInUseWarning(usageCount)
-          : null,
+      name: category.name,
     );
+    if (!confirmed || !context.mounted) return;
 
-    if (confirmed && context.mounted) {
-      AppSnackBar.success(context, l10n.categoryDeleted);
-    }
+    CatalogMutations.deleteCategory(category.id);
+    AppSnackBar.success(context, l10n.categoryDeleted);
   }
 }
 

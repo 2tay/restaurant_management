@@ -610,10 +610,10 @@ abstract class AppLocalizations {
   /// **'Inventaire'**
   String get inventoryTitle;
 
-  /// Placeholder in the inventory search field.
+  /// Placeholder in the inventory search field. Mentions barcodes so staff know pasting or scanning one into the box works — an unadvertised capability is one nobody uses.
   ///
   /// In fr, this message translates to:
-  /// **'Rechercher un article…'**
+  /// **'Rechercher un article ou un code-barres…'**
   String get inventorySearchHint;
 
   /// Category filter label on the inventory list.
@@ -2470,10 +2470,10 @@ abstract class AppLocalizations {
   /// **'Recherche'**
   String get searchTitle;
 
-  /// Placeholder in the global search field.
+  /// Placeholder in the global search field. Names barcode explicitly so the capability is discoverable.
   ///
   /// In fr, this message translates to:
-  /// **'Article, fournisseur, catégorie…'**
+  /// **'Article, code-barres, fournisseur…'**
   String get searchHint;
 
   /// Prompt shown before anything is typed.
@@ -2661,6 +2661,1164 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Chargement de l\'inventaire…'**
   String get loadingItems;
+
+  /// Label of the barcode field on the add/edit item form. The parenthesis matters: most restaurant stock has no barcode and the form must not read as if one is expected.
+  ///
+  /// In fr, this message translates to:
+  /// **'Code-barres (facultatif)'**
+  String get itemBarcodeLabel;
+
+  /// Label of the barcode row on the item detail, where the optional nature is already obvious because the row is only shown when there is one.
+  ///
+  /// In fr, this message translates to:
+  /// **'Code-barres'**
+  String get itemBarcodeShortLabel;
+
+  /// Placeholder in the barcode field. A plausible EAN-13, shown as an example of the shape rather than as a rule — letters are accepted too.
+  ///
+  /// In fr, this message translates to:
+  /// **'5412345001019'**
+  String get itemBarcodeHint;
+
+  /// Helper text under the barcode field explaining when to expect one.
+  ///
+  /// In fr, this message translates to:
+  /// **'Facultatif. Les produits frais — légumes, viande, poisson — n\'en ont généralement pas.'**
+  String get itemBarcodeHelp;
+
+  /// Tooltip on the disabled scan button reserved inside the barcode field. The slot exists now so adding the camera later does not reflow the form.
+  ///
+  /// In fr, this message translates to:
+  /// **'Scanner un code-barres (bientôt disponible)'**
+  String get itemBarcodeScanTooltip;
+
+  /// Inline error under the barcode field when the entered code already belongs to another item. Names the conflicting item so the user can go and look at it.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ce code-barres est déjà utilisé par « {item} ».'**
+  String itemBarcodeDuplicate(String item);
+
+  /// Snackbar after tapping the barcode row on the item detail to copy it.
+  ///
+  /// In fr, this message translates to:
+  /// **'Code-barres copié.'**
+  String get itemBarcodeCopied;
+
+  /// Tooltip on the barcode row of the item detail.
+  ///
+  /// In fr, this message translates to:
+  /// **'Copier le code-barres'**
+  String get itemBarcodeCopyTooltip;
+
+  /// Sidebar label for the purchase orders section. 'Commande' is what a Belgian restaurant calls a supplier order — never 'bon de commande', which reads as paperwork.
+  ///
+  /// In fr, this message translates to:
+  /// **'Commandes'**
+  String get navOrders;
+
+  /// Title of the orders list screen.
+  ///
+  /// In fr, this message translates to:
+  /// **'Commandes'**
+  String get ordersTitle;
+
+  /// Subtitle of the orders list screen.
+  ///
+  /// In fr, this message translates to:
+  /// **'Commandes fournisseurs et réceptions'**
+  String get ordersSubtitle;
+
+  /// Primary action on the orders list, top right.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nouvelle commande'**
+  String get ordersNewAction;
+
+  /// Result count above the orders list.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =0{Aucune commande} =1{1 commande} other{{count} commandes}}'**
+  String ordersCount(int count);
+
+  /// Empty state title when the store has never had an order.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucune commande'**
+  String get ordersEmptyTitle;
+
+  /// Empty state body on the orders list. States the core rule of the feature up front, because it is the thing users get wrong.
+  ///
+  /// In fr, this message translates to:
+  /// **'Une commande part chez un fournisseur et ne modifie pas le stock. Le stock bouge à la réception de la livraison.'**
+  String get ordersEmptyBody;
+
+  /// Action in the orders list empty state.
+  ///
+  /// In fr, this message translates to:
+  /// **'Créer votre première commande'**
+  String get ordersEmptyAction;
+
+  /// Status filter chip on the orders list.
+  ///
+  /// In fr, this message translates to:
+  /// **'Statut'**
+  String get ordersFilterStatus;
+
+  /// Clears the status filter.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tous les statuts'**
+  String get ordersFilterAllStatuses;
+
+  /// Date range filter chip on the orders list.
+  ///
+  /// In fr, this message translates to:
+  /// **'Période'**
+  String get ordersFilterPeriod;
+
+  /// Clears the date range filter.
+  ///
+  /// In fr, this message translates to:
+  /// **'Toutes les dates'**
+  String get ordersFilterAllPeriods;
+
+  /// Date range option on the orders list.
+  ///
+  /// In fr, this message translates to:
+  /// **'7 derniers jours'**
+  String get ordersFilterLast7;
+
+  /// Date range option on the orders list.
+  ///
+  /// In fr, this message translates to:
+  /// **'30 derniers jours'**
+  String get ordersFilterLast30;
+
+  /// Date range option on the orders list.
+  ///
+  /// In fr, this message translates to:
+  /// **'90 derniers jours'**
+  String get ordersFilterLast90;
+
+  /// Line count on an order row.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =1{1 ligne} other{{count} lignes}}'**
+  String ordersColumnLines(int count);
+
+  /// Filter chip limiting the orders list to sent and partial orders — the ones somebody still has to do something about.
+  ///
+  /// In fr, this message translates to:
+  /// **'En cours'**
+  String get ordersOpenOnly;
+
+  /// Order status: being built, never sent.
+  ///
+  /// In fr, this message translates to:
+  /// **'Brouillon'**
+  String get orderStatusDraft;
+
+  /// Order status: sent to the supplier, nothing received yet.
+  ///
+  /// In fr, this message translates to:
+  /// **'Envoyée'**
+  String get orderStatusSent;
+
+  /// Order status: some lines received, order still open.
+  ///
+  /// In fr, this message translates to:
+  /// **'Partielle'**
+  String get orderStatusPartial;
+
+  /// Order status: fully received or closed short. Final.
+  ///
+  /// In fr, this message translates to:
+  /// **'Reçue'**
+  String get orderStatusReceived;
+
+  /// Order status: cancelled before anything was received. Final.
+  ///
+  /// In fr, this message translates to:
+  /// **'Annulée'**
+  String get orderStatusCancelled;
+
+  /// Title of the order detail screen, using the human-readable order number rather than the internal id.
+  ///
+  /// In fr, this message translates to:
+  /// **'Commande {reference}'**
+  String orderDetailTitle(String reference);
+
+  /// Date line on the order detail for a draft.
+  ///
+  /// In fr, this message translates to:
+  /// **'Créée le {date}'**
+  String orderCreatedOn(String date);
+
+  /// Date line on the order detail once sent.
+  ///
+  /// In fr, this message translates to:
+  /// **'Envoyée le {date}'**
+  String orderSentOn(String date);
+
+  /// Date line on the order detail once final.
+  ///
+  /// In fr, this message translates to:
+  /// **'Clôturée le {date}'**
+  String orderClosedOn(String date);
+
+  /// Running total on the order form and on the order detail header.
+  ///
+  /// In fr, this message translates to:
+  /// **'Total de la commande'**
+  String get orderTotalLabel;
+
+  /// Order detail tab showing the ordered lines.
+  ///
+  /// In fr, this message translates to:
+  /// **'Lignes'**
+  String get orderTabLines;
+
+  /// Order detail tab listing the deliveries recorded against this order.
+  ///
+  /// In fr, this message translates to:
+  /// **'Réceptions'**
+  String get orderTabReceipts;
+
+  /// Order lines table column.
+  ///
+  /// In fr, this message translates to:
+  /// **'Article'**
+  String get orderColumnItem;
+
+  /// Order lines table column: quantity ordered.
+  ///
+  /// In fr, this message translates to:
+  /// **'Commandé'**
+  String get orderColumnOrdered;
+
+  /// Order lines table column: quantity received so far.
+  ///
+  /// In fr, this message translates to:
+  /// **'Reçu'**
+  String get orderColumnReceived;
+
+  /// Order lines table column.
+  ///
+  /// In fr, this message translates to:
+  /// **'Prix unitaire'**
+  String get orderColumnUnitPrice;
+
+  /// Order lines table column: quantity multiplied by unit price.
+  ///
+  /// In fr, this message translates to:
+  /// **'Total'**
+  String get orderColumnLineTotal;
+
+  /// Empty state on the receipts tab of the order detail.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucune livraison enregistrée pour cette commande.'**
+  String get orderReceiptsEmpty;
+
+  /// Free-text note on an order.
+  ///
+  /// In fr, this message translates to:
+  /// **'Note'**
+  String get orderNoteLabel;
+
+  /// Placeholder for the order note field.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ex. livraison souhaitée mardi avant 10h'**
+  String get orderNoteHint;
+
+  /// Explains why the edit action is absent on a sent order. Says why rather than just disabling the button, which would leave the user hunting.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cette commande est envoyée : ses lignes ne sont plus modifiables. Le fournisseur en détient déjà une copie.'**
+  String get orderLockedNotice;
+
+  /// Summary of the recorded shortfall on an order that was closed short. This figure is what tells an owner which suppliers under-deliver.
+  ///
+  /// In fr, this message translates to:
+  /// **'{quantity} non livrés sur cette commande.'**
+  String orderShortfallNotice(String quantity);
+
+  /// Badge on an order line the receiver closed short — the balance is not coming.
+  ///
+  /// In fr, this message translates to:
+  /// **'Clôturée'**
+  String get orderLineClosedShort;
+
+  /// Badge on an order line still expecting goods.
+  ///
+  /// In fr, this message translates to:
+  /// **'{quantity} en attente'**
+  String orderLineOutstanding(String quantity);
+
+  /// Sends a draft to the supplier. Constructive, so bottom right.
+  ///
+  /// In fr, this message translates to:
+  /// **'Envoyer la commande'**
+  String get orderActionSend;
+
+  /// Saves an order without sending it.
+  ///
+  /// In fr, this message translates to:
+  /// **'Enregistrer le brouillon'**
+  String get orderActionSaveDraft;
+
+  /// Edits a draft order. Only ever shown on drafts.
+  ///
+  /// In fr, this message translates to:
+  /// **'Modifier'**
+  String get orderActionEdit;
+
+  /// Deletes a draft outright. Only ever shown on drafts.
+  ///
+  /// In fr, this message translates to:
+  /// **'Supprimer le brouillon'**
+  String get orderActionDelete;
+
+  /// Cancels a sent order. Only allowed while nothing has been received.
+  ///
+  /// In fr, this message translates to:
+  /// **'Annuler la commande'**
+  String get orderActionCancel;
+
+  /// Opens the receiving screen. The single most important action in the feature.
+  ///
+  /// In fr, this message translates to:
+  /// **'Réceptionner la livraison'**
+  String get orderActionReceive;
+
+  /// Closes a partial order, accepting that the outstanding lines are not coming.
+  ///
+  /// In fr, this message translates to:
+  /// **'Clôturer la commande'**
+  String get orderActionCloseShort;
+
+  /// Creates an order, used from the low stock alerts screen and from empty states.
+  ///
+  /// In fr, this message translates to:
+  /// **'Créer une commande'**
+  String get orderActionCreate;
+
+  /// Confirmation before sending a draft.
+  ///
+  /// In fr, this message translates to:
+  /// **'Envoyer la commande à {supplier} ?'**
+  String orderSendConfirmTitle(String supplier);
+
+  /// Body of the send confirmation. Restates the core rule at the moment it matters most.
+  ///
+  /// In fr, this message translates to:
+  /// **'Une fois envoyée, la commande n\'est plus modifiable. Elle ne modifie pas le stock : seule la réception de la livraison le fait.'**
+  String get orderSendConfirmBody;
+
+  /// Confirms sending.
+  ///
+  /// In fr, this message translates to:
+  /// **'Envoyer'**
+  String get orderSendConfirmAction;
+
+  /// Snackbar after sending an order.
+  ///
+  /// In fr, this message translates to:
+  /// **'Commande envoyée à {supplier}.'**
+  String orderSent(String supplier);
+
+  /// Snackbar after saving an order as a draft.
+  ///
+  /// In fr, this message translates to:
+  /// **'Brouillon enregistré.'**
+  String get orderDraftSaved;
+
+  /// Snackbar after editing an existing draft.
+  ///
+  /// In fr, this message translates to:
+  /// **'Brouillon mis à jour.'**
+  String get orderDraftUpdated;
+
+  /// Extra warning in the delete confirmation for a draft order.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ce brouillon n\'a jamais été envoyé : sa suppression ne laisse aucune trace.'**
+  String get orderDeleteWarning;
+
+  /// Snackbar after deleting a draft order.
+  ///
+  /// In fr, this message translates to:
+  /// **'Brouillon supprimé.'**
+  String get orderDeleted;
+
+  /// Confirmation before cancelling a sent order.
+  ///
+  /// In fr, this message translates to:
+  /// **'Annuler la commande {reference} ?'**
+  String orderCancelConfirmTitle(String reference);
+
+  /// Body of the cancel confirmation.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le fournisseur détient déjà ce document. L\'annulation est définitive et ne peut pas être reprise.'**
+  String get orderCancelConfirmBody;
+
+  /// Confirms cancelling. Deliberately repeats the noun: a bare 'Annuler' next to a dialog's own cancel button is how people cancel the wrong thing.
+  ///
+  /// In fr, this message translates to:
+  /// **'Annuler la commande'**
+  String get orderCancelConfirmAction;
+
+  /// Snackbar after cancelling an order.
+  ///
+  /// In fr, this message translates to:
+  /// **'Commande annulée.'**
+  String get orderCancelled;
+
+  /// Confirmation before closing a partial order short.
+  ///
+  /// In fr, this message translates to:
+  /// **'Clôturer la commande {reference} ?'**
+  String orderCloseConfirmTitle(String reference);
+
+  /// Body of the close-short confirmation. The last sentence matters: closing short records the shortfall rather than pretending less was ordered.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =1{1 ligne encore en attente sera clôturée comme non livrée.} other{{count} lignes encore en attente seront clôturées comme non livrées.}} L\'écart reste enregistré.'**
+  String orderCloseConfirmBody(int count);
+
+  /// Confirms closing an order short.
+  ///
+  /// In fr, this message translates to:
+  /// **'Clôturer'**
+  String get orderCloseConfirmAction;
+
+  /// Snackbar after closing an order short.
+  ///
+  /// In fr, this message translates to:
+  /// **'Commande clôturée.'**
+  String get orderClosed;
+
+  /// Title of the create order screen.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nouvelle commande'**
+  String get createOrderTitle;
+
+  /// Title of the edit order screen. Drafts only.
+  ///
+  /// In fr, this message translates to:
+  /// **'Modifier la commande'**
+  String get editOrderTitle;
+
+  /// First step of creating an order. Supplier selection comes first, not as a field in the middle of the form — everything else on the screen depends on it.
+  ///
+  /// In fr, this message translates to:
+  /// **'Fournisseur'**
+  String get orderStepSupplier;
+
+  /// Second step of creating an order: the line builder.
+  ///
+  /// In fr, this message translates to:
+  /// **'Articles'**
+  String get orderStepLines;
+
+  /// Prompt shown before a supplier is chosen on the create order screen.
+  ///
+  /// In fr, this message translates to:
+  /// **'Choisissez un fournisseur'**
+  String get orderSupplierPrompt;
+
+  /// Explains why the supplier comes first.
+  ///
+  /// In fr, this message translates to:
+  /// **'Une commande part chez un seul fournisseur. Ce choix filtre les articles proposés et remplit automatiquement les prix.'**
+  String get orderSupplierPromptBody;
+
+  /// Placeholder in the supplier picker search field.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rechercher un fournisseur…'**
+  String get orderSupplierSearchHint;
+
+  /// Action that reopens the supplier picker after one has been chosen.
+  ///
+  /// In fr, this message translates to:
+  /// **'Changer de fournisseur'**
+  String get orderSupplierChange;
+
+  /// Confirmation when changing supplier on an order that already has lines.
+  ///
+  /// In fr, this message translates to:
+  /// **'Changer de fournisseur ?'**
+  String get orderChangeSupplierTitle;
+
+  /// Body of the change-supplier confirmation.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =1{La ligne déjà saisie sera supprimée.} other{Les {count} lignes déjà saisies seront supprimées.}} Les articles et les prix dépendent du fournisseur choisi.'**
+  String orderChangeSupplierBody(int count);
+
+  /// Confirms changing supplier and clearing the lines. Says what will happen rather than just 'Continuer'.
+  ///
+  /// In fr, this message translates to:
+  /// **'Changer et vider'**
+  String get orderChangeSupplierAction;
+
+  /// Adds a line to the order being built.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ajouter un article'**
+  String get orderAddLine;
+
+  /// Label of the item picker on an order line. The picker only offers items the chosen supplier actually supplies.
+  ///
+  /// In fr, this message translates to:
+  /// **'Article'**
+  String get orderLinePickerLabel;
+
+  /// Quantity field on an order line.
+  ///
+  /// In fr, this message translates to:
+  /// **'Quantité'**
+  String get orderLineQuantity;
+
+  /// Unit price field on an order line. Auto-filled from the supplier's current price and editable, because negotiation happens.
+  ///
+  /// In fr, this message translates to:
+  /// **'Prix / {unit}'**
+  String orderLineUnitPrice(String unit);
+
+  /// Computed line total on an order line.
+  ///
+  /// In fr, this message translates to:
+  /// **'Total ligne'**
+  String get orderLineTotal;
+
+  /// Tooltip on the remove button of an order line.
+  ///
+  /// In fr, this message translates to:
+  /// **'Retirer cette ligne'**
+  String get orderRemoveLine;
+
+  /// Snackbar after removing an order line.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ligne retirée.'**
+  String get orderLineRemoved;
+
+  /// Empty state in the order line builder.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun article'**
+  String get orderLinesEmptyTitle;
+
+  /// Body of the order line builder empty state.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ajoutez les articles à commander chez {supplier}.'**
+  String orderLinesEmptyBody(String supplier);
+
+  /// Note under an auto-filled order line price.
+  ///
+  /// In fr, this message translates to:
+  /// **'Prix actuel de {supplier}. Modifiable.'**
+  String orderPriceAutofilled(String supplier);
+
+  /// Header of the suggested items panel on the create order screen — this supplier's items currently below their threshold.
+  ///
+  /// In fr, this message translates to:
+  /// **'En stock faible chez {supplier}'**
+  String orderSuggestedTitle(String supplier);
+
+  /// Subtitle of the suggested items panel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Articles de ce fournisseur à réapprovisionner.'**
+  String get orderSuggestedSubtitle;
+
+  /// Adds every suggested item to the order in one tap.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tout ajouter'**
+  String get orderSuggestedAddAll;
+
+  /// Adds one suggested item to the order.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ajouter'**
+  String get orderSuggestedAdd;
+
+  /// Snackbar after adding suggested items.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =1{1 article ajouté.} other{{count} articles ajoutés.}}'**
+  String orderSuggestedAdded(int count);
+
+  /// Shown in place of the suggestions panel when nothing this supplier provides is low.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun article de ce fournisseur n\'est en stock faible.'**
+  String get orderSuggestedEmpty;
+
+  /// How much a suggested item is below its threshold.
+  ///
+  /// In fr, this message translates to:
+  /// **'Il manque {quantity}'**
+  String orderSuggestedShortfall(String quantity);
+
+  /// Badge on an order line for an item that already appears on another open order. Without this, a manager who ordered on Monday orders again on Wednesday because stock still looks low.
+  ///
+  /// In fr, this message translates to:
+  /// **'Déjà commandé : {quantity}'**
+  String orderAlreadyOnOrder(String quantity);
+
+  /// Tooltip expanding the already-on-order badge.
+  ///
+  /// In fr, this message translates to:
+  /// **'{quantity} attendus sur {count, plural, =1{1 commande en cours} other{{count} commandes en cours}}.'**
+  String orderAlreadyOnOrderDetail(String quantity, int count);
+
+  /// Quantity physically in the store, as opposed to on order.
+  ///
+  /// In fr, this message translates to:
+  /// **'En stock'**
+  String get itemOnHandLabel;
+
+  /// Quantity still expected across open orders. Shown alongside on-hand so low-and-already-ordered looks different from low-and-nobody-acted.
+  ///
+  /// In fr, this message translates to:
+  /// **'En commande'**
+  String get itemOnOrderLabel;
+
+  /// Section on the item detail listing the open orders containing this item.
+  ///
+  /// In fr, this message translates to:
+  /// **'Commandes en cours'**
+  String get itemOpenOrdersTitle;
+
+  /// Shown when an item is on no open order.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucune commande en cours pour cet article.'**
+  String get itemNoOpenOrders;
+
+  /// Title of the receiving screen.
+  ///
+  /// In fr, this message translates to:
+  /// **'Réception — {reference}'**
+  String receiveOrderTitle(String reference);
+
+  /// Subtitle of the receiving screen.
+  ///
+  /// In fr, this message translates to:
+  /// **'Vérifiez ligne par ligne ce qui est réellement arrivé.'**
+  String get receiveOrderSubtitle;
+
+  /// Ordered quantity on a receiving line — what is still outstanding, not the original order quantity.
+  ///
+  /// In fr, this message translates to:
+  /// **'Commandé'**
+  String get receiveColumnOrdered;
+
+  /// Received quantity field on a receiving line. Pre-filled with the outstanding quantity, because it usually matches.
+  ///
+  /// In fr, this message translates to:
+  /// **'Reçu'**
+  String get receiveColumnReceived;
+
+  /// Actual unit price field on a receiving line, pre-filled with the ordered price and corrected if the delivery note differs.
+  ///
+  /// In fr, this message translates to:
+  /// **'Prix réel / {unit}'**
+  String receiveColumnPrice(String unit);
+
+  /// Free-text note on a receiving line.
+  ///
+  /// In fr, this message translates to:
+  /// **'Note'**
+  String get receiveLineNote;
+
+  /// Placeholder for the receiving line note.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ex. 2 cageots abîmés, repris par le chauffeur'**
+  String get receiveLineNoteHint;
+
+  /// Inline control heading revealed when less than ordered was received.
+  ///
+  /// In fr, this message translates to:
+  /// **'Livraison incomplète : il manque {quantity}'**
+  String receiveShortTitle(String quantity);
+
+  /// Default choice on a short delivery: the balance is not coming. Default because most restaurant purchasing is fresh goods, where a shortfall is gone rather than delayed — and orders left open forever permanently inflate the on-order quantity.
+  ///
+  /// In fr, this message translates to:
+  /// **'Clôturer l\'écart'**
+  String get receiveShortClose;
+
+  /// Alternative on a short delivery: keep the line open for a later delivery.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le reste doit arriver'**
+  String get receiveShortKeepOpen;
+
+  /// Badge on a line where more arrived than was ordered. Allowed, but flagged, because it affects cost.
+  ///
+  /// In fr, this message translates to:
+  /// **'Sur-livraison de {quantity}'**
+  String receiveOverBadge(String quantity);
+
+  /// Badge on a line the driver brought that was not on the order. Allowed but never invisible.
+  ///
+  /// In fr, this message translates to:
+  /// **'Non commandé'**
+  String get receiveUnorderedBadge;
+
+  /// Adds a line at receipt time for something that was not ordered.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ajouter un article non commandé'**
+  String get receiveAddUnordered;
+
+  /// Snackbar after adding an unordered line.
+  ///
+  /// In fr, this message translates to:
+  /// **'Article non commandé ajouté à la réception.'**
+  String get receiveUnorderedAdded;
+
+  /// Snackbar after removing an unordered line from the receipt being built.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ligne retirée de la réception.'**
+  String get receiveUnorderedRemoved;
+
+  /// Summary card shown before confirming a receipt.
+  ///
+  /// In fr, this message translates to:
+  /// **'Récapitulatif'**
+  String get receiveSummaryTitle;
+
+  /// Summary figure: how many lines have a received quantity.
+  ///
+  /// In fr, this message translates to:
+  /// **'Lignes reçues'**
+  String get receiveSummaryLines;
+
+  /// Summary figure: total value of the delivery at the actual prices.
+  ///
+  /// In fr, this message translates to:
+  /// **'Valeur reçue'**
+  String get receiveSummaryValue;
+
+  /// Summary figure: how many lines are short, over, or unordered.
+  ///
+  /// In fr, this message translates to:
+  /// **'Écarts'**
+  String get receiveSummaryDiscrepancies;
+
+  /// Confirms the receipt. Generates one stock movement per line and updates prices.
+  ///
+  /// In fr, this message translates to:
+  /// **'Confirmer la réception'**
+  String get receiveConfirm;
+
+  /// Snackbar after confirming a receipt. Says what actually happened rather than just 'saved'.
+  ///
+  /// In fr, this message translates to:
+  /// **'Réception enregistrée — le stock a été mis à jour.'**
+  String get receiveConfirmed;
+
+  /// Why the confirm button is disabled when nothing has been entered.
+  ///
+  /// In fr, this message translates to:
+  /// **'Indiquez au moins une quantité reçue.'**
+  String get receiveNothing;
+
+  /// Reminder of the ordered price under an edited actual price.
+  ///
+  /// In fr, this message translates to:
+  /// **'Prix commandé : {price}'**
+  String receiveOrderedPrice(String price);
+
+  /// Confirmation shown when a unit price moves by more than the significant-change threshold. Usually either a real increase the owner must know about, or a typo.
+  ///
+  /// In fr, this message translates to:
+  /// **'Confirmer ce prix ?'**
+  String get receivePriceConfirmTitle;
+
+  /// Body of the significant price change confirmation.
+  ///
+  /// In fr, this message translates to:
+  /// **'{item} était à {oldPrice}, maintenant {newPrice}. Confirmez-vous ce prix ?'**
+  String receivePriceConfirmBody(String item, String oldPrice, String newPrice);
+
+  /// Accepts the changed price and continues confirming the receipt.
+  ///
+  /// In fr, this message translates to:
+  /// **'Confirmer le prix'**
+  String get receivePriceConfirmAction;
+
+  /// Free-text note covering the whole delivery.
+  ///
+  /// In fr, this message translates to:
+  /// **'Note de réception'**
+  String get receiveNoteLabel;
+
+  /// Placeholder for the receipt note.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ex. chauffeur en retard, palette échangée'**
+  String get receiveNoteHint;
+
+  /// Note on the receiving screen explaining why it is a manager-level action.
+  ///
+  /// In fr, this message translates to:
+  /// **'La réception modifie le stock et les prix : elle est réservée aux gérants.'**
+  String get receiveManagerNotice;
+
+  /// Title of the read-only receipt detail screen.
+  ///
+  /// In fr, this message translates to:
+  /// **'Réception du {date}'**
+  String receiptDetailTitle(String date);
+
+  /// Who confirmed the delivery.
+  ///
+  /// In fr, this message translates to:
+  /// **'Réceptionnée par {name}'**
+  String receiptReceivedBy(String name);
+
+  /// Link back from a receipt to its order.
+  ///
+  /// In fr, this message translates to:
+  /// **'Commande {reference}'**
+  String receiptOrderReference(String reference);
+
+  /// Explains why the receipt detail has no edit or delete action.
+  ///
+  /// In fr, this message translates to:
+  /// **'Une réception confirmée ne peut être ni modifiée ni supprimée. Toute correction passe par un ajustement de stock, pour que l\'historique reste vérifiable.'**
+  String get receiptReadOnlyNotice;
+
+  /// Total value of one delivery at the prices actually charged.
+  ///
+  /// In fr, this message translates to:
+  /// **'Valeur de la réception'**
+  String get receiptValueLabel;
+
+  /// Receipt lines table column.
+  ///
+  /// In fr, this message translates to:
+  /// **'Note'**
+  String get receiptColumnNote;
+
+  /// Shows a price change recorded by a receipt line.
+  ///
+  /// In fr, this message translates to:
+  /// **'{oldPrice} → {newPrice}'**
+  String receiptPriceChanged(String oldPrice, String newPrice);
+
+  /// Description of a stock movement generated by confirming a receipt, as opposed to a manually entered delivery.
+  ///
+  /// In fr, this message translates to:
+  /// **'Réception — commande {reference}'**
+  String movementFromOrder(String reference);
+
+  /// Action on a movement generated by a receipt, opening the receipt it came from.
+  ///
+  /// In fr, this message translates to:
+  /// **'Voir la réception'**
+  String get movementViewReceipt;
+
+  /// Dashboard tile counting sent and partial orders.
+  ///
+  /// In fr, this message translates to:
+  /// **'En attente de livraison'**
+  String get dashboardTileOnOrder;
+
+  /// Caption under the awaiting-delivery tile.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =0{Rien en cours} =1{1 commande ouverte} other{{count} commandes ouvertes}}'**
+  String dashboardOnOrderCaption(int count);
+
+  /// Dashboard warning about orders left half-received. The real protection against stale open orders, independent of what anyone chose at receiving time.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =1{1 commande partielle ouverte depuis plus de {days} jours} other{{count} commandes partielles ouvertes depuis plus de {days} jours}}'**
+  String dashboardStaleOrdersTitle(int count, int days);
+
+  /// Explains why a stale partial order matters.
+  ///
+  /// In fr, this message translates to:
+  /// **'Une commande laissée ouverte gonfle la quantité « en commande » et fausse l\'alerte de double commande.'**
+  String get dashboardStaleOrdersBody;
+
+  /// Opens the orders list filtered to open orders.
+  ///
+  /// In fr, this message translates to:
+  /// **'Voir les commandes'**
+  String get dashboardStaleOrdersAction;
+
+  /// Shown on a low stock alert row when the item is already on an open order.
+  ///
+  /// In fr, this message translates to:
+  /// **'{quantity} en commande'**
+  String alertsOnOrder(String quantity);
+
+  /// Shown on a low stock alert row when nobody has ordered the item yet. The contrast with the previous string is the entire point of showing on-order here.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rien en commande'**
+  String get alertsNothingOnOrder;
+
+  /// Action on the low stock alerts screen that starts drafts grouped by supplier.
+  ///
+  /// In fr, this message translates to:
+  /// **'Créer les commandes'**
+  String get alertsCreateOrders;
+
+  /// Supplier detail tab showing contact details and prices.
+  ///
+  /// In fr, this message translates to:
+  /// **'Fiche'**
+  String get supplierTabDetails;
+
+  /// Supplier detail tab listing orders placed with this supplier.
+  ///
+  /// In fr, this message translates to:
+  /// **'Commandes'**
+  String get supplierTabOrders;
+
+  /// Empty state on the supplier order history tab.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucune commande passée chez ce fournisseur.'**
+  String get supplierOrdersEmpty;
+
+  /// Store settings section covering order behaviour.
+  ///
+  /// In fr, this message translates to:
+  /// **'Commandes'**
+  String get storeSettingsOrders;
+
+  /// Setting: how long a partial order may sit before the dashboard flags it.
+  ///
+  /// In fr, this message translates to:
+  /// **'Alerte commande partielle (jours)'**
+  String get storeSettingsStaleDays;
+
+  /// Helper text for the stale partial order threshold.
+  ///
+  /// In fr, this message translates to:
+  /// **'Une commande partiellement reçue est signalée sur le tableau de bord passé ce délai. Par défaut : 7 jours.'**
+  String get storeSettingsStaleDaysHelp;
+
+  /// Manager-level permission. Receiving affects both stock and money, so it is not a general staff action.
+  ///
+  /// In fr, this message translates to:
+  /// **'Réceptionner les livraisons'**
+  String get permissionReceiveDeliveries;
+
+  /// Section and action that puts the prototype's data back to how it shipped. Present because a client demo gets walked several times in one sitting and the second run should not start from the first one's leftovers.
+  ///
+  /// In fr, this message translates to:
+  /// **'Réinitialiser la démonstration'**
+  String get demoResetTitle;
+
+  /// Explains what the reset action does and, implicitly, that nothing persists anyway.
+  ///
+  /// In fr, this message translates to:
+  /// **'Remet les articles, les stocks, les commandes et les prix dans leur état d\'origine. Les modifications faites pendant la démonstration ne sont conservées que le temps de la session.'**
+  String get demoResetBody;
+
+  /// Shown in place of the reset action when nothing has been changed yet.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucune modification à annuler.'**
+  String get demoResetNothing;
+
+  /// Confirmation before resetting.
+  ///
+  /// In fr, this message translates to:
+  /// **'Réinitialiser la démonstration ?'**
+  String get demoResetConfirmTitle;
+
+  /// Body of the reset confirmation.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tout ce qui a été créé, modifié ou réceptionné depuis le démarrage sera annulé.'**
+  String get demoResetConfirmBody;
+
+  /// Confirms the reset.
+  ///
+  /// In fr, this message translates to:
+  /// **'Réinitialiser'**
+  String get demoResetConfirmAction;
+
+  /// Snackbar after resetting the demo data.
+  ///
+  /// In fr, this message translates to:
+  /// **'Démonstration réinitialisée.'**
+  String get demoResetDone;
+
+  /// Sole button on a dialog that explains why something cannot be done. Not 'OK' — the user is acknowledging an explanation, not approving an action.
+  ///
+  /// In fr, this message translates to:
+  /// **'Compris'**
+  String get actionUnderstood;
+
+  /// Title of the sheet used to rename a category.
+  ///
+  /// In fr, this message translates to:
+  /// **'Modifier la catégorie'**
+  String get editCategoryTitle;
+
+  /// Title of the sheet used to edit a unit.
+  ///
+  /// In fr, this message translates to:
+  /// **'Modifier l\'unité de mesure'**
+  String get editUnitTitle;
+
+  /// Inline error when the category name is already used in this store. Comparison ignores case and surrounding spaces.
+  ///
+  /// In fr, this message translates to:
+  /// **'Une catégorie porte déjà ce nom.'**
+  String get categoryNameTaken;
+
+  /// Inline error when the unit name is already used in this store.
+  ///
+  /// In fr, this message translates to:
+  /// **'Une unité porte déjà ce nom.'**
+  String get unitNameTaken;
+
+  /// Inline error when the unit abbreviation is already used. Checked as well as the name because the abbreviation is what appears next to every quantity in the app.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cette abréviation est déjà utilisée.'**
+  String get unitAbbreviationTaken;
+
+  /// Title of the dialog shown when a category cannot be deleted because items still use it.
+  ///
+  /// In fr, this message translates to:
+  /// **'Impossible de supprimer « {name} »'**
+  String categoryDeleteBlockedTitle(String name);
+
+  /// Explains why a category cannot be deleted and what to do about it. Naming the number and the fix is what makes it actionable.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =1{1 article est classé dans cette catégorie.} other{{count} articles sont classés dans cette catégorie.}} Reclassez-les avant de la supprimer.'**
+  String categoryDeleteBlockedBody(int count);
+
+  /// Title of the dialog shown when a unit cannot be deleted because items are measured in it.
+  ///
+  /// In fr, this message translates to:
+  /// **'Impossible de supprimer « {name} »'**
+  String unitDeleteBlockedTitle(String name);
+
+  /// Explains why a unit cannot be deleted and what to do about it.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =1{1 article est mesuré dans cette unité.} other{{count} articles sont mesurés dans cette unité.}} Changez leur unité avant de la supprimer.'**
+  String unitDeleteBlockedBody(int count);
+
+  /// Explains that a new item's starting quantity is recorded as an opening-balance movement rather than simply set.
+  ///
+  /// In fr, this message translates to:
+  /// **'Enregistré comme un ajustement d\'inventaire, pour que l\'historique des mouvements soit complet dès le départ.'**
+  String get itemFormOpeningBalanceHelp;
+
+  /// Link from the edit item form to the stock adjustment screen. Quantity is read-only when editing: changing it here would be an untraceable stock change hidden inside a routine form.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ajuster le stock'**
+  String get itemFormAdjustStock;
+
+  /// Explains why the quantity field is read-only on the edit item form.
+  ///
+  /// In fr, this message translates to:
+  /// **'La quantité se modifie par un ajustement d\'inventaire, qui laisse une trace.'**
+  String get itemFormQuantityLocked;
+
+  /// Title of the dialog shown when an item cannot be deleted because it is on an open order.
+  ///
+  /// In fr, this message translates to:
+  /// **'Impossible de supprimer « {name} »'**
+  String itemDeleteBlockedTitle(String name);
+
+  /// Explains why an item cannot be deleted. The open order is a document a supplier is holding, so removing the article would leave it referring to nothing.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =1{Cet article figure sur 1 commande en cours.} other{Cet article figure sur {count} commandes en cours.}} Réceptionnez ou clôturez-la avant de le supprimer.'**
+  String itemDeleteBlockedBody(int count);
+
+  /// States exactly what disappears alongside a deleted item. Naming the counts is what makes the confirmation honest rather than a formality.
+  ///
+  /// In fr, this message translates to:
+  /// **'{movements, plural, =0{} =1{1 mouvement de stock} other{{movements} mouvements de stock}}{suppliers, plural, =0{} =1{ et 1 fournisseur associé} other{ et {suppliers} fournisseurs associés}} seront également supprimés.'**
+  String itemDeleteCascadeWarning(int movements, int suppliers);
+
+  /// Title of the dialog shown when a supplier cannot be deleted because they have an open order.
+  ///
+  /// In fr, this message translates to:
+  /// **'Impossible de supprimer « {name} »'**
+  String supplierDeleteBlockedTitle(String name);
+
+  /// Explains why a supplier cannot be deleted.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =1{Une commande en cours est adressée à ce fournisseur.} other{{count} commandes en cours sont adressées à ce fournisseur.}} Réceptionnez-les, clôturez-les ou annulez-les d\'abord.'**
+  String supplierDeleteBlockedBody(int count);
+
+  /// Snackbar after changing a supplier's price for an item. The change is recorded in that item-supplier pair's price history.
+  ///
+  /// In fr, this message translates to:
+  /// **'Prix mis à jour.'**
+  String get supplierPriceUpdated;
+
+  /// Snackbar after promoting a supplier to an item's default.
+  ///
+  /// In fr, this message translates to:
+  /// **'{supplier} est maintenant le fournisseur par défaut.'**
+  String supplierDefaultChanged(String supplier);
+
+  /// Snackbar shown when removing an item's default supplier automatically promotes the next cheapest, so the change does not happen silently.
+  ///
+  /// In fr, this message translates to:
+  /// **'{supplier} devient le fournisseur par défaut.'**
+  String supplierPromotedToDefault(String supplier);
+
+  /// Inline error when inviting somebody whose email is already on the team.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cette adresse est déjà utilisée par un membre.'**
+  String get memberEmailTaken;
+
+  /// Title of the dialog shown when removing the last owner is refused.
+  ///
+  /// In fr, this message translates to:
+  /// **'Impossible de retirer « {name} »'**
+  String memberRemoveBlockedTitle(String name);
+
+  /// Explains why the last owner cannot be removed: an account nobody can administer has no recovery path from inside the app.
+  ///
+  /// In fr, this message translates to:
+  /// **'C\'est le dernier propriétaire du compte. Nommez un autre propriétaire avant de retirer celui-ci.'**
+  String get memberRemoveBlockedBody;
+
+  /// Snackbar after marking notifications read.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =1{1 notification marquée comme lue.} other{{count} notifications marquées comme lues.}}'**
+  String notificationsMarkedRead(int count);
+
+  /// Snackbar after creating a store.
+  ///
+  /// In fr, this message translates to:
+  /// **'Établissement créé.'**
+  String get storeCreated;
 }
 
 class _AppLocalizationsDelegate

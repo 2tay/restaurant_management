@@ -37,6 +37,13 @@ class RolesPermissionsPage extends StatelessWidget {
         label: l10n.permissionRecordMovements,
         granted: {TeamRole.staff, TeamRole.manager, TeamRole.owner},
       ),
+      // Receiving affects both stock and money — it writes movements and can
+      // move a supplier's price — so it sits above general staff even though
+      // recording a movement by hand does not.
+      (
+        label: l10n.permissionReceiveDeliveries,
+        granted: {TeamRole.manager, TeamRole.owner},
+      ),
       (
         label: l10n.permissionEditItems,
         granted: {TeamRole.manager, TeamRole.owner},

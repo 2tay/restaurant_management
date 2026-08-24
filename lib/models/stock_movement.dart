@@ -45,6 +45,8 @@ class StockMovement {
     this.reason,
     this.systemQuantity,
     this.countedQuantity,
+    this.orderId,
+    this.receiptId,
     this.note,
   });
 
@@ -77,6 +79,19 @@ class StockMovement {
 
   /// [StockMovementType.adjustment] only — what the physical count found.
   final double? countedQuantity;
+
+  /// The commande this delivery was received against, when there was one.
+  ///
+  /// Null for a manual stock-in — somebody ran to the market and bought 5 kg of
+  /// tomatoes with no order behind it. That path stays open on purpose; two
+  /// ways in, one movement log.
+  final String? orderId;
+
+  /// The receipt that generated this movement.
+  ///
+  /// Together with [orderId] this is what makes the chain traceable in both
+  /// directions: current quantity → movement → receipt → order → supplier.
+  final String? receiptId;
 
   final String? note;
 }

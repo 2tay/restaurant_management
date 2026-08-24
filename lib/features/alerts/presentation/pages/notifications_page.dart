@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../app/routes.dart';
@@ -17,32 +18,34 @@ import '../../../../shared/widgets/widgets.dart';
 /// the three things that happen without anyone doing them. Unread entries carry
 /// a dot and a tinted background — a bold font alone is too subtle at arm's
 /// length.
-class NotificationsPage extends StatefulWidget {
+class NotificationsPage extends ConsumerStatefulWidget {
   const NotificationsPage({required this.storeId, super.key});
 
   final String storeId;
 
   @override
-  State<NotificationsPage> createState() => _NotificationsPageState();
+  ConsumerState<NotificationsPage> createState() => _NotificationsPageState();
 }
 
-class _NotificationsPageState extends State<NotificationsPage> {
+class _NotificationsPageState extends ConsumerState<NotificationsPage> {
   bool _unreadOnly = false;
 
   /// Ids marked read in this session. Phase 1 persists nothing.
-  final Set<String> _locallyRead = {};
 
   @override
   Widget build(BuildContext context) {
+    // Alerts are generated from stock levels, which a delivery moves.
+    ref.watch(mockDataRevisionProvider);
+
     final l10n = AppLocalizations.of(context);
 
     final all = MockQueries.notificationsForStore(widget.storeId);
     final unreadCount = all
-        .where((n) => !n.isRead && !_locallyRead.contains(n.id))
+        .where((n) => !n.isRead)
         .length;
 
     final shown = _unreadOnly
-        ? all.where((n) => !n.isRead && !_locallyRead.contains(n.id)).toList()
+        ? all.where((n) => !n.isRead).toList()
         : all;
 
     return ShellPage(
@@ -104,9 +107,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                       final notification = shown[index];
                       return _NotificationCard(
                         notification: notification,
-                        isRead:
-                            notification.isRead ||
-                            _locallyRead.contains(notification.id),
+                        isRead: notification.isRead,
                         onTap: () => _open(notification),
                       );
                     },
@@ -119,16 +120,16 @@ class _NotificationsPageState extends State<NotificationsPage> {
 
   void _markAllRead() {
     final l10n = AppLocalizations.of(context);
-    setState(() {
-      _locallyRead.addAll(
-        MockQueries.notificationsForStore(widget.storeId).map((n) => n.id),
-      );
-    });
-    AppSnackBar.success(context, l10n.notificationsAllRead);
+    final changed = AccountMutations.markAllRead(widget.storeId);
+
+    // Says how many rather than a bare acknowledgement, and stays quiet when
+    // there was nothing to do.
+    if (changed == 0) return;
+    AppSnackBar.success(context, l10n.notificationsMarkedRead(changed));
   }
 
   void _open(NotificationItem notification) {
-    setState(() => _locallyRead.add(notification.id));
+    AccountMutations.markRead(notification.id);
 
     // Deep-links to whatever the notification is about, so it is actionable
     // rather than merely informative.

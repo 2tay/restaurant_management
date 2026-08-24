@@ -30,59 +30,79 @@ class SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
+    final titleBlock = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          children: [
+            Flexible(
+              child: Text(
+                title,
+                style: theme.textTheme.titleLarge,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            if (count != null) ...[
+              const SizedBox(width: AppSpacing.md),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.sm,
+                  vertical: 2,
+                ),
+                decoration: const BoxDecoration(
+                  color: AppColors.surfaceVariant,
+                  borderRadius: AppRadius.pillAll,
+                ),
+                child: Text(
+                  '$count',
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+        if (subtitle != null) ...[
+          const SizedBox(height: AppSpacing.xs),
+          Text(subtitle!, style: theme.textTheme.bodySmall),
+        ],
+      ],
+    );
+
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.lg),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Column(
+      child: trailing == null
+          ? titleBlock
+          : Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Flexible(
-                      child: Text(
-                        title,
-                        style: theme.textTheme.titleLarge,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    if (count != null) ...[
-                      const SizedBox(width: AppSpacing.md),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.sm,
-                          vertical: 2,
-                        ),
-                        decoration: const BoxDecoration(
-                          color: AppColors.surfaceVariant,
-                          borderRadius: AppRadius.pillAll,
-                        ),
-                        child: Text(
-                          '$count',
-                          style: theme.textTheme.labelMedium?.copyWith(
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ],
+                Expanded(child: titleBlock),
+                const SizedBox(width: AppSpacing.lg),
+                // Flexible, not a bare child. A Row lays its non-flexible
+                // children out with **unbounded** main-axis room, so the
+                // action button used to take its natural width whatever the
+                // space — which is how "Associer un fournisseur" ran off the
+                // edge of the 434dp detail pane on the inventory split view.
+                //
+                // Made flexible, it is capped at half the header and the
+                // label ellipsizes instead. The Align keeps it against the
+                // right edge: without it a short action like "Tout afficher"
+                // would float in the middle of its half.
+                //
+                // Deliberately not a LayoutBuilder, which cannot report
+                // intrinsic dimensions — the dashboard measures these headers
+                // inside an IntrinsicHeight.
+                Flexible(
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: trailing!,
+                  ),
                 ),
-                if (subtitle != null) ...[
-                  const SizedBox(height: AppSpacing.xs),
-                  Text(subtitle!, style: theme.textTheme.bodySmall),
-                ],
               ],
             ),
-          ),
-          if (trailing != null) ...[
-            const SizedBox(width: AppSpacing.lg),
-            trailing!,
-          ],
-        ],
-      ),
     );
   }
 }

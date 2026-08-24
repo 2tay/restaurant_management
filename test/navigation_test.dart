@@ -33,6 +33,7 @@ final _rootScreens = <String, String>{
   'dashboard': Routes.toDashboard(_store),
   'inventory': Routes.toInventory(_store),
   'movements': Routes.toMovements(_store),
+  'orders': Routes.toOrders(_store),
   'suppliers': Routes.toSuppliers(_store),
   'categories': Routes.toCategories(_store),
   'units': Routes.toUnits(_store),
@@ -61,6 +62,11 @@ Map<String, String> _pushedScreens() {
     'stock in': Routes.toStockIn(_store),
     'stock out': Routes.toStockOut(_store),
     'adjustment': Routes.toAdjustment(_store),
+    'orders: new': Routes.toNewOrder(_store),
+    'orders: detail': Routes.toOrder(_store, OrderIds.draftMaraicher),
+    'orders: edit': Routes.toEditOrder(_store, OrderIds.draftMaraicher),
+    'orders: receive': Routes.toReceiveOrder(_store, OrderIds.partialBoucherie),
+    'orders: receipt': Routes.toReceipt(_store, ReceiptIds.cremerieFinal),
     'supplier detail': Routes.toSupplier(_store, supplier),
     'add supplier': Routes.toAddSupplier(_store),
     'edit supplier': Routes.toEditSupplier(_store, supplier),
@@ -199,7 +205,8 @@ void main() {
       await tester.pumpAndSettle();
 
       final rail = tester.widget<NavigationRail>(find.byType(NavigationRail));
-      expect(rail.selectedIndex, 3);
+      // Dashboard, Inventaire, Mouvements, Commandes, Fournisseurs.
+      expect(rail.selectedIndex, 4);
     });
   });
 

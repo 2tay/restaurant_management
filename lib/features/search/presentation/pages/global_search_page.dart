@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../app/routes.dart';
@@ -20,28 +21,34 @@ import '../../../../shared/widgets/widgets.dart';
 /// Results are grouped by kind rather than merged into one ranked list. Someone
 /// typing "poulet" wants either the article or a supplier of it, and a blended
 /// list makes them read every row to find out which is which.
-class GlobalSearchPage extends StatefulWidget {
+class GlobalSearchPage extends ConsumerStatefulWidget {
   const GlobalSearchPage({required this.storeId, super.key});
 
   final String storeId;
 
   @override
-  State<GlobalSearchPage> createState() => _GlobalSearchPageState();
+  ConsumerState<GlobalSearchPage> createState() => _GlobalSearchPageState();
 }
 
-class _GlobalSearchPageState extends State<GlobalSearchPage> {
+class _GlobalSearchPageState extends ConsumerState<GlobalSearchPage> {
   String _query = '';
 
   @override
   Widget build(BuildContext context) {
+    // Results cover items, suppliers and categories — all three are creatable
+    // and deletable.
+    ref.watch(mockDataRevisionProvider);
+
     final l10n = AppLocalizations.of(context);
     final query = _query.trim().toLowerCase();
 
     final items = query.isEmpty
         ? <Item>[]
-        : MockQueries.itemsForStore(
-            widget.storeId,
-          ).where((item) => item.name.toLowerCase().contains(query)).toList();
+        // Matches on name or on an exact barcode — pasting a scanned code into
+        // the box finds the item.
+        : MockQueries.itemsForStore(widget.storeId)
+              .where((item) => MockQueries.itemMatchesSearch(item, query))
+              .toList();
 
     final suppliers = query.isEmpty
         ? <Supplier>[]
