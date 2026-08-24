@@ -3,6 +3,7 @@ import '../mock_notifications.dart';
 import '../mock_queries.dart';
 import '../mock_stores.dart';
 import '../mock_team.dart';
+import 'employee_mutations.dart';
 import 'mock_write.dart';
 
 /// Writes against the things that are about the account rather than the stock:
@@ -100,6 +101,9 @@ abstract final class AccountMutations {
     }
 
     mockTeam.removeWhere((candidate) => candidate.id == id);
+    // An employee linked to this account should not end up pointing at one
+    // that no longer exists — see `Employee.teamMemberId`.
+    EmployeeMutations.clearTeamMemberLink(id);
     MockWrite.changed();
     return true;
   }

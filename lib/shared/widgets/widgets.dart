@@ -29,3 +29,4 @@ export 'section_header.dart';
 export 'section_tabs.dart';
 export 'stock_status_badge.dart';
 export 'store_switcher.dart';
+export 'time_entry_status_badge.dart';

@@ -5,6 +5,7 @@
 library;
 
 export 'category.dart';
+export 'employee.dart';
 export 'goods_receipt.dart';
 export 'goods_receipt_line.dart';
 export 'item.dart';
@@ -18,4 +19,5 @@ export 'store.dart';
 export 'supplier.dart';
 export 'supplier_price.dart';
 export 'team_member.dart';
+export 'time_entry.dart';
 export 'unit_of_measure.dart';

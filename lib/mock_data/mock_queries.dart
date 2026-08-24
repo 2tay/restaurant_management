@@ -1,18 +1,22 @@
+import '../core/utils/employee_status.dart';
 import '../core/utils/order_status.dart';
 import '../core/utils/stock_status.dart';
 import '../models/models.dart';
 import 'mock_categories.dart';
+import 'mock_employees.dart';
 import 'mock_goods_receipts.dart';
 import 'mock_items.dart';
 import 'mock_notifications.dart';
 import 'mock_price_history.dart';
 import 'mock_purchase_orders.dart';
+import 'mock_reference.dart';
 import 'mock_settings.dart';
 import 'mock_stock_movements.dart';
 import 'mock_stores.dart';
 import 'mock_supplier_prices.dart';
 import 'mock_suppliers.dart';
 import 'mock_team.dart';
+import 'mock_time_entries.dart';
 import 'mock_units.dart';
 
 /// Lookups over the mock lists.
@@ -183,12 +187,7 @@ abstract final class MockQueries {
     String storeId,
     String name, {
     String? excludingId,
-  }) => _findUnit(
-    storeId,
-    name,
-    excludingId,
-    (unit) => unit.name,
-  );
+  }) => _findUnit(storeId, name, excludingId, (unit) => unit.name);
 
   /// The unit of this store already using this abbreviation, if any.
   ///
@@ -415,8 +414,7 @@ abstract final class MockQueries {
     final counts = <String, int>{};
 
     for (final item in itemsForStore(storeId)) {
-      values[item.categoryId] =
-          (values[item.categoryId] ?? 0) + _valueOf(item);
+      values[item.categoryId] = (values[item.categoryId] ?? 0) + _valueOf(item);
       counts[item.categoryId] = (counts[item.categoryId] ?? 0) + 1;
     }
 
@@ -561,8 +559,8 @@ abstract final class MockQueries {
 
     final items =
         itemsForStore(
-          storeId,
-        ).where((item) => supplied.contains(item.id)).toList()
+            storeId,
+          ).where((item) => supplied.contains(item.id)).toList()
           ..sort((a, b) => a.name.compareTo(b.name));
     return items;
   }
@@ -587,5 +585,104 @@ abstract final class MockQueries {
       if (receipt.id == id) return receipt;
     }
     return null;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Employees
+  // ---------------------------------------------------------------------------
+
+  static List<Employee> employeesForStore(String storeId) =>
+      mockEmployees.where((e) => e.storeId == storeId).toList();
+
+  /// Active only — archived employees have nothing to punch and no roster
+  /// slot, but they stay resolvable by [employeeById] so a retired
+  /// employee's record can still be opened.
+  static List<Employee> activeEmployeesForStore(String storeId) =>
+      employeesForStore(storeId).where(isEmployeeActive).toList();
+
+  static Employee? employeeById(String id) {
+    for (final employee in mockEmployees) {
+      if (employee.id == id) return employee;
+    }
+    return null;
+  }
+
+  /// The employee of this store already using this email, if any.
+  ///
+  /// Scoped to the store — unlike team members, employees belong to exactly
+  /// one store, so the same email is fine at two different locations.
+  static Employee? employeeByEmail(
+    String storeId,
+    String email, {
+    String? excludingId,
+  }) {
+    final needle = _normalise(email);
+    if (needle.isEmpty) return null;
+
+    for (final employee in mockEmployees) {
+      if (employee.storeId != storeId) continue;
+      if (employee.id == excludingId) continue;
+      if (_normalise(employee.email) == needle) return employee;
+    }
+    return null;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Pointage
+  // ---------------------------------------------------------------------------
+
+  /// One employee's attendance, most recent day first.
+  static List<TimeEntry> timeEntriesForEmployee(String employeeId) {
+    final entries =
+        mockTimeEntries.where((t) => t.employeeId == employeeId).toList()
+          ..sort((a, b) => b.date.compareTo(a.date));
+    return entries;
+  }
+
+  /// This employee's entry for today, or null when they have not clocked in
+  /// yet — a day with no row simply means [TimeEntryStatus.notClockedIn], per
+  /// the [TimeEntry] model doc. Uses [dayOnly] so "today" matches exactly how
+  /// the seed data and `TimeclockMutations.clockIn` both compute it.
+  static TimeEntry? timeEntryForToday(String employeeId) {
+    final today = dayOnly(0);
+    for (final entry in mockTimeEntries) {
+      if (entry.employeeId == employeeId && entry.date == today) return entry;
+    }
+    return null;
+  }
+
+  /// The store's attendance log, filtered on up to three independent axes —
+  /// a rolling period, a status, and a free-text employee-name search —
+  /// combined with AND. Sorted most-recent-day-first, same as
+  /// [timeEntriesForEmployee].
+  ///
+  /// [withinDays] is a rolling window against `DateTime.now()`, null meaning
+  /// no cutoff at all ("Tout"). [employeeQuery] is matched the same
+  /// case/space-insensitive way category and unit names are — see
+  /// [_normalise] — against the name [employeeById] resolves for each entry,
+  /// so the UI layer never has to look employees up itself.
+  static List<TimeEntry> timeEntriesForStore(
+    String storeId, {
+    int? withinDays,
+    TimeEntryStatus? status,
+    String? employeeQuery,
+  }) {
+    final cutoff = withinDays == null
+        ? null
+        : DateTime.now().subtract(Duration(days: withinDays));
+    final needle = employeeQuery == null ? '' : _normalise(employeeQuery);
+
+    final entries = mockTimeEntries.where((entry) {
+      if (entry.storeId != storeId) return false;
+      if (status != null && entry.status != status) return false;
+      if (cutoff != null && entry.date.isBefore(cutoff)) return false;
+      if (needle.isNotEmpty) {
+        final name = employeeById(entry.employeeId)?.fullName ?? '';
+        if (!_normalise(name).contains(needle)) return false;
+      }
+      return true;
+    }).toList()..sort((a, b) => b.date.compareTo(a.date));
+
+    return entries;
   }
 }

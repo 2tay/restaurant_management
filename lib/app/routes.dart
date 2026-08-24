@@ -72,6 +72,18 @@ abstract final class Routes {
   static const String roles = '$team/roles';
   static const String editTeamMember = '$team/:memberId/edit';
 
+  // Employees. `new` is declared before `:employeeId` for the same go_router
+  // ordering reason `orders` declares `new` before `:orderId` — otherwise
+  // "new" and "timeclock" get read as an id. `timeclock` carries no route yet
+  // (Stage 2 registers it) — the constant exists now so nothing has to change
+  // when it does.
+  static const String employees = '$storeBase/employees';
+  static const String addEmployee = '$employees/new';
+  static const String employeeDetail = '$employees/:employeeId';
+  static const String editEmployee = '$employeeDetail/edit';
+  static const String linkTeamAccess = '$employeeDetail/link-team';
+  static const String timeclock = '$employees/timeclock';
+
   static const String storeSettings = '$storeBase/settings/store';
   static const String accountSettings = '$storeBase/settings/account';
   static const String notificationSettings =
@@ -175,6 +187,23 @@ abstract final class Routes {
       '/store/$storeId/team/$memberId/edit';
 
   static String toRoles(String storeId) => '/store/$storeId/team/roles';
+
+  static String toEmployees(String storeId) => '/store/$storeId/employees';
+
+  static String toAddEmployee(String storeId) =>
+      '/store/$storeId/employees/new';
+
+  static String toEmployee(String storeId, String employeeId) =>
+      '/store/$storeId/employees/$employeeId';
+
+  static String toEditEmployee(String storeId, String employeeId) =>
+      '/store/$storeId/employees/$employeeId/edit';
+
+  static String toLinkTeamAccess(String storeId, String employeeId) =>
+      '/store/$storeId/employees/$employeeId/link-team';
+
+  static String toTimeclock(String storeId) =>
+      '/store/$storeId/employees/timeclock';
 
   static String toStoreSettings(String storeId) =>
       '/store/$storeId/settings/store';

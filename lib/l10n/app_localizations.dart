@@ -148,6 +148,12 @@ abstract class AppLocalizations {
   /// **'Équipe'**
   String get navTeam;
 
+  /// Sidebar label for the employees section. Opens a flyout rather than navigating directly — see employeesFlyoutPersonnel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Employés'**
+  String get navEmployees;
+
   /// Sidebar label for settings.
   ///
   /// In fr, this message translates to:
@@ -2277,6 +2283,456 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Gérer le compte et les établissements'**
   String get permissionManageAccount;
+
+  /// Item in the Employés sidebar flyout, opening the employees list.
+  ///
+  /// In fr, this message translates to:
+  /// **'Personnel'**
+  String get employeesFlyoutPersonnel;
+
+  /// Item in the Employés sidebar flyout, opening the timeclock board.
+  ///
+  /// In fr, this message translates to:
+  /// **'Pointage'**
+  String get employeesFlyoutPointage;
+
+  /// Employees list heading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Personnel'**
+  String get employeesTitle;
+
+  /// Supporting line on the employees list.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ajoutez, modifiez et retirez les membres du personnel de cet établissement.'**
+  String get employeesSubtitle;
+
+  /// Primary action on the employees list.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ajouter un employé'**
+  String get employeesAdd;
+
+  /// Placeholder in the employees search field.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rechercher un employé'**
+  String get employeesSearchHint;
+
+  /// Toggle filter on the employees list. Off by default, matching items and suppliers defaulting to what is currently usable.
+  ///
+  /// In fr, this message translates to:
+  /// **'Afficher les personnels retirés'**
+  String get employeesShowArchived;
+
+  /// Empty state on the employees list when the store has none at all.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun employé'**
+  String get employeesEmpty;
+
+  /// Supporting line for the fully-empty employees list.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ajoutez votre premier employé pour commencer à gérer le personnel de cet établissement.'**
+  String get employeesEmptyBody;
+
+  /// Badge on an archived employee's row.
+  ///
+  /// In fr, this message translates to:
+  /// **'Retiré'**
+  String get employeesArchivedPill;
+
+  /// Employee type: permanent, salaried staff.
+  ///
+  /// In fr, this message translates to:
+  /// **'Salarié fixe'**
+  String get employeeTypeFixedSalary;
+
+  /// Employee type: student contract.
+  ///
+  /// In fr, this message translates to:
+  /// **'Étudiant'**
+  String get employeeTypeStudent;
+
+  /// Employee type: casual, shift-by-shift staff.
+  ///
+  /// In fr, this message translates to:
+  /// **'Extra'**
+  String get employeeTypeExtra;
+
+  /// Pay type: a fixed monthly amount.
+  ///
+  /// In fr, this message translates to:
+  /// **'Salaire mensuel'**
+  String get payTypeMonthlySalary;
+
+  /// Pay type: paid per hour worked.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tarif horaire'**
+  String get payTypeHourlyRate;
+
+  /// Add-employee form heading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ajouter un employé'**
+  String get addEmployeeTitle;
+
+  /// Edit-employee form heading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Modifier l\'employé'**
+  String get editEmployeeTitle;
+
+  /// Employee name field label.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nom complet'**
+  String get employeeFormFullName;
+
+  /// Employee email field label.
+  ///
+  /// In fr, this message translates to:
+  /// **'Adresse e-mail'**
+  String get employeeFormEmail;
+
+  /// Employee phone field label.
+  ///
+  /// In fr, this message translates to:
+  /// **'Téléphone'**
+  String get employeeFormPhone;
+
+  /// Employee address field label.
+  ///
+  /// In fr, this message translates to:
+  /// **'Adresse'**
+  String get employeeFormAddress;
+
+  /// Employee national identity card number field label.
+  ///
+  /// In fr, this message translates to:
+  /// **'N° de carte d\'identité'**
+  String get employeeFormCin;
+
+  /// Photo section label on the employee form.
+  ///
+  /// In fr, this message translates to:
+  /// **'Photo'**
+  String get employeeFormPhoto;
+
+  /// Button under the employee photo tile. Mocked — see employeeFormPhotoMockNotice.
+  ///
+  /// In fr, this message translates to:
+  /// **'Choisir une photo'**
+  String get employeeFormPhotoAction;
+
+  /// Shown when the photo action is tapped. Photo is a mocked field, same treatment as Store.imageAsset — no real file picker.
+  ///
+  /// In fr, this message translates to:
+  /// **'La sélection de photo n\'est pas disponible dans cette démonstration.'**
+  String get employeeFormPhotoMockNotice;
+
+  /// Employee type dropdown label.
+  ///
+  /// In fr, this message translates to:
+  /// **'Type d\'employé'**
+  String get employeeFormType;
+
+  /// Pay type dropdown label.
+  ///
+  /// In fr, this message translates to:
+  /// **'Type de rémunération'**
+  String get employeeFormPayType;
+
+  /// Pay rate field label when pay type is a monthly salary.
+  ///
+  /// In fr, this message translates to:
+  /// **'Salaire mensuel (€)'**
+  String get employeeFormPayRateMonthly;
+
+  /// Pay rate field label when pay type is an hourly rate.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tarif horaire (€/h)'**
+  String get employeeFormPayRateHourly;
+
+  /// Field error when the entered email is already on file for this store.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cette adresse e-mail est déjà utilisée par un autre employé de cet établissement.'**
+  String get employeeEmailTaken;
+
+  /// Snackbar confirming a new employee was created.
+  ///
+  /// In fr, this message translates to:
+  /// **'Employé ajouté'**
+  String get employeeCreated;
+
+  /// Snackbar confirming an employee was edited.
+  ///
+  /// In fr, this message translates to:
+  /// **'Employé modifié'**
+  String get employeeUpdated;
+
+  /// Destructive confirmation dialog title for archiving an employee. Regular space before the question mark, matching the rest of the file.
+  ///
+  /// In fr, this message translates to:
+  /// **'Retirer {name} ?'**
+  String employeeArchiveTitle(String name);
+
+  /// Body of the archive-employee confirmation dialog.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cette personne n\'apparaîtra plus dans le personnel actif. Son historique de pointage reste conservé.'**
+  String get employeeArchiveBody;
+
+  /// Confirms archiving an employee. Deliberately not "Supprimer" — this is a soft removal, not a deletion.
+  ///
+  /// In fr, this message translates to:
+  /// **'Retirer'**
+  String get employeeArchiveConfirm;
+
+  /// Snackbar confirming an employee was archived.
+  ///
+  /// In fr, this message translates to:
+  /// **'Employé retiré'**
+  String get employeeArchived;
+
+  /// Status line on an archived employee's detail page.
+  ///
+  /// In fr, this message translates to:
+  /// **'Retiré le {date}'**
+  String employeeDetailArchivedOn(String date);
+
+  /// Section heading on the employee detail page for contact fields.
+  ///
+  /// In fr, this message translates to:
+  /// **'Coordonnées'**
+  String get employeeDetailContact;
+
+  /// Section heading on the employee detail page for type and pay.
+  ///
+  /// In fr, this message translates to:
+  /// **'Emploi'**
+  String get employeeDetailEmployment;
+
+  /// Section heading for one employee's clock history.
+  ///
+  /// In fr, this message translates to:
+  /// **'Historique de pointage'**
+  String get employeeHistoryTitle;
+
+  /// Shown under the clock history section when the employee has no time entries yet.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun pointage enregistré pour le moment.'**
+  String get employeeHistoryEmpty;
+
+  /// Tooltip on the late-break icon in a clock history row.
+  ///
+  /// In fr, this message translates to:
+  /// **'Pause dépassée'**
+  String get employeeHistoryLate;
+
+  /// Section heading on the employee detail page for the linked application account.
+  ///
+  /// In fr, this message translates to:
+  /// **'Accès à l\'application'**
+  String get employeeAccessTitle;
+
+  /// Shown in the access section when the employee has no linked team-member account.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ce personnel n\'a pas d\'accès à l\'application.'**
+  String get employeeAccessNone;
+
+  /// Button that opens the link-team-access form from the employee detail page.
+  ///
+  /// In fr, this message translates to:
+  /// **'Donner un accès à l\'application'**
+  String get employeeAccessGrant;
+
+  /// Shown in the access section when the employee has a linked team-member account, naming their role.
+  ///
+  /// In fr, this message translates to:
+  /// **'Accès application : {role}'**
+  String employeeAccessLinked(String role);
+
+  /// Title of the form that creates a team-member account for an existing employee.
+  ///
+  /// In fr, this message translates to:
+  /// **'Donner un accès à l\'application'**
+  String get linkTeamAccessTitle;
+
+  /// Subtitle on the link-team-access form, naming the employee.
+  ///
+  /// In fr, this message translates to:
+  /// **'Créer un compte pour {name}'**
+  String linkTeamAccessSubtitle(String name);
+
+  /// Helper text under the read-only name/email fields on the link-team-access form.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le nom et l\'adresse e-mail sont repris de la fiche du personnel.'**
+  String get linkTeamAccessIdentityHelp;
+
+  /// Submit button on the link-team-access form.
+  ///
+  /// In fr, this message translates to:
+  /// **'Créer l\'accès'**
+  String get linkTeamAccessSubmit;
+
+  /// Error banner on the link-team-access form when the employee's email already belongs to a different, unlinked team-member account.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cette adresse e-mail est déjà utilisée par un autre compte de l\'équipe. Modifiez l\'adresse e-mail de ce personnel avant de continuer.'**
+  String get linkTeamAccessEmailTaken;
+
+  /// Snackbar confirming a team-member account was created and linked to the employee.
+  ///
+  /// In fr, this message translates to:
+  /// **'Accès à l\'application créé'**
+  String get linkTeamAccessGranted;
+
+  /// Attendance status: no entry yet for the day.
+  ///
+  /// In fr, this message translates to:
+  /// **'Non pointé'**
+  String get timeEntryStatusNotClockedIn;
+
+  /// Attendance status: clocked in, not on a break.
+  ///
+  /// In fr, this message translates to:
+  /// **'En service'**
+  String get timeEntryStatusOnShift;
+
+  /// Attendance status: mid-break.
+  ///
+  /// In fr, this message translates to:
+  /// **'En pause'**
+  String get timeEntryStatusOnBreak;
+
+  /// Attendance status: the day is finished.
+  ///
+  /// In fr, this message translates to:
+  /// **'Terminé'**
+  String get timeEntryStatusClockedOut;
+
+  /// Title of the timeclock board page.
+  ///
+  /// In fr, this message translates to:
+  /// **'Pointage'**
+  String get timeclockBoardTitle;
+
+  /// Supporting line on the timeclock board page.
+  ///
+  /// In fr, this message translates to:
+  /// **'Enregistrez les arrivées, pauses et départs du personnel actif.'**
+  String get timeclockBoardSubtitle;
+
+  /// Empty state on the timeclock board when the store has no active employee.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun personnel actif'**
+  String get timeclockBoardEmpty;
+
+  /// Supporting line for the empty timeclock board.
+  ///
+  /// In fr, this message translates to:
+  /// **'Il n\'y a personne à pointer dans cet établissement pour le moment.'**
+  String get timeclockBoardEmptyBody;
+
+  /// Button label to clock an employee in for the day.
+  ///
+  /// In fr, this message translates to:
+  /// **'Pointer'**
+  String get timeclockButtonClockIn;
+
+  /// Button label to start an employee's break.
+  ///
+  /// In fr, this message translates to:
+  /// **'Pause'**
+  String get timeclockButtonStartBreak;
+
+  /// Button label to end an employee's break.
+  ///
+  /// In fr, this message translates to:
+  /// **'Reprendre'**
+  String get timeclockButtonEndBreak;
+
+  /// Button label to clock an employee out for the day.
+  ///
+  /// In fr, this message translates to:
+  /// **'Fin de journée'**
+  String get timeclockButtonClockOut;
+
+  /// Snackbar after clocking an employee in.
+  ///
+  /// In fr, this message translates to:
+  /// **'Pointage enregistré pour {name}.'**
+  String timeclockClockInSuccess(String name);
+
+  /// Snackbar after starting an employee's break.
+  ///
+  /// In fr, this message translates to:
+  /// **'Pause démarrée pour {name}.'**
+  String timeclockBreakStartSuccess(String name);
+
+  /// Snackbar after ending an employee's break.
+  ///
+  /// In fr, this message translates to:
+  /// **'Reprise enregistrée pour {name}.'**
+  String timeclockBreakEndSuccess(String name);
+
+  /// Snackbar after clocking an employee out for the day.
+  ///
+  /// In fr, this message translates to:
+  /// **'Journée terminée pour {name}.'**
+  String timeclockClockOutSuccess(String name);
+
+  /// Worked-duration line on a finished timeclock card.
+  ///
+  /// In fr, this message translates to:
+  /// **'Travaillé : {duration}'**
+  String timeclockWorkedDuration(String duration);
+
+  /// Overtime line on a finished timeclock card, shown only when positive.
+  ///
+  /// In fr, this message translates to:
+  /// **'Heures sup. : {duration}'**
+  String timeclockOvertime(String duration);
+
+  /// First SectionTabs entry on the pointage board — today's live board.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aujourd\'hui'**
+  String get timeclockTabToday;
+
+  /// Second SectionTabs entry on the pointage board — the filterable attendance log across every employee and day.
+  ///
+  /// In fr, this message translates to:
+  /// **'Historique'**
+  String get timeclockTabHistory;
+
+  /// Result-count line above the Historique tab's list.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =0{Aucun pointage} =1{1 pointage} other{{count} pointages}}'**
+  String timeclockHistoryCount(int count);
+
+  /// Empty state on the Historique tab when the store has no time entries at all, regardless of filters.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun historique de pointage'**
+  String get timeclockHistoryEmpty;
+
+  /// Supporting line for the fully-empty Historique tab.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun pointage n\'a encore été enregistré dans cet établissement.'**
+  String get timeclockHistoryEmptyBody;
 
   /// Store settings heading.
   ///

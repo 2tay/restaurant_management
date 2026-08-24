@@ -38,6 +38,7 @@ List<({String label, String path, bool inShell})> _allRoutes() {
   final item = mockItems.first.id;
   final supplier = mockSuppliers.first.id;
   final member = mockTeam.first.id;
+  final employee = mockEmployees.first.id;
 
   // A draft and a partially received order, because the detail screen renders
   // a different action row for each status and only one of them can be wrong
@@ -150,6 +151,20 @@ List<({String label, String path, bool inShell})> _allRoutes() {
     (
       label: 'edit member',
       path: Routes.toEditTeamMember(store, member),
+      inShell: true,
+    ),
+
+    (label: 'employees', path: Routes.toEmployees(store), inShell: true),
+    (label: 'add employee', path: Routes.toAddEmployee(store), inShell: true),
+    (label: 'timeclock', path: Routes.toTimeclock(store), inShell: true),
+    (
+      label: 'employee detail',
+      path: Routes.toEmployee(store, employee),
+      inShell: true,
+    ),
+    (
+      label: 'edit employee',
+      path: Routes.toEditEmployee(store, employee),
       inShell: true,
     ),
 

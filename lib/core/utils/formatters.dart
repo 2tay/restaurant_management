@@ -75,6 +75,17 @@ abstract final class Formatters {
       '${_quantity.format(fraction * 100)} %';
 
   // ---------------------------------------------------------------------------
+  // Durations
+  // ---------------------------------------------------------------------------
+
+  /// `7 h 48` — worked time, break length, overtime.
+  static String duration(Duration value) {
+    final hours = value.inHours;
+    final minutes = value.inMinutes.remainder(60);
+    return '$hours h ${minutes.toString().padLeft(2, '0')}';
+  }
+
+  // ---------------------------------------------------------------------------
   // Dates
   // ---------------------------------------------------------------------------
 

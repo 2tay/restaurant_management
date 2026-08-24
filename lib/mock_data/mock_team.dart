@@ -67,6 +67,21 @@ final List<TeamMember> mockTeam = [
     lastActiveAt: daysAgo(3),
   ),
 
+  // Linked to an Employee record (`mock_employees.dart`'s Karim Haddouch) —
+  // the demo example of someone who is both personnel and has an app
+  // account, reached via "Accès à l'application" on their employee detail
+  // page rather than by ever appearing here first.
+  TeamMember(
+    id: 'user-karim',
+    fullName: 'Karim Haddouch',
+    email: 'karim.haddouch@brasserie-sablon.be',
+    role: TeamRole.staff,
+    storeIds: [StoreIds.sablon],
+    isActive: true,
+    invitedAt: monthsAgo(28),
+    lastActiveAt: daysAgo(1),
+  ),
+
   // Invitation sent, not yet accepted. The team list needs a pending row so
   // that state is designed rather than discovered later.
   TeamMember(

@@ -41,6 +41,8 @@ final _rootScreens = <String, String>{
   'notifications': Routes.toNotifications(_store),
   'reports': Routes.toReports(_store),
   'team': Routes.toTeam(_store),
+  'employees': Routes.toEmployees(_store),
+  'timeclock': Routes.toTimeclock(_store),
   'store settings': Routes.toStoreSettings(_store),
   'account settings': Routes.toAccountSettings(_store),
   'notification settings': Routes.toNotificationSettings(_store),
@@ -52,6 +54,7 @@ Map<String, String> _pushedScreens() {
   final item = mockItems.first.id;
   final supplier = mockSuppliers.first.id;
   final member = mockTeam.first.id;
+  final employee = mockEmployees.first.id;
 
   return {
     'item detail': Routes.toItem(_store, item),
@@ -77,6 +80,9 @@ Map<String, String> _pushedScreens() {
     'add member': Routes.toAddTeamMember(_store),
     'edit member': Routes.toEditTeamMember(_store, member),
     'roles': Routes.toRoles(_store),
+    'add employee': Routes.toAddEmployee(_store),
+    'employee detail': Routes.toEmployee(_store, employee),
+    'edit employee': Routes.toEditEmployee(_store, employee),
     'search': Routes.toSearch(_store),
   };
 }
@@ -207,6 +213,59 @@ void main() {
       final rail = tester.widget<NavigationRail>(find.byType(NavigationRail));
       // Dashboard, Inventaire, Mouvements, Commandes, Fournisseurs.
       expect(rail.selectedIndex, 4);
+    });
+
+    testWidgets('highlights Employés from a nested employee screen', (
+      tester,
+    ) async {
+      await _pump(tester);
+      unawaited(
+        appRouter.push(Routes.toEmployee(_store, mockEmployees.first.id)),
+      );
+      await tester.pumpAndSettle();
+
+      final rail = tester.widget<NavigationRail>(find.byType(NavigationRail));
+      // Dashboard, Inventaire, Mouvements, Commandes, Fournisseurs, Catégories
+      // et unités, Alertes, Rapports, Équipe, Employés.
+      expect(rail.selectedIndex, 9);
+    });
+  });
+
+  group('the Employés flyout', () {
+    testWidgets('tapping the rail entry opens a popup that navigates', (
+      tester,
+    ) async {
+      await _pump(tester);
+      appRouter.go(Routes.toDashboard(_store));
+      await tester.pumpAndSettle();
+
+      // Stage 2: the popup now carries both Personnel and Pointage.
+      await tester.tap(find.text('Employés'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Personnel'), findsOneWidget);
+      expect(find.text('Pointage'), findsOneWidget);
+
+      await tester.tap(find.text('Personnel'));
+      await tester.pumpAndSettle();
+
+      expect(appRouter.state.uri.path, Routes.toEmployees(_store));
+    });
+
+    testWidgets('the Pointage item navigates to the timeclock board', (
+      tester,
+    ) async {
+      await _pump(tester);
+      appRouter.go(Routes.toDashboard(_store));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Employés'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Pointage'));
+      await tester.pumpAndSettle();
+
+      expect(appRouter.state.uri.path, Routes.toTimeclock(_store));
     });
   });
 

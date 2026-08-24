@@ -36,6 +36,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get navTeam => 'Équipe';
 
   @override
+  String get navEmployees => 'Employés';
+
+  @override
   String get navSettings => 'Paramètres';
 
   @override
@@ -1310,6 +1313,272 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get permissionManageAccount => 'Gérer le compte et les établissements';
+
+  @override
+  String get employeesFlyoutPersonnel => 'Personnel';
+
+  @override
+  String get employeesFlyoutPointage => 'Pointage';
+
+  @override
+  String get employeesTitle => 'Personnel';
+
+  @override
+  String get employeesSubtitle =>
+      'Ajoutez, modifiez et retirez les membres du personnel de cet établissement.';
+
+  @override
+  String get employeesAdd => 'Ajouter un employé';
+
+  @override
+  String get employeesSearchHint => 'Rechercher un employé';
+
+  @override
+  String get employeesShowArchived => 'Afficher les personnels retirés';
+
+  @override
+  String get employeesEmpty => 'Aucun employé';
+
+  @override
+  String get employeesEmptyBody =>
+      'Ajoutez votre premier employé pour commencer à gérer le personnel de cet établissement.';
+
+  @override
+  String get employeesArchivedPill => 'Retiré';
+
+  @override
+  String get employeeTypeFixedSalary => 'Salarié fixe';
+
+  @override
+  String get employeeTypeStudent => 'Étudiant';
+
+  @override
+  String get employeeTypeExtra => 'Extra';
+
+  @override
+  String get payTypeMonthlySalary => 'Salaire mensuel';
+
+  @override
+  String get payTypeHourlyRate => 'Tarif horaire';
+
+  @override
+  String get addEmployeeTitle => 'Ajouter un employé';
+
+  @override
+  String get editEmployeeTitle => 'Modifier l\'employé';
+
+  @override
+  String get employeeFormFullName => 'Nom complet';
+
+  @override
+  String get employeeFormEmail => 'Adresse e-mail';
+
+  @override
+  String get employeeFormPhone => 'Téléphone';
+
+  @override
+  String get employeeFormAddress => 'Adresse';
+
+  @override
+  String get employeeFormCin => 'N° de carte d\'identité';
+
+  @override
+  String get employeeFormPhoto => 'Photo';
+
+  @override
+  String get employeeFormPhotoAction => 'Choisir une photo';
+
+  @override
+  String get employeeFormPhotoMockNotice =>
+      'La sélection de photo n\'est pas disponible dans cette démonstration.';
+
+  @override
+  String get employeeFormType => 'Type d\'employé';
+
+  @override
+  String get employeeFormPayType => 'Type de rémunération';
+
+  @override
+  String get employeeFormPayRateMonthly => 'Salaire mensuel (€)';
+
+  @override
+  String get employeeFormPayRateHourly => 'Tarif horaire (€/h)';
+
+  @override
+  String get employeeEmailTaken =>
+      'Cette adresse e-mail est déjà utilisée par un autre employé de cet établissement.';
+
+  @override
+  String get employeeCreated => 'Employé ajouté';
+
+  @override
+  String get employeeUpdated => 'Employé modifié';
+
+  @override
+  String employeeArchiveTitle(String name) {
+    return 'Retirer $name ?';
+  }
+
+  @override
+  String get employeeArchiveBody =>
+      'Cette personne n\'apparaîtra plus dans le personnel actif. Son historique de pointage reste conservé.';
+
+  @override
+  String get employeeArchiveConfirm => 'Retirer';
+
+  @override
+  String get employeeArchived => 'Employé retiré';
+
+  @override
+  String employeeDetailArchivedOn(String date) {
+    return 'Retiré le $date';
+  }
+
+  @override
+  String get employeeDetailContact => 'Coordonnées';
+
+  @override
+  String get employeeDetailEmployment => 'Emploi';
+
+  @override
+  String get employeeHistoryTitle => 'Historique de pointage';
+
+  @override
+  String get employeeHistoryEmpty =>
+      'Aucun pointage enregistré pour le moment.';
+
+  @override
+  String get employeeHistoryLate => 'Pause dépassée';
+
+  @override
+  String get employeeAccessTitle => 'Accès à l\'application';
+
+  @override
+  String get employeeAccessNone =>
+      'Ce personnel n\'a pas d\'accès à l\'application.';
+
+  @override
+  String get employeeAccessGrant => 'Donner un accès à l\'application';
+
+  @override
+  String employeeAccessLinked(String role) {
+    return 'Accès application : $role';
+  }
+
+  @override
+  String get linkTeamAccessTitle => 'Donner un accès à l\'application';
+
+  @override
+  String linkTeamAccessSubtitle(String name) {
+    return 'Créer un compte pour $name';
+  }
+
+  @override
+  String get linkTeamAccessIdentityHelp =>
+      'Le nom et l\'adresse e-mail sont repris de la fiche du personnel.';
+
+  @override
+  String get linkTeamAccessSubmit => 'Créer l\'accès';
+
+  @override
+  String get linkTeamAccessEmailTaken =>
+      'Cette adresse e-mail est déjà utilisée par un autre compte de l\'équipe. Modifiez l\'adresse e-mail de ce personnel avant de continuer.';
+
+  @override
+  String get linkTeamAccessGranted => 'Accès à l\'application créé';
+
+  @override
+  String get timeEntryStatusNotClockedIn => 'Non pointé';
+
+  @override
+  String get timeEntryStatusOnShift => 'En service';
+
+  @override
+  String get timeEntryStatusOnBreak => 'En pause';
+
+  @override
+  String get timeEntryStatusClockedOut => 'Terminé';
+
+  @override
+  String get timeclockBoardTitle => 'Pointage';
+
+  @override
+  String get timeclockBoardSubtitle =>
+      'Enregistrez les arrivées, pauses et départs du personnel actif.';
+
+  @override
+  String get timeclockBoardEmpty => 'Aucun personnel actif';
+
+  @override
+  String get timeclockBoardEmptyBody =>
+      'Il n\'y a personne à pointer dans cet établissement pour le moment.';
+
+  @override
+  String get timeclockButtonClockIn => 'Pointer';
+
+  @override
+  String get timeclockButtonStartBreak => 'Pause';
+
+  @override
+  String get timeclockButtonEndBreak => 'Reprendre';
+
+  @override
+  String get timeclockButtonClockOut => 'Fin de journée';
+
+  @override
+  String timeclockClockInSuccess(String name) {
+    return 'Pointage enregistré pour $name.';
+  }
+
+  @override
+  String timeclockBreakStartSuccess(String name) {
+    return 'Pause démarrée pour $name.';
+  }
+
+  @override
+  String timeclockBreakEndSuccess(String name) {
+    return 'Reprise enregistrée pour $name.';
+  }
+
+  @override
+  String timeclockClockOutSuccess(String name) {
+    return 'Journée terminée pour $name.';
+  }
+
+  @override
+  String timeclockWorkedDuration(String duration) {
+    return 'Travaillé : $duration';
+  }
+
+  @override
+  String timeclockOvertime(String duration) {
+    return 'Heures sup. : $duration';
+  }
+
+  @override
+  String get timeclockTabToday => 'Aujourd\'hui';
+
+  @override
+  String get timeclockTabHistory => 'Historique';
+
+  @override
+  String timeclockHistoryCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count pointages',
+      one: '1 pointage',
+      zero: 'Aucun pointage',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get timeclockHistoryEmpty => 'Aucun historique de pointage';
+
+  @override
+  String get timeclockHistoryEmptyBody =>
+      'Aucun pointage n\'a encore été enregistré dans cet établissement.';
 
   @override
   String get storeSettingsTitle => 'Paramètres de l\'établissement';

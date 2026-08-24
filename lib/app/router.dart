@@ -5,6 +5,11 @@ import '../dev/theme_gallery_page.dart';
 import '../features/alerts/presentation/pages/low_stock_alerts_page.dart';
 import '../features/alerts/presentation/pages/notifications_page.dart';
 import '../features/dashboard/presentation/pages/store_dashboard_page.dart';
+import '../features/employees/presentation/pages/add_edit_employee_page.dart';
+import '../features/employees/presentation/pages/employee_detail_page.dart';
+import '../features/employees/presentation/pages/employees_list_page.dart';
+import '../features/employees/presentation/pages/link_team_access_page.dart';
+import '../features/employees/presentation/pages/timeclock_board_page.dart';
 import '../features/reports/presentation/pages/price_comparison_report_page.dart';
 import '../features/reports/presentation/pages/reports_dashboard_page.dart';
 import '../features/reports/presentation/pages/stock_valuation_report_page.dart';
@@ -419,6 +424,63 @@ final GoRouter appRouter = GoRouter(
             child: AddEditMemberPage(
               storeId: _storeId(state),
               memberId: state.pathParameters['memberId'],
+            ),
+          ),
+        ),
+
+        // --- Employees ---------------------------------------------------------
+        //
+        // `new` and `timeclock` are declared before `:employeeId` for the
+        // same ordering reason as the inventory routes — otherwise both
+        // literal segments would be read as an employee id.
+        GoRoute(
+          path: Routes.employees,
+          pageBuilder: (context, state) => appPage(
+            key: state.pageKey,
+            child: EmployeesListPage(storeId: _storeId(state)),
+          ),
+        ),
+        GoRoute(
+          path: Routes.addEmployee,
+          pageBuilder: (context, state) => appPage(
+            key: state.pageKey,
+            child: AddEditEmployeePage(storeId: _storeId(state)),
+          ),
+        ),
+        GoRoute(
+          path: Routes.timeclock,
+          pageBuilder: (context, state) => appPage(
+            key: state.pageKey,
+            child: TimeclockBoardPage(storeId: _storeId(state)),
+          ),
+        ),
+        GoRoute(
+          path: Routes.employeeDetail,
+          pageBuilder: (context, state) => appPage(
+            key: state.pageKey,
+            child: EmployeeDetailPage(
+              storeId: _storeId(state),
+              employeeId: state.pathParameters['employeeId']!,
+            ),
+          ),
+        ),
+        GoRoute(
+          path: Routes.editEmployee,
+          pageBuilder: (context, state) => appPage(
+            key: state.pageKey,
+            child: AddEditEmployeePage(
+              storeId: _storeId(state),
+              employeeId: state.pathParameters['employeeId'],
+            ),
+          ),
+        ),
+        GoRoute(
+          path: Routes.linkTeamAccess,
+          pageBuilder: (context, state) => appPage(
+            key: state.pageKey,
+            child: LinkTeamAccessPage(
+              storeId: _storeId(state),
+              employeeId: state.pathParameters['employeeId']!,
             ),
           ),
         ),

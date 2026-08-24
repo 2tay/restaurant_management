@@ -94,6 +94,27 @@ void main() {
       expect(AccountMutations.removeMember(target!.id), isTrue);
       expect(MockQueries.teamMemberById(target.id), isNull);
     });
+
+    test(
+      'removing a member clears the link on any employee that pointed at it',
+      () {
+        final karim = MockQueries.employeeById(EmployeeIds.karim)!;
+        expect(
+          karim.teamMemberId,
+          isNotNull,
+          reason: 'the seed links Karim to a team account for this test',
+        );
+
+        AccountMutations.removeMember(karim.teamMemberId!);
+
+        expect(
+          MockQueries.employeeById(EmployeeIds.karim)!.teamMemberId,
+          isNull,
+          reason:
+              'an employee must never point at an account that no longer exists',
+        );
+      },
+    );
   });
 
   group('stores', () {
@@ -149,10 +170,7 @@ void main() {
       final before = MockQueries.unreadNotificationCount(StoreIds.sablon);
 
       expect(AccountMutations.markRead(unread.id), isTrue);
-      expect(
-        MockQueries.unreadNotificationCount(StoreIds.sablon),
-        before - 1,
-      );
+      expect(MockQueries.unreadNotificationCount(StoreIds.sablon), before - 1);
     });
 
     test('marking one already read changes nothing', () {
