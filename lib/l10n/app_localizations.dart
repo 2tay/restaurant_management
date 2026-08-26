@@ -2416,6 +2416,12 @@ abstract class AppLocalizations {
   /// **'N° de carte d\'identité'**
   String get employeeFormCin;
 
+  /// Compact CIN label shown under an employee's name on a pointage card.
+  ///
+  /// In fr, this message translates to:
+  /// **'CIN : {cin}'**
+  String employeeCinLabel(String cin);
+
   /// Photo section label on the employee form.
   ///
   /// In fr, this message translates to:
@@ -2704,6 +2710,30 @@ abstract class AppLocalizations {
   /// **'Heures sup. : {duration}'**
   String timeclockOvertime(String duration);
 
+  /// Timestamp-log row label on a board card: the clock-in time.
+  ///
+  /// In fr, this message translates to:
+  /// **'Pointage'**
+  String get timeclockLogClockIn;
+
+  /// Timestamp-log row label on a board card: when the break started.
+  ///
+  /// In fr, this message translates to:
+  /// **'Début pause'**
+  String get timeclockLogBreakStart;
+
+  /// Timestamp-log row label on a board card: when the break ended.
+  ///
+  /// In fr, this message translates to:
+  /// **'Reprise'**
+  String get timeclockLogBreakEnd;
+
+  /// Timestamp-log row label on a board card: the clock-out time.
+  ///
+  /// In fr, this message translates to:
+  /// **'Fin de journée'**
+  String get timeclockLogClockOut;
+
   /// First SectionTabs entry on the pointage board — today's live board.
   ///
   /// In fr, this message translates to:
@@ -2733,6 +2763,126 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Aucun pointage n\'a encore été enregistré dans cet établissement.'**
   String get timeclockHistoryEmptyBody;
+
+  /// Historique tab stat tile: total number of time entries recorded for the store.
+  ///
+  /// In fr, this message translates to:
+  /// **'Total pointages'**
+  String get timeclockStatTotal;
+
+  /// Historique tab stat tile: entries whose break ran over the threshold.
+  ///
+  /// In fr, this message translates to:
+  /// **'Retards de pause'**
+  String get timeclockStatLate;
+
+  /// Historique tab stat tile: entries whose day is finished.
+  ///
+  /// In fr, this message translates to:
+  /// **'Journées terminées'**
+  String get timeclockStatFinished;
+
+  /// Historique tab stat tile: entries still on shift or on break.
+  ///
+  /// In fr, this message translates to:
+  /// **'En cours'**
+  String get timeclockStatInProgress;
+
+  /// Employee filter label on the Historique tab.
+  ///
+  /// In fr, this message translates to:
+  /// **'Employé'**
+  String get timeclockFilterEmployee;
+
+  /// Employee filter option matching every employee.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tous les employés'**
+  String get timeclockFilterAllEmployees;
+
+  /// Historique table column header: the day.
+  ///
+  /// In fr, this message translates to:
+  /// **'Date'**
+  String get timeclockHistoryColumnDate;
+
+  /// Historique table column header: the employee's name.
+  ///
+  /// In fr, this message translates to:
+  /// **'Employé'**
+  String get timeclockHistoryColumnEmployee;
+
+  /// Historique table column header: the employee's identity card number.
+  ///
+  /// In fr, this message translates to:
+  /// **'CIN'**
+  String get timeclockHistoryColumnCin;
+
+  /// Historique table column header: clock-in time.
+  ///
+  /// In fr, this message translates to:
+  /// **'Arrivée'**
+  String get timeclockHistoryColumnArrival;
+
+  /// Historique table column header: break-start time.
+  ///
+  /// In fr, this message translates to:
+  /// **'Début pause'**
+  String get timeclockHistoryColumnBreakStart;
+
+  /// Historique table column header: break-end time.
+  ///
+  /// In fr, this message translates to:
+  /// **'Reprise'**
+  String get timeclockHistoryColumnBreakEnd;
+
+  /// Historique table column header: clock-out time.
+  ///
+  /// In fr, this message translates to:
+  /// **'Départ'**
+  String get timeclockHistoryColumnDeparture;
+
+  /// Historique table column header: worked duration.
+  ///
+  /// In fr, this message translates to:
+  /// **'Durée travail'**
+  String get timeclockHistoryColumnDuration;
+
+  /// Historique table column header: attendance status.
+  ///
+  /// In fr, this message translates to:
+  /// **'Statut'**
+  String get timeclockHistoryColumnStatus;
+
+  /// Historique table column header: the late-break marker.
+  ///
+  /// In fr, this message translates to:
+  /// **'Retard'**
+  String get timeclockHistoryColumnLate;
+
+  /// Historique table column header: row actions.
+  ///
+  /// In fr, this message translates to:
+  /// **'Actions'**
+  String get timeclockHistoryColumnActions;
+
+  /// Tooltip on the Historique table row's detail button.
+  ///
+  /// In fr, this message translates to:
+  /// **'Voir le détail'**
+  String get timeclockHistoryViewDetail;
+
+  /// Heading of the pointage detail side panel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Détails du pointage'**
+  String get timeclockDetailTitle;
+
+  /// Field label in the pointage detail side panel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Heures supplémentaires'**
+  String get timeclockDetailOvertimeLabel;
 
   /// Store settings heading.
   ///

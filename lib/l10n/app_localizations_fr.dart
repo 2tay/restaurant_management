@@ -1383,6 +1383,11 @@ class AppLocalizationsFr extends AppLocalizations {
   String get employeeFormCin => 'N° de carte d\'identité';
 
   @override
+  String employeeCinLabel(String cin) {
+    return 'CIN : $cin';
+  }
+
+  @override
   String get employeeFormPhoto => 'Photo';
 
   @override
@@ -1556,6 +1561,18 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String get timeclockLogClockIn => 'Pointage';
+
+  @override
+  String get timeclockLogBreakStart => 'Début pause';
+
+  @override
+  String get timeclockLogBreakEnd => 'Reprise';
+
+  @override
+  String get timeclockLogClockOut => 'Fin de journée';
+
+  @override
   String get timeclockTabToday => 'Aujourd\'hui';
 
   @override
@@ -1579,6 +1596,66 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get timeclockHistoryEmptyBody =>
       'Aucun pointage n\'a encore été enregistré dans cet établissement.';
+
+  @override
+  String get timeclockStatTotal => 'Total pointages';
+
+  @override
+  String get timeclockStatLate => 'Retards de pause';
+
+  @override
+  String get timeclockStatFinished => 'Journées terminées';
+
+  @override
+  String get timeclockStatInProgress => 'En cours';
+
+  @override
+  String get timeclockFilterEmployee => 'Employé';
+
+  @override
+  String get timeclockFilterAllEmployees => 'Tous les employés';
+
+  @override
+  String get timeclockHistoryColumnDate => 'Date';
+
+  @override
+  String get timeclockHistoryColumnEmployee => 'Employé';
+
+  @override
+  String get timeclockHistoryColumnCin => 'CIN';
+
+  @override
+  String get timeclockHistoryColumnArrival => 'Arrivée';
+
+  @override
+  String get timeclockHistoryColumnBreakStart => 'Début pause';
+
+  @override
+  String get timeclockHistoryColumnBreakEnd => 'Reprise';
+
+  @override
+  String get timeclockHistoryColumnDeparture => 'Départ';
+
+  @override
+  String get timeclockHistoryColumnDuration => 'Durée travail';
+
+  @override
+  String get timeclockHistoryColumnStatus => 'Statut';
+
+  @override
+  String get timeclockHistoryColumnLate => 'Retard';
+
+  @override
+  String get timeclockHistoryColumnActions => 'Actions';
+
+  @override
+  String get timeclockHistoryViewDetail => 'Voir le détail';
+
+  @override
+  String get timeclockDetailTitle => 'Détails du pointage';
+
+  @override
+  String get timeclockDetailOvertimeLabel => 'Heures supplémentaires';
 
   @override
   String get storeSettingsTitle => 'Paramètres de l\'établissement';
