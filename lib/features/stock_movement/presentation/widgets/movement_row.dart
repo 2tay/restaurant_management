@@ -121,17 +121,19 @@ class MovementRow extends StatelessWidget {
           ),
           const SizedBox(width: AppSpacing.md),
 
-          // Deliveries carry what they cost; nothing else has a price.
+          // What the stock that moved was worth.
+          //
+          // A delivery falls back to the price paid, which is the same figure;
+          // everything else uses the cost recorded on the movement, so a line
+          // of waste finally reads in euros as well as in kilos. Movements
+          // seeded before costs existed carry neither and stay blank rather
+          // than showing a zero that would read as free.
           Expanded(
             flex: 2,
             child: Align(
               alignment: Alignment.centerRight,
               child: Text(
-                movement.unitPrice == null
-                    ? ''
-                    : Formatters.price(
-                        movement.unitPrice! * movement.quantity.abs(),
-                      ),
+                _valueLabel(movement),
                 style: AppTypography.numericSmall,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -177,5 +179,16 @@ class MovementRow extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  /// What the stock this movement moved was worth, or blank if unknown.
+  ///
+  /// [StockMovement.unitCost] is preferred over [StockMovement.unitPrice]
+  /// because it is the figure that entered the stock and it is present on every
+  /// kind of movement, not only on deliveries.
+  static String _valueLabel(StockMovement movement) {
+    final unitValue = movement.unitCost ?? movement.unitPrice;
+    if (unitValue == null) return '';
+    return Formatters.price(unitValue * movement.quantity.abs());
   }
 }

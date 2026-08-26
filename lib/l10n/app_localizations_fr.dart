@@ -2335,4 +2335,37 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get storeCreated => 'Établissement créé.';
+
+  @override
+  String get itemFormOpeningCost => 'Coût d\'achat unitaire';
+
+  @override
+  String get itemFormOpeningCostHint => 'Ex. : 8,50';
+
+  @override
+  String get itemFormOpeningCostHelp =>
+      'Facultatif. Sans ce montant, l\'article ne sera pas valorisé tant qu\'une livraison n\'aura pas été réceptionnée.';
+
+  @override
+  String get itemAverageCost => 'Coût moyen du stock';
+
+  @override
+  String get itemAverageCostUnknown => 'Non valorisé';
+
+  @override
+  String get itemAverageCostHelp =>
+      'Moyenne pondérée de ce qui a été réellement payé pour le stock en rayon. Chaque livraison ne revalorise que les unités livrées.';
+
+  @override
+  String get movementUnitCost => 'Coût unitaire';
+
+  @override
+  String get valuationAtCost =>
+      'Valorisé au coût d\'achat réel, et non au prix fournisseur du jour.';
+
+  @override
+  String get reportWasteValue => 'Valeur des pertes';
+
+  @override
+  String get reportConsumptionValue => 'Valeur consommée';
 }

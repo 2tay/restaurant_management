@@ -180,6 +180,51 @@ record(
     'Stock quantity changed without a movement',
 )
 
+# --- Cost is written in one place, and read for the right job -----------------
+# `Item.averageCost` is a running total, and a running total is only safe while
+# exactly one thing advances it. The mutation layer advances it; the arithmetic
+# lives in stock_cost.dart. Seed literals in `mock_items.dart` are the starting
+# balance, not a write, so this looks for the two shapes that actually move it:
+# an assignment, and a `copyWith` carrying it.
+COST_WRITERS = (MUTATION_LAYER, 'lib/core/utils/stock_cost.dart')
+
+cost_writes = [
+    f'{p}:{n}  {line.strip()}'
+    for p in dart_files(*ROOTS, 'lib/mock_data')
+    if not p.startswith(COST_WRITERS)
+    for n, line in enumerate(read(p).splitlines(), 1)
+    if re.search(r'averageCost\s*=[^=]', line)
+    or ('copyWith(' in line and 'averageCost' in line)
+]
+record(
+    'average cost written outside the mutation layer',
+    cost_writes,
+    'Stock cost changed without a movement',
+)
+
+# The bug this whole change exists to stop coming back.
+#
+# A supplier price is what the *next* unit will cost. Multiplying it by the
+# quantity on hand revalues stock bought weeks ago at this morning's price —
+# 100 kg at 8 € plus 50 kg at 10 € reported as 1 500 € rather than the 1 300 €
+# actually spent. Valuation multiplies by `averageCost` instead.
+#
+# Matches the shape rather than the intent, because the shape is the bug: a
+# quantity and a purchase price meeting in one expression.
+quantity_times_price = [
+    f'{p}:{n}  {line.strip()}'
+    for p in dart_files(*ROOTS, 'lib/mock_data')
+    for n, line in enumerate(read(p).splitlines(), 1)
+    if 'pricePerUnit' in line
+    and re.search(r'\bquantity\b', line)
+    and '*' in line
+]
+record(
+    'stock quantity multiplied by a supplier price',
+    quantity_times_price,
+    'Stock valued at a purchase price rather than at what it cost',
+)
+
 # `.clear()` and `.addAll()` are how the reset refills the live lists, so they
 # are only legitimate inside the mutation layer as well.
 list_write = re.compile(

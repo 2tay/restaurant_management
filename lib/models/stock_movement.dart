@@ -45,6 +45,8 @@ class StockMovement {
     this.reason,
     this.systemQuantity,
     this.countedQuantity,
+    this.unitCost,
+    this.averageCostAfter,
     this.orderId,
     this.receiptId,
     this.note,
@@ -79,6 +81,30 @@ class StockMovement {
 
   /// [StockMovementType.adjustment] only — what the physical count found.
   final double? countedQuantity;
+
+  /// The cost per unit this movement applied, in EUR.
+  ///
+  /// On a stock in it is the price paid — the same figure as [unitPrice], kept
+  /// separately because [unitPrice] is what the supplier charged and this is
+  /// what entered the stock; they are the same number today and there is no
+  /// reason to make a future carriage or duty charge a schema change.
+  ///
+  /// On a stock out or an adjustment it is the item's average cost at that
+  /// moment, which makes `|quantity| × unitCost` the money value of what left —
+  /// cost of goods sold on a sale, and the euros in the bin on a waste line.
+  final double? unitCost;
+
+  /// The item's average cost once this movement had been applied.
+  ///
+  /// Recorded so the average is **verifiable**. Anyone can read down an item's
+  /// history and watch the cost move from 8.00 to 8.67 on the day of a
+  /// delivery, and see exactly which delivery did it.
+  ///
+  /// The same reasoning as an adjustment carrying both counts rather than only
+  /// their difference: two numbers explain themselves, one does not. A cost
+  /// that changes on its own is a number nobody trusts and everybody works
+  /// around.
+  final double? averageCostAfter;
 
   /// The commande this delivery was received against, when there was one.
   ///

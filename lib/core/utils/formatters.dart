@@ -32,8 +32,21 @@ abstract final class Formatters {
     decimalDigits: 0,
   );
 
+  /// The symbol on its own, for a field's suffix where the value is being
+  /// typed rather than displayed.
+  static const String currencySymbol = '€';
+
   /// `12,50 €`
   static String price(double value) => _currency.format(value);
+
+  /// A number as the user typed it, or null if it is not one yet.
+  ///
+  /// Accepts the comma decimal separator a Belgian keyboard produces. Here
+  /// rather than at each call site for the same reason every format is: one
+  /// screen accepting `12,50` while another silently rejects it is precisely
+  /// the kind of inconsistency nobody reports and everybody works around.
+  static double? parseDecimal(String raw) =>
+      double.tryParse(raw.replaceAll(',', '.').trim());
 
   /// `1 248 €` — for dashboard tiles where the cents are noise.
   static String priceCompact(double value) => _currencyCompact.format(value);

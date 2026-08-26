@@ -31,6 +31,16 @@ class ReportsDashboardPage extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
 
+    // Consumption and waste over the last month, valued at what the stock
+    // actually cost. These were fixed constants until movements started
+    // carrying a cost — which meant recording waste and then opening this
+    // screen showed the figure unmoved, and a number that ignores what you just
+    // told it is worse than no number.
+    final from = DateTime.now().subtract(const Duration(days: 30));
+    final consumed = MockQueries.consumptionValue(storeId, from: from);
+    final wasted = MockQueries.wasteValue(storeId, from: from);
+    final wasteShare = consumed == 0 ? 0.0 : wasted / consumed;
+
     return ShellPage(
       title: l10n.reportsTitle,
       subtitle: l10n.reportsSubtitle,
@@ -111,16 +121,16 @@ class ReportsDashboardPage extends ConsumerWidget {
               ),
               SummaryTile(
                 label: l10n.reportsUsage30Days,
-                value: Formatters.priceCompact(mockUsageLast30Days),
+                value: Formatters.priceCompact(consumed),
                 icon: LucideIcons.chartLine,
                 onTap: () => context.pushScreen(Routes.toUsageReport(storeId)),
               ),
               SummaryTile(
                 label: l10n.reportsWasteShare,
-                value: Formatters.percent(mockWasteShareLast30Days),
+                value: Formatters.percent(wasteShare),
                 icon: LucideIcons.trash2,
                 accent: AppColors.lowStock,
-                caption: Formatters.price(mockWasteValueLast30Days),
+                caption: Formatters.price(wasted),
                 onTap: () => context.pushScreen(Routes.toUsageReport(storeId)),
               ),
             ],

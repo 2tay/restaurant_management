@@ -51,6 +51,14 @@ class _UsageReportPageState extends ConsumerState<UsageReportPage> {
 
     final total = usage.fold<double>(0, (sum, point) => sum + point.value);
 
+    // Real figures now that every movement records the cost it applied. These
+    // used to be constants in `mock_reports.dart`, which could not follow a
+    // stock-out recorded during the session — a waste figure that ignores the
+    // waste you just recorded is worse than no figure.
+    final from = DateTime.now().subtract(Duration(days: _rangeDays));
+    final wasted = MockQueries.wasteValue(widget.storeId, from: from);
+    final consumed = MockQueries.consumptionValue(widget.storeId, from: from);
+
     return ShellPage(
       back: BackDestination(
         label: l10n.reportsTitle,
@@ -90,14 +98,13 @@ class _UsageReportPageState extends ConsumerState<UsageReportPage> {
                 icon: LucideIcons.chartLine,
               ),
               SummaryTile(
-                label: l10n.reportsWasteShare,
-                value: Formatters.percent(mockWasteShareLast30Days),
-                icon: LucideIcons.trash2,
-                accent: AppColors.lowStock,
+                label: l10n.reportConsumptionValue,
+                value: Formatters.priceCompact(consumed),
+                icon: LucideIcons.trendingDown,
               ),
               SummaryTile(
-                label: l10n.usageWasteValue,
-                value: Formatters.priceCompact(mockWasteValueLast30Days),
+                label: l10n.reportWasteValue,
+                value: Formatters.priceCompact(wasted),
                 icon: LucideIcons.ban,
                 accent: AppColors.lowStock,
               ),
