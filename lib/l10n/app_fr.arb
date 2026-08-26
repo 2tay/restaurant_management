@@ -38,9 +38,9 @@
   "@navTeam": {
     "description": "Sidebar label for team members and roles."
   },
-  "navEmployees": "Employés",
+  "navEmployees": "Gestion des employés",
   "@navEmployees": {
-    "description": "Sidebar label for the employees section. Opens a flyout rather than navigating directly — see employeesFlyoutPersonnel."
+    "description": "Sidebar label for the employees section. Expands in place rather than navigating directly — see employeesFlyoutPersonnel."
   },
   "navSettings": "Paramètres",
   "@navSettings": {
@@ -131,6 +131,14 @@
   "actionViewAll": "Tout afficher",
   "@actionViewAll": {
     "description": "Link from a dashboard summary card to the full list."
+  },
+  "actionFullScreen": "Plein écran",
+  "@actionFullScreen": {
+    "description": "Tooltip on a page's full-screen toggle button, shown when the page is not currently full-screen."
+  },
+  "actionExitFullScreen": "Quitter le plein écran",
+  "@actionExitFullScreen": {
+    "description": "Tooltip on a page's full-screen toggle button, shown while the page is currently full-screen."
   },
 
   "topBarNotifications": "Notifications",
@@ -867,9 +875,11 @@
   "@permissionManageAccount": {"description": "Permission row: account settings and creating stores."},
 
   "employeesFlyoutPersonnel": "Personnel",
-  "@employeesFlyoutPersonnel": {"description": "Item in the Employés sidebar flyout, opening the employees list."},
-  "employeesFlyoutPointage": "Pointage",
-  "@employeesFlyoutPointage": {"description": "Item in the Employés sidebar flyout, opening the timeclock board."},
+  "@employeesFlyoutPersonnel": {"description": "Item in the Gestion des employés sidebar flyout, opening the employees list."},
+  "employeesFlyoutTimeclockBoard": "Tableau de pointage",
+  "@employeesFlyoutTimeclockBoard": {"description": "Item in the Gestion des employés sidebar flyout, opening today's timeclock board."},
+  "employeesFlyoutTimeclockHistory": "Historique de pointage",
+  "@employeesFlyoutTimeclockHistory": {"description": "Item in the Gestion des employés sidebar flyout, opening the timeclock history page."},
   "employeesTitle": "Personnel",
   "@employeesTitle": {"description": "Employees list heading."},
   "employeesSubtitle": "Ajoutez, modifiez et retirez les membres du personnel de cet établissement.",
@@ -989,8 +999,8 @@
   "timeEntryStatusClockedOut": "Terminé",
   "@timeEntryStatusClockedOut": {"description": "Attendance status: the day is finished."},
 
-  "timeclockBoardTitle": "Pointage",
-  "@timeclockBoardTitle": {"description": "Title of the timeclock board page."},
+  "timeclockBoardTitle": "Tableau de pointage",
+  "@timeclockBoardTitle": {"description": "Title of the timeclock board page — today's live board, as opposed to timeclockHistoryTitle."},
   "timeclockBoardSubtitle": "Enregistrez les arrivées, pauses et départs du personnel actif.",
   "@timeclockBoardSubtitle": {"description": "Supporting line on the timeclock board page."},
   "timeclockBoardEmpty": "Aucun personnel actif",
@@ -1027,10 +1037,10 @@
   "timeclockLogClockOut": "Fin de journée",
   "@timeclockLogClockOut": {"description": "Timestamp-log row label on a board card: the clock-out time."},
 
-  "timeclockTabToday": "Aujourd'hui",
-  "@timeclockTabToday": {"description": "First SectionTabs entry on the pointage board — today's live board."},
-  "timeclockTabHistory": "Historique",
-  "@timeclockTabHistory": {"description": "Second SectionTabs entry on the pointage board — the filterable attendance log across every employee and day."},
+  "timeclockHistoryTitle": "Historique de pointage",
+  "@timeclockHistoryTitle": {"description": "Title of the timeclock history page — the filterable attendance log across every employee and day, its own sidebar destination rather than a tab of timeclockBoardTitle."},
+  "timeclockHistorySubtitle": "Consultez et filtrez les pointages de tout le personnel, jour par jour.",
+  "@timeclockHistorySubtitle": {"description": "Supporting line on the timeclock history page."},
   "timeclockHistoryCount": "{count, plural, =0{Aucun pointage} =1{1 pointage} other{{count} pointages}}",
   "@timeclockHistoryCount": {"description": "Result-count line above the Historique tab's list.", "placeholders": {"count": {"type": "int"}}},
   "timeclockHistoryEmpty": "Aucun historique de pointage",

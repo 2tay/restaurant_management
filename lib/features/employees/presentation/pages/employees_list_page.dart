@@ -14,8 +14,8 @@ import '../../../../shared/widgets/widgets.dart';
 
 /// The staff roster — *Personnel*.
 ///
-/// Root screen reached from the sidebar's Employés flyout, so it carries no
-/// back control. Archived employees are hidden by default, the same instinct
+/// Root screen reached from the sidebar's "Gestion des employés" entry, so it
+/// carries no back control. Archived employees are hidden by default, the same instinct
 /// as items and suppliers defaulting to what is currently usable — "afficher
 /// les personnels retirés" brings them back into view.
 class EmployeesListPage extends ConsumerStatefulWidget {

@@ -83,6 +83,7 @@ abstract final class Routes {
   static const String editEmployee = '$employeeDetail/edit';
   static const String linkTeamAccess = '$employeeDetail/link-team';
   static const String timeclock = '$employees/timeclock';
+  static const String timeclockHistory = '$employees/timeclock-history';
 
   static const String storeSettings = '$storeBase/settings/store';
   static const String accountSettings = '$storeBase/settings/account';
@@ -204,6 +205,9 @@ abstract final class Routes {
 
   static String toTimeclock(String storeId) =>
       '/store/$storeId/employees/timeclock';
+
+  static String toTimeclockHistory(String storeId) =>
+      '/store/$storeId/employees/timeclock-history';
 
   static String toStoreSettings(String storeId) =>
       '/store/$storeId/settings/store';

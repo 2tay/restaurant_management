@@ -38,7 +38,7 @@ dependencies:
   flutter_riverpod: ^3.3.2
   # Pinned exactly: flutter_localizations from the SDK requires intl 0.20.3.
   # Do not widen this constraint without re-checking `flutter pub get`.
-  intl: 0.20.3
+  intl: 0.20.2
   fl_chart: ^1.2.0
   lucide_icons_flutter: ^3.1.17
   flutter_localizations:

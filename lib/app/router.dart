@@ -10,6 +10,7 @@ import '../features/employees/presentation/pages/employee_detail_page.dart';
 import '../features/employees/presentation/pages/employees_list_page.dart';
 import '../features/employees/presentation/pages/link_team_access_page.dart';
 import '../features/employees/presentation/pages/timeclock_board_page.dart';
+import '../features/employees/presentation/pages/timeclock_history_page.dart';
 import '../features/reports/presentation/pages/price_comparison_report_page.dart';
 import '../features/reports/presentation/pages/reports_dashboard_page.dart';
 import '../features/reports/presentation/pages/stock_valuation_report_page.dart';
@@ -452,6 +453,13 @@ final GoRouter appRouter = GoRouter(
           pageBuilder: (context, state) => appPage(
             key: state.pageKey,
             child: TimeclockBoardPage(storeId: _storeId(state)),
+          ),
+        ),
+        GoRoute(
+          path: Routes.timeclockHistory,
+          pageBuilder: (context, state) => appPage(
+            key: state.pageKey,
+            child: TimeclockHistoryPage(storeId: _storeId(state)),
           ),
         ),
         GoRoute(

@@ -148,10 +148,10 @@ abstract class AppLocalizations {
   /// **'Équipe'**
   String get navTeam;
 
-  /// Sidebar label for the employees section. Opens a flyout rather than navigating directly — see employeesFlyoutPersonnel.
+  /// Sidebar label for the employees section. Expands in place rather than navigating directly — see employeesFlyoutPersonnel.
   ///
   /// In fr, this message translates to:
-  /// **'Employés'**
+  /// **'Gestion des employés'**
   String get navEmployees;
 
   /// Sidebar label for settings.
@@ -285,6 +285,18 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Tout afficher'**
   String get actionViewAll;
+
+  /// Tooltip on a page's full-screen toggle button, shown when the page is not currently full-screen.
+  ///
+  /// In fr, this message translates to:
+  /// **'Plein écran'**
+  String get actionFullScreen;
+
+  /// Tooltip on a page's full-screen toggle button, shown while the page is currently full-screen.
+  ///
+  /// In fr, this message translates to:
+  /// **'Quitter le plein écran'**
+  String get actionExitFullScreen;
 
   /// Tooltip on the top bar notification bell.
   ///
@@ -2284,17 +2296,23 @@ abstract class AppLocalizations {
   /// **'Gérer le compte et les établissements'**
   String get permissionManageAccount;
 
-  /// Item in the Employés sidebar flyout, opening the employees list.
+  /// Item in the Gestion des employés sidebar flyout, opening the employees list.
   ///
   /// In fr, this message translates to:
   /// **'Personnel'**
   String get employeesFlyoutPersonnel;
 
-  /// Item in the Employés sidebar flyout, opening the timeclock board.
+  /// Item in the Gestion des employés sidebar flyout, opening today's timeclock board.
   ///
   /// In fr, this message translates to:
-  /// **'Pointage'**
-  String get employeesFlyoutPointage;
+  /// **'Tableau de pointage'**
+  String get employeesFlyoutTimeclockBoard;
+
+  /// Item in the Gestion des employés sidebar flyout, opening the timeclock history page.
+  ///
+  /// In fr, this message translates to:
+  /// **'Historique de pointage'**
+  String get employeesFlyoutTimeclockHistory;
 
   /// Employees list heading.
   ///
@@ -2626,10 +2644,10 @@ abstract class AppLocalizations {
   /// **'Terminé'**
   String get timeEntryStatusClockedOut;
 
-  /// Title of the timeclock board page.
+  /// Title of the timeclock board page — today's live board, as opposed to timeclockHistoryTitle.
   ///
   /// In fr, this message translates to:
-  /// **'Pointage'**
+  /// **'Tableau de pointage'**
   String get timeclockBoardTitle;
 
   /// Supporting line on the timeclock board page.
@@ -2734,17 +2752,17 @@ abstract class AppLocalizations {
   /// **'Fin de journée'**
   String get timeclockLogClockOut;
 
-  /// First SectionTabs entry on the pointage board — today's live board.
+  /// Title of the timeclock history page — the filterable attendance log across every employee and day, its own sidebar destination rather than a tab of timeclockBoardTitle.
   ///
   /// In fr, this message translates to:
-  /// **'Aujourd\'hui'**
-  String get timeclockTabToday;
+  /// **'Historique de pointage'**
+  String get timeclockHistoryTitle;
 
-  /// Second SectionTabs entry on the pointage board — the filterable attendance log across every employee and day.
+  /// Supporting line on the timeclock history page.
   ///
   /// In fr, this message translates to:
-  /// **'Historique'**
-  String get timeclockTabHistory;
+  /// **'Consultez et filtrez les pointages de tout le personnel, jour par jour.'**
+  String get timeclockHistorySubtitle;
 
   /// Result-count line above the Historique tab's list.
   ///

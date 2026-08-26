@@ -158,6 +158,11 @@ List<({String label, String path, bool inShell})> _allRoutes() {
     (label: 'add employee', path: Routes.toAddEmployee(store), inShell: true),
     (label: 'timeclock', path: Routes.toTimeclock(store), inShell: true),
     (
+      label: 'timeclock history',
+      path: Routes.toTimeclockHistory(store),
+      inShell: true,
+    ),
+    (
       label: 'employee detail',
       path: Routes.toEmployee(store, employee),
       inShell: true,

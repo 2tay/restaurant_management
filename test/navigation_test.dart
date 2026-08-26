@@ -43,6 +43,7 @@ final _rootScreens = <String, String>{
   'team': Routes.toTeam(_store),
   'employees': Routes.toEmployees(_store),
   'timeclock': Routes.toTimeclock(_store),
+  'timeclock history': Routes.toTimeclockHistory(_store),
   'store settings': Routes.toStoreSettings(_store),
   'account settings': Routes.toAccountSettings(_store),
   'notification settings': Routes.toNotificationSettings(_store),
@@ -215,7 +216,7 @@ void main() {
       expect(rail.selectedIndex, 4);
     });
 
-    testWidgets('highlights Employés from a nested employee screen', (
+    testWidgets('highlights Gestion des employés from a nested employee screen', (
       tester,
     ) async {
       await _pump(tester);
@@ -226,25 +227,25 @@ void main() {
 
       final rail = tester.widget<NavigationRail>(find.byType(NavigationRail));
       // Dashboard, Inventaire, Mouvements, Commandes, Fournisseurs, Catégories
-      // et unités, Alertes, Rapports, Équipe, Employés.
+      // et unités, Alertes, Rapports, Équipe, Gestion des employés.
       expect(rail.selectedIndex, 9);
     });
   });
 
-  group('the Employés flyout', () {
-    testWidgets('tapping the rail entry opens a popup that navigates', (
+  group('the Gestion des employés accordion', () {
+    testWidgets('tapping the rail entry expands it, offering all three pages', (
       tester,
     ) async {
       await _pump(tester);
       appRouter.go(Routes.toDashboard(_store));
       await tester.pumpAndSettle();
 
-      // Stage 2: the popup now carries both Personnel and Pointage.
-      await tester.tap(find.text('Employés'));
+      await tester.tap(find.text('Gestion des employés'));
       await tester.pumpAndSettle();
 
       expect(find.text('Personnel'), findsOneWidget);
-      expect(find.text('Pointage'), findsOneWidget);
+      expect(find.text('Tableau de pointage'), findsOneWidget);
+      expect(find.text('Historique de pointage'), findsOneWidget);
 
       await tester.tap(find.text('Personnel'));
       await tester.pumpAndSettle();
@@ -252,20 +253,36 @@ void main() {
       expect(appRouter.state.uri.path, Routes.toEmployees(_store));
     });
 
-    testWidgets('the Pointage item navigates to the timeclock board', (
+    testWidgets('the Tableau de pointage item navigates to the timeclock board', (
       tester,
     ) async {
       await _pump(tester);
       appRouter.go(Routes.toDashboard(_store));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Employés'));
+      await tester.tap(find.text('Gestion des employés'));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Pointage'));
+      await tester.tap(find.text('Tableau de pointage'));
       await tester.pumpAndSettle();
 
       expect(appRouter.state.uri.path, Routes.toTimeclock(_store));
+    });
+
+    testWidgets('the Historique de pointage item navigates to the history page', (
+      tester,
+    ) async {
+      await _pump(tester);
+      appRouter.go(Routes.toDashboard(_store));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Gestion des employés'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Historique de pointage'));
+      await tester.pumpAndSettle();
+
+      expect(appRouter.state.uri.path, Routes.toTimeclockHistory(_store));
     });
   });
 

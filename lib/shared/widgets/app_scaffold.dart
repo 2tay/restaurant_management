@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/navigation.dart';
 import '../../core/theme/app_colors.dart';
@@ -10,13 +11,45 @@ import 'app_top_bar.dart';
 import 'back_control.dart';
 import 'offline_banner.dart';
 
+/// Whether the shell's navigation rail and top bar are hidden so the current
+/// page's content fills the whole window.
+///
+/// Local UI state — see `offline_banner.dart`'s `OfflineMode` for the same
+/// reasoning: this is the only thing Riverpod is permitted to hold in Phase
+/// 1, and a `Notifier<bool>` rather than a page's own `State` because the
+/// toggle lives on the page (e.g. the timeclock board) while the thing it
+/// controls, [AppScaffold], is that page's ancestor.
+///
+/// Off by default. A page offering the toggle owns turning it back off when
+/// it leaves the tree (see `TimeclockBoardPage.dispose`), so full screen
+/// never leaks into an unrelated screen reached by navigating away.
+class FullScreenMode extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  void toggle() => state = !state;
+
+  // `ref.mounted` guards the call `TimeclockBoardPage.dispose` defers to a
+  // microtask — by the time it runs, a fast enough sequence of navigations
+  // (or a test tearing its `ProviderScope` down) may have already disposed
+  // this provider, and writing to a disposed provider throws.
+  // ignore: use_setters_to_change_properties
+  void set(bool value) {
+    if (ref.mounted) state = value;
+  }
+}
+
+final isFullScreenProvider = NotifierProvider<FullScreenMode, bool>(
+  FullScreenMode.new,
+);
+
 /// The application shell: navigation rail on the left, top bar above, content
 /// in the remaining area.
 ///
 /// Used by the go_router `ShellRoute`, so the rail and top bar persist across
 /// navigations instead of rebuilding — the store switcher keeps its place and
 /// there is no flash of chrome between screens.
-class AppScaffold extends StatelessWidget {
+class AppScaffold extends ConsumerWidget {
   const AppScaffold({required this.store, required this.child, super.key});
 
   final Store store;
@@ -25,24 +58,28 @@ class AppScaffold extends StatelessWidget {
   final Widget child;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isFullScreen = ref.watch(isFullScreenProvider);
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: Row(
-          children: [
-            AppSidebar(storeId: store.id),
-            Expanded(
-              child: Column(
+        child: isFullScreen
+            ? child
+            : Row(
                 children: [
-                  AppTopBar(store: store),
-                  const OfflineBanner(),
-                  Expanded(child: child),
+                  AppSidebar(storeId: store.id),
+                  Expanded(
+                    child: Column(
+                      children: [
+                        AppTopBar(store: store),
+                        const OfflineBanner(),
+                        Expanded(child: child),
+                      ],
+                    ),
+                  ),
                 ],
               ),
-            ),
-          ],
-        ),
       ),
     );
   }

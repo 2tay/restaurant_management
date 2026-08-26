@@ -36,7 +36,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get navTeam => 'Équipe';
 
   @override
-  String get navEmployees => 'Employés';
+  String get navEmployees => 'Gestion des employés';
 
   @override
   String get navSettings => 'Paramètres';
@@ -103,6 +103,12 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get actionViewAll => 'Tout afficher';
+
+  @override
+  String get actionFullScreen => 'Plein écran';
+
+  @override
+  String get actionExitFullScreen => 'Quitter le plein écran';
 
   @override
   String get topBarNotifications => 'Notifications';
@@ -1318,7 +1324,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String get employeesFlyoutPersonnel => 'Personnel';
 
   @override
-  String get employeesFlyoutPointage => 'Pointage';
+  String get employeesFlyoutTimeclockBoard => 'Tableau de pointage';
+
+  @override
+  String get employeesFlyoutTimeclockHistory => 'Historique de pointage';
 
   @override
   String get employeesTitle => 'Personnel';
@@ -1505,7 +1514,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get timeEntryStatusClockedOut => 'Terminé';
 
   @override
-  String get timeclockBoardTitle => 'Pointage';
+  String get timeclockBoardTitle => 'Tableau de pointage';
 
   @override
   String get timeclockBoardSubtitle =>
@@ -1573,10 +1582,11 @@ class AppLocalizationsFr extends AppLocalizations {
   String get timeclockLogClockOut => 'Fin de journée';
 
   @override
-  String get timeclockTabToday => 'Aujourd\'hui';
+  String get timeclockHistoryTitle => 'Historique de pointage';
 
   @override
-  String get timeclockTabHistory => 'Historique';
+  String get timeclockHistorySubtitle =>
+      'Consultez et filtrez les pointages de tout le personnel, jour par jour.';
 
   @override
   String timeclockHistoryCount(int count) {
