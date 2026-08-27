@@ -6,6 +6,7 @@ import '../../../../app/navigation.dart';
 import '../../../../app/routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/utils/attendance_status.dart';
 import '../../../../core/utils/employee_status.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -45,6 +46,13 @@ class EmployeeDetailPage extends ConsumerWidget {
     }
 
     final archived = !isEmployeeActive(employee);
+    final attendances = MockQueries.attendancesForEmployee(employeeId);
+    final settings = MockQueries.storeSettings(storeId);
+    final schedule = resolvedSchedule(
+      employee,
+      storeOpenMinutes: settings.openMinutes,
+      storeCloseMinutes: settings.closeMinutes,
+    );
 
     return ShellPage(
       back: BackDestination(
@@ -163,8 +171,15 @@ class EmployeeDetailPage extends ConsumerWidget {
           ),
           const SizedBox(height: AppSpacing.xl),
 
-          SectionHeader(title: l10n.employeeHistoryTitle),
-          const _PlaceholderCard(),
+          SectionHeader(
+            title: l10n.employeeHistoryTitle,
+            count: attendances.isEmpty ? null : attendances.length,
+          ),
+          _AttendanceHistoryCard(
+            attendances: attendances,
+            scheduledStartMinutes: schedule.startMinutes,
+            maxBreakMinutes: settings.maxBreakMinutes,
+          ),
           const SizedBox(height: AppSpacing.xl),
 
           SectionHeader(title: l10n.employeePayrollTitle),
@@ -205,6 +220,50 @@ class EmployeeDetailPage extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     EmployeeMutations.restore(employee.id);
     AppSnackBar.success(context, l10n.employeeRestored);
+  }
+}
+
+/// This employee's attendance, most recent first, using the shared
+/// [AttendanceRow] the Historique tab (Phase 4) also builds on.
+class _AttendanceHistoryCard extends StatelessWidget {
+  const _AttendanceHistoryCard({
+    required this.attendances,
+    required this.scheduledStartMinutes,
+    required this.maxBreakMinutes,
+  });
+
+  final List<Attendance> attendances;
+  final int scheduledStartMinutes;
+  final int maxBreakMinutes;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
+    if (attendances.isEmpty) {
+      return AppCard(
+        child: Text(
+          l10n.employeeHistoryEmpty,
+          style: Theme.of(
+            context,
+          ).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
+        ),
+      );
+    }
+
+    return AppCard(
+      padding: EdgeInsets.zero,
+      child: Column(
+        children: [
+          for (final entry in attendances)
+            AttendanceRow(
+              attendance: entry,
+              scheduledStartMinutes: scheduledStartMinutes,
+              maxBreakMinutes: maxBreakMinutes,
+            ),
+        ],
+      ),
+    );
   }
 }
 

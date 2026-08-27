@@ -137,11 +137,22 @@ void main() {
     });
 
     test('restores store settings', () {
-      MockSettings.stalePartialOrderDays = 42;
+      final before = MockQueries.storeSettings(StoreIds.sablon);
+      AccountMutations.updateStoreSettings(
+        StoreIds.sablon,
+        stalePartialOrderDays: 42,
+        maxBreakMinutes: 90,
+      );
+      expect(
+        MockQueries.storeSettings(StoreIds.sablon).stalePartialOrderDays,
+        42,
+      );
 
       MockWrite.reset();
 
-      expect(MockSettings.stalePartialOrderDays, 7);
+      final after = MockQueries.storeSettings(StoreIds.sablon);
+      expect(after.stalePartialOrderDays, before.stalePartialOrderDays);
+      expect(after.maxBreakMinutes, before.maxBreakMinutes);
     });
 
     test('covers every mutable list', () {
@@ -175,7 +186,9 @@ List<List<Object>> get _mutableLists => [
   mockGoodsReceipts,
   mockNotifications,
   mockStores,
+  mockStoreSettings,
   mockEmployees,
+  mockAttendances,
 ];
 
 Map<String, int> _snapshotCounts() => {
@@ -190,5 +203,7 @@ Map<String, int> _snapshotCounts() => {
   'receipts': mockGoodsReceipts.length,
   'notifications': mockNotifications.length,
   'stores': mockStores.length,
+  'storeSettings': mockStoreSettings.length,
   'employees': mockEmployees.length,
+  'attendances': mockAttendances.length,
 };

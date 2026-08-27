@@ -5,6 +5,7 @@
 /// is a bug — move it here.
 library;
 
+export 'mock_attendances.dart';
 export 'mock_categories.dart';
 export 'mock_employees.dart';
 export 'mock_goods_receipts.dart';
@@ -16,8 +17,8 @@ export 'mock_queries.dart';
 export 'mock_reference.dart';
 export 'mock_reports.dart';
 export 'mock_session.dart';
-export 'mock_settings.dart';
 export 'mock_stock_movements.dart';
+export 'mock_store_settings.dart';
 export 'mock_stores.dart';
 export 'mock_supplier_prices.dart';
 export 'mock_suppliers.dart';
@@ -26,6 +27,7 @@ export 'mock_units.dart';
 // The write layer. One file per aggregate, because Phase 2 replaces each
 // with a repository and a one-to-one seam is easier to walk across.
 export 'mutations/account_mutations.dart';
+export 'mutations/attendance_mutations.dart';
 export 'mutations/catalog_mutations.dart';
 export 'mutations/employee_mutations.dart';
 export 'mutations/item_mutations.dart';

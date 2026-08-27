@@ -2424,4 +2424,211 @@ class AppLocalizationsFr extends AppLocalizations {
   String employeeDetailArchivedOn(String date) {
     return 'Retiré le $date';
   }
+
+  @override
+  String get employeeHistoryEmpty => 'Aucun pointage enregistré.';
+
+  @override
+  String get attendanceStatusNotClockedIn => 'Non pointé';
+
+  @override
+  String get attendanceStatusWorking => 'En service';
+
+  @override
+  String get attendanceStatusOnBreak => 'En pause';
+
+  @override
+  String get attendanceStatusDone => 'Terminé';
+
+  @override
+  String get attendanceLate => 'En retard';
+
+  @override
+  String get attendanceBreakOverrun => 'Pause dépassée';
+
+  @override
+  String get timeclockBoardTitle => 'Tableau de pointage';
+
+  @override
+  String get timeclockBoardSubtitle =>
+      'Pointage du jour — arrivées, pauses et départs.';
+
+  @override
+  String get timeclockBoardEmpty => 'Aucun personnel actif';
+
+  @override
+  String get timeclockBoardEmptyBody =>
+      'Ajoutez du personnel pour commencer à pointer.';
+
+  @override
+  String get timeclockClockIn => 'Pointer';
+
+  @override
+  String get timeclockStartPause => 'Pause';
+
+  @override
+  String get timeclockEndPause => 'Reprendre';
+
+  @override
+  String get timeclockClockOut => 'Fin de journée';
+
+  @override
+  String timeclockClockInDone(String name) {
+    return 'Pointage enregistré pour $name.';
+  }
+
+  @override
+  String timeclockPauseStartDone(String name) {
+    return 'Pause démarrée pour $name.';
+  }
+
+  @override
+  String timeclockPauseEndDone(String name) {
+    return 'Reprise enregistrée pour $name.';
+  }
+
+  @override
+  String timeclockClockOutDone(String name) {
+    return 'Fin de journée enregistrée pour $name.';
+  }
+
+  @override
+  String get timeclockLogArrival => 'Arrivée';
+
+  @override
+  String get timeclockLogBreak => 'Pause';
+
+  @override
+  String get timeclockLogResume => 'Reprise';
+
+  @override
+  String get timeclockLogDeparture => 'Départ';
+
+  @override
+  String timeclockWorked(String duration) {
+    return 'Travaillé : $duration';
+  }
+
+  @override
+  String timeclockOvertimeMark(String duration) {
+    return '+$duration sup.';
+  }
+
+  @override
+  String get storeSettingsHours => 'Horaires de l\'établissement';
+
+  @override
+  String get storeSettingsOpenTime => 'Ouverture';
+
+  @override
+  String get storeSettingsCloseTime => 'Fermeture';
+
+  @override
+  String get storeSettingsMaxBreak => 'Pause max (minutes)';
+
+  @override
+  String get storeSettingsHoursHelp =>
+      'Les horaires servent de base au calcul du retard et des heures supplémentaires (pour un employé sans horaire personnel). Une pause plus longue que le maximum est signalée « Pause dépassée ».';
+
+  @override
+  String paginatorRange(int first, int last, int total) {
+    return '$first–$last sur $total';
+  }
+
+  @override
+  String paginatorPage(int page, int count) {
+    return '$page / $count';
+  }
+
+  @override
+  String get paginatorPrevious => 'Page précédente';
+
+  @override
+  String get paginatorNext => 'Page suivante';
+
+  @override
+  String get attendanceHistoryTitle => 'Historique de pointage';
+
+  @override
+  String get attendanceHistorySubtitle =>
+      'Consultez et filtrez les pointages de tout le personnel, jour par jour.';
+
+  @override
+  String attendanceHistoryCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count résultats',
+      one: '1 résultat',
+      zero: 'Aucun résultat',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get attendanceHistoryEmpty => 'Aucun historique de pointage';
+
+  @override
+  String get attendanceHistoryEmptyBody =>
+      'Aucun pointage n\'a encore été enregistré dans cet établissement.';
+
+  @override
+  String get attendanceStatDays => 'Jours pointés';
+
+  @override
+  String get attendanceStatWorked => 'Heures travaillées';
+
+  @override
+  String get attendanceStatLate => 'Retards';
+
+  @override
+  String get attendanceStatOvertime => 'Heures supplémentaires';
+
+  @override
+  String get attendanceColumnDate => 'Date';
+
+  @override
+  String get attendanceColumnEmployee => 'Employé';
+
+  @override
+  String get attendanceColumnArrival => 'Arrivée';
+
+  @override
+  String get attendanceColumnDeparture => 'Départ';
+
+  @override
+  String get attendanceColumnBreaks => 'Pauses';
+
+  @override
+  String get attendanceColumnWorked => 'Durée travail';
+
+  @override
+  String get attendanceColumnOvertime => 'Heures sup';
+
+  @override
+  String get attendanceColumnStatus => 'Statut';
+
+  @override
+  String get attendanceColumnFlags => 'Alertes';
+
+  @override
+  String get attendanceColumnActions => 'Détail';
+
+  @override
+  String get attendanceViewDetail => 'Voir le détail';
+
+  @override
+  String get attendanceDetailTitle => 'Détail du pointage';
+
+  @override
+  String attendanceDetailBreaks(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count pauses',
+      one: '1 pause',
+      zero: 'Aucune pause',
+    );
+    return '$_temp0';
+  }
 }

@@ -34,7 +34,10 @@ class OrderRow extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final colors = OrderStatusBadge.colorsFor(order.status);
-    final stale = orderIsStale(order, MockSettings.stalePartialOrderDays);
+    final stale = orderIsStale(
+      order,
+      MockQueries.storeSettings(order.storeId).stalePartialOrderDays,
+    );
 
     return AppCard(
       onTap: onTap,

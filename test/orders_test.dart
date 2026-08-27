@@ -490,7 +490,10 @@ void main() {
 
   group('stale partial orders', () {
     test('the threshold defaults to seven days and drives the flag', () {
-      expect(MockSettings.stalePartialOrderDays, 7);
+      expect(
+        MockQueries.storeSettings(StoreIds.sablon).stalePartialOrderDays,
+        7,
+      );
       expect(OrderRules.defaultStalePartialDays, 7);
 
       final stale = MockQueries.staleOrders(StoreIds.sablon);
@@ -501,12 +504,18 @@ void main() {
       );
 
       // Raising it past the age of the order clears the flag.
-      MockSettings.stalePartialOrderDays = 60;
+      AccountMutations.updateStoreSettings(
+        StoreIds.sablon,
+        stalePartialOrderDays: 60,
+      );
       expect(MockQueries.staleOrders(StoreIds.sablon), isEmpty);
     });
 
     test('only partial orders are ever stale', () {
-      MockSettings.stalePartialOrderDays = 1;
+      AccountMutations.updateStoreSettings(
+        StoreIds.sablon,
+        stalePartialOrderDays: 1,
+      );
 
       for (final order in MockQueries.staleOrders(StoreIds.sablon)) {
         expect(order.status, PurchaseOrderStatus.partial);

@@ -3993,6 +3993,342 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Retiré le {date}'**
   String employeeDetailArchivedOn(String date);
+
+  /// Shown in the attendance history section when the employee has no rows yet.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun pointage enregistré.'**
+  String get employeeHistoryEmpty;
+
+  /// Attendance status — no row for the day yet.
+  ///
+  /// In fr, this message translates to:
+  /// **'Non pointé'**
+  String get attendanceStatusNotClockedIn;
+
+  /// Attendance status — clocked in, not on a break.
+  ///
+  /// In fr, this message translates to:
+  /// **'En service'**
+  String get attendanceStatusWorking;
+
+  /// Attendance status — mid-break.
+  ///
+  /// In fr, this message translates to:
+  /// **'En pause'**
+  String get attendanceStatusOnBreak;
+
+  /// Attendance status — the day is finished.
+  ///
+  /// In fr, this message translates to:
+  /// **'Terminé'**
+  String get attendanceStatusDone;
+
+  /// Marker on a day where the arrival was past the scheduled start.
+  ///
+  /// In fr, this message translates to:
+  /// **'En retard'**
+  String get attendanceLate;
+
+  /// Marker on a day where a single break ran longer than the store's allowance.
+  ///
+  /// In fr, this message translates to:
+  /// **'Pause dépassée'**
+  String get attendanceBreakOverrun;
+
+  /// Heading of the pointage kiosk board.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tableau de pointage'**
+  String get timeclockBoardTitle;
+
+  /// Supporting line on the pointage board.
+  ///
+  /// In fr, this message translates to:
+  /// **'Pointage du jour — arrivées, pauses et départs.'**
+  String get timeclockBoardSubtitle;
+
+  /// Empty state on the board when the store has no active employee.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun personnel actif'**
+  String get timeclockBoardEmpty;
+
+  /// Supporting line for the empty board.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ajoutez du personnel pour commencer à pointer.'**
+  String get timeclockBoardEmptyBody;
+
+  /// Button — clock an employee in for the day.
+  ///
+  /// In fr, this message translates to:
+  /// **'Pointer'**
+  String get timeclockClockIn;
+
+  /// Button — start a break.
+  ///
+  /// In fr, this message translates to:
+  /// **'Pause'**
+  String get timeclockStartPause;
+
+  /// Button — end a break.
+  ///
+  /// In fr, this message translates to:
+  /// **'Reprendre'**
+  String get timeclockEndPause;
+
+  /// Button — clock an employee out for the day.
+  ///
+  /// In fr, this message translates to:
+  /// **'Fin de journée'**
+  String get timeclockClockOut;
+
+  /// Snackbar after clocking an employee in.
+  ///
+  /// In fr, this message translates to:
+  /// **'Pointage enregistré pour {name}.'**
+  String timeclockClockInDone(String name);
+
+  /// Snackbar after starting a break.
+  ///
+  /// In fr, this message translates to:
+  /// **'Pause démarrée pour {name}.'**
+  String timeclockPauseStartDone(String name);
+
+  /// Snackbar after ending a break.
+  ///
+  /// In fr, this message translates to:
+  /// **'Reprise enregistrée pour {name}.'**
+  String timeclockPauseEndDone(String name);
+
+  /// Snackbar after clocking an employee out.
+  ///
+  /// In fr, this message translates to:
+  /// **'Fin de journée enregistrée pour {name}.'**
+  String timeclockClockOutDone(String name);
+
+  /// Timestamp log label — clock-in.
+  ///
+  /// In fr, this message translates to:
+  /// **'Arrivée'**
+  String get timeclockLogArrival;
+
+  /// Timestamp log label — break start.
+  ///
+  /// In fr, this message translates to:
+  /// **'Pause'**
+  String get timeclockLogBreak;
+
+  /// Timestamp log label — break end.
+  ///
+  /// In fr, this message translates to:
+  /// **'Reprise'**
+  String get timeclockLogResume;
+
+  /// Timestamp log label — clock-out.
+  ///
+  /// In fr, this message translates to:
+  /// **'Départ'**
+  String get timeclockLogDeparture;
+
+  /// Worked-duration line on a finished card.
+  ///
+  /// In fr, this message translates to:
+  /// **'Travaillé : {duration}'**
+  String timeclockWorked(String duration);
+
+  /// Overtime marker on a finished card.
+  ///
+  /// In fr, this message translates to:
+  /// **'+{duration} sup.'**
+  String timeclockOvertimeMark(String duration);
+
+  /// Store settings section header for opening hours.
+  ///
+  /// In fr, this message translates to:
+  /// **'Horaires de l\'établissement'**
+  String get storeSettingsHours;
+
+  /// Store opening time field label.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ouverture'**
+  String get storeSettingsOpenTime;
+
+  /// Store closing time field label.
+  ///
+  /// In fr, this message translates to:
+  /// **'Fermeture'**
+  String get storeSettingsCloseTime;
+
+  /// Store setting — the longest a single break may run before it is flagged.
+  ///
+  /// In fr, this message translates to:
+  /// **'Pause max (minutes)'**
+  String get storeSettingsMaxBreak;
+
+  /// Helper text under the store hours / break fields.
+  ///
+  /// In fr, this message translates to:
+  /// **'Les horaires servent de base au calcul du retard et des heures supplémentaires (pour un employé sans horaire personnel). Une pause plus longue que le maximum est signalée « Pause dépassée ».'**
+  String get storeSettingsHoursHelp;
+
+  /// Which slice of a paged list is shown.
+  ///
+  /// In fr, this message translates to:
+  /// **'{first}–{last} sur {total}'**
+  String paginatorRange(int first, int last, int total);
+
+  /// Current page number out of the total.
+  ///
+  /// In fr, this message translates to:
+  /// **'{page} / {count}'**
+  String paginatorPage(int page, int count);
+
+  /// Tooltip on the previous-page button.
+  ///
+  /// In fr, this message translates to:
+  /// **'Page précédente'**
+  String get paginatorPrevious;
+
+  /// Tooltip on the next-page button.
+  ///
+  /// In fr, this message translates to:
+  /// **'Page suivante'**
+  String get paginatorNext;
+
+  /// Heading of the attendance history page.
+  ///
+  /// In fr, this message translates to:
+  /// **'Historique de pointage'**
+  String get attendanceHistoryTitle;
+
+  /// Supporting line on the attendance history page.
+  ///
+  /// In fr, this message translates to:
+  /// **'Consultez et filtrez les pointages de tout le personnel, jour par jour.'**
+  String get attendanceHistorySubtitle;
+
+  /// Count of rows matching the current filters.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =0{Aucun résultat} =1{1 résultat} other{{count} résultats}}'**
+  String attendanceHistoryCount(int count);
+
+  /// Empty state when the store has no attendance rows at all.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun historique de pointage'**
+  String get attendanceHistoryEmpty;
+
+  /// Supporting line for the fully-empty history.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun pointage n\'a encore été enregistré dans cet établissement.'**
+  String get attendanceHistoryEmptyBody;
+
+  /// History KPI — number of attendance rows in the period.
+  ///
+  /// In fr, this message translates to:
+  /// **'Jours pointés'**
+  String get attendanceStatDays;
+
+  /// History KPI — total worked time in the period.
+  ///
+  /// In fr, this message translates to:
+  /// **'Heures travaillées'**
+  String get attendanceStatWorked;
+
+  /// History KPI — number of late arrivals in the period.
+  ///
+  /// In fr, this message translates to:
+  /// **'Retards'**
+  String get attendanceStatLate;
+
+  /// History KPI — total overtime in the period.
+  ///
+  /// In fr, this message translates to:
+  /// **'Heures supplémentaires'**
+  String get attendanceStatOvertime;
+
+  /// History table column — the work day.
+  ///
+  /// In fr, this message translates to:
+  /// **'Date'**
+  String get attendanceColumnDate;
+
+  /// History table column — the employee name.
+  ///
+  /// In fr, this message translates to:
+  /// **'Employé'**
+  String get attendanceColumnEmployee;
+
+  /// History table column — clock-in time.
+  ///
+  /// In fr, this message translates to:
+  /// **'Arrivée'**
+  String get attendanceColumnArrival;
+
+  /// History table column — clock-out time.
+  ///
+  /// In fr, this message translates to:
+  /// **'Départ'**
+  String get attendanceColumnDeparture;
+
+  /// History table column — number of breaks.
+  ///
+  /// In fr, this message translates to:
+  /// **'Pauses'**
+  String get attendanceColumnBreaks;
+
+  /// History table column — worked duration.
+  ///
+  /// In fr, this message translates to:
+  /// **'Durée travail'**
+  String get attendanceColumnWorked;
+
+  /// History table column — overtime.
+  ///
+  /// In fr, this message translates to:
+  /// **'Heures sup'**
+  String get attendanceColumnOvertime;
+
+  /// History table column — the day's status.
+  ///
+  /// In fr, this message translates to:
+  /// **'Statut'**
+  String get attendanceColumnStatus;
+
+  /// History table column — late / break-overrun icons.
+  ///
+  /// In fr, this message translates to:
+  /// **'Alertes'**
+  String get attendanceColumnFlags;
+
+  /// History table column — the row detail button.
+  ///
+  /// In fr, this message translates to:
+  /// **'Détail'**
+  String get attendanceColumnActions;
+
+  /// Tooltip on the row detail button.
+  ///
+  /// In fr, this message translates to:
+  /// **'Voir le détail'**
+  String get attendanceViewDetail;
+
+  /// Heading of the attendance detail side panel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Détail du pointage'**
+  String get attendanceDetailTitle;
+
+  /// Break count heading in the detail panel.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =0{Aucune pause} =1{1 pause} other{{count} pauses}}'**
+  String attendanceDetailBreaks(int count);
 }
 
 class _AppLocalizationsDelegate

@@ -1,7 +1,9 @@
+import '../core/utils/attendance_status.dart';
 import '../core/utils/employee_status.dart';
 import '../core/utils/order_status.dart';
 import '../core/utils/stock_status.dart';
 import '../models/models.dart';
+import 'mock_attendances.dart';
 import 'mock_categories.dart';
 import 'mock_employees.dart';
 import 'mock_goods_receipts.dart';
@@ -9,8 +11,9 @@ import 'mock_items.dart';
 import 'mock_notifications.dart';
 import 'mock_price_history.dart';
 import 'mock_purchase_orders.dart';
-import 'mock_settings.dart';
+import 'mock_reference.dart';
 import 'mock_stock_movements.dart';
+import 'mock_store_settings.dart';
 import 'mock_stores.dart';
 import 'mock_supplier_prices.dart';
 import 'mock_suppliers.dart';
@@ -42,6 +45,12 @@ abstract final class MockQueries {
   /// stale route parameter shows the app instead of a crash.
   static Store storeByIdOrFirst(String? id) =>
       (id == null ? null : storeById(id)) ?? mockStores.first;
+
+  /// The settings row for a store — its opening hours, break allowance and
+  /// stale-order threshold. Synthesises a default when there is no row, so
+  /// callers never have to null-check.
+  static StoreSettings storeSettings(String storeId) =>
+      storeSettingsOrDefault(storeId);
 
   // ---------------------------------------------------------------------------
   // Items
@@ -496,7 +505,9 @@ abstract final class MockQueries {
   /// Orders sitting in `partial` past the store's threshold.
   static List<PurchaseOrder> staleOrders(String storeId) => ordersForStore(
     storeId,
-  ).where((o) => orderIsStale(o, MockSettings.stalePartialOrderDays)).toList();
+  ).where((o) {
+    return orderIsStale(o, storeSettings(storeId).stalePartialOrderDays);
+  }).toList();
 
   /// This supplier's items that are at or below their threshold.
   ///
@@ -593,5 +604,147 @@ abstract final class MockQueries {
       if (_normalise(employee.email) == needle) return employee;
     }
     return null;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Pointage
+  // ---------------------------------------------------------------------------
+
+  static Attendance? attendanceById(String id) {
+    for (final entry in mockAttendances) {
+      if (entry.id == id) return entry;
+    }
+    return null;
+  }
+
+  /// This employee's row for today, or null when they have not clocked in or
+  /// been marked absent yet — a day with no row means
+  /// [AttendanceStatus.notClockedIn]. Uses [dayOnly] so "today" matches how
+  /// the seed data and `AttendanceMutations.clockIn` both compute it.
+  static Attendance? attendanceForToday(String employeeId) {
+    final today = dayOnly(0);
+    for (final entry in mockAttendances) {
+      if (entry.employeeId == employeeId && entry.date == today) return entry;
+    }
+    return null;
+  }
+
+  /// One employee's attendance, most recent day first.
+  static List<Attendance> attendancesForEmployee(String employeeId) {
+    final entries =
+        mockAttendances.where((a) => a.employeeId == employeeId).toList()
+          ..sort((a, b) => b.date.compareTo(a.date));
+    return entries;
+  }
+
+  /// The store's attendance log for the Historique page — filtered on a
+  /// rolling period, a status and a free-text employee-name search (combined
+  /// with AND), sorted most-recent-day-first, then sliced into a page.
+  ///
+  /// [withinDays] is a rolling window against `DateTime.now()`, null meaning
+  /// no cutoff ("Tout"). [employeeQuery] is matched the same case/space-
+  /// insensitive way category and unit names are — see [_normalise] — against
+  /// the resolved employee name, so the UI never looks employees up itself.
+  /// [page] is clamped into range.
+  static ({
+    List<Attendance> rows,
+    int totalCount,
+    int page,
+    int pageCount,
+  })
+  attendancesForStore(
+    String storeId, {
+    int? withinDays,
+    AttendanceStatus? status,
+    String? employeeQuery,
+    int page = 0,
+    int pageSize = 25,
+  }) {
+    final cutoff = withinDays == null
+        ? null
+        : DateTime.now().subtract(Duration(days: withinDays));
+    final needle = employeeQuery == null ? '' : _normalise(employeeQuery);
+
+    final matched =
+        mockAttendances.where((entry) {
+          if (entry.storeId != storeId) return false;
+          if (status != null && entry.status != status) return false;
+          if (cutoff != null && entry.date.isBefore(cutoff)) return false;
+          if (needle.isNotEmpty) {
+            final e = employeeById(entry.employeeId);
+            final name = e == null ? '' : '${e.firstName} ${e.lastName}';
+            if (!_normalise(name).contains(needle)) return false;
+          }
+          return true;
+        }).toList()..sort((a, b) {
+          final byDate = b.date.compareTo(a.date);
+          if (byDate != 0) return byDate;
+          return (b.clockInAt ?? b.date).compareTo(a.clockInAt ?? a.date);
+        });
+
+    final pageCount = matched.isEmpty
+        ? 1
+        : (matched.length + pageSize - 1) ~/ pageSize;
+    final safePage = page.clamp(0, pageCount - 1);
+    final start = safePage * pageSize;
+    final end = (start + pageSize).clamp(0, matched.length);
+
+    return (
+      rows: matched.sublist(start, end),
+      totalCount: matched.length,
+      page: safePage,
+      pageCount: pageCount,
+    );
+  }
+
+  /// The KPI figures above the Historique table — over the whole store log
+  /// within [withinDays], independent of the status / employee / page
+  /// filters below. Late arrivals and overtime are measured against each
+  /// employee's resolved schedule.
+  static ({
+    int days,
+    Duration worked,
+    int lateArrivals,
+    Duration overtime,
+    int lateBreaks,
+  })
+  attendanceStatsForStore(String storeId, {int? withinDays}) {
+    final settings = storeSettings(storeId);
+    final cutoff = withinDays == null
+        ? null
+        : DateTime.now().subtract(Duration(days: withinDays));
+
+    var worked = Duration.zero;
+    var overtime = Duration.zero;
+    var lateArrivals = 0;
+    var lateBreaks = 0;
+    var days = 0;
+
+    for (final entry in mockAttendances) {
+      if (entry.storeId != storeId) continue;
+      if (cutoff != null && entry.date.isBefore(cutoff)) continue;
+      days++;
+
+      final employee = employeeById(entry.employeeId);
+      if (employee == null) continue;
+      final schedule = resolvedSchedule(
+        employee,
+        storeOpenMinutes: settings.openMinutes,
+        storeCloseMinutes: settings.closeMinutes,
+      );
+
+      worked += workedDuration(entry) ?? Duration.zero;
+      overtime += overtimeBy(entry, schedule.endMinutes) ?? Duration.zero;
+      if (isLate(entry, schedule.startMinutes)) lateArrivals++;
+      if (hasLateBreak(entry, settings.maxBreakMinutes)) lateBreaks++;
+    }
+
+    return (
+      days: days,
+      worked: worked,
+      lateArrivals: lateArrivals,
+      overtime: overtime,
+      lateBreaks: lateBreaks,
+    );
   }
 }

@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart' hide Category;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../models/models.dart';
+import '../mock_attendances.dart';
 import '../mock_categories.dart';
 import '../mock_employees.dart';
 import '../mock_goods_receipts.dart';
@@ -10,8 +11,8 @@ import '../mock_items.dart';
 import '../mock_notifications.dart';
 import '../mock_price_history.dart';
 import '../mock_purchase_orders.dart';
-import '../mock_settings.dart';
 import '../mock_stock_movements.dart';
+import '../mock_store_settings.dart';
 import '../mock_stores.dart';
 import '../mock_supplier_prices.dart';
 import '../mock_suppliers.dart';
@@ -114,7 +115,6 @@ abstract final class MockWrite {
     if (seed == null) return;
 
     seed.restore();
-    MockSettings.reset();
     _writes = 0;
     revision.value++;
   }
@@ -145,7 +145,9 @@ class _Seed {
     required this.receipts,
     required this.notifications,
     required this.stores,
+    required this.storeSettings,
     required this.employees,
+    required this.attendances,
   });
 
   factory _Seed.capture() => _Seed(
@@ -160,7 +162,9 @@ class _Seed {
     receipts: List.of(mockGoodsReceipts),
     notifications: List.of(mockNotifications),
     stores: List.of(mockStores),
+    storeSettings: List.of(mockStoreSettings),
     employees: List.of(mockEmployees),
+    attendances: List.of(mockAttendances),
   );
 
   final List<Category> categories;
@@ -174,7 +178,9 @@ class _Seed {
   final List<GoodsReceipt> receipts;
   final List<NotificationItem> notifications;
   final List<Store> stores;
+  final List<StoreSettings> storeSettings;
   final List<Employee> employees;
+  final List<Attendance> attendances;
 
   void restore() {
     _replace(mockCategories, categories);
@@ -188,7 +194,9 @@ class _Seed {
     _replace(mockGoodsReceipts, receipts);
     _replace(mockNotifications, notifications);
     _replace(mockStores, stores);
+    _replace(mockStoreSettings, storeSettings);
     _replace(mockEmployees, employees);
+    _replace(mockAttendances, attendances);
   }
 
   /// Refills the live list in place rather than reassigning it — the mock lists

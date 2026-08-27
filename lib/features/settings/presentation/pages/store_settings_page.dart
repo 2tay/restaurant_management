@@ -4,6 +4,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../app/routes.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/utils/formatters.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../mock_data/mock_data.dart';
 import '../../../../shared/widgets/widgets.dart';
@@ -25,6 +26,9 @@ class _StoreSettingsPageState extends State<StoreSettingsPage> {
   final _city = TextEditingController();
   final _phone = TextEditingController();
   final _staleDays = TextEditingController();
+  final _openTime = TextEditingController();
+  final _closeTime = TextEditingController();
+  final _maxBreak = TextEditingController();
   String? _defaultUnitId;
 
   @override
@@ -40,7 +44,12 @@ class _StoreSettingsPageState extends State<StoreSettingsPage> {
     }
     final units = MockQueries.unitsForStore(widget.storeId);
     _defaultUnitId = units.isEmpty ? null : units.first.id;
-    _staleDays.text = '${MockSettings.stalePartialOrderDays}';
+
+    final settings = MockQueries.storeSettings(widget.storeId);
+    _staleDays.text = '${settings.stalePartialOrderDays}';
+    _openTime.text = Formatters.minutesToClock(settings.openMinutes);
+    _closeTime.text = Formatters.minutesToClock(settings.closeMinutes);
+    _maxBreak.text = '${settings.maxBreakMinutes}';
   }
 
   @override
@@ -52,6 +61,9 @@ class _StoreSettingsPageState extends State<StoreSettingsPage> {
       _city,
       _phone,
       _staleDays,
+      _openTime,
+      _closeTime,
+      _maxBreak,
     ]) {
       controller.dispose();
     }
@@ -174,26 +186,82 @@ class _StoreSettingsPageState extends State<StoreSettingsPage> {
                 ),
               ),
             ),
+            const SizedBox(height: AppSpacing.xl),
+
+            SectionHeader(title: l10n.storeSettingsHours),
+            AppCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: AppTextField(
+                          label: l10n.storeSettingsOpenTime,
+                          controller: _openTime,
+                          hint: '08:00',
+                          prefixIcon: LucideIcons.sunrise,
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.lg),
+                      Expanded(
+                        child: AppTextField(
+                          label: l10n.storeSettingsCloseTime,
+                          controller: _closeTime,
+                          hint: '17:00',
+                          prefixIcon: LucideIcons.sunset,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                  SizedBox(
+                    width: 260,
+                    child: AppTextField(
+                      label: l10n.storeSettingsMaxBreak,
+                      controller: _maxBreak,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                      ],
+                      prefixIcon: LucideIcons.coffee,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  Text(
+                    l10n.storeSettingsHoursHelp,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  /// Nothing else on this screen persists in this phase, but the stale-order
-  /// threshold does — within the session — because the dashboard warning it
-  /// drives is only demonstrable if changing the number changes the warning.
+  /// The store-settings values persist within the session — the dashboard
+  /// warning, the pointage lateness and the "pause dépassée" mark are all only
+  /// demonstrable if changing a number changes what the app shows.
   void _save() {
     final l10n = AppLocalizations.of(context);
-    final days = int.tryParse(_staleDays.text.trim());
-    if (days != null && days > 0) {
-      MockSettings.stalePartialOrderDays = days;
-    } else {
-      // Falling back rather than refusing: an empty or nonsense value should
-      // restore the default, not leave the dashboard with no threshold at all.
-      MockSettings.reset();
-      _staleDays.text = '${MockSettings.stalePartialOrderDays}';
-    }
+
+    final updated = AccountMutations.updateStoreSettings(
+      widget.storeId,
+      openMinutes: Formatters.clockToMinutes(_openTime.text),
+      closeMinutes: Formatters.clockToMinutes(_closeTime.text),
+      maxBreakMinutes: int.tryParse(_maxBreak.text.trim()),
+      stalePartialOrderDays: int.tryParse(_staleDays.text.trim()),
+    );
+
+    // Reflect what actually stuck (a nonsense value is ignored, not refused).
+    _openTime.text = Formatters.minutesToClock(updated.openMinutes);
+    _closeTime.text = Formatters.minutesToClock(updated.closeMinutes);
+    _maxBreak.text = '${updated.maxBreakMinutes}';
+    _staleDays.text = '${updated.stalePartialOrderDays}';
+
     AppSnackBar.success(context, l10n.storeSettingsSaved);
   }
 }

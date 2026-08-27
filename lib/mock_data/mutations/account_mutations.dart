@@ -1,5 +1,9 @@
+import '../../core/utils/attendance_status.dart';
+import '../../core/utils/order_status.dart';
 import '../../models/models.dart';
 import '../mock_notifications.dart';
+import '../mock_queries.dart';
+import '../mock_store_settings.dart';
 import '../mock_stores.dart';
 import 'mock_write.dart';
 
@@ -46,8 +50,58 @@ abstract final class AccountMutations {
     );
 
     mockStores.add(store);
+    mockStoreSettings.add(
+      StoreSettings(
+        storeId: store.id,
+        openMinutes: AttendanceRules.defaultOpenMinutes,
+        closeMinutes: AttendanceRules.defaultCloseMinutes,
+        maxBreakMinutes: AttendanceRules.defaultMaxBreakMinutes,
+        stalePartialOrderDays: OrderRules.defaultStalePartialDays,
+      ),
+    );
     MockWrite.changed();
     return store;
+  }
+
+  /// Edits a store's settings — opening hours, break allowance, stale-order
+  /// threshold. Values left null keep their current value; a nonsense value
+  /// (negative, or a time outside 0–1439) is ignored rather than refused, the
+  /// same forgiving stance the settings screen already takes.
+  static StoreSettings updateStoreSettings(
+    String storeId, {
+    int? openMinutes,
+    int? closeMinutes,
+    int? maxBreakMinutes,
+    int? stalePartialOrderDays,
+  }) {
+    final existing = MockQueries.storeSettings(storeId);
+    bool validTime(int? m) => m != null && m >= 0 && m < 24 * 60;
+    bool validCount(int? n) => n != null && n > 0;
+
+    final updated = StoreSettings(
+      storeId: storeId,
+      openMinutes: validTime(openMinutes)
+          ? openMinutes!
+          : existing.openMinutes,
+      closeMinutes: validTime(closeMinutes)
+          ? closeMinutes!
+          : existing.closeMinutes,
+      maxBreakMinutes: validCount(maxBreakMinutes)
+          ? maxBreakMinutes!
+          : existing.maxBreakMinutes,
+      stalePartialOrderDays: validCount(stalePartialOrderDays)
+          ? stalePartialOrderDays!
+          : existing.stalePartialOrderDays,
+    );
+
+    final index = mockStoreSettings.indexWhere((s) => s.storeId == storeId);
+    if (index == -1) {
+      mockStoreSettings.add(updated);
+    } else {
+      mockStoreSettings[index] = updated;
+    }
+    MockWrite.changed();
+    return updated;
   }
 
   static Store? updateStore(

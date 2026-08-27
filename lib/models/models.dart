@@ -4,6 +4,7 @@
 /// four or five models at once.
 library;
 
+export 'attendance.dart';
 export 'category.dart';
 export 'employee.dart';
 export 'goods_receipt.dart';
@@ -16,6 +17,7 @@ export 'purchase_order_line.dart';
 export 'report_figures.dart';
 export 'stock_movement.dart';
 export 'store.dart';
+export 'store_settings.dart';
 export 'supplier.dart';
 export 'supplier_price.dart';
 export 'unit_of_measure.dart';

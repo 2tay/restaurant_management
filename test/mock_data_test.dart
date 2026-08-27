@@ -123,6 +123,43 @@ void main() {
       );
     });
 
+    test('every store has exactly one settings row with sane values', () {
+      for (final store in mockStores) {
+        final rows = mockStoreSettings.where((s) => s.storeId == store.id);
+        expect(rows, hasLength(1), reason: store.name);
+        final s = rows.first;
+        expect(s.openMinutes, inInclusiveRange(0, 24 * 60 - 1));
+        expect(s.closeMinutes, greaterThan(s.openMinutes));
+        expect(s.maxBreakMinutes, greaterThan(0));
+        expect(s.stalePartialOrderDays, greaterThan(0));
+      }
+    });
+
+    test('every attendance points at a real employee and store', () {
+      final storeIds = mockStores.map((s) => s.id).toSet();
+      final employeeIds = mockEmployees.map((e) => e.id).toSet();
+      for (final entry in mockAttendances) {
+        expect(storeIds, contains(entry.storeId), reason: entry.id);
+        expect(employeeIds, contains(entry.employeeId), reason: entry.id);
+      }
+    });
+
+    test('a paid attendance day carries its payroll period id', () {
+      for (final entry in mockAttendances) {
+        if (entry.paymentStatus == PaymentStatus.paid) {
+          expect(entry.payrollPeriodId, isNotNull, reason: entry.id);
+        }
+      }
+    });
+
+    test('at most one attendance row per employee per day', () {
+      final seen = <String>{};
+      for (final entry in mockAttendances) {
+        final key = '${entry.employeeId}@${entry.date.toIso8601String()}';
+        expect(seen.add(key), isTrue, reason: 'duplicate: $key');
+      }
+    });
+
     test('every item is priced by at least one supplier', () {
       for (final item in mockItems) {
         expect(
@@ -191,7 +228,32 @@ void main() {
       expect(
         sablon.where((e) => e.scheduledStartMinutes != null),
         isNotEmpty,
-        reason: 'Phase 3 needs a custom-schedule employee to demo lateness',
+        reason: 'needs a custom-schedule employee to demo lateness',
+      );
+    });
+
+    test('the attendance seed covers pauses and every in-progress status', () {
+      final sablon = mockAttendances
+          .where((a) => a.storeId == StoreIds.sablon)
+          .toList();
+
+      expect(
+        sablon.where((a) => a.pauses.length >= 2),
+        isNotEmpty,
+        reason: 'several pauses in one day',
+      );
+      expect(
+        sablon.where((a) => a.pauses.any((p) => p.endAt == null)),
+        isNotEmpty,
+        reason: 'a break still running (today)',
+      );
+      expect(
+        sablon.map((a) => a.status).toSet(),
+        containsAll([
+          AttendanceStatus.working,
+          AttendanceStatus.onBreak,
+          AttendanceStatus.done,
+        ]),
       );
     });
 

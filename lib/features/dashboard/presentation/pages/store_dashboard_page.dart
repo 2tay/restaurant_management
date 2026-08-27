@@ -231,7 +231,7 @@ class _StaleOrdersWarning extends ConsumerWidget {
                 Text(
                   l10n.dashboardStaleOrdersTitle(
                     count,
-                    MockSettings.stalePartialOrderDays,
+                    MockQueries.storeSettings(storeId).stalePartialOrderDays,
                   ),
                   style: theme.textTheme.titleSmall?.copyWith(
                     color: AppColors.lowStock.foreground,

@@ -56,6 +56,12 @@ on them.
    to a page size (25) then show a pager. `DataTableWrapper` still owns horizontal scroll;
    vertical is bounded by the page, not infinite.
 8. **Name is split** into `firstName` + `lastName`. Initials and display name are derived.
+9. **No absence handling** (decided during Phase 3). No `absent` / `absentJustified` status,
+   no "Marquer absent", no justification, no `Attendance.comment`. A day nobody clocked is
+   just "Non pointé". Consequences downstream: the attendance history has no absence filter
+   or KPI; payroll has no unjustified-absence deduction and no `absenceDays` — a fixed-salary
+   employee is simply paid their monthly amount. The lines below that still mention absences
+   are superseded by this point.
 
 ---
 
@@ -165,14 +171,12 @@ class Employee {
   final DateTime? archivedAt;                    // null = active. Soft delete only.
 }
 
-// attendance.dart
+// attendance.dart  (per decision 9: no absence statuses, no comment)
 enum AttendanceStatus {
   notClockedIn,        // never stored — the absence of a row means this
   working,
   onBreak,
   done,
-  absent,              // marked absent, unjustified
-  absentJustified,
 }
 enum PaymentStatus { unpaid, paid }
 
@@ -192,7 +196,6 @@ class Attendance {
   final List<AttendancePause> pauses;            // embedded, like PurchaseOrder.lines
   final PaymentStatus paymentStatus;
   final String? payrollPeriodId;                 // set when a period locks this day
-  final String? comment;                         // e.g. absence reason
 }
 
 // payroll_period.dart
@@ -205,7 +208,6 @@ class PayrollPeriod {
   final DateTime startDate;
   final DateTime endDate;
   final int workedDays;
-  final int absenceDays;
   final double totalWorkedHours;
   final double totalOvertimeHours;
   final double appliedRate;                      // frozen snapshot of the rate at pay time
@@ -242,12 +244,15 @@ class EmployeeCredential {
   here, not in a screen.
 - **`permissions.dart`** (Phase 6) — `can(role, Capability)`.
 
-### Store schedule / payroll settings
+### Store settings — a real model (`StoreSettings`), decided in Phase 3
 
-Per-store, held in a mutable holder beside `MockSettings` (`stalePartialOrderDays` is the
-precedent). `openTimeMinutes`, `closeTimeMinutes` land in **Phase 3** (needed for late /
-overtime); `overtimeMultiplier`, `workingDaysPerMonth` land in **Phase 5** (needed for the
-amount). Both editable from a new section on **Paramètres → Établissement**.
+The old `MockSettings` static holder is **removed**. Per-store config is a proper immutable
+model, `lib/models/store_settings.dart`, read via `MockQueries.storeSettings(storeId)` and
+written via `AccountMutations.updateStoreSettings`. It carries `openMinutes`, `closeMinutes`,
+`maxBreakMinutes` (all landed in Phase 3), plus `stalePartialOrderDays` (migrated from the
+old holder). `overtimeMultiplier` / `workingDaysPerMonth` join it in **Phase 5**.
+`AccountMutations.createStore` seeds a default row; `mockStoreSettings` is in the
+`MockWrite` snapshot. Editable on **Paramètres → Établissement**.
 
 ---
 
@@ -481,12 +486,14 @@ mark-absent, live clock, full-screen kiosk mode.
 
 - `lib/models/attendance.dart` — `Attendance`, `AttendancePause`, `AttendanceStatus`,
   `PaymentStatus` per §3. Barrel.
-- `lib/core/utils/attendance_status.dart` — `AttendanceRules`, `totalBreak`, `workedDuration`
-  (excludes **all** pauses), `resolvedSchedule(employee, store)`, `lateBy`, `overtimeBy`.
-- **Store schedule settings** — extend the `MockSettings`-style holder with per-store
-  `openTimeMinutes` / `closeTimeMinutes` (defaults in `AttendanceRules`). New section on
-  `store_settings_page.dart`: "Horaires de l'établissement" (two time fields). Editable within
-  the session, like `stalePartialOrderDays`.
+- `lib/core/utils/attendance_status.dart` — `AttendanceRules` (defaults only),
+  `totalBreak`, `workedDuration` (excludes **all** pauses), `resolvedSchedule`, `lateBy` /
+  `isLate`, `overtimeBy`, and `breakOverrun` / `hasLateBreak` / `totalBreakOverrun`
+  (per-segment break-overrun check against `StoreSettings.maxBreakMinutes`).
+- **`StoreSettings` model** (see §3) — `lib/models/store_settings.dart` +
+  `mock_store_settings.dart` + `AccountMutations.updateStoreSettings` +
+  `MockQueries.storeSettings`. New section on `store_settings_page.dart`: "Horaires de
+  l'établissement" — ouverture, fermeture, pause max.
 - `Formatters` — add `minutesToClock(int)` → `08:30` and `clockToMinutes(String)`.
 
 ### Mock data — `lib/mock_data/mock_attendances.dart`
