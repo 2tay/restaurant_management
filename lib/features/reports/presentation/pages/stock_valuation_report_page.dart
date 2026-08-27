@@ -89,6 +89,15 @@ class StockValuationReportPage extends ConsumerWidget {
                           style: theme.textTheme.displaySmall,
                         ),
                       ),
+                      const SizedBox(height: AppSpacing.xs),
+                      // Says which of the two prices this total is built on.
+                      // Without it, an owner who watched a supplier put their
+                      // price up and saw this figure not move would reasonably
+                      // conclude the report was broken.
+                      Text(
+                        l10n.valuationAtCost,
+                        style: theme.textTheme.bodySmall,
+                      ),
                     ],
                   ),
                 ),

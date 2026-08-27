@@ -38,6 +38,11 @@ class _AddEditItemPageState extends State<AddEditItemPage> {
   final _noteController = TextEditingController();
   final _barcodeController = TextEditingController();
 
+  /// What the starting stock was bought at. Create-only, like the quantity it
+  /// belongs to, and for the same reason: it is a fact about the opening
+  /// balance, not a field that stays editable afterwards.
+  final _openingCostController = TextEditingController();
+
   /// Set when the entered barcode already belongs to another item. Validated at
   /// save time rather than on every keystroke — flagging a duplicate while
   /// somebody is still halfway through typing one is noise.
@@ -93,6 +98,7 @@ class _AddEditItemPageState extends State<AddEditItemPage> {
     _nameController.dispose();
     _noteController.dispose();
     _barcodeController.dispose();
+    _openingCostController.dispose();
     super.dispose();
   }
 
@@ -106,6 +112,7 @@ class _AddEditItemPageState extends State<AddEditItemPage> {
       _nameController.text.trim() != _initialName ||
       _noteController.text.trim() != _initialNote ||
       _barcodeController.text.trim() != _initialBarcode ||
+      _openingCostController.text.trim().isNotEmpty ||
       _categoryId != _initialCategoryId ||
       _unitId != _initialUnitId ||
       _quantity != _initialQuantity ||
@@ -274,6 +281,27 @@ class _AddEditItemPageState extends State<AddEditItemPage> {
                     l10n.itemFormOpeningBalanceHelp,
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
+                  const SizedBox(height: AppSpacing.xl),
+                  // What that starting stock was bought at.
+                  //
+                  // Optional, and never blocks saving. Left empty the article
+                  // simply has no known cost and is left out of the valuation
+                  // until a delivery arrives — which is honest, and better than
+                  // demanding a number the person adding the article may not
+                  // have to hand.
+                  AppTextField(
+                    label: l10n.itemFormOpeningCost,
+                    controller: _openingCostController,
+                    hint: l10n.itemFormOpeningCostHint,
+                    helperText: l10n.itemFormOpeningCostHelp,
+                    suffixText: unitAbbreviation.isEmpty
+                        ? Formatters.currencySymbol
+                        : '${Formatters.currencySymbol} / $unitAbbreviation',
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    onChanged: (_) => setState(() {}),
+                  ),
                 ],
                 const SizedBox(height: AppSpacing.xl),
                 Text(
@@ -381,6 +409,12 @@ class _AddEditItemPageState extends State<AddEditItemPage> {
         // Recorded as an opening-balance movement rather than written onto the
         // item, so the quantity and the movement log agree from day one.
         quantity: _quantity,
+        // Blank, or something that is not a number yet, leaves the cost
+        // unknown. Never blocks the save: an article is worth having in the
+        // catalogue even when nobody remembers what it cost.
+        openingUnitCost: Formatters.parseDecimal(
+          _openingCostController.text,
+        ),
         lowStockThreshold: _threshold,
         barcode: barcode.isEmpty ? null : barcode,
         note: note.isEmpty ? null : note,

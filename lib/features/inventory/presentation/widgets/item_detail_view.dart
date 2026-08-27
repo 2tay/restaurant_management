@@ -89,6 +89,18 @@ class ItemDetailView extends StatelessWidget {
                 ),
               ],
               const Divider(height: AppSpacing.xl),
+              // Sits with the quantity rather than with the supplier prices
+              // below, because it is a fact about the stock on hand — what it
+              // cost — and not an offer from anybody. Seeing the two apart is
+              // what stops them being read as the same number disagreeing with
+              // itself.
+              _FactRow(
+                label: l10n.itemAverageCost,
+                value: item.averageCost == null
+                    ? l10n.itemAverageCostUnknown
+                    : '${Formatters.price(item.averageCost!)} / $unit',
+              ),
+              const Divider(height: AppSpacing.xl),
               _FactRow(
                 label: l10n.itemThresholdLabel,
                 value: Formatters.quantityWithUnit(

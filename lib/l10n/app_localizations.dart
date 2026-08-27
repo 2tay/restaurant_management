@@ -3819,6 +3819,66 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Établissement créé.'**
   String get storeCreated;
+
+  /// Label of the optional field on the create-item form for what the starting stock was bought at. Sets the item's average cost, which the stock valuation is built on.
+  ///
+  /// In fr, this message translates to:
+  /// **'Coût d\'achat unitaire'**
+  String get itemFormOpeningCost;
+
+  /// Placeholder for the opening cost field, showing the Belgian comma decimal separator.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ex. : 8,50'**
+  String get itemFormOpeningCostHint;
+
+  /// Helper under the opening cost field. States the consequence of leaving it empty rather than pressing for a number the user may not have: an unknown cost contributes nothing to the valuation instead of an invented figure.
+  ///
+  /// In fr, this message translates to:
+  /// **'Facultatif. Sans ce montant, l\'article ne sera pas valorisé tant qu\'une livraison n\'aura pas été réceptionnée.'**
+  String get itemFormOpeningCostHelp;
+
+  /// Label for an item's weighted average cost per unit. Distinct from a supplier price: this is what the stock on hand was paid for, not what the next order will cost.
+  ///
+  /// In fr, this message translates to:
+  /// **'Coût moyen du stock'**
+  String get itemAverageCost;
+
+  /// Shown in place of an item's average cost when no cost is on file. Deliberately not '0 €', which would read as free rather than unknown.
+  ///
+  /// In fr, this message translates to:
+  /// **'Non valorisé'**
+  String get itemAverageCostUnknown;
+
+  /// Explains the weighted average on the item detail screen, next to the supplier prices, so the two numbers are not read as contradicting each other.
+  ///
+  /// In fr, this message translates to:
+  /// **'Moyenne pondérée de ce qui a été réellement payé pour le stock en rayon. Chaque livraison ne revalorise que les unités livrées.'**
+  String get itemAverageCostHelp;
+
+  /// Column and label for the cost per unit a stock movement applied.
+  ///
+  /// In fr, this message translates to:
+  /// **'Coût unitaire'**
+  String get movementUnitCost;
+
+  /// Caption on the stock valuation report. Explains that stock is valued at what it was paid for, so the total does not follow a supplier's price change on stock already bought.
+  ///
+  /// In fr, this message translates to:
+  /// **'Valorisé au coût d\'achat réel, et non au prix fournisseur du jour.'**
+  String get valuationAtCost;
+
+  /// Headline figure on the usage report: the money value of stock thrown away or spoiled over the period, valued at what it cost.
+  ///
+  /// In fr, this message translates to:
+  /// **'Valeur des pertes'**
+  String get reportWasteValue;
+
+  /// Headline figure on the usage report: the cost of everything that left stock over the period.
+  ///
+  /// In fr, this message translates to:
+  /// **'Valeur consommée'**
+  String get reportConsumptionValue;
 }
 
 class _AppLocalizationsDelegate

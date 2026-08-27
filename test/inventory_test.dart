@@ -330,7 +330,11 @@ void main() {
   });
 
   group('valuation follows the stock', () {
-    test('rises when a delivery arrives', () {
+    test('rises by what the delivery cost, not by what stock is worth now', () {
+      // This used to assert `before + 10 × the supplier's current price`, which
+      // is the bug: it valued the delivery at the price on file rather than at
+      // the price paid, and — because the same price was then applied to every
+      // unit on hand — silently revalued stock bought weeks earlier too.
       final before = MockQueries.stockValuation(StoreIds.sablon);
 
       MovementMutations.recordStockIn(
@@ -338,14 +342,59 @@ void main() {
         itemId: ItemIds.poulet,
         quantity: 10,
         supplierId: SupplierIds.grossisteCentral,
+        unitPrice: 15.00,
       );
 
-      final price = MockQueries.defaultPriceForItem(
-        ItemIds.poulet,
-      )!.pricePerUnit;
       expect(
         MockQueries.stockValuation(StoreIds.sablon),
-        closeTo(before + 10 * price, 0.01),
+        closeTo(before + 10 * 15.00, 0.01),
+      );
+    });
+
+    test('a delivery at a new price leaves the old stock alone', () {
+      // The headline case, on a real seeded item. Whatever chicken was already
+      // in the fridge keeps the value it had; only the 10 kg that arrived is
+      // valued at 15,00.
+      final item = MockQueries.itemById(ItemIds.poulet)!;
+      final heldBefore = item.quantity * item.averageCost!;
+
+      MovementMutations.recordStockIn(
+        storeId: StoreIds.sablon,
+        itemId: ItemIds.poulet,
+        quantity: 10,
+        supplierId: SupplierIds.grossisteCentral,
+        unitPrice: 15.00,
+      );
+
+      final after = MockQueries.itemById(ItemIds.poulet)!;
+      expect(
+        after.quantity * after.averageCost!,
+        closeTo(heldBefore + 150, 0.01),
+      );
+
+      // And the average lands between the two, never at either end.
+      expect(after.averageCost, greaterThan(item.averageCost!));
+      expect(after.averageCost, lessThan(15.00));
+    });
+
+    test('a delivery does not touch what the supplier charges', () {
+      // The two numbers stay separate. A manual stock-in at 15,00 records what
+      // was paid; it is not a negotiation, so the price on file is untouched.
+      final priceBefore = MockQueries.defaultPriceForItem(
+        ItemIds.poulet,
+      )!.pricePerUnit;
+
+      MovementMutations.recordStockIn(
+        storeId: StoreIds.sablon,
+        itemId: ItemIds.poulet,
+        quantity: 10,
+        supplierId: SupplierIds.grossisteCentral,
+        unitPrice: 15.00,
+      );
+
+      expect(
+        MockQueries.defaultPriceForItem(ItemIds.poulet)!.pricePerUnit,
+        priceBefore,
       );
     });
 
@@ -379,6 +428,268 @@ void main() {
       expect(MockQueries.stockValuation(StoreIds.saintGilles), 0);
       expect(MockQueries.valuationByCategory(StoreIds.saintGilles), isEmpty);
       expect(MockQueries.valuationByItem(StoreIds.saintGilles), isEmpty);
+    });
+  });
+
+  group('an article starts with the cost it was bought at', () {
+    test('the opening cost becomes the average cost', () {
+      final created = ItemMutations.create(
+        storeId: StoreIds.sablon,
+        name: 'Chicons',
+        categoryId: CategoryIds.legumes,
+        unitId: UnitIds.kg,
+        quantity: 50,
+        openingUnitCost: 3.20,
+        lowStockThreshold: 4,
+      )!;
+
+      expect(created.averageCost, closeTo(3.20, 0.001));
+      expect(created.quantity, 50);
+    });
+
+    test('it is set by the opening movement, not written onto the item', () {
+      // The single-writer rule reaches cost as well as quantity: the article's
+      // first movement is what gives it a cost, so the log explains the number
+      // from the article's first day.
+      final created = ItemMutations.create(
+        storeId: StoreIds.sablon,
+        name: 'Chicons',
+        categoryId: CategoryIds.legumes,
+        unitId: UnitIds.kg,
+        quantity: 50,
+        openingUnitCost: 3.20,
+        lowStockThreshold: 4,
+      )!;
+
+      final opening = MockQueries.movementsForItem(created.id).single;
+      expect(opening.type, StockMovementType.adjustment);
+      expect(opening.unitCost, closeTo(3.20, 0.001));
+      expect(opening.averageCostAfter, closeTo(3.20, 0.001));
+    });
+
+    test('without one, the cost stays unknown rather than zero', () {
+      final created = ItemMutations.create(
+        storeId: StoreIds.sablon,
+        name: 'Chicons',
+        categoryId: CategoryIds.legumes,
+        unitId: UnitIds.kg,
+        quantity: 50,
+        lowStockThreshold: 4,
+      )!;
+
+      // Not 0: an unknown cost and a free article are different claims, and
+      // only one of them is true.
+      expect(created.averageCost, isNull);
+    });
+
+    test('the first delivery gives an uncosted article its cost', () {
+      final created = ItemMutations.create(
+        storeId: StoreIds.sablon,
+        name: 'Chicons',
+        categoryId: CategoryIds.legumes,
+        unitId: UnitIds.kg,
+        quantity: 50,
+        lowStockThreshold: 4,
+      )!;
+      final before = MockQueries.stockValuation(StoreIds.sablon);
+
+      MovementMutations.recordStockIn(
+        storeId: StoreIds.sablon,
+        itemId: created.id,
+        quantity: 20,
+        unitPrice: 3.00,
+      );
+
+      // 70 kg on hand, all of it now costed at the only price ever paid.
+      final after = MockQueries.itemById(created.id)!;
+      expect(after.averageCost, closeTo(3.00, 0.001));
+      expect(
+        MockQueries.stockValuation(StoreIds.sablon),
+        closeTo(before + 70 * 3.00, 0.01),
+      );
+    });
+  });
+
+  group('stock leaving never changes what the rest cost', () {
+    test('a stock out leaves the average alone', () {
+      final before = MockQueries.itemById(ItemIds.poulet)!.averageCost;
+
+      MovementMutations.recordStockOut(
+        storeId: StoreIds.sablon,
+        itemId: ItemIds.poulet,
+        quantity: 5,
+        reason: StockOutReason.sale,
+      );
+
+      expect(MockQueries.itemById(ItemIds.poulet)!.averageCost, before);
+    });
+
+    test('the movement records what the stock that left had cost', () {
+      final cost = MockQueries.itemById(ItemIds.poulet)!.averageCost!;
+
+      MovementMutations.recordStockOut(
+        storeId: StoreIds.sablon,
+        itemId: ItemIds.poulet,
+        quantity: 5,
+        reason: StockOutReason.waste,
+      );
+
+      // Which is what makes a waste line answer "how many euros went in the
+      // bin" rather than only "how many kilos".
+      final movement = mockStockMovements.first;
+      expect(movement.unitCost, closeTo(cost, 0.001));
+      expect(movement.quantity.abs() * movement.unitCost!, closeTo(5 * cost, 0.01));
+    });
+
+    test('an adjustment leaves the average alone', () {
+      final item = MockQueries.itemById(ItemIds.poulet)!;
+
+      MovementMutations.recordAdjustment(
+        storeId: StoreIds.sablon,
+        itemId: ItemIds.poulet,
+        systemQuantity: item.quantity,
+        countedQuantity: item.quantity - 3,
+      );
+
+      // A count corrects a quantity. Nobody bought anything, so there is no new
+      // price to average in.
+      expect(
+        MockQueries.itemById(ItemIds.poulet)!.averageCost,
+        item.averageCost,
+      );
+    });
+  });
+
+  group('negative stock resets the cost rather than averaging into it', () {
+    test('a delivery onto negative stock adopts the delivery price', () {
+      final item = MockQueries.itemById(ItemIds.poulet)!;
+
+      // Drive it below zero — allowed on purpose, and a signal that a delivery
+      // went unrecorded.
+      MovementMutations.recordStockOut(
+        storeId: StoreIds.sablon,
+        itemId: ItemIds.poulet,
+        quantity: item.quantity + 5,
+        reason: StockOutReason.sale,
+      );
+      expect(MockQueries.itemById(ItemIds.poulet)!.quantity, lessThan(0));
+
+      MovementMutations.recordStockIn(
+        storeId: StoreIds.sablon,
+        itemId: ItemIds.poulet,
+        quantity: 20,
+        unitPrice: 15.00,
+      );
+
+      // Averaging against a baseline already known to be wrong would carry the
+      // error forward instead of ending it — and could produce a negative
+      // average, which is not a number anybody can act on.
+      final after = MockQueries.itemById(ItemIds.poulet)!;
+      expect(after.averageCost, closeTo(15.00, 0.001));
+      expect(after.averageCost, greaterThan(0));
+    });
+  });
+
+  group('what stock cost on the way out', () {
+    test('waste is counted in euros, not only in kilos', () {
+      final cost = MockQueries.itemById(ItemIds.poulet)!.averageCost!;
+      final before = MockQueries.wasteValue(StoreIds.sablon);
+
+      MovementMutations.recordStockOut(
+        storeId: StoreIds.sablon,
+        itemId: ItemIds.poulet,
+        quantity: 4,
+        reason: StockOutReason.waste,
+      );
+
+      expect(
+        MockQueries.wasteValue(StoreIds.sablon),
+        closeTo(before + 4 * cost, 0.01),
+      );
+    });
+
+    test('a sale is consumption but not waste', () {
+      final wasteBefore = MockQueries.wasteValue(StoreIds.sablon);
+      final consumedBefore = MockQueries.consumptionValue(StoreIds.sablon);
+      final cost = MockQueries.itemById(ItemIds.poulet)!.averageCost!;
+
+      MovementMutations.recordStockOut(
+        storeId: StoreIds.sablon,
+        itemId: ItemIds.poulet,
+        quantity: 4,
+        reason: StockOutReason.sale,
+      );
+
+      expect(MockQueries.wasteValue(StoreIds.sablon), wasteBefore);
+      expect(
+        MockQueries.consumptionValue(StoreIds.sablon),
+        closeTo(consumedBefore + 4 * cost, 0.01),
+      );
+    });
+
+    test('stock found in a count is not a loss', () {
+      final item = MockQueries.itemById(ItemIds.poulet)!;
+      final before = MockQueries.shrinkageValue(StoreIds.sablon);
+
+      MovementMutations.recordAdjustment(
+        storeId: StoreIds.sablon,
+        itemId: ItemIds.poulet,
+        systemQuantity: item.quantity,
+        countedQuantity: item.quantity + 6,
+      );
+
+      // Stock that was there all along and had simply not been recorded.
+      expect(MockQueries.shrinkageValue(StoreIds.sablon), before);
+
+      MovementMutations.recordAdjustment(
+        storeId: StoreIds.sablon,
+        itemId: ItemIds.poulet,
+        systemQuantity: item.quantity + 6,
+        countedQuantity: item.quantity,
+      );
+
+      expect(
+        MockQueries.shrinkageValue(StoreIds.sablon),
+        closeTo(before + 6 * item.averageCost!, 0.01),
+      );
+    });
+  });
+
+  group('what the movement log says about cost', () {
+    test('every movement records the average it produced', () {
+      MovementMutations.recordStockIn(
+        storeId: StoreIds.sablon,
+        itemId: ItemIds.poulet,
+        quantity: 10,
+        unitPrice: 15.00,
+      );
+
+      // The audit trail: the number is verifiable rather than one that changes
+      // on its own.
+      final movement = mockStockMovements.first;
+      expect(movement.unitCost, closeTo(15.00, 0.001));
+      expect(
+        movement.averageCostAfter,
+        closeTo(MockQueries.itemById(ItemIds.poulet)!.averageCost!, 0.001),
+      );
+    });
+
+    test('a delivery with no price recorded leaves the average where it was',
+        () {
+      final before = MockQueries.itemById(ItemIds.poulet)!.averageCost!;
+
+      MovementMutations.recordStockIn(
+        storeId: StoreIds.sablon,
+        itemId: ItemIds.poulet,
+        quantity: 10,
+      );
+
+      // An unrecorded price is not a price of zero. Treating it as one would
+      // drag the average towards nothing and quietly destroy the item's value.
+      expect(
+        MockQueries.itemById(ItemIds.poulet)!.averageCost,
+        closeTo(before, 0.001),
+      );
     });
   });
 }

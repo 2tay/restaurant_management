@@ -407,6 +407,173 @@ void main() {
     });
   });
 
+  group('what a delivery does to the value of the stock', () {
+    // The bug this group exists for:
+    //
+    //   100 kg of chicken bought at 8,00 is worth 800. A van arrives with 50 kg
+    //   at 10,00, which cost 500. The stock is worth 1 300.
+    //
+    // The app used to report 1 500 — quantity times the supplier's current
+    // price — inventing 200 that nobody ever spent, on the one screen an owner
+    // reads to find out what they are holding. A price drop invented a loss the
+    // same way.
+
+    test('the old stock keeps the price it was bought at', () {
+      // Set the item up as the scenario describes rather than leaning on the
+      // seed, so the arithmetic is readable in the failure message.
+      final item = MockQueries.itemById(ItemIds.poulet)!;
+      MovementMutations.recordAdjustment(
+        storeId: StoreIds.sablon,
+        itemId: ItemIds.poulet,
+        systemQuantity: item.quantity,
+        countedQuantity: 0,
+      );
+      MovementMutations.recordStockIn(
+        storeId: StoreIds.sablon,
+        itemId: ItemIds.poulet,
+        quantity: 100,
+        unitPrice: 8.00,
+      );
+
+      final held = MockQueries.itemById(ItemIds.poulet)!;
+      expect(held.quantity, 100);
+      expect(held.averageCost, closeTo(8.00, 0.001));
+
+      OrderMutations.send(OrderIds.sentGrossiste);
+      OrderMutations.confirmReceipt(
+        orderId: OrderIds.sentGrossiste,
+        lines: const [
+          ReceiptDraftLine(
+            itemId: ItemIds.poulet,
+            quantityOrdered: 15,
+            quantityReceived: 50,
+            orderedUnitPrice: 12.80,
+            actualUnitPrice: 10.00,
+          ),
+        ],
+      );
+
+      final after = MockQueries.itemById(ItemIds.poulet)!;
+      expect(after.quantity, 150);
+      expect(after.averageCost, closeTo(8.6667, 0.001));
+      expect(
+        after.quantity * after.averageCost!,
+        closeTo(1300, 0.01),
+        reason: '1 300 was spent; 1 500 is the bug',
+      );
+    });
+
+    test('the supplier price still updates to what was charged', () {
+      // The fix is not "stop updating the price". A price is what the *next*
+      // unit will cost and it must follow the delivery note; a cost is what the
+      // units on the shelf were paid for and must not.
+      OrderMutations.send(OrderIds.sentGrossiste);
+      OrderMutations.confirmReceipt(
+        orderId: OrderIds.sentGrossiste,
+        lines: const [
+          ReceiptDraftLine(
+            itemId: ItemIds.poulet,
+            quantityOrdered: 15,
+            quantityReceived: 15,
+            orderedUnitPrice: 12.80,
+            actualUnitPrice: 15.00,
+          ),
+        ],
+      );
+
+      expect(
+        MockQueries.priceFor(ItemIds.poulet, SupplierIds.grossisteCentral)!
+            .pricePerUnit,
+        closeTo(15.00, 0.001),
+      );
+      // And the cost sits below it, because only 15 of the kilos on hand were
+      // bought at 15,00.
+      expect(
+        MockQueries.itemById(ItemIds.poulet)!.averageCost,
+        lessThan(15.00),
+      );
+    });
+
+    test('two deliveries at two prices average across all of it', () {
+      final item = MockQueries.itemById(ItemIds.poulet)!;
+      MovementMutations.recordAdjustment(
+        storeId: StoreIds.sablon,
+        itemId: ItemIds.poulet,
+        systemQuantity: item.quantity,
+        countedQuantity: 0,
+      );
+
+      OrderMutations.send(OrderIds.sentGrossiste);
+      for (final price in const [8.00, 12.00]) {
+        OrderMutations.confirmReceipt(
+          orderId: OrderIds.sentGrossiste,
+          lines: [
+            ReceiptDraftLine(
+              itemId: ItemIds.poulet,
+              quantityOrdered: 15,
+              quantityReceived: 50,
+              orderedUnitPrice: 12.80,
+              actualUnitPrice: price,
+            ),
+          ],
+        );
+      }
+
+      // 400 + 600 spent on 100 kg.
+      final after = MockQueries.itemById(ItemIds.poulet)!;
+      expect(after.quantity, 100);
+      expect(after.averageCost, closeTo(10.00, 0.001));
+    });
+
+    test('the receipt movement carries the cost it applied', () {
+      OrderMutations.send(OrderIds.sentGrossiste);
+      final receipt = OrderMutations.confirmReceipt(
+        orderId: OrderIds.sentGrossiste,
+        lines: const [
+          ReceiptDraftLine(
+            itemId: ItemIds.poulet,
+            quantityOrdered: 15,
+            quantityReceived: 15,
+            orderedUnitPrice: 12.80,
+            actualUnitPrice: 15.00,
+          ),
+        ],
+      );
+
+      // Receiving goes through the same single writer as a manual stock-in, so
+      // it produces the same audit trail rather than a second kind of movement.
+      final movement = mockStockMovements.first;
+      expect(movement.receiptId, receipt.id);
+      expect(movement.unitCost, closeTo(15.00, 0.001));
+      expect(
+        movement.averageCostAfter,
+        closeTo(MockQueries.itemById(ItemIds.poulet)!.averageCost!, 0.001),
+      );
+    });
+
+    test('an unordered item with no price on file still gets a cost', () {
+      OrderMutations.send(OrderIds.sentGrossiste);
+      OrderMutations.confirmReceipt(
+        orderId: OrderIds.sentGrossiste,
+        lines: const [
+          ReceiptDraftLine(
+            itemId: ItemIds.persil,
+            quantityOrdered: 0,
+            quantityReceived: 4,
+            orderedUnitPrice: 0,
+            actualUnitPrice: 1.50,
+            wasUnordered: true,
+          ),
+        ],
+      );
+
+      final movement = mockStockMovements.first;
+      expect(movement.itemId, ItemIds.persil);
+      expect(movement.unitCost, closeTo(1.50, 0.001));
+      expect(MockQueries.itemById(ItemIds.persil)!.averageCost, isNotNull);
+    });
+  });
+
   group('prices captured at receiving', () {
     test('a changed price updates the supplier price and writes history', () {
       final before = MockQueries.priceFor(

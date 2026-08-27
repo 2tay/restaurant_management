@@ -1,4 +1,5 @@
 import '../core/utils/order_status.dart';
+import '../core/utils/stock_cost.dart';
 import '../core/utils/stock_status.dart';
 import '../models/models.dart';
 import 'mock_categories.dart';
@@ -391,15 +392,28 @@ abstract final class MockQueries {
   // Valuation
   // ---------------------------------------------------------------------------
 
-  /// What the stock on hand is worth, at each item's default supplier price.
+  /// What the stock on hand is worth, at what it actually cost.
   ///
   /// **Derived rather than stored.** It used to be a constant in
   /// `mock_reports.dart`, which was fine while nothing moved — but once
   /// receiving a delivery raises a quantity, a headline figure that does not
   /// follow makes the dashboard contradict the inventory two taps away.
   ///
-  /// Items with no supplier on file contribute nothing rather than an invented
-  /// price. Understating is the safer direction: a valuation built partly on
+  /// It used to value stock at each item's **default supplier price**, and that
+  /// was wrong in a way that got worse the more the app was used. A supplier
+  /// price is what the *next* unit will cost; multiplying it by everything on
+  /// hand revalued stock bought weeks ago at this morning's delivery price. A
+  /// delivery of 50 kg at 10 € landing on 100 kg bought at 8 € reported 1 500 €
+  /// of stock when 1 300 € had been spent — 200 € of value that never existed,
+  /// appearing on the one screen an owner reads to find out what they are
+  /// holding. A price drop invented the loss in the other direction.
+  ///
+  /// It now reads `Item.averageCost`, which is maintained delivery by delivery
+  /// in `MovementMutations` and only ever revalues the units a delivery
+  /// actually delivered. See `core/utils/stock_cost.dart`.
+  ///
+  /// Items with no cost on file contribute nothing rather than an invented
+  /// figure. Understating is the safer direction: a valuation built partly on
   /// guesses is worse than one that is visibly incomplete.
   static double stockValuation(String storeId) {
     var total = 0.0;
@@ -460,11 +474,81 @@ abstract final class MockQueries {
     return rows.take(limit).toList();
   }
 
-  /// What one item's stock on hand is worth. Zero when no supplier is on file:
+  /// What one item's stock on hand is worth. Zero when no cost is on file:
   /// understating beats inventing a price.
-  static double _valueOf(Item item) {
-    final price = defaultPriceForItem(item.id) ?? cheapestPriceForItem(item.id);
-    return price == null ? 0 : item.quantity * price.pricePerUnit;
+  ///
+  /// Deliberately **not** a supplier price. See [stockValuation].
+  static double _valueOf(Item item) => valueOf(item.quantity, item.averageCost);
+
+  // ---------------------------------------------------------------------------
+  // What stock cost on the way out
+  // ---------------------------------------------------------------------------
+  //
+  // These exist because every movement now records the cost it applied. Before
+  // that, the app could say six kilos of chicken were thrown away but not what
+  // those six kilos cost — which is the half of the sentence an owner acts on.
+
+  /// The cost of everything that left stock in the window.
+  ///
+  /// Cost of goods sold, in the loose sense that includes waste: it is what the
+  /// stock that is no longer there was paid for.
+  static double consumptionValue(String storeId, {DateTime? from, DateTime? to}) =>
+      _outboundValue(storeId, from: from, to: to);
+
+  /// The cost of what was thrown away or spoiled in the window.
+  ///
+  /// **The number this whole change was worth making for.** The usage report
+  /// could already say how many kilos went in the bin; this says how many euros
+  /// did, valued at what they actually cost rather than at a supplier's current
+  /// asking price.
+  static double wasteValue(String storeId, {DateTime? from, DateTime? to}) =>
+      _outboundValue(
+        storeId,
+        from: from,
+        to: to,
+        reasons: const {StockOutReason.waste, StockOutReason.spoilage},
+      );
+
+  /// The cost of stock that went missing between counts, in the window.
+  ///
+  /// Adjustments downwards only. An adjustment upwards is stock that was there
+  /// all along and had simply not been recorded, which is not a loss.
+  static double shrinkageValue(String storeId, {DateTime? from, DateTime? to}) {
+    var total = 0.0;
+    for (final movement in movementsForStore(storeId)) {
+      if (movement.type != StockMovementType.adjustment) continue;
+      if (movement.quantity >= 0) continue;
+      if (!_within(movement.occurredAt, from, to)) continue;
+      total += movement.quantity.abs() * (movement.unitCost ?? 0);
+    }
+    return total;
+  }
+
+  /// Shared by [consumptionValue] and [wasteValue].
+  ///
+  /// Movements with no cost recorded contribute nothing rather than a guess —
+  /// the same rule the valuation follows. Seeded history predates the cost
+  /// fields, so this is the normal case in a demo rather than an edge one.
+  static double _outboundValue(
+    String storeId, {
+    DateTime? from,
+    DateTime? to,
+    Set<StockOutReason>? reasons,
+  }) {
+    var total = 0.0;
+    for (final movement in movementsForStore(storeId)) {
+      if (movement.type != StockMovementType.stockOut) continue;
+      if (reasons != null && !reasons.contains(movement.reason)) continue;
+      if (!_within(movement.occurredAt, from, to)) continue;
+      total += movement.quantity.abs() * (movement.unitCost ?? 0);
+    }
+    return total;
+  }
+
+  static bool _within(DateTime at, DateTime? from, DateTime? to) {
+    if (from != null && at.isBefore(from)) return false;
+    if (to != null && at.isAfter(to)) return false;
+    return true;
   }
 
   // ---------------------------------------------------------------------------

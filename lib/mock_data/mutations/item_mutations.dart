@@ -28,6 +28,17 @@ abstract final class ItemMutations {
   /// Returns null when the barcode is already used by another item in this
   /// store — the one validation that can fail here. The form checks first so it
   /// can put the error under the field; this refuses as a backstop.
+  ///
+  /// [openingUnitCost] is what the starting stock was bought at, and the only
+  /// way an article can begin life with a known cost.
+  ///
+  /// There is deliberately **no fallback to a supplier price** here, because at
+  /// this moment there is none to fall back to: [defaultSupplierId] records a
+  /// preference, not a `SupplierPrice` link, and the link cannot exist for an
+  /// article that did not exist a line ago. Left empty, the cost stays unknown
+  /// and the article contributes nothing to the valuation until a real delivery
+  /// tells it what stock costs — which is the honest answer, and the same rule
+  /// the valuation already followed for items with no supplier on file.
   static Item? create({
     required String storeId,
     required String name,
@@ -35,6 +46,7 @@ abstract final class ItemMutations {
     required String unitId,
     required double quantity,
     required double lowStockThreshold,
+    double? openingUnitCost,
     String? barcode,
     String? note,
     String? defaultSupplierId,
@@ -74,6 +86,10 @@ abstract final class ItemMutations {
       storeId: storeId,
       itemId: item.id,
       quantity: quantity,
+      // Routed through the movement rather than written onto the item, so the
+      // cost is set by the article's first movement exactly like every change
+      // after it. One writer, no exceptions.
+      unitCost: openingUnitCost,
       userName: userName,
     );
 
