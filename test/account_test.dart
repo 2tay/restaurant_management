@@ -1,121 +1,21 @@
-// Team members, stores, and the notification feed.
+// Stores and the notification feed.
 //
 // These are here for coherence more than for complexity: once creating an
-// article sticks, a team member that silently does not is more confusing than
-// either behaviour would be on its own.
+// article sticks, a store that silently does not is more confusing than either
+// behaviour would be on its own.
+//
+// The team-member tests that used to live here went with the Équipe module in
+// Phase 1 of the Gestion Employée rebuild (see
+// `.claude/phase_gestion_employee.md`); Phase 2 re-adds them against `Employee`
+// in `test/employees_test.dart`.
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stock_inventory/mock_data/mock_data.dart';
-import 'package:stock_inventory/models/models.dart';
 
 import 'support/mock_reset.dart';
 
 void main() {
   setUp(restoreMockData);
-
-  group('team', () {
-    test('inviting adds an active member with no last-seen date', () {
-      final member = AccountMutations.invite(
-        fullName: 'Nadia Haddad',
-        email: 'nadia@brasserie-sablon.be',
-        role: TeamRole.staff,
-        storeIds: const [StoreIds.sablon],
-      );
-
-      expect(member, isNotNull);
-      expect(member!.isActive, isTrue);
-      expect(
-        member.lastActiveAt,
-        isNull,
-        reason: 'somebody invited has not been anywhere yet',
-      );
-      expect(
-        MockQueries.teamForStore(StoreIds.sablon).map((m) => m.id),
-        contains(member.id),
-      );
-    });
-
-    test('refuses an email already on the team', () {
-      final existing = mockTeam.first;
-
-      expect(
-        AccountMutations.invite(
-          fullName: 'Quelqu\'un d\'autre',
-          email: existing.email.toUpperCase(),
-          role: TeamRole.staff,
-          storeIds: const [StoreIds.sablon],
-        ),
-        isNull,
-        reason: 'email is how a real invitation gets addressed in Phase 2',
-      );
-    });
-
-    test('an edit does not collide with its own email', () {
-      final member = mockTeam.first;
-
-      expect(
-        AccountMutations.updateMember(member.id, email: member.email),
-        isNotNull,
-      );
-    });
-
-    test('refuses to remove the last owner', () {
-      final owners = mockTeam
-          .where((member) => member.role == TeamRole.owner)
-          .toList();
-
-      // Demote everybody but one.
-      for (final owner in owners.skip(1)) {
-        AccountMutations.updateMember(owner.id, role: TeamRole.manager);
-      }
-
-      final last = owners.first;
-      expect(AccountMutations.isLastOwner(last.id), isTrue);
-      expect(AccountMutations.removeMember(last.id), isFalse);
-      expect(MockQueries.teamMemberById(last.id), isNotNull);
-    });
-
-    test('removes an owner while another remains', () {
-      final owners = mockTeam
-          .where((member) => member.role == TeamRole.owner)
-          .toList();
-
-      if (owners.length < 2) {
-        AccountMutations.invite(
-          fullName: 'Second propriétaire',
-          email: 'second@brasserie-sablon.be',
-          role: TeamRole.owner,
-          storeIds: const [StoreIds.sablon],
-        );
-      }
-
-      final target = MockQueries.ownerCount() > 1 ? owners.first : null;
-      expect(target, isNotNull);
-      expect(AccountMutations.removeMember(target!.id), isTrue);
-      expect(MockQueries.teamMemberById(target.id), isNull);
-    });
-
-    test(
-      'removing a member clears the link on any employee that pointed at it',
-      () {
-        final karim = MockQueries.employeeById(EmployeeIds.karim)!;
-        expect(
-          karim.teamMemberId,
-          isNotNull,
-          reason: 'the seed links Karim to a team account for this test',
-        );
-
-        AccountMutations.removeMember(karim.teamMemberId!);
-
-        expect(
-          MockQueries.employeeById(EmployeeIds.karim)!.teamMemberId,
-          isNull,
-          reason:
-              'an employee must never point at an account that no longer exists',
-        );
-      },
-    );
-  });
 
   group('stores', () {
     test('a new store starts genuinely empty', () {

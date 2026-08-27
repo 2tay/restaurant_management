@@ -2,8 +2,8 @@ import '../../models/models.dart';
 import '../mock_price_history.dart';
 import '../mock_queries.dart';
 import '../mock_supplier_prices.dart';
+import '../mock_session.dart';
 import '../mock_suppliers.dart';
-import '../mock_team.dart';
 import 'mock_write.dart';
 
 /// What is standing between a supplier and deletion.
@@ -210,7 +210,7 @@ abstract final class SupplierMutations {
         oldPrice: existing.pricePerUnit,
         newPrice: newPrice,
         changedAt: at,
-        changedByName: changedByName ?? mockCurrentUser.fullName,
+        changedByName: changedByName ?? mockSignedInFullName,
       ),
     );
 

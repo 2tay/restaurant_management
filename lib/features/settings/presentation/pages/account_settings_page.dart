@@ -8,7 +8,6 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../mock_data/mock_data.dart';
 import '../../../../shared/widgets/widgets.dart';
-import '../../../team/presentation/pages/team_list_page.dart';
 
 /// The signed-in user's own profile, security and linked stores.
 class AccountSettingsPage extends StatelessWidget {
@@ -20,7 +19,6 @@ class AccountSettingsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final user = mockCurrentUser;
 
     return ShellPage(
       tabs: SectionTabs(
@@ -63,7 +61,7 @@ class AccountSettingsPage extends StatelessWidget {
                       shape: BoxShape.circle,
                     ),
                     child: Text(
-                      user.fullName
+                      mockSignedInFullName
                           .split(' ')
                           .where((part) => part.isNotEmpty)
                           .take(2)
@@ -79,13 +77,17 @@ class AccountSettingsPage extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(user.fullName, style: theme.textTheme.titleMedium),
-                        Text(user.email, style: theme.textTheme.bodyMedium),
-                        const SizedBox(height: AppSpacing.xs),
                         Text(
-                          roleLabel(l10n, user.role),
-                          style: theme.textTheme.bodySmall,
+                          mockSignedInFullName,
+                          style: theme.textTheme.titleMedium,
                         ),
+                        Text(
+                          mockSignedInEmail,
+                          style: theme.textTheme.bodyMedium,
+                        ),
+                        // The role line returns in Phase 6, when the signed-in
+                        // user is a real `Employee` with a role rather than the
+                        // teardown name stub.
                       ],
                     ),
                   ),

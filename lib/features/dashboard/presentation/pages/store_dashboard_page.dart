@@ -65,7 +65,7 @@ class StoreDashboardPage extends ConsumerWidget {
     return ShellPage(
       title: l10n.dashboardTitle,
       subtitle: l10n.dashboardGreeting(
-        mockCurrentUser.fullName.split(' ').first,
+        mockSignedInFullName.split(' ').first,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,

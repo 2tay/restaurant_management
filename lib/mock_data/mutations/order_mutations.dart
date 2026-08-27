@@ -8,8 +8,8 @@ import '../mock_price_history.dart';
 import '../mock_purchase_orders.dart';
 import '../mock_queries.dart';
 import '../mock_stock_movements.dart';
+import '../mock_session.dart';
 import '../mock_supplier_prices.dart';
-import '../mock_team.dart';
 import 'mock_write.dart';
 
 /// Writes against the commandes.
@@ -184,7 +184,7 @@ abstract final class OrderMutations {
     String? note,
   }) {
     final order = MockQueries.orderById(orderId)!;
-    final receivedBy = receivedByName ?? mockCurrentUser.fullName;
+    final receivedBy = receivedByName ?? mockSignedInFullName;
     final now = DateTime.now();
     final receiptId = MockWrite.id('gr');
 

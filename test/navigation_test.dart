@@ -40,10 +40,6 @@ final _rootScreens = <String, String>{
   'alerts': Routes.toAlerts(_store),
   'notifications': Routes.toNotifications(_store),
   'reports': Routes.toReports(_store),
-  'team': Routes.toTeam(_store),
-  'employees': Routes.toEmployees(_store),
-  'timeclock': Routes.toTimeclock(_store),
-  'timeclock history': Routes.toTimeclockHistory(_store),
   'store settings': Routes.toStoreSettings(_store),
   'account settings': Routes.toAccountSettings(_store),
   'notification settings': Routes.toNotificationSettings(_store),
@@ -54,8 +50,6 @@ final _rootScreens = <String, String>{
 Map<String, String> _pushedScreens() {
   final item = mockItems.first.id;
   final supplier = mockSuppliers.first.id;
-  final member = mockTeam.first.id;
-  final employee = mockEmployees.first.id;
 
   return {
     'item detail': Routes.toItem(_store, item),
@@ -78,12 +72,6 @@ Map<String, String> _pushedScreens() {
     'valuation report': Routes.toValuationReport(_store),
     'comparison report': Routes.toComparisonReport(_store),
     'usage report': Routes.toUsageReport(_store),
-    'add member': Routes.toAddTeamMember(_store),
-    'edit member': Routes.toEditTeamMember(_store, member),
-    'roles': Routes.toRoles(_store),
-    'add employee': Routes.toAddEmployee(_store),
-    'employee detail': Routes.toEmployee(_store, employee),
-    'edit employee': Routes.toEditEmployee(_store, employee),
     'search': Routes.toSearch(_store),
   };
 }
@@ -216,74 +204,10 @@ void main() {
       expect(rail.selectedIndex, 4);
     });
 
-    testWidgets('highlights Gestion des employés from a nested employee screen', (
-      tester,
-    ) async {
-      await _pump(tester);
-      unawaited(
-        appRouter.push(Routes.toEmployee(_store, mockEmployees.first.id)),
-      );
-      await tester.pumpAndSettle();
-
-      final rail = tester.widget<NavigationRail>(find.byType(NavigationRail));
-      // Dashboard, Inventaire, Mouvements, Commandes, Fournisseurs, Catégories
-      // et unités, Alertes, Rapports, Équipe, Gestion des employés.
-      expect(rail.selectedIndex, 9);
-    });
-  });
-
-  group('the Gestion des employés accordion', () {
-    testWidgets('tapping the rail entry expands it, offering all three pages', (
-      tester,
-    ) async {
-      await _pump(tester);
-      appRouter.go(Routes.toDashboard(_store));
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.text('Gestion des employés'));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Personnel'), findsOneWidget);
-      expect(find.text('Tableau de pointage'), findsOneWidget);
-      expect(find.text('Historique de pointage'), findsOneWidget);
-
-      await tester.tap(find.text('Personnel'));
-      await tester.pumpAndSettle();
-
-      expect(appRouter.state.uri.path, Routes.toEmployees(_store));
-    });
-
-    testWidgets('the Tableau de pointage item navigates to the timeclock board', (
-      tester,
-    ) async {
-      await _pump(tester);
-      appRouter.go(Routes.toDashboard(_store));
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.text('Gestion des employés'));
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.text('Tableau de pointage'));
-      await tester.pumpAndSettle();
-
-      expect(appRouter.state.uri.path, Routes.toTimeclock(_store));
-    });
-
-    testWidgets('the Historique de pointage item navigates to the history page', (
-      tester,
-    ) async {
-      await _pump(tester);
-      appRouter.go(Routes.toDashboard(_store));
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.text('Gestion des employés'));
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.text('Historique de pointage'));
-      await tester.pumpAndSettle();
-
-      expect(appRouter.state.uri.path, Routes.toTimeclockHistory(_store));
-    });
+    // The "highlights Gestion des employés" test and the accordion group were
+    // removed with the Équipe + Personnel modules in Phase 1 of the rebuild
+    // (see `.claude/phase_gestion_employee.md`). Phase 2 re-adds nested-screen
+    // highlight coverage and the Gestion Employée dropdown tests.
   });
 
   group('forms protect unsaved input', () {

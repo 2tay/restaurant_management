@@ -14,8 +14,8 @@ DateTime hoursAgo(int hours) => mockNow.subtract(Duration(hours: hours));
 
 DateTime monthsAgo(int months) => mockNow.subtract(Duration(days: months * 30));
 
-/// Midnight, [days] ago — the value a `TimeEntry.date` is normalized to,
-/// since a work day is filed under a date rather than a timestamp.
+/// Midnight, [days] ago — for mock data filed under a calendar day rather
+/// than a timestamp (an attendance row's work day, for instance).
 DateTime dayOnly(int days) {
   final day = daysAgo(days);
   return DateTime(day.year, day.month, day.day);

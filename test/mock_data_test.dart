@@ -89,16 +89,11 @@ void main() {
       },
     );
 
-    test('notifications and team members point at real stores', () {
+    test('notifications point at real stores', () {
       final storeIds = mockStores.map((s) => s.id).toSet();
 
       for (final notification in mockNotifications) {
         expect(storeIds, contains(notification.storeId));
-      }
-      for (final member in mockTeam) {
-        for (final storeId in member.storeIds) {
-          expect(storeIds, contains(storeId), reason: member.fullName);
-        }
       }
     });
 

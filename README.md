@@ -172,7 +172,7 @@ repositories will split**. A one-to-one seam is easier to walk across than one l
 | `catalog_mutations.dart` | Categories and units. |
 | `supplier_mutations.dart` | Suppliers, and the item–supplier links that carry prices. |
 | `order_mutations.dart` | Commandes and receiving. |
-| `account_mutations.dart` | Team, stores, notifications. |
+| `account_mutations.dart` | Stores, notifications. |
 
 `mutations/mock_write.dart` holds what they all share:
 
@@ -387,8 +387,8 @@ flutter test
   the default promotes the cheapest remaining one, a price change writes history for the
   pair, and deleting a supplier keeps the movements and closed orders that name them, since
   a movement records goods that really moved.
-- **`account_test.dart`** covers team, stores and notifications, including the two rules
-  worth having: the last owner cannot be removed, and a new store starts genuinely empty.
+- **`account_test.dart`** covers stores and notifications, including the rule worth having:
+  a new store starts genuinely empty.
 - **`orders_test.dart`** is the one that matters most, because the ordering rules are the
   part of this phase with actual behaviour. It runs them against the in-memory layer and
   restores the mock lists afterwards: that sending an order moves no stock but does count

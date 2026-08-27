@@ -17,22 +17,27 @@ import 'offline_banner.dart';
 /// Local UI state — see `offline_banner.dart`'s `OfflineMode` for the same
 /// reasoning: this is the only thing Riverpod is permitted to hold in Phase
 /// 1, and a `Notifier<bool>` rather than a page's own `State` because the
-/// toggle lives on the page (e.g. the timeclock board) while the thing it
+/// toggle lives on a page (the pointage kiosk board) while the thing it
 /// controls, [AppScaffold], is that page's ancestor.
 ///
-/// Off by default. A page offering the toggle owns turning it back off when
-/// it leaves the tree (see `TimeclockBoardPage.dispose`), so full screen
-/// never leaks into an unrelated screen reached by navigating away.
+/// Off by default. A page offering the toggle owns turning it back off in its
+/// `dispose`, so full screen never leaks into an unrelated screen reached by
+/// navigating away.
+///
+/// No page toggles this right now — the pointage board that did was removed
+/// in Phase 1 of the Gestion Employée rebuild and returns in Phase 3 (see
+/// `.claude/phase_gestion_employee.md`). The wiring is kept intact so Phase 3
+/// only has to re-add the toggle button.
 class FullScreenMode extends Notifier<bool> {
   @override
   bool build() => false;
 
   void toggle() => state = !state;
 
-  // `ref.mounted` guards the call `TimeclockBoardPage.dispose` defers to a
-  // microtask — by the time it runs, a fast enough sequence of navigations
-  // (or a test tearing its `ProviderScope` down) may have already disposed
-  // this provider, and writing to a disposed provider throws.
+  // `ref.mounted` guards the call a page's `dispose` defers to a microtask —
+  // by the time it runs, a fast enough sequence of navigations (or a test
+  // tearing its `ProviderScope` down) may have already disposed this provider,
+  // and writing to a disposed provider throws.
   // ignore: use_setters_to_change_properties
   void set(bool value) {
     if (ref.mounted) state = value;

@@ -37,8 +37,6 @@ List<({String label, String path, bool inShell})> _allRoutes() {
   const store = StoreIds.sablon;
   final item = mockItems.first.id;
   final supplier = mockSuppliers.first.id;
-  final member = mockTeam.first.id;
-  final employee = mockEmployees.first.id;
 
   // A draft and a partially received order, because the detail screen renders
   // a different action row for each status and only one of them can be wrong
@@ -145,33 +143,9 @@ List<({String label, String path, bool inShell})> _allRoutes() {
     ),
     (label: 'usage report', path: Routes.toUsageReport(store), inShell: true),
 
-    (label: 'team', path: Routes.toTeam(store), inShell: true),
-    (label: 'add member', path: Routes.toAddTeamMember(store), inShell: true),
-    (label: 'roles', path: Routes.toRoles(store), inShell: true),
-    (
-      label: 'edit member',
-      path: Routes.toEditTeamMember(store, member),
-      inShell: true,
-    ),
-
-    (label: 'employees', path: Routes.toEmployees(store), inShell: true),
-    (label: 'add employee', path: Routes.toAddEmployee(store), inShell: true),
-    (label: 'timeclock', path: Routes.toTimeclock(store), inShell: true),
-    (
-      label: 'timeclock history',
-      path: Routes.toTimeclockHistory(store),
-      inShell: true,
-    ),
-    (
-      label: 'employee detail',
-      path: Routes.toEmployee(store, employee),
-      inShell: true,
-    ),
-    (
-      label: 'edit employee',
-      path: Routes.toEditEmployee(store, employee),
-      inShell: true,
-    ),
+    // The team + employees routes were removed with those modules in Phase 1
+    // of the Gestion Employée rebuild (see `.claude/phase_gestion_employee.md`).
+    // Phase 2 re-adds the Gestion Employée routes here.
 
     (
       label: 'store settings',

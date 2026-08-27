@@ -175,8 +175,7 @@ class _AccountButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final user = mockCurrentUser;
-    final initials = user.fullName
+    final initials = mockSignedInFullName
         .split(' ')
         .where((part) => part.isNotEmpty)
         .take(2)
@@ -202,8 +201,14 @@ class _AccountButton extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(user.fullName, style: Theme.of(context).textTheme.bodyLarge),
-              Text(user.email, style: Theme.of(context).textTheme.bodySmall),
+              Text(
+                mockSignedInFullName,
+                style: Theme.of(context).textTheme.bodyLarge,
+              ),
+              Text(
+                mockSignedInEmail,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
             ],
           ),
         ),

@@ -1,7 +1,7 @@
 import '../../models/models.dart';
 import '../mock_items.dart';
+import '../mock_session.dart';
 import '../mock_stock_movements.dart';
-import '../mock_team.dart';
 import 'mock_write.dart';
 
 /// Writes against the stock movement log.
@@ -42,7 +42,7 @@ abstract final class MovementMutations {
         type: StockMovementType.stockIn,
         quantity: quantity.abs(),
         occurredAt: occurredAt ?? DateTime.now(),
-        userName: userName ?? mockCurrentUser.fullName,
+        userName: userName ?? mockSignedInFullName,
         supplierId: supplierId,
         unitPrice: unitPrice,
         orderId: orderId,
@@ -79,7 +79,7 @@ abstract final class MovementMutations {
         type: StockMovementType.stockOut,
         quantity: -quantity.abs(),
         occurredAt: occurredAt ?? DateTime.now(),
-        userName: userName ?? mockCurrentUser.fullName,
+        userName: userName ?? mockSignedInFullName,
         reason: reason,
         note: note,
       ),
@@ -109,7 +109,7 @@ abstract final class MovementMutations {
         // sums correctly against the item's quantity.
         quantity: countedQuantity - systemQuantity,
         occurredAt: occurredAt ?? DateTime.now(),
-        userName: userName ?? mockCurrentUser.fullName,
+        userName: userName ?? mockSignedInFullName,
         systemQuantity: systemQuantity,
         countedQuantity: countedQuantity,
         note: note,

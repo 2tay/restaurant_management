@@ -1,7 +1,7 @@
 /// One restaurant location.
 ///
 /// An owner account can hold several. Once a store is selected, every
-/// inventory, supplier, report and team screen shows that store's data only —
+/// inventory, supplier and report screen shows that store's data only —
 /// enforced structurally by carrying the store id in the route path.
 class Store {
   const Store({

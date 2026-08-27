@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../models/models.dart';
 import '../mock_categories.dart';
-import '../mock_employees.dart';
 import '../mock_goods_receipts.dart';
 import '../mock_items.dart';
 import '../mock_notifications.dart';
@@ -15,8 +14,6 @@ import '../mock_stock_movements.dart';
 import '../mock_stores.dart';
 import '../mock_supplier_prices.dart';
 import '../mock_suppliers.dart';
-import '../mock_team.dart';
-import '../mock_time_entries.dart';
 import '../mock_units.dart';
 
 /// The plumbing every mutation shares: new ids, the change signal, and the
@@ -146,10 +143,7 @@ class _Seed {
     required this.orders,
     required this.receipts,
     required this.notifications,
-    required this.team,
     required this.stores,
-    required this.employees,
-    required this.timeEntries,
   });
 
   factory _Seed.capture() => _Seed(
@@ -163,10 +157,7 @@ class _Seed {
     orders: List.of(mockPurchaseOrders),
     receipts: List.of(mockGoodsReceipts),
     notifications: List.of(mockNotifications),
-    team: List.of(mockTeam),
     stores: List.of(mockStores),
-    employees: List.of(mockEmployees),
-    timeEntries: List.of(mockTimeEntries),
   );
 
   final List<Category> categories;
@@ -179,10 +170,7 @@ class _Seed {
   final List<PurchaseOrder> orders;
   final List<GoodsReceipt> receipts;
   final List<NotificationItem> notifications;
-  final List<TeamMember> team;
   final List<Store> stores;
-  final List<Employee> employees;
-  final List<TimeEntry> timeEntries;
 
   void restore() {
     _replace(mockCategories, categories);
@@ -195,10 +183,7 @@ class _Seed {
     _replace(mockPurchaseOrders, orders);
     _replace(mockGoodsReceipts, receipts);
     _replace(mockNotifications, notifications);
-    _replace(mockTeam, team);
     _replace(mockStores, stores);
-    _replace(mockEmployees, employees);
-    _replace(mockTimeEntries, timeEntries);
   }
 
   /// Refills the live list in place rather than reassigning it — the mock lists
