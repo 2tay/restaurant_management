@@ -5,6 +5,10 @@ import '../dev/theme_gallery_page.dart';
 import '../features/alerts/presentation/pages/low_stock_alerts_page.dart';
 import '../features/alerts/presentation/pages/notifications_page.dart';
 import '../features/dashboard/presentation/pages/store_dashboard_page.dart';
+import '../features/employees/presentation/pages/add_edit_employee_page.dart';
+import '../features/employees/presentation/pages/employee_detail_page.dart';
+import '../features/employees/presentation/pages/employee_section_placeholder_page.dart';
+import '../features/employees/presentation/pages/employees_list_page.dart';
 import '../features/reports/presentation/pages/price_comparison_report_page.dart';
 import '../features/reports/presentation/pages/reports_dashboard_page.dart';
 import '../features/reports/presentation/pages/stock_valuation_report_page.dart';
@@ -386,9 +390,85 @@ final GoRouter appRouter = GoRouter(
 
         // --- Gestion Employée -----------------------------------------------
         //
-        // The team + employees routes were removed with those modules in
-        // Phase 1 of the rebuild. Phase 2 re-adds the Gestion Employée routes
-        // here — see `.claude/phase_gestion_employee.md`.
+        // `new` and the section literals (`timeclock`, `attendance-history`,
+        // `payroll`) precede `:employeeId` for the same ordering reason as the
+        // inventory routes. The pointage, attendance-history and payroll
+        // screens are placeholders until Phases 3–5 — see
+        // `.claude/phase_gestion_employee.md`.
+        GoRoute(
+          path: Routes.employees,
+          pageBuilder: (context, state) => appPage(
+            key: state.pageKey,
+            child: EmployeesListPage(storeId: _storeId(state)),
+          ),
+        ),
+        GoRoute(
+          path: Routes.addEmployee,
+          pageBuilder: (context, state) => appPage(
+            key: state.pageKey,
+            child: AddEditEmployeePage(storeId: _storeId(state)),
+          ),
+        ),
+        GoRoute(
+          path: Routes.timeclock,
+          pageBuilder: (context, state) => appPage(
+            key: state.pageKey,
+            child: EmployeeSectionPlaceholderPage(
+              storeId: _storeId(state),
+              section: EmployeeSection.timeclock,
+            ),
+          ),
+        ),
+        GoRoute(
+          path: Routes.attendanceHistory,
+          pageBuilder: (context, state) => appPage(
+            key: state.pageKey,
+            child: EmployeeSectionPlaceholderPage(
+              storeId: _storeId(state),
+              section: EmployeeSection.attendanceHistory,
+            ),
+          ),
+        ),
+        GoRoute(
+          path: Routes.payroll,
+          pageBuilder: (context, state) => appPage(
+            key: state.pageKey,
+            child: EmployeeSectionPlaceholderPage(
+              storeId: _storeId(state),
+              section: EmployeeSection.payroll,
+            ),
+          ),
+        ),
+        GoRoute(
+          path: Routes.payrollNew,
+          pageBuilder: (context, state) => appPage(
+            key: state.pageKey,
+            child: EmployeeSectionPlaceholderPage(
+              storeId: _storeId(state),
+              section: EmployeeSection.payroll,
+            ),
+          ),
+        ),
+        GoRoute(
+          path: Routes.employeeDetail,
+          pageBuilder: (context, state) => appPage(
+            key: state.pageKey,
+            child: EmployeeDetailPage(
+              storeId: _storeId(state),
+              employeeId: state.pathParameters['employeeId']!,
+            ),
+          ),
+        ),
+        GoRoute(
+          path: Routes.editEmployee,
+          pageBuilder: (context, state) => appPage(
+            key: state.pageKey,
+            child: AddEditEmployeePage(
+              storeId: _storeId(state),
+              employeeId: state.pathParameters['employeeId'],
+            ),
+          ),
+        ),
 
         // --- Settings --------------------------------------------------------
         GoRoute(

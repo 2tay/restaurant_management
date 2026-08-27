@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../models/models.dart';
 import '../mock_categories.dart';
+import '../mock_employees.dart';
 import '../mock_goods_receipts.dart';
 import '../mock_items.dart';
 import '../mock_notifications.dart';
@@ -144,6 +145,7 @@ class _Seed {
     required this.receipts,
     required this.notifications,
     required this.stores,
+    required this.employees,
   });
 
   factory _Seed.capture() => _Seed(
@@ -158,6 +160,7 @@ class _Seed {
     receipts: List.of(mockGoodsReceipts),
     notifications: List.of(mockNotifications),
     stores: List.of(mockStores),
+    employees: List.of(mockEmployees),
   );
 
   final List<Category> categories;
@@ -171,6 +174,7 @@ class _Seed {
   final List<GoodsReceipt> receipts;
   final List<NotificationItem> notifications;
   final List<Store> stores;
+  final List<Employee> employees;
 
   void restore() {
     _replace(mockCategories, categories);
@@ -184,6 +188,7 @@ class _Seed {
     _replace(mockGoodsReceipts, receipts);
     _replace(mockNotifications, notifications);
     _replace(mockStores, stores);
+    _replace(mockEmployees, employees);
   }
 
   /// Refills the live list in place rather than reassigning it — the mock lists

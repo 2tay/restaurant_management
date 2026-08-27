@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 
+import '../../core/utils/employee_status.dart';
 import '../../core/utils/order_status.dart';
 import '../../models/models.dart';
 import '../mock_goods_receipts.dart';
@@ -184,7 +185,8 @@ abstract final class OrderMutations {
     String? note,
   }) {
     final order = MockQueries.orderById(orderId)!;
-    final receivedBy = receivedByName ?? mockSignedInFullName;
+    final receivedBy =
+        receivedByName ?? employeeDisplayName(mockCurrentEmployee);
     final now = DateTime.now();
     final receiptId = MockWrite.id('gr');
 

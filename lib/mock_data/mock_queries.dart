@@ -1,7 +1,9 @@
+import '../core/utils/employee_status.dart';
 import '../core/utils/order_status.dart';
 import '../core/utils/stock_status.dart';
 import '../models/models.dart';
 import 'mock_categories.dart';
+import 'mock_employees.dart';
 import 'mock_goods_receipts.dart';
 import 'mock_items.dart';
 import 'mock_notifications.dart';
@@ -545,6 +547,50 @@ abstract final class MockQueries {
   static GoodsReceipt? receiptById(String id) {
     for (final receipt in mockGoodsReceipts) {
       if (receipt.id == id) return receipt;
+    }
+    return null;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Employees
+  // ---------------------------------------------------------------------------
+
+  /// Every employee of this store, any status.
+  static List<Employee> employeesForStore(String storeId) =>
+      mockEmployees.where((e) => e.storeId == storeId).toList();
+
+  /// Active only — archived people are hidden from the roster by default, but
+  /// stay resolvable by [employeeById] so a retired record still opens.
+  static List<Employee> activeEmployeesForStore(String storeId) =>
+      employeesForStore(storeId).where(isEmployeeActive).toList();
+
+  static Employee? employeeById(String id) {
+    for (final employee in mockEmployees) {
+      if (employee.id == id) return employee;
+    }
+    return null;
+  }
+
+  /// The employee already using this CIN, if any. Account-wide — CIN is
+  /// unique across every store and is the future login identifier.
+  static Employee? employeeByCin(String cin, {String? excludingId}) {
+    final needle = _normalise(cin);
+    if (needle.isEmpty) return null;
+    for (final employee in mockEmployees) {
+      if (employee.id == excludingId) continue;
+      if (_normalise(employee.cin) == needle) return employee;
+    }
+    return null;
+  }
+
+  /// The employee already using this email, if any. Account-wide, unlike the
+  /// removed per-store team lookup.
+  static Employee? employeeByEmail(String email, {String? excludingId}) {
+    final needle = _normalise(email);
+    if (needle.isEmpty) return null;
+    for (final employee in mockEmployees) {
+      if (employee.id == excludingId) continue;
+      if (_normalise(employee.email) == needle) return employee;
     }
     return null;
   }

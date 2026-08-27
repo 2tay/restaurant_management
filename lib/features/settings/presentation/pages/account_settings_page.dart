@@ -5,6 +5,7 @@ import '../../../../app/routes.dart';
 import '../../../../app/navigation.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/utils/employee_status.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../mock_data/mock_data.dart';
 import '../../../../shared/widgets/widgets.dart';
@@ -19,6 +20,7 @@ class AccountSettingsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    final user = mockCurrentEmployee;
 
     return ShellPage(
       tabs: SectionTabs(
@@ -61,12 +63,7 @@ class AccountSettingsPage extends StatelessWidget {
                       shape: BoxShape.circle,
                     ),
                     child: Text(
-                      mockSignedInFullName
-                          .split(' ')
-                          .where((part) => part.isNotEmpty)
-                          .take(2)
-                          .map((part) => part[0])
-                          .join(),
+                      employeeInitials(user),
                       style: theme.textTheme.headlineSmall?.copyWith(
                         color: AppColors.onPrimaryContainer,
                       ),
@@ -78,16 +75,15 @@ class AccountSettingsPage extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          mockSignedInFullName,
+                          employeeDisplayName(user),
                           style: theme.textTheme.titleMedium,
                         ),
+                        Text(user.email, style: theme.textTheme.bodyMedium),
+                        const SizedBox(height: AppSpacing.xs),
                         Text(
-                          mockSignedInEmail,
-                          style: theme.textTheme.bodyMedium,
+                          employeeRoleLabel(l10n, user.role),
+                          style: theme.textTheme.bodySmall,
                         ),
-                        // The role line returns in Phase 6, when the signed-in
-                        // user is a real `Employee` with a role rather than the
-                        // teardown name stub.
                       ],
                     ),
                   ),

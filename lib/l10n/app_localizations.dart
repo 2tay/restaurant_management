@@ -142,6 +142,12 @@ abstract class AppLocalizations {
   /// **'Rapports'**
   String get navReports;
 
+  /// Sidebar label for the Gestion Employée section — a dropdown expanding into Personnel, Tableau de bord, Historique pointage and Historique de paiement.
+  ///
+  /// In fr, this message translates to:
+  /// **'Gestion Employée'**
+  String get navEmployees;
+
   /// Sidebar label for settings.
   ///
   /// In fr, this message translates to:
@@ -3603,6 +3609,390 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Établissement créé.'**
   String get storeCreated;
+
+  /// Gestion Employée dropdown item — the staff roster.
+  ///
+  /// In fr, this message translates to:
+  /// **'Personnel'**
+  String get employeesNavPersonnel;
+
+  /// Gestion Employée dropdown item — the pointage kiosk board. Not 'Tableau de bord', which is the dashboard.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tableau de pointage'**
+  String get employeesNavTimeclock;
+
+  /// Gestion Employée dropdown item — the attendance log.
+  ///
+  /// In fr, this message translates to:
+  /// **'Historique pointage'**
+  String get employeesNavAttendanceHistory;
+
+  /// Gestion Employée dropdown item — the payroll history.
+  ///
+  /// In fr, this message translates to:
+  /// **'Historique de paiement'**
+  String get employeesNavPayroll;
+
+  /// Heading of the placeholder screen for a Gestion Employée section not yet built.
+  ///
+  /// In fr, this message translates to:
+  /// **'Bientôt disponible'**
+  String get employeeSectionComingSoonTitle;
+
+  /// Placeholder body for the pointage board.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le tableau de pointage arrive dans une prochaine étape.'**
+  String get employeeSectionComingSoonTimeclock;
+
+  /// Placeholder body for the attendance history.
+  ///
+  /// In fr, this message translates to:
+  /// **'L\'historique de pointage arrive dans une prochaine étape.'**
+  String get employeeSectionComingSoonAttendanceHistory;
+
+  /// Placeholder body for the payroll history.
+  ///
+  /// In fr, this message translates to:
+  /// **'L\'historique de paiement arrive dans une prochaine étape.'**
+  String get employeeSectionComingSoonPayroll;
+
+  /// Employee role: full access to every store, payroll and staff management.
+  ///
+  /// In fr, this message translates to:
+  /// **'Propriétaire'**
+  String get employeeRoleOwner;
+
+  /// Employee role: runs the store day to day, no payroll or staff management.
+  ///
+  /// In fr, this message translates to:
+  /// **'Gérant'**
+  String get employeeRoleManager;
+
+  /// Employee role: no active app access; pointage done for them at the kiosk.
+  ///
+  /// In fr, this message translates to:
+  /// **'Employé'**
+  String get employeeRoleStaff;
+
+  /// Describes the owner role on the role picker.
+  ///
+  /// In fr, this message translates to:
+  /// **'Accès complet à tous les établissements, à la paie et à la gestion du personnel.'**
+  String get employeeRoleOwnerBody;
+
+  /// Describes the manager role on the role picker.
+  ///
+  /// In fr, this message translates to:
+  /// **'Gère l\'établissement au quotidien : pointage, historique, absences. Pas la paie.'**
+  String get employeeRoleManagerBody;
+
+  /// Describes the staff role on the role picker.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun accès à l\'application. Son pointage est fait au tableau de bord partagé.'**
+  String get employeeRoleStaffBody;
+
+  /// Contract type: a monthly salary.
+  ///
+  /// In fr, this message translates to:
+  /// **'Salarié fixe'**
+  String get contractTypeFixed;
+
+  /// Contract type: an hourly rate, paid only for hours worked.
+  ///
+  /// In fr, this message translates to:
+  /// **'Extra'**
+  String get contractTypeExtra;
+
+  /// Staff roster page heading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Personnel'**
+  String get employeesTitle;
+
+  /// Supporting line on the roster page.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le personnel de cet établissement — coordonnées, contrat et rôle.'**
+  String get employeesSubtitle;
+
+  /// Primary action on the roster page.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ajouter un employé'**
+  String get employeesAdd;
+
+  /// Placeholder in the roster search field.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rechercher (nom, CIN)'**
+  String get employeesSearchHint;
+
+  /// Toggle on the roster. Off by default, matching items and suppliers defaulting to what is currently usable.
+  ///
+  /// In fr, this message translates to:
+  /// **'Afficher les personnels retirés'**
+  String get employeesShowArchived;
+
+  /// Badge on an archived employee's row.
+  ///
+  /// In fr, this message translates to:
+  /// **'Retiré'**
+  String get employeesArchivedPill;
+
+  /// Empty state on the roster when the store has none.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun employé'**
+  String get employeesEmpty;
+
+  /// Supporting line for the fully-empty roster.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ajoutez les membres de votre personnel pour suivre leur pointage et leur paie.'**
+  String get employeesEmptyBody;
+
+  /// Compact CIN label shown under an employee's name.
+  ///
+  /// In fr, this message translates to:
+  /// **'CIN {cin}'**
+  String employeeCinLabel(String cin);
+
+  /// Roster KPI: count of active employees.
+  ///
+  /// In fr, this message translates to:
+  /// **'Personnel actif'**
+  String get employeesKpiActive;
+
+  /// Roster KPI label: split between fixed and extra contracts.
+  ///
+  /// In fr, this message translates to:
+  /// **'Fixes / Extras'**
+  String get employeesKpiContractSplit;
+
+  /// Roster KPI value: the fixed/extra split.
+  ///
+  /// In fr, this message translates to:
+  /// **'{fixed} fixes · {extra} extras'**
+  String employeesKpiContractSplitValue(int fixed, int extra);
+
+  /// Roster KPI: count of owners and managers.
+  ///
+  /// In fr, this message translates to:
+  /// **'Gérants'**
+  String get employeesKpiManagers;
+
+  /// Roster KPI: employees hired this calendar month.
+  ///
+  /// In fr, this message translates to:
+  /// **'Embauches ce mois'**
+  String get employeesKpiHiredThisMonth;
+
+  /// Photo section label on the employee form.
+  ///
+  /// In fr, this message translates to:
+  /// **'Photo'**
+  String get employeeFormPhoto;
+
+  /// Button under the employee photo tile. Mocked — see employeeFormPhotoMockNotice.
+  ///
+  /// In fr, this message translates to:
+  /// **'Choisir une photo'**
+  String get employeeFormPhotoAction;
+
+  /// Warning snackbar shown when tapping the mocked photo picker.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le choix de photo n\'est pas encore disponible dans cette version.'**
+  String get employeeFormPhotoMockNotice;
+
+  /// Employee first name field label.
+  ///
+  /// In fr, this message translates to:
+  /// **'Prénom'**
+  String get employeeFormFirstName;
+
+  /// Employee last name field label.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nom'**
+  String get employeeFormLastName;
+
+  /// Employee national identity card number field label.
+  ///
+  /// In fr, this message translates to:
+  /// **'N° de carte d\'identité'**
+  String get employeeFormCin;
+
+  /// Employee phone field label.
+  ///
+  /// In fr, this message translates to:
+  /// **'Téléphone'**
+  String get employeeFormPhone;
+
+  /// Employee email field label.
+  ///
+  /// In fr, this message translates to:
+  /// **'Adresse e-mail'**
+  String get employeeFormEmail;
+
+  /// Inline error when the CIN already belongs to another employee.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ce numéro de carte d\'identité est déjà utilisé.'**
+  String get employeeCinTaken;
+
+  /// Inline error when the email already belongs to another employee.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cette adresse e-mail est déjà utilisée.'**
+  String get employeeEmailTaken;
+
+  /// Role section header on the employee form.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rôle et accès'**
+  String get employeeFormRole;
+
+  /// Employment section header on the employee form and detail page.
+  ///
+  /// In fr, this message translates to:
+  /// **'Contrat et rémunération'**
+  String get employeeFormEmployment;
+
+  /// Contract type dropdown label.
+  ///
+  /// In fr, this message translates to:
+  /// **'Type de contrat'**
+  String get employeeFormContractType;
+
+  /// Pay field label when the contract is fixed.
+  ///
+  /// In fr, this message translates to:
+  /// **'Salaire mensuel (€)'**
+  String get employeeFormPayMonthly;
+
+  /// Pay field label when the contract is extra.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tarif horaire (€/h)'**
+  String get employeeFormPayHourly;
+
+  /// Schedule section header on the employee form and detail page.
+  ///
+  /// In fr, this message translates to:
+  /// **'Horaires'**
+  String get employeeFormSchedule;
+
+  /// Scheduled start-of-day field label.
+  ///
+  /// In fr, this message translates to:
+  /// **'Heure d\'arrivée'**
+  String get employeeFormScheduleStart;
+
+  /// Scheduled end-of-day field label.
+  ///
+  /// In fr, this message translates to:
+  /// **'Heure de départ'**
+  String get employeeFormScheduleEnd;
+
+  /// Inline error when a schedule time does not parse.
+  ///
+  /// In fr, this message translates to:
+  /// **'Format attendu : HH:MM'**
+  String get employeeFormScheduleInvalid;
+
+  /// Helper text under the schedule fields.
+  ///
+  /// In fr, this message translates to:
+  /// **'Laissez vide pour utiliser les horaires de l\'établissement.'**
+  String get employeeFormScheduleHelp;
+
+  /// Snackbar confirming a new employee was created.
+  ///
+  /// In fr, this message translates to:
+  /// **'Employé ajouté'**
+  String get employeeCreated;
+
+  /// Snackbar confirming an employee was edited.
+  ///
+  /// In fr, this message translates to:
+  /// **'Employé modifié'**
+  String get employeeUpdated;
+
+  /// Hire date line on the employee detail header.
+  ///
+  /// In fr, this message translates to:
+  /// **'Embauché le {date}'**
+  String employeeHiredOn(String date);
+
+  /// Section heading on the employee detail page for contact fields.
+  ///
+  /// In fr, this message translates to:
+  /// **'Coordonnées'**
+  String get employeeDetailContact;
+
+  /// Shown for the schedule when the employee has no custom start/end.
+  ///
+  /// In fr, this message translates to:
+  /// **'Horaires de l\'établissement'**
+  String get employeeScheduleStoreHours;
+
+  /// Section heading for one employee's attendance history.
+  ///
+  /// In fr, this message translates to:
+  /// **'Historique de pointage'**
+  String get employeeHistoryTitle;
+
+  /// Section heading for one employee's payroll history.
+  ///
+  /// In fr, this message translates to:
+  /// **'Historique de paiement'**
+  String get employeePayrollTitle;
+
+  /// Destructive confirmation dialog title for archiving an employee. Regular space before the question mark, matching the rest of the file.
+  ///
+  /// In fr, this message translates to:
+  /// **'Retirer {name} ?'**
+  String employeeArchiveTitle(String name);
+
+  /// Body of the archive-employee confirmation dialog.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cette personne n\'apparaîtra plus dans le personnel actif. Son historique de pointage et de paie reste conservé.'**
+  String get employeeArchiveBody;
+
+  /// Confirms archiving an employee. Deliberately not 'Supprimer' — this is a soft removal.
+  ///
+  /// In fr, this message translates to:
+  /// **'Retirer'**
+  String get employeeArchiveConfirm;
+
+  /// Snackbar confirming an employee was archived.
+  ///
+  /// In fr, this message translates to:
+  /// **'Employé retiré'**
+  String get employeeArchived;
+
+  /// Action on an archived employee's detail page bringing them back to active.
+  ///
+  /// In fr, this message translates to:
+  /// **'Restaurer'**
+  String get employeeRestore;
+
+  /// Snackbar confirming an archived employee was restored.
+  ///
+  /// In fr, this message translates to:
+  /// **'Employé restauré'**
+  String get employeeRestored;
+
+  /// Status line on an archived employee's detail page.
+  ///
+  /// In fr, this message translates to:
+  /// **'Retiré le {date}'**
+  String employeeDetailArchivedOn(String date);
 }
 
 class _AppLocalizationsDelegate

@@ -1,3 +1,4 @@
+import '../../core/utils/employee_status.dart';
 import '../../models/models.dart';
 import '../mock_items.dart';
 import '../mock_session.dart';
@@ -42,7 +43,7 @@ abstract final class MovementMutations {
         type: StockMovementType.stockIn,
         quantity: quantity.abs(),
         occurredAt: occurredAt ?? DateTime.now(),
-        userName: userName ?? mockSignedInFullName,
+        userName: userName ?? employeeDisplayName(mockCurrentEmployee),
         supplierId: supplierId,
         unitPrice: unitPrice,
         orderId: orderId,
@@ -79,7 +80,7 @@ abstract final class MovementMutations {
         type: StockMovementType.stockOut,
         quantity: -quantity.abs(),
         occurredAt: occurredAt ?? DateTime.now(),
-        userName: userName ?? mockSignedInFullName,
+        userName: userName ?? employeeDisplayName(mockCurrentEmployee),
         reason: reason,
         note: note,
       ),
@@ -109,7 +110,7 @@ abstract final class MovementMutations {
         // sums correctly against the item's quantity.
         quantity: countedQuantity - systemQuantity,
         occurredAt: occurredAt ?? DateTime.now(),
-        userName: userName ?? mockSignedInFullName,
+        userName: userName ?? employeeDisplayName(mockCurrentEmployee),
         systemQuantity: systemQuantity,
         countedQuantity: countedQuantity,
         note: note,

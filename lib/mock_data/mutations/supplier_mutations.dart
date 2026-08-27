@@ -1,3 +1,4 @@
+import '../../core/utils/employee_status.dart';
 import '../../models/models.dart';
 import '../mock_price_history.dart';
 import '../mock_queries.dart';
@@ -210,7 +211,8 @@ abstract final class SupplierMutations {
         oldPrice: existing.pricePerUnit,
         newPrice: newPrice,
         changedAt: at,
-        changedByName: changedByName ?? mockSignedInFullName,
+        changedByName:
+            changedByName ?? employeeDisplayName(mockCurrentEmployee),
       ),
     );
 

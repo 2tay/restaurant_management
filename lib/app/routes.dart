@@ -67,9 +67,20 @@ abstract final class Routes {
   static const String comparisonReport = '$reports/comparison';
   static const String usageReport = '$reports/usage';
 
-  // Employees / Gestion Employée — routes land in Phase 2 of the rebuild
-  // (see `.claude/phase_gestion_employee.md`). The old team + employees route
-  // block was removed with those modules in Phase 1.
+  // Gestion Employée. Literal segments (`new`, `timeclock`, …) precede
+  // `:employeeId` in the router for the same reason `orders` declares `new`
+  // before `:orderId` — otherwise the literal is read as an id. The pointage,
+  // attendance-history and payroll screens land in Phases 3–5; until then
+  // their routes resolve to a "bientôt disponible" placeholder so the sidebar
+  // entry can carry all four items from the start.
+  static const String employees = '$storeBase/employees';
+  static const String addEmployee = '$employees/new';
+  static const String timeclock = '$employees/timeclock';
+  static const String attendanceHistory = '$employees/attendance-history';
+  static const String payroll = '$employees/payroll';
+  static const String payrollNew = '$payroll/new';
+  static const String employeeDetail = '$employees/:employeeId';
+  static const String editEmployee = '$employeeDetail/edit';
 
   static const String storeSettings = '$storeBase/settings/store';
   static const String accountSettings = '$storeBase/settings/account';
@@ -165,6 +176,29 @@ abstract final class Routes {
 
   static String toUsageReport(String storeId) =>
       '/store/$storeId/reports/usage';
+
+  static String toEmployees(String storeId) => '/store/$storeId/employees';
+
+  static String toAddEmployee(String storeId) =>
+      '/store/$storeId/employees/new';
+
+  static String toEmployee(String storeId, String employeeId) =>
+      '/store/$storeId/employees/$employeeId';
+
+  static String toEditEmployee(String storeId, String employeeId) =>
+      '/store/$storeId/employees/$employeeId/edit';
+
+  static String toTimeclock(String storeId) =>
+      '/store/$storeId/employees/timeclock';
+
+  static String toAttendanceHistory(String storeId) =>
+      '/store/$storeId/employees/attendance-history';
+
+  static String toPayroll(String storeId) =>
+      '/store/$storeId/employees/payroll';
+
+  static String toPayrollNew(String storeId) =>
+      '/store/$storeId/employees/payroll/new';
 
   static String toStoreSettings(String storeId) =>
       '/store/$storeId/settings/store';

@@ -37,6 +37,10 @@ List<({String label, String path, bool inShell})> _allRoutes() {
   const store = StoreIds.sablon;
   final item = mockItems.first.id;
   final supplier = mockSuppliers.first.id;
+  final employee = mockEmployees.first.id;
+  final archivedEmployee = mockEmployees
+      .firstWhere((e) => e.archivedAt != null)
+      .id;
 
   // A draft and a partially received order, because the detail screen renders
   // a different action row for each status and only one of them can be wrong
@@ -143,9 +147,31 @@ List<({String label, String path, bool inShell})> _allRoutes() {
     ),
     (label: 'usage report', path: Routes.toUsageReport(store), inShell: true),
 
-    // The team + employees routes were removed with those modules in Phase 1
-    // of the Gestion Employée rebuild (see `.claude/phase_gestion_employee.md`).
-    // Phase 2 re-adds the Gestion Employée routes here.
+    (label: 'employees', path: Routes.toEmployees(store), inShell: true),
+    (label: 'add employee', path: Routes.toAddEmployee(store), inShell: true),
+    (label: 'timeclock', path: Routes.toTimeclock(store), inShell: true),
+    (
+      label: 'attendance history',
+      path: Routes.toAttendanceHistory(store),
+      inShell: true,
+    ),
+    (label: 'payroll', path: Routes.toPayroll(store), inShell: true),
+    (label: 'payroll new', path: Routes.toPayrollNew(store), inShell: true),
+    (
+      label: 'employee detail',
+      path: Routes.toEmployee(store, employee),
+      inShell: true,
+    ),
+    (
+      label: 'archived employee detail',
+      path: Routes.toEmployee(store, archivedEmployee),
+      inShell: true,
+    ),
+    (
+      label: 'edit employee',
+      path: Routes.toEditEmployee(store, employee),
+      inShell: true,
+    ),
 
     (
       label: 'store settings',

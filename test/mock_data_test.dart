@@ -97,6 +97,32 @@ void main() {
       }
     });
 
+    test('every employee points at a real store', () {
+      final storeIds = mockStores.map((s) => s.id).toSet();
+      for (final employee in mockEmployees) {
+        expect(
+          storeIds,
+          contains(employee.storeId),
+          reason: '${employee.firstName} ${employee.lastName}',
+        );
+      }
+    });
+
+    test('CIN and email are unique across the whole roster', () {
+      final cins = mockEmployees.map((e) => e.cin.toLowerCase()).toList();
+      final emails = mockEmployees.map((e) => e.email.toLowerCase()).toList();
+      expect(cins.toSet().length, cins.length, reason: 'duplicate CIN');
+      expect(emails.toSet().length, emails.length, reason: 'duplicate email');
+    });
+
+    test('mockCurrentEmployee is an owner on the roster', () {
+      expect(mockCurrentEmployee.role, EmployeeRole.owner);
+      expect(
+        mockEmployees.any((e) => e.id == mockCurrentEmployee.id),
+        isTrue,
+      );
+    });
+
     test('every item is priced by at least one supplier', () {
       for (final item in mockItems) {
         expect(
@@ -146,6 +172,27 @@ void main() {
 
     test('the new store is empty, so empty states can be demoed', () {
       expect(MockQueries.itemsForStore(StoreIds.saintGilles), isEmpty);
+      expect(MockQueries.employeesForStore(StoreIds.saintGilles), isEmpty);
+    });
+
+    test('the roster covers every role, both contracts, and an archived '
+        'record', () {
+      final sablon = MockQueries.employeesForStore(StoreIds.sablon);
+
+      expect(
+        sablon.map((e) => e.role).toSet(),
+        containsAll(EmployeeRole.values),
+      );
+      expect(
+        sablon.map((e) => e.contractType).toSet(),
+        containsAll(ContractType.values),
+      );
+      expect(sablon.where((e) => e.archivedAt != null), isNotEmpty);
+      expect(
+        sablon.where((e) => e.scheduledStartMinutes != null),
+        isNotEmpty,
+        reason: 'Phase 3 needs a custom-schedule employee to demo lateness',
+      );
     });
 
     test('at least one item has three competing suppliers', () {

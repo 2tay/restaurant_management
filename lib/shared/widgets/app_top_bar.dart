@@ -5,6 +5,7 @@ import '../../app/routes.dart';
 import '../../app/navigation.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../core/utils/employee_status.dart';
 import '../../core/utils/responsive.dart';
 import '../../l10n/app_localizations.dart';
 import '../../mock_data/mock_data.dart';
@@ -175,12 +176,7 @@ class _AccountButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final initials = mockSignedInFullName
-        .split(' ')
-        .where((part) => part.isNotEmpty)
-        .take(2)
-        .map((part) => part[0])
-        .join();
+    final user = mockCurrentEmployee;
 
     return PopupMenuButton<String>(
       tooltip: l10n.topBarAccount,
@@ -202,11 +198,11 @@ class _AccountButton extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                mockSignedInFullName,
+                employeeDisplayName(user),
                 style: Theme.of(context).textTheme.bodyLarge,
               ),
               Text(
-                mockSignedInEmail,
+                user.email,
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ],
@@ -243,7 +239,7 @@ class _AccountButton extends StatelessWidget {
           shape: BoxShape.circle,
         ),
         child: Text(
-          initials,
+          employeeInitials(user),
           style: Theme.of(
             context,
           ).textTheme.labelLarge?.copyWith(color: AppColors.onPrimaryContainer),

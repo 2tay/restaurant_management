@@ -6,6 +6,7 @@
 library;
 
 export 'mock_categories.dart';
+export 'mock_employees.dart';
 export 'mock_goods_receipts.dart';
 export 'mock_items.dart';
 export 'mock_notifications.dart';
@@ -26,6 +27,7 @@ export 'mock_units.dart';
 // with a repository and a one-to-one seam is easier to walk across.
 export 'mutations/account_mutations.dart';
 export 'mutations/catalog_mutations.dart';
+export 'mutations/employee_mutations.dart';
 export 'mutations/item_mutations.dart';
 export 'mutations/mock_write.dart';
 export 'mutations/movement_mutations.dart';

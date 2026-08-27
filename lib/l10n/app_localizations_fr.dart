@@ -33,6 +33,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get navReports => 'Rapports';
 
   @override
+  String get navEmployees => 'Gestion Employée';
+
+  @override
   String get navSettings => 'Paramètres';
 
   @override
@@ -2207,4 +2210,218 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get storeCreated => 'Établissement créé.';
+
+  @override
+  String get employeesNavPersonnel => 'Personnel';
+
+  @override
+  String get employeesNavTimeclock => 'Tableau de pointage';
+
+  @override
+  String get employeesNavAttendanceHistory => 'Historique pointage';
+
+  @override
+  String get employeesNavPayroll => 'Historique de paiement';
+
+  @override
+  String get employeeSectionComingSoonTitle => 'Bientôt disponible';
+
+  @override
+  String get employeeSectionComingSoonTimeclock =>
+      'Le tableau de pointage arrive dans une prochaine étape.';
+
+  @override
+  String get employeeSectionComingSoonAttendanceHistory =>
+      'L\'historique de pointage arrive dans une prochaine étape.';
+
+  @override
+  String get employeeSectionComingSoonPayroll =>
+      'L\'historique de paiement arrive dans une prochaine étape.';
+
+  @override
+  String get employeeRoleOwner => 'Propriétaire';
+
+  @override
+  String get employeeRoleManager => 'Gérant';
+
+  @override
+  String get employeeRoleStaff => 'Employé';
+
+  @override
+  String get employeeRoleOwnerBody =>
+      'Accès complet à tous les établissements, à la paie et à la gestion du personnel.';
+
+  @override
+  String get employeeRoleManagerBody =>
+      'Gère l\'établissement au quotidien : pointage, historique, absences. Pas la paie.';
+
+  @override
+  String get employeeRoleStaffBody =>
+      'Aucun accès à l\'application. Son pointage est fait au tableau de bord partagé.';
+
+  @override
+  String get contractTypeFixed => 'Salarié fixe';
+
+  @override
+  String get contractTypeExtra => 'Extra';
+
+  @override
+  String get employeesTitle => 'Personnel';
+
+  @override
+  String get employeesSubtitle =>
+      'Le personnel de cet établissement — coordonnées, contrat et rôle.';
+
+  @override
+  String get employeesAdd => 'Ajouter un employé';
+
+  @override
+  String get employeesSearchHint => 'Rechercher (nom, CIN)';
+
+  @override
+  String get employeesShowArchived => 'Afficher les personnels retirés';
+
+  @override
+  String get employeesArchivedPill => 'Retiré';
+
+  @override
+  String get employeesEmpty => 'Aucun employé';
+
+  @override
+  String get employeesEmptyBody =>
+      'Ajoutez les membres de votre personnel pour suivre leur pointage et leur paie.';
+
+  @override
+  String employeeCinLabel(String cin) {
+    return 'CIN $cin';
+  }
+
+  @override
+  String get employeesKpiActive => 'Personnel actif';
+
+  @override
+  String get employeesKpiContractSplit => 'Fixes / Extras';
+
+  @override
+  String employeesKpiContractSplitValue(int fixed, int extra) {
+    return '$fixed fixes · $extra extras';
+  }
+
+  @override
+  String get employeesKpiManagers => 'Gérants';
+
+  @override
+  String get employeesKpiHiredThisMonth => 'Embauches ce mois';
+
+  @override
+  String get employeeFormPhoto => 'Photo';
+
+  @override
+  String get employeeFormPhotoAction => 'Choisir une photo';
+
+  @override
+  String get employeeFormPhotoMockNotice =>
+      'Le choix de photo n\'est pas encore disponible dans cette version.';
+
+  @override
+  String get employeeFormFirstName => 'Prénom';
+
+  @override
+  String get employeeFormLastName => 'Nom';
+
+  @override
+  String get employeeFormCin => 'N° de carte d\'identité';
+
+  @override
+  String get employeeFormPhone => 'Téléphone';
+
+  @override
+  String get employeeFormEmail => 'Adresse e-mail';
+
+  @override
+  String get employeeCinTaken =>
+      'Ce numéro de carte d\'identité est déjà utilisé.';
+
+  @override
+  String get employeeEmailTaken => 'Cette adresse e-mail est déjà utilisée.';
+
+  @override
+  String get employeeFormRole => 'Rôle et accès';
+
+  @override
+  String get employeeFormEmployment => 'Contrat et rémunération';
+
+  @override
+  String get employeeFormContractType => 'Type de contrat';
+
+  @override
+  String get employeeFormPayMonthly => 'Salaire mensuel (€)';
+
+  @override
+  String get employeeFormPayHourly => 'Tarif horaire (€/h)';
+
+  @override
+  String get employeeFormSchedule => 'Horaires';
+
+  @override
+  String get employeeFormScheduleStart => 'Heure d\'arrivée';
+
+  @override
+  String get employeeFormScheduleEnd => 'Heure de départ';
+
+  @override
+  String get employeeFormScheduleInvalid => 'Format attendu : HH:MM';
+
+  @override
+  String get employeeFormScheduleHelp =>
+      'Laissez vide pour utiliser les horaires de l\'établissement.';
+
+  @override
+  String get employeeCreated => 'Employé ajouté';
+
+  @override
+  String get employeeUpdated => 'Employé modifié';
+
+  @override
+  String employeeHiredOn(String date) {
+    return 'Embauché le $date';
+  }
+
+  @override
+  String get employeeDetailContact => 'Coordonnées';
+
+  @override
+  String get employeeScheduleStoreHours => 'Horaires de l\'établissement';
+
+  @override
+  String get employeeHistoryTitle => 'Historique de pointage';
+
+  @override
+  String get employeePayrollTitle => 'Historique de paiement';
+
+  @override
+  String employeeArchiveTitle(String name) {
+    return 'Retirer $name ?';
+  }
+
+  @override
+  String get employeeArchiveBody =>
+      'Cette personne n\'apparaîtra plus dans le personnel actif. Son historique de pointage et de paie reste conservé.';
+
+  @override
+  String get employeeArchiveConfirm => 'Retirer';
+
+  @override
+  String get employeeArchived => 'Employé retiré';
+
+  @override
+  String get employeeRestore => 'Restaurer';
+
+  @override
+  String get employeeRestored => 'Employé restauré';
+
+  @override
+  String employeeDetailArchivedOn(String date) {
+    return 'Retiré le $date';
+  }
 }

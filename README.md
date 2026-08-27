@@ -173,6 +173,7 @@ repositories will split**. A one-to-one seam is easier to walk across than one l
 | `supplier_mutations.dart` | Suppliers, and the item–supplier links that carry prices. |
 | `order_mutations.dart` | Commandes and receiving. |
 | `account_mutations.dart` | Stores, notifications. |
+| `employee_mutations.dart` | Personnel records — create, edit, archive, restore. |
 
 `mutations/mock_write.dart` holds what they all share:
 
@@ -343,7 +344,7 @@ back gesture alike.
 flutter test
 ```
 
-332 tests. The ones that earn their keep:
+364 tests. The ones that earn their keep:
 
 - **`navigation_test.dart`** pins the navigation contract: all 15 root screens show no back
   control and all 24 pushed screens do; push-then-pop returns you where you were and five
@@ -389,6 +390,9 @@ flutter test
   a movement records goods that really moved.
 - **`account_test.dart`** covers stores and notifications, including the rule worth having:
   a new store starts genuinely empty.
+- **`employees_test.dart`** pins the personnel rules — CIN and email unique account-wide
+  (self-exclusion on a rename, the same value refused in another store), a soft archive that
+  never touches history and can be restored, and `update` unable to change `archivedAt`.
 - **`orders_test.dart`** is the one that matters most, because the ordering rules are the
   part of this phase with actual behaviour. It runs them against the in-memory layer and
   restores the mock lists afterwards: that sending an order moves no stock but does count

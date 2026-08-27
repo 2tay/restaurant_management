@@ -40,6 +40,10 @@ final _rootScreens = <String, String>{
   'alerts': Routes.toAlerts(_store),
   'notifications': Routes.toNotifications(_store),
   'reports': Routes.toReports(_store),
+  'employees': Routes.toEmployees(_store),
+  'timeclock': Routes.toTimeclock(_store),
+  'attendance history': Routes.toAttendanceHistory(_store),
+  'payroll': Routes.toPayroll(_store),
   'store settings': Routes.toStoreSettings(_store),
   'account settings': Routes.toAccountSettings(_store),
   'notification settings': Routes.toNotificationSettings(_store),
@@ -50,6 +54,7 @@ final _rootScreens = <String, String>{
 Map<String, String> _pushedScreens() {
   final item = mockItems.first.id;
   final supplier = mockSuppliers.first.id;
+  final employee = mockEmployees.first.id;
 
   return {
     'item detail': Routes.toItem(_store, item),
@@ -72,6 +77,9 @@ Map<String, String> _pushedScreens() {
     'valuation report': Routes.toValuationReport(_store),
     'comparison report': Routes.toComparisonReport(_store),
     'usage report': Routes.toUsageReport(_store),
+    'add employee': Routes.toAddEmployee(_store),
+    'employee detail': Routes.toEmployee(_store, employee),
+    'edit employee': Routes.toEditEmployee(_store, employee),
     'search': Routes.toSearch(_store),
   };
 }
@@ -204,10 +212,57 @@ void main() {
       expect(rail.selectedIndex, 4);
     });
 
-    // The "highlights Gestion des employés" test and the accordion group were
-    // removed with the Équipe + Personnel modules in Phase 1 of the rebuild
-    // (see `.claude/phase_gestion_employee.md`). Phase 2 re-adds nested-screen
-    // highlight coverage and the Gestion Employée dropdown tests.
+    testWidgets('highlights Gestion Employée from a nested employee screen', (
+      tester,
+    ) async {
+      await _pump(tester);
+      unawaited(
+        appRouter.push(Routes.toEmployee(_store, mockEmployees.first.id)),
+      );
+      await tester.pumpAndSettle();
+
+      final rail = tester.widget<NavigationRail>(find.byType(NavigationRail));
+      // Dashboard, Inventaire, Mouvements, Commandes, Fournisseurs, Catégories
+      // et unités, Alertes, Rapports, Gestion Employée.
+      expect(rail.selectedIndex, 8);
+    });
+  });
+
+  group('the Gestion Employée dropdown', () {
+    testWidgets('expands to reveal all four sections, and each navigates', (
+      tester,
+    ) async {
+      await _pump(tester);
+      appRouter.go(Routes.toDashboard(_store));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Gestion Employée'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Personnel'), findsOneWidget);
+      expect(find.text('Tableau de pointage'), findsOneWidget);
+      expect(find.text('Historique pointage'), findsOneWidget);
+      expect(find.text('Historique de paiement'), findsOneWidget);
+
+      await tester.tap(find.text('Personnel'));
+      await tester.pumpAndSettle();
+      expect(appRouter.state.uri.path, Routes.toEmployees(_store));
+    });
+
+    testWidgets('the Tableau de bord item reaches the pointage board', (
+      tester,
+    ) async {
+      await _pump(tester);
+      appRouter.go(Routes.toDashboard(_store));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Gestion Employée'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Tableau de pointage'));
+      await tester.pumpAndSettle();
+
+      expect(appRouter.state.uri.path, Routes.toTimeclock(_store));
+    });
   });
 
   group('forms protect unsaved input', () {
