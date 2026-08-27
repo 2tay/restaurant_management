@@ -299,7 +299,7 @@ class _Filters extends StatelessWidget {
             onChanged: onEmployee,
           ),
         ),
-        _Menu<_Period>(
+        FilterMenu<_Period>(
           label: l10n.movementsFilterPeriod,
           selectedLabel: _periodLabel(l10n, period),
           entries: {
@@ -307,7 +307,7 @@ class _Filters extends StatelessWidget {
           },
           onSelected: onPeriod,
         ),
-        _Menu<AttendanceStatus?>(
+        FilterMenu<AttendanceStatus?>(
           label: l10n.ordersFilterStatus,
           selectedLabel: status == null
               ? null
@@ -324,39 +324,6 @@ class _Filters extends StatelessWidget {
           onSelected: onStatus,
         ),
       ],
-    );
-  }
-}
-
-/// [FilterPill] as a [PopupMenuButton]'s child — the pairing every filterable
-/// list in the app uses.
-class _Menu<T> extends StatelessWidget {
-  const _Menu({
-    required this.label,
-    required this.selectedLabel,
-    required this.entries,
-    required this.onSelected,
-  });
-
-  final String label;
-  final String? selectedLabel;
-  final Map<T, String> entries;
-  final ValueChanged<T> onSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    return PopupMenuButton<int>(
-      tooltip: label,
-      shape: const RoundedRectangleBorder(borderRadius: AppRadius.mdAll),
-      onSelected: (index) => onSelected(entries.keys.elementAt(index)),
-      itemBuilder: (context) => [
-        for (var i = 0; i < entries.length; i++)
-          PopupMenuItem<int>(
-            value: i,
-            child: Text(entries.values.elementAt(i)),
-          ),
-      ],
-      child: FilterPill(label: label, selectedLabel: selectedLabel),
     );
   }
 }

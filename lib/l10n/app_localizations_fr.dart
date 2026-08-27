@@ -2631,4 +2631,136 @@ class AppLocalizationsFr extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get storeSettingsPayroll => 'Paie';
+
+  @override
+  String get storeSettingsOvertimeMultiplier => 'Majoration heures sup.';
+
+  @override
+  String get storeSettingsWorkingDays => 'Jours ouvrés / mois';
+
+  @override
+  String get storeSettingsPayrollHelp =>
+      'Un salarié fixe est payé son taux journalier (salaire ÷ jours ouvrés) par jour travaillé ; les heures supplémentaires sont payées à ce taux fois la majoration.';
+
+  @override
+  String get payrollHistoryTitle => 'Historique de paiement';
+
+  @override
+  String get payrollHistorySubtitle =>
+      'Les paiements déjà effectués — un par employé et par période.';
+
+  @override
+  String get payrollNewAction => 'Nouveau paiement';
+
+  @override
+  String payrollHistoryCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count paiements',
+      one: '1 paiement',
+      zero: 'Aucun résultat',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get payrollHistoryEmpty => 'Aucun paiement';
+
+  @override
+  String get payrollHistoryEmptyBody =>
+      'Aucun paiement n\'a encore été effectué dans cet établissement.';
+
+  @override
+  String get payrollPeriodLastYear => '12 derniers mois';
+
+  @override
+  String get payrollStatRuns => 'Paiements';
+
+  @override
+  String get payrollStatTotal => 'Masse salariale';
+
+  @override
+  String get payrollStatEmployees => 'Employés payés';
+
+  @override
+  String get payrollStatOvertime => 'Heures sup. payées';
+
+  @override
+  String get payrollColumnEmployee => 'Employé';
+
+  @override
+  String get payrollColumnPeriod => 'Période';
+
+  @override
+  String get payrollColumnDays => 'Jours';
+
+  @override
+  String get payrollColumnHours => 'Heures';
+
+  @override
+  String get payrollColumnOvertime => 'Heures sup';
+
+  @override
+  String get payrollColumnAmount => 'Montant';
+
+  @override
+  String get payrollColumnPaidAt => 'Payé le';
+
+  @override
+  String get payrollColumnPaidBy => 'Par';
+
+  @override
+  String get payrollNewTitle => 'Nouveau paiement';
+
+  @override
+  String get payrollNewSubtitle =>
+      'Choisissez un employé pour voir ce qui lui est dû et le régler.';
+
+  @override
+  String get payrollNewEmployee => 'Employé';
+
+  @override
+  String get payrollNewEmployeeHint => 'Choisir un employé';
+
+  @override
+  String get payrollNewNothingOwed =>
+      'Rien à payer — tous les jours pointés sont déjà réglés.';
+
+  @override
+  String get payrollNewDays => 'Jours à payer';
+
+  @override
+  String get payrollNewTotalWorked => 'Total travaillé';
+
+  @override
+  String get payrollNewTotalOvertime => 'Heures supplémentaires';
+
+  @override
+  String get payrollNewAmount => 'Montant à payer';
+
+  @override
+  String get payrollNewPay => 'Payer';
+
+  @override
+  String payrollNewConfirmTitle(String name) {
+    return 'Payer $name ?';
+  }
+
+  @override
+  String payrollNewConfirmBody(int days, String amount) {
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other: '$days jours',
+      one: '1 jour',
+    );
+    return '$_temp0 · $amount. Les jours concernés seront verrouillés et ne pourront plus être modifiés.';
+  }
+
+  @override
+  String get payrollNewPaid => 'Paiement enregistré';
 }

@@ -17,6 +17,8 @@ class StoreSettings {
     required this.openMinutes,
     required this.closeMinutes,
     required this.maxBreakMinutes,
+    required this.overtimeMultiplier,
+    required this.workingDaysPerMonth,
     required this.stalePartialOrderDays,
   });
 
@@ -31,6 +33,14 @@ class StoreSettings {
   /// A single break segment running longer than this is flagged as a
   /// "pause dépassée" — see `hasLateBreak` in `core/utils/attendance_status.dart`.
   final int maxBreakMinutes;
+
+  /// Overtime hours are paid at the normal rate times this coefficient
+  /// (e.g. 1.25) — see `core/utils/payroll_math.dart`.
+  final double overtimeMultiplier;
+
+  /// Divisor that turns a fixed-salary employee's monthly pay into a daily
+  /// rate (e.g. 26).
+  final int workingDaysPerMonth;
 
   /// How many days a `partial` commande may sit before the dashboard flags it.
   final int stalePartialOrderDays;

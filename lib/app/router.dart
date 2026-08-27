@@ -6,10 +6,11 @@ import '../features/alerts/presentation/pages/low_stock_alerts_page.dart';
 import '../features/alerts/presentation/pages/notifications_page.dart';
 import '../features/dashboard/presentation/pages/store_dashboard_page.dart';
 import '../features/employees/presentation/pages/add_edit_employee_page.dart';
-import '../features/employees/presentation/pages/employee_detail_page.dart';
 import '../features/employees/presentation/pages/attendance_history_page.dart';
-import '../features/employees/presentation/pages/employee_section_placeholder_page.dart';
+import '../features/employees/presentation/pages/employee_detail_page.dart';
 import '../features/employees/presentation/pages/employees_list_page.dart';
+import '../features/employees/presentation/pages/payroll_history_page.dart';
+import '../features/employees/presentation/pages/payroll_new_page.dart';
 import '../features/employees/presentation/pages/timeclock_board_page.dart';
 import '../features/reports/presentation/pages/price_comparison_report_page.dart';
 import '../features/reports/presentation/pages/reports_dashboard_page.dart';
@@ -429,14 +430,14 @@ final GoRouter appRouter = GoRouter(
           path: Routes.payroll,
           pageBuilder: (context, state) => appPage(
             key: state.pageKey,
-            child: EmployeeSectionPlaceholderPage(storeId: _storeId(state)),
+            child: PayrollHistoryPage(storeId: _storeId(state)),
           ),
         ),
         GoRoute(
           path: Routes.payrollNew,
           pageBuilder: (context, state) => appPage(
             key: state.pageKey,
-            child: EmployeeSectionPlaceholderPage(storeId: _storeId(state)),
+            child: PayrollNewPage(storeId: _storeId(state)),
           ),
         ),
         GoRoute(

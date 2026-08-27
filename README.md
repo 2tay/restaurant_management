@@ -175,6 +175,7 @@ repositories will split**. A one-to-one seam is easier to walk across than one l
 | `account_mutations.dart` | Stores, per-store settings, notifications. |
 | `employee_mutations.dart` | Personnel records — create, edit, archive, restore. |
 | `attendance_mutations.dart` | Pointage — clock-in, breaks, clock-out. **The only file that writes an attendance row**, and it refuses every write against a day a payroll run has locked. |
+| `payroll_mutations.dart` | Paie — compute-and-pay. **The only file that writes a payroll period and the only path that flips an attendance day to paid.** A paid period is permanent. |
 
 `mutations/mock_write.dart` holds what they all share:
 
@@ -345,7 +346,7 @@ back gesture alike.
 flutter test
 ```
 
-391 tests. The ones that earn their keep:
+402 tests. The ones that earn their keep:
 
 - **`navigation_test.dart`** pins the navigation contract: all 15 root screens show no back
   control and all 24 pushed screens do; push-then-pop returns you where you were and five
@@ -399,6 +400,11 @@ flutter test
   against the resolved schedule (personal override beats store hours), break-overrun per
   segment, a payroll-locked day refusing every write, and the Historique filters +
   pagination. (No absence handling — dropped by the client during Phase 3.)
+- **`payroll_test.dart`** pins the paie — the hourly rate (an extra's own rate, a fixed
+  employee's derived from monthly pay ÷ working days ÷ 8h), the overtime premium on top of
+  worked hours, a day that is not `done` worth nothing, `preview` summing the unpaid
+  finished days while persisting nothing, and `pay` creating the period, locking every
+  covered day, and freezing `appliedRate` so a later raise never moves a paid period.
 - **`orders_test.dart`** is the one that matters most, because the ordering rules are the
   part of this phase with actual behaviour. It runs them against the in-memory layer and
   restores the mock lists afterwards: that sending an order moves no stock but does count

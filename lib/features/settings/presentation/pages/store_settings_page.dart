@@ -29,6 +29,8 @@ class _StoreSettingsPageState extends State<StoreSettingsPage> {
   final _openTime = TextEditingController();
   final _closeTime = TextEditingController();
   final _maxBreak = TextEditingController();
+  final _overtimeMultiplier = TextEditingController();
+  final _workingDays = TextEditingController();
   String? _defaultUnitId;
 
   @override
@@ -50,7 +52,14 @@ class _StoreSettingsPageState extends State<StoreSettingsPage> {
     _openTime.text = Formatters.minutesToClock(settings.openMinutes);
     _closeTime.text = Formatters.minutesToClock(settings.closeMinutes);
     _maxBreak.text = '${settings.maxBreakMinutes}';
+    _overtimeMultiplier.text = _formatMultiplier(settings.overtimeMultiplier);
+    _workingDays.text = '${settings.workingDaysPerMonth}';
   }
+
+  static String _formatMultiplier(double value) =>
+      value == value.roundToDouble()
+      ? value.toStringAsFixed(0)
+      : value.toString().replaceAll('.', ',');
 
   @override
   void dispose() {
@@ -64,6 +73,8 @@ class _StoreSettingsPageState extends State<StoreSettingsPage> {
       _openTime,
       _closeTime,
       _maxBreak,
+      _overtimeMultiplier,
+      _workingDays,
     ]) {
       controller.dispose();
     }
@@ -236,6 +247,50 @@ class _StoreSettingsPageState extends State<StoreSettingsPage> {
                 ],
               ),
             ),
+            const SizedBox(height: AppSpacing.xl),
+
+            SectionHeader(title: l10n.storeSettingsPayroll),
+            AppCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: AppTextField(
+                          label: l10n.storeSettingsOvertimeMultiplier,
+                          controller: _overtimeMultiplier,
+                          hint: '1,25',
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                          prefixIcon: LucideIcons.trendingUp,
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.lg),
+                      Expanded(
+                        child: AppTextField(
+                          label: l10n.storeSettingsWorkingDays,
+                          controller: _workingDays,
+                          hint: '26',
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                          ],
+                          prefixIcon: LucideIcons.calendarDays,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  Text(
+                    l10n.storeSettingsPayrollHelp,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),
@@ -253,6 +308,10 @@ class _StoreSettingsPageState extends State<StoreSettingsPage> {
       openMinutes: Formatters.clockToMinutes(_openTime.text),
       closeMinutes: Formatters.clockToMinutes(_closeTime.text),
       maxBreakMinutes: int.tryParse(_maxBreak.text.trim()),
+      overtimeMultiplier: double.tryParse(
+        _overtimeMultiplier.text.replaceAll(',', '.').trim(),
+      ),
+      workingDaysPerMonth: int.tryParse(_workingDays.text.trim()),
       stalePartialOrderDays: int.tryParse(_staleDays.text.trim()),
     );
 
@@ -260,6 +319,8 @@ class _StoreSettingsPageState extends State<StoreSettingsPage> {
     _openTime.text = Formatters.minutesToClock(updated.openMinutes);
     _closeTime.text = Formatters.minutesToClock(updated.closeMinutes);
     _maxBreak.text = '${updated.maxBreakMinutes}';
+    _overtimeMultiplier.text = _formatMultiplier(updated.overtimeMultiplier);
+    _workingDays.text = '${updated.workingDaysPerMonth}';
     _staleDays.text = '${updated.stalePartialOrderDays}';
 
     AppSnackBar.success(context, l10n.storeSettingsSaved);

@@ -1,5 +1,6 @@
 import '../../core/utils/attendance_status.dart';
 import '../../core/utils/order_status.dart';
+import '../../core/utils/payroll_math.dart';
 import '../../models/models.dart';
 import '../mock_notifications.dart';
 import '../mock_queries.dart';
@@ -56,6 +57,8 @@ abstract final class AccountMutations {
         openMinutes: AttendanceRules.defaultOpenMinutes,
         closeMinutes: AttendanceRules.defaultCloseMinutes,
         maxBreakMinutes: AttendanceRules.defaultMaxBreakMinutes,
+        overtimeMultiplier: PayrollRules.defaultOvertimeMultiplier,
+        workingDaysPerMonth: PayrollRules.defaultWorkingDaysPerMonth,
         stalePartialOrderDays: OrderRules.defaultStalePartialDays,
       ),
     );
@@ -63,15 +66,18 @@ abstract final class AccountMutations {
     return store;
   }
 
-  /// Edits a store's settings — opening hours, break allowance, stale-order
-  /// threshold. Values left null keep their current value; a nonsense value
-  /// (negative, or a time outside 0–1439) is ignored rather than refused, the
-  /// same forgiving stance the settings screen already takes.
+  /// Edits a store's settings — opening hours, break allowance, payroll
+  /// coefficients, stale-order threshold. Values left null keep their current
+  /// value; a nonsense value (negative, a time outside 0–1439, a multiplier
+  /// below 1) is ignored rather than refused, the same forgiving stance the
+  /// settings screen takes.
   static StoreSettings updateStoreSettings(
     String storeId, {
     int? openMinutes,
     int? closeMinutes,
     int? maxBreakMinutes,
+    double? overtimeMultiplier,
+    int? workingDaysPerMonth,
     int? stalePartialOrderDays,
   }) {
     final existing = MockQueries.storeSettings(storeId);
@@ -89,6 +95,13 @@ abstract final class AccountMutations {
       maxBreakMinutes: validCount(maxBreakMinutes)
           ? maxBreakMinutes!
           : existing.maxBreakMinutes,
+      overtimeMultiplier:
+          overtimeMultiplier != null && overtimeMultiplier >= 1
+          ? overtimeMultiplier
+          : existing.overtimeMultiplier,
+      workingDaysPerMonth: validCount(workingDaysPerMonth)
+          ? workingDaysPerMonth!
+          : existing.workingDaysPerMonth,
       stalePartialOrderDays: validCount(stalePartialOrderDays)
           ? stalePartialOrderDays!
           : existing.stalePartialOrderDays,

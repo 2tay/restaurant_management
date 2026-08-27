@@ -9,6 +9,7 @@ import '../mock_employees.dart';
 import '../mock_goods_receipts.dart';
 import '../mock_items.dart';
 import '../mock_notifications.dart';
+import '../mock_payroll_periods.dart';
 import '../mock_price_history.dart';
 import '../mock_purchase_orders.dart';
 import '../mock_stock_movements.dart';
@@ -148,6 +149,7 @@ class _Seed {
     required this.storeSettings,
     required this.employees,
     required this.attendances,
+    required this.payrollPeriods,
   });
 
   factory _Seed.capture() => _Seed(
@@ -165,6 +167,7 @@ class _Seed {
     storeSettings: List.of(mockStoreSettings),
     employees: List.of(mockEmployees),
     attendances: List.of(mockAttendances),
+    payrollPeriods: List.of(mockPayrollPeriods),
   );
 
   final List<Category> categories;
@@ -181,6 +184,7 @@ class _Seed {
   final List<StoreSettings> storeSettings;
   final List<Employee> employees;
   final List<Attendance> attendances;
+  final List<PayrollPeriod> payrollPeriods;
 
   void restore() {
     _replace(mockCategories, categories);
@@ -197,6 +201,7 @@ class _Seed {
     _replace(mockStoreSettings, storeSettings);
     _replace(mockEmployees, employees);
     _replace(mockAttendances, attendances);
+    _replace(mockPayrollPeriods, payrollPeriods);
   }
 
   /// Refills the live list in place rather than reassigning it — the mock lists

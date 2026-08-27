@@ -87,6 +87,46 @@ abstract final class AttendanceMutations {
     });
   }
 
+  /// Locks a set of finished days against a payroll run — sets their
+  /// `paymentStatus` to `paid` and stamps [payrollPeriodId]. Called only by
+  /// `PayrollMutations.pay`, so the attendance rows still have exactly one
+  /// writer (this file), the same way order receiving goes through
+  /// `MovementMutations` rather than writing item quantities itself. Does
+  /// **not** call `MockWrite.changed()` — the caller batches the whole
+  /// payment into one signal. Refuses (returns false, touches nothing) if any
+  /// id is missing or already paid.
+  static bool lockForPayroll(
+    Iterable<String> attendanceIds,
+    String payrollPeriodId,
+  ) {
+    final indices = <int>[];
+    for (final id in attendanceIds) {
+      final index = mockAttendances.indexWhere((a) => a.id == id);
+      if (index == -1) return false;
+      if (mockAttendances[index].paymentStatus == PaymentStatus.paid) {
+        return false;
+      }
+      indices.add(index);
+    }
+
+    for (final index in indices) {
+      final entry = mockAttendances[index];
+      mockAttendances[index] = Attendance(
+        id: entry.id,
+        storeId: entry.storeId,
+        employeeId: entry.employeeId,
+        date: entry.date,
+        status: entry.status,
+        clockInAt: entry.clockInAt,
+        clockOutAt: entry.clockOutAt,
+        pauses: entry.pauses,
+        paymentStatus: PaymentStatus.paid,
+        payrollPeriodId: payrollPeriodId,
+      );
+    }
+    return true;
+  }
+
   // ---------------------------------------------------------------------------
 
   /// Applies [transform] to the row, or returns null if the row is missing,

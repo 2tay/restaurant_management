@@ -131,7 +131,29 @@ void main() {
         expect(s.openMinutes, inInclusiveRange(0, 24 * 60 - 1));
         expect(s.closeMinutes, greaterThan(s.openMinutes));
         expect(s.maxBreakMinutes, greaterThan(0));
+        expect(s.overtimeMultiplier, greaterThanOrEqualTo(1));
+        expect(s.workingDaysPerMonth, greaterThan(0));
         expect(s.stalePartialOrderDays, greaterThan(0));
+      }
+    });
+
+    test('every payroll period points at a real store and employee, and its '
+        'covered days are all paid', () {
+      final storeIds = mockStores.map((s) => s.id).toSet();
+      final employeeIds = mockEmployees.map((e) => e.id).toSet();
+      for (final period in mockPayrollPeriods) {
+        expect(storeIds, contains(period.storeId), reason: period.id);
+        expect(employeeIds, contains(period.employeeId), reason: period.id);
+
+        final covered = mockAttendances.where(
+          (a) => a.payrollPeriodId == period.id,
+        );
+        expect(covered, isNotEmpty, reason: '${period.id} covers no day');
+        expect(
+          covered.every((a) => a.paymentStatus == PaymentStatus.paid),
+          isTrue,
+          reason: '${period.id} has an unpaid covered day',
+        );
       }
     });
 

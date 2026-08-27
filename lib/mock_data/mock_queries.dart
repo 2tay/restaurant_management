@@ -9,6 +9,7 @@ import 'mock_employees.dart';
 import 'mock_goods_receipts.dart';
 import 'mock_items.dart';
 import 'mock_notifications.dart';
+import 'mock_payroll_periods.dart';
 import 'mock_price_history.dart';
 import 'mock_purchase_orders.dart';
 import 'mock_reference.dart';
@@ -745,6 +746,77 @@ abstract final class MockQueries {
       lateArrivals: lateArrivals,
       overtime: overtime,
       lateBreaks: lateBreaks,
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Payroll
+  // ---------------------------------------------------------------------------
+
+  static PayrollPeriod? payrollPeriodById(String id) {
+    for (final period in mockPayrollPeriods) {
+      if (period.id == id) return period;
+    }
+    return null;
+  }
+
+  /// One employee's payroll runs, most recent first.
+  static List<PayrollPeriod> payrollPeriodsForEmployee(String employeeId) {
+    final periods =
+        mockPayrollPeriods.where((p) => p.employeeId == employeeId).toList()
+          ..sort((a, b) => b.endDate.compareTo(a.endDate));
+    return periods;
+  }
+
+  /// The store's payroll history for the Historique de paiement page — an
+  /// employee-name search and a rolling period, most-recent-first, sliced
+  /// into a page. Same shape as [attendancesForStore].
+  static ({
+    List<PayrollPeriod> rows,
+    int totalCount,
+    int page,
+    int pageCount,
+  })
+  payrollPeriodsForStore(
+    String storeId, {
+    int? withinDays,
+    String? employeeQuery,
+    int page = 0,
+    int pageSize = 25,
+  }) {
+    final cutoff = withinDays == null
+        ? null
+        : DateTime.now().subtract(Duration(days: withinDays));
+    final needle = employeeQuery == null ? '' : _normalise(employeeQuery);
+
+    final matched =
+        mockPayrollPeriods.where((p) {
+          if (p.storeId != storeId) return false;
+          if (cutoff != null && (p.paidAt ?? p.createdAt).isBefore(cutoff)) {
+            return false;
+          }
+          if (needle.isNotEmpty) {
+            final e = employeeById(p.employeeId);
+            final name = e == null ? '' : '${e.firstName} ${e.lastName}';
+            if (!_normalise(name).contains(needle)) return false;
+          }
+          return true;
+        }).toList()..sort(
+          (a, b) => (b.paidAt ?? b.createdAt).compareTo(a.paidAt ?? a.createdAt),
+        );
+
+    final pageCount = matched.isEmpty
+        ? 1
+        : (matched.length + pageSize - 1) ~/ pageSize;
+    final safePage = page.clamp(0, pageCount - 1);
+    final start = safePage * pageSize;
+    final end = (start + pageSize).clamp(0, matched.length);
+
+    return (
+      rows: matched.sublist(start, end),
+      totalCount: matched.length,
+      page: safePage,
+      pageCount: pageCount,
     );
   }
 }
