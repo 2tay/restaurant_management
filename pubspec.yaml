@@ -43,6 +43,8 @@ dependencies:
   lucide_icons_flutter: ^3.1.17
   flutter_localizations:
     sdk: flutter
+  pdf: ^3.12.0
+  printing: ^5.14.3
 
 dev_dependencies:
   flutter_test:
@@ -61,6 +63,13 @@ dev_dependencies:
 # The following section is specific to Flutter packages.
 flutter:
   uses-material-design: true
+
+  # Declared as assets rather than fonts: Flutter never renders text with these.
+  # They exist so the PDF renderer can embed a face that has a euro sign — see
+  # fonts/README.md.
+  assets:
+    - fonts/Roboto-Regular.ttf
+    - fonts/Roboto-Bold.ttf
 
   # Runs gen-l10n on build, driven by l10n.yaml. Generates AppLocalizations
   # from lib/l10n/*.arb. See lib/l10n/README.md.

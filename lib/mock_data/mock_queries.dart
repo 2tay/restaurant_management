@@ -672,4 +672,22 @@ abstract final class MockQueries {
     }
     return null;
   }
+
+  /// The quotable number for one delivery — `BR-2026-014/2`.
+  ///
+  /// Resolves the receipt's position in its order's deliveries and hands both
+  /// to [receiptReference]. The arithmetic lives there so it can be tested
+  /// without the mock lists; this is only the lookup.
+  ///
+  /// Falls back to a bare `BR-<id>` for a receipt whose order has gone missing,
+  /// which cannot happen through the app but keeps the document renderable
+  /// rather than throwing at the moment somebody needs to send it.
+  static String receiptReferenceOf(GoodsReceipt receipt) {
+    final order = orderById(receipt.orderId);
+    if (order == null) return 'BR-${receipt.id}';
+
+    final siblings = receiptsForOrder(receipt.orderId);
+    final index = siblings.indexWhere((s) => s.id == receipt.id);
+    return receiptReference(order.reference, index == -1 ? 1 : index + 1);
+  }
 }

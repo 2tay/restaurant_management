@@ -24,6 +24,7 @@ final List<Store> mockStores = [
     postalCode: '1000',
     city: 'Bruxelles',
     phone: '+32 2 512 34 56',
+    vatNumber: 'BE 0472.318.904',
     createdAt: monthsAgo(38),
   ),
   Store(
@@ -33,8 +34,11 @@ final List<Store> mockStores = [
     postalCode: '4000',
     city: 'Liège',
     phone: '+32 4 221 78 90',
+    vatNumber: 'BE 0688.145.223',
     createdAt: monthsAgo(14),
   ),
+  // No VAT number, deliberately: it is the brand-new store, and it proves the
+  // document renders correctly for one that has not filled it in yet.
   Store(
     id: StoreIds.saintGilles,
     name: 'Taverne Saint-Gilles',

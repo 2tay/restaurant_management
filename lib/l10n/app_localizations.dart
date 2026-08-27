@@ -3879,6 +3879,223 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Valeur consommée'**
   String get reportConsumptionValue;
+
+  /// VAT number field on the add-store form. Optional, but it appears on every bon de réception sent to a supplier, so it is worth asking for once.
+  ///
+  /// In fr, this message translates to:
+  /// **'Numéro de TVA'**
+  String get addStoreVatNumber;
+
+  /// Placeholder showing the Belgian VAT number format.
+  ///
+  /// In fr, this message translates to:
+  /// **'BE 0123.456.789'**
+  String get addStoreVatNumberHint;
+
+  /// Helper under the VAT field, explaining where the number ends up rather than just marking it optional.
+  ///
+  /// In fr, this message translates to:
+  /// **'Facultatif. Figure sur les bons de réception envoyés aux fournisseurs.'**
+  String get addStoreVatNumberHelp;
+
+  /// Button that generates the PDF delivery record for one receipt and opens the share sheet.
+  ///
+  /// In fr, this message translates to:
+  /// **'Bon de réception'**
+  String get receiptDocAction;
+
+  /// Shown while the PDF is being built.
+  ///
+  /// In fr, this message translates to:
+  /// **'Génération du document…'**
+  String get receiptDocGenerating;
+
+  /// Error snackbar when PDF generation or sharing fails.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le document n\'a pas pu être généré.'**
+  String get receiptDocFailed;
+
+  /// Main heading of the PDF. A bon de réception is the buyer's own record of what was accepted — distinct from the supplier's bon de livraison.
+  ///
+  /// In fr, this message translates to:
+  /// **'BON DE RÉCEPTION'**
+  String get receiptDocTitle;
+
+  /// VAT line in the PDF issuer block. Omitted entirely when the store has no VAT number.
+  ///
+  /// In fr, this message translates to:
+  /// **'TVA {number}'**
+  String receiptDocVatNumber(String number);
+
+  /// Heading of the supplier address block in the PDF.
+  ///
+  /// In fr, this message translates to:
+  /// **'Fournisseur'**
+  String get receiptDocSupplierBlock;
+
+  /// Label for the originating order reference in the PDF.
+  ///
+  /// In fr, this message translates to:
+  /// **'Commande'**
+  String get receiptDocOrderReference;
+
+  /// Label for the date the order was sent to the supplier.
+  ///
+  /// In fr, this message translates to:
+  /// **'Envoyée le'**
+  String get receiptDocOrderSent;
+
+  /// Label for the date and time the delivery was checked in.
+  ///
+  /// In fr, this message translates to:
+  /// **'Réceptionnée le'**
+  String get receiptDocReceivedAt;
+
+  /// Label for who checked the delivery in.
+  ///
+  /// In fr, this message translates to:
+  /// **'Réceptionnée par'**
+  String get receiptDocReceivedBy;
+
+  /// PDF table column.
+  ///
+  /// In fr, this message translates to:
+  /// **'Article'**
+  String get receiptDocColumnItem;
+
+  /// PDF table column: what was still outstanding when the van arrived.
+  ///
+  /// In fr, this message translates to:
+  /// **'Commandé'**
+  String get receiptDocColumnOrdered;
+
+  /// PDF table column: what actually turned up.
+  ///
+  /// In fr, this message translates to:
+  /// **'Reçu'**
+  String get receiptDocColumnReceived;
+
+  /// PDF table column: received minus ordered.
+  ///
+  /// In fr, this message translates to:
+  /// **'Écart'**
+  String get receiptDocColumnGap;
+
+  /// PDF table column: unit price agreed on the order.
+  ///
+  /// In fr, this message translates to:
+  /// **'PU commandé'**
+  String get receiptDocColumnOrderedPrice;
+
+  /// PDF table column: unit price on the delivery note.
+  ///
+  /// In fr, this message translates to:
+  /// **'PU réel'**
+  String get receiptDocColumnActualPrice;
+
+  /// PDF table column: received quantity times actual unit price.
+  ///
+  /// In fr, this message translates to:
+  /// **'Total'**
+  String get receiptDocColumnTotal;
+
+  /// Marker next to a line the supplier delivered without it being ordered.
+  ///
+  /// In fr, this message translates to:
+  /// **'hors commande'**
+  String get receiptDocUnordered;
+
+  /// Heading of the discrepancy section in the PDF. 'Réserves' is the standard term for formally recorded objections to a delivery, which is what makes the document worth sending to the supplier.
+  ///
+  /// In fr, this message translates to:
+  /// **'RÉSERVES'**
+  String get receiptDocReserves;
+
+  /// Printed in place of the réserves list when nothing was wrong. Stated explicitly rather than omitted, so the document says the delivery was checked rather than leaving it ambiguous.
+  ///
+  /// In fr, this message translates to:
+  /// **'Livraison conforme à la commande. Aucune réserve.'**
+  String get receiptDocNoReserves;
+
+  /// Réserve for a short delivery the receiver closed.
+  ///
+  /// In fr, this message translates to:
+  /// **'{item} : {quantity} non livré(s) sur {ordered} commandé(s). Ligne soldée, le solde n\'est plus attendu.'**
+  String receiptDocReserveShortClosed(
+    String item,
+    String quantity,
+    String ordered,
+  );
+
+  /// Réserve for a short delivery still expected. This is the sentence that makes a partial receipt worth emailing to the supplier.
+  ///
+  /// In fr, this message translates to:
+  /// **'{item} : {quantity} non livré(s) sur {ordered} commandé(s). Solde restant dû.'**
+  String receiptDocReserveShortOpen(
+    String item,
+    String quantity,
+    String ordered,
+  );
+
+  /// Réserve for an over-delivery.
+  ///
+  /// In fr, this message translates to:
+  /// **'{item} : {quantity} livré(s) en plus de la quantité commandée.'**
+  String receiptDocReserveOver(String item, String quantity);
+
+  /// Réserve for an item that was not on the order at all.
+  ///
+  /// In fr, this message translates to:
+  /// **'{item} : {quantity} livré(s) sans figurer sur la commande.'**
+  String receiptDocReserveUnordered(String item, String quantity);
+
+  /// Réserve for a unit price on the delivery note that differs from the ordered price. Spelled out rather than using an arrow: the embedded PDF face has no U+2192, and 'passé de … à …' is the register a formal document wants anyway.
+  ///
+  /// In fr, this message translates to:
+  /// **'{item} : prix unitaire passé de {oldPrice} à {newPrice} ({delta}) par rapport à la commande.'**
+  String receiptDocReservePrice(
+    String item,
+    String oldPrice,
+    String newPrice,
+    String delta,
+  );
+
+  /// A per-line remark the receiver typed, carried into the réserves list.
+  ///
+  /// In fr, this message translates to:
+  /// **'{item} : {note}'**
+  String receiptDocReserveNote(String item, String note);
+
+  /// Total value of the delivery at the prices actually charged.
+  ///
+  /// In fr, this message translates to:
+  /// **'Valeur réceptionnée'**
+  String get receiptDocTotalLabel;
+
+  /// Heading for the receipt-level free-text note in the PDF.
+  ///
+  /// In fr, this message translates to:
+  /// **'Remarques'**
+  String get receiptDocNoteLabel;
+
+  /// Signature box for the person who checked the delivery in.
+  ///
+  /// In fr, this message translates to:
+  /// **'Signature réception'**
+  String get receiptDocSignatureReceiver;
+
+  /// Signature box for the driver. Present so the document can be signed on the spot when the delivery is disputed.
+  ///
+  /// In fr, this message translates to:
+  /// **'Signature livreur'**
+  String get receiptDocSignatureDriver;
+
+  /// PDF footer. Dates the generation separately from the delivery, and states what the document is not, so it cannot be mistaken for an invoice.
+  ///
+  /// In fr, this message translates to:
+  /// **'Document généré le {date} — ne constitue pas une facture.'**
+  String receiptDocFooter(String date);
 }
 
 class _AppLocalizationsDelegate

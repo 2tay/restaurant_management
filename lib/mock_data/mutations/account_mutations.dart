@@ -129,6 +129,7 @@ abstract final class AccountMutations {
     required String postalCode,
     required String city,
     required String phone,
+    String? vatNumber,
   }) {
     final store = Store(
       id: MockWrite.id('store'),
@@ -137,6 +138,7 @@ abstract final class AccountMutations {
       postalCode: postalCode.trim(),
       city: city.trim(),
       phone: phone.trim(),
+      vatNumber: _trimToNull(vatNumber),
       createdAt: DateTime.now(),
     );
 
@@ -152,6 +154,7 @@ abstract final class AccountMutations {
     String? postalCode,
     String? city,
     String? phone,
+    String? vatNumber,
   }) {
     final index = mockStores.indexWhere((store) => store.id == id);
     if (index == -1) return null;
@@ -164,6 +167,11 @@ abstract final class AccountMutations {
       postalCode: postalCode?.trim() ?? existing.postalCode,
       city: city?.trim() ?? existing.city,
       phone: phone?.trim() ?? existing.phone,
+      // An empty string clears it; null leaves it alone. The two mean different
+      // things on a field that is legitimately absent.
+      vatNumber: vatNumber == null
+          ? existing.vatNumber
+          : _trimToNull(vatNumber),
       createdAt: existing.createdAt,
       imageAsset: existing.imageAsset,
     );
@@ -171,6 +179,14 @@ abstract final class AccountMutations {
     mockStores[index] = updated;
     MockWrite.changed();
     return updated;
+  }
+
+  /// An optional text field as it should be stored: trimmed, and absent rather
+  /// than blank. A whitespace-only VAT number would print an empty line on the
+  /// document, which looks like a rendering bug rather than a missing value.
+  static String? _trimToNull(String? value) {
+    final trimmed = value?.trim();
+    return trimmed == null || trimmed.isEmpty ? null : trimmed;
   }
 
   // ---------------------------------------------------------------------------

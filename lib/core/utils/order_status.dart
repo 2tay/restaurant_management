@@ -139,6 +139,27 @@ bool orderIsStale(PurchaseOrder order, int thresholdDays, {DateTime? now}) =>
 // Receipts
 // -----------------------------------------------------------------------------
 
+/// The human-readable number for one delivery — `BR-2026-014/2`.
+///
+/// Derived rather than stored, and that is the whole trick. A `GoodsReceipt`
+/// only carries a machine id, which is fine while the record never leaves the
+/// app — but a document emailed to a supplier needs something a human can quote
+/// on the phone, the way `CMD-2026-014` already works for the commande.
+///
+/// [sequence] is 1-based: the nth delivery against that order, in the order
+/// they happened. That is stable forever because receipts are immutable and
+/// never deleted, so a receipt cannot change its position in its order's list.
+///
+/// The `CMD` prefix becomes `BR` (bon de réception) so the two documents are
+/// visibly related without being confusable. A reference that does not follow
+/// the expected shape is prefixed rather than rewritten — a wrong-looking
+/// number is better than a silently mangled one.
+String receiptReference(String orderReference, int sequence) {
+  final trimmed = orderReference.trim();
+  final body = trimmed.startsWith('CMD-') ? trimmed.substring(4) : trimmed;
+  return 'BR-$body/$sequence';
+}
+
 /// What a delivery was worth at the prices actually charged.
 double receiptValue(GoodsReceipt receipt) {
   var total = 0.0;
