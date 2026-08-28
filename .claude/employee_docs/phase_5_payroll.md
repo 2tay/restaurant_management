@@ -95,7 +95,11 @@ plus-récent-d'abord, même forme que `attendancesForStore`).
 
 ## 4. Écrans
 
-### `payroll_history_page.dart` (route `/employees/payroll`)
+> **Refonte (voir §10)** — la page décrite ci-dessous a été remplacée par une vue jour par
+> jour (tous les employés puis filtre par personne). `payroll_new_page.dart` a été
+> supprimé. Ce qui suit est l'état d'origine de la Phase 5, conservé pour l'historique.
+
+### `payroll_history_page.dart` — état d'origine (route `/employees/payroll`)
 
 `goSection`. Bandeau KPI (`StatTile`) : Paiements · Masse salariale · Employés payés ·
 Heures sup payées — sur la fenêtre filtrée. Filtres : employé (`SearchField`), période
@@ -103,7 +107,7 @@ Heures sup payées — sur la fenêtre filtrée. Filtres : employé (`SearchFiel
 Période, Jours, Heures, Heures sup, Montant, Payé le, Par) dans un scroll vertical,
 `Paginator`. Bouton **« Nouveau paiement »** → `payrollNew`. Deux états vides.
 
-### `payroll_new_page.dart` (route `/employees/payroll/new`, poussée)
+### `payroll_new_page.dart` — supprimé (voir §10)
 
 Écran poussé (contrôle retour « Historique de paiement »). `AppDropdown` employé actif →
 `PayrollMutations.preview` → liste jour par jour + totaux (travaillé / heures sup /
@@ -164,8 +168,82 @@ par les deux historiques.
 
 ---
 
-## 9. État de la qualité
+## 9. État de la qualité (fin de Phase 5)
 
 - `flutter analyze` — **No issues found**.
 - `flutter test` — **402 tests passent** (0 échec).
 - `python tool/ux_audit.py` — **0 violation** sur les 12 contrôles.
+
+---
+
+## 10. Refonte — page « Historique de paiement » jour par jour
+
+Demande client après la Phase 5 : l'écran magasin (un `PayrollPeriod` par ligne) + le
+second écran « Nouveau paiement » sont remplacés par **une seule page centrée sur un
+employé**, jour par jour.
+
+### Ce qui change
+
+- **Supprimé** : `payroll_new_page.dart`, la route `payrollNew` / `toPayrollNew`, son
+  `GoRoute`, ses ~14 clés `payrollNew*` / `payrollNewAction`, l'entrée `payroll new` de
+  `router_test.dart`.
+- **`payroll_history_page.dart` réécrit** — `ShellPage(scrollable: true)` (défilement au
+  niveau de la **page**, plus seulement du tableau) :
+  - **au premier chargement, tous les employés actifs** sont agrégés ; on restreint ensuite
+    à une personne via la liste déroulante (`AppDropdown`, option **« Tous les employés »**
+    en tête). Plus d'état « Sélectionnez un employé ».
+  - **une seule barre de filtres en haut**, dans l'ordre : liste déroulante **employé** ·
+    champ **Du** · champ **Au** (`DateField`) · **statut de paiement** (`FilterMenu` Tous /
+    Payé / Non payé). Les bornes du sélecteur : `Du` ne descend jamais sous la date
+    d'embauche (celle de l'employé choisi, ou la plus ancienne des employés actifs en mode
+    « tous ») ; `Au` est plafonné à aujourd'hui ; les deux champs se bornent mutuellement.
+    Plage par défaut : `aujourd'hui − 90 j` → aujourd'hui.
+  - 4 KPI (`StatTile`) sur la plage : **Jours payés · Jours non payés · Heures
+    travaillées · Heures supplémentaires** — sur l'ensemble du périmètre filtré (les deux
+    compteurs restent visibles quel que soit le filtre de statut).
+  - tableau `DataTableWrapper` des journées `done` : (**Employé** en mode « tous ») · Date ·
+    Arrivée · Départ · Durée travaillée · Heures sup · Montant (`dayAmount`) · Statut
+    (`PaymentStatusBadge`) · Payé le. **`Paginator`** (25/page) sous le tableau.
+  - bouton **« Payer »** en bas à droite **uniquement quand une personne est
+    sélectionnée** (le paiement est par employé), désactivé si `unpaidDays == 0` →
+    `ConfirmDialog` nommant l'employé, la **plage (Du – Au)** et le **montant des jours
+    non payés** → `PayrollMutations.pay(from:, to:)` → snackbar, la page se reconstruit.
+- **`PayrollMutations.preview` / `pay` / `_payableDays`** gagnent `DateTime? from, to` — le
+  paiement est **borné à la plage affichée** (un jour non payé hors plage reste dû jusqu'à
+  élargissement) et **jamais avant la date d'embauche** (`_payableDays` clampe la borne
+  basse sur `employee.hireDate`). Le `PayrollPeriod` est toujours créé en coulisse (gèle
+  `appliedRate`, `paidBy`/`paidAt`, verrouille les jours via `lockForPayroll`).
+- **`MockQueries.payrollDays(storeId, {employeeId?, from, to, status, page, pageSize})`** —
+  nouvelle requête : `employeeId` null = tous les employés actifs ; renvoie la page de
+  `rows` + `paidDays` / `unpaidDays` / `worked` / `overtime` + `totalCount` / `page` /
+  `pageCount`. Borne basse clampée sur la date d'embauche **par employé**.
+- **`lib/shared/widgets/payment_status_badge.dart`** — nouveau, calqué sur
+  `attendance_status_badge.dart` (vert `circleCheck` / ambre `hourglass`).
+- **`lib/shared/widgets/date_field.dart`** — nouveau : le champ-date tappable
+  (`showDatePicker` borné par `firstDate` / `lastDate`), extrait du `_DateField` privé de
+  `stock_in_page.dart` qui l'utilise désormais aussi.
+- Tests : `payroll_test.dart` gagne les groupes *« paiement borné à la période »* (dont
+  l'exclusion des jours avant embauche) et *`payrollDays`* (agrégat multi-employés,
+  pagination, plage, embauche) ; `components_test.dart` gagne le rendu de
+  `PaymentStatusBadge` ; `payroll_history_page_test.dart` (nouveau) pilote l'écran —
+  ouverture sur tous les employés, restriction à une personne, « Payer » → confirmation →
+  jours passés en payé, aux breakpoints étroit / portrait.
+
+### Décisions
+
+- **Ouverture sur tous les employés** (choix client) ; « Payer » n'apparaît qu'une fois une
+  personne choisie, le paiement étant par employé (un `PayrollPeriod`, un `appliedRate`).
+- Le paiement règle **uniquement les jours de la plage affichée** (choix client).
+- **Aucun jour avant la date d'embauche** — le sélecteur `Du` est borné à `hireDate` et
+  `_payableDays` / `payrollDays` reclampent la borne basse par employé (double garde,
+  comme `stock_status` vs modèle).
+- Le tableau et les KPI ne comptent que les **journées terminées** — la journée en cours
+  d'aujourd'hui n'apparaît pas.
+- Les employés **archivés** ne sont ni dans la liste déroulante ni dans l'agrégat « tous ».
+- `employee_detail_page.dart` inchangé — la section paie reste un placeholder.
+
+### État de la qualité (après refonte)
+
+- `flutter analyze` — **No issues found**.
+- `flutter test` — **416 tests passent** (0 échec).
+- `python tool/ux_audit.py` — **0 violation**.

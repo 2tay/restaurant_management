@@ -2650,56 +2650,77 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get payrollHistorySubtitle =>
-      'Les paiements déjà effectués — un par employé et par période.';
+      'L\'historique de paiement d\'un employé, jour par jour.';
 
   @override
-  String get payrollNewAction => 'Nouveau paiement';
+  String get payrollFilterEmployee => 'Employé';
+
+  @override
+  String get payrollFilterAllEmployees => 'Tous les employés';
+
+  @override
+  String get payrollFilterFrom => 'Du';
+
+  @override
+  String get payrollFilterTo => 'Au';
+
+  @override
+  String get payrollFilterStatus => 'Statut de paiement';
+
+  @override
+  String get payrollStatusAll => 'Tous';
+
+  @override
+  String get payrollStatusPaid => 'Payé';
+
+  @override
+  String get payrollStatusUnpaid => 'Non payé';
 
   @override
   String payrollHistoryCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count paiements',
-      one: '1 paiement',
-      zero: 'Aucun résultat',
+      other: '$count journées',
+      one: '1 journée',
+      zero: 'Aucune journée',
     );
     return '$_temp0';
   }
 
   @override
-  String get payrollHistoryEmpty => 'Aucun paiement';
+  String get payrollHistoryEmpty => 'Aucune journée payable';
 
   @override
   String get payrollHistoryEmptyBody =>
-      'Aucun paiement n\'a encore été effectué dans cet établissement.';
+      'Cet employé n\'a aucune journée terminée sur la période choisie.';
 
   @override
-  String get payrollPeriodLastYear => '12 derniers mois';
+  String get payrollStatPaidDays => 'Jours payés';
 
   @override
-  String get payrollStatRuns => 'Paiements';
+  String get payrollStatUnpaidDays => 'Jours non payés';
 
   @override
-  String get payrollStatTotal => 'Masse salariale';
+  String get payrollStatWorkedHours => 'Heures travaillées';
 
   @override
-  String get payrollStatEmployees => 'Employés payés';
-
-  @override
-  String get payrollStatOvertime => 'Heures sup. payées';
+  String get payrollStatOvertimeHours => 'Heures supplémentaires';
 
   @override
   String get payrollColumnEmployee => 'Employé';
 
   @override
-  String get payrollColumnPeriod => 'Période';
+  String get payrollColumnDate => 'Date';
 
   @override
-  String get payrollColumnDays => 'Jours';
+  String get payrollColumnClockIn => 'Arrivée';
 
   @override
-  String get payrollColumnHours => 'Heures';
+  String get payrollColumnClockOut => 'Départ';
+
+  @override
+  String get payrollColumnWorked => 'Durée travaillée';
 
   @override
   String get payrollColumnOvertime => 'Heures sup';
@@ -2708,59 +2729,36 @@ class AppLocalizationsFr extends AppLocalizations {
   String get payrollColumnAmount => 'Montant';
 
   @override
+  String get payrollColumnStatus => 'Statut';
+
+  @override
   String get payrollColumnPaidAt => 'Payé le';
 
   @override
-  String get payrollColumnPaidBy => 'Par';
+  String get payrollPayAction => 'Payer';
 
   @override
-  String get payrollNewTitle => 'Nouveau paiement';
-
-  @override
-  String get payrollNewSubtitle =>
-      'Choisissez un employé pour voir ce qui lui est dû et le régler.';
-
-  @override
-  String get payrollNewEmployee => 'Employé';
-
-  @override
-  String get payrollNewEmployeeHint => 'Choisir un employé';
-
-  @override
-  String get payrollNewNothingOwed =>
-      'Rien à payer — tous les jours pointés sont déjà réglés.';
-
-  @override
-  String get payrollNewDays => 'Jours à payer';
-
-  @override
-  String get payrollNewTotalWorked => 'Total travaillé';
-
-  @override
-  String get payrollNewTotalOvertime => 'Heures supplémentaires';
-
-  @override
-  String get payrollNewAmount => 'Montant à payer';
-
-  @override
-  String get payrollNewPay => 'Payer';
-
-  @override
-  String payrollNewConfirmTitle(String name) {
+  String payrollPayConfirmTitle(String name) {
     return 'Payer $name ?';
   }
 
   @override
-  String payrollNewConfirmBody(int days, String amount) {
+  String payrollPayConfirmBody(String period, int days, String amount) {
     String _temp0 = intl.Intl.pluralLogic(
       days,
       locale: localeName,
       other: '$days jours',
       one: '1 jour',
     );
-    return '$_temp0 · $amount. Les jours concernés seront verrouillés et ne pourront plus être modifiés.';
+    return '$period · $_temp0 · $amount. Les jours concernés seront verrouillés et ne pourront plus être modifiés.';
   }
 
   @override
-  String get payrollNewPaid => 'Paiement enregistré';
+  String get payrollPaid => 'Paiement enregistré';
+
+  @override
+  String get paymentStatusPaid => 'Payé';
+
+  @override
+  String get paymentStatusUnpaid => 'Non payé';
 }

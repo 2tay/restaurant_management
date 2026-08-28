@@ -238,9 +238,13 @@ class _StockInPageState extends State<StockInPage> {
                 const SizedBox(height: AppSpacing.xl),
                 Text(l10n.stockInDate, style: theme.textTheme.labelMedium),
                 const SizedBox(height: AppSpacing.sm),
-                _DateField(
-                  date: _date,
+                DateField(
+                  value: _date,
                   onChanged: (value) => setState(() => _date = value),
+                  // Deliveries are recorded on the day or shortly after, never
+                  // for the future — a future delivery has not arrived.
+                  firstDate: DateTime.now().subtract(const Duration(days: 365)),
+                  lastDate: DateTime.now(),
                 ),
               ],
             ),
@@ -294,63 +298,6 @@ class _StockInPageState extends State<StockInPage> {
 
     AppSnackBar.success(context, l10n.stockInRecorded);
     context.goSection(Routes.toMovements(widget.storeId));
-  }
-}
-
-/// Date picker rendered as a tappable field.
-class _DateField extends StatelessWidget {
-  const _DateField({required this.date, required this.onChanged});
-
-  final DateTime date;
-  final ValueChanged<DateTime> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: AppRadius.mdAll,
-      onTap: () async {
-        final picked = await showDatePicker(
-          context: context,
-          initialDate: date,
-          // Deliveries are recorded on the day or shortly after, never for the
-          // future — a future delivery has not arrived.
-          firstDate: DateTime.now().subtract(const Duration(days: 365)),
-          lastDate: DateTime.now(),
-          locale: const Locale('fr', 'BE'),
-        );
-        if (picked != null) onChanged(picked);
-      },
-      child: Container(
-        height: AppSizing.inputHeight,
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceVariant,
-          borderRadius: AppRadius.mdAll,
-          border: Border.all(color: AppColors.border),
-        ),
-        child: Row(
-          children: [
-            const Icon(
-              LucideIcons.calendar,
-              size: AppSizing.iconMd,
-              color: AppColors.textSecondary,
-            ),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: Text(
-                Formatters.dateLong(date),
-                style: Theme.of(context).textTheme.bodyLarge,
-              ),
-            ),
-            const Icon(
-              LucideIcons.chevronDown,
-              size: AppSizing.iconSm,
-              color: AppColors.textSecondary,
-            ),
-          ],
-        ),
-      ),
-    );
   }
 }
 

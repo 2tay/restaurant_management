@@ -4363,86 +4363,128 @@ abstract class AppLocalizations {
   /// Supporting line on the payroll history page.
   ///
   /// In fr, this message translates to:
-  /// **'Les paiements déjà effectués — un par employé et par période.'**
+  /// **'L\'historique de paiement d\'un employé, jour par jour.'**
   String get payrollHistorySubtitle;
 
-  /// Primary action on the payroll history page.
+  /// Label of the employee dropdown on the payroll history page.
   ///
   /// In fr, this message translates to:
-  /// **'Nouveau paiement'**
-  String get payrollNewAction;
+  /// **'Employé'**
+  String get payrollFilterEmployee;
 
-  /// Count of payroll rows matching the filters.
+  /// Employee dropdown option that shows every active employee at once.
   ///
   /// In fr, this message translates to:
-  /// **'{count, plural, =0{Aucun résultat} =1{1 paiement} other{{count} paiements}}'**
+  /// **'Tous les employés'**
+  String get payrollFilterAllEmployees;
+
+  /// Label of the period start-date field on the payroll history page.
+  ///
+  /// In fr, this message translates to:
+  /// **'Du'**
+  String get payrollFilterFrom;
+
+  /// Label of the period end-date field on the payroll history page.
+  ///
+  /// In fr, this message translates to:
+  /// **'Au'**
+  String get payrollFilterTo;
+
+  /// Label of the payment-status filter.
+  ///
+  /// In fr, this message translates to:
+  /// **'Statut de paiement'**
+  String get payrollFilterStatus;
+
+  /// Payment-status filter option — no filter.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tous'**
+  String get payrollStatusAll;
+
+  /// Payment-status filter option — paid days.
+  ///
+  /// In fr, this message translates to:
+  /// **'Payé'**
+  String get payrollStatusPaid;
+
+  /// Payment-status filter option — unpaid days.
+  ///
+  /// In fr, this message translates to:
+  /// **'Non payé'**
+  String get payrollStatusUnpaid;
+
+  /// Count of day rows matching the filters.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =0{Aucune journée} =1{1 journée} other{{count} journées}}'**
   String payrollHistoryCount(int count);
 
-  /// Empty state when the store has no payroll runs.
+  /// Empty state when the chosen employee has no finished days in the window.
   ///
   /// In fr, this message translates to:
-  /// **'Aucun paiement'**
+  /// **'Aucune journée payable'**
   String get payrollHistoryEmpty;
 
-  /// Supporting line for the fully-empty payroll history.
+  /// Supporting line for the no-payable-days empty state.
   ///
   /// In fr, this message translates to:
-  /// **'Aucun paiement n\'a encore été effectué dans cet établissement.'**
+  /// **'Cet employé n\'a aucune journée terminée sur la période choisie.'**
   String get payrollHistoryEmptyBody;
 
-  /// Period filter option on the payroll history.
+  /// Payroll KPI — finished days already settled in the window.
   ///
   /// In fr, this message translates to:
-  /// **'12 derniers mois'**
-  String get payrollPeriodLastYear;
+  /// **'Jours payés'**
+  String get payrollStatPaidDays;
 
-  /// Payroll KPI — number of runs in the period.
+  /// Payroll KPI — finished days still owed in the window.
   ///
   /// In fr, this message translates to:
-  /// **'Paiements'**
-  String get payrollStatRuns;
+  /// **'Jours non payés'**
+  String get payrollStatUnpaidDays;
 
-  /// Payroll KPI — total amount paid in the period.
+  /// Payroll KPI — total worked hours in the window.
   ///
   /// In fr, this message translates to:
-  /// **'Masse salariale'**
-  String get payrollStatTotal;
+  /// **'Heures travaillées'**
+  String get payrollStatWorkedHours;
 
-  /// Payroll KPI — distinct employees paid in the period.
+  /// Payroll KPI — total overtime hours in the window.
   ///
   /// In fr, this message translates to:
-  /// **'Employés payés'**
-  String get payrollStatEmployees;
+  /// **'Heures supplémentaires'**
+  String get payrollStatOvertimeHours;
 
-  /// Payroll KPI — total overtime paid in the period.
-  ///
-  /// In fr, this message translates to:
-  /// **'Heures sup. payées'**
-  String get payrollStatOvertime;
-
-  /// Payroll table column — the employee.
+  /// Payroll table column — the employee (shown when every employee is listed).
   ///
   /// In fr, this message translates to:
   /// **'Employé'**
   String get payrollColumnEmployee;
 
-  /// Payroll table column — the span covered.
+  /// Payroll table column — the work day.
   ///
   /// In fr, this message translates to:
-  /// **'Période'**
-  String get payrollColumnPeriod;
+  /// **'Date'**
+  String get payrollColumnDate;
 
-  /// Payroll table column — worked days.
+  /// Payroll table column — clock-in time.
   ///
   /// In fr, this message translates to:
-  /// **'Jours'**
-  String get payrollColumnDays;
+  /// **'Arrivée'**
+  String get payrollColumnClockIn;
 
-  /// Payroll table column — worked hours.
+  /// Payroll table column — clock-out time.
   ///
   /// In fr, this message translates to:
-  /// **'Heures'**
-  String get payrollColumnHours;
+  /// **'Départ'**
+  String get payrollColumnClockOut;
+
+  /// Payroll table column — worked duration.
+  ///
+  /// In fr, this message translates to:
+  /// **'Durée travaillée'**
+  String get payrollColumnWorked;
 
   /// Payroll table column — overtime hours.
   ///
@@ -4450,11 +4492,17 @@ abstract class AppLocalizations {
   /// **'Heures sup'**
   String get payrollColumnOvertime;
 
-  /// Payroll table column — the amount paid.
+  /// Payroll table column — the amount for the day.
   ///
   /// In fr, this message translates to:
   /// **'Montant'**
   String get payrollColumnAmount;
+
+  /// Payroll table column — payment status badge.
+  ///
+  /// In fr, this message translates to:
+  /// **'Statut'**
+  String get payrollColumnStatus;
 
   /// Payroll table column — the payment date.
   ///
@@ -4462,89 +4510,41 @@ abstract class AppLocalizations {
   /// **'Payé le'**
   String get payrollColumnPaidAt;
 
-  /// Payroll table column — who validated the payment.
-  ///
-  /// In fr, this message translates to:
-  /// **'Par'**
-  String get payrollColumnPaidBy;
-
-  /// Heading of the new-payment page.
-  ///
-  /// In fr, this message translates to:
-  /// **'Nouveau paiement'**
-  String get payrollNewTitle;
-
-  /// Supporting line on the new-payment page.
-  ///
-  /// In fr, this message translates to:
-  /// **'Choisissez un employé pour voir ce qui lui est dû et le régler.'**
-  String get payrollNewSubtitle;
-
-  /// Employee picker label on the new-payment page.
-  ///
-  /// In fr, this message translates to:
-  /// **'Employé'**
-  String get payrollNewEmployee;
-
-  /// Employee picker placeholder.
-  ///
-  /// In fr, this message translates to:
-  /// **'Choisir un employé'**
-  String get payrollNewEmployeeHint;
-
-  /// Shown when the chosen employee has no unpaid finished days.
-  ///
-  /// In fr, this message translates to:
-  /// **'Rien à payer — tous les jours pointés sont déjà réglés.'**
-  String get payrollNewNothingOwed;
-
-  /// Section heading for the day-by-day list.
-  ///
-  /// In fr, this message translates to:
-  /// **'Jours à payer'**
-  String get payrollNewDays;
-
-  /// Total worked hours line.
-  ///
-  /// In fr, this message translates to:
-  /// **'Total travaillé'**
-  String get payrollNewTotalWorked;
-
-  /// Total overtime hours line.
-  ///
-  /// In fr, this message translates to:
-  /// **'Heures supplémentaires'**
-  String get payrollNewTotalOvertime;
-
-  /// Amount-to-pay line.
-  ///
-  /// In fr, this message translates to:
-  /// **'Montant à payer'**
-  String get payrollNewAmount;
-
-  /// The button that validates the payment.
+  /// The button under the table that settles the unpaid days.
   ///
   /// In fr, this message translates to:
   /// **'Payer'**
-  String get payrollNewPay;
+  String get payrollPayAction;
 
   /// Confirmation dialog title. Regular space before the question mark.
   ///
   /// In fr, this message translates to:
   /// **'Payer {name} ?'**
-  String payrollNewConfirmTitle(String name);
+  String payrollPayConfirmTitle(String name);
 
-  /// Confirmation dialog body.
+  /// Confirmation dialog body — the span, the day count and the amount owed.
   ///
   /// In fr, this message translates to:
-  /// **'{days, plural, =1{1 jour} other{{days} jours}} · {amount}. Les jours concernés seront verrouillés et ne pourront plus être modifiés.'**
-  String payrollNewConfirmBody(int days, String amount);
+  /// **'{period} · {days, plural, =1{1 jour} other{{days} jours}} · {amount}. Les jours concernés seront verrouillés et ne pourront plus être modifiés.'**
+  String payrollPayConfirmBody(String period, int days, String amount);
 
   /// Snackbar after a successful payment.
   ///
   /// In fr, this message translates to:
   /// **'Paiement enregistré'**
-  String get payrollNewPaid;
+  String get payrollPaid;
+
+  /// Payment status badge — the day has been settled.
+  ///
+  /// In fr, this message translates to:
+  /// **'Payé'**
+  String get paymentStatusPaid;
+
+  /// Payment status badge — the day is still owed.
+  ///
+  /// In fr, this message translates to:
+  /// **'Non payé'**
+  String get paymentStatusUnpaid;
 }
 
 class _AppLocalizationsDelegate

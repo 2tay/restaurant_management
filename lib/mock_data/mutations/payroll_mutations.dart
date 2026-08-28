@@ -36,10 +36,19 @@ abstract final class PayrollMutations {
   /// Everything owed to [employeeId] at [storeId] right now: their unpaid,
   /// finished days and what those come to. Persists nothing — this is the
   /// "before you confirm" view, like a goods-receipt draft.
-  static PayrollPreview preview(String employeeId, String storeId) {
+  ///
+  /// [from] / [to] bound it to the date range the history screen is showing —
+  /// a day outside that range stays owed until the range is widened. Days
+  /// before the employee's hire date are never included, whatever [from] says.
+  static PayrollPreview preview(
+    String employeeId,
+    String storeId, {
+    DateTime? from,
+    DateTime? to,
+  }) {
     final employee = MockQueries.employeeById(employeeId);
     final settings = MockQueries.storeSettings(storeId);
-    final days = _payableDays(employeeId, storeId);
+    final days = _payableDays(employeeId, storeId, from: from, to: to);
 
     if (employee == null || days.isEmpty) {
       return PayrollPreview(
@@ -61,20 +70,22 @@ abstract final class PayrollMutations {
     );
   }
 
-  /// Pays everything [preview] would show — creates the [PayrollPeriod] and
-  /// locks its days in one atomic write. Returns null when there is nothing
-  /// to pay, the employee is missing, or a day slipped into `paid` between
-  /// the preview and here.
+  /// Pays everything [preview] would show for the same [from] / [to] range —
+  /// creates the [PayrollPeriod] and locks its days in one atomic write.
+  /// Returns null when there is nothing to pay, the employee is missing, or a
+  /// day slipped into `paid` between the preview and here.
   static PayrollPeriod? pay(
     String employeeId,
     String storeId, {
+    DateTime? from,
+    DateTime? to,
     required String paidByEmployeeId,
     DateTime? now,
   }) {
     final employee = MockQueries.employeeById(employeeId);
     if (employee == null) return null;
 
-    final days = _payableDays(employeeId, storeId);
+    final days = _payableDays(employeeId, storeId, from: from, to: to);
     if (days.isEmpty) return null;
 
     final settings = MockQueries.storeSettings(storeId);
@@ -112,18 +123,43 @@ abstract final class PayrollMutations {
   }
 
   /// Unpaid, finished days for this employee at this store — most recent
-  /// first. A day that is not `done` is not payable yet.
-  static List<Attendance> _payableDays(String employeeId, String storeId) {
+  /// first. A day that is not `done` is not payable yet. [from] / [to] bound
+  /// the range (inclusive, calendar days); the lower bound is never earlier
+  /// than the employee's hire date.
+  static List<Attendance> _payableDays(
+    String employeeId,
+    String storeId, {
+    DateTime? from,
+    DateTime? to,
+  }) {
+    final employee = MockQueries.employeeById(employeeId);
+    final lower = _laterOf(
+      from == null ? null : _dayOnly(from),
+      employee == null ? null : _dayOnly(employee.hireDate),
+    );
+    final upper = to == null ? null : _dayOnly(to);
+
     final days =
         MockQueries.attendancesForEmployee(employeeId)
             .where(
               (a) =>
                   a.storeId == storeId &&
                   a.status == AttendanceStatus.done &&
-                  a.paymentStatus == PaymentStatus.unpaid,
+                  a.paymentStatus == PaymentStatus.unpaid &&
+                  (lower == null || !a.date.isBefore(lower)) &&
+                  (upper == null || !a.date.isAfter(upper)),
             )
             .toList()
           ..sort((a, b) => b.date.compareTo(a.date));
     return days;
+  }
+
+  static DateTime _dayOnly(DateTime value) =>
+      DateTime(value.year, value.month, value.day);
+
+  static DateTime? _laterOf(DateTime? a, DateTime? b) {
+    if (a == null) return b;
+    if (b == null) return a;
+    return a.isAfter(b) ? a : b;
   }
 }

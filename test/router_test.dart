@@ -156,7 +156,6 @@ List<({String label, String path, bool inShell})> _allRoutes() {
       inShell: true,
     ),
     (label: 'payroll', path: Routes.toPayroll(store), inShell: true),
-    (label: 'payroll new', path: Routes.toPayrollNew(store), inShell: true),
     (
       label: 'employee detail',
       path: Routes.toEmployee(store, employee),

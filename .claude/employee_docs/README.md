@@ -13,7 +13,7 @@ as the archived [`_archive/page_personelle_v1.md`](./_archive/page_personelle_v1
 | `phase_2_employee_page.md` | 2 — Foundations + page Employée | **done** — analyze clean, 364 tests, ux_audit 0 |
 | `phase_3_timeclock_board.md` | 3 — Tableau de bord | **done** — analyze clean, 383 tests, ux_audit 0 |
 | `phase_4_attendance_history.md` | 4 — Historique de pointage | **done** — analyze clean, 391 tests, ux_audit 0 |
-| `phase_5_payroll.md` | 5 — Historique de paiement | **done** — analyze clean, 402 tests, ux_audit 0 |
+| `phase_5_payroll.md` | 5 — Historique de paiement | **done** — analyze clean, 416 tests, ux_audit 0 (inclut la refonte de l'écran, §10) |
 | `phase_6_auth_permissions.md` | 6 — Auth + permissions | not started |
 
 Each completion doc should cover, at minimum:

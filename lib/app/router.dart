@@ -10,7 +10,6 @@ import '../features/employees/presentation/pages/attendance_history_page.dart';
 import '../features/employees/presentation/pages/employee_detail_page.dart';
 import '../features/employees/presentation/pages/employees_list_page.dart';
 import '../features/employees/presentation/pages/payroll_history_page.dart';
-import '../features/employees/presentation/pages/payroll_new_page.dart';
 import '../features/employees/presentation/pages/timeclock_board_page.dart';
 import '../features/reports/presentation/pages/price_comparison_report_page.dart';
 import '../features/reports/presentation/pages/reports_dashboard_page.dart';
@@ -431,13 +430,6 @@ final GoRouter appRouter = GoRouter(
           pageBuilder: (context, state) => appPage(
             key: state.pageKey,
             child: PayrollHistoryPage(storeId: _storeId(state)),
-          ),
-        ),
-        GoRoute(
-          path: Routes.payrollNew,
-          pageBuilder: (context, state) => appPage(
-            key: state.pageKey,
-            child: PayrollNewPage(storeId: _storeId(state)),
           ),
         ),
         GoRoute(

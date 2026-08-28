@@ -661,6 +661,13 @@ Extend `test/attendance_test.dart` or add `test/attendance_history_test.dart`:
 **Goal:** payroll periods — list what's been paid, compute a new period day-by-day, and "Payer"
 locks those days against any future period (no double payment).
 
+> **Refonte post-Phase 5.** L'écran a été remplacé par une page jour par jour : ouverture
+> sur **tous les employés**, restriction à une personne via un filtre, barre de filtres en
+> haut (employé · plage de dates Du/Au bornée à l'embauche · statut), 4 KPI, tableau paginé
+> des journées, bouton « Payer » (par employé) borné à la plage affichée.
+> `payroll_new_page.dart` supprimé. Détails :
+> [`employee_docs/phase_5_payroll.md`](./employee_docs/phase_5_payroll.md) §10.
+
 ### Models & derivations
 
 - `lib/models/payroll_period.dart` — `PayrollPeriod`, `PayrollStatus` per §3. Barrel.

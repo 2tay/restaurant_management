@@ -204,6 +204,209 @@ void main() {
     });
   });
 
+  group('paiement borné à la période', () {
+    DateTime daysAgoDate(int n) => DateTime.now().subtract(Duration(days: n));
+
+    test('pay(from:, to:) ne règle que les jours de la plage affichée', () {
+      mockAttendances.addAll([
+        _day(5, employeeId: EmployeeIds.julien, clockIn: (9, 0), clockOut: (17, 0)),
+        _day(60, employeeId: EmployeeIds.julien, clockIn: (9, 0), clockOut: (17, 0)),
+      ]);
+
+      final first = PayrollMutations.pay(
+        EmployeeIds.julien,
+        StoreIds.sablon,
+        from: daysAgoDate(30),
+        to: daysAgoDate(0),
+        paidByEmployeeId: EmployeeIds.marc,
+      )!;
+      expect(first.workedDays, 1);
+      expect(
+        MockQueries.attendanceById('pay-test-employee-julien-5')!.paymentStatus,
+        PaymentStatus.paid,
+      );
+      expect(
+        MockQueries.attendanceById('pay-test-employee-julien-60')!.paymentStatus,
+        PaymentStatus.unpaid,
+      );
+
+      // Élargir la plage règle le jour plus ancien.
+      final second = PayrollMutations.pay(
+        EmployeeIds.julien,
+        StoreIds.sablon,
+        from: daysAgoDate(90),
+        to: daysAgoDate(0),
+        paidByEmployeeId: EmployeeIds.marc,
+      )!;
+      expect(second.workedDays, 1);
+      expect(
+        MockQueries.attendanceById('pay-test-employee-julien-60')!.paymentStatus,
+        PaymentStatus.paid,
+      );
+    });
+
+    test('preview(from:) exclut les jours hors de la plage', () {
+      mockAttendances.addAll([
+        _day(5, employeeId: EmployeeIds.julien, clockIn: (9, 0), clockOut: (17, 0)),
+        _day(60, employeeId: EmployeeIds.julien, clockIn: (9, 0), clockOut: (17, 0)),
+      ]);
+      expect(
+        PayrollMutations.preview(
+          EmployeeIds.julien,
+          StoreIds.sablon,
+          from: daysAgoDate(30),
+        ).days,
+        hasLength(1),
+      );
+      expect(
+        PayrollMutations.preview(EmployeeIds.julien, StoreIds.sablon).days,
+        hasLength(2),
+      );
+    });
+
+    test('un jour avant la date d\'embauche n\'est jamais payable', () {
+      // Julien a été embauché il y a ~4 mois — un jour d'il y a 200 jours
+      // est antérieur à son embauche.
+      mockAttendances.add(
+        _day(200, employeeId: EmployeeIds.julien, clockIn: (9, 0), clockOut: (17, 0)),
+      );
+      expect(
+        PayrollMutations.preview(EmployeeIds.julien, StoreIds.sablon).days,
+        isEmpty,
+      );
+      expect(
+        PayrollMutations.pay(
+          EmployeeIds.julien,
+          StoreIds.sablon,
+          paidByEmployeeId: EmployeeIds.marc,
+        ),
+        isNull,
+      );
+    });
+  });
+
+  group('payrollDays', () {
+    DateTime daysAgoDate(int n) => DateTime.now().subtract(Duration(days: n));
+
+    test('compte les jours payés et non payés, hors filtre de statut', () {
+      mockAttendances.addAll([
+        _day(4, employeeId: EmployeeIds.julien, clockIn: (9, 0), clockOut: (17, 0)),
+        _day(
+          5,
+          employeeId: EmployeeIds.julien,
+          clockIn: (9, 0),
+          clockOut: (17, 0),
+          payment: PaymentStatus.paid,
+        ),
+      ]);
+
+      final all = MockQueries.payrollDays(
+        StoreIds.sablon,
+        employeeId: EmployeeIds.julien,
+      );
+      expect(all.paidDays, 1);
+      expect(all.unpaidDays, 1);
+      expect(all.rows, hasLength(2));
+
+      final unpaidOnly = MockQueries.payrollDays(
+        StoreIds.sablon,
+        employeeId: EmployeeIds.julien,
+        status: PaymentStatus.unpaid,
+      );
+      expect(unpaidOnly.rows, hasLength(1));
+      expect(unpaidOnly.totalCount, 1);
+      // Le filtre du tableau ne touche pas les compteurs.
+      expect(unpaidOnly.paidDays, 1);
+      expect(unpaidOnly.unpaidDays, 1);
+    });
+
+    test('sans employeeId, agrège toutes les personnes actives du magasin', () {
+      // Deux personnes différentes, une journée terminée non payée chacune.
+      mockAttendances.addAll([
+        _day(4, employeeId: EmployeeIds.julien, clockIn: (9, 0), clockOut: (17, 0)),
+        _day(4, employeeId: EmployeeIds.amelie, clockIn: (9, 0), clockOut: (17, 0)),
+      ]);
+
+      final store = MockQueries.payrollDays(StoreIds.sablon);
+      final julienOnly = MockQueries.payrollDays(
+        StoreIds.sablon,
+        employeeId: EmployeeIds.julien,
+      );
+
+      expect(
+        store.rows.map((a) => a.employeeId).toSet(),
+        containsAll(<String>{EmployeeIds.julien, EmployeeIds.amelie}),
+      );
+      expect(store.unpaidDays, greaterThan(julienOnly.unpaidDays));
+    });
+
+    test('applique la plage from / to', () {
+      mockAttendances.addAll([
+        _day(5, employeeId: EmployeeIds.julien, clockIn: (9, 0), clockOut: (17, 0)),
+        _day(60, employeeId: EmployeeIds.julien, clockIn: (9, 0), clockOut: (17, 0)),
+      ]);
+      final windowed = MockQueries.payrollDays(
+        StoreIds.sablon,
+        employeeId: EmployeeIds.julien,
+        from: daysAgoDate(30),
+        to: daysAgoDate(0),
+      );
+      expect(windowed.rows, hasLength(1));
+      expect(windowed.paidDays + windowed.unpaidDays, 1);
+    });
+
+    test('exclut les jours avant la date d\'embauche', () {
+      mockAttendances.add(
+        _day(200, employeeId: EmployeeIds.julien, clockIn: (9, 0), clockOut: (17, 0)),
+      );
+      final data = MockQueries.payrollDays(
+        StoreIds.sablon,
+        employeeId: EmployeeIds.julien,
+        from: daysAgoDate(365),
+      );
+      expect(data.rows, isEmpty);
+      expect(data.paidDays + data.unpaidDays, 0);
+    });
+
+    test('pagine au-delà de la taille de page', () {
+      for (var i = 4; i < 40; i++) {
+        mockAttendances.add(
+          _day(i, employeeId: EmployeeIds.julien, clockIn: (9, 0), clockOut: (17, 0)),
+        );
+      }
+      final first = MockQueries.payrollDays(
+        StoreIds.sablon,
+        employeeId: EmployeeIds.julien,
+        from: daysAgoDate(365),
+        pageSize: 25,
+      );
+      expect(first.rows, hasLength(25));
+      expect(first.pageCount, 2);
+      expect(first.totalCount, 36);
+
+      final second = MockQueries.payrollDays(
+        StoreIds.sablon,
+        employeeId: EmployeeIds.julien,
+        from: daysAgoDate(365),
+        pageSize: 25,
+        page: 1,
+      );
+      expect(second.rows, hasLength(11));
+      expect(second.page, 1);
+    });
+
+    test('somme les heures travaillées des journées terminées', () {
+      mockAttendances.add(
+        _day(4, employeeId: EmployeeIds.julien, clockIn: (9, 0), clockOut: (17, 0)),
+      );
+      final data = MockQueries.payrollDays(
+        StoreIds.sablon,
+        employeeId: EmployeeIds.julien,
+      );
+      expect(data.worked, greaterThanOrEqualTo(const Duration(hours: 7)));
+    });
+  });
+
   test('the seed has one paid period, consistent with its days', () {
     expect(
       mockPayrollPeriods.where((p) => p.status == PayrollStatus.paid),

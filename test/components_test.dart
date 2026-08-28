@@ -89,6 +89,49 @@ void main() {
     });
   });
 
+  group('PaymentStatusBadge', () {
+    testWidgets('never communicates status by colour alone', (tester) async {
+      for (final status in PaymentStatus.values) {
+        await tester.pumpWidget(_host(PaymentStatusBadge(status: status)));
+        await tester.pumpAndSettle();
+
+        expect(find.byType(Icon), findsOneWidget, reason: '$status icon');
+        expect(find.byType(Text), findsOneWidget, reason: '$status label');
+      }
+    });
+
+    testWidgets('each status gets a distinct icon, not just a colour', (
+      tester,
+    ) async {
+      final icons =
+          PaymentStatus.values.map(PaymentStatusBadge.iconFor).toSet();
+
+      expect(
+        icons.length,
+        PaymentStatus.values.length,
+        reason: 'statuses must be distinguishable by shape',
+      );
+    });
+
+    testWidgets('shows the right French label per status', (tester) async {
+      await tester.pumpWidget(
+        _host(
+          const Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              PaymentStatusBadge(status: PaymentStatus.paid),
+              PaymentStatusBadge(status: PaymentStatus.unpaid),
+            ],
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Payé'), findsOneWidget);
+      expect(find.text('Non payé'), findsOneWidget);
+    });
+  });
+
   group('QuantityStepper', () {
     testWidgets('+ and - move the value', (tester) async {
       var value = 10.0;

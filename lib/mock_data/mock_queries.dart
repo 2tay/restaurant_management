@@ -819,4 +819,105 @@ abstract final class MockQueries {
       pageCount: pageCount,
     );
   }
+
+  /// Finished (`done`) days for the Historique de paiement screen — the
+  /// day-by-day rows (sliced into a page), the four KPI figures above them,
+  /// and the pager totals.
+  ///
+  /// [employeeId] null means every **active** employee of the store; a value
+  /// scopes to one person (retired employees still resolve). [from] / [to]
+  /// bound the range (inclusive, calendar days), null meaning unbounded on
+  /// that side; the lower bound is never earlier than each employee's own hire
+  /// date — days before someone joined are neither shown nor counted. [status]
+  /// filters the returned [rows] and the pager only: the paid / unpaid day
+  /// counts and the hour totals are always over every finished day in the
+  /// range, so both KPI numbers stay visible whatever the table is filtered
+  /// to. Overtime is measured against each employee's resolved schedule, like
+  /// [attendanceStatsForStore]. [page] is clamped into range.
+  static ({
+    List<Attendance> rows,
+    int paidDays,
+    int unpaidDays,
+    Duration worked,
+    Duration overtime,
+    int totalCount,
+    int page,
+    int pageCount,
+  })
+  payrollDays(
+    String storeId, {
+    String? employeeId,
+    DateTime? from,
+    DateTime? to,
+    PaymentStatus? status,
+    int page = 0,
+    int pageSize = 25,
+  }) {
+    final settings = storeSettings(storeId);
+    DateTime dayOf(DateTime v) => DateTime(v.year, v.month, v.day);
+
+    final employees = employeeId == null
+        ? activeEmployeesForStore(storeId)
+        : [employeeById(employeeId)].whereType<Employee>().toList();
+    final upper = to == null ? null : dayOf(to);
+
+    final matched = <Attendance>[];
+    var worked = Duration.zero;
+    var overtime = Duration.zero;
+
+    for (final employee in employees) {
+      final hire = dayOf(employee.hireDate);
+      var lower = from == null ? null : dayOf(from);
+      if (lower == null || lower.isBefore(hire)) lower = hire;
+      final schedule = resolvedSchedule(
+        employee,
+        storeOpenMinutes: settings.openMinutes,
+        storeCloseMinutes: settings.closeMinutes,
+      );
+
+      for (final a in mockAttendances) {
+        if (a.employeeId != employee.id) continue;
+        if (a.storeId != storeId) continue;
+        if (a.status != AttendanceStatus.done) continue;
+        if (a.date.isBefore(lower)) continue;
+        if (upper != null && a.date.isAfter(upper)) continue;
+
+        matched.add(a);
+        worked += workedDuration(a) ?? Duration.zero;
+        overtime += overtimeBy(a, schedule.endMinutes) ?? Duration.zero;
+      }
+    }
+
+    matched.sort((a, b) {
+      final byDate = b.date.compareTo(a.date);
+      if (byDate != 0) return byDate;
+      return a.employeeId.compareTo(b.employeeId);
+    });
+
+    final paid =
+        matched.where((a) => a.paymentStatus == PaymentStatus.paid).length;
+    final unpaid = matched.length - paid;
+
+    final filtered = status == null
+        ? matched
+        : matched.where((a) => a.paymentStatus == status).toList();
+
+    final pageCount = filtered.isEmpty
+        ? 1
+        : (filtered.length + pageSize - 1) ~/ pageSize;
+    final safePage = page.clamp(0, pageCount - 1);
+    final start = safePage * pageSize;
+    final end = (start + pageSize).clamp(0, filtered.length);
+
+    return (
+      rows: filtered.sublist(start, end),
+      paidDays: paid,
+      unpaidDays: unpaid,
+      worked: worked,
+      overtime: overtime,
+      totalCount: filtered.length,
+      page: safePage,
+      pageCount: pageCount,
+    );
+  }
 }

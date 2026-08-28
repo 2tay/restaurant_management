@@ -78,7 +78,6 @@ abstract final class Routes {
   static const String timeclock = '$employees/timeclock';
   static const String attendanceHistory = '$employees/attendance-history';
   static const String payroll = '$employees/payroll';
-  static const String payrollNew = '$payroll/new';
   static const String employeeDetail = '$employees/:employeeId';
   static const String editEmployee = '$employeeDetail/edit';
 
@@ -196,9 +195,6 @@ abstract final class Routes {
 
   static String toPayroll(String storeId) =>
       '/store/$storeId/employees/payroll';
-
-  static String toPayrollNew(String storeId) =>
-      '/store/$storeId/employees/payroll/new';
 
   static String toStoreSettings(String storeId) =>
       '/store/$storeId/settings/store';
