@@ -15,6 +15,11 @@ dataset now fails loudly instead of quietly producing an orphan.
 ## Dates
 
 The dataset's dates are all offsets from a single "now", so the demo always looks recent —
-an order sent three days ago, a delivery due tomorrow. The seed records the moment it ran
-in the `meta` table and derives from that, so a re-seed months later still produces a
-plausible recent history rather than one anchored to whenever the app was first opened.
+an order sent three days ago, a delivery due tomorrow. `seedDemoData` takes that instant as
+an argument, shifts every date by the difference, and records what it used in `meta`. A
+re-seed months later therefore still produces a plausible recent history rather than one
+anchored to whenever the app was first opened.
+
+The app passes nothing and gets the clock. Tests pass a fixed instant and get a dataset
+whose dates they can assert on — which the mock lists, frozen against `DateTime.now()` at
+library load, could never offer.

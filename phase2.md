@@ -292,6 +292,73 @@ inserts with `foreign_keys` on, so a broken reference now fails loudly.
 **Done when:** `flutter test` green (old suites untouched, seed suite new), and
 `test/db/seed_test.dart` proves a seeded DB matches the dataset the demo path relies on.
 
+### As built — the seed takes its clock as an argument
+
+Stage 2 is done. `test/db/seed_test.dart` is 22 tests; the app opens and seeds the real file
+at startup while every screen still reads the mock lists.
+
+**1. `seedDemoData(db, {DateTime? at})` — the anchor is a parameter, not a record.** The plan
+asked for `seededAt` in `meta` "so a re-seed reproduces relative dates rather than drifting",
+which on inspection is not something a stored timestamp can do on its own: the dataset's dates
+are already resolved into `DateTime`s by the time the seed sees them, frozen against
+`mockNow` at library load. So the seed shifts every date by `at - mockNow`, which re-anchors
+the whole timeline — the commande sent three days before `mockNow` is sent three days before
+`at`. `at` defaults to `DateTime.now()`, and the instant used is written to `meta.seededAt`.
+
+The payoff is bigger than reproducibility. `mock_data_test.dart` opens by saying *"Dates are
+anchored to `DateTime.now()`, so nothing here asserts on them."* That restriction is gone:
+`test/support/db_fixture.dart` seeds at a fixed `seedInstant`, so a test can now name a date.
+Stage 6 needs that — `orderIsStale` is a question about days elapsed.
+
+**2. `test/support/db_fixture.dart` arrives here, not in stage 4.** `seed_test.dart` needed it
+already, and writing it twice would be worse. `openSeededDatabase()` / `openEmptyDatabase()`,
+both self-closing via `addTearDown`. It sets `dontWarnAboutMultipleDatabases` — a few tests
+hold two databases at once and drift warns about that because two objects sharing an executor
+race; these share nothing.
+
+**3. `clearAllData` deletes in reverse foreign-key order rather than switching the
+constraints off.** `PRAGMA foreign_keys = OFF` around a delete is a habit that eventually
+gets used somewhere it hides a real bug. Reverse order is fifteen lines and cannot.
+
+**4. `lib/services/local_database_service.dart` is deleted, not implemented.** The Phase 1
+brief reserved four service stubs; this stage was meant to turn that one into "the real
+thing". What it would actually contain — open the file, seed if empty, hold the instance —
+is `lib/data/database/bootstrap.dart` plus stage 8's `databaseProvider`, and the opening logic
+belongs with the data layer because it needs the seed. A forwarding class under
+`lib/services/` would have been a second name for one thing, and a second place to look. The
+other three stubs are untouched and stay for Phase 3.
+
+**5. `databaseProvider` is pulled forward from stage 8, alone.** Without it, "the app opens
+the database at startup" means opening a file and dropping the handle. `lib/data/providers.dart`
+holds `databaseProvider` (no default — `main()` and every test must override it) and
+`demoRepositoryProvider`, and nothing else; stage 8 still owns the per-screen
+`StreamProvider.family` layer, which is the bulk of it. `main()` now awaits
+`openAppDatabase()` before the first frame.
+
+**6. Carried over from stage 1 and now covered:** the six references the schema deliberately
+does not enforce get their own group in `seed_test.dart`, because they are exactly the ones
+the database will not check for us — a delivery's supplier, a commande's supplier, both line
+tables' article, an article's default supplier, a notification's targets.
+
+**Still open, for stage 9:** `sync_status_page.dart` reads `MockWrite.hasChanges` to grey out
+the reset button. There is no cheap equivalent — "does this database differ from the seed" is
+not a query — and reintroducing a write counter to answer it would be rebuilding the thing
+this phase deletes. **The reset action becomes always available.** Resetting an untouched demo
+is a no-op that costs nothing, and the disabled state was a nicety, not a safeguard.
+
+**Verified at the stage boundary:** `flutter analyze` clean; `flutter test` 426/426 green
+(404 existing, 22 new); `python tool/ux_audit.py` clean.
+
+**Not verified, and worth knowing:** that `sqlite3_flutter_libs` *links* into a built app, as
+opposed to resolving as a package. `flutter build windows` cannot run on this machine — no
+Visual Studio C++ toolchain — so the only evidence so far is that `flutter pub get`
+regenerated the Windows, Linux and macOS plugin registrants to include it. That is a real
+gap: the tests reach SQLite through `winsqlite3.dll`, a different library entirely, so
+nothing exercised so far would notice if the plugin failed to build. **Run a real
+`flutter build` on the machine the app is actually built on, before stage 9** — a linking
+failure found at the screen cutover would look like an app that will not start, for reasons
+nothing in this document points at.
+
 ---
 
 ## Stage 3 — Read repositories *(L)*
