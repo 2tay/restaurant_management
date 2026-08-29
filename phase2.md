@@ -183,6 +183,76 @@ later stage's tests depend on this working.
 `test/db/schema_test.dart` opens `AppDatabase.memory()`, asserts all 14 tables exist,
 `foreign_keys` is on, and that inserting an item with a bogus `categoryId` throws.
 
+### As built — the foreign-key map is not the one this plan drew
+
+Stage 1 is done. `test/db/schema_test.dart` is 13 tests and runs in under a second.
+
+**1. Sixteen tables, not fourteen.** The plan's own list came to fifteen once counted
+(`team_member_stores` was described but not numbered). The sixteenth is `meta`, moved up
+from Stage 2: it is part of the schema, and adding it later would mean a version bump and a
+migration before the first version has ever been opened.
+
+**2. `stock_movements.supplierId` must NOT be `ON DELETE SET NULL`.** This is the one thing
+the plan got backwards, and it took reading `supplier_mutations.dart:112-121` to see it. The
+rule is not "a deleted supplier must not unmake goods that moved" in the sense of keeping the
+*row* — it is that **the movement keeps their id** and renders "Fournisseur supprimé".
+`SET NULL` erases the id and makes the past tidier than it was. The column carries no foreign
+key at all.
+
+That turned out to be a pattern rather than a one-off. Five references are deliberately not
+enforced, each because Phase 1 permits the reference to dangle and an FK would force a
+behaviour change to make the constraint true:
+
+| Column | Why no FK |
+|---|---|
+| `stock_movements.supplierId` | above |
+| `purchase_orders.supplierId` | a supplier can be deleted once they have no *open* order, and their closed orders are kept — that history is how an owner sees who they used to buy from |
+| `purchase_order_lines.itemId` | an article is only delete-blocked by an **open** order. An FK would either forbid deleting anything ever ordered, or delete lines out of a completed commande |
+| `goods_receipt_lines.itemId` | same, and worse: a receipt is permanent |
+| `items.defaultSupplierId` | deleting a supplier does not walk the catalogue clearing it; the screen reads a miss as "no preference" |
+| `notifications.relatedItemId` / `relatedSupplierId` | the message still reads correctly once the target is gone; only the tap target disappears |
+
+Everything else is enforced, and the two that matter are `RESTRICT`:
+`items.categoryId` and `items.unitId`, so "a category in use cannot be deleted" is a fact
+about the database and not only a check somebody could forget to call. The repository keeps
+its own check as well — that one produces the count the dialog shows.
+
+**This changes Stage 2's seed test.** "A broken reference now fails loudly" is true for the
+enforced references only. The seed test should assert the loose ones resolve *in the seed*,
+since the schema will no longer do it for us.
+
+**3. No `converters/` folder.** drift's `textEnum<T>()` already stores an enum as its name
+string, which was the whole property worth having. Hand-written `TypeConverter`s would be
+the same behaviour spelled out at length. The folder is gone; a test pins the format.
+
+**4. Two build options, both in `build.yaml` with the reasoning next to them.**
+`store_date_time_values_as_text: true` — drift's integer format is whole seconds, and
+receiving a delivery writes several movements in the same tick, so second precision would
+turn "newest first" into ties broken by chance; it also makes Stage 10's
+`strftime('%Y-%m', col)` correct without the `'unixepoch'` modifier that silently returns
+1970 when forgotten. `generate_manager: false` — we do not use drift's fluent manager API
+(the repositories are hand-written, and several reads are joins and grouped aggregates it
+cannot express); switching it off took `app_database.g.dart` from 16 692 lines to 8 460.
+
+**5. The Windows test gotcha is solved with the OS's own `winsqlite3.dll`**, loaded by bare
+name in `test/support/sqlite.dart` and called from `setUpAll(useTestSqlite)`. No download, no
+gitignored artefact, nothing to set up on a new machine. It is SQLite 3.43 against the 3.51
+the app bundles; nothing in this schema is newer than 3.43, and the day something is, the
+test suite is where it fails first.
+
+**6. A trap for every stage from here: `flutter analyze` cannot see generated code.**
+`app_database.g.dart` is a `part of` the database library, so it compiles against *that
+file's* imports — but the analyzer excludes `**/*.g.dart`, so a missing import there is
+invisible to `flutter analyze` and shows up only when something actually compiles the part.
+It cost a green analyze followed by twenty compile errors in the first test run. The four
+model-enum imports at the top of `app_database.dart` look unused and are not; there is a
+comment saying so. **`flutter analyze` passing is not evidence that the generated code
+compiles — run the tests.**
+
+**Verified at the stage boundary:** `flutter analyze` clean; `flutter test` 404/404 green
+(391 existing, 13 new); `python tool/ux_audit.py` clean; `dart run build_runner build
+--force-jit` regenerates identically.
+
 ---
 
 ## Stage 2 — Mappers, seed, and bootstrap *(M)*

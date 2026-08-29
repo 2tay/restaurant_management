@@ -6,8 +6,7 @@ thing — screens read `lib/mock_data/` directly and writes edited global lists.
 ```
 database/      the drift schema and the AppDatabase class
   tables/        one file per table group
-  converters/    enum <-> text TypeConverters
-  migrations/    MigrationStrategy + drift's schema dumps
+  migrations/    drift's schema dumps, from version 2 onward
 mappers/       row <-> model, one file per aggregate
 repositories/  the only code allowed to read or write the database
 seed/          the demo dataset, loaded on first launch
