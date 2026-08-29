@@ -5441,6 +5441,17 @@ class $PurchaseOrderLinesTable extends PurchaseOrderLines
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _positionMeta = const VerificationMeta(
+    'position',
+  );
+  @override
+  late final GeneratedColumn<int> position = GeneratedColumn<int>(
+    'position',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -5450,6 +5461,7 @@ class $PurchaseOrderLinesTable extends PurchaseOrderLines
     quantityReceived,
     unitPrice,
     closedShort,
+    position,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -5521,6 +5533,14 @@ class $PurchaseOrderLinesTable extends PurchaseOrderLines
         ),
       );
     }
+    if (data.containsKey('position')) {
+      context.handle(
+        _positionMeta,
+        position.isAcceptableOrUnknown(data['position']!, _positionMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_positionMeta);
+    }
     return context;
   }
 
@@ -5558,6 +5578,10 @@ class $PurchaseOrderLinesTable extends PurchaseOrderLines
         DriftSqlType.bool,
         data['${effectivePrefix}closed_short'],
       )!,
+      position: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}position'],
+      )!,
     );
   }
 
@@ -5591,6 +5615,16 @@ class PurchaseOrderLineRow extends DataClass
   /// The receiver said the rest is not coming. Settles the line short rather
   /// than leaving the commande open forever with an inflated on-order quantity.
   final bool closedShort;
+
+  /// Where this line sits in the commande, from zero.
+  ///
+  /// `PurchaseOrder.lines` is an ordered list on the model, and a child table
+  /// has no order of its own. Sorting by `id` would work for the demo, whose
+  /// line ids happen to end in an ordinal, and would shuffle a real commande
+  /// into UUID order the moment it was saved — the person who typed the lines
+  /// would watch them rearrange. Sorting by `rowid` would work until the day
+  /// somebody runs `VACUUM`. So the position is a column.
+  final int position;
   const PurchaseOrderLineRow({
     required this.id,
     required this.orderId,
@@ -5599,6 +5633,7 @@ class PurchaseOrderLineRow extends DataClass
     required this.quantityReceived,
     required this.unitPrice,
     required this.closedShort,
+    required this.position,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -5610,6 +5645,7 @@ class PurchaseOrderLineRow extends DataClass
     map['quantity_received'] = Variable<double>(quantityReceived);
     map['unit_price'] = Variable<double>(unitPrice);
     map['closed_short'] = Variable<bool>(closedShort);
+    map['position'] = Variable<int>(position);
     return map;
   }
 
@@ -5622,6 +5658,7 @@ class PurchaseOrderLineRow extends DataClass
       quantityReceived: Value(quantityReceived),
       unitPrice: Value(unitPrice),
       closedShort: Value(closedShort),
+      position: Value(position),
     );
   }
 
@@ -5638,6 +5675,7 @@ class PurchaseOrderLineRow extends DataClass
       quantityReceived: serializer.fromJson<double>(json['quantityReceived']),
       unitPrice: serializer.fromJson<double>(json['unitPrice']),
       closedShort: serializer.fromJson<bool>(json['closedShort']),
+      position: serializer.fromJson<int>(json['position']),
     );
   }
   @override
@@ -5651,6 +5689,7 @@ class PurchaseOrderLineRow extends DataClass
       'quantityReceived': serializer.toJson<double>(quantityReceived),
       'unitPrice': serializer.toJson<double>(unitPrice),
       'closedShort': serializer.toJson<bool>(closedShort),
+      'position': serializer.toJson<int>(position),
     };
   }
 
@@ -5662,6 +5701,7 @@ class PurchaseOrderLineRow extends DataClass
     double? quantityReceived,
     double? unitPrice,
     bool? closedShort,
+    int? position,
   }) => PurchaseOrderLineRow(
     id: id ?? this.id,
     orderId: orderId ?? this.orderId,
@@ -5670,6 +5710,7 @@ class PurchaseOrderLineRow extends DataClass
     quantityReceived: quantityReceived ?? this.quantityReceived,
     unitPrice: unitPrice ?? this.unitPrice,
     closedShort: closedShort ?? this.closedShort,
+    position: position ?? this.position,
   );
   PurchaseOrderLineRow copyWithCompanion(PurchaseOrderLinesCompanion data) {
     return PurchaseOrderLineRow(
@@ -5686,6 +5727,7 @@ class PurchaseOrderLineRow extends DataClass
       closedShort: data.closedShort.present
           ? data.closedShort.value
           : this.closedShort,
+      position: data.position.present ? data.position.value : this.position,
     );
   }
 
@@ -5698,7 +5740,8 @@ class PurchaseOrderLineRow extends DataClass
           ..write('quantityOrdered: $quantityOrdered, ')
           ..write('quantityReceived: $quantityReceived, ')
           ..write('unitPrice: $unitPrice, ')
-          ..write('closedShort: $closedShort')
+          ..write('closedShort: $closedShort, ')
+          ..write('position: $position')
           ..write(')'))
         .toString();
   }
@@ -5712,6 +5755,7 @@ class PurchaseOrderLineRow extends DataClass
     quantityReceived,
     unitPrice,
     closedShort,
+    position,
   );
   @override
   bool operator ==(Object other) =>
@@ -5723,7 +5767,8 @@ class PurchaseOrderLineRow extends DataClass
           other.quantityOrdered == this.quantityOrdered &&
           other.quantityReceived == this.quantityReceived &&
           other.unitPrice == this.unitPrice &&
-          other.closedShort == this.closedShort);
+          other.closedShort == this.closedShort &&
+          other.position == this.position);
 }
 
 class PurchaseOrderLinesCompanion
@@ -5735,6 +5780,7 @@ class PurchaseOrderLinesCompanion
   final Value<double> quantityReceived;
   final Value<double> unitPrice;
   final Value<bool> closedShort;
+  final Value<int> position;
   final Value<int> rowid;
   const PurchaseOrderLinesCompanion({
     this.id = const Value.absent(),
@@ -5744,6 +5790,7 @@ class PurchaseOrderLinesCompanion
     this.quantityReceived = const Value.absent(),
     this.unitPrice = const Value.absent(),
     this.closedShort = const Value.absent(),
+    this.position = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   PurchaseOrderLinesCompanion.insert({
@@ -5754,12 +5801,14 @@ class PurchaseOrderLinesCompanion
     this.quantityReceived = const Value.absent(),
     required double unitPrice,
     this.closedShort = const Value.absent(),
+    required int position,
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        orderId = Value(orderId),
        itemId = Value(itemId),
        quantityOrdered = Value(quantityOrdered),
-       unitPrice = Value(unitPrice);
+       unitPrice = Value(unitPrice),
+       position = Value(position);
   static Insertable<PurchaseOrderLineRow> custom({
     Expression<String>? id,
     Expression<String>? orderId,
@@ -5768,6 +5817,7 @@ class PurchaseOrderLinesCompanion
     Expression<double>? quantityReceived,
     Expression<double>? unitPrice,
     Expression<bool>? closedShort,
+    Expression<int>? position,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -5778,6 +5828,7 @@ class PurchaseOrderLinesCompanion
       if (quantityReceived != null) 'quantity_received': quantityReceived,
       if (unitPrice != null) 'unit_price': unitPrice,
       if (closedShort != null) 'closed_short': closedShort,
+      if (position != null) 'position': position,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -5790,6 +5841,7 @@ class PurchaseOrderLinesCompanion
     Value<double>? quantityReceived,
     Value<double>? unitPrice,
     Value<bool>? closedShort,
+    Value<int>? position,
     Value<int>? rowid,
   }) {
     return PurchaseOrderLinesCompanion(
@@ -5800,6 +5852,7 @@ class PurchaseOrderLinesCompanion
       quantityReceived: quantityReceived ?? this.quantityReceived,
       unitPrice: unitPrice ?? this.unitPrice,
       closedShort: closedShort ?? this.closedShort,
+      position: position ?? this.position,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -5828,6 +5881,9 @@ class PurchaseOrderLinesCompanion
     if (closedShort.present) {
       map['closed_short'] = Variable<bool>(closedShort.value);
     }
+    if (position.present) {
+      map['position'] = Variable<int>(position.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -5844,6 +5900,7 @@ class PurchaseOrderLinesCompanion
           ..write('quantityReceived: $quantityReceived, ')
           ..write('unitPrice: $unitPrice, ')
           ..write('closedShort: $closedShort, ')
+          ..write('position: $position, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -6396,6 +6453,17 @@ class $GoodsReceiptLinesTable extends GoodsReceiptLines
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _positionMeta = const VerificationMeta(
+    'position',
+  );
+  @override
+  late final GeneratedColumn<int> position = GeneratedColumn<int>(
+    'position',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -6407,6 +6475,7 @@ class $GoodsReceiptLinesTable extends GoodsReceiptLines
     closedShort,
     wasUnordered,
     note,
+    position,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -6498,6 +6567,14 @@ class $GoodsReceiptLinesTable extends GoodsReceiptLines
         note.isAcceptableOrUnknown(data['note']!, _noteMeta),
       );
     }
+    if (data.containsKey('position')) {
+      context.handle(
+        _positionMeta,
+        position.isAcceptableOrUnknown(data['position']!, _positionMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_positionMeta);
+    }
     return context;
   }
 
@@ -6543,6 +6620,10 @@ class $GoodsReceiptLinesTable extends GoodsReceiptLines
         DriftSqlType.string,
         data['${effectivePrefix}note'],
       ),
+      position: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}position'],
+      )!,
     );
   }
 
@@ -6575,6 +6656,12 @@ class GoodsReceiptLineRow extends DataClass
   /// deliberately not added to the commande — the commande is what was agreed.
   final bool wasUnordered;
   final String? note;
+
+  /// Where this line sits on the document, from zero. See the same column on
+  /// `purchase_order_lines`; it matters more here, because the bon de réception
+  /// is a pure projection of the receipt and two renders of it have to produce
+  /// the same page.
+  final int position;
   const GoodsReceiptLineRow({
     required this.id,
     required this.receiptId,
@@ -6585,6 +6672,7 @@ class GoodsReceiptLineRow extends DataClass
     required this.closedShort,
     required this.wasUnordered,
     this.note,
+    required this.position,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -6600,6 +6688,7 @@ class GoodsReceiptLineRow extends DataClass
     if (!nullToAbsent || note != null) {
       map['note'] = Variable<String>(note);
     }
+    map['position'] = Variable<int>(position);
     return map;
   }
 
@@ -6614,6 +6703,7 @@ class GoodsReceiptLineRow extends DataClass
       closedShort: Value(closedShort),
       wasUnordered: Value(wasUnordered),
       note: note == null && nullToAbsent ? const Value.absent() : Value(note),
+      position: Value(position),
     );
   }
 
@@ -6632,6 +6722,7 @@ class GoodsReceiptLineRow extends DataClass
       closedShort: serializer.fromJson<bool>(json['closedShort']),
       wasUnordered: serializer.fromJson<bool>(json['wasUnordered']),
       note: serializer.fromJson<String?>(json['note']),
+      position: serializer.fromJson<int>(json['position']),
     );
   }
   @override
@@ -6647,6 +6738,7 @@ class GoodsReceiptLineRow extends DataClass
       'closedShort': serializer.toJson<bool>(closedShort),
       'wasUnordered': serializer.toJson<bool>(wasUnordered),
       'note': serializer.toJson<String?>(note),
+      'position': serializer.toJson<int>(position),
     };
   }
 
@@ -6660,6 +6752,7 @@ class GoodsReceiptLineRow extends DataClass
     bool? closedShort,
     bool? wasUnordered,
     Value<String?> note = const Value.absent(),
+    int? position,
   }) => GoodsReceiptLineRow(
     id: id ?? this.id,
     receiptId: receiptId ?? this.receiptId,
@@ -6670,6 +6763,7 @@ class GoodsReceiptLineRow extends DataClass
     closedShort: closedShort ?? this.closedShort,
     wasUnordered: wasUnordered ?? this.wasUnordered,
     note: note.present ? note.value : this.note,
+    position: position ?? this.position,
   );
   GoodsReceiptLineRow copyWithCompanion(GoodsReceiptLinesCompanion data) {
     return GoodsReceiptLineRow(
@@ -6692,6 +6786,7 @@ class GoodsReceiptLineRow extends DataClass
           ? data.wasUnordered.value
           : this.wasUnordered,
       note: data.note.present ? data.note.value : this.note,
+      position: data.position.present ? data.position.value : this.position,
     );
   }
 
@@ -6706,7 +6801,8 @@ class GoodsReceiptLineRow extends DataClass
           ..write('actualUnitPrice: $actualUnitPrice, ')
           ..write('closedShort: $closedShort, ')
           ..write('wasUnordered: $wasUnordered, ')
-          ..write('note: $note')
+          ..write('note: $note, ')
+          ..write('position: $position')
           ..write(')'))
         .toString();
   }
@@ -6722,6 +6818,7 @@ class GoodsReceiptLineRow extends DataClass
     closedShort,
     wasUnordered,
     note,
+    position,
   );
   @override
   bool operator ==(Object other) =>
@@ -6735,7 +6832,8 @@ class GoodsReceiptLineRow extends DataClass
           other.actualUnitPrice == this.actualUnitPrice &&
           other.closedShort == this.closedShort &&
           other.wasUnordered == this.wasUnordered &&
-          other.note == this.note);
+          other.note == this.note &&
+          other.position == this.position);
 }
 
 class GoodsReceiptLinesCompanion extends UpdateCompanion<GoodsReceiptLineRow> {
@@ -6748,6 +6846,7 @@ class GoodsReceiptLinesCompanion extends UpdateCompanion<GoodsReceiptLineRow> {
   final Value<bool> closedShort;
   final Value<bool> wasUnordered;
   final Value<String?> note;
+  final Value<int> position;
   final Value<int> rowid;
   const GoodsReceiptLinesCompanion({
     this.id = const Value.absent(),
@@ -6759,6 +6858,7 @@ class GoodsReceiptLinesCompanion extends UpdateCompanion<GoodsReceiptLineRow> {
     this.closedShort = const Value.absent(),
     this.wasUnordered = const Value.absent(),
     this.note = const Value.absent(),
+    this.position = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   GoodsReceiptLinesCompanion.insert({
@@ -6771,13 +6871,15 @@ class GoodsReceiptLinesCompanion extends UpdateCompanion<GoodsReceiptLineRow> {
     this.closedShort = const Value.absent(),
     this.wasUnordered = const Value.absent(),
     this.note = const Value.absent(),
+    required int position,
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        receiptId = Value(receiptId),
        itemId = Value(itemId),
        quantityOrdered = Value(quantityOrdered),
        quantityReceived = Value(quantityReceived),
-       actualUnitPrice = Value(actualUnitPrice);
+       actualUnitPrice = Value(actualUnitPrice),
+       position = Value(position);
   static Insertable<GoodsReceiptLineRow> custom({
     Expression<String>? id,
     Expression<String>? receiptId,
@@ -6788,6 +6890,7 @@ class GoodsReceiptLinesCompanion extends UpdateCompanion<GoodsReceiptLineRow> {
     Expression<bool>? closedShort,
     Expression<bool>? wasUnordered,
     Expression<String>? note,
+    Expression<int>? position,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -6800,6 +6903,7 @@ class GoodsReceiptLinesCompanion extends UpdateCompanion<GoodsReceiptLineRow> {
       if (closedShort != null) 'closed_short': closedShort,
       if (wasUnordered != null) 'was_unordered': wasUnordered,
       if (note != null) 'note': note,
+      if (position != null) 'position': position,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -6814,6 +6918,7 @@ class GoodsReceiptLinesCompanion extends UpdateCompanion<GoodsReceiptLineRow> {
     Value<bool>? closedShort,
     Value<bool>? wasUnordered,
     Value<String?>? note,
+    Value<int>? position,
     Value<int>? rowid,
   }) {
     return GoodsReceiptLinesCompanion(
@@ -6826,6 +6931,7 @@ class GoodsReceiptLinesCompanion extends UpdateCompanion<GoodsReceiptLineRow> {
       closedShort: closedShort ?? this.closedShort,
       wasUnordered: wasUnordered ?? this.wasUnordered,
       note: note ?? this.note,
+      position: position ?? this.position,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -6860,6 +6966,9 @@ class GoodsReceiptLinesCompanion extends UpdateCompanion<GoodsReceiptLineRow> {
     if (note.present) {
       map['note'] = Variable<String>(note.value);
     }
+    if (position.present) {
+      map['position'] = Variable<int>(position.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -6878,6 +6987,7 @@ class GoodsReceiptLinesCompanion extends UpdateCompanion<GoodsReceiptLineRow> {
           ..write('closedShort: $closedShort, ')
           ..write('wasUnordered: $wasUnordered, ')
           ..write('note: $note, ')
+          ..write('position: $position, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();

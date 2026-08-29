@@ -258,6 +258,7 @@ void main() {
               itemId: 'item-1',
               quantityOrdered: 4,
               unitPrice: 3,
+              position: 0,
             ),
           );
 

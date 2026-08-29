@@ -83,7 +83,8 @@ Future<void> seedDemoData(AppDatabase db, {DateTime? at}) async {
     ]);
     batch.insertAll(db.purchaseOrderLines, [
       for (final order in mockPurchaseOrders)
-        for (final line in order.lines) orderLineToRow(line, orderId: order.id),
+        for (final (int index, line) in order.lines.indexed)
+          orderLineToRow(line, orderId: order.id, position: index),
     ]);
 
     batch.insertAll(db.goodsReceipts, [
@@ -94,8 +95,8 @@ Future<void> seedDemoData(AppDatabase db, {DateTime? at}) async {
     ]);
     batch.insertAll(db.goodsReceiptLines, [
       for (final receipt in mockGoodsReceipts)
-        for (final line in receipt.lines)
-          receiptLineToRow(line, receiptId: receipt.id),
+        for (final (int index, line) in receipt.lines.indexed)
+          receiptLineToRow(line, receiptId: receipt.id, position: index),
     ]);
 
     batch.insertAll(db.teamMembers, [

@@ -349,15 +349,18 @@ is a no-op that costs nothing, and the disabled state was a nicety, not a safegu
 **Verified at the stage boundary:** `flutter analyze` clean; `flutter test` 426/426 green
 (404 existing, 22 new); `python tool/ux_audit.py` clean.
 
-**Not verified, and worth knowing:** that `sqlite3_flutter_libs` *links* into a built app, as
-opposed to resolving as a package. `flutter build windows` cannot run on this machine — no
-Visual Studio C++ toolchain — so the only evidence so far is that `flutter pub get`
-regenerated the Windows, Linux and macOS plugin registrants to include it. That is a real
-gap: the tests reach SQLite through `winsqlite3.dll`, a different library entirely, so
-nothing exercised so far would notice if the plugin failed to build. **Run a real
-`flutter build` on the machine the app is actually built on, before stage 9** — a linking
-failure found at the screen cutover would look like an app that will not start, for reasons
-nothing in this document points at.
+**Native linking, checked the long way round.** That `sqlite3_flutter_libs` *links* into a
+built app — as opposed to resolving as a package — is not something the test suite can show:
+tests reach SQLite through `winsqlite3.dll`, a different library entirely. `flutter build
+windows` cannot answer it here either, for want of a Visual Studio C++ toolchain. So the
+check was run on Android instead: `flutter build apk --debug` succeeds, and the APK contains
+`lib/arm64-v8a/libsqlite3.so` along with the armeabi-v7a and x86_64 builds. The plugin
+compiles SQLite from source through the NDK, so that is the real thing working.
+
+Windows and macOS remain unproven, though the plugin registrants were regenerated for both.
+**Run a real `flutter build` on the machine the app is actually shipped from, before stage
+9** — a linking failure found at the screen cutover looks like an app that will not start,
+for reasons nothing in this document points at.
 
 ---
 
@@ -407,6 +410,133 @@ the same expectations the current query tests use. Old suites still green and un
 
 **Done when:** every `MockQueries` member has a repository counterpart, and a checklist in
 this file maps old → new one-to-one, so Stage 9 is mechanical.
+
+### The checklist — `MockQueries` to repositories
+
+Every read has a `Future` form; the ones a screen watches also have a `watch…` `Stream` form,
+listed as `x / watchX`. Stage 9 picks the stream for anything rendered and the future for
+anything a form asks once.
+
+| `MockQueries` | Replacement |
+|---|---|
+| `storeById` | `StoreRepository.store / watchStore` |
+| `storeByIdOrFirst` | `StoreRepository.watchStoreOrFirst` — **now nullable**, see below |
+| `itemsForStore` | `ItemRepository.items / watchItemsByName` |
+| `itemById` | `ItemRepository.item / watchItem` |
+| `lowStockItems` | `ItemRepository.itemsByAttention(filter: lowStockOnly) / watchItems` |
+| `itemsWithBarcode` | `ItemRepository.itemsWithBarcode` |
+| `barcodeConflict` | `ItemRepository.barcodeConflict` |
+| `itemMatchesSearch` | moved to `core/utils/item_search.dart`, still synchronous |
+| `categoriesForStore` | `CatalogRepository.categories / watchCategories` |
+| `categoryById` | `CatalogRepository.category` |
+| `categoryNamed` | `CatalogRepository.categoryNamed` |
+| `unitsForStore` | `CatalogRepository.units / watchUnits` |
+| `unitById` | `CatalogRepository.unit` |
+| `unitNamed`, `unitAbbreviated` | `CatalogRepository.unitNamed`, `.unitAbbreviated` |
+| `itemCountInCategory`, `itemCountUsingUnit` | same names on `CatalogRepository` |
+| `suppliersForStore` | `SupplierRepository.suppliers / watchSuppliers` |
+| `supplierById` | `SupplierRepository.supplier / watchSupplier` |
+| `pricesForItem` | `SupplierRepository.pricesForItem / watchPricesForItem` |
+| `pricesForSupplier`, `itemCountForSupplier` | same names on `SupplierRepository` |
+| `defaultPriceForItem`, `cheapestPriceForItem`, `priceFor`, `overpayPerUnit` | same names on `SupplierRepository` |
+| `priceHistoryFor` | `SupplierRepository.priceHistoryFor / watchPriceHistory` |
+| `movementsForStore`, `movementsForItem`, `recentActivity` | same names on `MovementRepository`, each with a `watch…` twin |
+| `notificationsForStore` | `AccountRepository.notifications / watchNotifications` |
+| `unreadNotificationCount` | `AccountRepository.unreadNotificationCount / watchUnreadCount` |
+| `teamForStore` | `AccountRepository.teamForStore / watchTeamForStore` |
+| `teamMemberById` | `AccountRepository.teamMember` |
+| `teamMemberByEmail`, `ownerCount` | same names on `AccountRepository` |
+| `stockValuation` | `ReportRepository.stockValuation / watchStockValuation` |
+| `valuationByCategory`, `valuationByItem` | same names on `ReportRepository` |
+| `consumptionValue`, `wasteValue`, `shrinkageValue` | same names on `ReportRepository` |
+| `ordersForStore` | `OrderRepository.orders / watchOrders` |
+| `orderById` | `OrderRepository.order / watchOrder` |
+| `openOrders` | `OrderRepository.openOrders / watchOpenOrders` |
+| `ordersForSupplier` | `OrderRepository.ordersForSupplier` |
+| `openOrdersForItem` | `OrderRepository.openOrdersForItem / watchOpenOrdersForItem` |
+| `onOrderQuantity` | `OrderRepository.onOrderQuantity / watchOnOrderQuantity` |
+| `staleOrders` | `OrderRepository.staleOrders(storeId, {now})` |
+| `suggestedItemsForSupplier` | `ItemRepository.watchSuggestedItems` |
+| `itemsSuppliedBy` | `ItemRepository.itemsSuppliedBy / watchItemsSuppliedBy` |
+| `receiptsForOrder` | `OrderRepository.receiptsForOrder / watchReceiptsForOrder` |
+| `receiptById` | `OrderRepository.receipt` |
+| `receiptReferenceOf` | `OrderRepository.receiptReferenceOf` — now a `Future` |
+| `MockSettings.stalePartialOrderDays` | `StoreRepository.stalePartialOrderDays` |
+| `_mostInterestingItem()` in the report widget | `ReportRepository.largestOverpayItemId` |
+
+**Three have no counterpart, on purpose:** `categoryNameOf`, `unitAbbreviationOf` and
+`supplierNameOf`. Each is a per-row display lookup, and turning them into repository calls is
+exactly the shape stage 9 has to avoid — a query per row per rebuild. They become joined
+columns on the row view-models stage 9 introduces. **Do not add them.**
+
+### As built
+
+Stage 3 is done. `test/db/queries_test.dart` is 38 tests, and its method is worth stating:
+`MockQueries` is still present and still correct, and the seeded database is built from the
+dataset it reads — so for anything not dependent on wall-clock time, the two implementations
+must agree. Nearly every test asserts the repository against the mock rather than against a
+number the suite made up. It dies with `MockQueries` in stage 10, having done its job of
+getting the translation across.
+
+**1. `customStatement` does not notify streams, and that will bite stages 4 to 6.** drift
+works out which tables a statement touches by having built it; a raw statement tells it
+nothing, so the write lands and no `watch` ever fires. The stream test in this stage failed
+on exactly that, and took a 30-second timeout to say so. **Every repository write must go
+through the typed API**, or through `customUpdate(..., updates: {table})`. Raw `customSelect`
+is fine — a read has nothing to invalidate — and raw statements are fine in a test that is
+not watching.
+
+**2. A schema change: `position` on both line tables.** `PurchaseOrder.lines` and
+`GoodsReceipt.lines` are ordered lists on the model and unordered child tables in SQL.
+Ordering by `id` works for the demo, whose line ids happen to end in an ordinal, and would
+shuffle a real commande into UUID order the moment it was saved — the person who typed the
+lines would watch them rearrange. `rowid` works until somebody runs `VACUUM`. So it is a
+column. Done now because the schema is still unreleased and this was the last free moment.
+
+**3. Ordering contracts, now stated.** Every list read has an explicit `ORDER BY`; Phase 1
+leaned on the order the mock lists happened to be written in, which a table does not have.
+Two are behaviour changes worth flagging:
+
+- **Categories and units are alphabetical**, where they used to appear in the order the
+  dataset was authored in. Once a user creates their own, authored order is just creation
+  order, which is not a property a catalogue should have. Accented names sort last under
+  SQLite's default collation — as they already do under Dart's `compareTo` on the alerts
+  list, so at least the app is consistent with itself.
+- **Movements and notifications break ties on `id`.** Receiving a delivery writes several
+  movements in one transaction, on the same instant; without a second key "the newest
+  movement" is whichever one SQLite happened to return. The direction is arbitrary — the
+  determinism is the point — and it does reorder two notifications that share a timestamp in
+  the demo.
+
+**4. Case folding stays in Dart**, in `core/utils/name_matching.dart` and
+`core/utils/item_search.dart`. SQLite's `LOWER()` and `NOCASE` fold ASCII only, so "Épicerie"
+and "épicerie" would compare as different in SQL and as the same in Dart. Since the rule is
+explicitly *case-folded, not accent-folded*, the Unicode-correct spelling has to win, and the
+lists being compared are one establishment's categories or units. `itemMatchesSearch` moved
+out of `MockQueries` to the same shelf, with `MockQueries` forwarding to it so there is one
+copy rather than two.
+
+**5. `lineOutstanding` is deliberately written twice.** Once in Dart, once as SQL inside
+`onOrderQuantity`, because that one is read per row of the inventory and alerts lists and
+answering it in Dart meant loading every open commande to add up two numbers. A test holds
+the two spellings to the same answer for every article in the flagship store.
+
+**Deviation:** the plan wanted `openOrdersForItem` in SQL as well. It is not. The lines are
+already loaded by the query that fetched the open commandes, so filtering them in Dart costs
+nothing and lets `lineOutstanding` stay the single definition of "still owed". Duplicating a
+rule earns its keep where it removes a query per row; here it would only add a second place
+to get it wrong.
+
+**6. `storeByIdOrFirst` can return null now.** Phase 1's returned a non-null `Store` and
+crashed on an empty list, which could not happen with a compiled-in dataset. A database can
+genuinely hold no establishments, and pretending otherwise moves the crash rather than
+removing it. Stage 8's `currentStoreProvider` has to handle it.
+
+**7. A small trap: `drift` and `matcher` both export `isNull` and `isNotNull`.** A test
+importing both needs `import 'package:drift/drift.dart' hide isNotNull, isNull;`.
+
+**Verified at the stage boundary:** `flutter analyze` clean; `flutter test` 464/464 green
+(426 existing, 38 new); `python tool/ux_audit.py` clean.
 
 ---
 

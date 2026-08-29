@@ -67,6 +67,12 @@ class GoodsReceiptLines extends Table {
 
   TextColumn get note => text().nullable()();
 
+  /// Where this line sits on the document, from zero. See the same column on
+  /// `purchase_order_lines`; it matters more here, because the bon de réception
+  /// is a pure projection of the receipt and two renders of it have to produce
+  /// the same page.
+  IntColumn get position => integer()();
+
   @override
   Set<Column<Object>> get primaryKey => {id};
 }

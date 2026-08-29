@@ -11,8 +11,8 @@ import '../database/app_database.dart';
 /// there is a single place to look when an order comes back with no lines.
 ///
 /// The caller decides the line order; it is not re-sorted here. Lines are read
-/// back by insertion order, which is the order the person building the commande
-/// added them in and the order the PDF prints them in.
+/// back by their `position` column, which is the order the person building the
+/// commande added them in and the order the PDF prints them in.
 PurchaseOrder orderFromRows(
   PurchaseOrderRow row,
   List<PurchaseOrderLineRow> lineRows,
@@ -54,14 +54,17 @@ PurchaseOrderLine orderLineFromRow(PurchaseOrderLineRow row) =>
       closedShort: row.closedShort,
     );
 
-/// The line does not carry its order's id on the model — it only ever exists
-/// inside one — so the caller supplies it.
+/// The line carries neither its order's id nor its own position on the model —
+/// it only ever exists inside one commande, as an element of an ordered list —
+/// so the caller supplies both.
 PurchaseOrderLinesCompanion orderLineToRow(
   PurchaseOrderLine line, {
   required String orderId,
+  required int position,
 }) => PurchaseOrderLinesCompanion.insert(
   id: line.id,
   orderId: orderId,
+  position: position,
   itemId: line.itemId,
   quantityOrdered: line.quantityOrdered,
   unitPrice: line.unitPrice,

@@ -1,3 +1,4 @@
+import '../core/utils/item_search.dart' as search;
 import '../core/utils/order_status.dart';
 import '../core/utils/stock_cost.dart';
 import '../core/utils/stock_status.dart';
@@ -115,18 +116,11 @@ abstract final class MockQueries {
 
   /// Whether an item matches a search box.
   ///
-  /// Written once and shared by the inventory list and global search, so
-  /// "pasting a barcode finds the item" cannot be true on one screen and false
-  /// on the other. [query] must already be trimmed and lower-cased.
-  ///
-  /// Name matching is a substring; barcode matching is exact, because a partial
-  /// barcode is not a barcode and offering fuzzy matches for one would be worse
-  /// than offering nothing.
-  static bool itemMatchesSearch(Item item, String query) {
-    if (query.isEmpty) return true;
-    if (item.name.toLowerCase().contains(query)) return true;
-    return item.barcode != null && item.barcode!.toLowerCase() == query;
-  }
+  /// The rule itself moved to `core/utils/item_search.dart` in Phase 2, so the
+  /// repositories and the screens share one copy of it rather than two. This
+  /// forwards, and goes away with the rest of this file.
+  static bool itemMatchesSearch(Item item, String query) =>
+      search.itemMatchesSearch(item, query);
 
   // ---------------------------------------------------------------------------
   // Catalog

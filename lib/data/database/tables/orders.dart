@@ -72,6 +72,16 @@ class PurchaseOrderLines extends Table {
   /// than leaving the commande open forever with an inflated on-order quantity.
   BoolColumn get closedShort => boolean().withDefault(const Constant(false))();
 
+  /// Where this line sits in the commande, from zero.
+  ///
+  /// `PurchaseOrder.lines` is an ordered list on the model, and a child table
+  /// has no order of its own. Sorting by `id` would work for the demo, whose
+  /// line ids happen to end in an ordinal, and would shuffle a real commande
+  /// into UUID order the moment it was saved — the person who typed the lines
+  /// would watch them rearrange. Sorting by `rowid` would work until the day
+  /// somebody runs `VACUUM`. So the position is a column.
+  IntColumn get position => integer()();
+
   @override
   Set<Column<Object>> get primaryKey => {id};
 }

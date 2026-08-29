@@ -46,9 +46,11 @@ GoodsReceiptLine receiptLineFromRow(GoodsReceiptLineRow row) => GoodsReceiptLine
 GoodsReceiptLinesCompanion receiptLineToRow(
   GoodsReceiptLine line, {
   required String receiptId,
+  required int position,
 }) => GoodsReceiptLinesCompanion.insert(
   id: line.id,
   receiptId: receiptId,
+  position: position,
   itemId: line.itemId,
   quantityOrdered: line.quantityOrdered,
   quantityReceived: line.quantityReceived,
