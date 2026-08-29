@@ -119,13 +119,20 @@ Future<void> seedDemoData(AppDatabase db, {DateTime? at}) async {
         ).copyWith(createdAt: Value(moved(notification.createdAt))),
     ]);
 
-    batch.insert(
-      db.meta,
+    batch.insertAll(db.meta, [
       MetaCompanion.insert(
         key: MetaKeys.seededAt,
         value: seededAt.toIso8601String(),
       ),
-    );
+      // Who the app acts as until Phase 3 brings real authentication. Every
+      // movement and every price change is stamped with this person's name, so
+      // it cannot simply be absent — Phase 1 resolved it as `mockTeam.first` at
+      // library load, which was the same placeholder without anywhere to say so.
+      MetaCompanion.insert(
+        key: MetaKeys.currentUserId,
+        value: mockCurrentUser.id,
+      ),
+    ]);
   });
 }
 

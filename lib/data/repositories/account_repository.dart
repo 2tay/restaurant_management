@@ -4,6 +4,7 @@ import '../../core/utils/name_matching.dart';
 import '../../models/notification_item.dart';
 import '../../models/team_member.dart';
 import '../database/app_database.dart';
+import '../database/meta_keys.dart';
 import '../mappers/mappers.dart';
 
 /// The team, and the notifications an establishment has raised.
@@ -61,6 +62,41 @@ class AccountRepository {
     }
     return null;
   }
+
+  /// Who the app is acting as.
+  ///
+  /// A placeholder for real authentication, and deliberately an explicit one:
+  /// every movement and every price change is stamped with this person's name,
+  /// so "there is no current user" is not a state the app can be in. Phase 1
+  /// resolved it as `mockTeam.first` when the library loaded, which was the same
+  /// placeholder with nowhere to write it down.
+  ///
+  /// Read from `meta`, falling back to the first owner and then to the first
+  /// member, so a database whose meta row went missing still writes a name
+  /// somebody can recognise rather than an empty string.
+  Future<TeamMember?> currentUser() async {
+    final members = await team();
+    if (members.isEmpty) return null;
+
+    final stored = await (_db.select(
+      _db.meta,
+    )..where((m) => m.key.equals(MetaKeys.currentUserId))).getSingleOrNull();
+
+    if (stored != null) {
+      for (final member in members) {
+        if (member.id == stored.value) return member;
+      }
+    }
+    return members.firstWhere(
+      (m) => m.role == TeamRole.owner,
+      orElse: () => members.first,
+    );
+  }
+
+  /// The name stamped on a movement or a price change when the caller does not
+  /// supply one.
+  Future<String> currentUserName() async =>
+      (await currentUser())?.fullName ?? '';
 
   /// How many owners the account has left.
   ///

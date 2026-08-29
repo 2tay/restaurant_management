@@ -1,10 +1,24 @@
 import 'package:drift/drift.dart';
 
+import '../../core/utils/order_status.dart';
+import '../../core/utils/stock_cost.dart';
 import '../../models/price_history_entry.dart';
 import '../../models/supplier.dart';
 import '../../models/supplier_price.dart';
 import '../database/app_database.dart';
 import '../mappers/mappers.dart';
+import 'account_repository.dart';
+import 'new_id.dart';
+import 'order_repository.dart';
+
+/// What is standing between a supplier and deletion.
+enum SupplierDeleteBlock {
+  /// They have a commande that has been sent and is not finished.
+  ///
+  /// Deleting them would orphan an outstanding document — and, if anything on it
+  /// has already arrived, the stock movements that document produced.
+  hasOpenOrder,
+}
 
 /// Suppliers, the prices they offer, and how those prices have moved.
 ///
@@ -125,6 +139,305 @@ class SupplierRepository {
     String supplierId,
   ) => _history(itemId, supplierId).get().then(_toHistory);
 
+
+  // ---------------------------------------------------------------------------
+  // Writes — suppliers
+  // ---------------------------------------------------------------------------
+
+  Future<Supplier> create({
+    required String storeId,
+    required String name,
+    required String contactName,
+    required String email,
+    required String phone,
+    required String addressLine,
+    required String postalCode,
+    required String city,
+    String? note,
+  }) async {
+    final supplier = Supplier(
+      id: newId(),
+      storeId: storeId,
+      name: name.trim(),
+      contactName: contactName.trim(),
+      email: email.trim(),
+      phone: phone.trim(),
+      addressLine: addressLine.trim(),
+      postalCode: postalCode.trim(),
+      city: city.trim(),
+      note: _clean(note),
+    );
+
+    await _db.into(_db.suppliers).insert(supplierToRow(supplier));
+    return supplier;
+  }
+
+  /// Edits a supplier's details.
+  ///
+  /// Names are deliberately **not** checked for uniqueness. Two branches of the
+  /// same butcher is a real situation, and blocking it would be the app
+  /// inventing a rule the business does not have.
+  Future<Supplier?> update(
+    String id, {
+    String? name,
+    String? contactName,
+    String? email,
+    String? phone,
+    String? addressLine,
+    String? postalCode,
+    String? city,
+    String? note,
+    bool clearNote = false,
+  }) async {
+    final trimmedName = name?.trim();
+    if (trimmedName != null && trimmedName.isEmpty) return null;
+
+    return _db.transaction(() async {
+      final existing = await supplier(id);
+      if (existing == null) return null;
+
+      final updated = Supplier(
+        id: existing.id,
+        storeId: existing.storeId,
+        name: trimmedName ?? existing.name,
+        contactName: contactName?.trim() ?? existing.contactName,
+        email: email?.trim() ?? existing.email,
+        phone: phone?.trim() ?? existing.phone,
+        addressLine: addressLine?.trim() ?? existing.addressLine,
+        postalCode: postalCode?.trim() ?? existing.postalCode,
+        city: city?.trim() ?? existing.city,
+        note: clearNote ? null : _clean(note) ?? existing.note,
+      );
+
+      await (_db.update(_db.suppliers)..where((s) => s.id.equals(id))).write(
+        supplierToRow(updated),
+      );
+      return updated;
+    });
+  }
+
+  /// What would stop this supplier being deleted, or null if nothing would.
+  Future<SupplierDeleteBlock?> deleteBlockedBy(String id) async {
+    final orders = await OrderRepository(_db).ordersForSupplier(id);
+    final hasOpen = orders.any(orderIsOpen);
+    return hasOpen ? SupplierDeleteBlock.hasOpenOrder : null;
+  }
+
+  /// Deletes a supplier and the prices they offered.
+  ///
+  /// **Stock movements naming them are kept**, and so are their closed
+  /// commandes. A movement is the record of goods that really moved; the
+  /// supplier going away does not unmake that, and the screen renders
+  /// "Fournisseur supprimé", which is true. Neither column carries a foreign key
+  /// for exactly this reason.
+  ///
+  /// Every article this supplier was the default for gets a new default, or it
+  /// silently loses its auto-fill on every stock-in and every order line with
+  /// nothing on screen explaining why.
+  Future<bool> delete(String id) {
+    return _db.transaction(() async {
+      if (await deleteBlockedBy(id) != null) return false;
+
+      final orphaned = (await pricesForSupplier(id))
+          .where((price) => price.isDefault)
+          .map((price) => price.itemId)
+          .toList();
+
+      final removed = await (_db.delete(
+        _db.suppliers,
+      )..where((s) => s.id.equals(id))).go();
+      if (removed == 0) return false;
+
+      // The prices and their history went with the supplier through the
+      // schema's cascade; the promotions are what the cascade cannot know to do.
+      for (final itemId in orphaned) {
+        await _promoteCheapestToDefault(itemId);
+      }
+      return true;
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Writes — the item-supplier link
+  // ---------------------------------------------------------------------------
+
+  /// Links an article to a supplier at a price.
+  ///
+  /// Returns null if the link already exists — that is an edit, not a new link,
+  /// and silently overwriting the price would lose the history entry the edit
+  /// path writes.
+  Future<SupplierPrice?> linkItem({
+    required String itemId,
+    required String supplierId,
+    required double pricePerUnit,
+    bool makeDefault = false,
+    DateTime? effectiveDate,
+  }) async {
+    if (pricePerUnit <= 0) return null;
+
+    return _db.transaction(() async {
+      if (await priceFor(itemId, supplierId) != null) return null;
+
+      // The first supplier for an article becomes its default whether or not
+      // the caller asked: an article with prices but no default has no auto-fill
+      // anywhere, which reads as the feature being broken.
+      final isFirst = (await pricesForItem(itemId)).isEmpty;
+      final shouldDefault = makeDefault || isFirst;
+
+      if (shouldDefault) await _clearDefaultFor(itemId);
+
+      final price = SupplierPrice(
+        id: newId(),
+        itemId: itemId,
+        supplierId: supplierId,
+        pricePerUnit: pricePerUnit,
+        effectiveDate: effectiveDate ?? DateTime.now(),
+        isDefault: shouldDefault,
+      );
+
+      await _db.into(_db.supplierPrices).insert(supplierPriceToRow(price));
+      return price;
+    });
+  }
+
+  /// Changes what a supplier charges, and records why the number moved.
+  ///
+  /// Every change writes a history entry scoped to the item–supplier *pair*,
+  /// which is what makes "what has this supplier charged us for chicken over six
+  /// months" answerable.
+  ///
+  /// Setting the same price again writes nothing and returns the row unchanged.
+  /// The threshold is `costEpsilon`, a tenth of a cent: a price that moved by
+  /// less than that did not move, and a history full of no-op entries is a
+  /// history nobody reads.
+  Future<SupplierPrice?> updatePrice(
+    String priceId,
+    double newPrice, {
+    String? changedByName,
+    DateTime? changedAt,
+  }) async {
+    if (newPrice <= 0) return null;
+
+    final author = changedByName ?? await AccountRepository(_db).currentUserName();
+
+    return _db.transaction(() async {
+      final row = await (_db.select(
+        _db.supplierPrices,
+      )..where((p) => p.id.equals(priceId))).getSingleOrNull();
+      if (row == null) return null;
+
+      final existing = supplierPriceFromRow(row);
+      if ((existing.pricePerUnit - newPrice).abs() < costEpsilon) {
+        return existing;
+      }
+
+      final at = changedAt ?? DateTime.now();
+
+      await _db.into(_db.priceHistory).insert(
+        priceHistoryToRow(
+          PriceHistoryEntry(
+            id: newId(),
+            itemId: existing.itemId,
+            supplierId: existing.supplierId,
+            oldPrice: existing.pricePerUnit,
+            newPrice: newPrice,
+            changedAt: at,
+            changedByName: author,
+          ),
+        ),
+      );
+
+      await (_db.update(
+        _db.supplierPrices,
+      )..where((p) => p.id.equals(priceId))).write(
+        SupplierPricesCompanion(
+          pricePerUnit: Value(newPrice),
+          effectiveDate: Value(at),
+        ),
+      );
+
+      return SupplierPrice(
+        id: existing.id,
+        itemId: existing.itemId,
+        supplierId: existing.supplierId,
+        pricePerUnit: newPrice,
+        effectiveDate: at,
+        isDefault: existing.isDefault,
+      );
+    });
+  }
+
+  /// Marks one supplier as the one normally used for an article.
+  ///
+  /// Clear-then-set, in a transaction, because "exactly one default per article"
+  /// is not something SQLite can be asked to enforce without a trigger — and a
+  /// trigger would be a second place the rule lives.
+  Future<bool> setDefault(String priceId) {
+    return _db.transaction(() async {
+      final row = await (_db.select(
+        _db.supplierPrices,
+      )..where((p) => p.id.equals(priceId))).getSingleOrNull();
+      if (row == null) return false;
+
+      await _clearDefaultFor(row.itemId);
+      await (_db.update(
+        _db.supplierPrices,
+      )..where((p) => p.id.equals(priceId))).write(
+        const SupplierPricesCompanion(isDefault: Value(true)),
+      );
+      return true;
+    });
+  }
+
+  /// Removes an item–supplier link.
+  ///
+  /// If it was the default, the cheapest remaining supplier is promoted. Without
+  /// that the article keeps its other suppliers but loses its auto-fill
+  /// everywhere, and nothing on screen explains why.
+  ///
+  /// The price history for the pair is kept: it records what that supplier
+  /// charged while the link existed, which stays true afterwards.
+  Future<bool> unlinkItem(String priceId) {
+    return _db.transaction(() async {
+      final row = await (_db.select(
+        _db.supplierPrices,
+      )..where((p) => p.id.equals(priceId))).getSingleOrNull();
+      if (row == null) return false;
+
+      await (_db.delete(
+        _db.supplierPrices,
+      )..where((p) => p.id.equals(priceId))).go();
+
+      if (row.isDefault) await _promoteCheapestToDefault(row.itemId);
+      return true;
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Default bookkeeping
+  // ---------------------------------------------------------------------------
+
+  Future<void> _clearDefaultFor(String itemId) async {
+    await (_db.update(_db.supplierPrices)
+          ..where((p) => p.itemId.equals(itemId) & p.isDefault.equals(true)))
+        .write(const SupplierPricesCompanion(isDefault: Value(false)));
+  }
+
+  Future<void> _promoteCheapestToDefault(String itemId) async {
+    final cheapest = await cheapestPriceForItem(itemId);
+    if (cheapest == null) return;
+
+    await (_db.update(
+      _db.supplierPrices,
+    )..where((p) => p.id.equals(cheapest.id))).write(
+      const SupplierPricesCompanion(isDefault: Value(true)),
+    );
+  }
+
+  String? _clean(String? value) {
+    final trimmed = value?.trim();
+    return (trimmed == null || trimmed.isEmpty) ? null : trimmed;
+  }
   // ---------------------------------------------------------------------------
 
   SimpleSelectStatement<$SuppliersTable, SupplierRow> _suppliersQuery(

@@ -3,6 +3,9 @@ import 'package:drift/drift.dart';
 import '../../models/item.dart';
 import '../database/app_database.dart';
 import '../mappers/mappers.dart';
+import 'movement_repository.dart';
+import 'new_id.dart';
+import 'order_repository.dart';
 
 /// What the inventory list is filtered by.
 ///
@@ -29,12 +32,21 @@ class ItemFilter {
   static const ItemFilter none = ItemFilter();
 }
 
+/// What is standing between an article and deletion.
+enum ItemDeleteBlock {
+  /// It is on a commande that has been sent and is not finished.
+  ///
+  /// Deleting it would leave an outstanding document referring to an article
+  /// that no longer exists — and that document is in a supplier's inbox.
+  onOpenOrder,
+}
+
 /// Articles.
 ///
-/// Reads only. The writes arrive in stage 4, and the one write that will never
-/// live here is quantity: only `movement_repository.dart` may touch
-/// `items.quantity` and `items.averageCost`, because every change to either has
-/// to be explained by a movement in the same transaction.
+/// Note what is **not** here: nothing changes an article's quantity. That
+/// belongs to `movement_repository.dart` and nowhere else, so every quantity
+/// change leaves a movement behind. Creating an article with a starting quantity
+/// therefore records an opening balance rather than setting the number.
 class ItemRepository {
   const ItemRepository(this._db);
 
@@ -133,6 +145,195 @@ class ItemRepository {
         filter: ItemFilter(supplierId: supplierId, lowStockOnly: true),
       );
 
+
+  // ---------------------------------------------------------------------------
+  // Writes
+  // ---------------------------------------------------------------------------
+
+  /// Creates an article, and its opening balance if it starts with stock.
+  ///
+  /// Returns null when the barcode is already used by another article in this
+  /// establishment — the one validation that can fail here. The form checks
+  /// first so it can put the error under the field; this refuses as a backstop.
+  ///
+  /// The article is inserted with **quantity zero** whatever was typed, and the
+  /// opening balance is handed to `MovementRepository.recordOpeningBalance`, in
+  /// the same transaction. Two consequences, both wanted: the quantity and the
+  /// movement log agree from the article's first day, and an article can never
+  /// exist without the movement that explains its stock — the transaction is
+  /// what turns "should not" into "cannot".
+  ///
+  /// [openingUnitCost] is what the starting stock was bought at, and the only
+  /// way an article can begin life with a known cost. There is deliberately no
+  /// fallback to a supplier price, because at this moment there is none to fall
+  /// back to: [defaultSupplierId] records a preference, not a `SupplierPrice`
+  /// link, and the link cannot exist for an article that did not exist a line
+  /// ago. Left empty, the cost stays unknown and the article contributes nothing
+  /// to the valuation until a real delivery says what stock costs.
+  Future<Item?> create({
+    required String storeId,
+    required String name,
+    required String categoryId,
+    required String unitId,
+    required double quantity,
+    required double lowStockThreshold,
+    double? openingUnitCost,
+    String? barcode,
+    String? note,
+    String? defaultSupplierId,
+    String? userName,
+  }) async {
+    final trimmedName = name.trim();
+    if (trimmedName.isEmpty) return null;
+
+    final cleanBarcode = _clean(barcode);
+
+    return _db.transaction(() async {
+      if (cleanBarcode != null &&
+          await barcodeConflict(storeId, cleanBarcode) != null) {
+        return null;
+      }
+
+      final draft = Item(
+        id: newId(),
+        storeId: storeId,
+        name: trimmedName,
+        categoryId: categoryId,
+        unitId: unitId,
+        quantity: 0,
+        lowStockThreshold: lowStockThreshold,
+        updatedAt: DateTime.now(),
+        defaultSupplierId: defaultSupplierId,
+        barcode: cleanBarcode,
+        note: _clean(note),
+      );
+
+      await _db.into(_db.items).insert(itemToRow(draft));
+
+      await MovementRepository(_db).recordOpeningBalance(
+        storeId: storeId,
+        itemId: draft.id,
+        quantity: quantity,
+        // Routed through the movement rather than written onto the article, so
+        // the cost is set by its first movement exactly like every change after
+        // it. One writer, no exceptions.
+        unitCost: openingUnitCost,
+        userName: userName,
+      );
+
+      // Re-read: the opening balance has just moved the quantity and may have
+      // set the cost, and returning the draft would hand the caller a row that
+      // is already out of date.
+      return item(draft.id);
+    });
+  }
+
+  /// Edits an article's details.
+  ///
+  /// **Quantity is absent on purpose.** Changing stock from an edit form would
+  /// be an untraceable stock change hidden inside a routine screen — the most
+  /// consequential thing in the app, done by accident. The edit form shows the
+  /// quantity as a fact and links to the adjustment screen, which exists for
+  /// exactly this and leaves a movement behind.
+  Future<Item?> update(
+    String id, {
+    String? name,
+    String? categoryId,
+    String? unitId,
+    double? lowStockThreshold,
+    String? barcode,
+    String? note,
+    String? defaultSupplierId,
+    bool clearBarcode = false,
+    bool clearNote = false,
+  }) async {
+    final trimmedName = name?.trim();
+    if (trimmedName != null && trimmedName.isEmpty) return null;
+
+    return _db.transaction(() async {
+      final existing = await item(id);
+      if (existing == null) return null;
+
+      final cleanBarcode = clearBarcode ? null : _clean(barcode);
+      if (!clearBarcode && cleanBarcode != null) {
+        final clash = await barcodeConflict(
+          existing.storeId,
+          cleanBarcode,
+          // Without this, saving an article with its own barcode unchanged
+          // would fail against itself.
+          excludingItemId: id,
+        );
+        if (clash != null) return null;
+      }
+
+      await (_db.update(_db.items)..where((i) => i.id.equals(id))).write(
+        ItemsCompanion(
+          name: Value(trimmedName ?? existing.name),
+          categoryId: Value(categoryId ?? existing.categoryId),
+          unitId: Value(unitId ?? existing.unitId),
+          lowStockThreshold: Value(
+            lowStockThreshold ?? existing.lowStockThreshold,
+          ),
+          updatedAt: Value(DateTime.now()),
+          defaultSupplierId: Value(
+            defaultSupplierId ?? existing.defaultSupplierId,
+          ),
+          barcode: Value(
+            clearBarcode ? null : cleanBarcode ?? existing.barcode,
+          ),
+          note: Value(clearNote ? null : _clean(note) ?? existing.note),
+        ),
+      );
+
+      return item(id);
+    });
+  }
+
+  /// What would stop this article being deleted, or null if nothing would.
+  ///
+  /// Exposed so the screen can explain before it asks, rather than offering a
+  /// confirmation that then quietly fails.
+  Future<ItemDeleteBlock?> deleteBlockedBy(String id) async {
+    final existing = await item(id);
+    if (existing == null) return null;
+
+    final open = await OrderRepository(
+      _db,
+    ).openOrdersForItem(existing.storeId, id);
+    return open.isEmpty ? null : ItemDeleteBlock.onOpenOrder;
+  }
+
+  /// Deletes an article and everything that only made sense alongside it.
+  ///
+  /// Its supplier links, their price history and its movements go with it. That
+  /// does destroy history, which sits uneasily beside "a confirmed receipt is
+  /// permanent" — the difference is that this is the explicit, confirmed, named
+  /// act, and the alternative is worse: leaving movements and prices pointing at
+  /// an article that no longer exists renders them as "—" with no way to work
+  /// out what they used to say. The confirmation dialog states the counts, which
+  /// is what makes it honest.
+  ///
+  /// The cascade is the schema's now rather than four `removeWhere` calls, so it
+  /// cannot go half-done and cannot be forgotten by a future caller. What it
+  /// deliberately does **not** reach is the lines of closed commandes and
+  /// receipts, which keep naming the article — see the note on those columns.
+  Future<bool> delete(String id) {
+    return _db.transaction(() async {
+      if (await deleteBlockedBy(id) != null) return false;
+
+      final removed = await (_db.delete(
+        _db.items,
+      )..where((i) => i.id.equals(id))).go();
+      return removed > 0;
+    });
+  }
+
+  /// Empty input stores as null rather than as an empty string, so "no barcode"
+  /// is one value rather than two.
+  String? _clean(String? value) {
+    final trimmed = value?.trim();
+    return (trimmed == null || trimmed.isEmpty) ? null : trimmed;
+  }
   // ---------------------------------------------------------------------------
 
   SimpleSelectStatement<$ItemsTable, ItemRow> _attentionFirst(

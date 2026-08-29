@@ -5,6 +5,7 @@ import '../../models/category.dart';
 import '../../models/unit_of_measure.dart';
 import '../database/app_database.dart';
 import '../mappers/mappers.dart';
+import 'new_id.dart';
 
 /// Categories and units of measure — the establishment's own vocabulary.
 ///
@@ -103,6 +104,165 @@ class CatalogRepository {
   Future<int> itemCountUsingUnit(String unitId) =>
       _countItems(_db.items.unitId.equals(unitId));
 
+
+  // ---------------------------------------------------------------------------
+  // Writes
+  // ---------------------------------------------------------------------------
+  //
+  // Two rules run through all of them:
+  //
+  // 1. Names are unique within an establishment, ignoring case and surrounding
+  //    space. Two categories called "Boissons" and "boissons " are one category
+  //    with a typo, and letting both exist means half the drinks end up filed
+  //    under the wrong one.
+  // 2. Nothing in use can be deleted. A category or unit is referenced by id
+  //    from every article that uses it, so deleting one in use would leave those
+  //    articles pointing at nothing. The screens check first and explain; these
+  //    refuse as a backstop; the schema refuses as the backstop's backstop.
+
+  /// Creates a category and returns it, or null if the name is already taken.
+  ///
+  /// Returning the record rather than a bare success flag is what lets the item
+  /// form select what the user just created — the whole point of the inline
+  /// "+ Créer" row is that they do not lose their place.
+  Future<Category?> createCategory({
+    required String storeId,
+    required String name,
+  }) async {
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) return null;
+
+    return _db.transaction(() async {
+      if (await categoryNamed(storeId, trimmed) != null) return null;
+
+      final category = Category(
+        id: newId(),
+        storeId: storeId,
+        name: trimmed,
+      );
+      await _db.into(_db.categories).insert(categoryToRow(category));
+      return category;
+    });
+  }
+
+  /// Renames a category. Returns null when the new name collides.
+  Future<Category?> renameCategory(String id, String name) async {
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) return null;
+
+    return _db.transaction(() async {
+      final existing = await category(id);
+      if (existing == null) return null;
+
+      // Excluding itself, or renaming "Boissons" to "Boissons" would collide
+      // with the row being renamed and fail.
+      final clash = await categoryNamed(
+        existing.storeId,
+        trimmed,
+        excludingId: id,
+      );
+      if (clash != null) return null;
+
+      final renamed = existing.copyWith(name: trimmed);
+      await (_db.update(_db.categories)..where((c) => c.id.equals(id))).write(
+        CategoriesCompanion(name: Value(trimmed)),
+      );
+      return renamed;
+    });
+  }
+
+  /// Deletes a category. Refuses while any article is filed under it.
+  Future<bool> deleteCategory(String id) {
+    return _db.transaction(() async {
+      if (await itemCountInCategory(id) > 0) return false;
+
+      final removed = await (_db.delete(
+        _db.categories,
+      )..where((c) => c.id.equals(id))).go();
+      return removed > 0;
+    });
+  }
+
+  /// Creates a unit and returns it, or null if the name or the abbreviation is
+  /// already taken.
+  Future<UnitOfMeasure?> createUnit({
+    required String storeId,
+    required String name,
+    required String abbreviation,
+  }) async {
+    final trimmedName = name.trim();
+    final trimmedAbbreviation = abbreviation.trim();
+    if (trimmedName.isEmpty || trimmedAbbreviation.isEmpty) return null;
+
+    return _db.transaction(() async {
+      if (await unitNamed(storeId, trimmedName) != null) return null;
+      if (await unitAbbreviated(storeId, trimmedAbbreviation) != null) {
+        return null;
+      }
+
+      final unit = UnitOfMeasure(
+        id: newId(),
+        storeId: storeId,
+        name: trimmedName,
+        abbreviation: trimmedAbbreviation,
+      );
+      await _db.into(_db.units).insert(unitToRow(unit));
+      return unit;
+    });
+  }
+
+  /// Renames a unit or changes its abbreviation. Null when either collides.
+  Future<UnitOfMeasure?> updateUnit(
+    String id, {
+    required String name,
+    required String abbreviation,
+  }) async {
+    final trimmedName = name.trim();
+    final trimmedAbbreviation = abbreviation.trim();
+    if (trimmedName.isEmpty || trimmedAbbreviation.isEmpty) return null;
+
+    return _db.transaction(() async {
+      final existing = await unit(id);
+      if (existing == null) return null;
+
+      final nameClash = await unitNamed(
+        existing.storeId,
+        trimmedName,
+        excludingId: id,
+      );
+      if (nameClash != null) return null;
+
+      final abbreviationClash = await unitAbbreviated(
+        existing.storeId,
+        trimmedAbbreviation,
+        excludingId: id,
+      );
+      if (abbreviationClash != null) return null;
+
+      await (_db.update(_db.units)..where((u) => u.id.equals(id))).write(
+        UnitsCompanion(
+          name: Value(trimmedName),
+          abbreviation: Value(trimmedAbbreviation),
+        ),
+      );
+      return existing.copyWith(
+        name: trimmedName,
+        abbreviation: trimmedAbbreviation,
+      );
+    });
+  }
+
+  /// Deletes a unit. Refuses while any article is measured in it.
+  Future<bool> deleteUnit(String id) {
+    return _db.transaction(() async {
+      if (await itemCountUsingUnit(id) > 0) return false;
+
+      final removed = await (_db.delete(
+        _db.units,
+      )..where((u) => u.id.equals(id))).go();
+      return removed > 0;
+    });
+  }
   // ---------------------------------------------------------------------------
 
   Future<UnitOfMeasure?> _findUnit(

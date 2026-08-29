@@ -21,9 +21,18 @@ ALLOWED_SPACING = {0, 1, 2, 4, 8, 12, 16, 24, 32, 48}
 
 
 def dart_files(*roots):
+    """Every hand-written Dart file under the given roots.
+
+    Generated code is skipped, the same set the analyzer excludes. It follows
+    none of the conventions checked here and nobody edits it, so a hit in it is
+    always noise — `app_database.g.dart` alone builds every companion the schema
+    can express, including the two this file forbids by hand.
+    """
     for root in roots:
         for dirpath, _, names in os.walk(root):
             for name in names:
+                if name.endswith('.g.dart') or name.endswith('.drift.dart'):
+                    continue
                 if name.endswith('.dart'):
                     yield os.path.join(dirpath, name).replace(os.sep, '/')
 
@@ -242,6 +251,56 @@ record(
     'mock lists written outside the mutation layer',
     direct_writes,
     'Mock data edited without going through mutations/',
+)
+
+# --- Quantity and cost are written in one place, in the data layer ------------
+# The same rule as the two checks above, for the layer that is replacing the
+# mock lists. `items.quantity` and `items.averageCost` may only be written by
+# `movement_repository.dart`, so that every change to either is explained by a
+# movement filed in the same transaction.
+#
+# `item_mapper.dart` is allowed because it is how a whole item becomes a row —
+# the seed and the movement repository both go through it, and neither decides
+# anything there.
+#
+# Matched by finding each `ItemsCompanion` and reading the call that follows it,
+# rather than line by line: a companion spans several lines, and `quantity:` on
+# its own also appears in perfectly legitimate calls to the movement repository.
+QUANTITY_WRITERS = (
+    'lib/data/repositories/movement_repository.dart',
+    'lib/data/mappers/item_mapper.dart',
+)
+
+def companion_writes(path, text):
+    for match in re.finditer(r'ItemsCompanion(?:\.insert)?\(', text):
+        depth = 0
+        start = match.end() - 1
+        for index in range(start, len(text)):
+            if text[index] == '(':
+                depth += 1
+            elif text[index] == ')':
+                depth -= 1
+                if depth == 0:
+                    body = text[match.end():index]
+                    field = re.search(r'\b(quantity|averageCost)\s*:', body)
+                    if field:
+                        line = text.count('\n', 0, match.start()) + 1
+                        yield f'{path}:{line}  ItemsCompanion sets {field.group(1)}'
+                    break
+        else:
+            continue
+
+
+data_stock_writes = [
+    entry
+    for p in dart_files(*ROOTS, 'lib/data')
+    if p not in QUANTITY_WRITERS
+    for entry in companion_writes(p, read(p))
+]
+record(
+    'stock quantity or cost written outside movement_repository',
+    data_stock_writes,
+    'items.quantity or items.averageCost changed without a movement',
 )
 
 # --- Product code never imports the dev gallery -------------------------------

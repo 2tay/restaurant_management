@@ -573,6 +573,78 @@ that per-test DB — it replaces `test/support/mock_reset.dart`.
 **Done when:** both ported suites green **and** the original suites deleted in the same
 commit (not before — keeping both green is impossible once the write path forks).
 
+### As built
+
+Stage 4 is done. `test/catalog_test.dart` and `test/suppliers_test.dart` are deleted and
+`test/db/catalog_test.dart` (23), `test/db/suppliers_test.dart` (20) and
+`test/db/items_test.dart` (14) stand in their place.
+
+**1. The movement repository's writes arrived here, not in stage 5.** `item.create` inserts
+the article with quantity zero and hands the opening balance to
+`MovementRepository.recordOpeningBalance` — that is the plan's own instruction, and it makes
+the movement writer a dependency of this stage rather than the next one. Writing half of it
+now and half in stage 5 would have been worse than writing it once. Stage 5 keeps its real
+job, which is porting `inventory_test.dart`.
+
+That left the item and movement writes landing without their own suite, so
+`test/db/items_test.dart` takes the three item-shaped groups out of `inventory_test.dart`
+early: creating, editing and deleting. `test/inventory_test.dart` stays green and untouched
+until stage 5, so those groups are covered twice for one stage — deliberate, and cheaper than
+shipping the app's most consequential writes untested.
+
+**2. `tool/ux_audit.py` gains its fifteenth check now rather than in stage 10.** "Only
+`movement_repository.dart` may write `items.quantity` or `items.averageCost`" is the app's
+oldest invariant, and it had a mechanical guard pointing only at the mock layer — exactly
+while the replacement was being written. The new check finds each `ItemsCompanion` and reads
+the call that follows it, rather than matching line by line: a companion spans several lines,
+and `quantity:` on its own also appears in legitimate calls *to* the movement repository.
+`item_mapper.dart` is allowed, because that is how a whole article becomes a row and it
+decides nothing.
+
+It was verified by breaking it on purpose — a `quantity: const Value(99)` added to
+`item_repository.update` is caught with the file and line — and then reverted. A guard that
+has only ever printed zero has not been tested.
+
+`dart_files()` now skips `*.g.dart` and `*.drift.dart`, the same set the analyzer excludes.
+`app_database.g.dart` alone builds every companion the schema can express, including the two
+this check forbids by hand, so without that the guard reported two violations of itself.
+
+**3. `meta.currentUserId` and `AccountRepository.currentUser()` arrived early too**, from
+stage 7. Every movement and every price change is stamped with a person's name, so "there is
+no current user" is not a state the app can be in, and the repositories needed a default the
+moment they started writing. Phase 1 resolved it as `mockTeam.first` when the library loaded;
+this is the same placeholder with somewhere to write it down. It falls back to the first owner
+and then to the first member, so a database whose meta row went missing still writes a name
+somebody recognises rather than an empty string.
+
+**4. New ids are bare UUID v4** — `lib/data/repositories/new_id.dart`. No type prefix: the
+seeded records keep their readable slugs, which are worth having in a debug dump, but a
+generated id is opaque either way and prefixing it would make it look parseable when nothing
+parses it.
+
+**5. Deletes lean on the schema's cascade rather than repeating it.** `ItemRepository.delete`
+is a single `DELETE FROM items`; the supplier links, their price history and the movements go
+with it because the foreign keys say so. Phase 1 had four `removeWhere` calls that a future
+caller could have got wrong or forgotten. What the cascade deliberately does *not* reach is
+the lines of closed commandes and receipts, which keep naming the article — the reason those
+columns carry no foreign key.
+
+`SupplierRepository.delete` keeps one piece of Dart, and it is the piece a cascade cannot
+know to do: every article the supplier was the default for is promoted to its cheapest
+remaining price, or the article keeps its other suppliers and silently loses its auto-fill
+everywhere.
+
+**6. One ported test had to change, and it is worth knowing why.** *"allows the same name in
+a different establishment"* took the first category of the Sablon list and re-created it in
+Liège. With stage 3's alphabetical ordering the first one is now *Boissons*, which Liège
+already has — so the test failed on a genuine collision rather than on a broken rule. It now
+creates its own name in both establishments, which is what it was always trying to say. **The
+rule did not change; the fixture's assumption about list order did.** Expect one or two more
+of these in the remaining ports.
+
+**Verified at the stage boundary:** `flutter analyze` clean; `flutter test` 480/480 green
+(464 before, minus 41 deleted, plus 57 new); `python tool/ux_audit.py` clean across 15 checks.
+
 ---
 
 ## Stage 5 — The movement repository *(M)*
