@@ -3,6 +3,7 @@ import 'package:drift/drift.dart';
 import '../../models/store.dart';
 import '../database/app_database.dart';
 import '../mappers/mappers.dart';
+import 'new_id.dart';
 
 /// Establishments.
 ///
@@ -63,6 +64,128 @@ class StoreRepository {
       _db.stores,
     )..where((s) => s.id.equals(storeId))).getSingleOrNull();
     return row?.stalePartialOrderDays ?? 7;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Writes
+  // ---------------------------------------------------------------------------
+  //
+  // Phase 1 kept these in `AccountMutations` alongside the team, on the grounds
+  // that neither was big enough to justify a file of its own. The reads already
+  // split along aggregate lines in stage 3, so the writes follow them: an
+  // establishment is not a fact about the team, and a repository that owns the
+  // reads and not the writes is the shape that lets the two drift apart.
+
+  /// Opens a new establishment.
+  ///
+  /// It starts with no categories, units, articles or suppliers, which is
+  /// correct rather than lazy: those are per-establishment by design, and a new
+  /// shop's catalogue is not the old shop's. What the user sees next is every
+  /// empty state in the app, doing its job.
+  Future<Store> createStore({
+    required String name,
+    required String addressLine,
+    required String postalCode,
+    required String city,
+    required String phone,
+    String? vatNumber,
+  }) async {
+    final store = Store(
+      id: newId(),
+      name: name.trim(),
+      addressLine: addressLine.trim(),
+      postalCode: postalCode.trim(),
+      city: city.trim(),
+      phone: phone.trim(),
+      vatNumber: _trimToNull(vatNumber),
+      createdAt: DateTime.now(),
+    );
+
+    await _db.into(_db.stores).insert(storeToRow(store));
+    return store;
+  }
+
+  /// Edits an establishment. Null when it is gone.
+  ///
+  /// The id never changes, because it is a route segment: anything the user has
+  /// open or bookmarked keeps working across a rename.
+  Future<Store?> updateStore(
+    String id, {
+    String? name,
+    String? addressLine,
+    String? postalCode,
+    String? city,
+    String? phone,
+    String? vatNumber,
+  }) {
+    return _db.transaction(() async {
+      final existing = await store(id);
+      if (existing == null) return null;
+
+      // An empty string clears the VAT number; null leaves it alone. The two
+      // mean different things on a field that is legitimately absent, and the
+      // document header prints nothing for absent and an empty label for blank.
+      final clearedVat = vatNumber == null
+          ? const Value<String?>.absent()
+          : Value<String?>(_trimToNull(vatNumber));
+
+      await (_db.update(_db.stores)..where((s) => s.id.equals(id))).write(
+        StoresCompanion(
+          name: name == null ? const Value.absent() : Value(name.trim()),
+          addressLine: addressLine == null
+              ? const Value.absent()
+              : Value(addressLine.trim()),
+          postalCode: postalCode == null
+              ? const Value.absent()
+              : Value(postalCode.trim()),
+          city: city == null ? const Value.absent() : Value(city.trim()),
+          phone: phone == null ? const Value.absent() : Value(phone.trim()),
+          vatNumber: clearedVat,
+        ),
+      );
+
+      return Store(
+        id: existing.id,
+        name: name?.trim() ?? existing.name,
+        addressLine: addressLine?.trim() ?? existing.addressLine,
+        postalCode: postalCode?.trim() ?? existing.postalCode,
+        city: city?.trim() ?? existing.city,
+        phone: phone?.trim() ?? existing.phone,
+        vatNumber: vatNumber == null
+            ? existing.vatNumber
+            : _trimToNull(vatNumber),
+        createdAt: existing.createdAt,
+        imageAsset: existing.imageAsset,
+      );
+    });
+  }
+
+  /// Sets how long a `partial` commande may sit before the dashboard flags it.
+  ///
+  /// Refuses a non-positive number rather than storing it: zero days would flag
+  /// every commande the moment it went partial, and a negative one would flag
+  /// none at all — the dashboard warning would look broken in both directions.
+  /// The settings screen falls back to `OrderRules.defaultStalePartialDays` on
+  /// nonsense input, which is a decision about the form rather than about the
+  /// establishment.
+  Future<bool> setStalePartialOrderDays(String storeId, int days) async {
+    if (days <= 0) return false;
+
+    final changed =
+        await (_db.update(_db.stores)..where((s) => s.id.equals(storeId)))
+            .write(StoresCompanion(stalePartialOrderDays: Value(days)));
+    return changed > 0;
+  }
+
+  // ---------------------------------------------------------------------------
+
+  /// An optional text field as it should be stored: trimmed, and absent rather
+  /// than blank. A whitespace-only VAT number would print an empty line on the
+  /// bon de réception, which reads as a rendering bug rather than a missing
+  /// value.
+  static String? _trimToNull(String? value) {
+    final trimmed = value?.trim();
+    return trimmed == null || trimmed.isEmpty ? null : trimmed;
   }
 
   SimpleSelectStatement<$StoresTable, StoreRow> _query() =>

@@ -2,6 +2,7 @@ import '../core/utils/item_search.dart' as search;
 import '../core/utils/order_status.dart';
 import '../core/utils/stock_cost.dart';
 import '../core/utils/stock_status.dart';
+import '../data/view_models/receipt_document_sources.dart';
 import '../models/models.dart';
 import 'mock_categories.dart';
 import 'mock_goods_receipts.dart';
@@ -683,5 +684,35 @@ abstract final class MockQueries {
     final siblings = receiptsForOrder(receipt.orderId);
     final index = siblings.indexWhere((s) => s.id == receipt.id);
     return receiptReference(order.reference, index == -1 ? 1 : index + 1);
+  }
+
+  /// Everything the bon de réception needs besides the receipt itself.
+  ///
+  /// The mock-path twin of `OrderRepository.receiptDocumentSources`, and the
+  /// only reason it exists: the document assembly stopped making its own
+  /// lookups in Phase 2 stage 7, and the screens do not reach a repository until
+  /// stage 9. One of the two disappears with the rest of this file at stage 10.
+  static ReceiptDocumentSources? receiptDocumentSources(GoodsReceipt receipt) {
+    final order = orderById(receipt.orderId);
+    final store = storeById(receipt.storeId);
+    if (order == null || store == null) return null;
+
+    final supplier = supplierById(order.supplierId);
+    if (supplier == null) return null;
+
+    return ReceiptDocumentSources(
+      order: order,
+      store: store,
+      supplier: supplier,
+      reference: receiptReferenceOf(receipt),
+      items: {
+        for (final line in receipt.lines)
+          if (itemById(line.itemId) case final Item item)
+            item.id: (
+              name: item.name,
+              unit: unitAbbreviationOf(item.unitId),
+            ),
+      },
+    );
   }
 }

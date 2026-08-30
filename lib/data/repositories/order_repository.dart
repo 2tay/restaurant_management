@@ -7,6 +7,7 @@ import '../../models/purchase_order.dart';
 import '../../models/purchase_order_line.dart';
 import '../database/app_database.dart';
 import '../mappers/mappers.dart';
+import '../view_models/receipt_document_sources.dart';
 import 'account_repository.dart';
 import 'movement_repository.dart';
 import 'new_id.dart';
@@ -197,6 +198,62 @@ class OrderRepository {
     return receiptReference(row.reference, index == -1 ? 1 : index + 1);
   }
 
+
+  /// Everything the bon de réception needs besides the receipt itself.
+  ///
+  /// Null when the commande, the establishment or the supplier has gone
+  /// missing — a state the app cannot reach, but one worth failing visibly
+  /// rather than printing a header with blanks in it. Phase 1 made these four
+  /// lookups from inside the document assembly, which is why that assembly could
+  /// not be tested without the mock lists loaded.
+  ///
+  /// The article names come back in one joined query rather than one per line: a
+  /// delivery of twenty lines is twenty round trips otherwise, and the document
+  /// is built on a button press the user is watching.
+  Future<ReceiptDocumentSources?> receiptDocumentSources(
+    GoodsReceipt receipt,
+  ) async {
+    final order = await this.order(receipt.orderId);
+    if (order == null) return null;
+
+    final store = await StoreRepository(_db).store(receipt.storeId);
+    if (store == null) return null;
+
+    final supplier = await SupplierRepository(_db).supplier(order.supplierId);
+    if (supplier == null) return null;
+
+    return ReceiptDocumentSources(
+      order: order,
+      store: store,
+      supplier: supplier,
+      reference: await receiptReferenceOf(receipt),
+      items: await _itemsOn(receipt),
+    );
+  }
+
+  /// Name and unit abbreviation for every article on a delivery.
+  ///
+  /// A left join, so an article whose unit has been deleted still yields a name.
+  /// An article deleted outright is simply absent from the map — the document
+  /// prints a dash for it, because a receipt is evidence and the evidence
+  /// outlives the catalogue entry.
+  Future<Map<String, ReceiptDocumentItem>> _itemsOn(GoodsReceipt receipt) async {
+    final ids = {for (final line in receipt.lines) line.itemId};
+    if (ids.isEmpty) return const {};
+
+    final rows =
+        await (_db.select(_db.items)..where((i) => i.id.isIn(ids))).join([
+          leftOuterJoin(_db.units, _db.units.id.equalsExp(_db.items.unitId)),
+        ]).get();
+
+    return {
+      for (final row in rows)
+        row.readTable(_db.items).id: (
+          name: row.readTable(_db.items).name,
+          unit: row.readTableOrNull(_db.units)?.abbreviation ?? '',
+        ),
+    };
+  }
 
   // ---------------------------------------------------------------------------
   // Writes — commandes

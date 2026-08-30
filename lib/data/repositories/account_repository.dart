@@ -6,6 +6,7 @@ import '../../models/team_member.dart';
 import '../database/app_database.dart';
 import '../database/meta_keys.dart';
 import '../mappers/mappers.dart';
+import 'new_id.dart';
 
 /// The team, and the notifications an establishment has raised.
 ///
@@ -132,6 +133,192 @@ class AccountRepository {
   }
 
   // ---------------------------------------------------------------------------
+  // Writes — team
+  // ---------------------------------------------------------------------------
+
+  /// Adds a member. Returns null if the email is already on the team.
+  ///
+  /// A member and their establishment grants are two tables, so this is a
+  /// transaction: a member row with no grants is somebody who can sign in and
+  /// see nothing, which looks like a permissions bug rather than a half-finished
+  /// write.
+  Future<TeamMember?> invite({
+    required String fullName,
+    required String email,
+    required TeamRole role,
+    required List<String> storeIds,
+  }) async {
+    final trimmedName = fullName.trim();
+    final trimmedEmail = email.trim();
+    if (trimmedName.isEmpty || trimmedEmail.isEmpty) return null;
+
+    return _db.transaction(() async {
+      if (await teamMemberByEmail(trimmedEmail) != null) return null;
+
+      final member = TeamMember(
+        id: newId(),
+        fullName: trimmedName,
+        email: trimmedEmail,
+        role: role,
+        storeIds: List.of(storeIds),
+        // Invited, never seen. `lastActiveAt` is what the team screen renders as
+        // "jamais connecté", so it has to start null rather than at now.
+        isActive: true,
+        invitedAt: DateTime.now(),
+        lastActiveAt: null,
+      );
+
+      await _db.into(_db.teamMembers).insert(teamMemberToRow(member));
+      await _writeGrants(member.id, member.storeIds);
+      return member;
+    });
+  }
+
+  /// Edits a member. Returns null when the member is gone or the new email is
+  /// already somebody else's.
+  ///
+  /// Every parameter is nullable and null means "leave it": the team screen has
+  /// three separate controls that each change one field, and passing the whole
+  /// record back would let two of them race.
+  Future<TeamMember?> updateMember(
+    String id, {
+    String? fullName,
+    String? email,
+    TeamRole? role,
+    List<String>? storeIds,
+    bool? isActive,
+  }) async {
+    final trimmedEmail = email?.trim();
+
+    return _db.transaction(() async {
+      final existing = await teamMember(id);
+      if (existing == null) return null;
+
+      // Excluding itself, or saving a member without touching their address
+      // would collide with the row being saved.
+      if (trimmedEmail != null &&
+          await teamMemberByEmail(trimmedEmail, excludingId: id) != null) {
+        return null;
+      }
+
+      await (_db.update(_db.teamMembers)..where((m) => m.id.equals(id))).write(
+        TeamMembersCompanion(
+          fullName: fullName == null
+              ? const Value.absent()
+              : Value(fullName.trim()),
+          email: trimmedEmail == null ? const Value.absent() : Value(trimmedEmail),
+          role: role == null ? const Value.absent() : Value(role),
+          isActive: isActive == null ? const Value.absent() : Value(isActive),
+        ),
+      );
+
+      if (storeIds != null) await _writeGrants(id, storeIds);
+
+      // Rebuilt rather than copied: `TeamMember` has no `copyWith`, and adding
+      // one for a single caller would put a method on a model the PDF layer and
+      // Phase 3 also read.
+      return TeamMember(
+        id: existing.id,
+        fullName: fullName?.trim() ?? existing.fullName,
+        email: trimmedEmail ?? existing.email,
+        role: role ?? existing.role,
+        storeIds: storeIds == null ? existing.storeIds : List.of(storeIds),
+        isActive: isActive ?? existing.isActive,
+        invitedAt: existing.invitedAt,
+        lastActiveAt: existing.lastActiveAt,
+      );
+    });
+  }
+
+  /// Removes a member.
+  ///
+  /// Refuses to remove the last owner. An account nobody can administer is not a
+  /// state worth being able to reach by accident, and there is no recovery path
+  /// from inside the app. The check and the removal are one transaction, so two
+  /// devices each removing one of the last two owners cannot both succeed.
+  ///
+  /// Their establishment grants go with them: `team_member_stores.memberId` is
+  /// `ON DELETE CASCADE`.
+  Future<bool> removeMember(String id) {
+    return _db.transaction(() async {
+      final member = await teamMember(id);
+      if (member == null) return false;
+      if (member.role == TeamRole.owner && await ownerCount() <= 1) return false;
+
+      final removed = await (_db.delete(
+        _db.teamMembers,
+      )..where((m) => m.id.equals(id))).go();
+      return removed > 0;
+    });
+  }
+
+  /// True when this member is the only owner left, so the screen can explain
+  /// before it offers to remove them.
+  Future<bool> isLastOwner(String id) async {
+    final member = await teamMember(id);
+    if (member == null || member.role != TeamRole.owner) return false;
+    return await ownerCount() <= 1;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Writes — notifications
+  // ---------------------------------------------------------------------------
+
+  /// Marks one notification read. False if it is missing or already was.
+  ///
+  /// The "already read" case is in the `WHERE` rather than in a read-then-write:
+  /// the number of rows the statement touched is the answer, and one statement
+  /// cannot report a change it did not make.
+  Future<bool> markRead(String id) async {
+    final changed =
+        await (_db.update(_db.notifications)
+              ..where((n) => n.id.equals(id) & n.isRead.equals(false)))
+            .write(const NotificationsCompanion(isRead: Value(true)));
+    return changed > 0;
+  }
+
+  /// Marks everything in an establishment read. Returns how many changed.
+  ///
+  /// The count lets the screen say "7 notifications marquées comme lues" rather
+  /// than a bare acknowledgement, and lets it stay quiet when there was nothing
+  /// to do.
+  Future<int> markAllRead(String storeId) =>
+      (_db.update(_db.notifications)..where(
+            (n) => n.storeId.equals(storeId) & n.isRead.equals(false),
+          ))
+          .write(const NotificationsCompanion(isRead: Value(true)));
+
+  // ---------------------------------------------------------------------------
+
+  /// Rewrites a member's establishment grants.
+  ///
+  /// Replaced wholesale rather than diffed: the list is never longer than the
+  /// number of establishments an account has, and the form hands back the whole
+  /// set of ticked boxes.
+  ///
+  /// Deduplicated, because the grant table's primary key is the pair and a
+  /// repeated id would fail the insert. Phase 1 stored the list as given and
+  /// nothing noticed a duplicate.
+  ///
+  /// A store id that does not resolve fails here on the foreign key rather than
+  /// being filtered out. The ids come from a list of real establishments; one
+  /// that does not exist is a bug worth hearing about, not a grant to drop
+  /// silently.
+  Future<void> _writeGrants(String memberId, List<String> storeIds) async {
+    await (_db.delete(
+      _db.teamMemberStores,
+    )..where((g) => g.memberId.equals(memberId))).go();
+
+    final unique = storeIds.toSet();
+    if (unique.isEmpty) return;
+
+    await _db.batch((batch) {
+      batch.insertAll(_db.teamMemberStores, [
+        for (final storeId in unique)
+          teamMemberStoreToRow(memberId: memberId, storeId: storeId),
+      ]);
+    });
+  }
 
   JoinedSelectStatement<HasResultSet, dynamic> _teamQuery() =>
       _db.select(_db.teamMembers).join([

@@ -4,6 +4,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../mock_data/mock_data.dart';
 import '../../../models/models.dart';
 import '../../../shared/widgets/widgets.dart';
 import 'receipt_export.dart';
@@ -69,7 +70,11 @@ class _ReceiptDocumentButtonState extends State<ReceiptDocumentButton> {
     setState(() => _busy = true);
 
     try {
-      final shared = await ReceiptExport.share(context, widget.receipt);
+      final shared = await ReceiptExport.share(
+        context,
+        widget.receipt,
+        MockQueries.receiptDocumentSources(widget.receipt),
+      );
       if (!mounted) return;
       if (!shared) AppSnackBar.error(context, l10n.receiptDocFailed);
     } catch (_) {

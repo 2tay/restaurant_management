@@ -852,6 +852,89 @@ it waited for this stage.
 At the end of this stage the **entire data layer is done and tested, and the app still runs
 on mocks.** That is deliberate: everything up to here is additive and low-risk.
 
+### As built
+
+Stage 7 is done. `test/account_test.dart` is deleted and `test/db/account_test.dart` (21)
+stands in its place; `receipt_document_test.dart` (16) and `document_preview_test.dart` (1)
+stay where they are and read from a database. The data layer is complete.
+
+**1. The establishment writes went to `StoreRepository`, not `AccountRepository`.** The plan
+put `createStore`/`updateStore` with the team because Phase 1 did, and Phase 1 did because
+neither was big enough to justify a file of its own. That reasoning expired at stage 3, when
+the reads split along aggregate lines: `StoreRepository` already owned every establishment
+read, and a repository that owns the reads but not the writes is the shape that lets the two
+drift apart. `setStalePartialOrderDays` went there too, which is where its column is.
+
+`AccountRepository` keeps the team and the notifications, which is what its doc comment
+already claimed it was about.
+
+**2. The grant-replacement test has teeth, checked the way stages 5 and 6 were checked.**
+`TeamMember.storeIds` was a field on an object in memory and is a join table now, and nothing
+pinned how it gets written. `_writeGrants` deletes the member's grants and re-inserts, and
+*"editing the establishments replaces the set"* passed first try — so the delete was removed,
+making it append-only the way a careless port would, and the test failed. Then reverted.
+
+It also deduplicates, which Phase 1 did not need to: the grant table's primary key is the
+pair, so the same establishment named twice in one invitation fails the insert rather than
+being stored twice. A test pins that too.
+
+**3. `markRead` and `markAllRead` are each one statement, and the row count is the answer.**
+Phase 1 read the notification, compared `isRead`, then wrote — three steps to discover
+whether anything changed. `UPDATE … WHERE id = ? AND is_read = 0` answers both questions at
+once, and one statement cannot report a change it did not make. `markAllRead` returns the
+count the same way, which is what lets the screen say "7 notifications marquées comme lues"
+rather than a bare acknowledgement.
+
+**4. `setStalePartialOrderDays` refuses a non-positive number.** Zero would flag every
+commande the moment it went partial and a negative one would flag none, so the dashboard
+warning looks broken in both directions. The settings screen falls back to
+`OrderRules.defaultStalePartialDays` on nonsense input, which is a decision about the form
+rather than about the establishment, so it stays in the form.
+
+**5. The carried-over document test needed more than its `setUp` swapped, and the plan was
+wrong about why.** The plan said the PDF layer reads models, which have not changed — true of
+the renderer, and true of every assertion in the file, but not of the call underneath them.
+`ReceiptExport.buildDocument` made four `MockQueries` lookups of its own: the commande, the
+establishment, the supplier, and a name and unit per line. A synchronous global read cannot
+be swapped for a database query without rewriting every caller, which is exactly the thing
+that file's doc comment claimed it existed to prevent.
+
+So the lookups moved one layer up. `ReceiptDocumentSources` (`lib/data/view_models/`) carries
+the commande, the establishment, the supplier, the derived reference and a name-and-unit per
+article; `OrderRepository.receiptDocumentSources` gathers them, resolving every article in
+one joined query rather than one per line; and `buildDocument` became a pure function of the
+receipt and that bundle — which is why it no longer returns null, since "the supplier is
+gone" is now the gatherer's answer to give.
+
+`lib/data/view_models/` is new and stage 9 is where it fills up: `ItemRowView` and
+`MovementRowView` are the same shape for the same reason, and the plan already calls for them.
+
+Two consequences worth writing down:
+
+- **`MockQueries.receiptDocumentSources` is a deliberate temporary twin.** The screens do not
+  reach a repository until stage 9, so the share button needs a mock-path way to build the
+  same bundle. Both are eight lines, they cannot disagree about anything but where they read
+  from, and the mock one dies with the rest of that file at stage 10.
+- **`document_preview_test.dart` had to move too**, which the plan did not list. It is the
+  file that writes a sample bon de réception to `build/` to be looked at, and it calls the
+  same assembly.
+
+One new test came out of the refactor: an article deleted after the delivery now renders as
+`—`. That path existed in Phase 1 and nothing exercised it; a receipt is evidence, and the
+evidence has to stay printable after the catalogue moves on.
+
+**6. What stage 7 does *not* finish.** `MockSettings` still exists and still holds
+`stalePartialOrderDays` for the three widgets that read it and the one that writes it — the
+column and the repository method are ready, the screens are stage 9. `currentUserProvider` is
+listed in this stage but is a provider, so it belongs to stage 8; the `meta.currentUserId`
+row and `currentUser()` behind it landed in stage 3, and a new test pins the part that only
+matters now that members can be removed: the acting user survives their own removal, because
+`meta.currentUserId` is a plain string rather than a foreign key and every movement is
+stamped with that person's name.
+
+**Verified at the stage boundary:** `flutter analyze` clean; `flutter test` 485/485 green
+(475 before, minus 12 deleted, plus 22 new); `python tool/ux_audit.py` clean.
+
 ---
 
 ## Stage 8 — Provider layer *(M)*
@@ -902,7 +985,7 @@ branch, convert in this order (dependency-light first, and it matches the demo p
 | 3 | `inventory/` | includes the two hard files below |
 | 4 | `stock_movement/` | 5 files, all forms |
 | 5 | `suppliers/` | |
-| 6 | `orders/` | 11 files, heaviest |
+| 6 | `orders/` | 11 files, heaviest. Includes `receipt_document_button.dart`, which reaches `MockQueries.receiptDocumentSources` — repoint it at `OrderRepository.receiptDocumentSources` (same bundle, added stage 7) and the mock twin dies with the rest at stage 10 |
 | 7 | `alerts/`, `dashboard/`, `reports/`, `search/`, `team/` | mostly read-only |
 
 Three shapes of work, and the second is the one that will surprise you:
