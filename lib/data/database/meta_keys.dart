@@ -17,4 +17,10 @@ abstract final class MetaKeys {
   /// string seeded from the current employee rather than a foreign key into an
   /// `employees` table.
   static const String currentUserName = 'currentUserName';
+
+  /// The signed-in employee's id, or absent when nobody is signed in — the
+  /// database-backed session (Phase 2 employé, Stage 7). `db_fixture.dart` seeds
+  /// it so a widget test opens as the account owner, the same default
+  /// `MockSession` gave the mock-backed suites.
+  static const String currentEmployeeId = 'currentEmployeeId';
 }

@@ -288,6 +288,52 @@ instead of a "the data happens to satisfy it" test.
 **Done when:** `flutter test` green (old suites untouched, seed suite extended), and the
 seeded DB matches the employee dataset the demo path relies on.
 
+### As built
+
+Stage 2 is done. Four mappers (`employee_mapper`, `credential_mapper`, `attendance_mapper`,
+`payroll_mapper`), `store_mapper` extended, `demo_seed` grows an employee block, and a new
+`test/db/employee_seed_test.dart` (15 tests). 711 tests green (696 → 711).
+
+**1. `storeToRow(store, [settings])` — settings is optional and positional.** When omitted
+the six settings columns take their schema defaults, which is exactly what
+`StoreRepository.createStore` already relied on; the seed passes
+`storeSettingsOrDefault(store.id)` so a re-seed restores Sablon's 45-min break / ×1.5
+overtime and TestCalcul's 08:00–22:00 day. `storeSettingsFromRow` is the new read half —
+the full six-field `StoreSettings`, `stalePartialOrderDays` included (it was always a
+column). The old "note what is missing" comment on `storeToRow` is gone with it.
+
+**2. `paymentStatus` is derived in `attendanceFromRows`, never written.** `attendanceToRow`
+emits no payment column; `payrollPeriodId == null ? unpaid : paid`. The `Attendance` model
+keeps its field, so nothing above the mapper changed.
+
+**3. Attendance `date` is re-normalised from the *moved clock-in*, not the moved `date`.**
+The seed shifts every date by `at - mockNow`, and that shift is fractional (the fixture
+anchor is noon, `mockNow` is whenever the run starts). A midnight `date` shifted by a
+fractional amount is no longer midnight, and clock-in vs. `date` could then land on
+different calendar days. `movedDay(attendance.clockInAt ?? attendance.date)` keeps the
+`(employeeId, date)` unique index and every group-by-day read coherent. Payroll period
+`startDate` / `endDate` get the same `movedDay` treatment.
+
+**4. Pause ids are `att-<id>-pause-<n>` slugs.** `AttendancePause` has no id on the model;
+`pauseToRow` derives a deterministic one from the day and the position (debuggable, stable
+across a re-seed). It takes an optional `id` override so Stage 5's `startPause` can pass a
+uuid at runtime.
+
+**5. The DB-constraint tests were already in place.** `schema_test.dart`'s
+`Gestion Employée (schema version 2)` group (from Stage 1) already covers unique CIN /
+email, one row per `(employeeId, date)`, one credential per employee, the delete cascade
+and the `RESTRICT` on a paid period. `employee_seed_test.dart` only carries the
+dataset-integrity checks — the "the data happens to satisfy it" half.
+
+**6. `db_fixture.openSeededDatabase` seeds `meta.currentEmployeeId = EmployeeIds.marc`.**
+New `MetaKeys.currentEmployeeId` constant, unused by any repository until Stage 7. It is
+written in the fixture, not in `demo_seed` — `DemoRepository.resetDemo` deliberately leaves
+a reset database signed out.
+
+**Verified at the stage boundary:** `flutter analyze` clean; `flutter test` 711/711 green;
+`python tool/ux_audit.py` clean; `dart run build_runner build --force-jit` regenerates
+identically (no `app_database.g.dart` change).
+
 ---
 
 ## Stage 3 — Read repositories *(L)*

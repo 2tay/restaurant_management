@@ -38,13 +38,25 @@ Future<void> seedDemoData(AppDatabase db, {DateTime? at}) async {
   Value<DateTime?> movedValue(DateTime? original) =>
       Value(original == null ? null : moved(original));
 
+  // A midnight-normalised date, shifted and re-normalised. Attendance `date` and
+  // a payroll period's span are filed under a calendar day, not an instant, so
+  // the shift has to land back on midnight — otherwise the `(employeeId, date)`
+  // unique index and every "group by day" read see a time component.
+  DateTime movedDay(DateTime original) {
+    final m = moved(original);
+    return DateTime(m.year, m.month, m.day);
+  }
+
   await db.batch((Batch batch) {
     // Insertion order is foreign-key order. With `PRAGMA foreign_keys = ON` the
     // constraints are immediate, not deferred, so a category inserted after the
     // items that use it is a failure and not a detail.
     batch.insertAll(db.stores, [
       for (final store in mockStores)
-        storeToRow(store).copyWith(createdAt: Value(moved(store.createdAt))),
+        storeToRow(
+          store,
+          storeSettingsOrDefault(store.id),
+        ).copyWith(createdAt: Value(moved(store.createdAt))),
     ]);
     batch.insertAll(db.categories, mockCategories.map(categoryToRow));
     batch.insertAll(db.units, mockUnits.map(unitToRow));
@@ -99,6 +111,50 @@ Future<void> seedDemoData(AppDatabase db, {DateTime? at}) async {
           receiptLineToRow(line, receiptId: receipt.id, position: index),
     ]);
 
+    // --- Gestion Employée (Phase 2 employé) --------------------------------
+    //
+    // Foreign-key order: an employee before its credential and its attendance,
+    // a payroll period before the attendance rows it locks (`payrollPeriodId`
+    // is `RESTRICT`), a pause after its day.
+    batch.insertAll(db.employees, [
+      for (final employee in mockEmployees)
+        employeeToRow(employee).copyWith(
+          hireDate: Value(moved(employee.hireDate)),
+          createdAt: Value(moved(employee.createdAt)),
+          archivedAt: movedValue(employee.archivedAt),
+        ),
+    ]);
+    batch.insertAll(db.employeeCredentials, mockCredentials.map(credentialToRow));
+    batch.insertAll(db.payrollPeriods, [
+      for (final period in mockPayrollPeriods)
+        payrollPeriodToRow(period).copyWith(
+          startDate: Value(movedDay(period.startDate)),
+          endDate: Value(movedDay(period.endDate)),
+          paidAt: movedValue(period.paidAt),
+          createdAt: Value(moved(period.createdAt)),
+        ),
+    ]);
+    batch.insertAll(db.attendances, [
+      for (final attendance in mockAttendances)
+        attendanceToRow(attendance).copyWith(
+          date: Value(movedDay(attendance.clockInAt ?? attendance.date)),
+          clockInAt: movedValue(attendance.clockInAt),
+          clockOutAt: movedValue(attendance.clockOutAt),
+        ),
+    ]);
+    batch.insertAll(db.attendancePauses, [
+      for (final attendance in mockAttendances)
+        for (final (int index, pause) in attendance.pauses.indexed)
+          pauseToRow(
+            pause,
+            attendanceId: attendance.id,
+            position: index,
+          ).copyWith(
+            startAt: Value(moved(pause.startAt)),
+            endAt: movedValue(pause.endAt),
+          ),
+    ]);
+
     batch.insertAll(db.notifications, [
       for (final notification in mockNotifications)
         notificationToRow(
@@ -132,6 +188,16 @@ Future<void> clearAllData(AppDatabase db) async {
   await db.batch((Batch batch) {
     batch.deleteAll(db.meta);
     batch.deleteAll(db.notifications);
+
+    // Gestion Employée, reverse foreign-key order: a pause before its day, the
+    // attendance rows before the payroll period they point at, a credential
+    // before its employee.
+    batch.deleteAll(db.attendancePauses);
+    batch.deleteAll(db.attendances);
+    batch.deleteAll(db.payrollPeriods);
+    batch.deleteAll(db.employeeCredentials);
+    batch.deleteAll(db.employees);
+
     batch.deleteAll(db.goodsReceiptLines);
     batch.deleteAll(db.goodsReceipts);
     batch.deleteAll(db.purchaseOrderLines);

@@ -12,7 +12,9 @@
 import 'package:drift/drift.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stock_inventory/data/database/app_database.dart';
+import 'package:stock_inventory/data/database/meta_keys.dart';
 import 'package:stock_inventory/data/seed/demo_seed.dart';
+import 'package:stock_inventory/mock_data/mock_employees.dart' show EmployeeIds;
 
 import 'sqlite.dart';
 
@@ -31,6 +33,18 @@ final DateTime seedInstant = DateTime(2026, 8, 29, 12);
 Future<AppDatabase> openSeededDatabase({DateTime? at}) async {
   final AppDatabase db = openEmptyDatabase();
   await seedDemoData(db, at: at ?? seedInstant);
+
+  // Sign the fixture in as the account owner. `MockSession` starts every
+  // mock-backed widget test as Marc; this is the database equivalent, so the
+  // route / navigation / permission suites need no login step in their bodies.
+  await db
+      .into(db.meta)
+      .insert(
+        MetaCompanion.insert(
+          key: MetaKeys.currentEmployeeId,
+          value: EmployeeIds.marc,
+        ),
+      );
   return db;
 }
 
