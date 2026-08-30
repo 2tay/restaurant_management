@@ -112,15 +112,80 @@ void main() {
         );
   }
 
+  Future<void> insertEmployee({
+    String id = 'emp-1',
+    String storeId = 'store-1',
+    String cin = 'AA.11.11-111.11',
+    String email = 'employee@example.be',
+  }) {
+    return db.into(db.employees).insert(
+          EmployeesCompanion.insert(
+            id: id,
+            storeId: storeId,
+            firstName: 'Anne',
+            lastName: 'Test',
+            cin: cin,
+            phone: '+32 470 00 00 00',
+            email: email,
+            hireDate: DateTime(2026),
+            role: EmployeeRole.staff,
+            contractType: ContractType.fixed,
+            pay: 2000,
+            createdAt: DateTime(2026),
+          ),
+        );
+  }
+
+  Future<void> insertAttendance({
+    String id = 'att-1',
+    DateTime? date,
+    String? payrollPeriodId,
+  }) {
+    return db.into(db.attendances).insert(
+          AttendancesCompanion.insert(
+            id: id,
+            storeId: 'store-1',
+            employeeId: 'emp-1',
+            date: date ?? DateTime(2026, 7, 1),
+            status: AttendanceStatus.done,
+            payrollPeriodId: Value(payrollPeriodId),
+          ),
+        );
+  }
+
+  Future<void> insertPayrollPeriod({String id = 'pay-1'}) {
+    return db.into(db.payrollPeriods).insert(
+          PayrollPeriodsCompanion.insert(
+            id: id,
+            employeeId: 'emp-1',
+            storeId: 'store-1',
+            startDate: DateTime(2026, 7, 1),
+            endDate: DateTime(2026, 7, 1),
+            workedDays: 1,
+            totalWorkedHours: 8,
+            totalOvertimeHours: 0,
+            appliedRate: 2000,
+            computedAmount: 76.92,
+            status: PayrollStatus.paid,
+            createdAt: DateTime(2026),
+          ),
+        );
+  }
+
   group('the database is created', () {
     test('with every table the app needs', () async {
       expect(await tableNames(), <String>[
+        'attendance_pauses',
+        'attendances',
         'categories',
+        'employee_credentials',
+        'employees',
         'goods_receipt_lines',
         'goods_receipts',
         'items',
         'meta',
         'notifications',
+        'payroll_periods',
         'price_history',
         'purchase_order_lines',
         'purchase_orders',
@@ -132,8 +197,8 @@ void main() {
       ]);
     });
 
-    test('at schema version 1', () {
-      expect(db.schemaVersion, 1);
+    test('at schema version 2', () {
+      expect(db.schemaVersion, 2);
     });
 
     test('with foreign keys switched on', () async {
@@ -264,6 +329,122 @@ void main() {
 
       final line = await db.select(db.purchaseOrderLines).getSingle();
       expect(line.itemId, 'item-1');
+    });
+  });
+
+  group('Gestion Employée (schema version 2)', () {
+    test('an employee needs a real establishment', () async {
+      await expectLater(
+        insertEmployee(storeId: 'store-nope'),
+        throwsA(isA<SqliteException>()),
+      );
+    });
+
+    test('an establishment with staff on file cannot be deleted', () async {
+      await seedMinimalStore();
+      await insertEmployee();
+
+      await expectLater(
+        (db.delete(db.stores)..where((s) => s.id.equals('store-1'))).go(),
+        throwsA(isA<SqliteException>()),
+        reason: 'employees.storeId is RESTRICT',
+      );
+    });
+
+    test('CIN is unique across the roster', () async {
+      await seedMinimalStore();
+      await insertEmployee(id: 'emp-1', email: 'a@example.be');
+      await expectLater(
+        insertEmployee(id: 'emp-2', email: 'b@example.be'),
+        throwsA(isA<SqliteException>()),
+      );
+    });
+
+    test('email is unique across the roster', () async {
+      await seedMinimalStore();
+      await insertEmployee(id: 'emp-1', cin: 'AA.11.11-111.11');
+      await expectLater(
+        insertEmployee(id: 'emp-2', cin: 'BB.22.22-222.22'),
+        throwsA(isA<SqliteException>()),
+      );
+    });
+
+    test('one attendance row per employee per day', () async {
+      await seedMinimalStore();
+      await insertEmployee();
+      await insertAttendance(id: 'att-1');
+      await expectLater(
+        insertAttendance(id: 'att-2'),
+        throwsA(isA<SqliteException>()),
+      );
+    });
+
+    test('one credential per employee', () async {
+      await seedMinimalStore();
+      await insertEmployee();
+      Future<void> cred(String id) => db.into(db.employeeCredentials).insert(
+            EmployeeCredentialsCompanion.insert(
+              id: id,
+              employeeId: 'emp-1',
+              pinHash: 'pin:1234',
+            ),
+          );
+      await cred('cred-1');
+      await expectLater(cred('cred-2'), throwsA(isA<SqliteException>()));
+    });
+
+    test('deleting an employee takes their credential, days and pauses', () async {
+      await seedMinimalStore();
+      await insertEmployee();
+      await db.into(db.employeeCredentials).insert(
+            EmployeeCredentialsCompanion.insert(
+              id: 'cred-1',
+              employeeId: 'emp-1',
+              pinHash: 'pin:1234',
+            ),
+          );
+      await insertAttendance(id: 'att-1');
+      await db.into(db.attendancePauses).insert(
+            AttendancePausesCompanion.insert(
+              id: 'pause-1',
+              attendanceId: 'att-1',
+              position: 0,
+              startAt: DateTime(2026, 7, 1, 12),
+            ),
+          );
+
+      await (db.delete(db.employees)..where((e) => e.id.equals('emp-1'))).go();
+
+      expect(await db.select(db.employeeCredentials).get(), isEmpty);
+      expect(await db.select(db.attendances).get(), isEmpty);
+      expect(await db.select(db.attendancePauses).get(), isEmpty);
+    });
+
+    test('a paid period cannot be deleted while a day still points at it', () async {
+      await seedMinimalStore();
+      await insertEmployee();
+      await insertPayrollPeriod(id: 'pay-1');
+      await insertAttendance(id: 'att-1', payrollPeriodId: 'pay-1');
+
+      await expectLater(
+        (db.delete(db.payrollPeriods)..where((p) => p.id.equals('pay-1'))).go(),
+        throwsA(isA<SqliteException>()),
+        reason: 'attendances.payrollPeriodId is RESTRICT — a locked day keeps '
+            'its lock',
+      );
+    });
+
+    test('the pointage / paie settings default to the core constants', () async {
+      await seedMinimalStore();
+      final store = await (db.select(
+        db.stores,
+      )..where((s) => s.id.equals('store-1'))).getSingle();
+
+      expect(store.openMinutes, 8 * 60);
+      expect(store.closeMinutes, 17 * 60);
+      expect(store.maxBreakMinutes, 30);
+      expect(store.overtimeMultiplier, 1.25);
+      expect(store.workingDaysPerMonth, 26);
     });
   });
 

@@ -32,6 +32,35 @@ class Stores extends Table {
   IntColumn get stalePartialOrderDays =>
       integer().withDefault(const Constant(7))();
 
+  // --- Pointage and paie settings ------------------------------------------
+  //
+  // The rest of `StoreSettings` (Phase 2 employé). It was `mock_store_settings.dart`,
+  // one row per store; the model's `storeId` plus these six fields is the whole
+  // record. Defaults are the constants in `core/utils/` — named in the comments
+  // so a schema change and a constant change cannot silently disagree.
+
+  /// Opening / closing time, minutes since midnight — the baseline lateness and
+  /// overtime are measured against for an employee with no personal schedule.
+  /// `AttendanceRules.defaultOpenMinutes` / `defaultCloseMinutes` = 08:00, 17:00.
+  IntColumn get openMinutes => integer().withDefault(const Constant(8 * 60))();
+  IntColumn get closeMinutes =>
+      integer().withDefault(const Constant(17 * 60))();
+
+  /// A single break segment longer than this is flagged "pause dépassée".
+  /// `AttendanceRules.defaultMaxBreakMinutes`.
+  IntColumn get maxBreakMinutes =>
+      integer().withDefault(const Constant(30))();
+
+  /// Overtime hours are paid at the normal rate times this coefficient.
+  /// `PayrollRules.defaultOvertimeMultiplier`.
+  RealColumn get overtimeMultiplier =>
+      real().withDefault(const Constant(1.25))();
+
+  /// Divisor that turns a fixed-salary employee's monthly pay into a daily
+  /// rate. `PayrollRules.defaultWorkingDaysPerMonth`.
+  IntColumn get workingDaysPerMonth =>
+      integer().withDefault(const Constant(26))();
+
   @override
   Set<Column<Object>> get primaryKey => {id};
 }

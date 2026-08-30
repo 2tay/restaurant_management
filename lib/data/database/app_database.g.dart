@@ -114,6 +114,65 @@ class $StoresTable extends Stores with TableInfo<$StoresTable, StoreRow> {
     requiredDuringInsert: false,
     defaultValue: const Constant(7),
   );
+  static const VerificationMeta _openMinutesMeta = const VerificationMeta(
+    'openMinutes',
+  );
+  @override
+  late final GeneratedColumn<int> openMinutes = GeneratedColumn<int>(
+    'open_minutes',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(8 * 60),
+  );
+  static const VerificationMeta _closeMinutesMeta = const VerificationMeta(
+    'closeMinutes',
+  );
+  @override
+  late final GeneratedColumn<int> closeMinutes = GeneratedColumn<int>(
+    'close_minutes',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(17 * 60),
+  );
+  static const VerificationMeta _maxBreakMinutesMeta = const VerificationMeta(
+    'maxBreakMinutes',
+  );
+  @override
+  late final GeneratedColumn<int> maxBreakMinutes = GeneratedColumn<int>(
+    'max_break_minutes',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(30),
+  );
+  static const VerificationMeta _overtimeMultiplierMeta =
+      const VerificationMeta('overtimeMultiplier');
+  @override
+  late final GeneratedColumn<double> overtimeMultiplier =
+      GeneratedColumn<double>(
+        'overtime_multiplier',
+        aliasedName,
+        false,
+        type: DriftSqlType.double,
+        requiredDuringInsert: false,
+        defaultValue: const Constant(1.25),
+      );
+  static const VerificationMeta _workingDaysPerMonthMeta =
+      const VerificationMeta('workingDaysPerMonth');
+  @override
+  late final GeneratedColumn<int> workingDaysPerMonth = GeneratedColumn<int>(
+    'working_days_per_month',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(26),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -126,6 +185,11 @@ class $StoresTable extends Stores with TableInfo<$StoresTable, StoreRow> {
     vatNumber,
     imageAsset,
     stalePartialOrderDays,
+    openMinutes,
+    closeMinutes,
+    maxBreakMinutes,
+    overtimeMultiplier,
+    workingDaysPerMonth,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -216,6 +280,51 @@ class $StoresTable extends Stores with TableInfo<$StoresTable, StoreRow> {
         ),
       );
     }
+    if (data.containsKey('open_minutes')) {
+      context.handle(
+        _openMinutesMeta,
+        openMinutes.isAcceptableOrUnknown(
+          data['open_minutes']!,
+          _openMinutesMeta,
+        ),
+      );
+    }
+    if (data.containsKey('close_minutes')) {
+      context.handle(
+        _closeMinutesMeta,
+        closeMinutes.isAcceptableOrUnknown(
+          data['close_minutes']!,
+          _closeMinutesMeta,
+        ),
+      );
+    }
+    if (data.containsKey('max_break_minutes')) {
+      context.handle(
+        _maxBreakMinutesMeta,
+        maxBreakMinutes.isAcceptableOrUnknown(
+          data['max_break_minutes']!,
+          _maxBreakMinutesMeta,
+        ),
+      );
+    }
+    if (data.containsKey('overtime_multiplier')) {
+      context.handle(
+        _overtimeMultiplierMeta,
+        overtimeMultiplier.isAcceptableOrUnknown(
+          data['overtime_multiplier']!,
+          _overtimeMultiplierMeta,
+        ),
+      );
+    }
+    if (data.containsKey('working_days_per_month')) {
+      context.handle(
+        _workingDaysPerMonthMeta,
+        workingDaysPerMonth.isAcceptableOrUnknown(
+          data['working_days_per_month']!,
+          _workingDaysPerMonthMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -265,6 +374,26 @@ class $StoresTable extends Stores with TableInfo<$StoresTable, StoreRow> {
         DriftSqlType.int,
         data['${effectivePrefix}stale_partial_order_days'],
       )!,
+      openMinutes: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}open_minutes'],
+      )!,
+      closeMinutes: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}close_minutes'],
+      )!,
+      maxBreakMinutes: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}max_break_minutes'],
+      )!,
+      overtimeMultiplier: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}overtime_multiplier'],
+      )!,
+      workingDaysPerMonth: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}working_days_per_month'],
+      )!,
     );
   }
 
@@ -296,6 +425,24 @@ class StoreRow extends DataClass implements Insertable<StoreRow> {
   /// this is that column. Per store, because two establishments can reasonably
   /// disagree about how long is too long.
   final int stalePartialOrderDays;
+
+  /// Opening / closing time, minutes since midnight — the baseline lateness and
+  /// overtime are measured against for an employee with no personal schedule.
+  /// `AttendanceRules.defaultOpenMinutes` / `defaultCloseMinutes` = 08:00, 17:00.
+  final int openMinutes;
+  final int closeMinutes;
+
+  /// A single break segment longer than this is flagged "pause dépassée".
+  /// `AttendanceRules.defaultMaxBreakMinutes`.
+  final int maxBreakMinutes;
+
+  /// Overtime hours are paid at the normal rate times this coefficient.
+  /// `PayrollRules.defaultOvertimeMultiplier`.
+  final double overtimeMultiplier;
+
+  /// Divisor that turns a fixed-salary employee's monthly pay into a daily
+  /// rate. `PayrollRules.defaultWorkingDaysPerMonth`.
+  final int workingDaysPerMonth;
   const StoreRow({
     required this.id,
     required this.name,
@@ -307,6 +454,11 @@ class StoreRow extends DataClass implements Insertable<StoreRow> {
     this.vatNumber,
     this.imageAsset,
     required this.stalePartialOrderDays,
+    required this.openMinutes,
+    required this.closeMinutes,
+    required this.maxBreakMinutes,
+    required this.overtimeMultiplier,
+    required this.workingDaysPerMonth,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -325,6 +477,11 @@ class StoreRow extends DataClass implements Insertable<StoreRow> {
       map['image_asset'] = Variable<String>(imageAsset);
     }
     map['stale_partial_order_days'] = Variable<int>(stalePartialOrderDays);
+    map['open_minutes'] = Variable<int>(openMinutes);
+    map['close_minutes'] = Variable<int>(closeMinutes);
+    map['max_break_minutes'] = Variable<int>(maxBreakMinutes);
+    map['overtime_multiplier'] = Variable<double>(overtimeMultiplier);
+    map['working_days_per_month'] = Variable<int>(workingDaysPerMonth);
     return map;
   }
 
@@ -344,6 +501,11 @@ class StoreRow extends DataClass implements Insertable<StoreRow> {
           ? const Value.absent()
           : Value(imageAsset),
       stalePartialOrderDays: Value(stalePartialOrderDays),
+      openMinutes: Value(openMinutes),
+      closeMinutes: Value(closeMinutes),
+      maxBreakMinutes: Value(maxBreakMinutes),
+      overtimeMultiplier: Value(overtimeMultiplier),
+      workingDaysPerMonth: Value(workingDaysPerMonth),
     );
   }
 
@@ -365,6 +527,15 @@ class StoreRow extends DataClass implements Insertable<StoreRow> {
       stalePartialOrderDays: serializer.fromJson<int>(
         json['stalePartialOrderDays'],
       ),
+      openMinutes: serializer.fromJson<int>(json['openMinutes']),
+      closeMinutes: serializer.fromJson<int>(json['closeMinutes']),
+      maxBreakMinutes: serializer.fromJson<int>(json['maxBreakMinutes']),
+      overtimeMultiplier: serializer.fromJson<double>(
+        json['overtimeMultiplier'],
+      ),
+      workingDaysPerMonth: serializer.fromJson<int>(
+        json['workingDaysPerMonth'],
+      ),
     );
   }
   @override
@@ -381,6 +552,11 @@ class StoreRow extends DataClass implements Insertable<StoreRow> {
       'vatNumber': serializer.toJson<String?>(vatNumber),
       'imageAsset': serializer.toJson<String?>(imageAsset),
       'stalePartialOrderDays': serializer.toJson<int>(stalePartialOrderDays),
+      'openMinutes': serializer.toJson<int>(openMinutes),
+      'closeMinutes': serializer.toJson<int>(closeMinutes),
+      'maxBreakMinutes': serializer.toJson<int>(maxBreakMinutes),
+      'overtimeMultiplier': serializer.toJson<double>(overtimeMultiplier),
+      'workingDaysPerMonth': serializer.toJson<int>(workingDaysPerMonth),
     };
   }
 
@@ -395,6 +571,11 @@ class StoreRow extends DataClass implements Insertable<StoreRow> {
     Value<String?> vatNumber = const Value.absent(),
     Value<String?> imageAsset = const Value.absent(),
     int? stalePartialOrderDays,
+    int? openMinutes,
+    int? closeMinutes,
+    int? maxBreakMinutes,
+    double? overtimeMultiplier,
+    int? workingDaysPerMonth,
   }) => StoreRow(
     id: id ?? this.id,
     name: name ?? this.name,
@@ -406,6 +587,11 @@ class StoreRow extends DataClass implements Insertable<StoreRow> {
     vatNumber: vatNumber.present ? vatNumber.value : this.vatNumber,
     imageAsset: imageAsset.present ? imageAsset.value : this.imageAsset,
     stalePartialOrderDays: stalePartialOrderDays ?? this.stalePartialOrderDays,
+    openMinutes: openMinutes ?? this.openMinutes,
+    closeMinutes: closeMinutes ?? this.closeMinutes,
+    maxBreakMinutes: maxBreakMinutes ?? this.maxBreakMinutes,
+    overtimeMultiplier: overtimeMultiplier ?? this.overtimeMultiplier,
+    workingDaysPerMonth: workingDaysPerMonth ?? this.workingDaysPerMonth,
   );
   StoreRow copyWithCompanion(StoresCompanion data) {
     return StoreRow(
@@ -427,6 +613,21 @@ class StoreRow extends DataClass implements Insertable<StoreRow> {
       stalePartialOrderDays: data.stalePartialOrderDays.present
           ? data.stalePartialOrderDays.value
           : this.stalePartialOrderDays,
+      openMinutes: data.openMinutes.present
+          ? data.openMinutes.value
+          : this.openMinutes,
+      closeMinutes: data.closeMinutes.present
+          ? data.closeMinutes.value
+          : this.closeMinutes,
+      maxBreakMinutes: data.maxBreakMinutes.present
+          ? data.maxBreakMinutes.value
+          : this.maxBreakMinutes,
+      overtimeMultiplier: data.overtimeMultiplier.present
+          ? data.overtimeMultiplier.value
+          : this.overtimeMultiplier,
+      workingDaysPerMonth: data.workingDaysPerMonth.present
+          ? data.workingDaysPerMonth.value
+          : this.workingDaysPerMonth,
     );
   }
 
@@ -442,7 +643,12 @@ class StoreRow extends DataClass implements Insertable<StoreRow> {
           ..write('createdAt: $createdAt, ')
           ..write('vatNumber: $vatNumber, ')
           ..write('imageAsset: $imageAsset, ')
-          ..write('stalePartialOrderDays: $stalePartialOrderDays')
+          ..write('stalePartialOrderDays: $stalePartialOrderDays, ')
+          ..write('openMinutes: $openMinutes, ')
+          ..write('closeMinutes: $closeMinutes, ')
+          ..write('maxBreakMinutes: $maxBreakMinutes, ')
+          ..write('overtimeMultiplier: $overtimeMultiplier, ')
+          ..write('workingDaysPerMonth: $workingDaysPerMonth')
           ..write(')'))
         .toString();
   }
@@ -459,6 +665,11 @@ class StoreRow extends DataClass implements Insertable<StoreRow> {
     vatNumber,
     imageAsset,
     stalePartialOrderDays,
+    openMinutes,
+    closeMinutes,
+    maxBreakMinutes,
+    overtimeMultiplier,
+    workingDaysPerMonth,
   );
   @override
   bool operator ==(Object other) =>
@@ -473,7 +684,12 @@ class StoreRow extends DataClass implements Insertable<StoreRow> {
           other.createdAt == this.createdAt &&
           other.vatNumber == this.vatNumber &&
           other.imageAsset == this.imageAsset &&
-          other.stalePartialOrderDays == this.stalePartialOrderDays);
+          other.stalePartialOrderDays == this.stalePartialOrderDays &&
+          other.openMinutes == this.openMinutes &&
+          other.closeMinutes == this.closeMinutes &&
+          other.maxBreakMinutes == this.maxBreakMinutes &&
+          other.overtimeMultiplier == this.overtimeMultiplier &&
+          other.workingDaysPerMonth == this.workingDaysPerMonth);
 }
 
 class StoresCompanion extends UpdateCompanion<StoreRow> {
@@ -487,6 +703,11 @@ class StoresCompanion extends UpdateCompanion<StoreRow> {
   final Value<String?> vatNumber;
   final Value<String?> imageAsset;
   final Value<int> stalePartialOrderDays;
+  final Value<int> openMinutes;
+  final Value<int> closeMinutes;
+  final Value<int> maxBreakMinutes;
+  final Value<double> overtimeMultiplier;
+  final Value<int> workingDaysPerMonth;
   final Value<int> rowid;
   const StoresCompanion({
     this.id = const Value.absent(),
@@ -499,6 +720,11 @@ class StoresCompanion extends UpdateCompanion<StoreRow> {
     this.vatNumber = const Value.absent(),
     this.imageAsset = const Value.absent(),
     this.stalePartialOrderDays = const Value.absent(),
+    this.openMinutes = const Value.absent(),
+    this.closeMinutes = const Value.absent(),
+    this.maxBreakMinutes = const Value.absent(),
+    this.overtimeMultiplier = const Value.absent(),
+    this.workingDaysPerMonth = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   StoresCompanion.insert({
@@ -512,6 +738,11 @@ class StoresCompanion extends UpdateCompanion<StoreRow> {
     this.vatNumber = const Value.absent(),
     this.imageAsset = const Value.absent(),
     this.stalePartialOrderDays = const Value.absent(),
+    this.openMinutes = const Value.absent(),
+    this.closeMinutes = const Value.absent(),
+    this.maxBreakMinutes = const Value.absent(),
+    this.overtimeMultiplier = const Value.absent(),
+    this.workingDaysPerMonth = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        name = Value(name),
@@ -531,6 +762,11 @@ class StoresCompanion extends UpdateCompanion<StoreRow> {
     Expression<String>? vatNumber,
     Expression<String>? imageAsset,
     Expression<int>? stalePartialOrderDays,
+    Expression<int>? openMinutes,
+    Expression<int>? closeMinutes,
+    Expression<int>? maxBreakMinutes,
+    Expression<double>? overtimeMultiplier,
+    Expression<int>? workingDaysPerMonth,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -545,6 +781,12 @@ class StoresCompanion extends UpdateCompanion<StoreRow> {
       if (imageAsset != null) 'image_asset': imageAsset,
       if (stalePartialOrderDays != null)
         'stale_partial_order_days': stalePartialOrderDays,
+      if (openMinutes != null) 'open_minutes': openMinutes,
+      if (closeMinutes != null) 'close_minutes': closeMinutes,
+      if (maxBreakMinutes != null) 'max_break_minutes': maxBreakMinutes,
+      if (overtimeMultiplier != null) 'overtime_multiplier': overtimeMultiplier,
+      if (workingDaysPerMonth != null)
+        'working_days_per_month': workingDaysPerMonth,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -560,6 +802,11 @@ class StoresCompanion extends UpdateCompanion<StoreRow> {
     Value<String?>? vatNumber,
     Value<String?>? imageAsset,
     Value<int>? stalePartialOrderDays,
+    Value<int>? openMinutes,
+    Value<int>? closeMinutes,
+    Value<int>? maxBreakMinutes,
+    Value<double>? overtimeMultiplier,
+    Value<int>? workingDaysPerMonth,
     Value<int>? rowid,
   }) {
     return StoresCompanion(
@@ -574,6 +821,11 @@ class StoresCompanion extends UpdateCompanion<StoreRow> {
       imageAsset: imageAsset ?? this.imageAsset,
       stalePartialOrderDays:
           stalePartialOrderDays ?? this.stalePartialOrderDays,
+      openMinutes: openMinutes ?? this.openMinutes,
+      closeMinutes: closeMinutes ?? this.closeMinutes,
+      maxBreakMinutes: maxBreakMinutes ?? this.maxBreakMinutes,
+      overtimeMultiplier: overtimeMultiplier ?? this.overtimeMultiplier,
+      workingDaysPerMonth: workingDaysPerMonth ?? this.workingDaysPerMonth,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -613,6 +865,21 @@ class StoresCompanion extends UpdateCompanion<StoreRow> {
         stalePartialOrderDays.value,
       );
     }
+    if (openMinutes.present) {
+      map['open_minutes'] = Variable<int>(openMinutes.value);
+    }
+    if (closeMinutes.present) {
+      map['close_minutes'] = Variable<int>(closeMinutes.value);
+    }
+    if (maxBreakMinutes.present) {
+      map['max_break_minutes'] = Variable<int>(maxBreakMinutes.value);
+    }
+    if (overtimeMultiplier.present) {
+      map['overtime_multiplier'] = Variable<double>(overtimeMultiplier.value);
+    }
+    if (workingDaysPerMonth.present) {
+      map['working_days_per_month'] = Variable<int>(workingDaysPerMonth.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -632,6 +899,11 @@ class StoresCompanion extends UpdateCompanion<StoreRow> {
           ..write('vatNumber: $vatNumber, ')
           ..write('imageAsset: $imageAsset, ')
           ..write('stalePartialOrderDays: $stalePartialOrderDays, ')
+          ..write('openMinutes: $openMinutes, ')
+          ..write('closeMinutes: $closeMinutes, ')
+          ..write('maxBreakMinutes: $maxBreakMinutes, ')
+          ..write('overtimeMultiplier: $overtimeMultiplier, ')
+          ..write('workingDaysPerMonth: $workingDaysPerMonth, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -7584,6 +7856,3197 @@ class NotificationsCompanion extends UpdateCompanion<NotificationRow> {
   }
 }
 
+class $EmployeesTable extends Employees
+    with TableInfo<$EmployeesTable, EmployeeRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $EmployeesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(
+      minTextLength: 1,
+      maxTextLength: 64,
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _storeIdMeta = const VerificationMeta(
+    'storeId',
+  );
+  @override
+  late final GeneratedColumn<String> storeId = GeneratedColumn<String>(
+    'store_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES stores (id) ON DELETE RESTRICT',
+    ),
+  );
+  static const VerificationMeta _firstNameMeta = const VerificationMeta(
+    'firstName',
+  );
+  @override
+  late final GeneratedColumn<String> firstName = GeneratedColumn<String>(
+    'first_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _lastNameMeta = const VerificationMeta(
+    'lastName',
+  );
+  @override
+  late final GeneratedColumn<String> lastName = GeneratedColumn<String>(
+    'last_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _cinMeta = const VerificationMeta('cin');
+  @override
+  late final GeneratedColumn<String> cin = GeneratedColumn<String>(
+    'cin',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _phoneMeta = const VerificationMeta('phone');
+  @override
+  late final GeneratedColumn<String> phone = GeneratedColumn<String>(
+    'phone',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _emailMeta = const VerificationMeta('email');
+  @override
+  late final GeneratedColumn<String> email = GeneratedColumn<String>(
+    'email',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _photoAssetMeta = const VerificationMeta(
+    'photoAsset',
+  );
+  @override
+  late final GeneratedColumn<String> photoAsset = GeneratedColumn<String>(
+    'photo_asset',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _hireDateMeta = const VerificationMeta(
+    'hireDate',
+  );
+  @override
+  late final GeneratedColumn<DateTime> hireDate = GeneratedColumn<DateTime>(
+    'hire_date',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<EmployeeRole, String> role =
+      GeneratedColumn<String>(
+        'role',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      ).withConverter<EmployeeRole>($EmployeesTable.$converterrole);
+  @override
+  late final GeneratedColumnWithTypeConverter<ContractType, String>
+  contractType = GeneratedColumn<String>(
+    'contract_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  ).withConverter<ContractType>($EmployeesTable.$convertercontractType);
+  static const VerificationMeta _payMeta = const VerificationMeta('pay');
+  @override
+  late final GeneratedColumn<double> pay = GeneratedColumn<double>(
+    'pay',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _scheduledStartMinutesMeta =
+      const VerificationMeta('scheduledStartMinutes');
+  @override
+  late final GeneratedColumn<int> scheduledStartMinutes = GeneratedColumn<int>(
+    'scheduled_start_minutes',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _scheduledEndMinutesMeta =
+      const VerificationMeta('scheduledEndMinutes');
+  @override
+  late final GeneratedColumn<int> scheduledEndMinutes = GeneratedColumn<int>(
+    'scheduled_end_minutes',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _archivedAtMeta = const VerificationMeta(
+    'archivedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> archivedAt = GeneratedColumn<DateTime>(
+    'archived_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    storeId,
+    firstName,
+    lastName,
+    cin,
+    phone,
+    email,
+    photoAsset,
+    hireDate,
+    role,
+    contractType,
+    pay,
+    scheduledStartMinutes,
+    scheduledEndMinutes,
+    createdAt,
+    archivedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'employees';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<EmployeeRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('store_id')) {
+      context.handle(
+        _storeIdMeta,
+        storeId.isAcceptableOrUnknown(data['store_id']!, _storeIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_storeIdMeta);
+    }
+    if (data.containsKey('first_name')) {
+      context.handle(
+        _firstNameMeta,
+        firstName.isAcceptableOrUnknown(data['first_name']!, _firstNameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_firstNameMeta);
+    }
+    if (data.containsKey('last_name')) {
+      context.handle(
+        _lastNameMeta,
+        lastName.isAcceptableOrUnknown(data['last_name']!, _lastNameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_lastNameMeta);
+    }
+    if (data.containsKey('cin')) {
+      context.handle(
+        _cinMeta,
+        cin.isAcceptableOrUnknown(data['cin']!, _cinMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_cinMeta);
+    }
+    if (data.containsKey('phone')) {
+      context.handle(
+        _phoneMeta,
+        phone.isAcceptableOrUnknown(data['phone']!, _phoneMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_phoneMeta);
+    }
+    if (data.containsKey('email')) {
+      context.handle(
+        _emailMeta,
+        email.isAcceptableOrUnknown(data['email']!, _emailMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_emailMeta);
+    }
+    if (data.containsKey('photo_asset')) {
+      context.handle(
+        _photoAssetMeta,
+        photoAsset.isAcceptableOrUnknown(data['photo_asset']!, _photoAssetMeta),
+      );
+    }
+    if (data.containsKey('hire_date')) {
+      context.handle(
+        _hireDateMeta,
+        hireDate.isAcceptableOrUnknown(data['hire_date']!, _hireDateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_hireDateMeta);
+    }
+    if (data.containsKey('pay')) {
+      context.handle(
+        _payMeta,
+        pay.isAcceptableOrUnknown(data['pay']!, _payMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_payMeta);
+    }
+    if (data.containsKey('scheduled_start_minutes')) {
+      context.handle(
+        _scheduledStartMinutesMeta,
+        scheduledStartMinutes.isAcceptableOrUnknown(
+          data['scheduled_start_minutes']!,
+          _scheduledStartMinutesMeta,
+        ),
+      );
+    }
+    if (data.containsKey('scheduled_end_minutes')) {
+      context.handle(
+        _scheduledEndMinutesMeta,
+        scheduledEndMinutes.isAcceptableOrUnknown(
+          data['scheduled_end_minutes']!,
+          _scheduledEndMinutesMeta,
+        ),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('archived_at')) {
+      context.handle(
+        _archivedAtMeta,
+        archivedAt.isAcceptableOrUnknown(data['archived_at']!, _archivedAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  EmployeeRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return EmployeeRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      storeId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}store_id'],
+      )!,
+      firstName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}first_name'],
+      )!,
+      lastName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}last_name'],
+      )!,
+      cin: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}cin'],
+      )!,
+      phone: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}phone'],
+      )!,
+      email: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}email'],
+      )!,
+      photoAsset: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}photo_asset'],
+      ),
+      hireDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}hire_date'],
+      )!,
+      role: $EmployeesTable.$converterrole.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}role'],
+        )!,
+      ),
+      contractType: $EmployeesTable.$convertercontractType.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}contract_type'],
+        )!,
+      ),
+      pay: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}pay'],
+      )!,
+      scheduledStartMinutes: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}scheduled_start_minutes'],
+      ),
+      scheduledEndMinutes: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}scheduled_end_minutes'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      archivedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}archived_at'],
+      ),
+    );
+  }
+
+  @override
+  $EmployeesTable createAlias(String alias) {
+    return $EmployeesTable(attachedDatabase, alias);
+  }
+
+  static JsonTypeConverter2<EmployeeRole, String, String> $converterrole =
+      const EnumNameConverter<EmployeeRole>(EmployeeRole.values);
+  static JsonTypeConverter2<ContractType, String, String>
+  $convertercontractType = const EnumNameConverter<ContractType>(
+    ContractType.values,
+  );
+}
+
+class EmployeeRow extends DataClass implements Insertable<EmployeeRow> {
+  final String id;
+
+  /// `RESTRICT` — an establishment with staff on file cannot be deleted. The
+  /// domain has no flow that would need to; the constraint makes the absence a
+  /// fact rather than a gap.
+  final String storeId;
+  final String firstName;
+  final String lastName;
+
+  /// Carte d'identité nationale — the identity document, and the login
+  /// identifier (Phase 6). Unique across the whole account, not per store; the
+  /// index above makes that a constraint, and the repository keeps its own
+  /// check for the message the form shows.
+  final String cin;
+  final String phone;
+
+  /// Unique across the whole account.
+  final String email;
+
+  /// Mocked, like `stores.imageAsset`: a nullable path with no picker behind it.
+  final String? photoAsset;
+  final DateTime hireDate;
+  final EmployeeRole role;
+  final ContractType contractType;
+
+  /// Monthly EUR when `fixed`, EUR per hour when `extra` — read per
+  /// [contractType].
+  final double pay;
+
+  /// Minutes since midnight for this person's own start / end of day. Null means
+  /// "use the establishment's opening hours" — the resolved schedule is what
+  /// lateness and overtime are measured against. Stored as an int, not a
+  /// `DateTime`: these are times of day, not instants.
+  final int? scheduledStartMinutes;
+  final int? scheduledEndMinutes;
+  final DateTime createdAt;
+
+  /// Null while active. The only form of removal — there is no hard delete.
+  final DateTime? archivedAt;
+  const EmployeeRow({
+    required this.id,
+    required this.storeId,
+    required this.firstName,
+    required this.lastName,
+    required this.cin,
+    required this.phone,
+    required this.email,
+    this.photoAsset,
+    required this.hireDate,
+    required this.role,
+    required this.contractType,
+    required this.pay,
+    this.scheduledStartMinutes,
+    this.scheduledEndMinutes,
+    required this.createdAt,
+    this.archivedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['store_id'] = Variable<String>(storeId);
+    map['first_name'] = Variable<String>(firstName);
+    map['last_name'] = Variable<String>(lastName);
+    map['cin'] = Variable<String>(cin);
+    map['phone'] = Variable<String>(phone);
+    map['email'] = Variable<String>(email);
+    if (!nullToAbsent || photoAsset != null) {
+      map['photo_asset'] = Variable<String>(photoAsset);
+    }
+    map['hire_date'] = Variable<DateTime>(hireDate);
+    {
+      map['role'] = Variable<String>(
+        $EmployeesTable.$converterrole.toSql(role),
+      );
+    }
+    {
+      map['contract_type'] = Variable<String>(
+        $EmployeesTable.$convertercontractType.toSql(contractType),
+      );
+    }
+    map['pay'] = Variable<double>(pay);
+    if (!nullToAbsent || scheduledStartMinutes != null) {
+      map['scheduled_start_minutes'] = Variable<int>(scheduledStartMinutes);
+    }
+    if (!nullToAbsent || scheduledEndMinutes != null) {
+      map['scheduled_end_minutes'] = Variable<int>(scheduledEndMinutes);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    if (!nullToAbsent || archivedAt != null) {
+      map['archived_at'] = Variable<DateTime>(archivedAt);
+    }
+    return map;
+  }
+
+  EmployeesCompanion toCompanion(bool nullToAbsent) {
+    return EmployeesCompanion(
+      id: Value(id),
+      storeId: Value(storeId),
+      firstName: Value(firstName),
+      lastName: Value(lastName),
+      cin: Value(cin),
+      phone: Value(phone),
+      email: Value(email),
+      photoAsset: photoAsset == null && nullToAbsent
+          ? const Value.absent()
+          : Value(photoAsset),
+      hireDate: Value(hireDate),
+      role: Value(role),
+      contractType: Value(contractType),
+      pay: Value(pay),
+      scheduledStartMinutes: scheduledStartMinutes == null && nullToAbsent
+          ? const Value.absent()
+          : Value(scheduledStartMinutes),
+      scheduledEndMinutes: scheduledEndMinutes == null && nullToAbsent
+          ? const Value.absent()
+          : Value(scheduledEndMinutes),
+      createdAt: Value(createdAt),
+      archivedAt: archivedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(archivedAt),
+    );
+  }
+
+  factory EmployeeRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return EmployeeRow(
+      id: serializer.fromJson<String>(json['id']),
+      storeId: serializer.fromJson<String>(json['storeId']),
+      firstName: serializer.fromJson<String>(json['firstName']),
+      lastName: serializer.fromJson<String>(json['lastName']),
+      cin: serializer.fromJson<String>(json['cin']),
+      phone: serializer.fromJson<String>(json['phone']),
+      email: serializer.fromJson<String>(json['email']),
+      photoAsset: serializer.fromJson<String?>(json['photoAsset']),
+      hireDate: serializer.fromJson<DateTime>(json['hireDate']),
+      role: $EmployeesTable.$converterrole.fromJson(
+        serializer.fromJson<String>(json['role']),
+      ),
+      contractType: $EmployeesTable.$convertercontractType.fromJson(
+        serializer.fromJson<String>(json['contractType']),
+      ),
+      pay: serializer.fromJson<double>(json['pay']),
+      scheduledStartMinutes: serializer.fromJson<int?>(
+        json['scheduledStartMinutes'],
+      ),
+      scheduledEndMinutes: serializer.fromJson<int?>(
+        json['scheduledEndMinutes'],
+      ),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      archivedAt: serializer.fromJson<DateTime?>(json['archivedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'storeId': serializer.toJson<String>(storeId),
+      'firstName': serializer.toJson<String>(firstName),
+      'lastName': serializer.toJson<String>(lastName),
+      'cin': serializer.toJson<String>(cin),
+      'phone': serializer.toJson<String>(phone),
+      'email': serializer.toJson<String>(email),
+      'photoAsset': serializer.toJson<String?>(photoAsset),
+      'hireDate': serializer.toJson<DateTime>(hireDate),
+      'role': serializer.toJson<String>(
+        $EmployeesTable.$converterrole.toJson(role),
+      ),
+      'contractType': serializer.toJson<String>(
+        $EmployeesTable.$convertercontractType.toJson(contractType),
+      ),
+      'pay': serializer.toJson<double>(pay),
+      'scheduledStartMinutes': serializer.toJson<int?>(scheduledStartMinutes),
+      'scheduledEndMinutes': serializer.toJson<int?>(scheduledEndMinutes),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'archivedAt': serializer.toJson<DateTime?>(archivedAt),
+    };
+  }
+
+  EmployeeRow copyWith({
+    String? id,
+    String? storeId,
+    String? firstName,
+    String? lastName,
+    String? cin,
+    String? phone,
+    String? email,
+    Value<String?> photoAsset = const Value.absent(),
+    DateTime? hireDate,
+    EmployeeRole? role,
+    ContractType? contractType,
+    double? pay,
+    Value<int?> scheduledStartMinutes = const Value.absent(),
+    Value<int?> scheduledEndMinutes = const Value.absent(),
+    DateTime? createdAt,
+    Value<DateTime?> archivedAt = const Value.absent(),
+  }) => EmployeeRow(
+    id: id ?? this.id,
+    storeId: storeId ?? this.storeId,
+    firstName: firstName ?? this.firstName,
+    lastName: lastName ?? this.lastName,
+    cin: cin ?? this.cin,
+    phone: phone ?? this.phone,
+    email: email ?? this.email,
+    photoAsset: photoAsset.present ? photoAsset.value : this.photoAsset,
+    hireDate: hireDate ?? this.hireDate,
+    role: role ?? this.role,
+    contractType: contractType ?? this.contractType,
+    pay: pay ?? this.pay,
+    scheduledStartMinutes: scheduledStartMinutes.present
+        ? scheduledStartMinutes.value
+        : this.scheduledStartMinutes,
+    scheduledEndMinutes: scheduledEndMinutes.present
+        ? scheduledEndMinutes.value
+        : this.scheduledEndMinutes,
+    createdAt: createdAt ?? this.createdAt,
+    archivedAt: archivedAt.present ? archivedAt.value : this.archivedAt,
+  );
+  EmployeeRow copyWithCompanion(EmployeesCompanion data) {
+    return EmployeeRow(
+      id: data.id.present ? data.id.value : this.id,
+      storeId: data.storeId.present ? data.storeId.value : this.storeId,
+      firstName: data.firstName.present ? data.firstName.value : this.firstName,
+      lastName: data.lastName.present ? data.lastName.value : this.lastName,
+      cin: data.cin.present ? data.cin.value : this.cin,
+      phone: data.phone.present ? data.phone.value : this.phone,
+      email: data.email.present ? data.email.value : this.email,
+      photoAsset: data.photoAsset.present
+          ? data.photoAsset.value
+          : this.photoAsset,
+      hireDate: data.hireDate.present ? data.hireDate.value : this.hireDate,
+      role: data.role.present ? data.role.value : this.role,
+      contractType: data.contractType.present
+          ? data.contractType.value
+          : this.contractType,
+      pay: data.pay.present ? data.pay.value : this.pay,
+      scheduledStartMinutes: data.scheduledStartMinutes.present
+          ? data.scheduledStartMinutes.value
+          : this.scheduledStartMinutes,
+      scheduledEndMinutes: data.scheduledEndMinutes.present
+          ? data.scheduledEndMinutes.value
+          : this.scheduledEndMinutes,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      archivedAt: data.archivedAt.present
+          ? data.archivedAt.value
+          : this.archivedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('EmployeeRow(')
+          ..write('id: $id, ')
+          ..write('storeId: $storeId, ')
+          ..write('firstName: $firstName, ')
+          ..write('lastName: $lastName, ')
+          ..write('cin: $cin, ')
+          ..write('phone: $phone, ')
+          ..write('email: $email, ')
+          ..write('photoAsset: $photoAsset, ')
+          ..write('hireDate: $hireDate, ')
+          ..write('role: $role, ')
+          ..write('contractType: $contractType, ')
+          ..write('pay: $pay, ')
+          ..write('scheduledStartMinutes: $scheduledStartMinutes, ')
+          ..write('scheduledEndMinutes: $scheduledEndMinutes, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('archivedAt: $archivedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    storeId,
+    firstName,
+    lastName,
+    cin,
+    phone,
+    email,
+    photoAsset,
+    hireDate,
+    role,
+    contractType,
+    pay,
+    scheduledStartMinutes,
+    scheduledEndMinutes,
+    createdAt,
+    archivedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is EmployeeRow &&
+          other.id == this.id &&
+          other.storeId == this.storeId &&
+          other.firstName == this.firstName &&
+          other.lastName == this.lastName &&
+          other.cin == this.cin &&
+          other.phone == this.phone &&
+          other.email == this.email &&
+          other.photoAsset == this.photoAsset &&
+          other.hireDate == this.hireDate &&
+          other.role == this.role &&
+          other.contractType == this.contractType &&
+          other.pay == this.pay &&
+          other.scheduledStartMinutes == this.scheduledStartMinutes &&
+          other.scheduledEndMinutes == this.scheduledEndMinutes &&
+          other.createdAt == this.createdAt &&
+          other.archivedAt == this.archivedAt);
+}
+
+class EmployeesCompanion extends UpdateCompanion<EmployeeRow> {
+  final Value<String> id;
+  final Value<String> storeId;
+  final Value<String> firstName;
+  final Value<String> lastName;
+  final Value<String> cin;
+  final Value<String> phone;
+  final Value<String> email;
+  final Value<String?> photoAsset;
+  final Value<DateTime> hireDate;
+  final Value<EmployeeRole> role;
+  final Value<ContractType> contractType;
+  final Value<double> pay;
+  final Value<int?> scheduledStartMinutes;
+  final Value<int?> scheduledEndMinutes;
+  final Value<DateTime> createdAt;
+  final Value<DateTime?> archivedAt;
+  final Value<int> rowid;
+  const EmployeesCompanion({
+    this.id = const Value.absent(),
+    this.storeId = const Value.absent(),
+    this.firstName = const Value.absent(),
+    this.lastName = const Value.absent(),
+    this.cin = const Value.absent(),
+    this.phone = const Value.absent(),
+    this.email = const Value.absent(),
+    this.photoAsset = const Value.absent(),
+    this.hireDate = const Value.absent(),
+    this.role = const Value.absent(),
+    this.contractType = const Value.absent(),
+    this.pay = const Value.absent(),
+    this.scheduledStartMinutes = const Value.absent(),
+    this.scheduledEndMinutes = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.archivedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  EmployeesCompanion.insert({
+    required String id,
+    required String storeId,
+    required String firstName,
+    required String lastName,
+    required String cin,
+    required String phone,
+    required String email,
+    this.photoAsset = const Value.absent(),
+    required DateTime hireDate,
+    required EmployeeRole role,
+    required ContractType contractType,
+    required double pay,
+    this.scheduledStartMinutes = const Value.absent(),
+    this.scheduledEndMinutes = const Value.absent(),
+    required DateTime createdAt,
+    this.archivedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       storeId = Value(storeId),
+       firstName = Value(firstName),
+       lastName = Value(lastName),
+       cin = Value(cin),
+       phone = Value(phone),
+       email = Value(email),
+       hireDate = Value(hireDate),
+       role = Value(role),
+       contractType = Value(contractType),
+       pay = Value(pay),
+       createdAt = Value(createdAt);
+  static Insertable<EmployeeRow> custom({
+    Expression<String>? id,
+    Expression<String>? storeId,
+    Expression<String>? firstName,
+    Expression<String>? lastName,
+    Expression<String>? cin,
+    Expression<String>? phone,
+    Expression<String>? email,
+    Expression<String>? photoAsset,
+    Expression<DateTime>? hireDate,
+    Expression<String>? role,
+    Expression<String>? contractType,
+    Expression<double>? pay,
+    Expression<int>? scheduledStartMinutes,
+    Expression<int>? scheduledEndMinutes,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? archivedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (storeId != null) 'store_id': storeId,
+      if (firstName != null) 'first_name': firstName,
+      if (lastName != null) 'last_name': lastName,
+      if (cin != null) 'cin': cin,
+      if (phone != null) 'phone': phone,
+      if (email != null) 'email': email,
+      if (photoAsset != null) 'photo_asset': photoAsset,
+      if (hireDate != null) 'hire_date': hireDate,
+      if (role != null) 'role': role,
+      if (contractType != null) 'contract_type': contractType,
+      if (pay != null) 'pay': pay,
+      if (scheduledStartMinutes != null)
+        'scheduled_start_minutes': scheduledStartMinutes,
+      if (scheduledEndMinutes != null)
+        'scheduled_end_minutes': scheduledEndMinutes,
+      if (createdAt != null) 'created_at': createdAt,
+      if (archivedAt != null) 'archived_at': archivedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  EmployeesCompanion copyWith({
+    Value<String>? id,
+    Value<String>? storeId,
+    Value<String>? firstName,
+    Value<String>? lastName,
+    Value<String>? cin,
+    Value<String>? phone,
+    Value<String>? email,
+    Value<String?>? photoAsset,
+    Value<DateTime>? hireDate,
+    Value<EmployeeRole>? role,
+    Value<ContractType>? contractType,
+    Value<double>? pay,
+    Value<int?>? scheduledStartMinutes,
+    Value<int?>? scheduledEndMinutes,
+    Value<DateTime>? createdAt,
+    Value<DateTime?>? archivedAt,
+    Value<int>? rowid,
+  }) {
+    return EmployeesCompanion(
+      id: id ?? this.id,
+      storeId: storeId ?? this.storeId,
+      firstName: firstName ?? this.firstName,
+      lastName: lastName ?? this.lastName,
+      cin: cin ?? this.cin,
+      phone: phone ?? this.phone,
+      email: email ?? this.email,
+      photoAsset: photoAsset ?? this.photoAsset,
+      hireDate: hireDate ?? this.hireDate,
+      role: role ?? this.role,
+      contractType: contractType ?? this.contractType,
+      pay: pay ?? this.pay,
+      scheduledStartMinutes:
+          scheduledStartMinutes ?? this.scheduledStartMinutes,
+      scheduledEndMinutes: scheduledEndMinutes ?? this.scheduledEndMinutes,
+      createdAt: createdAt ?? this.createdAt,
+      archivedAt: archivedAt ?? this.archivedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (storeId.present) {
+      map['store_id'] = Variable<String>(storeId.value);
+    }
+    if (firstName.present) {
+      map['first_name'] = Variable<String>(firstName.value);
+    }
+    if (lastName.present) {
+      map['last_name'] = Variable<String>(lastName.value);
+    }
+    if (cin.present) {
+      map['cin'] = Variable<String>(cin.value);
+    }
+    if (phone.present) {
+      map['phone'] = Variable<String>(phone.value);
+    }
+    if (email.present) {
+      map['email'] = Variable<String>(email.value);
+    }
+    if (photoAsset.present) {
+      map['photo_asset'] = Variable<String>(photoAsset.value);
+    }
+    if (hireDate.present) {
+      map['hire_date'] = Variable<DateTime>(hireDate.value);
+    }
+    if (role.present) {
+      map['role'] = Variable<String>(
+        $EmployeesTable.$converterrole.toSql(role.value),
+      );
+    }
+    if (contractType.present) {
+      map['contract_type'] = Variable<String>(
+        $EmployeesTable.$convertercontractType.toSql(contractType.value),
+      );
+    }
+    if (pay.present) {
+      map['pay'] = Variable<double>(pay.value);
+    }
+    if (scheduledStartMinutes.present) {
+      map['scheduled_start_minutes'] = Variable<int>(
+        scheduledStartMinutes.value,
+      );
+    }
+    if (scheduledEndMinutes.present) {
+      map['scheduled_end_minutes'] = Variable<int>(scheduledEndMinutes.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (archivedAt.present) {
+      map['archived_at'] = Variable<DateTime>(archivedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('EmployeesCompanion(')
+          ..write('id: $id, ')
+          ..write('storeId: $storeId, ')
+          ..write('firstName: $firstName, ')
+          ..write('lastName: $lastName, ')
+          ..write('cin: $cin, ')
+          ..write('phone: $phone, ')
+          ..write('email: $email, ')
+          ..write('photoAsset: $photoAsset, ')
+          ..write('hireDate: $hireDate, ')
+          ..write('role: $role, ')
+          ..write('contractType: $contractType, ')
+          ..write('pay: $pay, ')
+          ..write('scheduledStartMinutes: $scheduledStartMinutes, ')
+          ..write('scheduledEndMinutes: $scheduledEndMinutes, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('archivedAt: $archivedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $EmployeeCredentialsTable extends EmployeeCredentials
+    with TableInfo<$EmployeeCredentialsTable, EmployeeCredentialRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $EmployeeCredentialsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(
+      minTextLength: 1,
+      maxTextLength: 64,
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _employeeIdMeta = const VerificationMeta(
+    'employeeId',
+  );
+  @override
+  late final GeneratedColumn<String> employeeId = GeneratedColumn<String>(
+    'employee_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES employees (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _pinHashMeta = const VerificationMeta(
+    'pinHash',
+  );
+  @override
+  late final GeneratedColumn<String> pinHash = GeneratedColumn<String>(
+    'pin_hash',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _failedAttemptsMeta = const VerificationMeta(
+    'failedAttempts',
+  );
+  @override
+  late final GeneratedColumn<int> failedAttempts = GeneratedColumn<int>(
+    'failed_attempts',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _lockedUntilMeta = const VerificationMeta(
+    'lockedUntil',
+  );
+  @override
+  late final GeneratedColumn<DateTime> lockedUntil = GeneratedColumn<DateTime>(
+    'locked_until',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _lastLoginAtMeta = const VerificationMeta(
+    'lastLoginAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> lastLoginAt = GeneratedColumn<DateTime>(
+    'last_login_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    employeeId,
+    pinHash,
+    failedAttempts,
+    lockedUntil,
+    lastLoginAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'employee_credentials';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<EmployeeCredentialRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('employee_id')) {
+      context.handle(
+        _employeeIdMeta,
+        employeeId.isAcceptableOrUnknown(data['employee_id']!, _employeeIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_employeeIdMeta);
+    }
+    if (data.containsKey('pin_hash')) {
+      context.handle(
+        _pinHashMeta,
+        pinHash.isAcceptableOrUnknown(data['pin_hash']!, _pinHashMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_pinHashMeta);
+    }
+    if (data.containsKey('failed_attempts')) {
+      context.handle(
+        _failedAttemptsMeta,
+        failedAttempts.isAcceptableOrUnknown(
+          data['failed_attempts']!,
+          _failedAttemptsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('locked_until')) {
+      context.handle(
+        _lockedUntilMeta,
+        lockedUntil.isAcceptableOrUnknown(
+          data['locked_until']!,
+          _lockedUntilMeta,
+        ),
+      );
+    }
+    if (data.containsKey('last_login_at')) {
+      context.handle(
+        _lastLoginAtMeta,
+        lastLoginAt.isAcceptableOrUnknown(
+          data['last_login_at']!,
+          _lastLoginAtMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  EmployeeCredentialRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return EmployeeCredentialRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      employeeId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}employee_id'],
+      )!,
+      pinHash: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}pin_hash'],
+      )!,
+      failedAttempts: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}failed_attempts'],
+      )!,
+      lockedUntil: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}locked_until'],
+      ),
+      lastLoginAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}last_login_at'],
+      ),
+    );
+  }
+
+  @override
+  $EmployeeCredentialsTable createAlias(String alias) {
+    return $EmployeeCredentialsTable(attachedDatabase, alias);
+  }
+}
+
+class EmployeeCredentialRow extends DataClass
+    implements Insertable<EmployeeCredentialRow> {
+  final String id;
+
+  /// `ON DELETE CASCADE` and unique — one credential per employee, and it goes
+  /// when they do.
+  final String employeeId;
+  final String pinHash;
+  final int failedAttempts;
+  final DateTime? lockedUntil;
+  final DateTime? lastLoginAt;
+  const EmployeeCredentialRow({
+    required this.id,
+    required this.employeeId,
+    required this.pinHash,
+    required this.failedAttempts,
+    this.lockedUntil,
+    this.lastLoginAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['employee_id'] = Variable<String>(employeeId);
+    map['pin_hash'] = Variable<String>(pinHash);
+    map['failed_attempts'] = Variable<int>(failedAttempts);
+    if (!nullToAbsent || lockedUntil != null) {
+      map['locked_until'] = Variable<DateTime>(lockedUntil);
+    }
+    if (!nullToAbsent || lastLoginAt != null) {
+      map['last_login_at'] = Variable<DateTime>(lastLoginAt);
+    }
+    return map;
+  }
+
+  EmployeeCredentialsCompanion toCompanion(bool nullToAbsent) {
+    return EmployeeCredentialsCompanion(
+      id: Value(id),
+      employeeId: Value(employeeId),
+      pinHash: Value(pinHash),
+      failedAttempts: Value(failedAttempts),
+      lockedUntil: lockedUntil == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lockedUntil),
+      lastLoginAt: lastLoginAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastLoginAt),
+    );
+  }
+
+  factory EmployeeCredentialRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return EmployeeCredentialRow(
+      id: serializer.fromJson<String>(json['id']),
+      employeeId: serializer.fromJson<String>(json['employeeId']),
+      pinHash: serializer.fromJson<String>(json['pinHash']),
+      failedAttempts: serializer.fromJson<int>(json['failedAttempts']),
+      lockedUntil: serializer.fromJson<DateTime?>(json['lockedUntil']),
+      lastLoginAt: serializer.fromJson<DateTime?>(json['lastLoginAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'employeeId': serializer.toJson<String>(employeeId),
+      'pinHash': serializer.toJson<String>(pinHash),
+      'failedAttempts': serializer.toJson<int>(failedAttempts),
+      'lockedUntil': serializer.toJson<DateTime?>(lockedUntil),
+      'lastLoginAt': serializer.toJson<DateTime?>(lastLoginAt),
+    };
+  }
+
+  EmployeeCredentialRow copyWith({
+    String? id,
+    String? employeeId,
+    String? pinHash,
+    int? failedAttempts,
+    Value<DateTime?> lockedUntil = const Value.absent(),
+    Value<DateTime?> lastLoginAt = const Value.absent(),
+  }) => EmployeeCredentialRow(
+    id: id ?? this.id,
+    employeeId: employeeId ?? this.employeeId,
+    pinHash: pinHash ?? this.pinHash,
+    failedAttempts: failedAttempts ?? this.failedAttempts,
+    lockedUntil: lockedUntil.present ? lockedUntil.value : this.lockedUntil,
+    lastLoginAt: lastLoginAt.present ? lastLoginAt.value : this.lastLoginAt,
+  );
+  EmployeeCredentialRow copyWithCompanion(EmployeeCredentialsCompanion data) {
+    return EmployeeCredentialRow(
+      id: data.id.present ? data.id.value : this.id,
+      employeeId: data.employeeId.present
+          ? data.employeeId.value
+          : this.employeeId,
+      pinHash: data.pinHash.present ? data.pinHash.value : this.pinHash,
+      failedAttempts: data.failedAttempts.present
+          ? data.failedAttempts.value
+          : this.failedAttempts,
+      lockedUntil: data.lockedUntil.present
+          ? data.lockedUntil.value
+          : this.lockedUntil,
+      lastLoginAt: data.lastLoginAt.present
+          ? data.lastLoginAt.value
+          : this.lastLoginAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('EmployeeCredentialRow(')
+          ..write('id: $id, ')
+          ..write('employeeId: $employeeId, ')
+          ..write('pinHash: $pinHash, ')
+          ..write('failedAttempts: $failedAttempts, ')
+          ..write('lockedUntil: $lockedUntil, ')
+          ..write('lastLoginAt: $lastLoginAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    employeeId,
+    pinHash,
+    failedAttempts,
+    lockedUntil,
+    lastLoginAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is EmployeeCredentialRow &&
+          other.id == this.id &&
+          other.employeeId == this.employeeId &&
+          other.pinHash == this.pinHash &&
+          other.failedAttempts == this.failedAttempts &&
+          other.lockedUntil == this.lockedUntil &&
+          other.lastLoginAt == this.lastLoginAt);
+}
+
+class EmployeeCredentialsCompanion
+    extends UpdateCompanion<EmployeeCredentialRow> {
+  final Value<String> id;
+  final Value<String> employeeId;
+  final Value<String> pinHash;
+  final Value<int> failedAttempts;
+  final Value<DateTime?> lockedUntil;
+  final Value<DateTime?> lastLoginAt;
+  final Value<int> rowid;
+  const EmployeeCredentialsCompanion({
+    this.id = const Value.absent(),
+    this.employeeId = const Value.absent(),
+    this.pinHash = const Value.absent(),
+    this.failedAttempts = const Value.absent(),
+    this.lockedUntil = const Value.absent(),
+    this.lastLoginAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  EmployeeCredentialsCompanion.insert({
+    required String id,
+    required String employeeId,
+    required String pinHash,
+    this.failedAttempts = const Value.absent(),
+    this.lockedUntil = const Value.absent(),
+    this.lastLoginAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       employeeId = Value(employeeId),
+       pinHash = Value(pinHash);
+  static Insertable<EmployeeCredentialRow> custom({
+    Expression<String>? id,
+    Expression<String>? employeeId,
+    Expression<String>? pinHash,
+    Expression<int>? failedAttempts,
+    Expression<DateTime>? lockedUntil,
+    Expression<DateTime>? lastLoginAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (employeeId != null) 'employee_id': employeeId,
+      if (pinHash != null) 'pin_hash': pinHash,
+      if (failedAttempts != null) 'failed_attempts': failedAttempts,
+      if (lockedUntil != null) 'locked_until': lockedUntil,
+      if (lastLoginAt != null) 'last_login_at': lastLoginAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  EmployeeCredentialsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? employeeId,
+    Value<String>? pinHash,
+    Value<int>? failedAttempts,
+    Value<DateTime?>? lockedUntil,
+    Value<DateTime?>? lastLoginAt,
+    Value<int>? rowid,
+  }) {
+    return EmployeeCredentialsCompanion(
+      id: id ?? this.id,
+      employeeId: employeeId ?? this.employeeId,
+      pinHash: pinHash ?? this.pinHash,
+      failedAttempts: failedAttempts ?? this.failedAttempts,
+      lockedUntil: lockedUntil ?? this.lockedUntil,
+      lastLoginAt: lastLoginAt ?? this.lastLoginAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (employeeId.present) {
+      map['employee_id'] = Variable<String>(employeeId.value);
+    }
+    if (pinHash.present) {
+      map['pin_hash'] = Variable<String>(pinHash.value);
+    }
+    if (failedAttempts.present) {
+      map['failed_attempts'] = Variable<int>(failedAttempts.value);
+    }
+    if (lockedUntil.present) {
+      map['locked_until'] = Variable<DateTime>(lockedUntil.value);
+    }
+    if (lastLoginAt.present) {
+      map['last_login_at'] = Variable<DateTime>(lastLoginAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('EmployeeCredentialsCompanion(')
+          ..write('id: $id, ')
+          ..write('employeeId: $employeeId, ')
+          ..write('pinHash: $pinHash, ')
+          ..write('failedAttempts: $failedAttempts, ')
+          ..write('lockedUntil: $lockedUntil, ')
+          ..write('lastLoginAt: $lastLoginAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $PayrollPeriodsTable extends PayrollPeriods
+    with TableInfo<$PayrollPeriodsTable, PayrollPeriodRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $PayrollPeriodsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(
+      minTextLength: 1,
+      maxTextLength: 64,
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _employeeIdMeta = const VerificationMeta(
+    'employeeId',
+  );
+  @override
+  late final GeneratedColumn<String> employeeId = GeneratedColumn<String>(
+    'employee_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES employees (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _storeIdMeta = const VerificationMeta(
+    'storeId',
+  );
+  @override
+  late final GeneratedColumn<String> storeId = GeneratedColumn<String>(
+    'store_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES stores (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _startDateMeta = const VerificationMeta(
+    'startDate',
+  );
+  @override
+  late final GeneratedColumn<DateTime> startDate = GeneratedColumn<DateTime>(
+    'start_date',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _endDateMeta = const VerificationMeta(
+    'endDate',
+  );
+  @override
+  late final GeneratedColumn<DateTime> endDate = GeneratedColumn<DateTime>(
+    'end_date',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _workedDaysMeta = const VerificationMeta(
+    'workedDays',
+  );
+  @override
+  late final GeneratedColumn<int> workedDays = GeneratedColumn<int>(
+    'worked_days',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _totalWorkedHoursMeta = const VerificationMeta(
+    'totalWorkedHours',
+  );
+  @override
+  late final GeneratedColumn<double> totalWorkedHours = GeneratedColumn<double>(
+    'total_worked_hours',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _totalOvertimeHoursMeta =
+      const VerificationMeta('totalOvertimeHours');
+  @override
+  late final GeneratedColumn<double> totalOvertimeHours =
+      GeneratedColumn<double>(
+        'total_overtime_hours',
+        aliasedName,
+        false,
+        type: DriftSqlType.double,
+        requiredDuringInsert: true,
+      );
+  static const VerificationMeta _appliedRateMeta = const VerificationMeta(
+    'appliedRate',
+  );
+  @override
+  late final GeneratedColumn<double> appliedRate = GeneratedColumn<double>(
+    'applied_rate',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _computedAmountMeta = const VerificationMeta(
+    'computedAmount',
+  );
+  @override
+  late final GeneratedColumn<double> computedAmount = GeneratedColumn<double>(
+    'computed_amount',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<PayrollStatus, String> status =
+      GeneratedColumn<String>(
+        'status',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      ).withConverter<PayrollStatus>($PayrollPeriodsTable.$converterstatus);
+  static const VerificationMeta _paidByEmployeeIdMeta = const VerificationMeta(
+    'paidByEmployeeId',
+  );
+  @override
+  late final GeneratedColumn<String> paidByEmployeeId = GeneratedColumn<String>(
+    'paid_by_employee_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _paidAtMeta = const VerificationMeta('paidAt');
+  @override
+  late final GeneratedColumn<DateTime> paidAt = GeneratedColumn<DateTime>(
+    'paid_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    employeeId,
+    storeId,
+    startDate,
+    endDate,
+    workedDays,
+    totalWorkedHours,
+    totalOvertimeHours,
+    appliedRate,
+    computedAmount,
+    status,
+    paidByEmployeeId,
+    paidAt,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'payroll_periods';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<PayrollPeriodRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('employee_id')) {
+      context.handle(
+        _employeeIdMeta,
+        employeeId.isAcceptableOrUnknown(data['employee_id']!, _employeeIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_employeeIdMeta);
+    }
+    if (data.containsKey('store_id')) {
+      context.handle(
+        _storeIdMeta,
+        storeId.isAcceptableOrUnknown(data['store_id']!, _storeIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_storeIdMeta);
+    }
+    if (data.containsKey('start_date')) {
+      context.handle(
+        _startDateMeta,
+        startDate.isAcceptableOrUnknown(data['start_date']!, _startDateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_startDateMeta);
+    }
+    if (data.containsKey('end_date')) {
+      context.handle(
+        _endDateMeta,
+        endDate.isAcceptableOrUnknown(data['end_date']!, _endDateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_endDateMeta);
+    }
+    if (data.containsKey('worked_days')) {
+      context.handle(
+        _workedDaysMeta,
+        workedDays.isAcceptableOrUnknown(data['worked_days']!, _workedDaysMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_workedDaysMeta);
+    }
+    if (data.containsKey('total_worked_hours')) {
+      context.handle(
+        _totalWorkedHoursMeta,
+        totalWorkedHours.isAcceptableOrUnknown(
+          data['total_worked_hours']!,
+          _totalWorkedHoursMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_totalWorkedHoursMeta);
+    }
+    if (data.containsKey('total_overtime_hours')) {
+      context.handle(
+        _totalOvertimeHoursMeta,
+        totalOvertimeHours.isAcceptableOrUnknown(
+          data['total_overtime_hours']!,
+          _totalOvertimeHoursMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_totalOvertimeHoursMeta);
+    }
+    if (data.containsKey('applied_rate')) {
+      context.handle(
+        _appliedRateMeta,
+        appliedRate.isAcceptableOrUnknown(
+          data['applied_rate']!,
+          _appliedRateMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_appliedRateMeta);
+    }
+    if (data.containsKey('computed_amount')) {
+      context.handle(
+        _computedAmountMeta,
+        computedAmount.isAcceptableOrUnknown(
+          data['computed_amount']!,
+          _computedAmountMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_computedAmountMeta);
+    }
+    if (data.containsKey('paid_by_employee_id')) {
+      context.handle(
+        _paidByEmployeeIdMeta,
+        paidByEmployeeId.isAcceptableOrUnknown(
+          data['paid_by_employee_id']!,
+          _paidByEmployeeIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('paid_at')) {
+      context.handle(
+        _paidAtMeta,
+        paidAt.isAcceptableOrUnknown(data['paid_at']!, _paidAtMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  PayrollPeriodRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return PayrollPeriodRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      employeeId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}employee_id'],
+      )!,
+      storeId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}store_id'],
+      )!,
+      startDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}start_date'],
+      )!,
+      endDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}end_date'],
+      )!,
+      workedDays: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}worked_days'],
+      )!,
+      totalWorkedHours: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}total_worked_hours'],
+      )!,
+      totalOvertimeHours: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}total_overtime_hours'],
+      )!,
+      appliedRate: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}applied_rate'],
+      )!,
+      computedAmount: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}computed_amount'],
+      )!,
+      status: $PayrollPeriodsTable.$converterstatus.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}status'],
+        )!,
+      ),
+      paidByEmployeeId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}paid_by_employee_id'],
+      ),
+      paidAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}paid_at'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $PayrollPeriodsTable createAlias(String alias) {
+    return $PayrollPeriodsTable(attachedDatabase, alias);
+  }
+
+  static JsonTypeConverter2<PayrollStatus, String, String> $converterstatus =
+      const EnumNameConverter<PayrollStatus>(PayrollStatus.values);
+}
+
+class PayrollPeriodRow extends DataClass
+    implements Insertable<PayrollPeriodRow> {
+  final String id;
+  final String employeeId;
+  final String storeId;
+
+  /// First and last work day this run covered (midnight-normalised).
+  final DateTime startDate;
+  final DateTime endDate;
+  final int workedDays;
+  final double totalWorkedHours;
+  final double totalOvertimeHours;
+
+  /// Snapshot of the employee's pay (monthly EUR for `fixed`, EUR/h for
+  /// `extra`) at pay time — a later raise cannot rewrite history.
+  final double appliedRate;
+  final double computedAmount;
+  final PayrollStatus status;
+
+  /// The owner who validated the run. **No foreign key** — they may later be
+  /// archived, and the row keeps their id to render their name, the same
+  /// pattern as `stock_movements.supplierId`.
+  final String? paidByEmployeeId;
+  final DateTime? paidAt;
+  final DateTime createdAt;
+  const PayrollPeriodRow({
+    required this.id,
+    required this.employeeId,
+    required this.storeId,
+    required this.startDate,
+    required this.endDate,
+    required this.workedDays,
+    required this.totalWorkedHours,
+    required this.totalOvertimeHours,
+    required this.appliedRate,
+    required this.computedAmount,
+    required this.status,
+    this.paidByEmployeeId,
+    this.paidAt,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['employee_id'] = Variable<String>(employeeId);
+    map['store_id'] = Variable<String>(storeId);
+    map['start_date'] = Variable<DateTime>(startDate);
+    map['end_date'] = Variable<DateTime>(endDate);
+    map['worked_days'] = Variable<int>(workedDays);
+    map['total_worked_hours'] = Variable<double>(totalWorkedHours);
+    map['total_overtime_hours'] = Variable<double>(totalOvertimeHours);
+    map['applied_rate'] = Variable<double>(appliedRate);
+    map['computed_amount'] = Variable<double>(computedAmount);
+    {
+      map['status'] = Variable<String>(
+        $PayrollPeriodsTable.$converterstatus.toSql(status),
+      );
+    }
+    if (!nullToAbsent || paidByEmployeeId != null) {
+      map['paid_by_employee_id'] = Variable<String>(paidByEmployeeId);
+    }
+    if (!nullToAbsent || paidAt != null) {
+      map['paid_at'] = Variable<DateTime>(paidAt);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  PayrollPeriodsCompanion toCompanion(bool nullToAbsent) {
+    return PayrollPeriodsCompanion(
+      id: Value(id),
+      employeeId: Value(employeeId),
+      storeId: Value(storeId),
+      startDate: Value(startDate),
+      endDate: Value(endDate),
+      workedDays: Value(workedDays),
+      totalWorkedHours: Value(totalWorkedHours),
+      totalOvertimeHours: Value(totalOvertimeHours),
+      appliedRate: Value(appliedRate),
+      computedAmount: Value(computedAmount),
+      status: Value(status),
+      paidByEmployeeId: paidByEmployeeId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(paidByEmployeeId),
+      paidAt: paidAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(paidAt),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory PayrollPeriodRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return PayrollPeriodRow(
+      id: serializer.fromJson<String>(json['id']),
+      employeeId: serializer.fromJson<String>(json['employeeId']),
+      storeId: serializer.fromJson<String>(json['storeId']),
+      startDate: serializer.fromJson<DateTime>(json['startDate']),
+      endDate: serializer.fromJson<DateTime>(json['endDate']),
+      workedDays: serializer.fromJson<int>(json['workedDays']),
+      totalWorkedHours: serializer.fromJson<double>(json['totalWorkedHours']),
+      totalOvertimeHours: serializer.fromJson<double>(
+        json['totalOvertimeHours'],
+      ),
+      appliedRate: serializer.fromJson<double>(json['appliedRate']),
+      computedAmount: serializer.fromJson<double>(json['computedAmount']),
+      status: $PayrollPeriodsTable.$converterstatus.fromJson(
+        serializer.fromJson<String>(json['status']),
+      ),
+      paidByEmployeeId: serializer.fromJson<String?>(json['paidByEmployeeId']),
+      paidAt: serializer.fromJson<DateTime?>(json['paidAt']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'employeeId': serializer.toJson<String>(employeeId),
+      'storeId': serializer.toJson<String>(storeId),
+      'startDate': serializer.toJson<DateTime>(startDate),
+      'endDate': serializer.toJson<DateTime>(endDate),
+      'workedDays': serializer.toJson<int>(workedDays),
+      'totalWorkedHours': serializer.toJson<double>(totalWorkedHours),
+      'totalOvertimeHours': serializer.toJson<double>(totalOvertimeHours),
+      'appliedRate': serializer.toJson<double>(appliedRate),
+      'computedAmount': serializer.toJson<double>(computedAmount),
+      'status': serializer.toJson<String>(
+        $PayrollPeriodsTable.$converterstatus.toJson(status),
+      ),
+      'paidByEmployeeId': serializer.toJson<String?>(paidByEmployeeId),
+      'paidAt': serializer.toJson<DateTime?>(paidAt),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  PayrollPeriodRow copyWith({
+    String? id,
+    String? employeeId,
+    String? storeId,
+    DateTime? startDate,
+    DateTime? endDate,
+    int? workedDays,
+    double? totalWorkedHours,
+    double? totalOvertimeHours,
+    double? appliedRate,
+    double? computedAmount,
+    PayrollStatus? status,
+    Value<String?> paidByEmployeeId = const Value.absent(),
+    Value<DateTime?> paidAt = const Value.absent(),
+    DateTime? createdAt,
+  }) => PayrollPeriodRow(
+    id: id ?? this.id,
+    employeeId: employeeId ?? this.employeeId,
+    storeId: storeId ?? this.storeId,
+    startDate: startDate ?? this.startDate,
+    endDate: endDate ?? this.endDate,
+    workedDays: workedDays ?? this.workedDays,
+    totalWorkedHours: totalWorkedHours ?? this.totalWorkedHours,
+    totalOvertimeHours: totalOvertimeHours ?? this.totalOvertimeHours,
+    appliedRate: appliedRate ?? this.appliedRate,
+    computedAmount: computedAmount ?? this.computedAmount,
+    status: status ?? this.status,
+    paidByEmployeeId: paidByEmployeeId.present
+        ? paidByEmployeeId.value
+        : this.paidByEmployeeId,
+    paidAt: paidAt.present ? paidAt.value : this.paidAt,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  PayrollPeriodRow copyWithCompanion(PayrollPeriodsCompanion data) {
+    return PayrollPeriodRow(
+      id: data.id.present ? data.id.value : this.id,
+      employeeId: data.employeeId.present
+          ? data.employeeId.value
+          : this.employeeId,
+      storeId: data.storeId.present ? data.storeId.value : this.storeId,
+      startDate: data.startDate.present ? data.startDate.value : this.startDate,
+      endDate: data.endDate.present ? data.endDate.value : this.endDate,
+      workedDays: data.workedDays.present
+          ? data.workedDays.value
+          : this.workedDays,
+      totalWorkedHours: data.totalWorkedHours.present
+          ? data.totalWorkedHours.value
+          : this.totalWorkedHours,
+      totalOvertimeHours: data.totalOvertimeHours.present
+          ? data.totalOvertimeHours.value
+          : this.totalOvertimeHours,
+      appliedRate: data.appliedRate.present
+          ? data.appliedRate.value
+          : this.appliedRate,
+      computedAmount: data.computedAmount.present
+          ? data.computedAmount.value
+          : this.computedAmount,
+      status: data.status.present ? data.status.value : this.status,
+      paidByEmployeeId: data.paidByEmployeeId.present
+          ? data.paidByEmployeeId.value
+          : this.paidByEmployeeId,
+      paidAt: data.paidAt.present ? data.paidAt.value : this.paidAt,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PayrollPeriodRow(')
+          ..write('id: $id, ')
+          ..write('employeeId: $employeeId, ')
+          ..write('storeId: $storeId, ')
+          ..write('startDate: $startDate, ')
+          ..write('endDate: $endDate, ')
+          ..write('workedDays: $workedDays, ')
+          ..write('totalWorkedHours: $totalWorkedHours, ')
+          ..write('totalOvertimeHours: $totalOvertimeHours, ')
+          ..write('appliedRate: $appliedRate, ')
+          ..write('computedAmount: $computedAmount, ')
+          ..write('status: $status, ')
+          ..write('paidByEmployeeId: $paidByEmployeeId, ')
+          ..write('paidAt: $paidAt, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    employeeId,
+    storeId,
+    startDate,
+    endDate,
+    workedDays,
+    totalWorkedHours,
+    totalOvertimeHours,
+    appliedRate,
+    computedAmount,
+    status,
+    paidByEmployeeId,
+    paidAt,
+    createdAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is PayrollPeriodRow &&
+          other.id == this.id &&
+          other.employeeId == this.employeeId &&
+          other.storeId == this.storeId &&
+          other.startDate == this.startDate &&
+          other.endDate == this.endDate &&
+          other.workedDays == this.workedDays &&
+          other.totalWorkedHours == this.totalWorkedHours &&
+          other.totalOvertimeHours == this.totalOvertimeHours &&
+          other.appliedRate == this.appliedRate &&
+          other.computedAmount == this.computedAmount &&
+          other.status == this.status &&
+          other.paidByEmployeeId == this.paidByEmployeeId &&
+          other.paidAt == this.paidAt &&
+          other.createdAt == this.createdAt);
+}
+
+class PayrollPeriodsCompanion extends UpdateCompanion<PayrollPeriodRow> {
+  final Value<String> id;
+  final Value<String> employeeId;
+  final Value<String> storeId;
+  final Value<DateTime> startDate;
+  final Value<DateTime> endDate;
+  final Value<int> workedDays;
+  final Value<double> totalWorkedHours;
+  final Value<double> totalOvertimeHours;
+  final Value<double> appliedRate;
+  final Value<double> computedAmount;
+  final Value<PayrollStatus> status;
+  final Value<String?> paidByEmployeeId;
+  final Value<DateTime?> paidAt;
+  final Value<DateTime> createdAt;
+  final Value<int> rowid;
+  const PayrollPeriodsCompanion({
+    this.id = const Value.absent(),
+    this.employeeId = const Value.absent(),
+    this.storeId = const Value.absent(),
+    this.startDate = const Value.absent(),
+    this.endDate = const Value.absent(),
+    this.workedDays = const Value.absent(),
+    this.totalWorkedHours = const Value.absent(),
+    this.totalOvertimeHours = const Value.absent(),
+    this.appliedRate = const Value.absent(),
+    this.computedAmount = const Value.absent(),
+    this.status = const Value.absent(),
+    this.paidByEmployeeId = const Value.absent(),
+    this.paidAt = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  PayrollPeriodsCompanion.insert({
+    required String id,
+    required String employeeId,
+    required String storeId,
+    required DateTime startDate,
+    required DateTime endDate,
+    required int workedDays,
+    required double totalWorkedHours,
+    required double totalOvertimeHours,
+    required double appliedRate,
+    required double computedAmount,
+    required PayrollStatus status,
+    this.paidByEmployeeId = const Value.absent(),
+    this.paidAt = const Value.absent(),
+    required DateTime createdAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       employeeId = Value(employeeId),
+       storeId = Value(storeId),
+       startDate = Value(startDate),
+       endDate = Value(endDate),
+       workedDays = Value(workedDays),
+       totalWorkedHours = Value(totalWorkedHours),
+       totalOvertimeHours = Value(totalOvertimeHours),
+       appliedRate = Value(appliedRate),
+       computedAmount = Value(computedAmount),
+       status = Value(status),
+       createdAt = Value(createdAt);
+  static Insertable<PayrollPeriodRow> custom({
+    Expression<String>? id,
+    Expression<String>? employeeId,
+    Expression<String>? storeId,
+    Expression<DateTime>? startDate,
+    Expression<DateTime>? endDate,
+    Expression<int>? workedDays,
+    Expression<double>? totalWorkedHours,
+    Expression<double>? totalOvertimeHours,
+    Expression<double>? appliedRate,
+    Expression<double>? computedAmount,
+    Expression<String>? status,
+    Expression<String>? paidByEmployeeId,
+    Expression<DateTime>? paidAt,
+    Expression<DateTime>? createdAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (employeeId != null) 'employee_id': employeeId,
+      if (storeId != null) 'store_id': storeId,
+      if (startDate != null) 'start_date': startDate,
+      if (endDate != null) 'end_date': endDate,
+      if (workedDays != null) 'worked_days': workedDays,
+      if (totalWorkedHours != null) 'total_worked_hours': totalWorkedHours,
+      if (totalOvertimeHours != null)
+        'total_overtime_hours': totalOvertimeHours,
+      if (appliedRate != null) 'applied_rate': appliedRate,
+      if (computedAmount != null) 'computed_amount': computedAmount,
+      if (status != null) 'status': status,
+      if (paidByEmployeeId != null) 'paid_by_employee_id': paidByEmployeeId,
+      if (paidAt != null) 'paid_at': paidAt,
+      if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  PayrollPeriodsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? employeeId,
+    Value<String>? storeId,
+    Value<DateTime>? startDate,
+    Value<DateTime>? endDate,
+    Value<int>? workedDays,
+    Value<double>? totalWorkedHours,
+    Value<double>? totalOvertimeHours,
+    Value<double>? appliedRate,
+    Value<double>? computedAmount,
+    Value<PayrollStatus>? status,
+    Value<String?>? paidByEmployeeId,
+    Value<DateTime?>? paidAt,
+    Value<DateTime>? createdAt,
+    Value<int>? rowid,
+  }) {
+    return PayrollPeriodsCompanion(
+      id: id ?? this.id,
+      employeeId: employeeId ?? this.employeeId,
+      storeId: storeId ?? this.storeId,
+      startDate: startDate ?? this.startDate,
+      endDate: endDate ?? this.endDate,
+      workedDays: workedDays ?? this.workedDays,
+      totalWorkedHours: totalWorkedHours ?? this.totalWorkedHours,
+      totalOvertimeHours: totalOvertimeHours ?? this.totalOvertimeHours,
+      appliedRate: appliedRate ?? this.appliedRate,
+      computedAmount: computedAmount ?? this.computedAmount,
+      status: status ?? this.status,
+      paidByEmployeeId: paidByEmployeeId ?? this.paidByEmployeeId,
+      paidAt: paidAt ?? this.paidAt,
+      createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (employeeId.present) {
+      map['employee_id'] = Variable<String>(employeeId.value);
+    }
+    if (storeId.present) {
+      map['store_id'] = Variable<String>(storeId.value);
+    }
+    if (startDate.present) {
+      map['start_date'] = Variable<DateTime>(startDate.value);
+    }
+    if (endDate.present) {
+      map['end_date'] = Variable<DateTime>(endDate.value);
+    }
+    if (workedDays.present) {
+      map['worked_days'] = Variable<int>(workedDays.value);
+    }
+    if (totalWorkedHours.present) {
+      map['total_worked_hours'] = Variable<double>(totalWorkedHours.value);
+    }
+    if (totalOvertimeHours.present) {
+      map['total_overtime_hours'] = Variable<double>(totalOvertimeHours.value);
+    }
+    if (appliedRate.present) {
+      map['applied_rate'] = Variable<double>(appliedRate.value);
+    }
+    if (computedAmount.present) {
+      map['computed_amount'] = Variable<double>(computedAmount.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(
+        $PayrollPeriodsTable.$converterstatus.toSql(status.value),
+      );
+    }
+    if (paidByEmployeeId.present) {
+      map['paid_by_employee_id'] = Variable<String>(paidByEmployeeId.value);
+    }
+    if (paidAt.present) {
+      map['paid_at'] = Variable<DateTime>(paidAt.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PayrollPeriodsCompanion(')
+          ..write('id: $id, ')
+          ..write('employeeId: $employeeId, ')
+          ..write('storeId: $storeId, ')
+          ..write('startDate: $startDate, ')
+          ..write('endDate: $endDate, ')
+          ..write('workedDays: $workedDays, ')
+          ..write('totalWorkedHours: $totalWorkedHours, ')
+          ..write('totalOvertimeHours: $totalOvertimeHours, ')
+          ..write('appliedRate: $appliedRate, ')
+          ..write('computedAmount: $computedAmount, ')
+          ..write('status: $status, ')
+          ..write('paidByEmployeeId: $paidByEmployeeId, ')
+          ..write('paidAt: $paidAt, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $AttendancesTable extends Attendances
+    with TableInfo<$AttendancesTable, AttendanceRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $AttendancesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(
+      minTextLength: 1,
+      maxTextLength: 64,
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _storeIdMeta = const VerificationMeta(
+    'storeId',
+  );
+  @override
+  late final GeneratedColumn<String> storeId = GeneratedColumn<String>(
+    'store_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES stores (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _employeeIdMeta = const VerificationMeta(
+    'employeeId',
+  );
+  @override
+  late final GeneratedColumn<String> employeeId = GeneratedColumn<String>(
+    'employee_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES employees (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _dateMeta = const VerificationMeta('date');
+  @override
+  late final GeneratedColumn<DateTime> date = GeneratedColumn<DateTime>(
+    'date',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<AttendanceStatus, String> status =
+      GeneratedColumn<String>(
+        'status',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      ).withConverter<AttendanceStatus>($AttendancesTable.$converterstatus);
+  static const VerificationMeta _clockInAtMeta = const VerificationMeta(
+    'clockInAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> clockInAt = GeneratedColumn<DateTime>(
+    'clock_in_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _clockOutAtMeta = const VerificationMeta(
+    'clockOutAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> clockOutAt = GeneratedColumn<DateTime>(
+    'clock_out_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _payrollPeriodIdMeta = const VerificationMeta(
+    'payrollPeriodId',
+  );
+  @override
+  late final GeneratedColumn<String> payrollPeriodId = GeneratedColumn<String>(
+    'payroll_period_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES payroll_periods (id) ON DELETE RESTRICT',
+    ),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    storeId,
+    employeeId,
+    date,
+    status,
+    clockInAt,
+    clockOutAt,
+    payrollPeriodId,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'attendances';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<AttendanceRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('store_id')) {
+      context.handle(
+        _storeIdMeta,
+        storeId.isAcceptableOrUnknown(data['store_id']!, _storeIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_storeIdMeta);
+    }
+    if (data.containsKey('employee_id')) {
+      context.handle(
+        _employeeIdMeta,
+        employeeId.isAcceptableOrUnknown(data['employee_id']!, _employeeIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_employeeIdMeta);
+    }
+    if (data.containsKey('date')) {
+      context.handle(
+        _dateMeta,
+        date.isAcceptableOrUnknown(data['date']!, _dateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_dateMeta);
+    }
+    if (data.containsKey('clock_in_at')) {
+      context.handle(
+        _clockInAtMeta,
+        clockInAt.isAcceptableOrUnknown(data['clock_in_at']!, _clockInAtMeta),
+      );
+    }
+    if (data.containsKey('clock_out_at')) {
+      context.handle(
+        _clockOutAtMeta,
+        clockOutAt.isAcceptableOrUnknown(
+          data['clock_out_at']!,
+          _clockOutAtMeta,
+        ),
+      );
+    }
+    if (data.containsKey('payroll_period_id')) {
+      context.handle(
+        _payrollPeriodIdMeta,
+        payrollPeriodId.isAcceptableOrUnknown(
+          data['payroll_period_id']!,
+          _payrollPeriodIdMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  AttendanceRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return AttendanceRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      storeId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}store_id'],
+      )!,
+      employeeId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}employee_id'],
+      )!,
+      date: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}date'],
+      )!,
+      status: $AttendancesTable.$converterstatus.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}status'],
+        )!,
+      ),
+      clockInAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}clock_in_at'],
+      ),
+      clockOutAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}clock_out_at'],
+      ),
+      payrollPeriodId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}payroll_period_id'],
+      ),
+    );
+  }
+
+  @override
+  $AttendancesTable createAlias(String alias) {
+    return $AttendancesTable(attachedDatabase, alias);
+  }
+
+  static JsonTypeConverter2<AttendanceStatus, String, String> $converterstatus =
+      const EnumNameConverter<AttendanceStatus>(AttendanceStatus.values);
+}
+
+class AttendanceRow extends DataClass implements Insertable<AttendanceRow> {
+  final String id;
+  final String storeId;
+  final String employeeId;
+
+  /// Midnight-normalised — the work day this row is for, not when it was
+  /// created.
+  final DateTime date;
+  final AttendanceStatus status;
+  final DateTime? clockInAt;
+  final DateTime? clockOutAt;
+
+  /// Set when a [PayrollPeriods] row locks this day. While set the row is
+  /// immutable — every attendance write refuses it — and the model's
+  /// `paymentStatus` reads `paid`. `RESTRICT`: a paid period cannot be deleted
+  /// out from under the days it covers.
+  final String? payrollPeriodId;
+  const AttendanceRow({
+    required this.id,
+    required this.storeId,
+    required this.employeeId,
+    required this.date,
+    required this.status,
+    this.clockInAt,
+    this.clockOutAt,
+    this.payrollPeriodId,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['store_id'] = Variable<String>(storeId);
+    map['employee_id'] = Variable<String>(employeeId);
+    map['date'] = Variable<DateTime>(date);
+    {
+      map['status'] = Variable<String>(
+        $AttendancesTable.$converterstatus.toSql(status),
+      );
+    }
+    if (!nullToAbsent || clockInAt != null) {
+      map['clock_in_at'] = Variable<DateTime>(clockInAt);
+    }
+    if (!nullToAbsent || clockOutAt != null) {
+      map['clock_out_at'] = Variable<DateTime>(clockOutAt);
+    }
+    if (!nullToAbsent || payrollPeriodId != null) {
+      map['payroll_period_id'] = Variable<String>(payrollPeriodId);
+    }
+    return map;
+  }
+
+  AttendancesCompanion toCompanion(bool nullToAbsent) {
+    return AttendancesCompanion(
+      id: Value(id),
+      storeId: Value(storeId),
+      employeeId: Value(employeeId),
+      date: Value(date),
+      status: Value(status),
+      clockInAt: clockInAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(clockInAt),
+      clockOutAt: clockOutAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(clockOutAt),
+      payrollPeriodId: payrollPeriodId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(payrollPeriodId),
+    );
+  }
+
+  factory AttendanceRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return AttendanceRow(
+      id: serializer.fromJson<String>(json['id']),
+      storeId: serializer.fromJson<String>(json['storeId']),
+      employeeId: serializer.fromJson<String>(json['employeeId']),
+      date: serializer.fromJson<DateTime>(json['date']),
+      status: $AttendancesTable.$converterstatus.fromJson(
+        serializer.fromJson<String>(json['status']),
+      ),
+      clockInAt: serializer.fromJson<DateTime?>(json['clockInAt']),
+      clockOutAt: serializer.fromJson<DateTime?>(json['clockOutAt']),
+      payrollPeriodId: serializer.fromJson<String?>(json['payrollPeriodId']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'storeId': serializer.toJson<String>(storeId),
+      'employeeId': serializer.toJson<String>(employeeId),
+      'date': serializer.toJson<DateTime>(date),
+      'status': serializer.toJson<String>(
+        $AttendancesTable.$converterstatus.toJson(status),
+      ),
+      'clockInAt': serializer.toJson<DateTime?>(clockInAt),
+      'clockOutAt': serializer.toJson<DateTime?>(clockOutAt),
+      'payrollPeriodId': serializer.toJson<String?>(payrollPeriodId),
+    };
+  }
+
+  AttendanceRow copyWith({
+    String? id,
+    String? storeId,
+    String? employeeId,
+    DateTime? date,
+    AttendanceStatus? status,
+    Value<DateTime?> clockInAt = const Value.absent(),
+    Value<DateTime?> clockOutAt = const Value.absent(),
+    Value<String?> payrollPeriodId = const Value.absent(),
+  }) => AttendanceRow(
+    id: id ?? this.id,
+    storeId: storeId ?? this.storeId,
+    employeeId: employeeId ?? this.employeeId,
+    date: date ?? this.date,
+    status: status ?? this.status,
+    clockInAt: clockInAt.present ? clockInAt.value : this.clockInAt,
+    clockOutAt: clockOutAt.present ? clockOutAt.value : this.clockOutAt,
+    payrollPeriodId: payrollPeriodId.present
+        ? payrollPeriodId.value
+        : this.payrollPeriodId,
+  );
+  AttendanceRow copyWithCompanion(AttendancesCompanion data) {
+    return AttendanceRow(
+      id: data.id.present ? data.id.value : this.id,
+      storeId: data.storeId.present ? data.storeId.value : this.storeId,
+      employeeId: data.employeeId.present
+          ? data.employeeId.value
+          : this.employeeId,
+      date: data.date.present ? data.date.value : this.date,
+      status: data.status.present ? data.status.value : this.status,
+      clockInAt: data.clockInAt.present ? data.clockInAt.value : this.clockInAt,
+      clockOutAt: data.clockOutAt.present
+          ? data.clockOutAt.value
+          : this.clockOutAt,
+      payrollPeriodId: data.payrollPeriodId.present
+          ? data.payrollPeriodId.value
+          : this.payrollPeriodId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AttendanceRow(')
+          ..write('id: $id, ')
+          ..write('storeId: $storeId, ')
+          ..write('employeeId: $employeeId, ')
+          ..write('date: $date, ')
+          ..write('status: $status, ')
+          ..write('clockInAt: $clockInAt, ')
+          ..write('clockOutAt: $clockOutAt, ')
+          ..write('payrollPeriodId: $payrollPeriodId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    storeId,
+    employeeId,
+    date,
+    status,
+    clockInAt,
+    clockOutAt,
+    payrollPeriodId,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is AttendanceRow &&
+          other.id == this.id &&
+          other.storeId == this.storeId &&
+          other.employeeId == this.employeeId &&
+          other.date == this.date &&
+          other.status == this.status &&
+          other.clockInAt == this.clockInAt &&
+          other.clockOutAt == this.clockOutAt &&
+          other.payrollPeriodId == this.payrollPeriodId);
+}
+
+class AttendancesCompanion extends UpdateCompanion<AttendanceRow> {
+  final Value<String> id;
+  final Value<String> storeId;
+  final Value<String> employeeId;
+  final Value<DateTime> date;
+  final Value<AttendanceStatus> status;
+  final Value<DateTime?> clockInAt;
+  final Value<DateTime?> clockOutAt;
+  final Value<String?> payrollPeriodId;
+  final Value<int> rowid;
+  const AttendancesCompanion({
+    this.id = const Value.absent(),
+    this.storeId = const Value.absent(),
+    this.employeeId = const Value.absent(),
+    this.date = const Value.absent(),
+    this.status = const Value.absent(),
+    this.clockInAt = const Value.absent(),
+    this.clockOutAt = const Value.absent(),
+    this.payrollPeriodId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  AttendancesCompanion.insert({
+    required String id,
+    required String storeId,
+    required String employeeId,
+    required DateTime date,
+    required AttendanceStatus status,
+    this.clockInAt = const Value.absent(),
+    this.clockOutAt = const Value.absent(),
+    this.payrollPeriodId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       storeId = Value(storeId),
+       employeeId = Value(employeeId),
+       date = Value(date),
+       status = Value(status);
+  static Insertable<AttendanceRow> custom({
+    Expression<String>? id,
+    Expression<String>? storeId,
+    Expression<String>? employeeId,
+    Expression<DateTime>? date,
+    Expression<String>? status,
+    Expression<DateTime>? clockInAt,
+    Expression<DateTime>? clockOutAt,
+    Expression<String>? payrollPeriodId,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (storeId != null) 'store_id': storeId,
+      if (employeeId != null) 'employee_id': employeeId,
+      if (date != null) 'date': date,
+      if (status != null) 'status': status,
+      if (clockInAt != null) 'clock_in_at': clockInAt,
+      if (clockOutAt != null) 'clock_out_at': clockOutAt,
+      if (payrollPeriodId != null) 'payroll_period_id': payrollPeriodId,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  AttendancesCompanion copyWith({
+    Value<String>? id,
+    Value<String>? storeId,
+    Value<String>? employeeId,
+    Value<DateTime>? date,
+    Value<AttendanceStatus>? status,
+    Value<DateTime?>? clockInAt,
+    Value<DateTime?>? clockOutAt,
+    Value<String?>? payrollPeriodId,
+    Value<int>? rowid,
+  }) {
+    return AttendancesCompanion(
+      id: id ?? this.id,
+      storeId: storeId ?? this.storeId,
+      employeeId: employeeId ?? this.employeeId,
+      date: date ?? this.date,
+      status: status ?? this.status,
+      clockInAt: clockInAt ?? this.clockInAt,
+      clockOutAt: clockOutAt ?? this.clockOutAt,
+      payrollPeriodId: payrollPeriodId ?? this.payrollPeriodId,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (storeId.present) {
+      map['store_id'] = Variable<String>(storeId.value);
+    }
+    if (employeeId.present) {
+      map['employee_id'] = Variable<String>(employeeId.value);
+    }
+    if (date.present) {
+      map['date'] = Variable<DateTime>(date.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(
+        $AttendancesTable.$converterstatus.toSql(status.value),
+      );
+    }
+    if (clockInAt.present) {
+      map['clock_in_at'] = Variable<DateTime>(clockInAt.value);
+    }
+    if (clockOutAt.present) {
+      map['clock_out_at'] = Variable<DateTime>(clockOutAt.value);
+    }
+    if (payrollPeriodId.present) {
+      map['payroll_period_id'] = Variable<String>(payrollPeriodId.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AttendancesCompanion(')
+          ..write('id: $id, ')
+          ..write('storeId: $storeId, ')
+          ..write('employeeId: $employeeId, ')
+          ..write('date: $date, ')
+          ..write('status: $status, ')
+          ..write('clockInAt: $clockInAt, ')
+          ..write('clockOutAt: $clockOutAt, ')
+          ..write('payrollPeriodId: $payrollPeriodId, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $AttendancePausesTable extends AttendancePauses
+    with TableInfo<$AttendancePausesTable, AttendancePauseRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $AttendancePausesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(
+      minTextLength: 1,
+      maxTextLength: 64,
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _attendanceIdMeta = const VerificationMeta(
+    'attendanceId',
+  );
+  @override
+  late final GeneratedColumn<String> attendanceId = GeneratedColumn<String>(
+    'attendance_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES attendances (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _positionMeta = const VerificationMeta(
+    'position',
+  );
+  @override
+  late final GeneratedColumn<int> position = GeneratedColumn<int>(
+    'position',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _startAtMeta = const VerificationMeta(
+    'startAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> startAt = GeneratedColumn<DateTime>(
+    'start_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _endAtMeta = const VerificationMeta('endAt');
+  @override
+  late final GeneratedColumn<DateTime> endAt = GeneratedColumn<DateTime>(
+    'end_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    attendanceId,
+    position,
+    startAt,
+    endAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'attendance_pauses';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<AttendancePauseRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('attendance_id')) {
+      context.handle(
+        _attendanceIdMeta,
+        attendanceId.isAcceptableOrUnknown(
+          data['attendance_id']!,
+          _attendanceIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_attendanceIdMeta);
+    }
+    if (data.containsKey('position')) {
+      context.handle(
+        _positionMeta,
+        position.isAcceptableOrUnknown(data['position']!, _positionMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_positionMeta);
+    }
+    if (data.containsKey('start_at')) {
+      context.handle(
+        _startAtMeta,
+        startAt.isAcceptableOrUnknown(data['start_at']!, _startAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_startAtMeta);
+    }
+    if (data.containsKey('end_at')) {
+      context.handle(
+        _endAtMeta,
+        endAt.isAcceptableOrUnknown(data['end_at']!, _endAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  AttendancePauseRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return AttendancePauseRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      attendanceId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}attendance_id'],
+      )!,
+      position: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}position'],
+      )!,
+      startAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}start_at'],
+      )!,
+      endAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}end_at'],
+      ),
+    );
+  }
+
+  @override
+  $AttendancePausesTable createAlias(String alias) {
+    return $AttendancePausesTable(attachedDatabase, alias);
+  }
+}
+
+class AttendancePauseRow extends DataClass
+    implements Insertable<AttendancePauseRow> {
+  final String id;
+  final String attendanceId;
+  final int position;
+  final DateTime startAt;
+  final DateTime? endAt;
+  const AttendancePauseRow({
+    required this.id,
+    required this.attendanceId,
+    required this.position,
+    required this.startAt,
+    this.endAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['attendance_id'] = Variable<String>(attendanceId);
+    map['position'] = Variable<int>(position);
+    map['start_at'] = Variable<DateTime>(startAt);
+    if (!nullToAbsent || endAt != null) {
+      map['end_at'] = Variable<DateTime>(endAt);
+    }
+    return map;
+  }
+
+  AttendancePausesCompanion toCompanion(bool nullToAbsent) {
+    return AttendancePausesCompanion(
+      id: Value(id),
+      attendanceId: Value(attendanceId),
+      position: Value(position),
+      startAt: Value(startAt),
+      endAt: endAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(endAt),
+    );
+  }
+
+  factory AttendancePauseRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return AttendancePauseRow(
+      id: serializer.fromJson<String>(json['id']),
+      attendanceId: serializer.fromJson<String>(json['attendanceId']),
+      position: serializer.fromJson<int>(json['position']),
+      startAt: serializer.fromJson<DateTime>(json['startAt']),
+      endAt: serializer.fromJson<DateTime?>(json['endAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'attendanceId': serializer.toJson<String>(attendanceId),
+      'position': serializer.toJson<int>(position),
+      'startAt': serializer.toJson<DateTime>(startAt),
+      'endAt': serializer.toJson<DateTime?>(endAt),
+    };
+  }
+
+  AttendancePauseRow copyWith({
+    String? id,
+    String? attendanceId,
+    int? position,
+    DateTime? startAt,
+    Value<DateTime?> endAt = const Value.absent(),
+  }) => AttendancePauseRow(
+    id: id ?? this.id,
+    attendanceId: attendanceId ?? this.attendanceId,
+    position: position ?? this.position,
+    startAt: startAt ?? this.startAt,
+    endAt: endAt.present ? endAt.value : this.endAt,
+  );
+  AttendancePauseRow copyWithCompanion(AttendancePausesCompanion data) {
+    return AttendancePauseRow(
+      id: data.id.present ? data.id.value : this.id,
+      attendanceId: data.attendanceId.present
+          ? data.attendanceId.value
+          : this.attendanceId,
+      position: data.position.present ? data.position.value : this.position,
+      startAt: data.startAt.present ? data.startAt.value : this.startAt,
+      endAt: data.endAt.present ? data.endAt.value : this.endAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AttendancePauseRow(')
+          ..write('id: $id, ')
+          ..write('attendanceId: $attendanceId, ')
+          ..write('position: $position, ')
+          ..write('startAt: $startAt, ')
+          ..write('endAt: $endAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, attendanceId, position, startAt, endAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is AttendancePauseRow &&
+          other.id == this.id &&
+          other.attendanceId == this.attendanceId &&
+          other.position == this.position &&
+          other.startAt == this.startAt &&
+          other.endAt == this.endAt);
+}
+
+class AttendancePausesCompanion extends UpdateCompanion<AttendancePauseRow> {
+  final Value<String> id;
+  final Value<String> attendanceId;
+  final Value<int> position;
+  final Value<DateTime> startAt;
+  final Value<DateTime?> endAt;
+  final Value<int> rowid;
+  const AttendancePausesCompanion({
+    this.id = const Value.absent(),
+    this.attendanceId = const Value.absent(),
+    this.position = const Value.absent(),
+    this.startAt = const Value.absent(),
+    this.endAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  AttendancePausesCompanion.insert({
+    required String id,
+    required String attendanceId,
+    required int position,
+    required DateTime startAt,
+    this.endAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       attendanceId = Value(attendanceId),
+       position = Value(position),
+       startAt = Value(startAt);
+  static Insertable<AttendancePauseRow> custom({
+    Expression<String>? id,
+    Expression<String>? attendanceId,
+    Expression<int>? position,
+    Expression<DateTime>? startAt,
+    Expression<DateTime>? endAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (attendanceId != null) 'attendance_id': attendanceId,
+      if (position != null) 'position': position,
+      if (startAt != null) 'start_at': startAt,
+      if (endAt != null) 'end_at': endAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  AttendancePausesCompanion copyWith({
+    Value<String>? id,
+    Value<String>? attendanceId,
+    Value<int>? position,
+    Value<DateTime>? startAt,
+    Value<DateTime?>? endAt,
+    Value<int>? rowid,
+  }) {
+    return AttendancePausesCompanion(
+      id: id ?? this.id,
+      attendanceId: attendanceId ?? this.attendanceId,
+      position: position ?? this.position,
+      startAt: startAt ?? this.startAt,
+      endAt: endAt ?? this.endAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (attendanceId.present) {
+      map['attendance_id'] = Variable<String>(attendanceId.value);
+    }
+    if (position.present) {
+      map['position'] = Variable<int>(position.value);
+    }
+    if (startAt.present) {
+      map['start_at'] = Variable<DateTime>(startAt.value);
+    }
+    if (endAt.present) {
+      map['end_at'] = Variable<DateTime>(endAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AttendancePausesCompanion(')
+          ..write('id: $id, ')
+          ..write('attendanceId: $attendanceId, ')
+          ..write('position: $position, ')
+          ..write('startAt: $startAt, ')
+          ..write('endAt: $endAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   late final $StoresTable stores = $StoresTable(this);
@@ -7602,6 +11065,14 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $GoodsReceiptLinesTable goodsReceiptLines =
       $GoodsReceiptLinesTable(this);
   late final $NotificationsTable notifications = $NotificationsTable(this);
+  late final $EmployeesTable employees = $EmployeesTable(this);
+  late final $EmployeeCredentialsTable employeeCredentials =
+      $EmployeeCredentialsTable(this);
+  late final $PayrollPeriodsTable payrollPeriods = $PayrollPeriodsTable(this);
+  late final $AttendancesTable attendances = $AttendancesTable(this);
+  late final $AttendancePausesTable attendancePauses = $AttendancePausesTable(
+    this,
+  );
   late final Index itemsStore = Index(
     'items_store',
     'CREATE INDEX items_store ON items (store_id)',
@@ -7686,6 +11157,42 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     'notifications_store_time',
     'CREATE INDEX notifications_store_time ON notifications (store_id, created_at DESC)',
   );
+  late final Index employeesStore = Index(
+    'employees_store',
+    'CREATE INDEX employees_store ON employees (store_id)',
+  );
+  late final Index employeesCin = Index(
+    'employees_cin',
+    'CREATE UNIQUE INDEX employees_cin ON employees (cin)',
+  );
+  late final Index employeesEmail = Index(
+    'employees_email',
+    'CREATE UNIQUE INDEX employees_email ON employees (email)',
+  );
+  late final Index employeeCredentialsEmployee = Index(
+    'employee_credentials_employee',
+    'CREATE UNIQUE INDEX employee_credentials_employee ON employee_credentials (employee_id)',
+  );
+  late final Index payrollPeriodsEmployee = Index(
+    'payroll_periods_employee',
+    'CREATE INDEX payroll_periods_employee ON payroll_periods (employee_id, paid_at)',
+  );
+  late final Index payrollPeriodsStore = Index(
+    'payroll_periods_store',
+    'CREATE INDEX payroll_periods_store ON payroll_periods (store_id, paid_at)',
+  );
+  late final Index attendancesEmployeeDate = Index(
+    'attendances_employee_date',
+    'CREATE UNIQUE INDEX attendances_employee_date ON attendances (employee_id, date)',
+  );
+  late final Index attendancesStoreDate = Index(
+    'attendances_store_date',
+    'CREATE INDEX attendances_store_date ON attendances (store_id, date)',
+  );
+  late final Index attendancePausesAttendance = Index(
+    'attendance_pauses_attendance',
+    'CREATE UNIQUE INDEX attendance_pauses_attendance ON attendance_pauses (attendance_id, position)',
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -7705,6 +11212,11 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     goodsReceipts,
     goodsReceiptLines,
     notifications,
+    employees,
+    employeeCredentials,
+    payrollPeriods,
+    attendances,
+    attendancePauses,
     itemsStore,
     itemsStoreBarcode,
     itemsCategory,
@@ -7726,6 +11238,15 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     goodsReceiptLinesReceipt,
     goodsReceiptLinesItem,
     notificationsStoreTime,
+    employeesStore,
+    employeesCin,
+    employeesEmail,
+    employeeCredentialsEmployee,
+    payrollPeriodsEmployee,
+    payrollPeriodsStore,
+    attendancesEmployeeDate,
+    attendancesStoreDate,
+    attendancePausesAttendance,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -7840,6 +11361,48 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('notifications', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'employees',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('employee_credentials', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'employees',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('payroll_periods', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'stores',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('payroll_periods', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'stores',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('attendances', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'employees',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('attendances', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'attendances',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('attendance_pauses', kind: UpdateKind.delete)],
     ),
   ]);
   @override

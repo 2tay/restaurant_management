@@ -211,11 +211,44 @@ Also in this stage:
   dump.
 
 **Done when:** `dart run build_runner build --force-jit` regenerates
-`app_database.g.dart`; a new `test/db/employee_schema_test.dart` opens
-`AppDatabase.memory()`, asserts all 20 tables exist, `foreign_keys` on, that a second
-attendance row for the same `(employeeId, date)` throws, that a duplicate CIN throws, that
-deleting an employee cascades their credential and attendance but a paid `payroll_periods`
-row blocks the delete; and a migration test seeds a v1 DB and upgrades it.
+`app_database.g.dart`; the schema test asserts all 19 tables exist, `foreign_keys` on, that
+a second attendance row for the same `(employeeId, date)` throws, that a duplicate CIN
+throws, that deleting an employee cascades their credential and attendance but a paid
+`payroll_periods` row blocks the delete; and a migration test upgrades a v1 database and
+validates it against the v2 dump.
+
+### As built
+
+Stage 1 is done. The employee assertions went into `test/db/schema_test.dart` (one schema,
+one suite) as a `Gestion Employée (schema version 2)` group; `test/db/migration_test.dart`
+is new. 24 tests in schema_test, 2 in migration_test.
+
+**1. Nineteen tables, not twenty.** The plan miscounted — 14 existing + 5 new. `meta` was
+already there from `phase2.md` stage 1.
+
+**2. `paymentStatus` is derived, and there is no column for it.** The mapper (stage 2) will
+read `payrollPeriodId == null ? unpaid : paid`. `Attendances` carries only the nullable FK.
+
+**3. `Migrator.createTable` does not carry the table's indexes.** The first migration test
+failed with "the actual schema does not contain `employees_store`" — `@TableIndex` entries
+are separate schema objects. `onUpgrade` now loops `m.create(index)` over the nine generated
+`Index` accessors after the five `createTable` calls. A `for` loop over the *tables* does
+not type-check (`m.createTable` wants `TableInfo`, a heterogeneous list infers `Table`), so
+those stay as five individual calls.
+
+**4. The v1 schema dump was captured before any table changed.** `drift_schema_v1.json` from
+the clean Stage 0 tree, `drift_schema_v2.json` after — both committed here, per the
+`migrations/README.md` rule. `test/db/schema/` (the generated `SchemaVerifier` helpers) is
+added to the analyzer `exclude`.
+
+**5. `attendances.payrollPeriodId` is `RESTRICT`, `payroll_periods.employeeId` is
+`CASCADE`.** So deleting an *employee* takes their attendance and periods with them (there
+is no such flow — soft delete only — but the cascade is coherent), while deleting a *paid
+period* is blocked as long as a day still points at it. Both pinned.
+
+**Verified at the stage boundary:** `flutter analyze` clean; `flutter test` green
+(695 before → the migration index fix landed the last one); `python tool/ux_audit.py` clean;
+`dart run build_runner build --force-jit` regenerates identically.
 
 ---
 
