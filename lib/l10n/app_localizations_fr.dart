@@ -149,6 +149,13 @@ class AppLocalizationsFr extends AppLocalizations {
   String get loadingLabel => 'Chargement…';
 
   @override
+  String get shellNoStoreTitle => 'Aucun établissement';
+
+  @override
+  String get shellNoStoreBody =>
+      'La base locale ne contient aucun établissement. Réinitialisez la démonstration ou créez un établissement pour commencer.';
+
+  @override
   String get errorStateTitle => 'Une erreur est survenue';
 
   @override

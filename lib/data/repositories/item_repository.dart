@@ -30,6 +30,21 @@ class ItemFilter {
   final bool lowStockOnly;
 
   static const ItemFilter none = ItemFilter();
+
+  // Value equality because a filter is a provider family's key. Riverpod keys
+  // on `==`, so without this a screen that rebuilds — which the inventory list
+  // does on every keystroke in its search field — would construct an
+  // equal-but-not-identical filter, be handed a different provider, and tear
+  // down a live query only to open the same one again.
+  @override
+  bool operator ==(Object other) =>
+      other is ItemFilter &&
+      other.categoryId == categoryId &&
+      other.supplierId == supplierId &&
+      other.lowStockOnly == lowStockOnly;
+
+  @override
+  int get hashCode => Object.hash(categoryId, supplierId, lowStockOnly);
 }
 
 /// What is standing between an article and deletion.

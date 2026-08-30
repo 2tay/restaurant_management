@@ -9,17 +9,16 @@
 // keeps working as the home screen changes from stage to stage.
 
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:stock_inventory/app/app.dart';
 import 'package:stock_inventory/l10n/app_localizations.dart';
 
+import 'support/app_harness.dart';
+
 void main() {
-  testWidgets('boots and resolves French localizations for fr_BE', (
+  testApp('boots and resolves French localizations for fr_BE', (
     tester,
   ) async {
-    await tester.pumpWidget(const ProviderScope(child: StockInventoryApp()));
-    await tester.pumpAndSettle();
+    await pumpApp(tester);
 
     final context = tester.element(find.byType(Scaffold).first);
 
@@ -28,11 +27,10 @@ void main() {
     expect(AppLocalizations.of(context).stockStatusLowStock, 'Stock faible');
   });
 
-  testWidgets('applies the app theme rather than Material defaults', (
+  testApp('applies the app theme rather than Material defaults', (
     tester,
   ) async {
-    await tester.pumpWidget(const ProviderScope(child: StockInventoryApp()));
-    await tester.pumpAndSettle();
+    await pumpApp(tester);
 
     final theme = Theme.of(tester.element(find.byType(Scaffold).first));
 

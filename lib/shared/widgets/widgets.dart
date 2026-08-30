@@ -13,6 +13,7 @@ export 'app_sidebar.dart';
 export 'app_snackbar.dart';
 export 'app_text_field.dart';
 export 'app_top_bar.dart';
+export 'async_content.dart';
 export 'back_control.dart';
 export 'confirm_dialog.dart';
 export 'data_table_wrapper.dart';

@@ -185,6 +185,14 @@
   "@loadingLabel": {
     "description": "Accessible label on the loading state."
   },
+  "shellNoStoreTitle": "Aucun établissement",
+  "@shellNoStoreTitle": {
+    "description": "Titre affiché dans la coquille quand la base ne contient aucun établissement."
+  },
+  "shellNoStoreBody": "La base locale ne contient aucun établissement. Réinitialisez la démonstration ou créez un établissement pour commencer.",
+  "@shellNoStoreBody": {
+    "description": "Corps du message affiché dans la coquille quand la base ne contient aucun établissement."
+  },
   "errorStateTitle": "Une erreur est survenue",
   "@errorStateTitle": {
     "description": "Generic error state headline."

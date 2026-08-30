@@ -352,6 +352,18 @@ abstract class AppLocalizations {
   /// **'Chargement…'**
   String get loadingLabel;
 
+  /// Titre affiché dans la coquille quand la base ne contient aucun établissement.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun établissement'**
+  String get shellNoStoreTitle;
+
+  /// Corps du message affiché dans la coquille quand la base ne contient aucun établissement.
+  ///
+  /// In fr, this message translates to:
+  /// **'La base locale ne contient aucun établissement. Réinitialisez la démonstration ou créez un établissement pour commencer.'**
+  String get shellNoStoreBody;
+
   /// Generic error state headline.
   ///
   /// In fr, this message translates to:

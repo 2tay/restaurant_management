@@ -966,7 +966,112 @@ screen is touched.
 **Done when:** a widget test pumps a screen-sized harness against an in-memory DB, asserts
 skeleton → data, and asserts an injected failure renders `ErrorState`.
 
+### As built
+
+Stage 8 is done. `lib/data/providers.dart` grew 27 screen-level queries over the nine
+repository providers already there, `lib/shared/widgets/async_content.dart` is new, the
+shell resolves its establishment from the database, and `test/provider_layer_test.dart`
+(13) pins the layer. No screen has been touched: every page under `lib/features/` still
+reads the mock lists, which is stage 9.
+
+**1. The family types cannot be written down, so they are not.** Riverpod 3 does not
+export `StreamProviderFamily` or `FutureProviderFamily` — `riverpod.dart` shows only
+`StreamProvider`, `FutureProvider` and the rest of the public surface. The house style
+annotates every top-level `final`, and here it cannot, so the 27 families are declared as
+`final xProvider = StreamProvider.family<T, Arg>(...)` and take their type from the
+builder. Worth knowing before somebody tries to "fix" the inconsistency.
+
+**2. Two-key queries take a record, and `ItemFilter` had to grow value equality.** A
+family keys on `==`. Records have structural equality for free, which is why
+`(storeId: s, itemId: i)` is the right key for `onOrderQuantityProvider` and its
+neighbours. `ItemFilter` did not: it was a plain class with three fields, so the inventory
+list — which rebuilds on every keystroke in its search field — would have handed the
+family an equal-but-not-identical key each time, tearing down a live query and opening the
+same one again. `operator ==` and `hashCode` are on it now, with a comment saying which
+caller they are for, because nothing else in the app compares two filters.
+
+**3. `AsyncContent` is handed a value, not a provider, and that is deliberate.** The
+obvious shape is a widget that takes the provider and watches it itself, which would also
+let it write its own retry. It cannot be typed: `ref.invalidate` wants a `ProviderOrFamily`
+and the widget would only have a `ProviderListenable`, so the ergonomic version needs a
+cast. The call site writes `onRetry: () => ref.invalidate(itemsProvider(storeId))` instead
+— one line, and it names the query being retried.
+
+Three pieces, and the third is the one that was not in the plan:
+
+- `AsyncContent<T>` — data, skeleton, error, with `skipLoadingOnReload: true` so a live
+  drift stream re-running does not blink the screen. A test pins that: after a write, the
+  frame before the new rows land still shows the old ones.
+- `AsyncListContent<T>` — the same, plus the empty case, because "loading" and "the
+  establishment genuinely has no articles" are different screens and every list in this app
+  needs both.
+- `asyncAll2/3/4` — folds several `AsyncValue`s into one. The dashboard watches four
+  queries; four independent `.when`s give four skeletons resolving at four different
+  moments, which reads as a page assembling itself rather than a page loading. **Error wins
+  over loading**, which is the part that is easy to get backwards: a screen whose first
+  query failed and whose second never answers would otherwise show a skeleton for ever.
+
+**4. The shell has three states now, and one of them is new to the app.**
+`_StoreShell` in `router.dart` watches `currentStoreProvider(routeStoreId)`.
+`AppScaffoldSkeleton` draws the rail and top bar as placeholders rather than the live
+widgets — both need a store to navigate to, and a rail that can be tapped before the
+destination exists is a rail that navigates nowhere. `AppScaffoldNoStore` is the state
+Phase 1 could not reach: `storeByIdOrFirst` read a list that was compiled in and always had
+three, and a database can genuinely hold none. Two new French strings carry it.
+
+**5. The skeleton frame is real but not observable through the router in a test.** An
+in-memory database answers inside the same batch of microtasks that builds the route, so
+by the first frame the shell has its establishment. The test holds the query open with an
+overridden `currentStoreProvider` instead — which is honest about what it is proving: that
+the loading branch renders chrome, not that a seeded in-memory database is slow.
+
+The same subtlety, one layer down: `tester.pumpWidget` already draws a frame, so a
+skeleton assertion goes **immediately after** the pump, not after an extra `pump()`.
+
+**6. `pumpAndSettle` will not settle while a skeleton is on screen.** `SkeletonBlock`
+pulses on a repeating `AnimationController`. It has never mattered because no screen showed
+one; from stage 9 several will, and a route walk that settles will hang on any screen still
+loading. Tests that need to look at a loading state pump a fixed duration instead.
+
+**7. The widget suites needed a database, a stage earlier than the plan said.** The plan
+put that in stage 9, but the shell reads `databaseProvider` from this stage, and that
+provider has no default on purpose — so `ProviderScope(child: StockInventoryApp())` throws
+before the first frame. `test/support/app_harness.dart` is new: one seeded in-memory
+database per test, and `router_test`, `navigation_test` and `widget_test` pump through it.
+All 485 existing tests stayed green.
+
+It also carries `testApp`, which is `testWidgets` plus two lines, and the reason is worth
+recording. Cancelling a drift query stream schedules a zero-duration timer — drift keeps a
+cancelled query for one turn of the event loop so a quick re-listen reuses it. Riverpod
+cancels every subscription when the `ProviderScope` unmounts, `flutter_test` unmounts the
+tree itself once the body returns and then immediately asserts that no timer is pending,
+and the assertion loses that race every time: *"A Timer is still pending even after the
+widget tree was disposed."* `addTearDown` cannot fix it, because teardowns run **after**
+the invariant check. So the unmount happens at the end of the body, followed by a pump that
+elapses zero time, which is what fires a zero-duration timer under `fake_async`.
+
+**8. `pendingChangesProvider` returns 0.** It hardcoded 3 to make the offline banner look
+alive in a demo. There is no outbound queue in Phase 2 and nothing is waiting, so any
+number above zero is now a claim about work the app is not doing. The French plural already
+has a `=0` case — *"Aucune modification en attente"* — so the banner reads correctly
+without a new string. The provider stays for Phase 3.
+
+**9. Do not run `dart format` over this repository.** 28 of 188 files under `lib/` differ
+from what the formatter would produce, because the wrapping here is by hand and reads
+better than the machine's. Formatting one file to tidy an edit produces a diff of unrelated
+reflow; two files were reformatted and put back during this stage. New files are written in
+formatter-compatible style, which is a different thing from running the formatter.
+
+**10. What stage 8 does *not* finish.** `currentUserProvider` exists and nothing calls it
+yet. `MockSettings` still stands. `AppTopBar` still reads `MockQueries.unreadNotificationCount`
+even though `unreadCountProvider` is now sitting next to it — it is a shared widget, and
+converting it belongs with the screens that surround it rather than half a stage early.
+
+**Verified at the stage boundary:** `flutter analyze` clean; `flutter test` 498/498 green
+(485 before, plus 13 new); `python tool/ux_audit.py` clean.
+
 ---
+
 
 ## Stage 9 — Screen cutover *(L)*
 
