@@ -46,7 +46,9 @@ import '../features/suppliers/presentation/pages/add_edit_supplier_page.dart';
 import '../features/suppliers/presentation/pages/supplier_detail_page.dart';
 import '../features/suppliers/presentation/pages/supplier_pricing_page.dart';
 import '../features/suppliers/presentation/pages/suppliers_list_page.dart';
+import '../core/utils/permissions.dart';
 import '../mock_data/mock_data.dart';
+import '../models/models.dart';
 import '../shared/widgets/app_scaffold.dart';
 import 'page_transitions.dart';
 import 'routes.dart';
@@ -69,12 +71,65 @@ import 'routes.dart';
 /// go_router cannot match it without the parameter present.
 String _storeId(GoRouterState state) => state.pathParameters['storeId']!;
 
+/// The screens reachable without a session.
+const Set<String> _authRoutes = {
+  Routes.login,
+  Routes.forgotPassword,
+  Routes.onboarding,
+};
+
+/// The capability a location requires, or null when it is open to any
+/// signed-in non-staff user. Store settings is deliberately absent — its route
+/// stays open and only the "Enregistrer" button is gated, so a manager is not
+/// bounced out of the settings section.
+Capability? _capabilityFor(String location) {
+  if (location == Routes.addStore) return Capability.createStore;
+  if (location.contains('/employees/timeclock')) {
+    return Capability.viewTimeclock;
+  }
+  if (location.contains('/employees/attendance-history')) {
+    return Capability.viewAttendanceHistory;
+  }
+  if (location.contains('/employees/payroll')) {
+    return Capability.managePayroll;
+  }
+  if (location.contains('/employees')) return Capability.manageEmployees;
+  return null;
+}
+
+/// The auth + permission guard (Phase 6).
+///
+/// - no session → every route but [_authRoutes] redirects to the login
+/// - a `staff` session (which the app never actually issues) → back to login
+/// - a session on an auth screen → into the app
+/// - a store-scoped section the role cannot hold → back to that store's
+///   dashboard (or the store selector)
+String? _guard(BuildContext context, GoRouterState state) {
+  final location = state.matchedLocation;
+
+  if (!MockSession.isSignedIn) {
+    return _authRoutes.contains(location) ? null : Routes.login;
+  }
+
+  if (mockCurrentEmployee.role == EmployeeRole.staff) {
+    return location == Routes.login ? null : Routes.login;
+  }
+
+  if (_authRoutes.contains(location)) return Routes.stores;
+
+  final needed = _capabilityFor(location);
+  if (needed != null && !can(mockCurrentEmployee.role, needed)) {
+    final storeId = state.pathParameters['storeId'];
+    return storeId == null ? Routes.stores : Routes.toDashboard(storeId);
+  }
+
+  return null;
+}
+
 final GoRouter appRouter = GoRouter(
-  // Phase 1 has no authentication, so the app opens on the login screen and
-  // every button simply navigates onward. There is no redirect guard here on
-  // purpose — adding one would be the start of the auth logic the brief defers.
   initialLocation: Routes.login,
   debugLogDiagnostics: false,
+  redirect: _guard,
   routes: [
     // -------------------------------------------------------------------------
     // Auth and store selection — no shell

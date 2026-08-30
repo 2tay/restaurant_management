@@ -187,6 +187,7 @@ class _AccountButton extends StatelessWidget {
           case 'account':
             context.goSection(Routes.toAccountSettings(storeId));
           case 'logout':
+            MockSession.signOut();
             context.goSection(Routes.login);
         }
       },

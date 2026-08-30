@@ -3,8 +3,10 @@ import 'package:flutter/services.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../app/routes.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/formatters.dart';
+import '../../../../core/utils/permissions.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../mock_data/mock_data.dart';
 import '../../../../shared/widgets/widgets.dart';
@@ -81,6 +83,12 @@ class _StoreSettingsPageState extends State<StoreSettingsPage> {
     super.dispose();
   }
 
+  /// Phase 6: only an owner may change store settings. A manager still sees the
+  /// page (the route is not guarded, so the settings section has no dead end),
+  /// but the fields and the save button are read-only.
+  bool get _canEdit =>
+      can(mockCurrentEmployee.role, Capability.editStoreSettings);
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -113,7 +121,7 @@ class _StoreSettingsPageState extends State<StoreSettingsPage> {
         PrimaryButton(
           label: l10n.actionSave,
           icon: LucideIcons.check,
-          onPressed: _save,
+          onPressed: _canEdit ? _save : null,
         ),
       ],
       child: ConstrainedBox(
@@ -121,6 +129,10 @@ class _StoreSettingsPageState extends State<StoreSettingsPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            if (!_canEdit) ...[
+              _ReadOnlyNotice(message: l10n.storeSettingsReadOnlyNotice),
+              const SizedBox(height: AppSpacing.xl),
+            ],
             SectionHeader(title: l10n.storeSettingsGeneral),
             AppCard(
               child: Column(
@@ -324,5 +336,40 @@ class _StoreSettingsPageState extends State<StoreSettingsPage> {
     _staleDays.text = '${updated.stalePartialOrderDays}';
 
     AppSnackBar.success(context, l10n.storeSettingsSaved);
+  }
+}
+
+/// Shown to a manager: the store settings are visible but not theirs to change.
+class _ReadOnlyNotice extends StatelessWidget {
+  const _ReadOnlyNotice({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceVariant,
+        borderRadius: AppRadius.mdAll,
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            LucideIcons.lock,
+            size: AppSizing.iconMd,
+            color: AppColors.textSecondary,
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Text(
+              message,
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

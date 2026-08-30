@@ -190,6 +190,7 @@ List<List<Object>> get _mutableLists => [
   mockEmployees,
   mockAttendances,
   mockPayrollPeriods,
+  mockCredentials,
 ];
 
 Map<String, int> _snapshotCounts() => {
@@ -208,4 +209,5 @@ Map<String, int> _snapshotCounts() => {
   'employees': mockEmployees.length,
   'attendances': mockAttendances.length,
   'payrollPeriods': mockPayrollPeriods.length,
+  'credentials': mockCredentials.length,
 };

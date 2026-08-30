@@ -21,6 +21,10 @@ Future<void> main() async {
   // that, "pristine" is whatever the last person left behind.
   MockWrite.captureSeed();
 
+  // The default session is the owner (so widget tests that pump the tree get an
+  // authenticated app); the real app opens signed out, on the login screen.
+  MockSession.signOut();
+
   // Orientation is deliberately left unconstrained. The app is designed
   // landscape-first for ~10" tablets, but the brief requires portrait to remain
   // usable, so locking orientations here would be wrong.

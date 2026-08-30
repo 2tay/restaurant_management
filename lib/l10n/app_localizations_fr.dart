@@ -2778,4 +2778,54 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get paymentStatusUnpaid => 'Non payé';
+
+  @override
+  String get loginCin => 'Numéro CIN';
+
+  @override
+  String get loginCinHint => 'AB.12.34-567.89';
+
+  @override
+  String get loginPin => 'Code PIN';
+
+  @override
+  String get loginPinHint => '4 chiffres';
+
+  @override
+  String get loginForgotPin => 'Code oublié ?';
+
+  @override
+  String get loginErrorBadCredentials => 'CIN ou code PIN incorrect.';
+
+  @override
+  String get loginErrorLocked =>
+      'Compte verrouillé après plusieurs tentatives. Réessayez dans quelques minutes.';
+
+  @override
+  String get loginErrorNoAccess =>
+      'Ce compte n\'a pas accès à l\'application. Le pointage se fait au tableau de bord partagé.';
+
+  @override
+  String get employeeFormCredentials => 'Identifiants';
+
+  @override
+  String get employeeFormPin => 'Code PIN';
+
+  @override
+  String get employeeFormPinConfirm => 'Confirmer le code';
+
+  @override
+  String get employeeFormPinHelp =>
+      '4 chiffres. La personne se connecte avec son numéro CIN et ce code.';
+
+  @override
+  String get employeeFormPinEditHelp =>
+      'Laisser vide pour conserver le code actuel.';
+
+  @override
+  String get employeeFormPinMismatch => 'Les deux codes ne correspondent pas.';
+
+  @override
+  String get storeSettingsReadOnlyNotice =>
+      'Seul le propriétaire peut modifier les paramètres de l\'établissement.';
 }

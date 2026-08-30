@@ -6,6 +6,7 @@ import '../../../../app/routes.dart';
 import '../../../../app/navigation.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/utils/permissions.dart';
 import '../../../../core/utils/responsive.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../mock_data/mock_data.dart';
@@ -58,12 +59,20 @@ class StoreSelectorPage extends ConsumerWidget {
                           ],
                         ),
                       ),
-                      const SizedBox(width: AppSpacing.lg),
-                      PrimaryButton(
-                        label: l10n.storesAdd,
-                        icon: LucideIcons.plus,
-                        onPressed: () => context.goSection(Routes.addStore),
-                      ),
+                      // Opening a store is an owner action (Phase 6). A manager
+                      // sees the grid but not the button — and the route is
+                      // guarded too.
+                      if (can(
+                        mockCurrentEmployee.role,
+                        Capability.createStore,
+                      )) ...[
+                        const SizedBox(width: AppSpacing.lg),
+                        PrimaryButton(
+                          label: l10n.storesAdd,
+                          icon: LucideIcons.plus,
+                          onPressed: () => context.goSection(Routes.addStore),
+                        ),
+                      ],
                     ],
                   ),
                   const SizedBox(height: AppSpacing.xxl),
@@ -91,7 +100,10 @@ class StoreSelectorPage extends ConsumerWidget {
                   const SizedBox(height: AppSpacing.xxl),
                   Center(
                     child: TextButton.icon(
-                      onPressed: () => context.goSection(Routes.login),
+                      onPressed: () {
+                        MockSession.signOut();
+                        context.goSection(Routes.login);
+                      },
                       icon: const Icon(LucideIcons.logOut),
                       label: Text(l10n.actionLogout),
                     ),

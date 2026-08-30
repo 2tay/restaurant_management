@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../app/navigation.dart';
 import '../../../../app/routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/utils/credential_status.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../mock_data/mock_data.dart';
@@ -39,6 +41,8 @@ class _AddEditEmployeePageState extends State<AddEditEmployeePage> {
   final _pay = TextEditingController();
   final _scheduleStart = TextEditingController();
   final _scheduleEnd = TextEditingController();
+  final _pin = TextEditingController();
+  final _pinConfirm = TextEditingController();
 
   EmployeeRole _role = EmployeeRole.staff;
   ContractType _contract = ContractType.fixed;
@@ -100,6 +104,8 @@ class _AddEditEmployeePageState extends State<AddEditEmployeePage> {
     _pay,
     _scheduleStart,
     _scheduleEnd,
+    _pin,
+    _pinConfirm,
   ];
 
   @override
@@ -124,6 +130,21 @@ class _AddEditEmployeePageState extends State<AddEditEmployeePage> {
   bool get _scheduleValid =>
       _parsedTime(_scheduleStart) != -1 && _parsedTime(_scheduleEnd) != -1;
 
+  bool get _pinTouched =>
+      _pin.text.trim().isNotEmpty || _pinConfirm.text.trim().isNotEmpty;
+
+  /// Both PIN fields hold the same valid PIN.
+  bool get _pinComplete =>
+      isValidPin(_pin.text) && _pin.text.trim() == _pinConfirm.text.trim();
+
+  /// Required when creating; optional when editing (blank keeps the old code).
+  bool get _pinValid =>
+      _isEditing ? (!_pinTouched || _pinComplete) : _pinComplete;
+
+  bool get _pinMismatch =>
+      _pinConfirm.text.trim().isNotEmpty &&
+      _pin.text.trim() != _pinConfirm.text.trim();
+
   bool get _canSubmit =>
       _firstName.text.trim().isNotEmpty &&
       _lastName.text.trim().isNotEmpty &&
@@ -131,7 +152,8 @@ class _AddEditEmployeePageState extends State<AddEditEmployeePage> {
       _phone.text.trim().isNotEmpty &&
       _email.text.trim().isNotEmpty &&
       _parsedPay != null &&
-      _scheduleValid;
+      _scheduleValid &&
+      _pinValid;
 
   bool get _isDirty =>
       _initialText.entries.any((e) => e.key.text.trim() != e.value.trim()) ||
@@ -343,6 +365,64 @@ class _AddEditEmployeePageState extends State<AddEditEmployeePage> {
               ],
             ),
           ),
+          const SizedBox(height: AppSpacing.lg),
+
+          SectionHeader(title: l10n.employeeFormCredentials),
+          AppCard(
+            child: Column(
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: AppTextField(
+                        label: l10n.employeeFormPin,
+                        controller: _pin,
+                        prefixIcon: LucideIcons.lock,
+                        obscureText: true,
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                          LengthLimitingTextInputFormatter(AuthRules.pinLength),
+                        ],
+                        onChanged: (_) => setState(() {}),
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.lg),
+                    Expanded(
+                      child: AppTextField(
+                        label: l10n.employeeFormPinConfirm,
+                        controller: _pinConfirm,
+                        prefixIcon: LucideIcons.lock,
+                        obscureText: true,
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                          LengthLimitingTextInputFormatter(AuthRules.pinLength),
+                        ],
+                        errorText: _pinMismatch
+                            ? l10n.employeeFormPinMismatch
+                            : null,
+                        onChanged: (_) => setState(() {}),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    _isEditing
+                        ? l10n.employeeFormPinEditHelp
+                        : l10n.employeeFormPinHelp,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -403,6 +483,12 @@ class _AddEditEmployeePageState extends State<AddEditEmployeePage> {
             null;
       });
       return;
+    }
+
+    // Phase 6: persist the PIN. Required on create; on edit only when the
+    // fields were filled (blank keeps the existing code).
+    if (!_isEditing || _pinTouched) {
+      CredentialMutations.setPin(result.id, _pin.text);
     }
 
     AppSnackBar.success(

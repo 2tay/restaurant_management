@@ -6,8 +6,10 @@ import '../../app/navigation.dart';
 import '../../app/routes.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../core/utils/permissions.dart';
 import '../../core/utils/responsive.dart';
 import '../../l10n/app_localizations.dart';
+import '../../mock_data/mock_data.dart';
 
 /// One entry in the navigation rail.
 ///
@@ -54,11 +56,17 @@ class _ChildDestination {
     required this.pathBuilder,
     required this.icon,
     required this.isActive,
+    required this.capability,
   });
 
   final String Function(AppLocalizations l10n) label;
   final String Function(String storeId) pathBuilder;
   final IconData icon;
+
+  /// The permission a role must hold for this child to appear (Phase 6). The
+  /// parent "Gestion Employée" row disappears entirely when a role holds none
+  /// of its children's capabilities.
+  final Capability capability;
 
   /// Whether this specific child — as opposed to a sibling, or the parent's
   /// own broader [_Destination.matchSegment] — is the one the current
@@ -148,24 +156,28 @@ class _AppSidebarState extends State<AppSidebar> {
           pathBuilder: Routes.toEmployees,
           icon: LucideIcons.idCard,
           isActive: _isPersonnelActive,
+          capability: Capability.manageEmployees,
         ),
         _ChildDestination(
           label: _labelTimeclock,
           pathBuilder: Routes.toTimeclock,
           icon: LucideIcons.clock,
           isActive: _isTimeclockActive,
+          capability: Capability.viewTimeclock,
         ),
         _ChildDestination(
           label: _labelAttendanceHistory,
           pathBuilder: Routes.toAttendanceHistory,
           icon: LucideIcons.history,
           isActive: _isAttendanceHistoryActive,
+          capability: Capability.viewAttendanceHistory,
         ),
         _ChildDestination(
           label: _labelPayroll,
           pathBuilder: Routes.toPayroll,
           icon: LucideIcons.banknote,
           isActive: _isPayrollActive,
+          capability: Capability.managePayroll,
         ),
       ],
     ),
@@ -225,9 +237,21 @@ class _AppSidebarState extends State<AppSidebar> {
     final railActions = <VoidCallback>[];
     int? selectedIndex;
 
+    final role = mockCurrentEmployee.role;
+
     for (var baseIndex = 0; baseIndex < _destinations.length; baseIndex++) {
       final destination = _destinations[baseIndex];
-      final children = destination.children;
+
+      // Phase 6: an expandable destination shows only the children the role can
+      // reach, and disappears entirely when that leaves none.
+      final children = destination.children
+          ?.where((child) => can(role, child.capability))
+          .toList();
+      if (destination.children != null &&
+          (children == null || children.isEmpty)) {
+        continue;
+      }
+
       final isOnFamily = location.contains('/${destination.matchSegment}');
       if (isOnFamily) selectedIndex ??= railDestinations.length;
 

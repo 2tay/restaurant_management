@@ -174,6 +174,34 @@ void main() {
       }
     });
 
+    test('every login credential points at a real employee', () {
+      final employeeIds = mockEmployees.map((e) => e.id).toSet();
+      final seen = <String>{};
+      for (final credential in mockCredentials) {
+        expect(
+          employeeIds,
+          contains(credential.employeeId),
+          reason: credential.id,
+        );
+        expect(
+          seen.add(credential.employeeId),
+          isTrue,
+          reason: 'two credentials for ${credential.employeeId}',
+        );
+      }
+    });
+
+    test('every owner and manager can sign in', () {
+      for (final employee in mockEmployees) {
+        if (employee.role == EmployeeRole.staff) continue;
+        expect(
+          MockQueries.credentialForEmployee(employee.id),
+          isNotNull,
+          reason: '${employee.firstName} ${employee.lastName} has no PIN',
+        );
+      }
+    });
+
     test('at most one attendance row per employee per day', () {
       final seen = <String>{};
       for (final entry in mockAttendances) {

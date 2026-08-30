@@ -19,4 +19,7 @@ void restoreMockData() {
   // seed is genuinely pristine.
   MockWrite.captureSeed();
   addTearDown(MockWrite.reset);
+  // The session is not in the MockWrite snapshot (resetting the demo must not
+  // log you out), so a test that signs in or out puts it back itself.
+  addTearDown(MockSession.resetToDefault);
 }

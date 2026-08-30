@@ -7,6 +7,7 @@ library;
 
 export 'mock_attendances.dart';
 export 'mock_categories.dart';
+export 'mock_credentials.dart';
 export 'mock_employees.dart';
 export 'mock_goods_receipts.dart';
 export 'mock_items.dart';
@@ -30,6 +31,7 @@ export 'mock_units.dart';
 export 'mutations/account_mutations.dart';
 export 'mutations/attendance_mutations.dart';
 export 'mutations/catalog_mutations.dart';
+export 'mutations/credential_mutations.dart';
 export 'mutations/employee_mutations.dart';
 export 'mutations/item_mutations.dart';
 export 'mutations/mock_write.dart';

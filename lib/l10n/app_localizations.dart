@@ -4575,6 +4575,96 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Non payé'**
   String get paymentStatusUnpaid;
+
+  /// Login form: the national ID field, which is the login identifier (Phase 6).
+  ///
+  /// In fr, this message translates to:
+  /// **'Numéro CIN'**
+  String get loginCin;
+
+  /// Placeholder showing the shape of a CIN on the login form.
+  ///
+  /// In fr, this message translates to:
+  /// **'AB.12.34-567.89'**
+  String get loginCinHint;
+
+  /// Login form: the 4-digit PIN field.
+  ///
+  /// In fr, this message translates to:
+  /// **'Code PIN'**
+  String get loginPin;
+
+  /// Placeholder on the login PIN field.
+  ///
+  /// In fr, this message translates to:
+  /// **'4 chiffres'**
+  String get loginPinHint;
+
+  /// Link to the reset screen from the login form. Narrow no-break space before the question mark.
+  ///
+  /// In fr, this message translates to:
+  /// **'Code oublié ?'**
+  String get loginForgotPin;
+
+  /// Login error shown for an unknown CIN or a wrong PIN — deliberately not saying which.
+  ///
+  /// In fr, this message translates to:
+  /// **'CIN ou code PIN incorrect.'**
+  String get loginErrorBadCredentials;
+
+  /// Login error when the credential is locked out after too many failed attempts.
+  ///
+  /// In fr, this message translates to:
+  /// **'Compte verrouillé après plusieurs tentatives. Réessayez dans quelques minutes.'**
+  String get loginErrorLocked;
+
+  /// Login error when a staff account, which has no active app access, tries to sign in.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ce compte n\'a pas accès à l\'application. Le pointage se fait au tableau de bord partagé.'**
+  String get loginErrorNoAccess;
+
+  /// Section heading on the employee form for the login PIN.
+  ///
+  /// In fr, this message translates to:
+  /// **'Identifiants'**
+  String get employeeFormCredentials;
+
+  /// Employee form: the 4-digit login PIN field.
+  ///
+  /// In fr, this message translates to:
+  /// **'Code PIN'**
+  String get employeeFormPin;
+
+  /// Employee form: re-enter the PIN to catch a typo.
+  ///
+  /// In fr, this message translates to:
+  /// **'Confirmer le code'**
+  String get employeeFormPinConfirm;
+
+  /// Helper under the PIN fields when creating an employee.
+  ///
+  /// In fr, this message translates to:
+  /// **'4 chiffres. La personne se connecte avec son numéro CIN et ce code.'**
+  String get employeeFormPinHelp;
+
+  /// Helper under the PIN fields when editing an employee.
+  ///
+  /// In fr, this message translates to:
+  /// **'Laisser vide pour conserver le code actuel.'**
+  String get employeeFormPinEditHelp;
+
+  /// Error under the confirm-PIN field when the two entries differ.
+  ///
+  /// In fr, this message translates to:
+  /// **'Les deux codes ne correspondent pas.'**
+  String get employeeFormPinMismatch;
+
+  /// Shown to a manager on the store settings page — visible but read-only (Phase 6).
+  ///
+  /// In fr, this message translates to:
+  /// **'Seul le propriétaire peut modifier les paramètres de l\'établissement.'**
+  String get storeSettingsReadOnlyNotice;
 }
 
 class _AppLocalizationsDelegate

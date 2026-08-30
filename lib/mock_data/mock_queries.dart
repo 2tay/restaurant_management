@@ -5,6 +5,7 @@ import '../core/utils/stock_status.dart';
 import '../models/models.dart';
 import 'mock_attendances.dart';
 import 'mock_categories.dart';
+import 'mock_credentials.dart';
 import 'mock_employees.dart';
 import 'mock_goods_receipts.dart';
 import 'mock_items.dart';
@@ -603,6 +604,18 @@ abstract final class MockQueries {
     for (final employee in mockEmployees) {
       if (employee.id == excludingId) continue;
       if (_normalise(employee.email) == needle) return employee;
+    }
+    return null;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Credentials — the login secret behind an employee's CIN
+  // ---------------------------------------------------------------------------
+
+  /// This employee's login secret, or null when no PIN has been set.
+  static EmployeeCredential? credentialForEmployee(String employeeId) {
+    for (final credential in mockCredentials) {
+      if (credential.employeeId == employeeId) return credential;
     }
     return null;
   }
