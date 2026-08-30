@@ -766,6 +766,65 @@ assertion that sending moves no stock. Plus the new rollback test above.
 `receipt_document_test.dart` (15) needs only its `setUp` swapped; the PDF layer reads
 models, which have not changed.
 
+### As built
+
+Stage 6 is done. `test/orders_test.dart` is deleted and `test/db/orders_test.dart` (39)
+stands in its place, and the carried-over *"receiving a delivery uses the same recorder"* is
+back in `test/db/inventory_test.dart`.
+
+**1. The rollback test has teeth, and that was checked the same way stage 5's was.** *"a
+receipt that fails part way through leaves nothing behind"* drives a three-line receipt whose
+third line names an article that does not exist. The first two lines have already moved stock
+and rewritten a supplier's price by the time the third throws. It passed first try — so the
+transaction was removed from `confirmReceipt` and the test failed with a poulet quantity of 21
+where 6 was expected: the delivery had half-applied. Then reverted.
+
+The assertion is deliberately broad — quantity of two different articles, commande status,
+movement count, receipt count, price history length — because "rolled back" means all of it
+or none of it, and a test that checked only the stock would pass a version that left the
+price history rewritten.
+
+**2. `confirmReceipt` returns null instead of asserting.** Phase 1 opened with
+`MockQueries.orderById(orderId)!`, which was safe only because the data was compiled in.
+There is now `receiveBlockedBy(orderId)` returning a `ReceiptBlock` — `noSuchOrder` or
+`notReceivable` — matching the `deleteBlockedBy` shape the codebase already uses elsewhere,
+and `confirmReceipt` re-checks inside its own transaction because anything can happen between
+the two calls.
+
+**3. The price rule now goes through `SupplierRepository`**, both branches: no link on file →
+`linkItem`, existing link → `updatePrice`. Phase 1 inlined both, which meant the rules about
+defaults and about what counts as a change were written twice.
+
+One consequence is a deliberate behaviour change: **a delivery line priced at zero no longer
+rewrites the supplier's price on file.** `linkItem` and `updatePrice` both refuse a
+non-positive price; Phase 1's inlined version would have written the history entry and set the
+price to zero. The movement still records what was paid and the cost arithmetic still applies
+it — but a free replacement for a bad delivery is not a quotation, and letting it become one
+would auto-fill the next commande at nothing.
+
+**4. `_nextReference` moved inside the create transaction**, as the plan asked, and kept its
+account-global scope — Phase 1's version took a `storeId` and ignored it, and numbering per
+establishment would renumber the demo. The scan stays in Dart rather than becoming
+`MAX(CAST(substr(...)))`, because the rule is "the largest trailing number" and the SQL
+version only answers that while every reference has the same digit count. A new test asserts a
+fresh draft continues the seeded series.
+
+**5. `updateDraft` replaces a draft's lines wholesale rather than diffing them.** A draft's
+lines are edited as a set by a form that hands back the whole set; working out which three
+changed would be effort in service of nothing. The delete of the old lines and the insert of
+the new ones are in the same transaction as the header update.
+
+**Deferred to stage 7:** `receipt_document_test.dart` (15). The plan put it here, on the
+grounds that it needed only its `setUp` swapped — which is true of fourteen of its tests. The
+fifteenth calls `AccountMutations.updateStore` to clear a VAT number and check the header
+renders without one, and that method belongs to stage 7. Pulling one account write forward to
+save one stage of waiting would have meant shipping it without its own suite, which is the
+trade stage 4 already made twice. It stays on the mock path for one more stage; nothing it
+touches has changed.
+
+**Verified at the stage boundary:** `flutter analyze` clean; `flutter test` 475/475 green
+(471 before, minus 36 deleted, plus 40 new); `python tool/ux_audit.py` clean.
+
 ---
 
 ## Stage 7 — Account, stores and settings *(S)*
@@ -782,6 +841,11 @@ models, which have not changed.
   defaulting to the first owner. It is the implicit actor stamped on every movement and
   price-history entry, so it cannot just disappear. Real auth is still Phase 3 — this is
   the placeholder made explicit rather than accidental.
+
+**Carried over from stage 6:** `receipt_document_test.dart` (15). Fourteen of its tests need
+only their `setUp` swapped; the fifteenth clears a store's VAT number through
+`AccountMutations.updateStore` to check the document header renders without one, which is why
+it waited for this stage.
 
 **Tests ported:** `account_test.dart` (12).
 

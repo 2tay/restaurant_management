@@ -8,16 +8,16 @@
 // looks complete — worse than no log at all, because people would trust it.
 //
 // Ported from `test/inventory_test.dart`. Its three item-shaped groups moved to
-// `items_test.dart` in stage 4, when the item writes arrived; its one test that
-// receives a delivery against a commande waits for stage 6, which is where
-// `confirmReceipt` lands.
+// `items_test.dart` in stage 4, when the item writes arrived; the one test that
+// receives a delivery against a commande arrived in stage 6, with
+// `confirmReceipt`.
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stock_inventory/core/utils/stock_status.dart';
 import 'package:stock_inventory/data/database/app_database.dart';
 import 'package:stock_inventory/data/repositories/repositories.dart';
 import 'package:stock_inventory/mock_data/mock_data.dart'
-    show CategoryIds, ItemIds, StoreIds, SupplierIds, UnitIds;
+    show CategoryIds, ItemIds, OrderIds, StoreIds, SupplierIds, UnitIds;
 import 'package:stock_inventory/models/models.dart';
 
 import '../support/db_fixture.dart';
@@ -207,6 +207,34 @@ void main() {
       expect((await items.item(created.id))!.quantity, 13);
       expect(await sumOfMovements(created.id), 13);
       expect(await movements.movementsForItem(created.id), hasLength(3));
+    });
+
+    test('receiving a delivery uses the same recorder', () async {
+      // Carried over from stage 5, which could not take it because it goes
+      // through confirmReceipt. It pins the structural fact the whole log
+      // depends on: the receipt path differs from the manual one only in
+      // carrying references. Two kinds of stock-in would mean two places to
+      // keep the cost arithmetic right.
+      final before = (await items.item(ItemIds.poulet))!.quantity;
+
+      final receipt = await OrderRepository(db).confirmReceipt(
+        orderId: OrderIds.sentGrossiste,
+        lines: const [
+          ReceiptDraftLine(
+            itemId: ItemIds.poulet,
+            quantityOrdered: 15,
+            quantityReceived: 15,
+            orderedUnitPrice: 12.80,
+            actualUnitPrice: 12.80,
+          ),
+        ],
+      );
+
+      final movement = await latestFor(ItemIds.poulet);
+      expect((await items.item(ItemIds.poulet))!.quantity, before + 15);
+      expect(movement.type, StockMovementType.stockIn);
+      expect(movement.orderId, OrderIds.sentGrossiste);
+      expect(movement.receiptId, receipt!.id);
     });
 
     test('a movement for an article that does not exist is refused', () async {
