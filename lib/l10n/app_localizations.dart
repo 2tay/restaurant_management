@@ -4228,6 +4228,36 @@ abstract class AppLocalizations {
   /// **'Aucun pointage n\'a encore été enregistré dans cet établissement.'**
   String get attendanceHistoryEmptyBody;
 
+  /// Label of the employee dropdown on the attendance history page.
+  ///
+  /// In fr, this message translates to:
+  /// **'Employé'**
+  String get attendanceFilterEmployee;
+
+  /// Employee dropdown option that shows every employee at once.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tous les employés'**
+  String get attendanceFilterAllEmployees;
+
+  /// Label of the period start-date field on the attendance history page.
+  ///
+  /// In fr, this message translates to:
+  /// **'Du'**
+  String get attendanceFilterFrom;
+
+  /// Label of the period end-date field on the attendance history page.
+  ///
+  /// In fr, this message translates to:
+  /// **'Au'**
+  String get attendanceFilterTo;
+
+  /// Active-filter chip showing the selected date range.
+  ///
+  /// In fr, this message translates to:
+  /// **'{from} – {to}'**
+  String attendanceFilterDateRange(String from, String to);
+
   /// History KPI — number of attendance rows in the period.
   ///
   /// In fr, this message translates to:

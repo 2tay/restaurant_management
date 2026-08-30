@@ -639,14 +639,12 @@ abstract final class MockQueries {
   }
 
   /// The store's attendance log for the Historique page — filtered on a
-  /// rolling period, a status and a free-text employee-name search (combined
-  /// with AND), sorted most-recent-day-first, then sliced into a page.
+  /// [from]–[to] date range, a status and one employee (combined with AND),
+  /// sorted most-recent-day-first, then sliced into a page.
   ///
-  /// [withinDays] is a rolling window against `DateTime.now()`, null meaning
-  /// no cutoff ("Tout"). [employeeQuery] is matched the same case/space-
-  /// insensitive way category and unit names are — see [_normalise] — against
-  /// the resolved employee name, so the UI never looks employees up itself.
-  /// [page] is clamped into range.
+  /// [from] / [to] are inclusive day bounds, each null meaning "no bound on
+  /// that side". [employeeId] narrows to a single employee, null meaning every
+  /// employee. [page] is clamped into range.
   static ({
     List<Attendance> rows,
     int totalCount,
@@ -655,27 +653,27 @@ abstract final class MockQueries {
   })
   attendancesForStore(
     String storeId, {
-    int? withinDays,
+    DateTime? from,
+    DateTime? to,
     AttendanceStatus? status,
-    String? employeeQuery,
+    String? employeeId,
     int page = 0,
     int pageSize = 25,
   }) {
-    final cutoff = withinDays == null
-        ? null
-        : DateTime.now().subtract(Duration(days: withinDays));
-    final needle = employeeQuery == null ? '' : _normalise(employeeQuery);
+    DateTime dayOf(DateTime v) => DateTime(v.year, v.month, v.day);
+    final lower = from == null ? null : dayOf(from);
+    final upper = to == null ? null : dayOf(to);
 
     final matched =
         mockAttendances.where((entry) {
           if (entry.storeId != storeId) return false;
           if (status != null && entry.status != status) return false;
-          if (cutoff != null && entry.date.isBefore(cutoff)) return false;
-          if (needle.isNotEmpty) {
-            final e = employeeById(entry.employeeId);
-            final name = e == null ? '' : '${e.firstName} ${e.lastName}';
-            if (!_normalise(name).contains(needle)) return false;
+          if (employeeId != null && entry.employeeId != employeeId) {
+            return false;
           }
+          final day = dayOf(entry.date);
+          if (lower != null && day.isBefore(lower)) return false;
+          if (upper != null && day.isAfter(upper)) return false;
           return true;
         }).toList()..sort((a, b) {
           final byDate = b.date.compareTo(a.date);
@@ -698,9 +696,9 @@ abstract final class MockQueries {
     );
   }
 
-  /// The KPI figures above the Historique table — over the whole store log
-  /// within [withinDays], independent of the status / employee / page
-  /// filters below. Late arrivals and overtime are measured against each
+  /// The KPI figures above the Historique table — over the store log matching
+  /// the [from]–[to] date range and [employeeId], independent of the status /
+  /// page filters below. Late arrivals and overtime are measured against each
   /// employee's resolved schedule.
   static ({
     int days,
@@ -709,11 +707,16 @@ abstract final class MockQueries {
     Duration overtime,
     int lateBreaks,
   })
-  attendanceStatsForStore(String storeId, {int? withinDays}) {
+  attendanceStatsForStore(
+    String storeId, {
+    DateTime? from,
+    DateTime? to,
+    String? employeeId,
+  }) {
     final settings = storeSettings(storeId);
-    final cutoff = withinDays == null
-        ? null
-        : DateTime.now().subtract(Duration(days: withinDays));
+    DateTime dayOf(DateTime v) => DateTime(v.year, v.month, v.day);
+    final lower = from == null ? null : dayOf(from);
+    final upper = to == null ? null : dayOf(to);
 
     var worked = Duration.zero;
     var overtime = Duration.zero;
@@ -723,7 +726,10 @@ abstract final class MockQueries {
 
     for (final entry in mockAttendances) {
       if (entry.storeId != storeId) continue;
-      if (cutoff != null && entry.date.isBefore(cutoff)) continue;
+      if (employeeId != null && entry.employeeId != employeeId) continue;
+      final day = dayOf(entry.date);
+      if (lower != null && day.isBefore(lower)) continue;
+      if (upper != null && day.isAfter(upper)) continue;
       days++;
 
       final employee = employeeById(entry.employeeId);

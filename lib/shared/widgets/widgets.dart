@@ -33,6 +33,7 @@ export 'payment_status_badge.dart';
 export 'primary_button.dart';
 export 'quantity_stepper.dart';
 export 'search_field.dart';
+export 'searchable_dropdown.dart';
 export 'section_header.dart';
 export 'section_tabs.dart';
 export 'stat_tile.dart';

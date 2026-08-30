@@ -54,7 +54,6 @@ class _TimeclockBoardPageState extends ConsumerState<TimeclockBoardPage> {
     return ShellPage(
       title: l10n.timeclockBoardTitle,
       subtitle: l10n.timeclockBoardSubtitle,
-      scrollable: false,
       actions: const [_LiveClock(), _FullScreenToggleButton()],
       child: _buildBoard(l10n),
     );
@@ -70,10 +69,13 @@ class _TimeclockBoardPageState extends ConsumerState<TimeclockBoardPage> {
       });
 
     if (all.isEmpty) {
-      return EmptyState(
-        icon: LucideIcons.idCard,
-        title: l10n.timeclockBoardEmpty,
-        message: l10n.timeclockBoardEmptyBody,
+      return ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 360),
+        child: EmptyState(
+          icon: LucideIcons.idCard,
+          title: l10n.timeclockBoardEmpty,
+          message: l10n.timeclockBoardEmptyBody,
+        ),
       );
     }
 
@@ -97,37 +99,39 @@ class _TimeclockBoardPageState extends ConsumerState<TimeclockBoardPage> {
           onChanged: (value) => setState(() => _query = value),
         ),
         const SizedBox(height: AppSpacing.md),
-        Expanded(
-          child: shown.isEmpty
-              ? EmptyState.noResults(
-                  l10n,
-                  onClearFilters: () => setState(() => _query = ''),
-                )
-              : GridView.builder(
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: context.gridColumns(max: 4),
-                    crossAxisSpacing: AppSpacing.lg,
-                    mainAxisSpacing: AppSpacing.lg,
-                    mainAxisExtent: 320,
-                  ),
-                  itemCount: shown.length,
-                  itemBuilder: (context, index) => _EmployeeCard(
-                    employee: shown[index],
-                    storeId: widget.storeId,
-                  ),
-                ),
-        ),
+        if (shown.isEmpty)
+          ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 320),
+            child: EmptyState.noResults(
+              l10n,
+              onClearFilters: () => setState(() => _query = ''),
+            ),
+          )
+        else
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: context.gridColumns(max: 4),
+              crossAxisSpacing: AppSpacing.lg,
+              mainAxisSpacing: AppSpacing.lg,
+              mainAxisExtent: 320,
+            ),
+            itemCount: shown.length,
+            itemBuilder: (context, index) =>
+                _EmployeeCard(employee: shown[index], storeId: widget.storeId),
+          ),
       ],
     );
   }
 
   /// Not-yet-clocked-in first, finished last.
-  static int _rank(Attendance? entry) => switch (entry?.status ??
-      AttendanceStatus.notClockedIn) {
-    AttendanceStatus.notClockedIn => 0,
-    AttendanceStatus.working || AttendanceStatus.onBreak => 1,
-    AttendanceStatus.done => 2,
-  };
+  static int _rank(Attendance? entry) =>
+      switch (entry?.status ?? AttendanceStatus.notClockedIn) {
+        AttendanceStatus.notClockedIn => 0,
+        AttendanceStatus.working || AttendanceStatus.onBreak => 1,
+        AttendanceStatus.done => 2,
+      };
 }
 
 /// Today's date and a ticking clock, isolated so the once-a-second tick
@@ -409,9 +413,7 @@ class _ActionArea extends StatelessWidget {
                 if (AttendanceMutations.startPause(current.id) == null) return;
                 AppSnackBar.success(
                   context,
-                  l10n.timeclockPauseStartDone(
-                    employeeDisplayName(employee),
-                  ),
+                  l10n.timeclockPauseStartDone(employeeDisplayName(employee)),
                 );
               },
             ),
@@ -424,10 +426,7 @@ class _ActionArea extends StatelessWidget {
                   l10n.timeclockClockOutDone(employeeDisplayName(employee)),
                 );
               },
-              icon: const Icon(
-                LucideIcons.circleCheck,
-                size: AppSizing.iconSm,
-              ),
+              icon: const Icon(LucideIcons.circleCheck, size: AppSizing.iconSm),
               label: Text(l10n.timeclockClockOut),
             ),
           ],

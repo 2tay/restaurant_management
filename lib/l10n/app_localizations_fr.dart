@@ -2573,6 +2573,23 @@ class AppLocalizationsFr extends AppLocalizations {
       'Aucun pointage n\'a encore été enregistré dans cet établissement.';
 
   @override
+  String get attendanceFilterEmployee => 'Employé';
+
+  @override
+  String get attendanceFilterAllEmployees => 'Tous les employés';
+
+  @override
+  String get attendanceFilterFrom => 'Du';
+
+  @override
+  String get attendanceFilterTo => 'Au';
+
+  @override
+  String attendanceFilterDateRange(String from, String to) {
+    return '$from – $to';
+  }
+
+  @override
   String get attendanceStatDays => 'Jours pointés';
 
   @override

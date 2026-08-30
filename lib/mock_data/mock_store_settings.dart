@@ -34,6 +34,19 @@ final List<StoreSettings> mockStoreSettings = [
   ),
   _defaults(StoreIds.liege),
   _defaults(StoreIds.saintGilles),
+  // TestCalcul runs a long 08:00–22:00 day (the "heure configurée par
+  // l'entreprise" the fixed employee inherits) and a 60-min break allowance so
+  // a normal one-hour lunch is not flagged "pause dépassée". Overtime premium
+  // and the monthly-to-daily divisor stay on the defaults (×1.25, ÷26).
+  const StoreSettings(
+    storeId: StoreIds.testCalcul,
+    openMinutes: 8 * 60,
+    closeMinutes: 22 * 60,
+    maxBreakMinutes: 60,
+    overtimeMultiplier: PayrollRules.defaultOvertimeMultiplier,
+    workingDaysPerMonth: PayrollRules.defaultWorkingDaysPerMonth,
+    stalePartialOrderDays: OrderRules.defaultStalePartialDays,
+  ),
 ];
 
 /// The row for a store, or a synthesised default when there is none — nothing

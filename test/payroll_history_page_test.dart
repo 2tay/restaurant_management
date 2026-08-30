@@ -30,9 +30,16 @@ Future<void> _openPayroll(
 }
 
 Future<void> _pickKarim(WidgetTester tester) async {
-  await tester.tap(find.byType(DropdownButtonFormField<Object?>));
+  // The employee picker is a searchable dropdown: open it, filter to Karim,
+  // then tap the single remaining menu entry (scoped to the menu so the table
+  // cell of the same name below the fold is not matched instead).
+  await tester.tap(find.byType(DropdownMenu<String>));
   await tester.pumpAndSettle();
-  await tester.tap(find.text('Karim Haddouch').last);
+  await tester.enterText(find.byType(DropdownMenu<String>), 'Karim');
+  await tester.pumpAndSettle();
+  await tester.tap(
+    find.widgetWithText(MenuItemButton, 'Karim Haddouch').last,
+  );
   await tester.pumpAndSettle();
 }
 

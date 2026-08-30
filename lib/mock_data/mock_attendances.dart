@@ -23,6 +23,13 @@ abstract final class AttendanceIds {
 /// `.claude/phase_gestion_employee.md`.
 const String _seededPayrollPeriodId = 'payroll-seed-karim';
 
+/// The two paid runs on the TestCalcul store — must match
+/// `PayrollPeriodIds.testCalculAyoub` / `.testCalculHakim`. Kept as literals
+/// here for the same reason as [_seededPayrollPeriodId]: to avoid an import
+/// cycle with `mock_payroll_periods.dart`.
+const String _testCalculAyoubPeriodId = 'payroll-testcalcul-ayoub';
+const String _testCalculHakimPeriodId = 'payroll-testcalcul-hakim';
+
 /// Attendance spanning several distinct days.
 ///
 /// Only *today*'s rows are left mid-day (`working` / `onBreak`); every earlier
@@ -201,4 +208,86 @@ final List<Attendance> mockAttendances = [
     ],
     paymentStatus: PaymentStatus.unpaid,
   ),
+
+  // --- TestCalcul — a full month of finished days for the salaire check -----
+  ..._testCalculAttendances(),
 ];
+
+/// Attendance for the TestCalcul store: every working day (Mon–Sat) from
+/// **1 July to 1 August 2026** for Ayoub and Hakim, all `done`.
+///
+/// Unlike the rest of this file the dates are calendar literals rather than
+/// offsets from `mockNow` — the walkthrough is about verifying specific figures
+/// over a fixed range, not about staying "current".
+///
+/// Days on or before **15 July** carry `paid` + a `payrollPeriodId`; the rest
+/// stay `unpaid`, so the paiement screen shows "des jours payés et d'autres
+/// pas encore".
+///
+/// - **Ayoub** (fixe, 08:00–22:00, 1 h lunch): normally clocks out at 22:00
+///   (13 h worked, no overtime). Every 5th working day he stays to 23:30
+///   (+1 h 30 overtime). His 2nd working day is a late arrival (08:35).
+/// - **Hakim** (extra, 10:00–20:00, 30 min break): normally clocks out at
+///   20:00 (9 h 30 worked). Every 4th working day he stays to 22:00
+///   (+2 h overtime).
+List<Attendance> _testCalculAttendances() {
+  final rows = <Attendance>[];
+  final firstDay = DateTime(2026, 7, 1);
+  final lastDay = DateTime(2026, 8, 1);
+  final paidThrough = DateTime(2026, 7, 15);
+
+  var workingDay = 0;
+  for (
+    var day = firstDay;
+    !day.isAfter(lastDay);
+    day = day.add(const Duration(days: 1))
+  ) {
+    if (day.weekday == DateTime.sunday) continue;
+    workingDay++;
+
+    final date = DateTime(day.year, day.month, day.day);
+    final tag =
+        '${date.year}-${_pad(date.month)}-${_pad(date.day)}';
+    final paid = !date.isAfter(paidThrough);
+    DateTime at(int hour, int minute) =>
+        DateTime(date.year, date.month, date.day, hour, minute);
+
+    // --- Ayoub — fixed salary, store hours ---
+    final ayoubLate = workingDay == 2;
+    final ayoubOvertime = workingDay % 5 == 0;
+    rows.add(
+      Attendance(
+        id: 'att-testcalcul-ayoub-$tag',
+        storeId: StoreIds.testCalcul,
+        employeeId: EmployeeIds.ayoub,
+        date: date,
+        status: AttendanceStatus.done,
+        clockInAt: ayoubLate ? at(8, 35) : at(8, 0),
+        clockOutAt: ayoubOvertime ? at(23, 30) : at(22, 0),
+        pauses: [AttendancePause(startAt: at(12, 0), endAt: at(13, 0))],
+        paymentStatus: paid ? PaymentStatus.paid : PaymentStatus.unpaid,
+        payrollPeriodId: paid ? _testCalculAyoubPeriodId : null,
+      ),
+    );
+
+    // --- Hakim — extra, own hours ---
+    final hakimOvertime = workingDay % 4 == 0;
+    rows.add(
+      Attendance(
+        id: 'att-testcalcul-hakim-$tag',
+        storeId: StoreIds.testCalcul,
+        employeeId: EmployeeIds.hakim,
+        date: date,
+        status: AttendanceStatus.done,
+        clockInAt: at(10, 0),
+        clockOutAt: hakimOvertime ? at(22, 0) : at(20, 0),
+        pauses: [AttendancePause(startAt: at(13, 0), endAt: at(13, 30))],
+        paymentStatus: paid ? PaymentStatus.paid : PaymentStatus.unpaid,
+        payrollPeriodId: paid ? _testCalculHakimPeriodId : null,
+      ),
+    );
+  }
+  return rows;
+}
+
+String _pad(int value) => value.toString().padLeft(2, '0');

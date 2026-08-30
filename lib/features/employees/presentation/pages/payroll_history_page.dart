@@ -83,8 +83,9 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
   }
 
   Widget _buildBody(AppLocalizations l10n) {
-    final employees = MockQueries.activeEmployeesForStore(widget.storeId)
-      ..sort((a, b) => employeeDisplayName(a).compareTo(employeeDisplayName(b)));
+    final employees = MockQueries.activeEmployeesForStore(
+      widget.storeId,
+    )..sort((a, b) => employeeDisplayName(a).compareTo(employeeDisplayName(b)));
 
     final settings = MockQueries.storeSettings(widget.storeId);
     final data = MockQueries.payrollDays(
@@ -99,8 +100,9 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
     if (data.page != _page) _page = data.page;
 
     final hasAnyDay = data.paidDays + data.unpaidDays > 0;
-    final selectedEmployee =
-        _employeeId == null ? null : MockQueries.employeeById(_employeeId!);
+    final selectedEmployee = _employeeId == null
+        ? null
+        : MockQueries.employeeById(_employeeId!);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -120,8 +122,7 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
             child: hasAnyDay
                 ? EmptyState.noResults(
                     l10n,
-                    onClearFilters: () =>
-                        setState(() => _statusFilter = null),
+                    onClearFilters: () => setState(() => _statusFilter = null),
                     clearLabel: l10n.inventoryClearFilters,
                   )
                 : EmptyState(
@@ -177,7 +178,7 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
       children: [
         SizedBox(
           width: 240,
-          child: AppDropdown<String>(
+          child: SearchableDropdown<String>(
             label: l10n.payrollFilterEmployee,
             value: _employeeSel,
             options: [
@@ -334,8 +335,7 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
     );
     if (preview.isEmpty) return;
 
-    final rangeLabel =
-        '${Formatters.date(_from)} – ${Formatters.date(_to)}';
+    final rangeLabel = '${Formatters.date(_from)} – ${Formatters.date(_to)}';
 
     final ok = await ConfirmDialog.show(
       context,
@@ -394,9 +394,7 @@ class _DaysTable extends StatelessWidget {
         DataColumn(label: Text(l10n.payrollColumnStatus)),
         DataColumn(label: Text(l10n.payrollColumnPaidAt)),
       ],
-      rows: [
-        for (final a in rows) _row(a),
-      ],
+      rows: [for (final a in rows) _row(a)],
     );
   }
 
@@ -414,12 +412,7 @@ class _DaysTable extends StatelessWidget {
     final overtime = overtimeBy(a, scheduleEnd);
     final amount = employee == null
         ? 0.0
-        : dayAmount(
-            a,
-            employee,
-            settings,
-            scheduledEndMinutes: scheduleEnd,
-          );
+        : dayAmount(a, employee, settings, scheduledEndMinutes: scheduleEnd);
     final paidAt = a.payrollPeriodId == null
         ? null
         : MockQueries.payrollPeriodById(a.payrollPeriodId!)?.paidAt;

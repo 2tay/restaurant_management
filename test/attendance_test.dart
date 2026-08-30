@@ -159,17 +159,27 @@ void main() {
   });
 
   group('attendancesForStore (Historique)', () {
-    test('a period cutoff excludes an older day and keeps a recent one', () {
-      final within3 = MockQueries.attendancesForStore(
+    test('a from bound excludes an older day and keeps a recent one', () {
+      final since3 = MockQueries.attendancesForStore(
         StoreIds.sablon,
-        withinDays: 3,
+        from: DateTime.now().subtract(const Duration(days: 3)),
       );
-      final ids = within3.rows.map((a) => a.id).toSet();
+      final ids = since3.rows.map((a) => a.id).toSet();
       expect(ids.contains(AttendanceIds.camille5), isFalse); // 5 days ago
       expect(ids.contains(AttendanceIds.karim1), isTrue); // yesterday
     });
 
-    test('null withinDays returns every row for the store', () {
+    test('a to bound excludes a more recent day and keeps an older one', () {
+      final until3 = MockQueries.attendancesForStore(
+        StoreIds.sablon,
+        to: DateTime.now().subtract(const Duration(days: 3)),
+      );
+      final ids = until3.rows.map((a) => a.id).toSet();
+      expect(ids.contains(AttendanceIds.karim1), isFalse); // yesterday
+      expect(ids.contains(AttendanceIds.camille5), isTrue); // 5 days ago
+    });
+
+    test('no date bounds returns every row for the store', () {
       final all = MockQueries.attendancesForStore(StoreIds.sablon);
       final expected = mockAttendances
           .where((a) => a.storeId == StoreIds.sablon)
@@ -189,10 +199,10 @@ void main() {
       );
     });
 
-    test('the employee filter matches case- and accent-loosely, partial', () {
+    test('the employee filter narrows to a single employee', () {
       final karim = MockQueries.attendancesForStore(
         StoreIds.sablon,
-        employeeQuery: '  ADDOU ', // part of "Haddouch", upper-cased, padded
+        employeeId: EmployeeIds.karim,
       );
       expect(karim.rows, isNotEmpty);
       expect(
@@ -204,9 +214,9 @@ void main() {
     test('filters combine with AND and rows sort most-recent-first', () {
       final result = MockQueries.attendancesForStore(
         StoreIds.sablon,
-        withinDays: 30,
+        from: DateTime.now().subtract(const Duration(days: 30)),
         status: AttendanceStatus.done,
-        employeeQuery: 'karim',
+        employeeId: EmployeeIds.karim,
       );
       expect(result.rows, isNotEmpty);
       for (final a in result.rows) {
@@ -263,7 +273,7 @@ void main() {
         () {
       final stats = MockQueries.attendanceStatsForStore(
         StoreIds.sablon,
-        withinDays: 2,
+        from: DateTime.now().subtract(const Duration(days: 2)),
       );
       expect(stats.days, greaterThan(0));
       expect(stats.worked, greaterThan(Duration.zero));

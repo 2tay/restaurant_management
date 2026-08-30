@@ -12,20 +12,16 @@ import '../../../../mock_data/mock_data.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 
-/// A rolling window for the period filter — the same shape
-/// `stock_history_page.dart` and the reports pages use, kept local rather
-/// than imported so this feature does not reach sideways into another.
-enum _Period {
-  last7(7),
-  last30(30),
-  last90(90),
-  all(null);
-
-  const _Period(this.days);
-  final int? days;
-}
+/// Sentinel [AppDropdown] value for "every employee".
+const String _kAllEmployees = '__all__';
 
 const int _pageSize = 25;
+
+/// How far back the range picker opens on first load.
+const int _defaultRangeDays = 30;
+
+DateTime _dayOnly(DateTime value) =>
+    DateTime(value.year, value.month, value.day);
 
 /// The filterable attendance log across every employee and day — reached from
 /// the Gestion Employée dropdown, so a `goSection` destination with no back
@@ -40,13 +36,27 @@ class AttendanceHistoryPage extends ConsumerStatefulWidget {
       _AttendanceHistoryPageState();
 }
 
-class _AttendanceHistoryPageState
-    extends ConsumerState<AttendanceHistoryPage> {
-  _Period _period = _Period.last30;
+class _AttendanceHistoryPageState extends ConsumerState<AttendanceHistoryPage> {
+  String _employeeSel = _kAllEmployees;
+  late final DateTime _defaultTo;
+  late final DateTime _defaultFrom;
+  late DateTime _from;
+  late DateTime _to;
   AttendanceStatus? _status;
-  String _employeeQuery = '';
   int _page = 0;
   Attendance? _selected;
+
+  String? get _employeeId =>
+      _employeeSel == _kAllEmployees ? null : _employeeSel;
+
+  @override
+  void initState() {
+    super.initState();
+    _defaultTo = _dayOnly(DateTime.now());
+    _defaultFrom = _defaultTo.subtract(const Duration(days: _defaultRangeDays));
+    _from = _defaultFrom;
+    _to = _defaultTo;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -59,21 +69,27 @@ class _AttendanceHistoryPageState
     return ShellPage(
       title: l10n.attendanceHistoryTitle,
       subtitle: l10n.attendanceHistorySubtitle,
-      scrollable: false,
       child: _buildBody(l10n),
     );
   }
 
   Widget _buildBody(AppLocalizations l10n) {
+    final employees = MockQueries.employeesForStore(
+      widget.storeId,
+    )..sort((a, b) => employeeDisplayName(a).compareTo(employeeDisplayName(b)));
+
     final stats = MockQueries.attendanceStatsForStore(
       widget.storeId,
-      withinDays: _period.days,
+      from: _from,
+      to: _to,
+      employeeId: _employeeId,
     );
     final result = MockQueries.attendancesForStore(
       widget.storeId,
-      withinDays: _period.days,
+      from: _from,
+      to: _to,
       status: _status,
-      employeeQuery: _employeeQuery.trim().isEmpty ? null : _employeeQuery,
+      employeeId: _employeeId,
       page: _page,
       pageSize: _pageSize,
     );
@@ -87,104 +103,122 @@ class _AttendanceHistoryPageState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _StatRow(stats: stats),
-        const SizedBox(height: AppSpacing.lg),
         _Filters(
-          period: _period,
+          employeeSel: _employeeSel,
+          employees: employees,
+          from: _from,
+          to: _to,
           status: _status,
-          employeeQuery: _employeeQuery,
-          onPeriod: (p) => setState(() {
-            _period = p;
+          onEmployee: (v) => setState(() {
+            _employeeSel = v ?? _kAllEmployees;
+            _page = 0;
+          }),
+          onFrom: (d) => setState(() {
+            _from = _dayOnly(d);
+            if (_to.isBefore(_from)) _to = _from;
+            _page = 0;
+          }),
+          onTo: (d) => setState(() {
+            _to = _dayOnly(d);
+            if (_from.isAfter(_to)) _from = _to;
             _page = 0;
           }),
           onStatus: (s) => setState(() {
             _status = s;
             _page = 0;
           }),
-          onEmployee: (q) => setState(() {
-            _employeeQuery = q;
-            _page = 0;
-          }),
         ),
         if (_hasActiveFilters) ...[
           const SizedBox(height: AppSpacing.sm),
           _ActiveFilters(
-            period: _period,
+            l10n: l10n,
+            dateRange: _dateRangeIsDefault
+                ? null
+                : l10n.attendanceFilterDateRange(
+                    Formatters.date(_from),
+                    Formatters.date(_to),
+                  ),
             status: _status,
-            employeeQuery: _employeeQuery,
+            employeeName: _employeeId == null
+                ? null
+                : employeeDisplayName(MockQueries.employeeById(_employeeId!)!),
             onClear: _clearFilters,
-            onRemovePeriod: () => setState(() => _period = _Period.all),
+            onRemoveDateRange: () => setState(() {
+              _from = _defaultFrom;
+              _to = _defaultTo;
+            }),
             onRemoveStatus: () => setState(() => _status = null),
-            onRemoveEmployee: () => setState(() => _employeeQuery = ''),
+            onRemoveEmployee: () =>
+                setState(() => _employeeSel = _kAllEmployees),
           ),
         ],
+        const SizedBox(height: AppSpacing.lg),
+        _StatRow(stats: stats),
         const SizedBox(height: AppSpacing.md),
         Text(
           l10n.attendanceHistoryCount(result.totalCount),
           style: Theme.of(context).textTheme.bodySmall,
         ),
         const SizedBox(height: AppSpacing.md),
-        Expanded(
-          child: result.rows.isEmpty
-              ? _emptyState(l10n, storeEmpty)
-              : Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+        if (result.rows.isEmpty)
+          ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 360),
+            child: _emptyState(l10n, storeEmpty),
+          )
+        else
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
                   children: [
-                    Expanded(
-                      child: Column(
-                        children: [
-                          Expanded(
-                            child: SingleChildScrollView(
-                              child: _HistoryTable(
-                                rows: result.rows,
-                                settings: settings,
-                                selected: _selected,
-                                onSelect: (a) =>
-                                    setState(() => _selected = a),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: AppSpacing.sm),
-                          Paginator(
-                            page: result.page,
-                            pageCount: result.pageCount,
-                            totalCount: result.totalCount,
-                            pageSize: _pageSize,
-                            onChanged: (p) => setState(() {
-                              _page = p;
-                              _selected = null;
-                            }),
-                          ),
-                        ],
-                      ),
+                    _HistoryTable(
+                      rows: result.rows,
+                      settings: settings,
+                      selected: _selected,
+                      onSelect: (a) => setState(() => _selected = a),
                     ),
-                    if (_selected != null) ...[
-                      const SizedBox(width: AppSpacing.lg),
-                      SizedBox(
-                        width: 320,
-                        child: _DetailPanel(
-                          attendance: _selected!,
-                          settings: settings,
-                          onClose: () => setState(() => _selected = null),
-                        ),
-                      ),
-                    ],
+                    const SizedBox(height: AppSpacing.sm),
+                    Paginator(
+                      page: result.page,
+                      pageCount: result.pageCount,
+                      totalCount: result.totalCount,
+                      pageSize: _pageSize,
+                      onChanged: (p) => setState(() {
+                        _page = p;
+                        _selected = null;
+                      }),
+                    ),
                   ],
                 ),
-        ),
+              ),
+              if (_selected != null) ...[
+                const SizedBox(width: AppSpacing.lg),
+                SizedBox(
+                  width: 320,
+                  child: _DetailPanel(
+                    attendance: _selected!,
+                    settings: settings,
+                    onClose: () => setState(() => _selected = null),
+                  ),
+                ),
+              ],
+            ],
+          ),
       ],
     );
   }
 
+  bool get _dateRangeIsDefault => _from == _defaultFrom && _to == _defaultTo;
+
   bool get _hasActiveFilters =>
-      _period != _Period.all ||
-      _status != null ||
-      _employeeQuery.trim().isNotEmpty;
+      !_dateRangeIsDefault || _status != null || _employeeId != null;
 
   void _clearFilters() => setState(() {
-    _period = _Period.all;
+    _from = _defaultFrom;
+    _to = _defaultTo;
     _status = null;
-    _employeeQuery = '';
+    _employeeSel = _kAllEmployees;
     _page = 0;
   });
 
@@ -200,13 +234,6 @@ class _AttendanceHistoryPageState
     onAction: storeEmpty ? null : _clearFilters,
   );
 }
-
-String _periodLabel(AppLocalizations l10n, _Period period) => switch (period) {
-  _Period.last7 => l10n.periodLast7Days,
-  _Period.last30 => l10n.periodLast30Days,
-  _Period.last90 => l10n.periodLast90Days,
-  _Period.all => l10n.periodAll,
-};
 
 // -----------------------------------------------------------------------------
 
@@ -267,108 +294,160 @@ class _StatRow extends StatelessWidget {
 
 class _Filters extends StatelessWidget {
   const _Filters({
-    required this.period,
+    required this.employeeSel,
+    required this.employees,
+    required this.from,
+    required this.to,
     required this.status,
-    required this.employeeQuery,
-    required this.onPeriod,
-    required this.onStatus,
     required this.onEmployee,
+    required this.onFrom,
+    required this.onTo,
+    required this.onStatus,
   });
 
-  final _Period period;
+  final String employeeSel;
+  final List<Employee> employees;
+  final DateTime from;
+  final DateTime to;
   final AttendanceStatus? status;
-  final String employeeQuery;
-  final ValueChanged<_Period> onPeriod;
+  final ValueChanged<String?> onEmployee;
+  final ValueChanged<DateTime> onFrom;
+  final ValueChanged<DateTime> onTo;
   final ValueChanged<AttendanceStatus?> onStatus;
-  final ValueChanged<String> onEmployee;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final today = _dayOnly(DateTime.now());
+    final floor = DateTime(2000);
 
     return Wrap(
-      spacing: AppSpacing.sm,
-      runSpacing: AppSpacing.sm,
-      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: AppSpacing.lg,
+      runSpacing: AppSpacing.md,
+      crossAxisAlignment: WrapCrossAlignment.end,
       children: [
         SizedBox(
-          width: 260,
-          child: SearchField(
-            hint: l10n.employeesSearchHint,
-            initialValue: employeeQuery,
+          width: 240,
+          child: SearchableDropdown<String>(
+            label: l10n.attendanceFilterEmployee,
+            value: employeeSel,
+            options: [
+              DropdownOption(
+                value: _kAllEmployees,
+                label: l10n.attendanceFilterAllEmployees,
+              ),
+              for (final e in employees)
+                DropdownOption(value: e.id, label: employeeDisplayName(e)),
+            ],
             onChanged: onEmployee,
           ),
         ),
-        FilterMenu<_Period>(
-          label: l10n.movementsFilterPeriod,
-          selectedLabel: _periodLabel(l10n, period),
-          entries: {
-            for (final p in _Period.values) p: _periodLabel(l10n, p),
-          },
-          onSelected: onPeriod,
+        _Labelled(
+          label: l10n.attendanceFilterFrom,
+          child: SizedBox(
+            width: 165,
+            child: DateField(
+              value: from,
+              compact: true,
+              firstDate: floor,
+              lastDate: to,
+              onChanged: onFrom,
+            ),
+          ),
         ),
-        FilterMenu<AttendanceStatus?>(
+        _Labelled(
+          label: l10n.attendanceFilterTo,
+          child: SizedBox(
+            width: 165,
+            child: DateField(
+              value: to,
+              compact: true,
+              firstDate: from,
+              lastDate: today,
+              onChanged: onTo,
+            ),
+          ),
+        ),
+        _Labelled(
           label: l10n.ordersFilterStatus,
-          selectedLabel: status == null
-              ? null
-              : attendanceStatusLabel(l10n, status!),
-          entries: {
-            null: l10n.ordersFilterAllStatuses,
-            for (final s in const [
-              AttendanceStatus.working,
-              AttendanceStatus.onBreak,
-              AttendanceStatus.done,
-            ])
-              s: attendanceStatusLabel(l10n, s),
-          },
-          onSelected: onStatus,
+          child: FilterMenu<AttendanceStatus?>(
+            label: l10n.ordersFilterStatus,
+            selectedLabel: status == null
+                ? null
+                : attendanceStatusLabel(l10n, status!),
+            entries: {
+              null: l10n.ordersFilterAllStatuses,
+              for (final s in const [
+                AttendanceStatus.working,
+                AttendanceStatus.onBreak,
+                AttendanceStatus.done,
+              ])
+                s: attendanceStatusLabel(l10n, s),
+            },
+            onSelected: onStatus,
+          ),
         ),
       ],
     );
   }
 }
 
+class _Labelled extends StatelessWidget {
+  const _Labelled({required this.label, required this.child});
+
+  final String label;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Text(label, style: Theme.of(context).textTheme.labelMedium),
+      const SizedBox(height: AppSpacing.sm),
+      child,
+    ],
+  );
+}
+
 class _ActiveFilters extends StatelessWidget {
   const _ActiveFilters({
-    required this.period,
+    required this.l10n,
+    required this.dateRange,
     required this.status,
-    required this.employeeQuery,
+    required this.employeeName,
     required this.onClear,
-    required this.onRemovePeriod,
+    required this.onRemoveDateRange,
     required this.onRemoveStatus,
     required this.onRemoveEmployee,
   });
 
-  final _Period period;
+  final AppLocalizations l10n;
+  final String? dateRange;
   final AttendanceStatus? status;
-  final String employeeQuery;
+  final String? employeeName;
   final VoidCallback onClear;
-  final VoidCallback onRemovePeriod;
+  final VoidCallback onRemoveDateRange;
   final VoidCallback onRemoveStatus;
   final VoidCallback onRemoveEmployee;
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-
     return Wrap(
       spacing: AppSpacing.xs,
       runSpacing: AppSpacing.xs,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        if (period != _Period.all)
-          _Chip(label: _periodLabel(l10n, period), onRemove: onRemovePeriod),
+        if (employeeName != null)
+          _Chip(label: employeeName!, onRemove: onRemoveEmployee),
+        if (dateRange != null)
+          _Chip(label: dateRange!, onRemove: onRemoveDateRange),
         if (status != null)
           _Chip(
             label: attendanceStatusLabel(l10n, status!),
             onRemove: onRemoveStatus,
           ),
-        if (employeeQuery.trim().isNotEmpty)
-          _Chip(label: employeeQuery.trim(), onRemove: onRemoveEmployee),
-        TextButton(
-          onPressed: onClear,
-          child: Text(l10n.inventoryClearFilters),
-        ),
+        TextButton(onPressed: onClear, child: Text(l10n.inventoryClearFilters)),
       ],
     );
   }
@@ -430,16 +509,17 @@ class _HistoryTable extends StatelessWidget {
         DataColumn(label: Text(l10n.attendanceColumnFlags)),
         DataColumn(label: Text(l10n.attendanceColumnActions)),
       ],
-      rows: [
-        for (final a in rows) _row(context, l10n, a),
-      ],
+      rows: [for (final a in rows) _row(context, l10n, a)],
     );
   }
 
   DataRow _row(BuildContext context, AppLocalizations l10n, Attendance a) {
     final employee = MockQueries.employeeById(a.employeeId);
     final schedule = employee == null
-        ? (startMinutes: settings.openMinutes, endMinutes: settings.closeMinutes)
+        ? (
+            startMinutes: settings.openMinutes,
+            endMinutes: settings.closeMinutes,
+          )
         : resolvedSchedule(
             employee,
             storeOpenMinutes: settings.openMinutes,
@@ -454,17 +534,11 @@ class _HistoryTable extends StatelessWidget {
       selected: a.id == selected?.id,
       cells: [
         DataCell(Text(Formatters.date(a.date))),
-        DataCell(
-          Text(
-            employee == null ? '—' : employeeDisplayName(employee),
-          ),
-        ),
+        DataCell(Text(employee == null ? '—' : employeeDisplayName(employee))),
         DataCell(Text(_time(a.clockInAt))),
         DataCell(Text(_time(a.clockOutAt))),
         DataCell(Text('${a.pauses.length}')),
-        DataCell(
-          Text(worked == null ? '—' : Formatters.duration(worked)),
-        ),
+        DataCell(Text(worked == null ? '—' : Formatters.duration(worked))),
         DataCell(
           Text(
             overtime == null || overtime == Duration.zero
@@ -535,89 +609,87 @@ class _DetailPanel extends StatelessWidget {
     final worked = workedDuration(attendance);
 
     return AppCard(
-      child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  l10n.attendanceDetailTitle,
+                  style: theme.textTheme.titleSmall,
+                ),
+              ),
+              IconButton(
+                tooltip: l10n.actionClose,
+                icon: const Icon(LucideIcons.x, size: AppSizing.iconSm),
+                onPressed: onClose,
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          if (employee != null) ...[
             Row(
               children: [
+                EmployeeAvatar(employee: employee),
+                const SizedBox(width: AppSpacing.md),
                 Expanded(
-                  child: Text(
-                    l10n.attendanceDetailTitle,
-                    style: theme.textTheme.titleSmall,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        employeeDisplayName(employee),
+                        style: theme.textTheme.titleSmall,
+                      ),
+                      Text(
+                        l10n.employeeCinLabel(employee.cin),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-                IconButton(
-                  tooltip: l10n.actionClose,
-                  icon: const Icon(LucideIcons.x, size: AppSizing.iconSm),
-                  onPressed: onClose,
                 ),
               ],
             ),
-            const SizedBox(height: AppSpacing.sm),
-            if (employee != null) ...[
-              Row(
-                children: [
-                  EmployeeAvatar(employee: employee),
-                  const SizedBox(width: AppSpacing.md),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          employeeDisplayName(employee),
-                          style: theme.textTheme.titleSmall,
-                        ),
-                        Text(
-                          l10n.employeeCinLabel(employee.cin),
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.lg),
-            ],
-            _Field(
-              label: l10n.attendanceColumnDate,
-              value: Formatters.date(attendance.date),
-            ),
-            _Field(
-              label: l10n.attendanceColumnStatus,
-              value: attendanceStatusLabel(l10n, attendance.status),
-            ),
-            _Field(
-              label: l10n.attendanceColumnArrival,
-              value: _time(attendance.clockInAt),
-            ),
-            _Field(
-              label: l10n.attendanceColumnDeparture,
-              value: _time(attendance.clockOutAt),
-            ),
-            _Field(
-              label: l10n.attendanceColumnWorked,
-              value: worked == null ? '—' : Formatters.duration(worked),
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              l10n.attendanceDetailBreaks(attendance.pauses.length),
-              style: theme.textTheme.bodyMedium,
-            ),
-            for (final pause in attendance.pauses)
-              Padding(
-                padding: const EdgeInsets.only(top: AppSpacing.xs),
-                child: _BreakLine(
-                  pause: pause,
-                  over:
-                      breakOverrun(pause, settings.maxBreakMinutes) >
-                      Duration.zero,
-                ),
-              ),
+            const SizedBox(height: AppSpacing.lg),
           ],
-        ),
+          _Field(
+            label: l10n.attendanceColumnDate,
+            value: Formatters.date(attendance.date),
+          ),
+          _Field(
+            label: l10n.attendanceColumnStatus,
+            value: attendanceStatusLabel(l10n, attendance.status),
+          ),
+          _Field(
+            label: l10n.attendanceColumnArrival,
+            value: _time(attendance.clockInAt),
+          ),
+          _Field(
+            label: l10n.attendanceColumnDeparture,
+            value: _time(attendance.clockOutAt),
+          ),
+          _Field(
+            label: l10n.attendanceColumnWorked,
+            value: worked == null ? '—' : Formatters.duration(worked),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            l10n.attendanceDetailBreaks(attendance.pauses.length),
+            style: theme.textTheme.bodyMedium,
+          ),
+          for (final pause in attendance.pauses)
+            Padding(
+              padding: const EdgeInsets.only(top: AppSpacing.xs),
+              child: _BreakLine(
+                pause: pause,
+                over:
+                    breakOverrun(pause, settings.maxBreakMinutes) >
+                    Duration.zero,
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -645,9 +717,7 @@ class _BreakLine extends StatelessWidget {
         Icon(
           over ? LucideIcons.triangleAlert : LucideIcons.coffee,
           size: AppSizing.iconSm,
-          color: over
-              ? AppColors.lowStock.foreground
-              : AppColors.textSecondary,
+          color: over ? AppColors.lowStock.foreground : AppColors.textSecondary,
         ),
         const SizedBox(width: AppSpacing.xs),
         Text(

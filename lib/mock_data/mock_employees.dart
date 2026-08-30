@@ -11,6 +11,10 @@ abstract final class EmployeeIds {
   static const String noah = 'employee-noah';
   static const String julien = 'employee-julien';
   static const String camille = 'employee-camille';
+
+  // TestCalcul — the payroll walkthrough store.
+  static const String ayoub = 'employee-ayoub';
+  static const String hakim = 'employee-hakim';
 }
 
 /// Names are plausible-but-invented, same reasoning as `mockSuppliers`.
@@ -147,5 +151,43 @@ final List<Employee> mockEmployees = [
     pay: 13.5,
     createdAt: monthsAgo(10),
     archivedAt: daysAgo(20),
+  ),
+
+  // ---------------------------------------------------------------------------
+  // TestCalcul — two people set up for hand-checking the salaire maths.
+  // Hired 1 June 2026, before the 1 Jul – 1 Aug attendance range, so no day is
+  // clipped by the hire-date floor.
+  // ---------------------------------------------------------------------------
+  Employee(
+    id: EmployeeIds.ayoub,
+    storeId: StoreIds.testCalcul,
+    firstName: 'Ayoub',
+    lastName: 'Ait Taleb',
+    cin: 'AB.12.34-567.01',
+    phone: '+32 470 00 00 01',
+    email: 'ayoub.aittaleb@testcalcul.be',
+    hireDate: DateTime(2026, 6, 1),
+    role: EmployeeRole.staff,
+    contractType: ContractType.fixed,
+    pay: 2000,
+    // No personal schedule — inherits the store's 08:00–22:00 day.
+    createdAt: DateTime(2026, 6, 1),
+  ),
+  Employee(
+    id: EmployeeIds.hakim,
+    storeId: StoreIds.testCalcul,
+    firstName: 'Hakim',
+    lastName: 'Toutay',
+    cin: 'CD.56.78-901.02',
+    phone: '+32 470 00 00 02',
+    email: 'hakim.toutay@testcalcul.be',
+    hireDate: DateTime(2026, 6, 1),
+    role: EmployeeRole.staff,
+    contractType: ContractType.extra,
+    pay: 15,
+    // Extra: own hours, 10:00 → 20:00.
+    scheduledStartMinutes: 10 * 60,
+    scheduledEndMinutes: 20 * 60,
+    createdAt: DateTime(2026, 6, 1),
   ),
 ];

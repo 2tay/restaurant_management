@@ -42,7 +42,6 @@ class _EmployeesListPageState extends ConsumerState<EmployeesListPage> {
     return ShellPage(
       title: l10n.employeesTitle,
       subtitle: l10n.employeesSubtitle,
-      scrollable: false,
       actions: [
         PrimaryButton(
           label: l10n.employeesAdd,
@@ -72,36 +71,37 @@ class _EmployeesListPageState extends ConsumerState<EmployeesListPage> {
             ],
           ),
           const SizedBox(height: AppSpacing.md),
-          Expanded(
-            child: filtered.isEmpty
-                ? (all.isEmpty
-                      ? EmptyState(
-                          icon: LucideIcons.idCard,
-                          title: l10n.employeesEmpty,
-                          message: l10n.employeesEmptyBody,
-                          actionLabel: l10n.employeesAdd,
-                          actionIcon: LucideIcons.userPlus,
-                          onAction: () => context.pushScreen(
-                            Routes.toAddEmployee(widget.storeId),
-                          ),
-                        )
-                      : EmptyState.noResults(
-                          l10n,
-                          onClearFilters: () => setState(() {
-                            _query = '';
-                            _showArchived = false;
-                          }),
-                        ))
-                : ListView.separated(
-                    itemCount: filtered.length,
-                    separatorBuilder: (_, _) =>
-                        const SizedBox(height: AppSpacing.sm),
-                    itemBuilder: (context, index) => _EmployeeRow(
-                      employee: filtered[index],
-                      storeId: widget.storeId,
+          if (filtered.isEmpty)
+            ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: 360),
+              child: all.isEmpty
+                  ? EmptyState(
+                      icon: LucideIcons.idCard,
+                      title: l10n.employeesEmpty,
+                      message: l10n.employeesEmptyBody,
+                      actionLabel: l10n.employeesAdd,
+                      actionIcon: LucideIcons.userPlus,
+                      onAction: () => context.pushScreen(
+                        Routes.toAddEmployee(widget.storeId),
+                      ),
+                    )
+                  : EmptyState.noResults(
+                      l10n,
+                      onClearFilters: () => setState(() {
+                        _query = '';
+                        _showArchived = false;
+                      }),
                     ),
-                  ),
-          ),
+            )
+          else
+            for (final employee in filtered)
+              Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                child: _EmployeeRow(
+                  employee: employee,
+                  storeId: widget.storeId,
+                ),
+              ),
         ],
       ),
     );
@@ -136,8 +136,7 @@ class _KpiRow extends StatelessWidget {
     final extra = active.length - fixed;
     final managers = active
         .where(
-          (e) =>
-              e.role == EmployeeRole.manager || e.role == EmployeeRole.owner,
+          (e) => e.role == EmployeeRole.manager || e.role == EmployeeRole.owner,
         )
         .length;
     final now = DateTime.now();

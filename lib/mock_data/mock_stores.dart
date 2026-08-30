@@ -14,6 +14,11 @@ abstract final class StoreIds {
   /// Brand new, zero items. Exists so every empty state can be demoed for real
   /// instead of being described.
   static const String saintGilles = 'store-saint-gilles';
+
+  /// A scratch store for hand-checking the pointage / payroll arithmetic — two
+  /// people, a full month of attendance over a fixed calendar range, half of it
+  /// already paid. Carries no stock: it exists only for the salaire walkthrough.
+  static const String testCalcul = 'store-test-calcul';
 }
 
 final List<Store> mockStores = [
@@ -43,5 +48,14 @@ final List<Store> mockStores = [
     city: 'Bruxelles',
     phone: '+32 2 538 11 22',
     createdAt: daysAgo(6),
+  ),
+  Store(
+    id: StoreIds.testCalcul,
+    name: 'TestCalcul',
+    addressLine: 'Rue des Vérifications 1',
+    postalCode: '1000',
+    city: 'Bruxelles',
+    phone: '+32 2 000 00 00',
+    createdAt: DateTime(2026, 6, 1),
   ),
 ];
