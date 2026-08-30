@@ -678,6 +678,46 @@ The ~8 places reading `mockStockMovements.first` become
 `ORDER BY occurredAt DESC, id DESC` matters.
 `stock_cost_test.dart` (23) does not change at all.
 
+### As built
+
+Stage 5 is done. `test/inventory_test.dart` is deleted and `test/db/inventory_test.dart`
+(28) stands in its place. The repository itself landed in stage 4, for the reason recorded
+there; this stage is the coverage.
+
+**1. The concurrency test has teeth, and that was checked rather than assumed.** *"two
+stock-outs landing at once both take effect"* fires two `recordStockOut` futures at one
+article with `Future.wait`, which is what a double-tapped button produces. It passed first
+try — which proves nothing on its own, since a test can pass because the code is right or
+because the test cannot tell. So the read of the quantity was moved back outside the
+transaction, the way Phase 1 would have written it, and the test failed with 16 where 13 was
+expected: the second stock-out had applied to a quantity the first had already changed, and
+one of the two had silently vanished. Then reverted.
+
+That is the failure the plan predicted, reproduced on demand, and it is now guarded.
+
+**2. A behaviour change: a movement for an article that does not exist now throws.** Phase 1
+filed it anyway with no cost figures, because a list cannot refuse. There is a foreign key
+now, so the alternative was a constraint violation surfacing three frames down inside drift;
+the repository reads the article first and throws a `StateError` that says what happened. A
+test pins it.
+
+**3. One test improved rather than ported verbatim.** *"an article with no supplier
+contributes nothing rather than a guess"* took its `before` reading **after** creating the
+article, which made the assertion very nearly a tautology. It reads before now, so it
+actually asserts that 50 kg of unknown cost adds nothing to the valuation — which is what the
+test was always trying to say.
+
+**Carried into stage 6:** `inventory_test.dart` had one test this port could not take,
+*"receiving a delivery uses the same recorder"*, because it goes through `confirmReceipt`. It
+is the test that pins the single most important structural fact about receiving — that the
+receipt path differs from the manual one only in carrying an `orderId` and a `receiptId`,
+which is the entire point of having one log. **Stage 6 must add it back to
+`test/db/inventory_test.dart`.** It is listed again in that stage's section so it cannot go
+missing between here and there.
+
+**Verified at the stage boundary:** `flutter analyze` clean; `flutter test` 471/471 green
+(480 before, minus 37 deleted, plus 28 new); `python tool/ux_audit.py` clean.
+
 ---
 
 ## Stage 6 — The order repository *(L — the hardest stage)*
@@ -714,6 +754,12 @@ Two smaller fixes that belong here:
   the same second cannot take the same number.
 - `confirmReceipt` does `MockQueries.orderById(orderId)!` — a bare non-null assertion.
   With a real DB an order can genuinely be gone; return a typed failure instead.
+
+**Carried over from stage 5:** re-add *"receiving a delivery uses the same recorder"* to
+`test/db/inventory_test.dart`. It could not port with the rest because it goes through
+`confirmReceipt`, and it is the test that pins the single most important structural fact
+about receiving — the receipt path differs from the manual one only in carrying an `orderId`
+and a `receiptId`, which is the entire point of having one log.
 
 **Tests ported:** `orders_test.dart` (36) — the specification. Same names, same three-ways
 assertion that sending moves no stock. Plus the new rollback test above.
