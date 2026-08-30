@@ -7,6 +7,7 @@ import '../../../../app/routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/credential_status.dart';
+import '../../../../core/utils/permissions.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../mock_data/mock_data.dart';
 import '../../../../shared/widgets/widgets.dart';
@@ -162,8 +163,15 @@ class _LoginPageState extends State<LoginPage> {
 
     switch (attempt.outcome) {
       case LoginOutcome.success:
-        MockSession.signIn(attempt.employee!);
-        context.goSection(Routes.stores);
+        final employee = attempt.employee!;
+        MockSession.signIn(employee);
+        // The owner picks a store from the grid; a manager goes straight to
+        // the store they belong to.
+        context.goSection(
+          can(employee.role, Capability.spanAllStores)
+              ? Routes.stores
+              : Routes.toDashboard(employee.storeId),
+        );
       case LoginOutcome.unknownCin:
       case LoginOutcome.wrongPin:
         setState(() => _error = l10n.loginErrorBadCredentials);

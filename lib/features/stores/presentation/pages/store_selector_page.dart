@@ -28,6 +28,11 @@ class StoreSelectorPage extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
 
+    // The owner sees every store; a manager or staff member only their own.
+    // They never actually reach this screen — the guard sends them home — so
+    // this filter is just the belt to that pair of braces.
+    final stores = visibleStores(mockCurrentEmployee, mockStores);
+
     return Scaffold(
       body: SafeArea(
         child: Center(
@@ -87,9 +92,9 @@ class StoreSelectorPage extends ConsumerWidget {
                       // card clipping.
                       mainAxisExtent: 320,
                     ),
-                    itemCount: mockStores.length,
+                    itemCount: stores.length,
                     itemBuilder: (context, index) {
-                      final store = mockStores[index];
+                      final store = stores[index];
                       return StoreCard(
                         store: store,
                         onTap: () =>

@@ -11,6 +11,7 @@ import 'package:stock_inventory/app/routes.dart';
 import 'package:stock_inventory/core/utils/permissions.dart';
 import 'package:stock_inventory/mock_data/mock_data.dart';
 import 'package:stock_inventory/models/models.dart';
+import 'package:stock_inventory/shared/widgets/widgets.dart';
 
 import 'support/mock_reset.dart';
 
@@ -43,9 +44,31 @@ void main() {
         Capability.managePayroll,
         Capability.editStoreSettings,
         Capability.createStore,
+        Capability.spanAllStores,
       ]) {
         expect(can(EmployeeRole.manager, capability), isFalse, reason: '$capability');
       }
+    });
+
+    test('canAccessStore: owner spans, others are bound to their store', () {
+      final owner = MockQueries.employeeById(EmployeeIds.marc)!;
+      final manager = MockQueries.employeeById(EmployeeIds.amelie)!;
+
+      expect(canAccessStore(owner, StoreIds.sablon), isTrue);
+      expect(canAccessStore(owner, StoreIds.liege), isTrue);
+      expect(canAccessStore(manager, manager.storeId), isTrue);
+      expect(canAccessStore(manager, StoreIds.liege), isFalse);
+    });
+
+    test('visibleStores: everything for the owner, one store otherwise', () {
+      final owner = MockQueries.employeeById(EmployeeIds.marc)!;
+      final manager = MockQueries.employeeById(EmployeeIds.amelie)!;
+
+      expect(visibleStores(owner, mockStores).length, mockStores.length);
+      expect(
+        visibleStores(manager, mockStores).map((s) => s.id),
+        [manager.storeId],
+      );
     });
 
     test('staff hold nothing', () {
@@ -108,7 +131,75 @@ void main() {
       appRouter.go(Routes.addStore);
       await tester.pumpAndSettle();
 
-      expect(appRouter.state.uri.path, Routes.stores);
+      // Sent home — a manager's home is their own store's dashboard.
+      expect(appRouter.state.uri.path, Routes.toDashboard(_store));
+    });
+  });
+
+  group('store scoping', () {
+    testWidgets('a manager cannot reach another store, and is sent home', (
+      tester,
+    ) async {
+      MockSession.signIn(MockQueries.employeeById(EmployeeIds.amelie)!);
+      await _pump(tester);
+
+      for (final foreign in [
+        Routes.toDashboard(StoreIds.liege),
+        Routes.toTimeclock(StoreIds.liege),
+        Routes.toInventory(StoreIds.liege),
+      ]) {
+        appRouter.go(foreign);
+        await tester.pumpAndSettle();
+        expect(
+          appRouter.state.uri.path,
+          Routes.toDashboard(_store),
+          reason: foreign,
+        );
+      }
+    });
+
+    testWidgets('a manager lands on the store grid → sent to their store', (
+      tester,
+    ) async {
+      MockSession.signIn(MockQueries.employeeById(EmployeeIds.amelie)!);
+      await _pump(tester);
+
+      appRouter.go(Routes.stores);
+      await tester.pumpAndSettle();
+
+      expect(appRouter.state.uri.path, Routes.toDashboard(_store));
+    });
+
+    testWidgets('the owner reaches any store and the grid', (tester) async {
+      MockSession.resetToDefault(); // owner
+      await _pump(tester);
+
+      for (final anywhere in [
+        Routes.toDashboard(StoreIds.liege),
+        Routes.toInventory(StoreIds.liege),
+        Routes.stores,
+      ]) {
+        appRouter.go(anywhere);
+        await tester.pumpAndSettle();
+        expect(appRouter.state.uri.path, anywhere, reason: anywhere);
+      }
+    });
+
+    testWidgets('a manager who signs in lands on their store dashboard', (
+      tester,
+    ) async {
+      MockSession.signOut();
+      await _pump(tester);
+
+      await tester.enterText(
+        find.byType(TextField).at(0),
+        '89.07.30-201.44', // Amélie's CIN
+      );
+      await tester.enterText(find.byType(TextField).at(1), '1234');
+      await tester.tap(find.widgetWithText(PrimaryButton, 'Se connecter'));
+      await tester.pumpAndSettle();
+
+      expect(appRouter.state.uri.path, Routes.toDashboard(_store));
     });
   });
 

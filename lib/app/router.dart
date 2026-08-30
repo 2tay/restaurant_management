@@ -101,9 +101,10 @@ Capability? _capabilityFor(String location) {
 ///
 /// - no session → every route but [_authRoutes] redirects to the login
 /// - a `staff` session (which the app never actually issues) → back to login
-/// - a session on an auth screen → into the app
-/// - a store-scoped section the role cannot hold → back to that store's
-///   dashboard (or the store selector)
+/// - a session on an auth screen → home (the grid for the owner, their store
+///   dashboard for a manager)
+/// - a store the user does not belong to, or a section the role cannot hold
+///   → home
 String? _guard(BuildContext context, GoRouterState state) {
   final location = state.matchedLocation;
 
@@ -111,17 +112,32 @@ String? _guard(BuildContext context, GoRouterState state) {
     return _authRoutes.contains(location) ? null : Routes.login;
   }
 
-  if (mockCurrentEmployee.role == EmployeeRole.staff) {
+  final employee = mockCurrentEmployee;
+
+  // Staff have no active app access — they should never hold a session.
+  if (employee.role == EmployeeRole.staff) {
     return location == Routes.login ? null : Routes.login;
   }
 
-  if (_authRoutes.contains(location)) return Routes.stores;
+  final spansStores = can(employee.role, Capability.spanAllStores);
 
+  // Where a signed-in user lands when they have no valid store target: the
+  // owner picks from the grid, everyone else goes straight to their store.
+  final home = spansStores
+      ? Routes.stores
+      : Routes.toDashboard(employee.storeId);
+
+  // On an auth screen, or on the store grid without the right to span stores.
+  if (_authRoutes.contains(location)) return home;
+  if (location == Routes.stores && !spansStores) return home;
+
+  // A store-scoped route for a store this user does not belong to.
+  final storeId = state.pathParameters['storeId'];
+  if (storeId != null && !canAccessStore(employee, storeId)) return home;
+
+  // A section the role cannot hold.
   final needed = _capabilityFor(location);
-  if (needed != null && !can(mockCurrentEmployee.role, needed)) {
-    final storeId = state.pathParameters['storeId'];
-    return storeId == null ? Routes.stores : Routes.toDashboard(storeId);
-  }
+  if (needed != null && !can(employee.role, needed)) return home;
 
   return null;
 }

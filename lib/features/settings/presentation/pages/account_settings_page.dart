@@ -6,6 +6,7 @@ import '../../../../app/navigation.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/employee_status.dart';
+import '../../../../core/utils/permissions.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../mock_data/mock_data.dart';
 import '../../../../shared/widgets/widgets.dart';
@@ -21,6 +22,7 @@ class AccountSettingsPage extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final user = mockCurrentEmployee;
+    final stores = visibleStores(user, mockStores);
 
     return ShellPage(
       tabs: SectionTabs(
@@ -124,13 +126,13 @@ class AccountSettingsPage extends StatelessWidget {
 
             SectionHeader(
               title: l10n.accountLinkedStores,
-              count: mockStores.length,
+              count: stores.length,
             ),
             AppCard(
               padding: EdgeInsets.zero,
               child: Column(
                 children: [
-                  for (final store in mockStores)
+                  for (final store in stores)
                     ListTile(
                       leading: const Icon(LucideIcons.store),
                       title: Text(store.name),

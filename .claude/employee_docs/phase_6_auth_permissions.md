@@ -42,17 +42,38 @@ d'échecs n'ont rien à voir. Barrel `models.dart`.
 enum Capability {
   manageEmployees, viewTimeclock, viewAttendanceHistory,
   managePayroll, editStoreSettings, createStore,
+  spanAllStores,          // voit / opère dans TOUS les magasins
 }
-bool can(EmployeeRole role, Capability c);
+
+// Table statique — pas de donnée par personne.
+const Map<EmployeeRole, Set<Capability>> _grants = { owner: {…tout}, manager: {viewTimeclock, viewAttendanceHistory}, staff: {} };
+bool can(EmployeeRole role, Capability c) => _grants[role]!.contains(c);
+
+bool canAccessStore(Employee e, String storeId);     // owner OU e.storeId == storeId
+List<Store> visibleStores(Employee e, List<Store> all);
 ```
 
 | Rôle | Capacités |
 |---|---|
-| **owner** | toutes |
+| **owner** | toutes (dont `spanAllStores`) |
 | **manager** | `viewTimeclock`, `viewAttendanceHistory` |
 | **staff** | aucune (et ne peut pas se connecter) |
 
 Fonction pure — les call sites passent `mockCurrentEmployee.role`.
+
+### Scoping magasin
+
+App **mono-client** (pas de SaaS, pas d'`Account`). Un employé appartient à **un** magasin
+(`Employee.storeId`, là où il est créé). Règle : **le propriétaire accède à tous les
+magasins ; le gérant et le staff sont liés à leur `storeId`.**
+
+- `_guard` : une route `/store/:id/…` dont `id ≠ storeId` de l'employé (et non-owner) →
+  renvoyé chez lui. `/stores` (la grille) → réservée au propriétaire.
+- `LoginPage` : le propriétaire va sur la grille `/stores`, un gérant va directement sur
+  `toDashboard(storeId)`.
+- `StoreSwitcher` : propriétaire = menu complet ; gérant/staff = simple libellé du magasin,
+  non cliquable (`_StoreLabel`).
+- `StoreSelectorPage` et « Établissements liés » (compte) : filtrés par `visibleStores`.
 
 ---
 
@@ -96,12 +117,14 @@ Aucun call site à renommer.
 
 ## 4. Garde de routage — `lib/app/router.dart`
 
-`redirect: _guard` :
+`redirect: _guard` — `home` = `/stores` pour le propriétaire, `toDashboard(storeId)` sinon :
 
 1. pas de session → tout sauf `{login, forgotPassword, onboarding}` renvoie vers `/login` ;
 2. session `staff` (jamais émise par l'app) → `/login` ;
-3. session sur une route d'auth → `/stores` ;
-4. capacité manquante pour la section (`_capabilityFor`) → dashboard du magasin (ou `/stores`).
+3. session sur une route d'auth → `home` ;
+4. `/stores` sans `spanAllStores` → `home` ;
+5. route `/store/:id/…` où l'employé n'a pas accès au magasin (`canAccessStore`) → `home` ;
+6. capacité manquante pour la section (`_capabilityFor`) → `home`.
 
 `_capabilityFor` : `/employees/timeclock`→`viewTimeclock`,
 `/employees/attendance-history`→`viewAttendanceHistory`, `/employees/payroll`→`managePayroll`,

@@ -5,6 +5,7 @@ import '../../app/routes.dart';
 import '../../app/navigation.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../core/utils/permissions.dart';
 import '../../l10n/app_localizations.dart';
 import '../../mock_data/mock_data.dart';
 import '../../models/models.dart';
@@ -23,6 +24,12 @@ class StoreSwitcher extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+
+    // Only the owner spans stores. A manager or staff member belongs to one
+    // store, so the switcher shows their store's name with no menu to open.
+    if (!can(mockCurrentEmployee.role, Capability.spanAllStores)) {
+      return _StoreLabel(name: currentStore.name);
+    }
 
     return PopupMenuButton<String>(
       tooltip: l10n.storeSwitcherChange,
@@ -115,4 +122,46 @@ class StoreSwitcher extends StatelessWidget {
   }
 
   static const String _allStoresValue = '__all__';
+}
+
+/// The non-switching variant: a manager or staff member belongs to one store,
+/// so the top bar just names it — same footprint as the switcher, no chevron,
+/// no tap.
+class _StoreLabel extends StatelessWidget {
+  const _StoreLabel({required this.name});
+
+  final String name;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: AppSizing.minTapTarget,
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceVariant,
+        borderRadius: AppRadius.mdAll,
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            LucideIcons.store,
+            size: AppSizing.iconMd,
+            color: AppColors.textSecondary,
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 220),
+            child: Text(
+              name,
+              style: Theme.of(context).textTheme.titleSmall,
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
