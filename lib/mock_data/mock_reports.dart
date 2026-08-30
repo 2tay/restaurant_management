@@ -14,9 +14,14 @@ import 'mock_suppliers.dart';
 /// in `MockQueries.stockValuation` and friends. These are kept only as the
 /// reference the seeded dataset was balanced against.
 ///
+/// **The headline usage and waste figures have gone the same way**, now that
+/// every movement records the cost it applied. A waste total that ignored the
+/// waste somebody had just recorded was the same failure in a smaller frame.
+/// See `MockQueries.wasteValue` and `consumptionValue`.
+///
 /// The trend series are still static, and still used. Deriving usage and waste
-/// from the movement log is a real piece of work rather than a line change, and
-/// the movement log only covers the last few weeks in detail — a derived
+/// *trends* from the movement log is a real piece of work rather than a line
+/// change, and the log only covers the last few weeks in detail — a derived
 /// six-month trend would be mostly flat zero, which would look like a bug
 /// rather than like honesty. Phase 2 aggregates them properly.
 
@@ -166,11 +171,6 @@ final List<TrendPoint> mockWasteTrend = [
   TrendPoint(date: daysAgo(7), value: 0.047),
   TrendPoint(date: daysAgo(0), value: 0.032),
 ];
-
-/// Headline figures for the reports dashboard tiles.
-const double mockUsageLast30Days = 6216.85;
-const double mockWasteShareLast30Days = 0.043;
-const double mockWasteValueLast30Days = 267.30;
 
 /// Price comparison for blanc de poulet — the report's default view.
 ///

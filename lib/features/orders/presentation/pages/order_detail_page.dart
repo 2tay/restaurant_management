@@ -13,6 +13,7 @@ import '../../../../l10n/app_localizations.dart';
 import '../../../../mock_data/mock_data.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
+import '../../documents/receipt_document_button.dart';
 import '../widgets/order_status_badge.dart';
 import '../widgets/order_summary_card.dart';
 
@@ -561,14 +562,19 @@ class _Receipts extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        // The document reference leads rather than the date: a
+                        // three-delivery order shows three rows that otherwise
+                        // differ only by timestamp, and the reference is what
+                        // staff and the supplier actually name them by.
                         Text(
-                          Formatters.dateTime(receipt.receivedAt),
+                          MockQueries.receiptReferenceOf(receipt),
                           style: theme.textTheme.titleSmall,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                         Text(
-                          l10n.receiptReceivedBy(receipt.receivedByName),
+                          '${Formatters.dateTime(receipt.receivedAt)} · '
+                          '${l10n.receiptReceivedBy(receipt.receivedByName)}',
                           style: theme.textTheme.bodySmall,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -586,7 +592,12 @@ class _Receipts extends StatelessWidget {
                     Formatters.price(receiptValue(receipt)),
                     style: AppTypography.numeric,
                   ),
-                  const SizedBox(width: AppSpacing.md),
+                  const SizedBox(width: AppSpacing.sm),
+                  // Straight from the list: the partial delivery somebody needs
+                  // to send on is usually one of several on the order, and
+                  // making them open each one to find it is how the feature
+                  // ends up unused.
+                  ReceiptDocumentButton(receipt: receipt, compact: true),
                   const Icon(
                     LucideIcons.chevronRight,
                     size: AppSizing.iconSm,

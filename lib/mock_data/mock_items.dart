@@ -79,6 +79,25 @@ abstract final class ItemIds {
 ///
 /// `StoreIds.saintGilles` has no items at all, on purpose — it is how the empty
 /// states get demoed.
+///
+/// ## Why `averageCost` is a literal here
+///
+/// Every item carries a cost that is deliberately **not** its default
+/// supplier's current price — mostly a little under it, a few exactly on it, a
+/// couple above where the supplier has since come down. That is what stock
+/// bought before the last round of price changes actually looks like, and it
+/// means the valuation visibly is not `quantity × today's price`, which is the
+/// entire point of the figure.
+///
+/// It is written out rather than replayed from `mockStockMovements`, because
+/// that log covers about three weeks and does not reach back to each item's
+/// opening balance. Replaying a partial history would produce a confident wrong
+/// number, which is worse than an obviously seeded one.
+///
+/// **This is a seed shortcut, not the migration strategy.** Against real
+/// storage the log runs from each article's first day and every stock-in
+/// already records the price paid, so the correct backfill there is to replay
+/// it. See `PLAN_STOCK_COST.md`.
 final List<Item> mockItems = [
   // ---------------------------------------------------------------------------
   // Fruits & Légumes
@@ -92,6 +111,7 @@ final List<Item> mockItems = [
     quantity: 4,
     lowStockThreshold: 5,
     updatedAt: hoursAgo(3),
+    averageCost: 2.98,
     defaultSupplierId: SupplierIds.maraicher,
   ),
   Item(
@@ -103,6 +123,7 @@ final List<Item> mockItems = [
     quantity: 85,
     lowStockThreshold: 25,
     updatedAt: daysAgo(1),
+    averageCost: 1.01,
     defaultSupplierId: SupplierIds.maraicher,
   ),
   Item(
@@ -114,6 +135,7 @@ final List<Item> mockItems = [
     quantity: 22,
     lowStockThreshold: 10,
     updatedAt: daysAgo(2),
+    averageCost: 1.40,
     defaultSupplierId: SupplierIds.maraicher,
   ),
   Item(
@@ -125,6 +147,7 @@ final List<Item> mockItems = [
     quantity: 18,
     lowStockThreshold: 8,
     updatedAt: daysAgo(2),
+    averageCost: 1.25,
     defaultSupplierId: SupplierIds.maraicher,
   ),
   Item(
@@ -136,6 +159,7 @@ final List<Item> mockItems = [
     quantity: 14,
     lowStockThreshold: 6,
     updatedAt: hoursAgo(20),
+    averageCost: 1.16,
     defaultSupplierId: SupplierIds.maraicher,
   ),
   Item(
@@ -147,6 +171,7 @@ final List<Item> mockItems = [
     quantity: 9.5,
     lowStockThreshold: 4,
     updatedAt: daysAgo(1),
+    averageCost: 4.19,
     defaultSupplierId: SupplierIds.maraicher,
   ),
   Item(
@@ -158,6 +183,7 @@ final List<Item> mockItems = [
     quantity: 2,
     lowStockThreshold: 3,
     updatedAt: daysAgo(3),
+    averageCost: 3.33,
     defaultSupplierId: SupplierIds.grossisteCentral,
   ),
   Item(
@@ -169,6 +195,7 @@ final List<Item> mockItems = [
     quantity: 0,
     lowStockThreshold: 4,
     updatedAt: daysAgo(1),
+    averageCost: 1.25,
     defaultSupplierId: SupplierIds.maraicher,
     note: 'Rupture chez le maraîcher — recommander mardi.',
   ),
@@ -185,6 +212,7 @@ final List<Item> mockItems = [
     quantity: 6,
     lowStockThreshold: 8,
     updatedAt: hoursAgo(5),
+    averageCost: 11.01,
     defaultSupplierId: SupplierIds.grossisteCentral,
   ),
   Item(
@@ -196,6 +224,7 @@ final List<Item> mockItems = [
     quantity: 24,
     lowStockThreshold: 10,
     updatedAt: daysAgo(1),
+    averageCost: 14.48,
     defaultSupplierId: SupplierIds.boucherie,
   ),
   Item(
@@ -207,6 +236,7 @@ final List<Item> mockItems = [
     quantity: 11,
     lowStockThreshold: 5,
     updatedAt: daysAgo(2),
+    averageCost: 9.11,
     defaultSupplierId: SupplierIds.boucherie,
   ),
   Item(
@@ -218,6 +248,7 @@ final List<Item> mockItems = [
     quantity: 7.5,
     lowStockThreshold: 3,
     updatedAt: daysAgo(4),
+    averageCost: 19.71,
     defaultSupplierId: SupplierIds.boucherie,
   ),
   Item(
@@ -229,6 +260,7 @@ final List<Item> mockItems = [
     quantity: 120,
     lowStockThreshold: 40,
     updatedAt: daysAgo(1),
+    averageCost: 0.95,
     defaultSupplierId: SupplierIds.boucherie,
   ),
   Item(
@@ -240,6 +272,7 @@ final List<Item> mockItems = [
     quantity: 5.5,
     lowStockThreshold: 2,
     updatedAt: hoursAgo(8),
+    averageCost: 16.22,
     defaultSupplierId: SupplierIds.boucherie,
   ),
 
@@ -255,6 +288,7 @@ final List<Item> mockItems = [
     quantity: 8,
     lowStockThreshold: 4,
     updatedAt: hoursAgo(11),
+    averageCost: 19.43,
     defaultSupplierId: SupplierIds.maree,
   ),
   Item(
@@ -266,6 +300,7 @@ final List<Item> mockItems = [
     quantity: 32,
     lowStockThreshold: 15,
     updatedAt: hoursAgo(11),
+    averageCost: 5.82,
     defaultSupplierId: SupplierIds.maree,
   ),
   Item(
@@ -277,6 +312,7 @@ final List<Item> mockItems = [
     quantity: 0,
     lowStockThreshold: 2,
     updatedAt: daysAgo(2),
+    averageCost: 41.16,
     defaultSupplierId: SupplierIds.maree,
     note: 'Prix très élevé cette semaine — retirer de la carte du jour.',
   ),
@@ -293,6 +329,7 @@ final List<Item> mockItems = [
     quantity: 3,
     lowStockThreshold: 4,
     updatedAt: hoursAgo(6),
+    averageCost: 7.20,
     barcode: '5412033201148',
     defaultSupplierId: SupplierIds.cremerie,
   ),
@@ -305,6 +342,7 @@ final List<Item> mockItems = [
     quantity: 16,
     lowStockThreshold: 6,
     updatedAt: daysAgo(1),
+    averageCost: 3.65,
     barcode: '5412033207195',
     defaultSupplierId: SupplierIds.cremerie,
   ),
@@ -317,6 +355,7 @@ final List<Item> mockItems = [
     quantity: 6.8,
     lowStockThreshold: 3,
     updatedAt: daysAgo(3),
+    averageCost: 9.59,
     barcode: '5400101340077',
     defaultSupplierId: SupplierIds.cremerie,
   ),
@@ -329,6 +368,7 @@ final List<Item> mockItems = [
     quantity: 240,
     lowStockThreshold: 90,
     updatedAt: daysAgo(2),
+    averageCost: 0.30,
     barcode: '5410063011229',
     defaultSupplierId: SupplierIds.cremerie,
   ),
@@ -341,6 +381,7 @@ final List<Item> mockItems = [
     quantity: 28,
     lowStockThreshold: 12,
     updatedAt: daysAgo(1),
+    averageCost: 0.92,
     barcode: '5400101122086',
     defaultSupplierId: SupplierIds.cremerie,
   ),
@@ -357,6 +398,7 @@ final List<Item> mockItems = [
     quantity: 2,
     lowStockThreshold: 3,
     updatedAt: hoursAgo(2),
+    averageCost: 21.50,
     barcode: '5412345001019',
     defaultSupplierId: SupplierIds.brasseurs,
   ),
@@ -369,6 +411,7 @@ final List<Item> mockItems = [
     quantity: 7,
     lowStockThreshold: 2,
     updatedAt: daysAgo(4),
+    averageCost: 37.06,
     barcode: '5410908000114',
     defaultSupplierId: SupplierIds.brasseurs,
   ),
@@ -381,6 +424,7 @@ final List<Item> mockItems = [
     quantity: 5,
     lowStockThreshold: 2,
     updatedAt: daysAgo(4),
+    averageCost: 35.91,
     barcode: '5411681000107',
     defaultSupplierId: SupplierIds.brasseurs,
   ),
@@ -393,6 +437,7 @@ final List<Item> mockItems = [
     quantity: 9,
     lowStockThreshold: 4,
     updatedAt: daysAgo(3),
+    averageCost: 17.06,
     barcode: '5449000000996',
     defaultSupplierId: SupplierIds.grossisteCentral,
   ),
@@ -405,6 +450,7 @@ final List<Item> mockItems = [
     quantity: 12,
     lowStockThreshold: 5,
     updatedAt: daysAgo(3),
+    averageCost: 7.74,
     barcode: '5410316901017',
     defaultSupplierId: SupplierIds.grossisteCentral,
   ),
@@ -417,6 +463,7 @@ final List<Item> mockItems = [
     quantity: 34,
     lowStockThreshold: 12,
     updatedAt: daysAgo(7),
+    averageCost: 6.80,
     barcode: '3263280120158',
     defaultSupplierId: SupplierIds.horecaSelect,
   ),
@@ -429,6 +476,7 @@ final List<Item> mockItems = [
     quantity: 13,
     lowStockThreshold: 5,
     updatedAt: daysAgo(5),
+    averageCost: 15.05,
     barcode: '5410127310014',
     defaultSupplierId: SupplierIds.horecaSelect,
   ),
@@ -445,6 +493,7 @@ final List<Item> mockItems = [
     quantity: 4,
     lowStockThreshold: 5,
     updatedAt: daysAgo(2),
+    averageCost: 9.08,
     barcode: '8410660301123',
     defaultSupplierId: SupplierIds.grossisteCentral,
   ),
@@ -457,6 +506,7 @@ final List<Item> mockItems = [
     quantity: 45,
     lowStockThreshold: 15,
     updatedAt: daysAgo(6),
+    averageCost: 0.79,
     defaultSupplierId: SupplierIds.grossisteCentral,
   ),
   Item(
@@ -468,6 +518,7 @@ final List<Item> mockItems = [
     quantity: 12,
     lowStockThreshold: 3,
     updatedAt: daysAgo(12),
+    averageCost: 0.62,
     defaultSupplierId: SupplierIds.grossisteCentral,
   ),
   Item(
@@ -479,6 +530,7 @@ final List<Item> mockItems = [
     quantity: 2.4,
     lowStockThreshold: 1,
     updatedAt: daysAgo(12),
+    averageCost: 24.00,
     barcode: '5410041001225',
     defaultSupplierId: SupplierIds.grossisteCentral,
   ),
@@ -491,6 +543,7 @@ final List<Item> mockItems = [
     quantity: 26,
     lowStockThreshold: 10,
     updatedAt: daysAgo(8),
+    averageCost: 1.87,
     barcode: '5400141002218',
     defaultSupplierId: SupplierIds.grossisteCentral,
   ),
@@ -503,6 +556,7 @@ final List<Item> mockItems = [
     quantity: 8,
     lowStockThreshold: 3,
     updatedAt: daysAgo(9),
+    averageCost: 2.42,
     barcode: '3011360001238',
     defaultSupplierId: SupplierIds.grossisteCentral,
   ),
@@ -515,6 +569,7 @@ final List<Item> mockItems = [
     quantity: 15,
     lowStockThreshold: 6,
     updatedAt: daysAgo(5),
+    averageCost: 3.78,
     barcode: '5410316414012',
     defaultSupplierId: SupplierIds.grossisteCentral,
   ),
@@ -531,6 +586,7 @@ final List<Item> mockItems = [
     quantity: 96,
     lowStockThreshold: 40,
     updatedAt: hoursAgo(4),
+    averageCost: 1.81,
     barcode: '5411188112204',
     defaultSupplierId: SupplierIds.grossisteCentral,
   ),
@@ -543,6 +599,7 @@ final List<Item> mockItems = [
     quantity: 18,
     lowStockThreshold: 8,
     updatedAt: daysAgo(4),
+    averageCost: 2.20,
     barcode: '5410041220114',
     defaultSupplierId: SupplierIds.grossisteCentral,
   ),
@@ -560,6 +617,7 @@ final List<Item> mockItems = [
     quantity: 64,
     lowStockThreshold: 30,
     updatedAt: hoursAgo(6),
+    averageCost: 1.55,
     defaultSupplierId: SupplierIds.liegeGrossiste,
   ),
   Item(
@@ -571,6 +629,7 @@ final List<Item> mockItems = [
     quantity: 1.5,
     lowStockThreshold: 2,
     updatedAt: daysAgo(3),
+    averageCost: 8.57,
     barcode: '5411661000123',
     defaultSupplierId: SupplierIds.liegeGrossiste,
   ),
@@ -583,6 +642,7 @@ final List<Item> mockItems = [
     quantity: 52,
     lowStockThreshold: 25,
     updatedAt: daysAgo(1),
+    averageCost: 1.77,
     barcode: '5411188112204',
     defaultSupplierId: SupplierIds.liegeGrossiste,
   ),
@@ -595,6 +655,7 @@ final List<Item> mockItems = [
     quantity: 14,
     lowStockThreshold: 6,
     updatedAt: daysAgo(2),
+    averageCost: 1.36,
     defaultSupplierId: SupplierIds.liegeGrossiste,
   ),
   Item(
@@ -606,6 +667,7 @@ final List<Item> mockItems = [
     quantity: 11,
     lowStockThreshold: 4,
     updatedAt: hoursAgo(9),
+    averageCost: 21.50,
     barcode: '5412345001019',
     defaultSupplierId: SupplierIds.liegeBrasseurs,
   ),
@@ -618,6 +680,7 @@ final List<Item> mockItems = [
     quantity: 0,
     lowStockThreshold: 3,
     updatedAt: daysAgo(1),
+    averageCost: 17.47,
     barcode: '5410127310014',
     defaultSupplierId: SupplierIds.liegeGrossiste,
   ),

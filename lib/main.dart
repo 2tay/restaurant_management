@@ -5,6 +5,8 @@ import 'package:intl/intl.dart';
 
 import 'app/app.dart';
 import 'core/utils/formatters.dart';
+import 'data/database/bootstrap.dart';
+import 'data/providers.dart';
 import 'mock_data/mock_data.dart';
 
 Future<void> main() async {
@@ -16,17 +18,23 @@ Future<void> main() async {
   await initializeDateFormatting(Formatters.locale);
   Intl.defaultLocale = Formatters.locale;
 
-  // Snapshot the pristine dataset before anything can edit it, so the demo can
-  // be put back between walkthroughs. Must happen before the first frame: after
-  // that, "pristine" is whatever the last person left behind.
-  MockWrite.captureSeed();
+  // Phase 2: open the local database (seeding it on a first launch), and hand
+  // it to the provider that every repository reads from.
+  final database = await openAppDatabase();
 
-  // The default session is the owner (so widget tests that pump the tree get an
-  // authenticated app); the real app opens signed out, on the login screen.
+  // The employee module still runs on the in-memory mock layer. Snapshot it
+  // before anything can edit it, so the demo can be put back between
+  // walkthroughs, and start signed out so the app opens on the login screen.
+  MockWrite.captureSeed();
   MockSession.signOut();
 
   // Orientation is deliberately left unconstrained. The app is designed
   // landscape-first for ~10" tablets, but the brief requires portrait to remain
   // usable, so locking orientations here would be wrong.
-  runApp(const ProviderScope(child: StockInventoryApp()));
+  runApp(
+    ProviderScope(
+      overrides: [databaseProvider.overrideWithValue(database)],
+      child: const StockInventoryApp(),
+    ),
+  );
 }

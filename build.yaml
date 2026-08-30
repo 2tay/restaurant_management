@@ -1,0 +1,41 @@
+# Options for drift's code generator. Run it with:
+#   dart run build_runner build --force-jit
+# (JIT is not a preference — see phase2.md, Stage 0, "As built".)
+
+targets:
+  $default:
+    builders:
+      drift_dev:
+        options:
+          # Store DateTime as ISO-8601 text rather than as a unix timestamp.
+          #
+          # Two reasons, both concrete:
+          #
+          # Precision. drift's integer format is whole seconds. Receiving a
+          # delivery writes several stock movements in the same tick, and the
+          # order they came back in is what "newest first" means on the item
+          # screen. Truncating to the second turns a deterministic order into
+          # ties broken by chance.
+          #
+          # Reports. Grouping consumption by month is `strftime('%Y-%m', col)`
+          # on text, but `strftime('%Y-%m', col, 'unixepoch')` on integers —
+          # and forgetting the modifier does not fail, it silently returns
+          # 1970. Text makes the wrong query impossible to write by accident.
+          #
+          # The cost is four bytes a row and no index behaviour worth
+          # mentioning: ISO-8601 sorts lexicographically, so ORDER BY and
+          # BETWEEN still use the index.
+          store_date_time_values_as_text: true
+
+          # Do not generate the manager API.
+          #
+          # It is drift's fluent alternative to the core query builder
+          # (`db.managers.items.filter(...)`), and this app does not use it: the
+          # repositories are hand-written because several of the reads are joins
+          # and grouped aggregates that the manager cannot express anyway, and
+          # having two query styles in one codebase is worse than having one.
+          #
+          # It is not free — it is half of app_database.g.dart. Off, the
+          # generated file drops from 16 692 lines to 8 460, and so does the
+          # diff every schema change produces.
+          generate_manager: false

@@ -12,6 +12,7 @@ import '../../../../l10n/app_localizations.dart';
 import '../../../../mock_data/mock_data.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
+import '../../documents/receipt_document_button.dart';
 import '../widgets/order_summary_card.dart';
 
 /// One delivery, as recorded.
@@ -78,7 +79,11 @@ class ReceiptDetailPage extends ConsumerWidget {
         Crumb(l10n.orderTabReceipts),
       ],
       title: l10n.receiptDetailTitle(Formatters.dateLong(receipt.receivedAt)),
-      subtitle: l10n.receiptReceivedBy(receipt.receivedByName),
+      // The document reference is on screen because the phone call that follows
+      // an emailed bon de réception starts with the supplier quoting it back.
+      subtitle:
+          '${MockQueries.receiptReferenceOf(receipt)} · '
+          '${l10n.receiptReceivedBy(receipt.receivedByName)}',
       actions: [
         SecondaryButton(
           label: l10n.receiptOrderReference(reference),
@@ -86,6 +91,10 @@ class ReceiptDetailPage extends ConsumerWidget {
           onPressed: () =>
               context.pushScreen(Routes.toOrder(storeId, receipt.orderId)),
         ),
+        // The primary action on a read-only screen. There is nothing to edit
+        // here, and getting the record out of the app and to the supplier is
+        // the only thing anybody comes to this page to do.
+        ReceiptDocumentButton(receipt: receipt),
       ],
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,

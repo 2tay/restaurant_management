@@ -26,10 +26,18 @@ class _AddStorePageState extends State<AddStorePage> {
   final _postalCode = TextEditingController();
   final _city = TextEditingController();
   final _phone = TextEditingController();
+  final _vatNumber = TextEditingController();
 
   @override
   void dispose() {
-    for (final controller in [_name, _address, _postalCode, _city, _phone]) {
+    for (final controller in [
+      _name,
+      _address,
+      _postalCode,
+      _city,
+      _phone,
+      _vatNumber,
+    ]) {
       controller.dispose();
     }
     super.dispose();
@@ -114,6 +122,20 @@ class _AddStorePageState extends State<AddStorePage> {
                           hint: '+32 2 000 00 00',
                           keyboardType: TextInputType.phone,
                         ),
+                        const SizedBox(height: AppSpacing.lg),
+                        // Last, and optional. It is the only field here that
+                        // exists for something outside the app — it prints on
+                        // every bon de réception sent to a supplier — and the
+                        // helper says so rather than just marking it optional,
+                        // because "why does a stock app want my VAT number" is
+                        // the obvious question.
+                        AppTextField(
+                          label: l10n.addStoreVatNumber,
+                          controller: _vatNumber,
+                          prefixIcon: LucideIcons.receipt,
+                          hint: l10n.addStoreVatNumberHint,
+                          helperText: l10n.addStoreVatNumberHelp,
+                        ),
                       ],
                     ),
                   ),
@@ -165,6 +187,7 @@ class _AddStorePageState extends State<AddStorePage> {
       postalCode: _postalCode.text,
       city: _city.text,
       phone: _phone.text,
+      vatNumber: _vatNumber.text,
     );
 
     AppSnackBar.success(context, l10n.addStoreCreated);

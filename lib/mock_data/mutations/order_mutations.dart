@@ -4,14 +4,13 @@ import '../../core/utils/employee_status.dart';
 import '../../core/utils/order_status.dart';
 import '../../models/models.dart';
 import '../mock_goods_receipts.dart';
-import '../mock_items.dart';
 import '../mock_price_history.dart';
 import '../mock_purchase_orders.dart';
 import '../mock_queries.dart';
-import '../mock_stock_movements.dart';
 import '../mock_session.dart';
 import '../mock_supplier_prices.dart';
 import 'mock_write.dart';
+import 'movement_mutations.dart';
 
 /// Writes against the commandes.
 ///
@@ -240,6 +239,17 @@ abstract final class OrderMutations {
   }
 
   /// One delivered line becomes one stock movement and one quantity change.
+  ///
+  /// Delegates rather than doing it, and that matters more than it looks.
+  /// [MovementMutations] is documented as the only thing in the app that
+  /// changes an item's quantity, and this used to be a quiet second
+  /// implementation of exactly that — filing its own movement and editing
+  /// `mockItems` itself.
+  ///
+  /// It stayed harmless only while "apply a movement" meant one line of
+  /// arithmetic. It stopped being harmless the moment a movement also had to
+  /// remix the item's average cost: the same rule would have had to be written
+  /// twice, and the second copy is always the one that gets forgotten.
   static void _recordStockIn({
     required PurchaseOrder order,
     required String receiptId,
@@ -247,31 +257,17 @@ abstract final class OrderMutations {
     required DateTime occurredAt,
     required String userName,
   }) {
-    mockStockMovements.insert(
-      0,
-      StockMovement(
-        id: MockWrite.id('mv'),
-        storeId: order.storeId,
-        itemId: line.itemId,
-        type: StockMovementType.stockIn,
-        quantity: line.quantityReceived,
-        occurredAt: occurredAt,
-        userName: userName,
-        supplierId: order.supplierId,
-        unitPrice: line.actualUnitPrice,
-        orderId: order.id,
-        receiptId: receiptId,
-        note: line.note,
-      ),
-    );
-
-    final index = mockItems.indexWhere((item) => item.id == line.itemId);
-    if (index == -1) return;
-
-    final item = mockItems[index];
-    mockItems[index] = item.copyWith(
-      quantity: item.quantity + line.quantityReceived,
-      updatedAt: occurredAt,
+    MovementMutations.recordStockIn(
+      storeId: order.storeId,
+      itemId: line.itemId,
+      quantity: line.quantityReceived,
+      supplierId: order.supplierId,
+      unitPrice: line.actualUnitPrice,
+      occurredAt: occurredAt,
+      userName: userName,
+      orderId: order.id,
+      receiptId: receiptId,
+      note: line.note,
     );
   }
 

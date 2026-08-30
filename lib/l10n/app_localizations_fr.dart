@@ -2828,4 +2828,170 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get storeSettingsReadOnlyNotice =>
       'Seul le propriétaire peut modifier les paramètres de l\'établissement.';
+
+  @override
+  String get itemFormOpeningCost => 'Coût d\'achat unitaire';
+
+  @override
+  String get itemFormOpeningCostHint => 'Ex. : 8,50';
+
+  @override
+  String get itemFormOpeningCostHelp =>
+      'Facultatif. Sans ce montant, l\'article ne sera pas valorisé tant qu\'une livraison n\'aura pas été réceptionnée.';
+
+  @override
+  String get itemAverageCost => 'Coût moyen du stock';
+
+  @override
+  String get itemAverageCostUnknown => 'Non valorisé';
+
+  @override
+  String get itemAverageCostHelp =>
+      'Moyenne pondérée de ce qui a été réellement payé pour le stock en rayon. Chaque livraison ne revalorise que les unités livrées.';
+
+  @override
+  String get movementUnitCost => 'Coût unitaire';
+
+  @override
+  String get valuationAtCost =>
+      'Valorisé au coût d\'achat réel, et non au prix fournisseur du jour.';
+
+  @override
+  String get reportWasteValue => 'Valeur des pertes';
+
+  @override
+  String get reportConsumptionValue => 'Valeur consommée';
+
+  @override
+  String get addStoreVatNumber => 'Numéro de TVA';
+
+  @override
+  String get addStoreVatNumberHint => 'BE 0123.456.789';
+
+  @override
+  String get addStoreVatNumberHelp =>
+      'Facultatif. Figure sur les bons de réception envoyés aux fournisseurs.';
+
+  @override
+  String get receiptDocAction => 'Bon de réception';
+
+  @override
+  String get receiptDocGenerating => 'Génération du document…';
+
+  @override
+  String get receiptDocFailed => 'Le document n\'a pas pu être généré.';
+
+  @override
+  String get receiptDocTitle => 'BON DE RÉCEPTION';
+
+  @override
+  String receiptDocVatNumber(String number) {
+    return 'TVA $number';
+  }
+
+  @override
+  String get receiptDocSupplierBlock => 'Fournisseur';
+
+  @override
+  String get receiptDocOrderReference => 'Commande';
+
+  @override
+  String get receiptDocOrderSent => 'Envoyée le';
+
+  @override
+  String get receiptDocReceivedAt => 'Réceptionnée le';
+
+  @override
+  String get receiptDocReceivedBy => 'Réceptionnée par';
+
+  @override
+  String get receiptDocColumnItem => 'Article';
+
+  @override
+  String get receiptDocColumnOrdered => 'Commandé';
+
+  @override
+  String get receiptDocColumnReceived => 'Reçu';
+
+  @override
+  String get receiptDocColumnGap => 'Écart';
+
+  @override
+  String get receiptDocColumnOrderedPrice => 'PU commandé';
+
+  @override
+  String get receiptDocColumnActualPrice => 'PU réel';
+
+  @override
+  String get receiptDocColumnTotal => 'Total';
+
+  @override
+  String get receiptDocUnordered => 'hors commande';
+
+  @override
+  String get receiptDocReserves => 'RÉSERVES';
+
+  @override
+  String get receiptDocNoReserves =>
+      'Livraison conforme à la commande. Aucune réserve.';
+
+  @override
+  String receiptDocReserveShortClosed(
+    String item,
+    String quantity,
+    String ordered,
+  ) {
+    return '$item : $quantity non livré(s) sur $ordered commandé(s). Ligne soldée, le solde n\'est plus attendu.';
+  }
+
+  @override
+  String receiptDocReserveShortOpen(
+    String item,
+    String quantity,
+    String ordered,
+  ) {
+    return '$item : $quantity non livré(s) sur $ordered commandé(s). Solde restant dû.';
+  }
+
+  @override
+  String receiptDocReserveOver(String item, String quantity) {
+    return '$item : $quantity livré(s) en plus de la quantité commandée.';
+  }
+
+  @override
+  String receiptDocReserveUnordered(String item, String quantity) {
+    return '$item : $quantity livré(s) sans figurer sur la commande.';
+  }
+
+  @override
+  String receiptDocReservePrice(
+    String item,
+    String oldPrice,
+    String newPrice,
+    String delta,
+  ) {
+    return '$item : prix unitaire passé de $oldPrice à $newPrice ($delta) par rapport à la commande.';
+  }
+
+  @override
+  String receiptDocReserveNote(String item, String note) {
+    return '$item : $note';
+  }
+
+  @override
+  String get receiptDocTotalLabel => 'Valeur réceptionnée';
+
+  @override
+  String get receiptDocNoteLabel => 'Remarques';
+
+  @override
+  String get receiptDocSignatureReceiver => 'Signature réception';
+
+  @override
+  String get receiptDocSignatureDriver => 'Signature livreur';
+
+  @override
+  String receiptDocFooter(String date) {
+    return 'Document généré le $date — ne constitue pas une facture.';
+  }
 }
