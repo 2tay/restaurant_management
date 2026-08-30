@@ -6,8 +6,8 @@ import '../../../../app/routes.dart';
 import '../../../../app/navigation.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/stock_status.dart';
+import '../../../../data/providers.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../../mock_data/mock_data.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 import '../widgets/item_detail_view.dart';
@@ -28,22 +28,34 @@ class ItemDetailPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Quantity, suppliers, prices and open orders can all change from a screen
-    // pushed above this one.
-    ref.watch(mockDataRevisionProvider);
-
     final l10n = AppLocalizations.of(context);
-    final item = MockQueries.itemById(itemId);
 
-    if (item == null) {
+    // Only the header is watched here — the name, the category, the status
+    // badge. The body below watches its own four queries; splitting them is
+    // what lets the header stay put while a delivery lands underneath it.
+    final row = ref.watch(itemRowProvider(itemId)).value;
+
+    if (row == null) {
+      // Either the query has not answered or the article is gone. Both draw the
+      // page's chrome with a placeholder inside it rather than a blank screen,
+      // and the retry goes back to the list — which is the only useful action
+      // for an article that no longer exists.
       return ShellPage(
         title: l10n.inventoryTitle,
-        child: ErrorState(
-          message: l10n.errorStateBody,
-          onRetry: () => context.goSection(Routes.toInventory(storeId)),
+        back: BackDestination(
+          label: l10n.inventoryTitle,
+          path: Routes.toInventory(storeId),
         ),
+        child: ref.watch(itemRowProvider(itemId)).isLoading
+            ? const SkeletonList(rows: 4, rowHeight: 120)
+            : ErrorState(
+                message: l10n.errorStateBody,
+                onRetry: () => context.goSection(Routes.toInventory(storeId)),
+              ),
       );
     }
+
+    final item = row.item;
 
     return ShellPage(
       back: BackDestination(
@@ -55,7 +67,7 @@ class ItemDetailPage extends ConsumerWidget {
         Crumb(item.name),
       ],
       title: item.name,
-      subtitle: MockQueries.categoryNameOf(item.categoryId),
+      subtitle: row.categoryName,
       scrollable: false,
       actions: [
         StockStatusBadge(status: stockStatusOf(item)),
@@ -69,20 +81,33 @@ class ItemDetailPage extends ConsumerWidget {
           label: l10n.actionDelete,
           icon: LucideIcons.trash2,
           filled: false,
-          onPressed: () => _confirmDelete(context, item),
+          onPressed: () => _confirmDelete(context, ref, item),
         ),
       ],
-      child: ItemDetailView(item: item, storeId: storeId, showTitle: false),
+      child: ItemDetailView(
+        itemId: itemId,
+        storeId: storeId,
+        showTitle: false,
+      ),
     );
   }
 
-  Future<void> _confirmDelete(BuildContext context, Item item) async {
+  Future<void> _confirmDelete(
+    BuildContext context,
+    WidgetRef ref,
+    Item item,
+  ) async {
     final l10n = AppLocalizations.of(context);
+    final items = ref.read(itemRepositoryProvider);
 
     // An article on a commande a supplier is still holding cannot go: the
     // document would be left referring to nothing. Explained before asking,
-    // rather than confirmed and then quietly refused.
-    final openOrders = MockQueries.openOrdersForItem(storeId, item.id);
+    // rather than confirmed and then quietly refused. The repository refuses it
+    // too — this is the sentence, not the safeguard.
+    final orders = ref.read(orderRepositoryProvider);
+    final openOrders = await orders.openOrdersForItem(storeId, item.id);
+    if (!context.mounted) return;
+
     if (openOrders.isNotEmpty) {
       await ConfirmDialog.blocked(
         context,
@@ -95,19 +120,26 @@ class ItemDetailPage extends ConsumerWidget {
     // Deleting cascades to movements and supplier links, so the dialog states
     // exactly what disappears. A confirmation that does not name its blast
     // radius is a formality, not a safeguard.
-    final movements = MockQueries.movementsForItem(item.id).length;
-    final suppliers = MockQueries.pricesForItem(item.id).length;
+    final movements = await ref
+        .read(movementRepositoryProvider)
+        .movementsForItem(item.id);
+    final suppliers = await ref
+        .read(supplierRepositoryProvider)
+        .pricesForItem(item.id);
+    if (!context.mounted) return;
 
     final confirmed = await ConfirmDialog.confirmDelete(
       context,
       name: item.name,
-      extraWarning: movements == 0 && suppliers == 0
+      extraWarning: movements.isEmpty && suppliers.isEmpty
           ? null
-          : l10n.itemDeleteCascadeWarning(movements, suppliers),
+          : l10n.itemDeleteCascadeWarning(movements.length, suppliers.length),
     );
     if (!confirmed || !context.mounted) return;
 
-    ItemMutations.delete(item.id);
+    await items.delete(item.id);
+
+    if (!context.mounted) return;
     AppSnackBar.success(context, l10n.itemDeleted);
     context.goSection(Routes.toInventory(storeId));
   }

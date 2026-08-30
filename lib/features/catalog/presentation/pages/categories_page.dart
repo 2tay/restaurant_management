@@ -5,8 +5,9 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../app/routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../data/providers.dart';
+import '../../../../data/view_models/view_models.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../../mock_data/mock_data.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 import '../widgets/create_sheets.dart';
@@ -26,12 +27,12 @@ class CategoriesPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // The per-category item counts move whenever an item is created,
-    // recategorised or deleted.
-    ref.watch(mockDataRevisionProvider);
+    // The per-category article counts move whenever an article is created,
+    // recategorised or deleted, and this follows all three: they are the same
+    // query's tables.
+    final rows = ref.watch(categoryRowsProvider(storeId));
 
     final l10n = AppLocalizations.of(context);
-    final categories = MockQueries.categoriesForStore(storeId);
 
     return ShellPage(
       tabs: SectionTabs(
@@ -58,34 +59,36 @@ class CategoriesPage extends ConsumerWidget {
       ],
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 820),
-        child: categories.isEmpty
-            ? AppCard(
-                child: EmptyState(
-                  icon: LucideIcons.tags,
-                  title: l10n.categoriesEmpty,
-                  message: l10n.categoriesEmptyBody,
-                  actionLabel: l10n.categoriesAdd,
-                  actionIcon: LucideIcons.plus,
-                  onAction: () => _create(context),
-                ),
-              )
-            : AppCard(
-                padding: EdgeInsets.zero,
-                child: Column(
-                  children: [
-                    for (final category in categories)
-                      _CatalogTile(
-                        icon: LucideIcons.tag,
-                        title: category.name,
-                        subtitle: l10n.categoriesItemCount(
-                          MockQueries.itemCountInCategory(category.id),
-                        ),
-                        onEdit: () => _edit(context, category),
-                        onDelete: () => _delete(context, category),
-                      ),
-                  ],
-                ),
-              ),
+        child: AsyncListContent<CategoryRowView>(
+          value: rows,
+          onRetry: () => ref.invalidate(categoryRowsProvider(storeId)),
+          skeleton: const SkeletonList(rows: 5, rowHeight: 64),
+          empty: AppCard(
+            child: EmptyState(
+              icon: LucideIcons.tags,
+              title: l10n.categoriesEmpty,
+              message: l10n.categoriesEmptyBody,
+              actionLabel: l10n.categoriesAdd,
+              actionIcon: LucideIcons.plus,
+              onAction: () => _create(context),
+            ),
+          ),
+          builder: (context, rows) => AppCard(
+            padding: EdgeInsets.zero,
+            child: Column(
+              children: [
+                for (final row in rows)
+                  _CatalogTile(
+                    icon: LucideIcons.tag,
+                    title: row.category.name,
+                    subtitle: l10n.categoriesItemCount(row.itemCount),
+                    onEdit: () => _edit(context, row.category),
+                    onDelete: () => _delete(context, ref, row),
+                  ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -106,17 +109,23 @@ class CategoriesPage extends ConsumerWidget {
     AppSnackBar.success(context, AppLocalizations.of(context).categoryUpdated);
   }
 
-  Future<void> _delete(BuildContext context, Category category) async {
+  Future<void> _delete(
+    BuildContext context,
+    WidgetRef ref,
+    CategoryRowView row,
+  ) async {
     final l10n = AppLocalizations.of(context);
-    final usageCount = MockQueries.itemCountInCategory(category.id);
+    final category = row.category;
 
     // Checked before asking rather than after confirming: offering a delete
-    // that then quietly fails is worse than not offering it.
-    if (usageCount > 0) {
+    // that then quietly fails is worse than not offering it. The count comes
+    // from the row the user is looking at, so the sentence in the dialog and
+    // the number on the screen cannot disagree.
+    if (row.itemCount > 0) {
       await ConfirmDialog.blocked(
         context,
         title: l10n.categoryDeleteBlockedTitle(category.name),
-        message: l10n.categoryDeleteBlockedBody(usageCount),
+        message: l10n.categoryDeleteBlockedBody(row.itemCount),
       );
       return;
     }
@@ -127,7 +136,9 @@ class CategoriesPage extends ConsumerWidget {
     );
     if (!confirmed || !context.mounted) return;
 
-    CatalogMutations.deleteCategory(category.id);
+    await ref.read(catalogRepositoryProvider).deleteCategory(category.id);
+
+    if (!context.mounted) return;
     AppSnackBar.success(context, l10n.categoryDeleted);
   }
 }

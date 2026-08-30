@@ -1,47 +1,135 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../app/routes.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/utils/order_status.dart';
+import '../../../../data/providers.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../../mock_data/mock_data.dart';
+import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 
+/// The four settings tabs, built the same way on all four screens.
+List<SectionTab> settingsTabs(AppLocalizations l10n, String storeId) => [
+  SectionTab(
+    label: l10n.settingsTabStore,
+    path: Routes.toStoreSettings(storeId),
+  ),
+  SectionTab(
+    label: l10n.settingsTabAccount,
+    path: Routes.toAccountSettings(storeId),
+  ),
+  SectionTab(
+    label: l10n.settingsTabNotifications,
+    path: Routes.toNotificationSettings(storeId),
+  ),
+  SectionTab(label: l10n.settingsTabSync, path: Routes.toSyncStatus(storeId)),
+];
+
 /// Store name, address and preferences.
-class StoreSettingsPage extends StatefulWidget {
+///
+/// Split in two: this resolves the establishment and its units, and
+/// [_StoreSettingsForm] owns the controllers. A form whose fields are filled
+/// from a query cannot be one widget, because `initState` runs before the
+/// answer arrives — and filling controllers during `build` would write to them
+/// while their fields are being laid out.
+class StoreSettingsPage extends ConsumerWidget {
   const StoreSettingsPage({required this.storeId, super.key});
 
   final String storeId;
 
   @override
-  State<StoreSettingsPage> createState() => _StoreSettingsPageState();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final data = asyncAll3(
+      ref.watch(storeProvider(storeId)),
+      ref.watch(unitsProvider(storeId)),
+      ref.watch(stalePartialOrderDaysProvider(storeId)),
+      (store, units, staleDays) => (
+        store: store,
+        units: units,
+        staleDays: staleDays,
+      ),
+    );
+
+    return AsyncContent<({Store? store, List<UnitOfMeasure> units, int staleDays})>(
+      value: data,
+      onRetry: () {
+        ref.invalidate(storeProvider(storeId));
+        ref.invalidate(unitsProvider(storeId));
+        ref.invalidate(stalePartialOrderDaysProvider(storeId));
+      },
+      // The chrome is drawn either way, so the tabs and the title do not
+      // arrive a frame after the page they belong to.
+      skeleton: ShellPage(
+        tabs: SectionTabs(
+          currentPath: Routes.toStoreSettings(storeId),
+          tabs: settingsTabs(l10n, storeId),
+        ),
+        title: l10n.storeSettingsTitle,
+        child: const SkeletonList(rows: 3, rowHeight: 180),
+      ),
+      builder: (context, data) {
+        final store = data.store;
+        if (store == null) {
+          return ShellPage(
+            tabs: SectionTabs(
+              currentPath: Routes.toStoreSettings(storeId),
+              tabs: settingsTabs(l10n, storeId),
+            ),
+            title: l10n.storeSettingsTitle,
+            child: ErrorState(
+              title: l10n.shellNoStoreTitle,
+              message: l10n.shellNoStoreBody,
+            ),
+          );
+        }
+
+        return _StoreSettingsForm(
+          // Keyed on the establishment so switching store rebuilds the state
+          // rather than leaving the previous shop's address in the fields.
+          key: ValueKey(store.id),
+          store: store,
+          units: data.units,
+          staleDays: data.staleDays,
+        );
+      },
+    );
+  }
 }
 
-class _StoreSettingsPageState extends State<StoreSettingsPage> {
-  final _name = TextEditingController();
-  final _address = TextEditingController();
-  final _postalCode = TextEditingController();
-  final _city = TextEditingController();
-  final _phone = TextEditingController();
-  final _staleDays = TextEditingController();
-  String? _defaultUnitId;
+class _StoreSettingsForm extends ConsumerStatefulWidget {
+  const _StoreSettingsForm({
+    required this.store,
+    required this.units,
+    required this.staleDays,
+    super.key,
+  });
+
+  final Store store;
+  final List<UnitOfMeasure> units;
+  final int staleDays;
 
   @override
-  void initState() {
-    super.initState();
-    final store = MockQueries.storeById(widget.storeId);
-    if (store != null) {
-      _name.text = store.name;
-      _address.text = store.addressLine;
-      _postalCode.text = store.postalCode;
-      _city.text = store.city;
-      _phone.text = store.phone;
-    }
-    final units = MockQueries.unitsForStore(widget.storeId);
-    _defaultUnitId = units.isEmpty ? null : units.first.id;
-    _staleDays.text = '${MockSettings.stalePartialOrderDays}';
-  }
+  ConsumerState<_StoreSettingsForm> createState() => _StoreSettingsFormState();
+}
+
+class _StoreSettingsFormState extends ConsumerState<_StoreSettingsForm> {
+  late final _name = TextEditingController(text: widget.store.name);
+  late final _address = TextEditingController(text: widget.store.addressLine);
+  late final _postalCode = TextEditingController(text: widget.store.postalCode);
+  late final _city = TextEditingController(text: widget.store.city);
+  late final _phone = TextEditingController(text: widget.store.phone);
+  late final _staleDays = TextEditingController(text: '${widget.staleDays}');
+
+  /// Which unit a new article starts with. Local to this screen: there is no
+  /// column behind it, because "the unit the form pre-selects" is a convenience
+  /// rather than a fact about the establishment.
+  late String? _defaultUnitId = widget.units.isEmpty
+      ? null
+      : widget.units.first.id;
 
   @override
   void dispose() {
@@ -61,29 +149,12 @@ class _StoreSettingsPageState extends State<StoreSettingsPage> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final units = MockQueries.unitsForStore(widget.storeId);
+    final storeId = widget.store.id;
 
     return ShellPage(
       tabs: SectionTabs(
-        currentPath: Routes.toStoreSettings(widget.storeId),
-        tabs: [
-          SectionTab(
-            label: l10n.settingsTabStore,
-            path: Routes.toStoreSettings(widget.storeId),
-          ),
-          SectionTab(
-            label: l10n.settingsTabAccount,
-            path: Routes.toAccountSettings(widget.storeId),
-          ),
-          SectionTab(
-            label: l10n.settingsTabNotifications,
-            path: Routes.toNotificationSettings(widget.storeId),
-          ),
-          SectionTab(
-            label: l10n.settingsTabSync,
-            path: Routes.toSyncStatus(widget.storeId),
-          ),
-        ],
+        currentPath: Routes.toStoreSettings(storeId),
+        tabs: settingsTabs(l10n, storeId),
       ),
       title: l10n.storeSettingsTitle,
       actions: [
@@ -148,7 +219,7 @@ class _StoreSettingsPageState extends State<StoreSettingsPage> {
                 label: l10n.storeSettingsDefaultUnit,
                 value: _defaultUnitId,
                 options: [
-                  for (final unit in units)
+                  for (final unit in widget.units)
                     DropdownOption(
                       value: unit.id,
                       label: unit.name,
@@ -180,20 +251,40 @@ class _StoreSettingsPageState extends State<StoreSettingsPage> {
     );
   }
 
-  /// Nothing else on this screen persists in this phase, but the stale-order
-  /// threshold does — within the session — because the dashboard warning it
-  /// drives is only demonstrable if changing the number changes the warning.
-  void _save() {
+  /// Saves the establishment and the stale-order threshold.
+  ///
+  /// The threshold was a mutable global in Phase 1 and is a column now, so a
+  /// number typed here survives closing the app — which is the only way the
+  /// dashboard warning it drives can be demonstrated properly.
+  Future<void> _save() async {
     final l10n = AppLocalizations.of(context);
+    final stores = ref.read(storeRepositoryProvider);
+
+    await stores.updateStore(
+      widget.store.id,
+      name: _name.text,
+      addressLine: _address.text,
+      postalCode: _postalCode.text,
+      city: _city.text,
+      phone: _phone.text,
+    );
+
     final days = int.tryParse(_staleDays.text.trim());
     if (days != null && days > 0) {
-      MockSettings.stalePartialOrderDays = days;
+      await stores.setStalePartialOrderDays(widget.store.id, days);
     } else {
       // Falling back rather than refusing: an empty or nonsense value should
       // restore the default, not leave the dashboard with no threshold at all.
-      MockSettings.reset();
-      _staleDays.text = '${MockSettings.stalePartialOrderDays}';
+      // The repository refuses a non-positive number, so the decision about
+      // what nonsense means belongs here, in the form that accepted it.
+      await stores.setStalePartialOrderDays(
+        widget.store.id,
+        OrderRules.defaultStalePartialDays,
+      );
+      _staleDays.text = '${OrderRules.defaultStalePartialDays}';
     }
+
+    if (!mounted) return;
     AppSnackBar.success(context, l10n.storeSettingsSaved);
   }
 }

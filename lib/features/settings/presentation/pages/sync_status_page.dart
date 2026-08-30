@@ -7,13 +7,14 @@ import '../../../../app/routes.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/formatters.dart';
+import '../../../../data/providers.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../../mock_data/mock_data.dart';
 import '../../../../shared/widgets/widgets.dart';
+import 'store_settings_page.dart';
 
 /// Sync status, and the demo toggle for offline mode.
 ///
-/// Nothing here syncs — Phase 2 owns that — and the screen says so at the
+/// Nothing here syncs — Phase 3 owns that — and the screen says so at the
 /// bottom rather than presenting fictional timestamps as real.
 ///
 /// The offline toggle is the one the brief asks for explicitly: it lets the
@@ -31,28 +32,12 @@ class SyncStatusPage extends ConsumerWidget {
 
     final isOffline = ref.watch(offlineModeProvider);
     final pending = ref.watch(pendingChangesProvider);
+    final seededAt = ref.watch(seededAtProvider).value;
 
     return ShellPage(
       tabs: SectionTabs(
         currentPath: Routes.toSyncStatus(storeId),
-        tabs: [
-          SectionTab(
-            label: l10n.settingsTabStore,
-            path: Routes.toStoreSettings(storeId),
-          ),
-          SectionTab(
-            label: l10n.settingsTabAccount,
-            path: Routes.toAccountSettings(storeId),
-          ),
-          SectionTab(
-            label: l10n.settingsTabNotifications,
-            path: Routes.toNotificationSettings(storeId),
-          ),
-          SectionTab(
-            label: l10n.settingsTabSync,
-            path: Routes.toSyncStatus(storeId),
-          ),
-        ],
+        tabs: settingsTabs(l10n, storeId),
       ),
       title: l10n.syncTitle,
       subtitle: l10n.syncSubtitle,
@@ -116,7 +101,11 @@ class SyncStatusPage extends ConsumerWidget {
                 children: [
                   _StatRow(
                     label: l10n.syncLastSynced,
-                    value: Formatters.dateTime(hoursAgo(2)),
+                    // The instant the local dataset was written, not an
+                    // invented one. Nothing has ever synchronised.
+                    value: seededAt == null
+                        ? '—'
+                        : Formatters.dateTime(seededAt),
                   ),
                   const Divider(height: AppSpacing.xl),
                   _StatRow(label: l10n.syncPending, value: '$pending'),
@@ -210,11 +199,6 @@ class _DemoReset extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
 
-    // Watched so the button enables itself the moment anything is changed on
-    // another screen.
-    ref.watch(mockDataRevisionProvider);
-    final hasChanges = MockWrite.hasChanges;
-
     return AppCard(
       child: Row(
         children: [
@@ -238,28 +222,34 @@ class _DemoReset extends ConsumerWidget {
               children: [
                 Text(l10n.demoResetTitle, style: theme.textTheme.titleSmall),
                 const SizedBox(height: AppSpacing.xxs),
-                Text(
-                  hasChanges ? l10n.demoResetBody : l10n.demoResetNothing,
-                  style: theme.textTheme.bodySmall,
-                ),
+                Text(l10n.demoResetBody, style: theme.textTheme.bodySmall),
               ],
             ),
           ),
           const SizedBox(width: AppSpacing.md),
-          // Disabled rather than hidden when there is nothing to undo: a
-          // control that vanishes leaves the user hunting for it.
+          // Always offered now. Phase 1 disabled it until something had been
+          // edited, which it could tell because every change lived in the same
+          // process and vanished on restart. Changes outlive the session from
+          // this phase on, so "has anything been touched?" is a question about
+          // the whole history of the file rather than about this run — and a
+          // reset is meaningful either way, since it puts the demo back to the
+          // dataset whatever state it is in.
           DestructiveButton(
             label: l10n.demoResetConfirmAction,
             icon: LucideIcons.undo2,
             filled: false,
-            onPressed: hasChanges ? () => _confirm(context, l10n) : null,
+            onPressed: () => _confirm(context, ref, l10n),
           ),
         ],
       ),
     );
   }
 
-  Future<void> _confirm(BuildContext context, AppLocalizations l10n) async {
+  Future<void> _confirm(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations l10n,
+  ) async {
     final confirmed = await ConfirmDialog.show(
       context,
       title: l10n.demoResetConfirmTitle,
@@ -268,7 +258,11 @@ class _DemoReset extends ConsumerWidget {
     );
     if (!confirmed || !context.mounted) return;
 
-    MockWrite.reset();
+    // Wipes and re-seeds in one transaction. Every screen watching a query
+    // follows, because every table changed.
+    await ref.read(demoRepositoryProvider).resetDemo();
+
+    if (!context.mounted) return;
     AppSnackBar.success(context, l10n.demoResetDone);
   }
 }

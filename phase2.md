@@ -1129,7 +1129,112 @@ Three shapes of work, and the second is the one that will surprise you:
   English and it caught eight real overflow bugs across Phase 1.5–1.6. Loading skeletons
   are new layouts — run it at all three viewports against the skeleton state too.
 
+### As built
+
+Stage 9 is done. Every file under `lib/features/`, plus `app_top_bar.dart` and
+`store_switcher.dart` in the shell, reads and writes through repositories. The only
+remaining mention of `MockQueries` anywhere outside `lib/mock_data/` is a sentence in a
+comment. The mock layer is still on disk and still seeds the database — stage 10 deletes it.
+
+**1. Nine view models, not two.** The plan named `ItemRowView` and `MovementRowView`. The
+screens needed more, and each extra one paid for itself the same way — by removing a query
+from inside a `build`:
+
+| View model | Replaces |
+|---|---|
+| `ItemRowView` | two lookups per row of the inventory list, per rebuild |
+| `MovementRowView` | four per row of the movement log — the longest list in the app |
+| `StoreCardView` | a full scan of every article in the account, per card on the opening screen |
+| `CategoryRowView` / `UnitRowView` | one count per row, twice — the row shows it and the delete checks it |
+| `SupplierRowView` / `SupplierProductView` | a count per supplier, and a "who is cheapest" per article |
+| `ItemPricing` | four calls on the item detail — prices, cheapest, default, overpayment |
+| `ItemOnOrder` | a total and the commandes behind it, which a screen must not disagree about |
+| `OrderDetailView` / `ReceiptDetailView` | the header, the lines and the deliveries of one document |
+| `LowStockAlertView` | three per row: the default supplier, its name, and what is already on order |
+
+The rule they all follow: **a view model bundles what one screen decides together.** Splitting
+`ItemPricing` into a list and a number would let the callout name a supplier the table below
+it does not list; splitting `ItemOnOrder` would let a total disagree with the commandes it
+sums.
+
+**2. Forms split into a gate and a form, five times.** A form fills its controllers in
+`initState` from the record being edited, and that record is a query now — `initState` cannot
+wait for one, and filling a controller during `build` writes to a field while it is being laid
+out. So `AddEditItemPage`, `AddEditSupplierPage`, `AddEditMemberPage`, `OrderFormPage`,
+`ReceiveOrderPage` and `StoreSettingsPage` became an outer widget that resolves and an inner
+one that owns the state, keyed on the record's id so opening a different one through the same
+route rebuilds rather than keeping the last one's values.
+
+**3. The article form has to wait for its dropdowns, and that is a bug fix.** Gating it on the
+article alone crashed: `DropdownButtonFormField` asserts when it is given a selected value that
+is not among its options, so an edit form drawn before its categories arrived threw on the
+article's own category. The router walk caught it. Both menus are now part of what the gate
+waits for.
+
+**4. `pumpAndSettle` and the empty state, which is the subtle one.** The notifications screen
+first read its list as `?? const []` and drew *"aucune notification"* while the query was still
+out. Two things wrong with that, and the second is what failed the build: it states something
+untrue in the one place a user would trust, and the empty state is a tall `Column` that does
+not fit the short pane it lands in — 84 pixels of overflow at 1024×600, which
+`router_test.dart` caught exactly as it was designed to.
+
+The rule that came out of it: **`?? const []` is fine for a menu's options and wrong for a list
+that drives an empty state.** A menu with nothing in it yet is honest; an empty state is a
+claim.
+
+**5. `SkeletonList` now reads its constraints.** Stage 8 gave it `shrinkWrap: true` so it could
+sit inside a page's scroll view. That overflows in a bounded pane — six rows are taller than a
+600dp tablet's content area — and not shrink-wrapping inside a scroll view throws outright. It
+is a `LayoutBuilder` now and decides from `hasBoundedHeight`. Both failures are real; neither is
+avoidable by picking one answer.
+
+**6. `AlreadyOnOrderBadge` is the one leaf widget that still queries, deliberately.** Every
+other row was given its data. This one appears on a handful of rows rather than on every row of
+a long list, both halves of its answer come from one provider, and Riverpod hands every asker
+the same live subscription. Making it take data instead would have meant threading an
+`ItemOnOrder` through three widgets to save nothing.
+
+**7. Three screens stopped lying, and one number became real.**
+
+- *"Dernière synchronisation"* was `hoursAgo(2)` — an invented timestamp on a screen whose whole
+  point is to say that nothing syncs. It is the instant the local dataset was written, from the
+  `meta` table, which is a real fact about the installation.
+- *Réinitialiser la démonstration* was disabled until something had been edited, which Phase 1
+  could tell because every change lived in one process and vanished on restart. Changes outlive
+  the session now, so "has anything been touched?" is a question about the whole history of the
+  file. The button is always offered, and a reset is meaningful either way.
+- The two trend charts were frozen lists in `mock_reports.dart` that could not follow a
+  stock-out recorded in the same session. They are a `GROUP BY` over the movement log now —
+  **weekly, not monthly**, which is the plan's "pick one and say so": the seeded history covers
+  a few weeks, and a six-month series over it would be five empty columns and one tall one,
+  which reads as a broken chart rather than as a young dataset.
+- `mockPotentialAnnualSaving` — the headline figure on the reports dashboard and the one number
+  an owner will repeat to somebody else — was a constant. It is now the actual gap between what
+  the establishment pays and the best price on offer, over what it actually bought in the last
+  year. Deliberately conservative: only articles that have both a default supplier and a cheaper
+  one, and only what was really delivered.
+
+**8. `_mostInterestingItem` left the widget.** The price comparison report opened by scanning
+every article in the establishment from `initState`, which the plan already flagged as a report
+query hiding in a screen. It is `reportRepository.largestOverpayItemId` — one query — and the
+screen picks its opening article on the first build that has the answer.
+
+**9. The search box, the movement filters and the commande filters stay in Dart.** All three
+operate on rows already in hand, and `item_search.dart` explains the part that is not just
+convenience: SQLite's `LOWER()` folds ASCII only, so a SQL `LIKE` would stop matching
+*Épicerie*. The filters that *can* go into SQL did: category, supplier and low-stock are an
+`ItemFilter` on the query.
+
+**10. What stage 9 does *not* finish.** `lib/mock_data/` still exists and the seed still reads
+it. `MockWrite.captureSeed()` still runs in `main()`. `tool/ux_audit.py` still points its
+"where writes are allowed" checks at `lib/mock_data/mutations/`. All three are stage 10.
+
+**Verified at the stage boundary:** `flutter analyze` clean; `flutter test` 498/498 green;
+`python tool/ux_audit.py` clean. The route walk — 140 assertions across four viewports — is the
+one that matters here, and it caught two real layout regressions during the stage.
+
 ---
+
 
 ## Stage 10 — Teardown, tooling and docs *(M)*
 

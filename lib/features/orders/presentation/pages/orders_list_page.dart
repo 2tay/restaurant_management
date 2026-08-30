@@ -8,7 +8,8 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/order_status.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../../mock_data/mock_data.dart';
+import '../../../../data/providers.dart';
+import '../../../../data/view_models/view_models.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 import '../widgets/order_row.dart';
@@ -96,17 +97,17 @@ class OrdersListPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
 
-    // Sending, receiving and cancelling all happen on screens pushed above
-    // this one. Watching the revision is what makes the list correct when the
-    // user comes back rather than showing what it read on the way in.
-    ref.watch(mockDataRevisionProvider);
-
+    // Sending, receiving and cancelling all happen on screens pushed above this
+    // one. The query watches the tables they write to, so the list is correct
+    // when the user comes back rather than showing what it read on the way in.
     final filter = ref.watch(ordersFilterProvider);
     final notifier = ref.read(ordersFilterProvider.notifier);
 
-    final all = MockQueries.ordersForStore(storeId);
-    final orders = _visible(all, filter);
-    final suppliers = MockQueries.suppliersForStore(storeId);
+    final rows = ref.watch(orderRowsProvider(storeId));
+    final suppliers = ref.watch(suppliersProvider(storeId)).value ?? const [];
+    final staleDays =
+        ref.watch(stalePartialOrderDaysProvider(storeId)).value ??
+        OrderRules.defaultStalePartialDays;
 
     return ShellPage(
       title: l10n.ordersTitle,
@@ -119,87 +120,98 @@ class OrdersListPage extends ConsumerWidget {
           onPressed: () => context.pushScreen(Routes.toNewOrder(storeId)),
         ),
       ],
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Wrap(
-            spacing: AppSpacing.sm,
-            runSpacing: AppSpacing.sm,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              _StatusMenu(
-                selected: filter.status,
-                onSelected: notifier.setStatus,
-              ),
-              _SupplierMenu(
-                suppliers: suppliers,
-                selectedId: filter.supplierId,
-                onSelected: notifier.setSupplier,
-              ),
-              _RangeMenu(selected: filter.range, onSelected: notifier.setRange),
-              FilterChip(
-                label: Text(l10n.ordersOpenOnly),
-                avatar: Icon(
-                  LucideIcons.truck,
-                  size: AppSizing.iconSm,
-                  color: filter.openOnly
-                      ? AppColors.steel800
-                      : AppColors.textSecondary,
-                ),
-                selected: filter.openOnly,
-                onSelected: (_) => notifier.toggleOpenOnly(),
-                selectedColor: AppColors.offlineContainer,
-                checkmarkColor: AppColors.steel800,
-              ),
-              if (filter.hasActiveFilters)
-                TextButton.icon(
-                  onPressed: notifier.clear,
-                  icon: const Icon(LucideIcons.x, size: AppSizing.iconSm),
-                  label: Text(l10n.inventoryClearFilters),
-                ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.md),
-          Text(
-            l10n.ordersCount(orders.length),
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-          const SizedBox(height: AppSpacing.md),
+      child: AsyncContent<List<OrderRowView>>(
+        value: rows,
+        onRetry: () => ref.invalidate(orderRowsProvider(storeId)),
+        builder: (context, all) {
+          final orders = _visible(all, filter);
 
-          Expanded(
-            child: orders.isEmpty
-                ? _Empty(
-                    storeId: storeId,
-                    storeHasOrders: all.isNotEmpty,
-                    onClearFilters: notifier.clear,
-                  )
-                : ListView.separated(
-                    itemCount: orders.length,
-                    separatorBuilder: (_, _) =>
-                        const SizedBox(height: AppSpacing.sm),
-                    itemBuilder: (context, index) {
-                      final order = orders[index];
-                      return OrderRow(
-                        order: order,
-                        onTap: () => context.pushScreen(
-                          Routes.toOrder(storeId, order.id),
-                        ),
-                      );
-                    },
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Wrap(
+                spacing: AppSpacing.sm,
+                runSpacing: AppSpacing.sm,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  _StatusMenu(
+                    selected: filter.status,
+                    onSelected: notifier.setStatus,
                   ),
-          ),
-        ],
+                  _SupplierMenu(
+                    suppliers: suppliers,
+                    selectedId: filter.supplierId,
+                    onSelected: notifier.setSupplier,
+                  ),
+                  _RangeMenu(selected: filter.range, onSelected: notifier.setRange),
+                  FilterChip(
+                    label: Text(l10n.ordersOpenOnly),
+                    avatar: Icon(
+                      LucideIcons.truck,
+                      size: AppSizing.iconSm,
+                      color: filter.openOnly
+                          ? AppColors.steel800
+                          : AppColors.textSecondary,
+                    ),
+                    selected: filter.openOnly,
+                    onSelected: (_) => notifier.toggleOpenOnly(),
+                    selectedColor: AppColors.offlineContainer,
+                    checkmarkColor: AppColors.steel800,
+                  ),
+                  if (filter.hasActiveFilters)
+                    TextButton.icon(
+                      onPressed: notifier.clear,
+                      icon: const Icon(LucideIcons.x, size: AppSizing.iconSm),
+                      label: Text(l10n.inventoryClearFilters),
+                    ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.md),
+              Text(
+                l10n.ordersCount(orders.length),
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              const SizedBox(height: AppSpacing.md),
+
+              Expanded(
+                child: orders.isEmpty
+                    ? _Empty(
+                        storeId: storeId,
+                        storeHasOrders: all.isNotEmpty,
+                        onClearFilters: notifier.clear,
+                      )
+                    : ListView.separated(
+                        itemCount: orders.length,
+                        separatorBuilder: (_, _) =>
+                            const SizedBox(height: AppSpacing.sm),
+                        itemBuilder: (context, index) {
+                          final view = orders[index];
+                          return OrderRow(
+                            view: view,
+                            stalePartialDays: staleDays,
+                            onTap: () => context.pushScreen(
+                              Routes.toOrder(storeId, view.order.id),
+                            ),
+                          );
+                        },
+                      ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
 
-  List<PurchaseOrder> _visible(
-    List<PurchaseOrder> orders,
-    OrdersFilter filter,
-  ) {
+  /// The four filters, applied over rows already in hand.
+  ///
+  /// Kept in Dart: this is a screen for trying one filter after another, and
+  /// four optional predicates in SQL would be four shapes of query behind it.
+  List<OrderRowView> _visible(List<OrderRowView> rows, OrdersFilter filter) {
     final now = DateTime.now();
 
-    return orders.where((order) {
+    return rows.where((view) {
+      final order = view.order;
       if (filter.openOnly && !orderIsOpen(order)) return false;
       if (filter.status != null && order.status != filter.status) return false;
       if (filter.supplierId != null && order.supplierId != filter.supplierId) {
@@ -314,12 +326,21 @@ class _SupplierMenu extends StatelessWidget {
   final String? selectedId;
   final ValueChanged<String?> onSelected;
 
+  /// From the list the menu is already showing, so the label on the chip and
+  /// the entries below it cannot disagree.
+  String _nameOf(String id) {
+    for (final supplier in suppliers) {
+      if (supplier.id == id) return supplier.name;
+    }
+    return '—';
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final selected = selectedId == null
         ? null
-        : MockQueries.supplierNameOf(selectedId);
+        : _nameOf(selectedId!);
 
     return PopupMenuButton<String>(
       tooltip: l10n.inventoryFilterSupplier,

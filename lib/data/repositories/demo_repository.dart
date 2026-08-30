@@ -1,4 +1,5 @@
 import '../database/app_database.dart';
+import '../database/meta_keys.dart';
 import '../seed/demo_seed.dart';
 
 /// Puts the demo back exactly as it shipped.
@@ -29,4 +30,17 @@ class DemoRepository {
       await seedDemoData(_db);
     });
   }
+
+  /// When the dataset in this database was written.
+  ///
+  /// The sync screen's "last synchronised" line. Nothing synchronises in Phase
+  /// 2, and the screen says so — but the moment the local data was last written
+  /// wholesale is a real fact about this installation, which is more than the
+  /// invented timestamp that line carried before.
+  ///
+  /// Null on a database that has never been seeded.
+  Stream<DateTime?> watchSeededAt() =>
+      (_db.select(_db.meta)..where((m) => m.key.equals(MetaKeys.seededAt)))
+          .watchSingleOrNull()
+          .map((row) => row == null ? null : DateTime.tryParse(row.value));
 }

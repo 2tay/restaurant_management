@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../app/routes.dart';
@@ -8,8 +9,9 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../../mock_data/mock_data.dart';
-import '../../../../models/models.dart';
+import '../../../../data/providers.dart';
+import '../../../../data/repositories/repositories.dart';
+import '../../../../data/view_models/view_models.dart';
 import '../../../../shared/widgets/widgets.dart';
 
 /// Receive a delivery.
@@ -22,16 +24,16 @@ import '../../../../shared/widgets/widgets.dart';
 ///
 /// Pre-selects the item's default supplier, so the common case is: pick item,
 /// tap +, save.
-class StockInPage extends StatefulWidget {
+class StockInPage extends ConsumerStatefulWidget {
   const StockInPage({required this.storeId, super.key});
 
   final String storeId;
 
   @override
-  State<StockInPage> createState() => _StockInPageState();
+  ConsumerState<StockInPage> createState() => _StockInPageState();
 }
 
-class _StockInPageState extends State<StockInPage> {
+class _StockInPageState extends ConsumerState<StockInPage> {
   final _priceController = TextEditingController();
 
   String? _itemId;
@@ -49,7 +51,13 @@ class _StockInPageState extends State<StockInPage> {
     super.dispose();
   }
 
-  Item? get _item => _itemId == null ? null : MockQueries.itemById(_itemId!);
+  /// The picked article, from the list the dropdown already shows.
+  ItemRowView? _selected(List<ItemRowView> rows) {
+    for (final row in rows) {
+      if (row.item.id == _itemId) return row;
+    }
+    return null;
+  }
 
   double? get _enteredPrice =>
       double.tryParse(_priceController.text.replaceAll(',', '.').trim());
@@ -66,38 +74,60 @@ class _StockInPageState extends State<StockInPage> {
     return (entered - autofilled).abs() > 0.001;
   }
 
-  void _onItemChanged(String? itemId) {
+  /// Picking an article pre-selects its usual supplier and pulls that price in.
+  ///
+  /// This is the whole point of the screen: for a routine delivery the form is
+  /// already filled, and the only thing left to do is confirm the quantity.
+  ///
+  /// Asynchronous now, because the offers are a query. The write it eventually
+  /// makes is the user's, so a slow answer costs a beat of an empty price field
+  /// rather than a wrong number.
+  Future<void> _onItemChanged(String? itemId) async {
     setState(() {
       _itemId = itemId;
-      // Pre-select the item's usual supplier and pull its price in. This is the
-      // whole point: for a routine delivery the form is already filled.
-      final defaultPrice = itemId == null
-          ? null
-          : MockQueries.defaultPriceForItem(itemId);
-      _supplierId = defaultPrice?.supplierId;
-      _applyPriceFor(itemId, _supplierId);
-    });
-  }
-
-  void _onSupplierChanged(String? supplierId) {
-    setState(() {
-      _supplierId = supplierId;
-      _applyPriceFor(_itemId, supplierId);
-    });
-  }
-
-  void _applyPriceFor(String? itemId, String? supplierId) {
-    if (itemId == null || supplierId == null) {
+      _supplierId = null;
       _autofilledPrice = null;
       _priceController.clear();
+    });
+    if (itemId == null) return;
+
+    final pricing = await ref
+        .read(supplierRepositoryProvider)
+        .defaultPriceForItem(itemId);
+    if (!mounted || _itemId != itemId) return;
+
+    setState(() {
+      _supplierId = pricing?.supplierId;
+      _autofilledPrice = pricing?.pricePerUnit;
+      _priceController.text = pricing == null
+          ? ''
+          : Formatters.quantity(pricing.pricePerUnit);
+    });
+  }
+
+  Future<void> _onSupplierChanged(String? supplierId) async {
+    setState(() => _supplierId = supplierId);
+
+    final itemId = _itemId;
+    if (itemId == null || supplierId == null) {
+      setState(() {
+        _autofilledPrice = null;
+        _priceController.clear();
+      });
       return;
     }
 
-    final price = MockQueries.priceFor(itemId, supplierId);
-    _autofilledPrice = price?.pricePerUnit;
-    _priceController.text = price == null
-        ? ''
-        : Formatters.quantity(price.pricePerUnit);
+    final price = await ref
+        .read(supplierRepositoryProvider)
+        .priceFor(itemId, supplierId);
+    if (!mounted || _itemId != itemId || _supplierId != supplierId) return;
+
+    setState(() {
+      _autofilledPrice = price?.pricePerUnit;
+      _priceController.text = price == null
+          ? ''
+          : Formatters.quantity(price.pricePerUnit);
+    });
   }
 
   bool get _isDirty => _itemId != null;
@@ -107,35 +137,52 @@ class _StockInPageState extends State<StockInPage> {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
 
-    final item = _item;
-    final unit = item == null
-        ? ''
-        : MockQueries.unitAbbreviationOf(item.unitId);
+    final rows =
+        ref.watch(itemRowsProvider((
+              storeId: widget.storeId,
+              filter: ItemFilter.none,
+            ))).value ??
+        const <ItemRowView>[];
 
-    final items = MockQueries.itemsForStore(widget.storeId)
-        .map(
-          (i) => DropdownOption(
-            value: i.id,
-            label: i.name,
-            secondaryLabel: MockQueries.categoryNameOf(i.categoryId),
-          ),
-        )
-        .toList();
+    final row = _selected(rows);
+    final item = row?.item;
+    final unit = row?.unitAbbreviation ?? '';
 
-    // Only suppliers that actually supply this item. Offering all of them would
-    // invite a link that does not exist and a price of nothing.
-    final supplierOptions = item == null
-        ? <DropdownOption<String>>[]
-        : MockQueries.pricesForItem(item.id)
-              .map(
-                (price) => DropdownOption(
-                  value: price.supplierId,
-                  label: MockQueries.supplierNameOf(price.supplierId),
-                  secondaryLabel:
-                      '${Formatters.price(price.pricePerUnit)} / $unit',
-                ),
-              )
-              .toList();
+    final items = [
+      for (final row in rows)
+        DropdownOption(
+          value: row.item.id,
+          label: row.item.name,
+          secondaryLabel: row.categoryName,
+        ),
+    ];
+
+    // Only suppliers that actually supply this article. Offering all of them
+    // would invite a link that does not exist and a price of nothing.
+    final offers = item == null
+        ? const <SupplierPriceView>[]
+        : ref.watch(itemPricingProvider(item.id)).value?.prices ??
+              const <SupplierPriceView>[];
+
+    final supplierOptions = <DropdownOption<String>>[
+      for (final offer in offers)
+        DropdownOption(
+          value: offer.price.supplierId,
+          label: offer.supplierName,
+          secondaryLabel:
+              '${Formatters.price(offer.price.pricePerUnit)} / $unit',
+        ),
+    ];
+
+    // The supplier named beside the auto-filled price. Taken from the same
+    // list the menu shows, so the sentence cannot name somebody the menu does
+    // not offer.
+    var supplierName = '—';
+    for (final offer in offers) {
+      if (offer.price.supplierId == _supplierId) {
+        supplierName = offer.supplierName;
+      }
+    }
 
     final total = (_enteredPrice ?? 0) * _quantity;
 
@@ -218,9 +265,7 @@ class _StockInPageState extends State<StockInPage> {
                 if (_supplierId != null && !_priceWasEdited) ...[
                   const SizedBox(height: AppSpacing.sm),
                   Text(
-                    l10n.stockInPriceAutofilled(
-                      MockQueries.supplierNameOf(_supplierId),
-                    ),
+                    l10n.stockInPriceAutofilled(supplierName),
                     style: theme.textTheme.bodySmall,
                   ),
                 ],
@@ -269,29 +314,34 @@ class _StockInPageState extends State<StockInPage> {
     );
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     final l10n = AppLocalizations.of(context);
+    final suppliers = ref.read(supplierRepositoryProvider);
+    final priceWasEdited = _priceWasEdited;
 
     // No order behind it: somebody ran to the market. The movement carries no
     // order or receipt reference, which is exactly how the history tells the
     // two paths apart.
-    MovementMutations.recordStockIn(
-      storeId: widget.storeId,
-      itemId: _itemId!,
-      quantity: _quantity,
-      supplierId: _supplierId,
-      unitPrice: _enteredPrice,
-      occurredAt: _date,
-    );
+    await ref
+        .read(movementRepositoryProvider)
+        .recordStockIn(
+          storeId: widget.storeId,
+          itemId: _itemId!,
+          quantity: _quantity,
+          supplierId: _supplierId,
+          unitPrice: _enteredPrice,
+          occurredAt: _date,
+        );
 
     // A price typed here that differs from the one on file is a real price
     // change, recorded the same way receiving a delivery records one.
-    final price = MockQueries.priceFor(_itemId!, _supplierId!);
+    final price = await suppliers.priceFor(_itemId!, _supplierId!);
     final entered = _enteredPrice;
-    if (price != null && entered != null && _priceWasEdited) {
-      SupplierMutations.updatePrice(price.id, entered, changedAt: _date);
+    if (price != null && entered != null && priceWasEdited) {
+      await suppliers.updatePrice(price.id, entered, changedAt: _date);
     }
 
+    if (!mounted) return;
     AppSnackBar.success(context, l10n.stockInRecorded);
     context.goSection(Routes.toMovements(widget.storeId));
   }

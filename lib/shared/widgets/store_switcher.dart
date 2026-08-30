@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../app/routes.dart';
 import '../../app/navigation.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../data/providers.dart';
 import '../../l10n/app_localizations.dart';
-import '../../mock_data/mock_data.dart';
 import '../../models/models.dart';
 
 /// The store selector in the top bar.
@@ -14,15 +15,21 @@ import '../../models/models.dart';
 /// Visible at all times, per the brief. Somebody who manages three locations
 /// needs to be able to answer "which store am I looking at?" without
 /// navigating, and needs switching to be one tap.
-class StoreSwitcher extends StatelessWidget {
+class StoreSwitcher extends ConsumerWidget {
   const StoreSwitcher({required this.currentStore, super.key});
 
   final Store currentStore;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+
+    // The establishment being shown is already resolved — it is what the shell
+    // handed down. Only the *other* entries in the menu need a query, and while
+    // it is out the menu simply lists the current one: a switcher that offers
+    // nowhere to go is better than one that offers nothing at all.
+    final stores = ref.watch(storesProvider).value ?? [currentStore];
 
     return PopupMenuButton<String>(
       tooltip: l10n.storeSwitcherChange,
@@ -36,7 +43,7 @@ class StoreSwitcher extends StatelessWidget {
         }
       },
       itemBuilder: (context) => [
-        for (final store in mockStores)
+        for (final store in stores)
           PopupMenuItem<String>(
             value: store.id,
             child: Row(

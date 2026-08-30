@@ -1,15 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../app/routes.dart';
 import '../../../../app/navigation.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../data/providers.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../../mock_data/mock_data.dart';
+import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 
 /// Create or edit a supplier.
-class AddEditSupplierPage extends StatefulWidget {
+///
+/// Split the same way the article form is, and for the same reason: the fields
+/// are filled in `initState` from the record being edited, and that record is a
+/// query now.
+class AddEditSupplierPage extends ConsumerWidget {
   const AddEditSupplierPage({
     required this.storeId,
     this.supplierId,
@@ -22,10 +28,50 @@ class AddEditSupplierPage extends StatefulWidget {
   final String? supplierId;
 
   @override
-  State<AddEditSupplierPage> createState() => _AddEditSupplierPageState();
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (supplierId == null) {
+      return _SupplierForm(storeId: storeId, existing: null);
+    }
+
+    final l10n = AppLocalizations.of(context);
+
+    return AsyncContent<Supplier?>(
+      value: ref.watch(supplierProvider(supplierId!)),
+      skeleton: FormScaffold(
+        title: l10n.editSupplierTitle,
+        back: BackDestination(
+          label: l10n.suppliersTitle,
+          path: Routes.toSuppliers(storeId),
+        ),
+        submitLabel: l10n.actionSave,
+        onSubmit: null,
+        child: const SkeletonList(rows: 4, rowHeight: 80),
+      ),
+      onRetry: () => ref.invalidate(supplierProvider(supplierId!)),
+      builder: (context, existing) => _SupplierForm(
+        key: ValueKey(supplierId),
+        storeId: storeId,
+        existing: existing,
+      ),
+    );
+  }
 }
 
-class _AddEditSupplierPageState extends State<AddEditSupplierPage> {
+class _SupplierForm extends ConsumerStatefulWidget {
+  const _SupplierForm({
+    required this.storeId,
+    required this.existing,
+    super.key,
+  });
+
+  final String storeId;
+  final Supplier? existing;
+
+  @override
+  ConsumerState<_SupplierForm> createState() => _SupplierFormState();
+}
+
+class _SupplierFormState extends ConsumerState<_SupplierForm> {
   final _name = TextEditingController();
   final _contactName = TextEditingController();
   final _email = TextEditingController();
@@ -35,15 +81,13 @@ class _AddEditSupplierPageState extends State<AddEditSupplierPage> {
   final _city = TextEditingController();
   final _note = TextEditingController();
 
-  bool get _isEditing => widget.supplierId != null;
+  bool get _isEditing => widget.existing != null;
 
   @override
   void initState() {
     super.initState();
 
-    final existing = widget.supplierId == null
-        ? null
-        : MockQueries.supplierById(widget.supplierId!);
+    final existing = widget.existing;
 
     if (existing != null) {
       _name.text = existing.name;
@@ -210,12 +254,13 @@ class _AddEditSupplierPageState extends State<AddEditSupplierPage> {
     );
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     final l10n = AppLocalizations.of(context);
+    final suppliers = ref.read(supplierRepositoryProvider);
 
     if (_isEditing) {
-      SupplierMutations.update(
-        widget.supplierId!,
+      await suppliers.update(
+        widget.existing!.id,
         name: _name.text,
         contactName: _contactName.text,
         email: _email.text,
@@ -227,7 +272,7 @@ class _AddEditSupplierPageState extends State<AddEditSupplierPage> {
         clearNote: _note.text.trim().isEmpty,
       );
     } else {
-      SupplierMutations.create(
+      await suppliers.create(
         storeId: widget.storeId,
         name: _name.text,
         contactName: _contactName.text,
@@ -240,6 +285,7 @@ class _AddEditSupplierPageState extends State<AddEditSupplierPage> {
       );
     }
 
+    if (!mounted) return;
     AppSnackBar.success(
       context,
       _isEditing ? l10n.supplierUpdated : l10n.supplierCreated,
@@ -249,7 +295,9 @@ class _AddEditSupplierPageState extends State<AddEditSupplierPage> {
 
   void _leave() {
     if (_isEditing) {
-      context.pushScreen(Routes.toSupplier(widget.storeId, widget.supplierId!));
+      context.pushScreen(
+        Routes.toSupplier(widget.storeId, widget.existing!.id),
+      );
     } else {
       context.goSection(Routes.toSuppliers(widget.storeId));
     }

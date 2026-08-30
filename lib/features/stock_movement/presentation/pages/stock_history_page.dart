@@ -6,7 +6,8 @@ import '../../../../app/routes.dart';
 import '../../../../app/navigation.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../../mock_data/mock_data.dart';
+import '../../../../data/providers.dart';
+import '../../../../data/view_models/view_models.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 import '../widgets/movement_labels.dart';
@@ -46,15 +47,19 @@ class _StockHistoryPageState extends ConsumerState<StockHistoryPage> {
 
   @override
   Widget build(BuildContext context) {
-    // Every movement recorded anywhere in the app lands in this list.
-    ref.watch(mockDataRevisionProvider);
-
     final l10n = AppLocalizations.of(context);
-    final movements = _filtered();
-    final allMovements = MockQueries.movementsForStore(widget.storeId);
 
-    final users = allMovements.map((m) => m.userName).toSet().toList()..sort();
-    final items = MockQueries.itemsForStore(widget.storeId);
+    // Every movement recorded anywhere in the app lands in this list, and it
+    // arrives here without being announced: the query watches the table.
+    //
+    // The four filters stay in Dart. They are all over rows already in hand,
+    // and pushing them into SQL would put four more shapes of query behind a
+    // screen whose entire job is to let somebody try one filter after another.
+    final rows = ref.watch(movementRowsForStoreProvider(widget.storeId));
+
+    // Empty while its query is out. The menu shows only "tous les articles"
+    // for that frame, which is the correct set of choices given what is known.
+    final items = ref.watch(itemsByNameProvider(widget.storeId)).value ?? const [];
 
     return ShellPage(
       title: l10n.movementsTitle,
@@ -79,99 +84,119 @@ class _StockHistoryPageState extends ConsumerState<StockHistoryPage> {
           onPressed: () => context.pushScreen(Routes.toStockIn(widget.storeId)),
         ),
       ],
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Wrap(
-            spacing: AppSpacing.sm,
-            runSpacing: AppSpacing.sm,
-            crossAxisAlignment: WrapCrossAlignment.center,
+      child: AsyncContent<List<MovementRowView>>(
+        value: rows,
+        onRetry: () => ref.invalidate(movementRowsForStoreProvider(widget.storeId)),
+        builder: (context, allMovements) {
+          final movements = _filtered(allMovements);
+          final users =
+              allMovements.map((row) => row.movement.userName).toSet().toList()
+                ..sort();
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _Menu<StockMovementType?>(
-                label: l10n.movementsFilterType,
-                selectedLabel: _type == null
-                    ? null
-                    : movementTypeLabel(l10n, _type!),
-                entries: {
-                  null: l10n.movementsFilterAllTypes,
-                  for (final type in StockMovementType.values)
-                    type: movementTypeLabel(l10n, type),
-                },
-                onSelected: (value) => setState(() => _type = value),
+              Wrap(
+                spacing: AppSpacing.sm,
+                runSpacing: AppSpacing.sm,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  _Menu<StockMovementType?>(
+                    label: l10n.movementsFilterType,
+                    selectedLabel: _type == null
+                        ? null
+                        : movementTypeLabel(l10n, _type!),
+                    entries: {
+                      null: l10n.movementsFilterAllTypes,
+                      for (final type in StockMovementType.values)
+                        type: movementTypeLabel(l10n, type),
+                    },
+                    onSelected: (value) => setState(() => _type = value),
+                  ),
+                  _Menu<HistoryPeriod>(
+                    label: l10n.movementsFilterPeriod,
+                    selectedLabel: _periodLabel(l10n, _period),
+                    entries: {
+                      for (final period in HistoryPeriod.values)
+                        period: _periodLabel(l10n, period),
+                    },
+                    onSelected: (value) => setState(() => _period = value),
+                  ),
+                  _Menu<String?>(
+                    label: l10n.stockInItem,
+                    selectedLabel: _itemName(items),
+                    entries: {
+                      null: l10n.inventoryFilterAllSuppliers,
+                      for (final item in items) item.id: item.name,
+                    },
+                    onSelected: (value) => setState(() => _itemId = value),
+                  ),
+                  _Menu<String?>(
+                    label: l10n.movementsFilterUser,
+                    selectedLabel: _userName,
+                    entries: {
+                      null: l10n.movementsFilterAllUsers,
+                      for (final user in users) user: user,
+                    },
+                    onSelected: (value) => setState(() => _userName = value),
+                  ),
+                ],
               ),
-              _Menu<HistoryPeriod>(
-                label: l10n.movementsFilterPeriod,
-                selectedLabel: _periodLabel(l10n, _period),
-                entries: {
-                  for (final period in HistoryPeriod.values)
-                    period: _periodLabel(l10n, period),
-                },
-                onSelected: (value) => setState(() => _period = value),
+              const SizedBox(height: AppSpacing.md),
+              Text(
+                l10n.movementsCount(movements.length),
+                style: Theme.of(context).textTheme.bodySmall,
               ),
-              _Menu<String?>(
-                label: l10n.stockInItem,
-                selectedLabel: _itemId == null
-                    ? null
-                    : MockQueries.itemById(_itemId!)?.name,
-                entries: {
-                  null: l10n.inventoryFilterAllSuppliers,
-                  for (final item in items) item.id: item.name,
-                },
-                onSelected: (value) => setState(() => _itemId = value),
-              ),
-              _Menu<String?>(
-                label: l10n.movementsFilterUser,
-                selectedLabel: _userName,
-                entries: {
-                  null: l10n.movementsFilterAllUsers,
-                  for (final user in users) user: user,
-                },
-                onSelected: (value) => setState(() => _userName = value),
+              const SizedBox(height: AppSpacing.md),
+
+              Expanded(
+                child: movements.isEmpty
+                    ? EmptyState(
+                        icon: LucideIcons.arrowRightLeft,
+                        title: allMovements.isEmpty
+                            ? l10n.movementsEmpty
+                            : l10n.emptyStateNoResultsTitle,
+                        message: allMovements.isEmpty
+                            ? l10n.movementsEmptyBody
+                            : l10n.emptyStateNoResultsBody,
+                        actionLabel: allMovements.isEmpty
+                            ? l10n.actionAddDelivery
+                            : l10n.inventoryClearFilters,
+                        onAction: allMovements.isEmpty
+                            ? () => context.pushScreen(
+                                Routes.toStockIn(widget.storeId),
+                              )
+                            : _clearFilters,
+                      )
+                    : ListView.separated(
+                        itemCount: movements.length,
+                        separatorBuilder: (_, _) =>
+                            const SizedBox(height: AppSpacing.sm),
+                        itemBuilder: (context, index) => MovementRow(
+                          view: movements[index],
+                          storeId: widget.storeId,
+                          onTap: () => context.pushScreen(
+                            Routes.toItem(
+                              widget.storeId,
+                              movements[index].movement.itemId,
+                            ),
+                          ),
+                        ),
+                      ),
               ),
             ],
-          ),
-          const SizedBox(height: AppSpacing.md),
-          Text(
-            l10n.movementsCount(movements.length),
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-          const SizedBox(height: AppSpacing.md),
-
-          Expanded(
-            child: movements.isEmpty
-                ? EmptyState(
-                    icon: LucideIcons.arrowRightLeft,
-                    title: allMovements.isEmpty
-                        ? l10n.movementsEmpty
-                        : l10n.emptyStateNoResultsTitle,
-                    message: allMovements.isEmpty
-                        ? l10n.movementsEmptyBody
-                        : l10n.emptyStateNoResultsBody,
-                    actionLabel: allMovements.isEmpty
-                        ? l10n.actionAddDelivery
-                        : l10n.inventoryClearFilters,
-                    onAction: allMovements.isEmpty
-                        ? () => context.pushScreen(
-                            Routes.toStockIn(widget.storeId),
-                          )
-                        : _clearFilters,
-                  )
-                : ListView.separated(
-                    itemCount: movements.length,
-                    separatorBuilder: (_, _) =>
-                        const SizedBox(height: AppSpacing.sm),
-                    itemBuilder: (context, index) => MovementRow(
-                      movement: movements[index],
-                      storeId: widget.storeId,
-                      onTap: () => context.pushScreen(
-                        Routes.toItem(widget.storeId, movements[index].itemId),
-                      ),
-                    ),
-                  ),
-          ),
-        ],
+          );
+        },
       ),
     );
+  }
+
+  String? _itemName(List<Item> items) {
+    if (_itemId == null) return null;
+    for (final item in items) {
+      if (item.id == _itemId) return item.name;
+    }
+    return null;
   }
 
   void _clearFilters() {
@@ -191,12 +216,13 @@ class _StockHistoryPageState extends ConsumerState<StockHistoryPage> {
         HistoryPeriod.all => l10n.periodAll,
       };
 
-  List<StockMovement> _filtered() {
+  List<MovementRowView> _filtered(List<MovementRowView> rows) {
     final cutoff = _period.days == null
         ? null
         : DateTime.now().subtract(Duration(days: _period.days!));
 
-    return MockQueries.movementsForStore(widget.storeId).where((movement) {
+    return rows.where((row) {
+      final movement = row.movement;
       if (_type != null && movement.type != _type) return false;
       if (_itemId != null && movement.itemId != _itemId) return false;
       if (_userName != null && movement.userName != _userName) return false;

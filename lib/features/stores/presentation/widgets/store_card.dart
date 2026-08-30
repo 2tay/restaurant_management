@@ -4,9 +4,8 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/formatters.dart';
+import '../../../../data/view_models/view_models.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../../mock_data/mock_data.dart';
-import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 
 /// One store on the selector grid.
@@ -15,9 +14,9 @@ import '../../../../shared/widgets/widgets.dart';
 /// which one needs them before choosing — that is the entire point of showing
 /// them a grid rather than dropping them into the last store they opened.
 class StoreCard extends StatelessWidget {
-  const StoreCard({required this.store, required this.onTap, super.key});
+  const StoreCard({required this.view, required this.onTap, super.key});
 
-  final Store store;
+  final StoreCardView view;
   final VoidCallback onTap;
 
   @override
@@ -25,8 +24,9 @@ class StoreCard extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
 
-    final itemCount = MockQueries.itemsForStore(store.id).length;
-    final alertCount = MockQueries.lowStockItems(store.id).length;
+    final store = view.store;
+    final itemCount = view.itemCount;
+    final alertCount = view.lowStockCount;
     final isNew = itemCount == 0;
 
     return AppCard(
@@ -36,8 +36,8 @@ class StoreCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // A generated tile rather than a photo. Every store has one, they load
-          // instantly, and a real logo can replace it in Phase 2 without the
-          // layout changing.
+          // instantly, and a real logo can replace it later without the layout
+          // changing.
           Container(
             height: 120,
             width: double.infinity,

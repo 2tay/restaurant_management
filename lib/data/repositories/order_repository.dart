@@ -7,6 +7,8 @@ import '../../models/purchase_order.dart';
 import '../../models/purchase_order_line.dart';
 import '../database/app_database.dart';
 import '../mappers/mappers.dart';
+import '../view_models/item_detail_views.dart';
+import '../view_models/order_detail_view.dart';
 import '../view_models/receipt_document_sources.dart';
 import 'account_repository.dart';
 import 'movement_repository.dart';
@@ -144,6 +146,89 @@ class OrderRepository {
   Future<double> onOrderQuantity(String storeId, String itemId) =>
       _onOrderQuery(storeId, itemId).getSingle().then(_readOutstanding);
 
+  /// What is still owed of one article, and which commandes owe it.
+  ///
+  /// The two halves of the same answer, and the item detail screen shows both:
+  /// a total at the top and the commandes behind it underneath. Bundled so a
+  /// screen cannot draw a total that the list below it does not add up to.
+  ///
+  /// The total is counted in SQL and the list is filtered in Dart, which is not
+  /// an inconsistency: [watchOnOrderQuantity] explains why that number is worth
+  /// a query of its own, and a test holds the two spellings of `lineOutstanding`
+  /// to the same result.
+  Stream<ItemOnOrder> watchItemOnOrder(String storeId, String itemId) {
+    return watchOpenOrders(storeId).asyncMap((orders) async {
+      final relevant = _outstandingFor(orders, itemId);
+      final names = await _supplierNames({
+        for (final order in relevant) order.supplierId,
+      });
+
+      return ItemOnOrder(
+        quantity: await onOrderQuantity(storeId, itemId),
+        orders: [
+          for (final order in relevant)
+            OrderRowView(
+              order: order,
+              supplierName: names[order.supplierId] ?? '—',
+              outstandingForItem: _outstandingOf(order, itemId),
+            ),
+        ],
+      );
+    });
+  }
+
+  /// Every commande ever placed with one supplier, newest first, named.
+  Stream<List<OrderRowView>> watchOrderRowsForSupplier(String supplierId) =>
+      _named(
+        _orders(
+          _db.purchaseOrders.supplierId.equals(supplierId),
+        ).watch().map(_assemble),
+      );
+
+  /// Every commande in the establishment with its supplier named.
+  Stream<List<OrderRowView>> watchOrderRows(String storeId) =>
+      _named(watchOrders(storeId));
+
+  /// The open ones — sent and partial.
+  Stream<List<OrderRowView>> watchOpenOrderRows(String storeId) =>
+      _named(watchOpenOrders(storeId));
+
+  Stream<List<OrderRowView>> _named(Stream<List<PurchaseOrder>> orders) =>
+      orders.asyncMap((orders) async {
+        final names = await _supplierNames({
+          for (final order in orders) order.supplierId,
+        });
+        return [
+          for (final order in orders)
+            OrderRowView(
+              order: order,
+              supplierName: names[order.supplierId] ?? '—',
+              outstandingForItem: 0,
+            ),
+        ];
+      });
+
+  /// Names for a handful of supplier ids, in one query.
+  ///
+  /// A map rather than a join because a commande carries its lines as a nested
+  /// list: joining suppliers onto the assembled orders would mean re-running
+  /// the assembly, and there are never more than a few suppliers on a screen.
+  Future<Map<String, String>> _supplierNames(Set<String> ids) async {
+    if (ids.isEmpty) return const {};
+    final rows = await (_db.select(
+      _db.suppliers,
+    )..where((s) => s.id.isIn(ids))).get();
+    return {for (final row in rows) row.id: row.name};
+  }
+
+  double _outstandingOf(PurchaseOrder order, String itemId) {
+    var outstanding = 0.0;
+    for (final line in order.lines) {
+      if (line.itemId == itemId) outstanding += lineOutstanding(line);
+    }
+    return outstanding;
+  }
+
   /// Commandes sitting in `partial` past this establishment's threshold.
   ///
   /// The threshold is a column on the store since this phase. [now] is injected
@@ -198,6 +283,95 @@ class OrderRepository {
     return receiptReference(row.reference, index == -1 ? 1 : index + 1);
   }
 
+
+  /// Everything the commande detail screen draws.
+  ///
+  /// The commande, its supplier's name, every line with its article named, and
+  /// every delivery with its quotable number — as one value, so the header, the
+  /// table and the receipts list cannot be a frame out of step with each other.
+  ///
+  /// Null when the commande is gone, which the screen shows as an error with a
+  /// way back to the list.
+  Stream<OrderDetailView?> watchOrderDetail(String orderId) {
+    return watchOrder(orderId).asyncMap((order) async {
+      if (order == null) return null;
+
+      final names = await _supplierNames({order.supplierId});
+      final items = await _itemNames({
+        for (final line in order.lines) line.itemId,
+      });
+      final receipts = await receiptsForOrder(orderId);
+
+      return OrderDetailView(
+        order: order,
+        supplierName: names[order.supplierId] ?? '—',
+        lines: [
+          for (final line in order.lines)
+            OrderLineView(
+              line: line,
+              itemName: items[line.itemId]?.name ?? '—',
+              unitAbbreviation: items[line.itemId]?.unit ?? '',
+            ),
+        ],
+        receipts: [
+          // Oldest first, and the position in this list *is* the number after
+          // the slash — so the enumeration and the reference cannot disagree.
+          for (final (index, receipt) in receipts.indexed)
+            ReceiptRowView(
+              receipt: receipt,
+              reference: receiptReference(order.reference, index + 1),
+            ),
+        ],
+      );
+    });
+  }
+
+  /// A name and a unit for a handful of article ids, in one joined query.
+  Future<Map<String, ReceiptDocumentItem>> _itemNames(Set<String> ids) async {
+    if (ids.isEmpty) return const {};
+    final rows = await (_db.select(_db.items)..where((i) => i.id.isIn(ids)))
+        .join([leftOuterJoin(_db.units, _db.units.id.equalsExp(_db.items.unitId))])
+        .get();
+    return {
+      for (final row in rows)
+        row.readTable(_db.items).id: (
+          name: row.readTable(_db.items).name,
+          unit: row.readTableOrNull(_db.units)?.abbreviation ?? '',
+        ),
+    };
+  }
+
+  /// Everything the bon de réception *screen* shows.
+  ///
+  /// Fetched once rather than watched: a receipt is append-only, and its
+  /// position among its commande's deliveries — which is what the `/2` counts —
+  /// cannot move once later deliveries only ever append after it.
+  ///
+  /// Null when the receipt is gone, which the screen shows as an error with a
+  /// way back to the commandes list.
+  Future<ReceiptDetailView?> receiptDetail(String receiptId) async {
+    final found = await receipt(receiptId);
+    if (found == null) return null;
+
+    final order = await this.order(found.orderId);
+    final items = await _itemNames({
+      for (final line in found.lines) line.itemId,
+    });
+
+    return ReceiptDetailView(
+      receipt: found,
+      reference: await receiptReferenceOf(found),
+      orderReference: order?.reference ?? '—',
+      lines: [
+        for (final line in found.lines)
+          ReceiptLineView(
+            line: line,
+            itemName: items[line.itemId]?.name ?? '—',
+            unitAbbreviation: items[line.itemId]?.unit ?? '',
+          ),
+      ],
+    );
+  }
 
   /// Everything the bon de réception needs besides the receipt itself.
   ///

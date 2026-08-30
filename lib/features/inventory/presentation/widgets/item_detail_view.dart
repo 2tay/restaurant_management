@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../app/routes.dart';
@@ -8,11 +9,10 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/formatters.dart';
-import '../../../../core/utils/order_status.dart';
 import '../../../../core/utils/stock_status.dart';
+import '../../../../data/providers.dart';
+import '../../../../data/view_models/view_models.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../../mock_data/mock_data.dart';
-import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 import '../../../orders/presentation/widgets/order_status_badge.dart';
 import '../../../stock_movement/presentation/widgets/movement_labels.dart';
@@ -23,34 +23,98 @@ import 'supplier_price_row.dart';
 /// Extracted from the page so the inventory list can embed it in a split view
 /// on a wide tablet, and push it as a full page on a narrow one, without the
 /// content being written twice.
-class ItemDetailView extends StatelessWidget {
+///
+/// Takes an **id**, not an article. It used to take the object, because the
+/// list that embedded it already had one; now it watches four queries of its
+/// own, and taking the id is what lets it keep showing the right thing when a
+/// delivery lands underneath it while somebody is looking at the screen.
+///
+/// The four are combined into one decision rather than rendered separately.
+/// Four `.when`s would give four skeletons resolving at four different moments,
+/// which reads as a page assembling itself rather than a page loading.
+class ItemDetailView extends ConsumerWidget {
   const ItemDetailView({
-    required this.item,
+    required this.itemId,
     required this.storeId,
     this.showTitle = true,
     super.key,
   });
 
-  final Item item;
+  final String itemId;
   final String storeId;
 
   /// False when the surrounding page already shows the item name in its header.
   final bool showTitle;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final data = asyncAll4(
+      ref.watch(itemRowProvider(itemId)),
+      ref.watch(itemPricingProvider(itemId)),
+      ref.watch(movementRowsForItemProvider(itemId)),
+      ref.watch(itemOnOrderProvider((storeId: storeId, itemId: itemId))),
+      (row, pricing, movements, onOrder) => (
+        row: row,
+        pricing: pricing,
+        movements: movements,
+        onOrder: onOrder,
+      ),
+    );
+
+    return AsyncContent<
+      ({
+        ItemRowView? row,
+        ItemPricing pricing,
+        List<MovementRowView> movements,
+        ItemOnOrder onOrder,
+      })
+    >(
+      value: data,
+      skeleton: const SkeletonList(rows: 4, rowHeight: 120),
+      onRetry: () {
+        ref.invalidate(itemRowProvider(itemId));
+        ref.invalidate(itemPricingProvider(itemId));
+        ref.invalidate(movementRowsForItemProvider(itemId));
+        ref.invalidate(itemOnOrderProvider((storeId: storeId, itemId: itemId)));
+      },
+      builder: (context, data) {
+        final row = data.row;
+        // Deleted while somebody was looking at it. Rendering nothing is right
+        // here: the page around this already shows the error and the way back.
+        if (row == null) return const SizedBox.shrink();
+
+        return _body(
+          context,
+          ref,
+          row,
+          data.pricing,
+          data.movements,
+          data.onOrder,
+        );
+      },
+    );
+  }
+
+  Widget _body(
+    BuildContext context,
+    WidgetRef ref,
+    ItemRowView row,
+    ItemPricing pricing,
+    List<MovementRowView> movements,
+    ItemOnOrder onOrderData,
+  ) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
 
+    final item = row.item;
+    final unit = row.unitAbbreviation;
     final status = stockStatusOf(item);
-    final unit = MockQueries.unitAbbreviationOf(item.unitId);
-    final prices = MockQueries.pricesForItem(item.id);
-    final cheapest = MockQueries.cheapestPriceForItem(item.id);
-    final defaultPrice = MockQueries.defaultPriceForItem(item.id);
-    final overpay = MockQueries.overpayPerUnit(item.id);
-    final movements = MockQueries.movementsForItem(item.id).take(6).toList();
-    final onOrder = MockQueries.onOrderQuantity(storeId, item.id);
-    final openOrders = MockQueries.openOrdersForItem(storeId, item.id);
+    final prices = pricing.prices;
+    final cheapest = pricing.cheapest;
+    final defaultPrice = pricing.defaultPrice;
+    final overpay = pricing.overpayPerUnit;
+    final onOrder = onOrderData.quantity;
+    final openOrders = onOrderData.orders;
 
     return ListView(
       padding: EdgeInsets.zero,
@@ -111,7 +175,7 @@ class ItemDetailView extends StatelessWidget {
               const Divider(height: AppSpacing.xl),
               _FactRow(
                 label: l10n.itemCategoryLabel,
-                value: MockQueries.categoryNameOf(item.categoryId),
+                value: row.categoryName,
               ),
               const Divider(height: AppSpacing.xl),
               _FactRow(
@@ -149,10 +213,9 @@ class ItemDetailView extends StatelessWidget {
             padding: EdgeInsets.zero,
             child: Column(
               children: [
-                for (final order in openOrders)
+                for (final view in openOrders)
                   _OpenOrderLine(
-                    order: order,
-                    itemId: item.id,
+                    view: view,
                     storeId: storeId,
                     unitAbbreviation: unit,
                   ),
@@ -184,7 +247,7 @@ class ItemDetailView extends StatelessWidget {
             child: _OverpayNotice(
               amount: Formatters.price(overpay),
               unit: unit,
-              cheapestSupplier: MockQueries.supplierNameOf(cheapest.supplierId),
+              cheapestSupplier: cheapest.supplierName,
             ),
           ),
 
@@ -210,15 +273,22 @@ class ItemDetailView extends StatelessWidget {
             clipBehavior: Clip.antiAlias,
             child: Column(
               children: [
-                for (final price in prices)
+                for (final entry in prices)
                   SupplierPriceRow(
-                    price: price,
+                    view: entry,
                     unitAbbreviation: unit,
-                    isCheapest: prices.length > 1 && price.id == cheapest?.id,
+                    isCheapest:
+                        prices.length > 1 &&
+                        entry.price.id == cheapest?.price.id,
                     onViewHistory: () => context.pushScreen(
-                      Routes.toPriceHistory(storeId, item.id, price.supplierId),
+                      Routes.toPriceHistory(
+                        storeId,
+                        item.id,
+                        entry.price.supplierId,
+                      ),
                     ),
-                    onRemove: () => _confirmRemoveSupplier(context, price),
+                    onRemove: () =>
+                        _confirmRemoveSupplier(context, ref, pricing, entry),
                   ),
               ],
             ),
@@ -251,7 +321,7 @@ class ItemDetailView extends StatelessWidget {
             child: Column(
               children: [
                 for (final movement in movements)
-                  _MovementLine(movement: movement, unitAbbreviation: unit),
+                  _MovementLine(view: movement),
               ],
             ),
           ),
@@ -262,14 +332,16 @@ class ItemDetailView extends StatelessWidget {
 
   Future<void> _confirmRemoveSupplier(
     BuildContext context,
-    SupplierPrice price,
+    WidgetRef ref,
+    ItemPricing pricing,
+    SupplierPriceView entry,
   ) async {
     final l10n = AppLocalizations.of(context);
-    final supplierName = MockQueries.supplierNameOf(price.supplierId);
+    final price = entry.price;
 
     final confirmed = await ConfirmDialog.confirmDelete(
       context,
-      name: supplierName,
+      name: entry.supplierName,
       extraWarning: l10n.itemRemoveSupplierWarning,
     );
 
@@ -277,26 +349,30 @@ class ItemDetailView extends StatelessWidget {
 
     // Removing the default promotes the next cheapest supplier, so the item
     // does not silently lose its price auto-fill everywhere. Working out which
-    // one before the removal, so it can be named.
-    final promoted = price.isDefault
-        ? MockQueries.pricesForItem(
-            price.itemId,
-          ).where((candidate) => candidate.id != price.id).firstOrNull
-        : null;
+    // one before the removal, so it can be named — and from the list already on
+    // screen, which is cheapest-first for exactly this reason.
+    SupplierPriceView? promoted;
+    if (price.isDefault) {
+      for (final candidate in pricing.prices) {
+        if (candidate.price.id != price.id) {
+          promoted = candidate;
+          break;
+        }
+      }
+    }
 
-    SupplierMutations.unlinkItem(price.id);
+    await ref.read(supplierRepositoryProvider).unlinkItem(price.id);
 
+    if (!context.mounted) return;
     AppSnackBar.success(context, l10n.itemSupplierRemoved);
 
     // Said out loud rather than left to be discovered: the default changing is
     // a consequence the user did not ask for and would otherwise only notice
     // the next time a form filled itself in with a different number.
-    if (promoted != null && context.mounted) {
+    if (promoted != null) {
       AppSnackBar.warning(
         context,
-        l10n.supplierPromotedToDefault(
-          MockQueries.supplierNameOf(promoted.supplierId),
-        ),
+        l10n.supplierPromotedToDefault(promoted.supplierName),
       );
     }
   }
@@ -422,14 +498,12 @@ class _BarcodeRow extends StatelessWidget {
 /// One open commande carrying this item, with what is still outstanding on it.
 class _OpenOrderLine extends StatelessWidget {
   const _OpenOrderLine({
-    required this.order,
-    required this.itemId,
+    required this.view,
     required this.storeId,
     required this.unitAbbreviation,
   });
 
-  final PurchaseOrder order;
-  final String itemId;
+  final OrderRowView view;
   final String storeId;
   final String unitAbbreviation;
 
@@ -438,10 +512,8 @@ class _OpenOrderLine extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
 
-    var outstanding = 0.0;
-    for (final line in order.lines) {
-      if (line.itemId == itemId) outstanding += lineOutstanding(line);
-    }
+    final order = view.order;
+    final outstanding = view.outstandingForItem;
 
     return InkWell(
       onTap: () => context.pushScreen(Routes.toOrder(storeId, order.id)),
@@ -460,7 +532,7 @@ class _OpenOrderLine extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    MockQueries.supplierNameOf(order.supplierId),
+                    view.supplierName,
                     style: theme.textTheme.titleSmall,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -532,14 +604,14 @@ class _FactRow extends StatelessWidget {
 }
 
 class _MovementLine extends StatelessWidget {
-  const _MovementLine({required this.movement, required this.unitAbbreviation});
+  const _MovementLine({required this.view});
 
-  final StockMovement movement;
-  final String unitAbbreviation;
+  final MovementRowView view;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final movement = view.movement;
     final isIncrease = movement.quantity > 0;
 
     return Container(
@@ -570,10 +642,8 @@ class _MovementLine extends StatelessWidget {
                   movementDescription(
                     AppLocalizations.of(context),
                     movement,
-                    MockQueries.supplierNameOf(movement.supplierId),
-                    orderReference: movement.orderId == null
-                        ? null
-                        : MockQueries.orderById(movement.orderId!)?.reference,
+                    view.supplierName ?? '—',
+                    orderReference: view.orderReference,
                   ),
                   style: theme.textTheme.bodyLarge,
                   maxLines: 1,
@@ -590,7 +660,7 @@ class _MovementLine extends StatelessWidget {
           ),
           const SizedBox(width: AppSpacing.md),
           Text(
-            Formatters.quantityDelta(movement.quantity, unitAbbreviation),
+            Formatters.quantityDelta(movement.quantity, view.unitAbbreviation),
             style: AppTypography.numeric.copyWith(
               color: isIncrease
                   ? AppColors.inStock.foreground

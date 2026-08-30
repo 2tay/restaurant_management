@@ -8,7 +8,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../../mock_data/mock_data.dart';
+import '../../../../data/providers.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 
@@ -30,23 +30,18 @@ class NotificationsPage extends ConsumerStatefulWidget {
 class _NotificationsPageState extends ConsumerState<NotificationsPage> {
   bool _unreadOnly = false;
 
-  /// Ids marked read in this session. Phase 1 persists nothing.
-
   @override
   Widget build(BuildContext context) {
-    // Alerts are generated from stock levels, which a delivery moves.
-    ref.watch(mockDataRevisionProvider);
-
     final l10n = AppLocalizations.of(context);
 
-    final all = MockQueries.notificationsForStore(widget.storeId);
-    final unreadCount = all
-        .where((n) => !n.isRead)
-        .length;
+    // Marking one read is a write, and this list is watching the table it
+    // writes to — so the badge on the bell and the row on screen change in the
+    // same frame.
+    final asyncAll = ref.watch(notificationsProvider(widget.storeId));
+    final all = asyncAll.value ?? const <NotificationItem>[];
+    final unreadCount = all.where((n) => !n.isRead).length;
 
-    final shown = _unreadOnly
-        ? all.where((n) => !n.isRead).toList()
-        : all;
+    final shown = _unreadOnly ? all.where((n) => !n.isRead).toList() : all;
 
     return ShellPage(
       tabs: SectionTabs(
@@ -93,43 +88,54 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
           ),
           const SizedBox(height: AppSpacing.lg),
           Expanded(
-            child: shown.isEmpty
-                ? EmptyState(
-                    icon: LucideIcons.bellOff,
-                    title: l10n.notificationsEmpty,
-                    message: l10n.notificationsEmptyBody,
-                  )
-                : ListView.separated(
-                    itemCount: shown.length,
-                    separatorBuilder: (_, _) =>
-                        const SizedBox(height: AppSpacing.sm),
-                    itemBuilder: (context, index) {
-                      final notification = shown[index];
-                      return _NotificationCard(
-                        notification: notification,
-                        isRead: notification.isRead,
-                        onTap: () => _open(notification),
-                      );
-                    },
-                  ),
+            child: AsyncContent<List<NotificationItem>>(
+              value: asyncAll,
+              onRetry: () =>
+                  ref.invalidate(notificationsProvider(widget.storeId)),
+              // Only once the query has answered. Drawing "aucune notification"
+              // over a list that is still arriving says something untrue, and
+              // says it in the one place on the screen a user would trust.
+              builder: (context, _) => shown.isEmpty
+                  ? EmptyState(
+                      icon: LucideIcons.bellOff,
+                      title: l10n.notificationsEmpty,
+                      message: l10n.notificationsEmptyBody,
+                    )
+                  : ListView.separated(
+                      itemCount: shown.length,
+                      separatorBuilder: (_, _) =>
+                          const SizedBox(height: AppSpacing.sm),
+                      itemBuilder: (context, index) {
+                        final notification = shown[index];
+                        return _NotificationCard(
+                          notification: notification,
+                          isRead: notification.isRead,
+                          onTap: () => _open(notification),
+                        );
+                      },
+                    ),
+            ),
           ),
         ],
       ),
     );
   }
 
-  void _markAllRead() {
+  Future<void> _markAllRead() async {
     final l10n = AppLocalizations.of(context);
-    final changed = AccountMutations.markAllRead(widget.storeId);
+    final changed = await ref
+        .read(accountRepositoryProvider)
+        .markAllRead(widget.storeId);
 
     // Says how many rather than a bare acknowledgement, and stays quiet when
     // there was nothing to do.
-    if (changed == 0) return;
+    if (!mounted || changed == 0) return;
     AppSnackBar.success(context, l10n.notificationsMarkedRead(changed));
   }
 
-  void _open(NotificationItem notification) {
-    AccountMutations.markRead(notification.id);
+  Future<void> _open(NotificationItem notification) async {
+    await ref.read(accountRepositoryProvider).markRead(notification.id);
+    if (!mounted) return;
 
     // Deep-links to whatever the notification is about, so it is actionable
     // rather than merely informative.

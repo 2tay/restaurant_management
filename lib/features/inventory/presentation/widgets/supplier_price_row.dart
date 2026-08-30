@@ -5,9 +5,8 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/formatters.dart';
+import '../../../../data/view_models/view_models.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../../mock_data/mock_data.dart';
-import '../../../../models/models.dart';
 
 /// One supplier's offer for an item.
 ///
@@ -21,7 +20,7 @@ import '../../../../models/models.dart';
 /// overpaying, and the screen above this row says so in euros.
 class SupplierPriceRow extends StatelessWidget {
   const SupplierPriceRow({
-    required this.price,
+    required this.view,
     required this.unitAbbreviation,
     required this.isCheapest,
     required this.onViewHistory,
@@ -29,7 +28,7 @@ class SupplierPriceRow extends StatelessWidget {
     super.key,
   });
 
-  final SupplierPrice price;
+  final SupplierPriceView view;
   final String unitAbbreviation;
   final bool isCheapest;
   final VoidCallback onViewHistory;
@@ -39,7 +38,7 @@ class SupplierPriceRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final supplier = MockQueries.supplierById(price.supplierId);
+    final price = view.price;
 
     return Container(
       padding: const EdgeInsets.symmetric(
@@ -67,7 +66,7 @@ class SupplierPriceRow extends StatelessWidget {
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     Text(
-                      supplier?.name ?? '—',
+                      view.supplierName,
                       style: theme.textTheme.titleSmall,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,

@@ -8,7 +8,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../../mock_data/mock_data.dart';
+import '../../../../data/providers.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 
@@ -20,11 +20,11 @@ class TeamListPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Members are creatable and removable.
-    ref.watch(mockDataRevisionProvider);
-
     final l10n = AppLocalizations.of(context);
-    final members = MockQueries.teamForStore(storeId);
+
+    // Members are creatable and removable, and inviting one from the form
+    // pushed above this lands here without anything telling it to.
+    final asyncMembers = ref.watch(teamForStoreProvider(storeId));
 
     return ShellPage(
       title: l10n.teamTitle,
@@ -42,22 +42,24 @@ class TeamListPage extends ConsumerWidget {
           onPressed: () => context.pushScreen(Routes.toAddTeamMember(storeId)),
         ),
       ],
-      child: members.isEmpty
-          ? EmptyState(
-              icon: LucideIcons.users,
-              title: l10n.teamEmpty,
-              message: l10n.teamEmptyBody,
-              actionLabel: l10n.teamInvite,
-              actionIcon: LucideIcons.userPlus,
-              onAction: () =>
-                  context.pushScreen(Routes.toAddTeamMember(storeId)),
-            )
-          : ListView.separated(
-              itemCount: members.length,
-              separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
-              itemBuilder: (context, index) =>
-                  _MemberRow(member: members[index], storeId: storeId),
-            ),
+      child: AsyncListContent<TeamMember>(
+        value: asyncMembers,
+        onRetry: () => ref.invalidate(teamForStoreProvider(storeId)),
+        empty: EmptyState(
+          icon: LucideIcons.users,
+          title: l10n.teamEmpty,
+          message: l10n.teamEmptyBody,
+          actionLabel: l10n.teamInvite,
+          actionIcon: LucideIcons.userPlus,
+          onAction: () => context.pushScreen(Routes.toAddTeamMember(storeId)),
+        ),
+        builder: (context, members) => ListView.separated(
+          itemCount: members.length,
+          separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
+          itemBuilder: (context, index) =>
+              _MemberRow(member: members[index], storeId: storeId),
+        ),
+      ),
     );
   }
 }

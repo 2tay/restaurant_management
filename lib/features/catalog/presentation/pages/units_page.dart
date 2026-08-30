@@ -3,8 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../app/routes.dart';
+import '../../../../data/providers.dart';
+import '../../../../data/view_models/view_models.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../../mock_data/mock_data.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 import '../widgets/create_sheets.dart';
@@ -30,11 +31,11 @@ class UnitsPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Same as categories: the usage count per unit is live.
-    ref.watch(mockDataRevisionProvider);
+    // Same as categories: the usage count per unit comes from the same query
+    // as the unit, so it cannot lag behind it.
+    final rows = ref.watch(unitRowsProvider(storeId));
 
     final l10n = AppLocalizations.of(context);
-    final units = MockQueries.unitsForStore(storeId);
 
     return ShellPage(
       tabs: SectionTabs(
@@ -61,35 +62,37 @@ class UnitsPage extends ConsumerWidget {
       ],
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 820),
-        child: units.isEmpty
-            ? AppCard(
-                child: EmptyState(
-                  icon: LucideIcons.scale,
-                  title: l10n.unitsEmpty,
-                  message: l10n.unitsEmptyBody,
-                  actionLabel: l10n.unitsAdd,
-                  actionIcon: LucideIcons.plus,
-                  onAction: () => _create(context),
-                ),
-              )
-            : AppCard(
-                padding: EdgeInsets.zero,
-                child: Column(
-                  children: [
-                    for (final unit in units)
-                      CatalogTile(
-                        icon: LucideIcons.scale,
-                        title: unit.name,
-                        subtitle: l10n.categoriesItemCount(
-                          MockQueries.itemCountUsingUnit(unit.id),
-                        ),
-                        trailingLabel: unit.abbreviation,
-                        onEdit: () => _edit(context, unit),
-                        onDelete: () => _delete(context, unit),
-                      ),
-                  ],
-                ),
-              ),
+        child: AsyncListContent<UnitRowView>(
+          value: rows,
+          onRetry: () => ref.invalidate(unitRowsProvider(storeId)),
+          skeleton: const SkeletonList(rows: 5, rowHeight: 64),
+          empty: AppCard(
+            child: EmptyState(
+              icon: LucideIcons.scale,
+              title: l10n.unitsEmpty,
+              message: l10n.unitsEmptyBody,
+              actionLabel: l10n.unitsAdd,
+              actionIcon: LucideIcons.plus,
+              onAction: () => _create(context),
+            ),
+          ),
+          builder: (context, rows) => AppCard(
+            padding: EdgeInsets.zero,
+            child: Column(
+              children: [
+                for (final row in rows)
+                  CatalogTile(
+                    icon: LucideIcons.scale,
+                    title: row.unit.name,
+                    subtitle: l10n.categoriesItemCount(row.itemCount),
+                    trailingLabel: row.unit.abbreviation,
+                    onEdit: () => _edit(context, row.unit),
+                    onDelete: () => _delete(context, ref, row),
+                  ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -110,15 +113,19 @@ class UnitsPage extends ConsumerWidget {
     AppSnackBar.success(context, AppLocalizations.of(context).unitUpdated);
   }
 
-  Future<void> _delete(BuildContext context, UnitOfMeasure unit) async {
+  Future<void> _delete(
+    BuildContext context,
+    WidgetRef ref,
+    UnitRowView row,
+  ) async {
     final l10n = AppLocalizations.of(context);
-    final usageCount = MockQueries.itemCountUsingUnit(unit.id);
+    final unit = row.unit;
 
-    if (usageCount > 0) {
+    if (row.itemCount > 0) {
       await ConfirmDialog.blocked(
         context,
         title: l10n.unitDeleteBlockedTitle(unit.name),
-        message: l10n.unitDeleteBlockedBody(usageCount),
+        message: l10n.unitDeleteBlockedBody(row.itemCount),
       );
       return;
     }
@@ -129,7 +136,9 @@ class UnitsPage extends ConsumerWidget {
     );
     if (!confirmed || !context.mounted) return;
 
-    CatalogMutations.deleteUnit(unit.id);
+    await ref.read(catalogRepositoryProvider).deleteUnit(unit.id);
+
+    if (!context.mounted) return;
     AppSnackBar.success(context, l10n.unitDeleted);
   }
 }

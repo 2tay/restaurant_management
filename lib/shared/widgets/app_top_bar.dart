@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../app/routes.dart';
@@ -6,14 +7,14 @@ import '../../app/navigation.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/utils/responsive.dart';
+import '../../data/providers.dart';
 import '../../l10n/app_localizations.dart';
-import '../../mock_data/mock_data.dart';
 import '../../models/models.dart';
 import 'store_switcher.dart';
 
 /// The bar across the top of the shell: store switcher, search, notifications,
 /// account.
-class AppTopBar extends StatelessWidget implements PreferredSizeWidget {
+class AppTopBar extends ConsumerWidget implements PreferredSizeWidget {
   const AppTopBar({required this.store, super.key});
 
   final Store store;
@@ -22,9 +23,13 @@ class AppTopBar extends StatelessWidget implements PreferredSizeWidget {
   Size get preferredSize => const Size.fromHeight(AppSizing.topBarHeight);
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    final unread = MockQueries.unreadNotificationCount(store.id);
+
+    // Zero until the count arrives, which draws the bell without its badge —
+    // the honest thing to show while the answer is unknown, and the one state
+    // that does not move the layout when it lands.
+    final unread = ref.watch(unreadCountProvider(store.id)).value ?? 0;
 
     return Container(
       height: AppSizing.topBarHeight,
@@ -167,15 +172,22 @@ class _NotificationBell extends StatelessWidget {
   }
 }
 
-class _AccountButton extends StatelessWidget {
+class _AccountButton extends ConsumerWidget {
   const _AccountButton({required this.storeId});
 
   final String storeId;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    final user = mockCurrentUser;
+    final user = ref.watch(currentUserProvider).value;
+    if (user == null) {
+      // No signed-in member to name yet — or, once Phase 3 arrives, none at
+      // all. The avatar keeps its place in the bar either way, because the
+      // chrome moving underneath somebody's finger is worse than a blank disc.
+      return const _AccountAvatar(initials: '');
+    }
+
     final initials = user.fullName
         .split(' ')
         .where((part) => part.isNotEmpty)
@@ -229,20 +241,35 @@ class _AccountButton extends StatelessWidget {
           ),
         ),
       ],
-      child: Container(
-        width: AppSizing.minTapTarget,
-        height: AppSizing.minTapTarget,
-        alignment: Alignment.center,
-        decoration: const BoxDecoration(
-          color: AppColors.primaryContainer,
-          shape: BoxShape.circle,
-        ),
-        child: Text(
-          initials,
-          style: Theme.of(
-            context,
-          ).textTheme.labelLarge?.copyWith(color: AppColors.onPrimaryContainer),
-        ),
+      child: _AccountAvatar(initials: initials),
+    );
+  }
+}
+
+/// The disc with somebody's initials in it.
+///
+/// Its own widget so the bar can draw the same shape before the current member
+/// is known, keeping the top bar's geometry fixed from the first frame.
+class _AccountAvatar extends StatelessWidget {
+  const _AccountAvatar({required this.initials});
+
+  final String initials;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: AppSizing.minTapTarget,
+      height: AppSizing.minTapTarget,
+      alignment: Alignment.center,
+      decoration: const BoxDecoration(
+        color: AppColors.primaryContainer,
+        shape: BoxShape.circle,
+      ),
+      child: Text(
+        initials,
+        style: Theme.of(
+          context,
+        ).textTheme.labelLarge?.copyWith(color: AppColors.onPrimaryContainer),
       ),
     );
   }

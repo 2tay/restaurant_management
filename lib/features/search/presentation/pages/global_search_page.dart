@@ -9,8 +9,10 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/utils/stock_status.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../../mock_data/mock_data.dart';
-import '../../../../models/models.dart';
+import '../../../../core/utils/item_search.dart';
+import '../../../../data/providers.dart';
+import '../../../../data/repositories/repositories.dart';
+import '../../../../data/view_models/view_models.dart';
 import '../../../../shared/widgets/widgets.dart';
 
 /// Search across items, suppliers and categories for the current store.
@@ -35,37 +37,53 @@ class _GlobalSearchPageState extends ConsumerState<GlobalSearchPage> {
 
   @override
   Widget build(BuildContext context) {
-    // Results cover items, suppliers and categories — all three are creatable
-    // and deletable.
-    ref.watch(mockDataRevisionProvider);
-
     final l10n = AppLocalizations.of(context);
     final query = _query.trim().toLowerCase();
 
+    // Results cover articles, suppliers and categories — all three are
+    // creatable and deletable, and all three queries watch their own tables.
+    //
+    // The matching stays in Dart. It is the same predicate the inventory list
+    // uses, for the reason written down in `item_search.dart`: SQLite folds
+    // case for ASCII only, so a `LIKE` here would stop finding "Épicerie".
+    final allItems =
+        ref.watch(itemRowsProvider((
+              storeId: widget.storeId,
+              filter: ItemFilter.none,
+            ))).value ??
+        const <ItemRowView>[];
+    final allSuppliers =
+        ref.watch(supplierRowsProvider(widget.storeId)).value ??
+        const <SupplierRowView>[];
+    final allCategories =
+        ref.watch(categoryRowsProvider(widget.storeId)).value ??
+        const <CategoryRowView>[];
+
+    // Matches on name or on an exact barcode — pasting a scanned code into the
+    // box finds the article.
     final items = query.isEmpty
-        ? <Item>[]
-        // Matches on name or on an exact barcode — pasting a scanned code into
-        // the box finds the item.
-        : MockQueries.itemsForStore(widget.storeId)
-              .where((item) => MockQueries.itemMatchesSearch(item, query))
-              .toList();
+        ? const <ItemRowView>[]
+        : [
+            for (final row in allItems)
+              if (itemMatchesSearch(row.item, query)) row,
+          ];
 
     final suppliers = query.isEmpty
-        ? <Supplier>[]
-        : MockQueries.suppliersForStore(widget.storeId)
-              .where(
-                (supplier) =>
-                    supplier.name.toLowerCase().contains(query) ||
-                    supplier.contactName.toLowerCase().contains(query) ||
-                    supplier.city.toLowerCase().contains(query),
-              )
-              .toList();
+        ? const <SupplierRowView>[]
+        : [
+            for (final row in allSuppliers)
+              if (row.supplier.name.toLowerCase().contains(query) ||
+                  row.supplier.contactName.toLowerCase().contains(query) ||
+                  row.supplier.city.toLowerCase().contains(query))
+                row,
+          ];
 
     final categories = query.isEmpty
-        ? <Category>[]
-        : MockQueries.categoriesForStore(widget.storeId)
-              .where((category) => category.name.toLowerCase().contains(query))
-              .toList();
+        ? const <CategoryRowView>[]
+        : [
+            for (final row in allCategories)
+              if (row.category.name.toLowerCase().contains(query)) row,
+          ];
 
     final total = items.length + suppliers.length + categories.length;
 
@@ -118,7 +136,7 @@ class _GlobalSearchPageState extends ConsumerState<GlobalSearchPage> {
                               bottom: AppSpacing.sm,
                             ),
                             child: _ItemResult(
-                              item: item,
+                              view: item,
                               storeId: widget.storeId,
                             ),
                           ),
@@ -136,13 +154,16 @@ class _GlobalSearchPageState extends ConsumerState<GlobalSearchPage> {
                             ),
                             child: _SimpleResult(
                               icon: LucideIcons.truck,
-                              title: supplier.name,
+                              title: supplier.supplier.name,
                               subtitle: _joinDot(
-                                supplier.contactName,
-                                supplier.city,
+                                supplier.supplier.contactName,
+                                supplier.supplier.city,
                               ),
                               onTap: () => context.pushScreen(
-                                Routes.toSupplier(widget.storeId, supplier.id),
+                                Routes.toSupplier(
+                                  widget.storeId,
+                                  supplier.supplier.id,
+                                ),
                               ),
                             ),
                           ),
@@ -160,9 +181,9 @@ class _GlobalSearchPageState extends ConsumerState<GlobalSearchPage> {
                             ),
                             child: _SimpleResult(
                               icon: LucideIcons.tag,
-                              title: category.name,
+                              title: category.category.name,
                               subtitle: l10n.categoriesItemCount(
-                                MockQueries.itemCountInCategory(category.id),
+                                category.itemCount,
                               ),
                               onTap: () => context.goSection(
                                 Routes.toCategories(widget.storeId),
@@ -185,15 +206,16 @@ String _joinDot(String a, String b) => '$a · $b';
 /// An item result, carrying its stock status so search doubles as a way to
 /// check "do we still have any?" without opening the article.
 class _ItemResult extends StatelessWidget {
-  const _ItemResult({required this.item, required this.storeId});
+  const _ItemResult({required this.view, required this.storeId});
 
-  final Item item;
+  final ItemRowView view;
   final String storeId;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final unit = MockQueries.unitAbbreviationOf(item.unitId);
+    final item = view.item;
+    final unit = view.unitAbbreviation;
 
     return AppCard(
       onTap: () => context.pushScreen(Routes.toItem(storeId, item.id)),
@@ -221,7 +243,7 @@ class _ItemResult extends StatelessWidget {
                 ),
                 Text(
                   _joinDot(
-                    MockQueries.categoryNameOf(item.categoryId),
+                    view.categoryName,
                     Formatters.quantityWithUnit(item.quantity, unit),
                   ),
                   style: theme.textTheme.bodySmall,

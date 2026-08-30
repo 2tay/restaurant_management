@@ -3,6 +3,7 @@ import 'package:drift/drift.dart';
 import '../../models/store.dart';
 import '../database/app_database.dart';
 import '../mappers/mappers.dart';
+import '../view_models/store_card_view.dart';
 import 'new_id.dart';
 
 /// Establishments.
@@ -51,6 +52,48 @@ class StoreRepository {
         orElse: () => stores.first,
       );
     });
+  }
+
+  /// Every establishment with the two numbers its card on the selector shows.
+  ///
+  /// One query rather than two per card. The card used to count articles and
+  /// low-stock articles itself, which meant scanning every article in the
+  /// account once per card on every rebuild — on the screen that is the first
+  /// thing anybody sees.
+  ///
+  /// A `LEFT OUTER JOIN` rather than two subqueries so an establishment with no
+  /// articles still produces a row: a brand new shop is exactly what the "new"
+  /// badge on that card exists to announce, and an inner join would drop it.
+  Stream<List<StoreCardView>> watchStoreCards() {
+    final lowStock = _db.items.quantity.isSmallerOrEqual(
+      _db.items.lowStockThreshold,
+    );
+    final itemCount = _db.items.id.count();
+    // `count(filter:)` counts only the rows the condition holds for, which is
+    // what keeps both numbers in the same pass over the same join.
+    final lowStockCount = _db.items.id.count(filter: lowStock);
+
+    final query = _db.select(_db.stores).join([
+      leftOuterJoin(_db.items, _db.items.storeId.equalsExp(_db.stores.id)),
+    ]);
+    query
+      ..addColumns([itemCount, lowStockCount])
+      ..groupBy([_db.stores.id])
+      ..orderBy([
+        OrderingTerm(expression: _db.stores.createdAt),
+        OrderingTerm(expression: _db.stores.id),
+      ]);
+
+    return query.watch().map(
+      (rows) => [
+        for (final row in rows)
+          StoreCardView(
+            store: storeFromRow(row.readTable(_db.stores)),
+            itemCount: row.read(itemCount) ?? 0,
+            lowStockCount: row.read(lowStockCount) ?? 0,
+          ),
+      ],
+    );
   }
 
   /// How many days a `partial` commande may sit before the dashboard flags it.
