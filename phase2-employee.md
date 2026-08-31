@@ -508,6 +508,61 @@ built): only `credential_repository.dart` may write `employee_credentials`; only
 
 **Done when:** both ported suites green, originals deleted, `flutter analyze` clean.
 
+### As built
+
+Stage 4 is done. `employee_repository` and `credential_repository` grew their write halves,
+`test/employees_test.dart` (12) → `test/db/employees_test.dart` (14) and `test/auth_test.dart`
+(10) → `test/db/auth_test.dart` (9), both originals deleted. 732 green (731 → 732 — the two
+ported suites replace the two mock ones, one net new test from splitting the create path).
+
+**1. `create({..., pin})`, not two repo calls.** The add-employee form's contract is
+`Future<Employee?>` with a synchronous `if (result == null)` branch; threading a second
+`Future<EmployeeCredential?>` through the form to keep the two writes together would have
+leaked the transaction into the widget. So `EmployeeRepository.create` takes an optional
+`pin`, validates it (`isValidPin`) *before* opening the transaction, inserts the employee,
+then calls `CredentialRepository(_db).setPin` — a nested transaction, which drift runs as a
+savepoint. A `pin` that is set but malformed refuses the whole create, writing nothing; a
+`null` pin creates the person with no credential (the seed path, and the "PIN set later"
+case). If `setPin` ever returned null for a validated PIN against a row that exists in the
+transaction, the `StateError` rolls the create back rather than leaving a login-less
+employee.
+
+**2. `LoginOutcome` / `LoginAttempt` moved to `credential_repository.dart`**, shape
+unchanged. `credential_mutations.dart` still defines its own copy until Stage 10; nothing
+imports both, so there is no clash. `authenticate(cin, pin, {now})` composes the primitives
+and **does not touch the session** — the login screen signs in on `success` in Stage 9.
+
+**3. The `ux_audit.py` guard is a generic companion-writer check.** `EmployeesCompanion` may
+only appear in `employee_repository.dart` and `employee_mapper.dart`;
+`EmployeeCredentialsCompanion` only in `credential_repository.dart` and
+`credential_mapper.dart`. The mapper is on each allow-list for the same reason
+`item_mapper.dart` is on `QUANTITY_WRITERS` — it is how a whole record becomes a row, and
+the seed and the repository both go through it without deciding anything there. The partial
+`.write(EmployeesCompanion(archivedAt: ...))` in `archive` / `restore` is why the repository
+itself is listed, not just the mapper.
+
+**4. `archive` gained an optional `{DateTime? at}`.** `EmployeeMutations.archive` hard-coded
+`DateTime.now()`; the repository keeps that default but lets a test pin the stamp, the same
+posture the rest of the data layer takes. `restore` needs no clock — it writes null.
+
+**5. The mock-reset-only tests were dropped, not ported.** `employees_test.dart`'s "reset
+restores mockEmployees" and `auth_test.dart`'s "reset restores the credentials" asserted
+`MockWrite.reset()` behaviour; `db_fixture.dart` gives every test its own database and has
+nothing to reset. Same call `test/db/items_test.dart` and `test/db/suppliers_test.dart`
+made. Two new tests replace them: a refused create writes nothing, and a malformed PIN
+refuses the whole create.
+
+**6. `intl` relaxed `^0.20.3` → `^0.20.2`.** Commit `c3602bd` had pinned `intl: ^0.20.3`
+against a Flutter SDK whose `flutter_localizations` wanted 0.20.3; Flutter 3.44 exact-pins
+0.20.2 and the constraint could not resolve. The caret range lets pub match whichever the
+local SDK requires — this is what Stage 0's "keep the `intl 0.20.2` pin" asked for, restored.
+`pubspec.lock` picked up the matching transitive downgrades (matcher, meta, test\*,
+vector_math) for the local SDK.
+
+**Verified at the stage boundary:** `flutter analyze` clean; `flutter test` 732/732 green;
+`python tool/ux_audit.py` clean; `dart run build_runner build --force-jit` regenerates
+identically.
+
 ---
 
 ## Stage 5 — The attendance repository *(M)*
