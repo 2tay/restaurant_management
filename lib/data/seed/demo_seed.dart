@@ -38,14 +38,18 @@ Future<void> seedDemoData(AppDatabase db, {DateTime? at}) async {
   Value<DateTime?> movedValue(DateTime? original) =>
       Value(original == null ? null : moved(original));
 
-  // A midnight-normalised date, shifted and re-normalised. Attendance `date` and
-  // a payroll period's span are filed under a calendar day, not an instant, so
-  // the shift has to land back on midnight — otherwise the `(employeeId, date)`
-  // unique index and every "group by day" read see a time component.
-  DateTime movedDay(DateTime original) {
-    final m = moved(original);
-    return DateTime(m.year, m.month, m.day);
-  }
+  // The employee module is **date-anchored**, not instant-anchored: a pointage
+  // row belongs to a work day, "Karim clocked in at 07:45" has to stay 07:45 on
+  // the re-anchored day, and `attendanceForToday` compares against `dayOnly` of
+  // a wall clock. So its timestamps shift by a **whole number of days** — the
+  // gap between the two midnights — which moves every date onto the seed
+  // instant's calendar while leaving every time of day exactly where it was.
+  DateTime midnight(DateTime d) => DateTime(d.year, d.month, d.day);
+  final Duration dayShift = midnight(seededAt).difference(midnight(mockNow));
+  DateTime movedByDays(DateTime original) => original.add(dayShift);
+  Value<DateTime?> movedByDaysValue(DateTime? original) =>
+      Value(original == null ? null : movedByDays(original));
+  DateTime movedDay(DateTime original) => midnight(movedByDays(original));
 
   await db.batch((Batch batch) {
     // Insertion order is foreign-key order. With `PRAGMA foreign_keys = ON` the
@@ -119,9 +123,9 @@ Future<void> seedDemoData(AppDatabase db, {DateTime? at}) async {
     batch.insertAll(db.employees, [
       for (final employee in mockEmployees)
         employeeToRow(employee).copyWith(
-          hireDate: Value(moved(employee.hireDate)),
-          createdAt: Value(moved(employee.createdAt)),
-          archivedAt: movedValue(employee.archivedAt),
+          hireDate: Value(movedByDays(employee.hireDate)),
+          createdAt: Value(movedByDays(employee.createdAt)),
+          archivedAt: movedByDaysValue(employee.archivedAt),
         ),
     ]);
     batch.insertAll(db.employeeCredentials, mockCredentials.map(credentialToRow));
@@ -130,16 +134,16 @@ Future<void> seedDemoData(AppDatabase db, {DateTime? at}) async {
         payrollPeriodToRow(period).copyWith(
           startDate: Value(movedDay(period.startDate)),
           endDate: Value(movedDay(period.endDate)),
-          paidAt: movedValue(period.paidAt),
-          createdAt: Value(moved(period.createdAt)),
+          paidAt: movedByDaysValue(period.paidAt),
+          createdAt: Value(movedByDays(period.createdAt)),
         ),
     ]);
     batch.insertAll(db.attendances, [
       for (final attendance in mockAttendances)
         attendanceToRow(attendance).copyWith(
           date: Value(movedDay(attendance.clockInAt ?? attendance.date)),
-          clockInAt: movedValue(attendance.clockInAt),
-          clockOutAt: movedValue(attendance.clockOutAt),
+          clockInAt: movedByDaysValue(attendance.clockInAt),
+          clockOutAt: movedByDaysValue(attendance.clockOutAt),
         ),
     ]);
     batch.insertAll(db.attendancePauses, [
@@ -150,8 +154,8 @@ Future<void> seedDemoData(AppDatabase db, {DateTime? at}) async {
             attendanceId: attendance.id,
             position: index,
           ).copyWith(
-            startAt: Value(moved(pause.startAt)),
-            endAt: movedValue(pause.endAt),
+            startAt: Value(movedByDays(pause.startAt)),
+            endAt: movedByDaysValue(pause.endAt),
           ),
     ]);
 

@@ -306,13 +306,18 @@ column). The old "note what is missing" comment on `storeToRow` is gone with it.
 emits no payment column; `payrollPeriodId == null ? unpaid : paid`. The `Attendance` model
 keeps its field, so nothing above the mapper changed.
 
-**3. Attendance `date` is re-normalised from the *moved clock-in*, not the moved `date`.**
-The seed shifts every date by `at - mockNow`, and that shift is fractional (the fixture
-anchor is noon, `mockNow` is whenever the run starts). A midnight `date` shifted by a
-fractional amount is no longer midnight, and clock-in vs. `date` could then land on
-different calendar days. `movedDay(attendance.clockInAt ?? attendance.date)` keeps the
-`(employeeId, date)` unique index and every group-by-day read coherent. Payroll period
-`startDate` / `endDate` get the same `movedDay` treatment.
+**3. The employee module shifts by a whole number of days, not the raw `at - mockNow`.**
+Stock rows shift by the full (fractional) `shift` — a movement is an instant. But the
+employee module is **date-anchored**: a pointage row belongs to a work day, "Karim clocked
+in at 07:45" has to stay 07:45 on the re-anchored day, `attendanceForToday` compares
+against `dayOnly` of a wall clock, and the KPI arithmetic (`isLate`, `overtimeBy`) reads
+the clock-in's time of day. So `demo_seed` computes `dayShift = midnight(seededAt) -
+midnight(mockNow)` and shifts every employee-module timestamp by that whole-day amount
+(`movedByDays`); `date` / `startDate` / `endDate` are then re-normalised to midnight
+(`movedDay`). Every time of day is preserved exactly, which is what lets `queries_test`
+assert the repository figures against `MockQueries` (Stage 3). *(Revised during Stage 3 —
+Stage 2 first landed a `movedDay` off the fractional shift, which broke the KPI
+comparisons.)*
 
 **4. Pause ids are `att-<id>-pause-<n>` slugs.** `AttendancePause` has no id on the model;
 `pauseToRow` derives a deterministic one from the day and the position (debuggable, stable
@@ -406,6 +411,63 @@ reason: the two implementations must agree on everything not wall-clock-dependen
 
 **Done when:** every employee-module `MockQueries` member has a repository counterpart and
 the checklist above maps them one-to-one.
+
+### As built
+
+Stage 3 is done. Four new repositories (`employee_repository`, `credential_repository`,
+`attendance_repository`, `payroll_repository`), `store_repository` gains `settings` /
+`watchSettings`, and `test/db/employee_queries_test.dart` (20 tests). 731 green (711 → 731).
+Nothing in `lib/features/` calls any of it yet.
+
+**1. `MockQueries` → repository, as landed:**
+
+| `MockQueries` | Replacement |
+|---|---|
+| `employeesForStore` | `EmployeeRepository.employees` / `watchEmployees` |
+| `activeEmployeesForStore` | `EmployeeRepository.activeEmployees` / `watchActiveEmployees` |
+| `employeeById` | `EmployeeRepository.employee` / `watchEmployee` |
+| `employeeByCin` / `employeeByEmail` | same names, `{excludingId}` kept |
+| `credentialForEmployee` | `CredentialRepository.forEmployee` |
+| `attendanceById` | `AttendanceRepository.attendance` |
+| `attendanceForToday` | `AttendanceRepository.today` / `watchToday` — take the clock |
+| `attendancesForEmployee` | `AttendanceRepository.forEmployee` / `watchForEmployee` |
+| `attendancesForStore` | `AttendanceRepository.page` / `watchPage` — record `(rows, totalCount, page, pageCount)` |
+| `attendanceStatsForStore` | `AttendanceRepository.stats` |
+| `payrollPeriodById` | `PayrollRepository.period` |
+| `payrollPeriodsForEmployee` | `PayrollRepository.forEmployee` / `watchForEmployee` |
+| `payrollPeriodsForStore` | `PayrollRepository.page` |
+| `payrollDays` | `PayrollRepository.days` |
+| `storeSettings` | `StoreRepository.settings` / `watchSettings` |
+
+**2. The roster is ordered by display name**, then id — the mock list was in authored
+order and the roster screen reads top-to-bottom as a list of people. `queries_test` asserts
+this explicitly (the mock had no ordering contract to compare against).
+
+**3. `payrollPeriodsForEmployee` now orders by `paidAt` (coalesced with `createdAt`), not
+`endDate`.** The plan's ordering contract; the mock used `endDate` for `…ForEmployee` and
+`paidAt` for `…ForStore`. Moot in the seed (one run per employee) so nothing regressed.
+
+**4. `page` / `watchPage` paginate in Dart over the watched row set.** The table is small
+and the page needs a total count anyway, so a single `.watch()` on the filtered rows and a
+`sublist` in Dart beats running a separate `COUNT` stream and keeping the two in step.
+`page` (the `Future`) runs the filter query twice — once for the count, once with
+`LIMIT/OFFSET`.
+
+**5. `stats` and `days` fold with the unchanged `attendance_status.dart` /
+`payroll_math.dart`.** SQL fetches the rows + pauses (`_assemble` does one extra query for
+the pauses, never one per row); Dart resolves each employee's schedule from a
+pre-built id→schedule map and folds the durations. `days` fetches every `done` row for the
+store and applies the per-employee hire-date floor and the `from`/`to` bounds in Dart —
+"SQL for the fetch, Dart for the rule", exactly as the plan asked.
+
+**6. The `queries_test` figures compare against `MockQueries` and pass** because Stage 2's
+whole-day shift preserves every time of day (decision 3 there). `stats` late-arrival /
+overtime / late-break counts, `days` worked / overtime totals — all asserted equal to the
+mock, not to a hand-computed number.
+
+**Verified at the stage boundary:** `flutter analyze` clean; `flutter test` 731/731 green;
+`python tool/ux_audit.py` clean; `dart run build_runner build --force-jit` regenerates
+identically.
 
 ---
 

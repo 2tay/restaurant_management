@@ -1,6 +1,10 @@
 import 'package:drift/drift.dart';
 
+import '../../core/utils/attendance_status.dart';
+import '../../core/utils/order_status.dart';
+import '../../core/utils/payroll_math.dart';
 import '../../models/store.dart';
+import '../../models/store_settings.dart';
 import '../database/app_database.dart';
 import '../mappers/mappers.dart';
 import 'new_id.dart';
@@ -65,6 +69,38 @@ class StoreRepository {
     )..where((s) => s.id.equals(storeId))).getSingleOrNull();
     return row?.stalePartialOrderDays ?? 7;
   }
+
+  /// The full six-field [StoreSettings] — the pointage hours, the break
+  /// allowance, the payroll coefficients and the stale-order threshold.
+  ///
+  /// This was `mock_store_settings.dart` / `MockQueries.storeSettings`; the
+  /// columns live on the establishment row since Phase 2 employé. Synthesises a
+  /// default record when there is no row — nothing in the app produces a store
+  /// without one, but a missing row is cheaper to treat as "defaults" than to
+  /// assert against, exactly as the mock did.
+  Stream<StoreSettings> watchSettings(String storeId) =>
+      (_db.select(_db.stores)..where((s) => s.id.equals(storeId)))
+          .watchSingleOrNull()
+          .map((row) => _settingsOf(storeId, row));
+
+  Future<StoreSettings> settings(String storeId) async {
+    final row = await (_db.select(
+      _db.stores,
+    )..where((s) => s.id.equals(storeId))).getSingleOrNull();
+    return _settingsOf(storeId, row);
+  }
+
+  StoreSettings _settingsOf(String storeId, StoreRow? row) => row == null
+      ? StoreSettings(
+          storeId: storeId,
+          openMinutes: AttendanceRules.defaultOpenMinutes,
+          closeMinutes: AttendanceRules.defaultCloseMinutes,
+          maxBreakMinutes: AttendanceRules.defaultMaxBreakMinutes,
+          overtimeMultiplier: PayrollRules.defaultOvertimeMultiplier,
+          workingDaysPerMonth: PayrollRules.defaultWorkingDaysPerMonth,
+          stalePartialOrderDays: OrderRules.defaultStalePartialDays,
+        )
+      : storeSettingsFromRow(row);
 
   // ---------------------------------------------------------------------------
   // Writes
