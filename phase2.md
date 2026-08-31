@@ -1283,6 +1283,119 @@ one that matters here, and it caught two real layout regressions during the stag
    reopen it, the delivery is still there.* `DOMAIN_MODEL.md` — its "Where this lives in
    the code" table (lines 803-815) repointed at repositories.
 
+### As built
+
+Stage 10 is done, and Phase 2 with it. `lib/mock_data/` no longer exists.
+
+**1. The dataset moved and lost its prefix.** Thirteen files went to
+`lib/data/seed/dataset/` and dropped `mock_` from their names — `items.dart`, `stores.dart`,
+`purchase_orders.dart`. The prefix meant "this is not the real thing" and the directory now
+says what it is: a fixture the seed reads and nothing else does. `mock_queries.dart`,
+`mock_settings.dart`, `mock_reports.dart` and all six mutation files are gone; so is
+`MockWrite.captureSeed()` from `main()`, because putting the demo back is a re-seed now and a
+re-seed survives the restart that used to be the only alternative.
+
+**2. `MockQueries` is not deleted — it is a witness now.** `test/db/queries_test.dart` was
+written at stage 3 as a *differential* suite: ask the database, ask the old list scan, fail
+when they disagree. Deleting the second half would have turned fifty comparisons into fifty
+hand-typed expected values, and a hand-typed expected value is only ever as right as whoever
+typed it.
+
+So the Phase 1 read layer lives on as `test/support/dataset_queries.dart`, trimmed from 64
+members to the 40-odd the suite actually asks for. It is in the test tree, where a second
+independent implementation belongs, and its header says the thing that matters: **do not add
+to it.** A query only it can answer is a query with no second opinion.
+
+One real subtlety surfaced when it moved. The dataset's dates are offsets from `mockNow`,
+frozen at library load; the seed shifts every one of them to sit the same distance from
+`seedInstant`. So asking both sides "what is stale today?" with the same `DateTime` asks two
+different questions. Each is now measured from its own anchor, which is the same instant in
+the dataset's own timeline — and the test failed loudly until it was.
+
+**3. `tool/ux_audit.py` grew from fourteen checks to fifteen, and two were rewritten rather
+than repointed.** Check 10 was "no screen assigns into `mockItems`" and check 13 was "no mock
+list is written outside `mutations/`". Both were regexes over a naming convention that no
+longer exists. They became:
+
+- **no database write outside `lib/data/repositories/`** — `.into(...)`, `.update(...)`,
+  `.delete(...)`, `customStatement(` and `.batch(` anywhere in the data layer but the
+  repositories;
+- **no file under `features/` or `shared/` importing `data/database/` or drift** — the same
+  rule from the other side, and the new fifteenth check.
+
+Both were verified by planting a violation and watching the audit catch it. The first one
+did *not* catch its violation on the first attempt: the regex had a `(?<![\w.])` lookbehind
+that excluded exactly the shape drift uses — `_db.into(...)` — so the check was inert. It is
+the second time in this phase that a guard written without a teeth check would have shipped
+looking like it worked.
+
+A false positive came out of the same pass and is worth recording: `averageCost =>` in the
+schema matched "average cost written outside the repository layer", because `=>` is an `=`
+followed by something. A column declaration is not a write, and the pattern says so now.
+
+**4. Two tests replaced ten.** `mock_write_test.dart` tested the change counter and the
+in-memory snapshot — infrastructure that no longer exists. Its intent survives as two
+assertions in `test/db/seed_test.dart`: that a reset restores *values* rather than row
+counts (already there since stage 2), and that a generated id can never collide with a seeded
+one. The second is stronger than the original: it checks not only that 500 UUIDs miss every
+seeded slug, but that the two are different *shapes*, which is what makes the guarantee hold
+for ids the test never saw. That stopped being tidiness the moment ids outlived the process —
+Phase 1's `item-new-7` came from a counter that restarted with the app.
+
+**5. The frozen figures thawed in stage 9, not here.** The plan put the trend charts and the
+annual-saving headline in this stage; they were done with the screens that show them, because
+converting a screen to real data and leaving three numbers fake would have been a strange
+place to stop. What is recorded here is the decision the plan asked for and the reason:
+**weekly, not monthly**, and the reason is that the seeded history is weeks long. A six-month
+series over it would be five empty columns and one tall one, which reads as a broken chart
+rather than as a young dataset.
+
+**6. Three service stubs still say TODO, and now say the right phase.** They also say what
+Phase 2 left them, which is more useful than a bare marker: `sync_service.dart` gets a local
+database that is already the source of truth and writes that already go through one
+transaction per aggregate; `auth_service.dart` gets `currentUserProvider` reading a `meta`
+row, so signing somebody in is a write to that row rather than a change to everything that
+stamps a movement.
+
+**7. Docs.** `README.md` has a new status section, the data-layer diagram, a corrected test
+count and check count, and one new step in the demo path — *kill the app completely and
+reopen it* — which is the only step that proves the phase happened. `DOMAIN_MODEL.md`'s
+"Where this lives in the code" table points at repositories, and gained the note that two of
+its rules are deliberately written twice, once in Dart and once in SQL, with a test holding
+them to the same answer.
+
+One French string changed meaning rather than wording: the sync screen said *"la
+synchronisation réelle sera ajoutée en phase 2"*, which is now both wrong and unhelpful. It
+says the data is stored on the device and that sync between devices comes in phase 3.
+
+**Verified at the stage boundary:** `flutter analyze` clean; `flutter test` 475/475 green
+(498 before, minus the 24 tests whose subject no longer exists, plus one); `python
+tool/ux_audit.py` clean across all fifteen checks.
+
+---
+
+## Phase 2, finished
+
+Eleven stages. What it cost, honestly:
+
+- **The plan was right about the shape and wrong about the size.** The seam it described —
+  `MockQueries` → repository reads, `mutations/` → repository writes — held exactly. What it
+  underestimated was the leaf widgets: it named two row view-models and the screens needed
+  nine, because the number of lookups hiding inside a `build` was larger than a grep for
+  `MockQueries.` suggested.
+- **Every stage that mattered was caught by a test, not by reading.** The `_writeGrants`
+  append-only bug, the dropdown asserting on its own category, the notifications screen
+  claiming to be empty, the inert audit regex, the two anchors measuring different instants.
+  The pattern is consistent enough to be worth stating: **a guard nobody has watched fail is
+  not a guard.**
+- **The invariant survived.** `quantity == opening balance + Σ movements` is still true,
+  still enforced by one file, and still checked mechanically — now by two audit rules instead
+  of one, because a database offers more ways to break it than a list did.
+
+What Phase 3 inherits: a local database that is the source of truth, writes that already run
+in transactions, an acting user resolved from a row rather than a constant, and an offline
+banner that reports zero because zero is true.
+
 ---
 
 ## Verification

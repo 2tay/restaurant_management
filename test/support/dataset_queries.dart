@@ -1,34 +1,28 @@
-import '../core/utils/item_search.dart' as search;
-import '../core/utils/order_status.dart';
-import '../core/utils/stock_cost.dart';
-import '../core/utils/stock_status.dart';
-import '../data/view_models/receipt_document_sources.dart';
-import '../models/models.dart';
-import 'mock_categories.dart';
-import 'mock_goods_receipts.dart';
-import 'mock_items.dart';
-import 'mock_notifications.dart';
-import 'mock_price_history.dart';
-import 'mock_purchase_orders.dart';
-import 'mock_settings.dart';
-import 'mock_stock_movements.dart';
-import 'mock_stores.dart';
-import 'mock_supplier_prices.dart';
-import 'mock_suppliers.dart';
-import 'mock_team.dart';
-import 'mock_units.dart';
+// A second, independent answer to every query the repositories answer.
+//
+// `test/db/queries_test.dart` is a differential suite: it asks the database a
+// question and asks this the same question, and fails when they disagree. That
+// is the strongest evidence available that porting fifty-odd queries from Dart
+// list scans into SQL changed nothing — stronger than asserting an expected
+// number, because an expected number is only ever as right as whoever typed it.
+//
+// This *was* `lib/mock_data/mock_queries.dart`, the app's whole read layer in
+// Phase 1. Stage 10 deleted it from `lib/` because nothing in the app reads a
+// list any more. It is kept here, trimmed to what the suite actually asks, for
+// the one job it is still good at: being the other opinion.
+//
+// **Do not add to it.** A query that only this file can answer is a query with
+// no second opinion, which is the opposite of the point. New behaviour belongs
+// in a repository with a test that states what it should do.
 
-/// Lookups over the mock lists.
-///
-/// These are list filters, not business logic — "give me the items for this
-/// store" rather than "decide what the reorder quantity should be". They live
-/// here so that forty screens don't each re-implement `firstWhere` over a
-/// global list.
-///
-/// **Phase 2 replaces this file with repositories.** Screens calling
-/// `itemsForStore(storeId)` swap to a provider returning the same shape, which
-/// is the point: the call sites barely move.
-abstract final class MockQueries {
+import 'package:stock_inventory/core/utils/order_status.dart';
+import 'package:stock_inventory/core/utils/stock_cost.dart';
+import 'package:stock_inventory/core/utils/stock_status.dart';
+import 'package:stock_inventory/data/seed/dataset/dataset.dart';
+import 'package:stock_inventory/models/models.dart';
+
+/// The Phase 1 read layer, over the demo dataset's lists.
+abstract final class DatasetQueries {
   // ---------------------------------------------------------------------------
   // Stores
   // ---------------------------------------------------------------------------
@@ -70,59 +64,6 @@ abstract final class MockQueries {
     return items;
   }
 
-  static int _statusRank(Item item) => switch (stockStatusOf(item)) {
-    StockStatus.outOfStock => 0,
-    StockStatus.lowStock => 1,
-    StockStatus.inStock => 2,
-  };
-
-  // ---------------------------------------------------------------------------
-  // Barcodes
-  // ---------------------------------------------------------------------------
-
-  /// Every item in the store carrying this exact barcode.
-  ///
-  /// **Returns a collection on purpose, even though the app currently enforces
-  /// one barcode per item.** Multiple barcodes per item — a case and a single
-  /// bottle of the same beer — is the likeliest next requirement here, and a
-  /// lookup already shaped as "give me the matches" absorbs that as a model
-  /// change instead of a rewrite of every call site. Callers take `.first`.
-  ///
-  /// Exact match on the trimmed string. No normalisation, no check digits, no
-  /// format rules: a barcode is an opaque identifier, and the moment the app
-  /// starts having opinions about its shape it starts rejecting real ones.
-  static List<Item> itemsWithBarcode(String storeId, String barcode) {
-    final needle = barcode.trim();
-    if (needle.isEmpty) return const [];
-    return mockItems
-        .where((item) => item.storeId == storeId && item.barcode == needle)
-        .toList();
-  }
-
-  /// The item already using this barcode, ignoring [excludingItemId].
-  ///
-  /// What the item form calls to validate. The exclusion is what lets someone
-  /// edit an item and save it with its own barcode unchanged — without it,
-  /// every edit would fail against itself.
-  static Item? barcodeConflict(
-    String storeId,
-    String barcode, {
-    String? excludingItemId,
-  }) {
-    for (final item in itemsWithBarcode(storeId, barcode)) {
-      if (item.id != excludingItemId) return item;
-    }
-    return null;
-  }
-
-  /// Whether an item matches a search box.
-  ///
-  /// The rule itself moved to `core/utils/item_search.dart` in Phase 2, so the
-  /// repositories and the screens share one copy of it rather than two. This
-  /// forwards, and goes away with the rest of this file.
-  static bool itemMatchesSearch(Item item, String query) =>
-      search.itemMatchesSearch(item, query);
-
   // ---------------------------------------------------------------------------
   // Catalog
   // ---------------------------------------------------------------------------
@@ -130,114 +71,14 @@ abstract final class MockQueries {
   static List<Category> categoriesForStore(String storeId) =>
       mockCategories.where((c) => c.storeId == storeId).toList();
 
-  static Category? categoryById(String id) {
-    for (final category in mockCategories) {
-      if (category.id == id) return category;
-    }
-    return null;
-  }
-
-  static String categoryNameOf(String id) => categoryById(id)?.name ?? '—';
-
-  /// The category of this store already using this name, if any.
-  ///
-  /// Case- and space-insensitive: "Boissons" and "boissons " are the same
-  /// category with a typo, and letting both exist means half the drinks end up
-  /// filed under the wrong one. [excludingId] lets a rename ignore itself.
-  static Category? categoryNamed(
-    String storeId,
-    String name, {
-    String? excludingId,
-  }) {
-    final needle = _normalise(name);
-    if (needle.isEmpty) return null;
-
-    for (final category in mockCategories) {
-      if (category.storeId != storeId) continue;
-      if (category.id == excludingId) continue;
-      if (_normalise(category.name) == needle) return category;
-    }
-    return null;
-  }
-
   static List<UnitOfMeasure> unitsForStore(String storeId) =>
       mockUnits.where((u) => u.storeId == storeId).toList();
-
-  static UnitOfMeasure? unitById(String id) {
-    for (final unit in mockUnits) {
-      if (unit.id == id) return unit;
-    }
-    return null;
-  }
-
-  /// The short form shown next to every quantity — "kg", "bac".
-  static String unitAbbreviationOf(String id) =>
-      unitById(id)?.abbreviation ?? '';
-
-  /// The unit of this store already using this name, if any.
-  static UnitOfMeasure? unitNamed(
-    String storeId,
-    String name, {
-    String? excludingId,
-  }) => _findUnit(
-    storeId,
-    name,
-    excludingId,
-    (unit) => unit.name,
-  );
-
-  /// The unit of this store already using this abbreviation, if any.
-  ///
-  /// Checked as well as the name because the abbreviation is what appears next
-  /// to every quantity in the app: two units abbreviated "cs" would make the
-  /// inventory list unreadable however different their full names were.
-  static UnitOfMeasure? unitAbbreviated(
-    String storeId,
-    String abbreviation, {
-    String? excludingId,
-  }) => _findUnit(
-    storeId,
-    abbreviation,
-    excludingId,
-    (unit) => unit.abbreviation,
-  );
-
-  static UnitOfMeasure? _findUnit(
-    String storeId,
-    String value,
-    String? excludingId,
-    String Function(UnitOfMeasure unit) field,
-  ) {
-    final needle = _normalise(value);
-    if (needle.isEmpty) return null;
-
-    for (final unit in mockUnits) {
-      if (unit.storeId != storeId) continue;
-      if (unit.id == excludingId) continue;
-      if (_normalise(field(unit)) == needle) return unit;
-    }
-    return null;
-  }
-
-  /// How catalogue names are compared: trimmed and case-folded.
-  ///
-  /// Deliberately no accent folding — "Épicerie" and "Epicerie" are different
-  /// spellings a user might legitimately want to correct, and silently treating
-  /// them as the same name would block the correction.
-  static String _normalise(String value) => value.trim().toLowerCase();
 
   static int itemCountInCategory(String categoryId) =>
       mockItems.where((item) => item.categoryId == categoryId).length;
 
   static int itemCountUsingUnit(String unitId) =>
       mockItems.where((item) => item.unitId == unitId).length;
-
-  // ---------------------------------------------------------------------------
-  // Suppliers
-  // ---------------------------------------------------------------------------
-
-  static List<Supplier> suppliersForStore(String storeId) =>
-      mockSuppliers.where((s) => s.storeId == storeId).toList();
 
   static Supplier? supplierById(String id) {
     for (final supplier in mockSuppliers) {
@@ -260,12 +101,6 @@ abstract final class MockQueries {
     return prices;
   }
 
-  /// Every item this supplier provides.
-  static List<SupplierPrice> pricesForSupplier(String supplierId) =>
-      mockSupplierPrices.where((p) => p.supplierId == supplierId).toList();
-
-  static int itemCountForSupplier(String supplierId) =>
-      pricesForSupplier(supplierId).length;
 
   static SupplierPrice? defaultPriceForItem(String itemId) {
     for (final price in mockSupplierPrices) {
@@ -326,13 +161,6 @@ abstract final class MockQueries {
     return movements;
   }
 
-  static List<StockMovement> movementsForItem(String itemId) {
-    final movements =
-        mockStockMovements.where((m) => m.itemId == itemId).toList()
-          ..sort((a, b) => b.occurredAt.compareTo(a.occurredAt));
-    return movements;
-  }
-
   static List<StockMovement> recentActivity(String storeId, {int limit = 8}) =>
       movementsForStore(storeId).take(limit).toList();
 
@@ -352,29 +180,6 @@ abstract final class MockQueries {
 
   static List<TeamMember> teamForStore(String storeId) =>
       mockTeam.where((m) => m.storeIds.contains(storeId)).toList();
-
-  static TeamMember? teamMemberById(String id) {
-    for (final member in mockTeam) {
-      if (member.id == id) return member;
-    }
-    return null;
-  }
-
-  /// The member already using this email, if any.
-  ///
-  /// Email is the one team field worth guarding: it is how a real invitation
-  /// would be addressed in Phase 2, and two members sharing one makes that
-  /// ambiguous.
-  static TeamMember? teamMemberByEmail(String email, {String? excludingId}) {
-    final needle = _normalise(email);
-    if (needle.isEmpty) return null;
-
-    for (final member in mockTeam) {
-      if (member.id == excludingId) continue;
-      if (_normalise(member.email) == needle) return member;
-    }
-    return null;
-  }
 
   /// How many owners the account has left.
   ///
@@ -469,12 +274,6 @@ abstract final class MockQueries {
     return rows.take(limit).toList();
   }
 
-  /// What one item's stock on hand is worth. Zero when no cost is on file:
-  /// understating beats inventing a price.
-  ///
-  /// Deliberately **not** a supplier price. See [stockValuation].
-  static double _valueOf(Item item) => valueOf(item.quantity, item.averageCost);
-
   // ---------------------------------------------------------------------------
   // What stock cost on the way out
   // ---------------------------------------------------------------------------
@@ -540,12 +339,6 @@ abstract final class MockQueries {
     return total;
   }
 
-  static bool _within(DateTime at, DateTime? from, DateTime? to) {
-    if (from != null && at.isBefore(from)) return false;
-    if (to != null && at.isAfter(to)) return false;
-    return true;
-  }
-
   // ---------------------------------------------------------------------------
   // Commandes
   // ---------------------------------------------------------------------------
@@ -568,15 +361,6 @@ abstract final class MockQueries {
   /// Sent or partial: the supplier has the document and goods may still come.
   static List<PurchaseOrder> openOrders(String storeId) =>
       ordersForStore(storeId).where(orderIsOpen).toList();
-
-  static List<PurchaseOrder> ordersForSupplier(String supplierId) {
-    final orders =
-        mockPurchaseOrders
-            .where((order) => order.supplierId == supplierId)
-            .toList()
-          ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-    return orders;
-  }
 
   /// Open orders that still have something outstanding for this item.
   ///
@@ -610,10 +394,18 @@ abstract final class MockQueries {
     return total;
   }
 
-  /// Orders sitting in `partial` past the store's threshold.
-  static List<PurchaseOrder> staleOrders(String storeId) => ordersForStore(
+  /// Commandes sitting in `partial` past the establishment's threshold.
+  ///
+  /// The threshold was a mutable global in Phase 1 and is a column now, so it
+  /// is passed in — which is what lets the differential test set the column and
+  /// ask both sides the same question.
+  static List<PurchaseOrder> staleOrders(
+    String storeId, {
+    int days = OrderRules.defaultStalePartialDays,
+    DateTime? now,
+  }) => ordersForStore(
     storeId,
-  ).where((o) => orderIsStale(o, MockSettings.stalePartialOrderDays)).toList();
+  ).where((o) => orderIsStale(o, days, now: now)).toList();
 
   /// This supplier's items that are at or below their threshold.
   ///
@@ -686,33 +478,36 @@ abstract final class MockQueries {
     return receiptReference(order.reference, index == -1 ? 1 : index + 1);
   }
 
-  /// Everything the bon de réception needs besides the receipt itself.
+
+  /// What one item's stock on hand is worth. Zero when no cost is on file:
+  /// understating beats inventing a price.
   ///
-  /// The mock-path twin of `OrderRepository.receiptDocumentSources`, and the
-  /// only reason it exists: the document assembly stopped making its own
-  /// lookups in Phase 2 stage 7, and the screens do not reach a repository until
-  /// stage 9. One of the two disappears with the rest of this file at stage 10.
-  static ReceiptDocumentSources? receiptDocumentSources(GoodsReceipt receipt) {
-    final order = orderById(receipt.orderId);
-    final store = storeById(receipt.storeId);
-    if (order == null || store == null) return null;
+  /// Deliberately **not** a supplier price. See [stockValuation].
+  static double _valueOf(Item item) => valueOf(item.quantity, item.averageCost);
 
-    final supplier = supplierById(order.supplierId);
-    if (supplier == null) return null;
-
-    return ReceiptDocumentSources(
-      order: order,
-      store: store,
-      supplier: supplier,
-      reference: receiptReferenceOf(receipt),
-      items: {
-        for (final line in receipt.lines)
-          if (itemById(line.itemId) case final Item item)
-            item.id: (
-              name: item.name,
-              unit: unitAbbreviationOf(item.unitId),
-            ),
-      },
-    );
+  static bool _within(DateTime at, DateTime? from, DateTime? to) {
+    if (from != null && at.isBefore(from)) return false;
+    if (to != null && at.isAfter(to)) return false;
+    return true;
   }
+
+  static int _statusRank(Item item) => switch (stockStatusOf(item)) {
+    StockStatus.outOfStock => 0,
+    StockStatus.lowStock => 1,
+    StockStatus.inStock => 2,
+  };
+
+  static String categoryNameOf(String id) {
+    for (final category in mockCategories) {
+      if (category.id == id) return category.name;
+    }
+    return '—';
+  }
+
+  /// Every item this supplier provides.
+  static List<SupplierPrice> pricesForSupplier(String supplierId) =>
+      mockSupplierPrices.where((p) => p.supplierId == supplierId).toList();
+
+  static int itemCountForSupplier(String supplierId) =>
+      pricesForSupplier(supplierId).length;
 }

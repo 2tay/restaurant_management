@@ -16,7 +16,7 @@ import 'package:drift/drift.dart' hide isNotNull, isNull;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stock_inventory/data/database/app_database.dart';
 import 'package:stock_inventory/data/repositories/repositories.dart';
-import 'package:stock_inventory/mock_data/mock_data.dart'
+import 'package:stock_inventory/data/seed/dataset/dataset.dart'
     show CategoryIds, ItemIds, StoreIds, UnitIds;
 import 'package:stock_inventory/models/models.dart';
 

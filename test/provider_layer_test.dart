@@ -27,7 +27,7 @@ import 'package:stock_inventory/data/database/app_database.dart';
 import 'package:stock_inventory/data/providers.dart';
 import 'package:stock_inventory/data/repositories/repositories.dart';
 import 'package:stock_inventory/l10n/app_localizations.dart';
-import 'package:stock_inventory/mock_data/mock_data.dart'
+import 'package:stock_inventory/data/seed/dataset/dataset.dart'
     show ItemIds, StoreIds;
 import 'package:stock_inventory/models/models.dart';
 import 'package:stock_inventory/shared/widgets/widgets.dart';

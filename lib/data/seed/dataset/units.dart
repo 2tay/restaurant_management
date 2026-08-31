@@ -1,5 +1,5 @@
-import '../models/unit_of_measure.dart';
-import 'mock_stores.dart';
+import '../../../models/unit_of_measure.dart';
+import 'stores.dart';
 
 abstract final class UnitIds {
   static const String kg = 'unit-kg';

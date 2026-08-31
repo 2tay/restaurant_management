@@ -1,9 +1,9 @@
-import '../models/goods_receipt.dart';
-import '../models/goods_receipt_line.dart';
-import 'mock_items.dart';
-import 'mock_purchase_orders.dart';
-import 'mock_reference.dart';
-import 'mock_stores.dart';
+import '../../../models/goods_receipt.dart';
+import '../../../models/goods_receipt_line.dart';
+import 'items.dart';
+import 'purchase_orders.dart';
+import 'reference.dart';
+import 'stores.dart';
 
 abstract final class ReceiptIds {
   static const String boucherieFirst = 'gr-016-1';

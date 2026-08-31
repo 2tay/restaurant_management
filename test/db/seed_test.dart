@@ -22,8 +22,9 @@ import 'package:stock_inventory/data/database/bootstrap.dart';
 import 'package:stock_inventory/data/database/meta_keys.dart';
 import 'package:stock_inventory/data/mappers/mappers.dart';
 import 'package:stock_inventory/data/repositories/demo_repository.dart';
+import 'package:stock_inventory/data/repositories/new_id.dart';
+import 'package:stock_inventory/data/seed/dataset/dataset.dart';
 import 'package:stock_inventory/data/seed/demo_seed.dart';
-import 'package:stock_inventory/mock_data/mock_data.dart';
 import 'package:stock_inventory/models/models.dart';
 
 import '../support/db_fixture.dart';
@@ -386,6 +387,35 @@ void main() {
         db.items,
       )..where((i) => i.id.equals(target.id))).getSingle();
       expect(after.quantity, target.quantity);
+    });
+
+    test('a generated id can never collide with a seeded one', () async {
+      // The dataset's ids are readable slugs — `item-poulet`, `store-sablon` —
+      // and everything created afterwards gets a UUID. Phase 1 generated
+      // `item-new-7` from a counter that restarted with the process, which was
+      // harmless only while the data restarted with it too. It does not any
+      // more, so the two id spaces have to be incapable of meeting.
+      final seeded = <String>{
+        for (final row in await db.select(db.items).get()) row.id,
+        for (final row in await db.select(db.suppliers).get()) row.id,
+        for (final row in await db.select(db.categories).get()) row.id,
+        for (final row in await db.select(db.units).get()) row.id,
+        for (final row in await db.select(db.stores).get()) row.id,
+      };
+
+      final generated = <String>{for (var i = 0; i < 500; i++) newId()};
+
+      expect(generated, hasLength(500), reason: 'generated ids repeat');
+      expect(generated.intersection(seeded), isEmpty);
+
+      // And they do not merely differ — they are a different shape, which is
+      // what makes the guarantee hold for ids this test never saw.
+      final uuid = RegExp(
+        r'^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-'
+        r'[0-9a-f]{12}$',
+      );
+      expect(generated.every(uuid.hasMatch), isTrue);
+      expect(seeded.any(uuid.hasMatch), isFalse);
     });
   });
 }

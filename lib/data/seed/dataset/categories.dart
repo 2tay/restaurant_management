@@ -1,5 +1,5 @@
-import '../models/category.dart';
-import 'mock_stores.dart';
+import '../../../models/category.dart';
+import 'stores.dart';
 
 abstract final class CategoryIds {
   static const String legumes = 'cat-legumes';

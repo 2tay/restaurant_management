@@ -1,6 +1,6 @@
 import 'package:drift/drift.dart';
 
-import '../../mock_data/mock_data.dart';
+import 'dataset/dataset.dart';
 import '../database/app_database.dart';
 import '../database/meta_keys.dart';
 import '../mappers/mappers.dart';
@@ -18,13 +18,12 @@ import '../mappers/mappers.dart';
 /// Everything goes in one batch, which drift runs as a single transaction. A
 /// half-written demo is not a state worth having recovery code for.
 ///
-/// The source is still `lib/mock_data/`. That import is the only thing keeping
-/// the mock layer alive from here on, and stage 10 moves the dataset under this
-/// folder — at which point it stops being an app layer and becomes what it
-/// always was, a fixture.
+/// The source is `dataset/`, which used to be `lib/mock_data/` — an app layer
+/// every screen read from. Nothing reads it now except this function, which is
+/// what it always should have been: a fixture that happens to ship.
 ///
 /// [at] is the instant the dataset should read as having been written. Every
-/// date in `mock_data/` is an offset from `mockNow`, frozen when that library
+/// date in the dataset is an offset from `mockNow`, frozen when that library
 /// loaded, so shifting by the difference re-anchors the whole timeline: the
 /// order sent three days ago is still three days ago, relative to [at]. It
 /// defaults to now, which is what the app wants; tests pass a fixed instant and

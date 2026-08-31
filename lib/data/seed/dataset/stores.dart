@@ -1,5 +1,5 @@
-import '../models/store.dart';
-import 'mock_reference.dart';
+import '../../../models/store.dart';
+import 'reference.dart';
 
 /// Store ids, referenced throughout the rest of the mock data.
 abstract final class StoreIds {

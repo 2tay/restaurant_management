@@ -1,8 +1,8 @@
-import '../models/stock_movement.dart';
-import 'mock_items.dart';
-import 'mock_reference.dart';
-import 'mock_stores.dart';
-import 'mock_suppliers.dart';
+import '../../../models/stock_movement.dart';
+import 'items.dart';
+import 'reference.dart';
+import 'stores.dart';
+import 'suppliers.dart';
 
 /// Movement history, newest first.
 ///

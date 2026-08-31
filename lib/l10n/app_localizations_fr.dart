@@ -1416,8 +1416,8 @@ class AppLocalizationsFr extends AppLocalizations {
       'Pour la démonstration : affiche la bannière hors ligne dans toute l\'application.';
 
   @override
-  String get syncPhase2Note =>
-      'La synchronisation réelle sera ajoutée en phase 2. Les valeurs ci-dessus sont fictives.';
+  String get syncLocalOnlyNote =>
+      'Les données sont enregistrées sur cet appareil. La synchronisation entre appareils sera ajoutée en phase 3.';
 
   @override
   String get searchTitle => 'Recherche';
@@ -2174,9 +2174,6 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get demoResetBody =>
       'Remet les articles, les stocks, les commandes et les prix dans leur état d\'origine. Les modifications faites pendant la démonstration ne sont conservées que le temps de la session.';
-
-  @override
-  String get demoResetNothing => 'Aucune modification à annuler.';
 
   @override
   String get demoResetConfirmTitle => 'Réinitialiser la démonstration ?';

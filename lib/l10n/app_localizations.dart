@@ -2470,11 +2470,11 @@ abstract class AppLocalizations {
   /// **'Pour la démonstration : affiche la bannière hors ligne dans toute l\'application.'**
   String get syncDemoToggleBody;
 
-  /// Honest note that sync is not implemented in Phase 1.
+  /// No description provided for @syncLocalOnlyNote.
   ///
   /// In fr, this message translates to:
-  /// **'La synchronisation réelle sera ajoutée en phase 2. Les valeurs ci-dessus sont fictives.'**
-  String get syncPhase2Note;
+  /// **'Les données sont enregistrées sur cet appareil. La synchronisation entre appareils sera ajoutée en phase 3.'**
+  String get syncLocalOnlyNote;
 
   /// Global search screen heading.
   ///
@@ -3645,12 +3645,6 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Remet les articles, les stocks, les commandes et les prix dans leur état d\'origine. Les modifications faites pendant la démonstration ne sont conservées que le temps de la session.'**
   String get demoResetBody;
-
-  /// Shown in place of the reset action when nothing has been changed yet.
-  ///
-  /// In fr, this message translates to:
-  /// **'Aucune modification à annuler.'**
-  String get demoResetNothing;
 
   /// Confirmation before resetting.
   ///

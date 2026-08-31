@@ -165,7 +165,7 @@ class SyncStatusPage extends ConsumerWidget {
                   const SizedBox(width: AppSpacing.sm),
                   Expanded(
                     child: Text(
-                      l10n.syncPhase2Note,
+                      l10n.syncLocalOnlyNote,
                       style: theme.textTheme.bodySmall,
                     ),
                   ),

@@ -1,9 +1,9 @@
-import '../models/item.dart';
-import 'mock_categories.dart';
-import 'mock_reference.dart';
-import 'mock_stores.dart';
-import 'mock_suppliers.dart';
-import 'mock_units.dart';
+import '../../../models/item.dart';
+import 'categories.dart';
+import 'reference.dart';
+import 'stores.dart';
+import 'suppliers.dart';
+import 'units.dart';
 
 abstract final class ItemIds {
   // Fruits & Légumes

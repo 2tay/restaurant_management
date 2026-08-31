@@ -8,7 +8,6 @@ import 'core/utils/formatters.dart';
 import 'data/database/app_database.dart';
 import 'data/database/bootstrap.dart';
 import 'data/providers.dart';
-import 'mock_data/mock_data.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,18 +18,19 @@ Future<void> main() async {
   await initializeDateFormatting(Formatters.locale);
   Intl.defaultLocale = Formatters.locale;
 
-  // Snapshot the pristine dataset before anything can edit it, so the demo can
-  // be put back between walkthroughs. Must happen before the first frame: after
-  // that, "pristine" is whatever the last person left behind.
-  MockWrite.captureSeed();
-
   // Open the local database, seeding it on a first launch. Awaited before the
   // first frame: every store-scoped screen needs an establishment to exist, and
   // a splash that resolves into "no data" is worse than a slightly later splash.
   //
-  // The screens still read the mock lists — the cutover is stage 9. What this
-  // does today is create and seed the file, which is what makes the rest of the
-  // phase testable against something real.
+  // Nothing else in the app opens a database. This instance is handed to
+  // `databaseProvider` below and every repository is built from it, which is
+  // what makes one connection, one file, and one place to look when something
+  // is wrong with either.
+  //
+  // Putting the demo back is `DemoRepository.resetDemo()` now, behind
+  // *Paramètres → Synchronisation*. Phase 1 snapshotted the dataset in memory
+  // here because a restart was the only other way back; a re-seed writes the
+  // dataset again from `data/seed/dataset/`, and survives the restart too.
   final AppDatabase database = await openAppDatabase();
 
   // Orientation is deliberately left unconstrained. The app is designed

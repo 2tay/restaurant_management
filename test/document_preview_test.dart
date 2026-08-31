@@ -17,7 +17,7 @@ import 'package:stock_inventory/core/utils/formatters.dart';
 import 'package:stock_inventory/data/repositories/repositories.dart';
 import 'package:stock_inventory/features/orders/documents/receipt_export.dart';
 import 'package:stock_inventory/l10n/app_localizations_fr.dart';
-import 'package:stock_inventory/mock_data/mock_data.dart'
+import 'package:stock_inventory/data/seed/dataset/dataset.dart'
     show ItemIds, OrderIds;
 
 import 'support/db_fixture.dart';

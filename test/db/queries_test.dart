@@ -18,9 +18,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:stock_inventory/core/utils/order_status.dart';
 import 'package:stock_inventory/data/database/app_database.dart';
 import 'package:stock_inventory/data/repositories/repositories.dart';
-import 'package:stock_inventory/mock_data/mock_data.dart';
+import 'package:stock_inventory/data/seed/dataset/dataset.dart';
 import 'package:stock_inventory/models/models.dart';
 
+import '../support/dataset_queries.dart';
 import '../support/db_fixture.dart';
 
 void main() {
@@ -49,9 +50,12 @@ void main() {
     });
 
     test('carries the stale-order threshold that used to be a global', () async {
+      // A column on the establishment now. The seed writes the value Phase 1
+      // kept in a mutable global, so the dashboard warning behaves the same on
+      // a fresh install as it did in the demo.
       expect(
         await StoreRepository(db).stalePartialOrderDays(StoreIds.sablon),
-        MockSettings.stalePartialOrderDays,
+        OrderRules.defaultStalePartialDays,
       );
     });
   });
@@ -61,11 +65,11 @@ void main() {
       final repo = CatalogRepository(db);
       expect(
         (await repo.categories(StoreIds.sablon)).map((c) => c.id).toSet(),
-        MockQueries.categoriesForStore(StoreIds.sablon).map((c) => c.id).toSet(),
+        DatasetQueries.categoriesForStore(StoreIds.sablon).map((c) => c.id).toSet(),
       );
       expect(
         (await repo.units(StoreIds.sablon)).map((u) => u.id).toSet(),
-        MockQueries.unitsForStore(StoreIds.sablon).map((u) => u.id).toSet(),
+        DatasetQueries.unitsForStore(StoreIds.sablon).map((u) => u.id).toSet(),
       );
     });
 
@@ -105,16 +109,16 @@ void main() {
 
     test('counts what a category and a unit are holding', () async {
       final repo = CatalogRepository(db);
-      final category = MockQueries.categoriesForStore(StoreIds.sablon).first;
-      final unit = MockQueries.unitsForStore(StoreIds.sablon).first;
+      final category = DatasetQueries.categoriesForStore(StoreIds.sablon).first;
+      final unit = DatasetQueries.unitsForStore(StoreIds.sablon).first;
 
       expect(
         await repo.itemCountInCategory(category.id),
-        MockQueries.itemCountInCategory(category.id),
+        DatasetQueries.itemCountInCategory(category.id),
       );
       expect(
         await repo.itemCountUsingUnit(unit.id),
-        MockQueries.itemCountUsingUnit(unit.id),
+        DatasetQueries.itemCountUsingUnit(unit.id),
       );
     });
   });
@@ -124,7 +128,7 @@ void main() {
       final items = await ItemRepository(db).items(StoreIds.sablon);
       expect(
         idsOfItems(items).toSet(),
-        idsOfItems(MockQueries.itemsForStore(StoreIds.sablon)).toSet(),
+        idsOfItems(DatasetQueries.itemsForStore(StoreIds.sablon)).toSet(),
       );
     });
 
@@ -135,7 +139,7 @@ void main() {
         db,
       ).itemsByAttention(StoreIds.sablon, filter: const ItemFilter(lowStockOnly: true));
 
-      expect(idsOfItems(rows), idsOfItems(MockQueries.lowStockItems(StoreIds.sablon)));
+      expect(idsOfItems(rows), idsOfItems(DatasetQueries.lowStockItems(StoreIds.sablon)));
     });
 
     test('filtering by supplier answers what the N+1 loop answered', () async {
@@ -147,9 +151,9 @@ void main() {
         filter: const ItemFilter(supplierId: supplierId),
       );
 
-      final expected = MockQueries.itemsForStore(StoreIds.sablon)
+      final expected = DatasetQueries.itemsForStore(StoreIds.sablon)
           .where(
-            (item) => MockQueries.pricesForItem(
+            (item) => DatasetQueries.pricesForItem(
               item.id,
             ).any((p) => p.supplierId == supplierId),
           )
@@ -161,7 +165,7 @@ void main() {
     });
 
     test('filtering by category and by low stock together', () async {
-      final item = MockQueries.lowStockItems(StoreIds.sablon).first;
+      final item = DatasetQueries.lowStockItems(StoreIds.sablon).first;
       final rows = await ItemRepository(db).itemsByAttention(
         StoreIds.sablon,
         filter: ItemFilter(categoryId: item.categoryId, lowStockOnly: true),
@@ -177,7 +181,7 @@ void main() {
     test('a barcode lookup is exact, and an edit does not collide with itself',
         () async {
       final repo = ItemRepository(db);
-      final withBarcode = MockQueries.itemsForStore(
+      final withBarcode = DatasetQueries.itemsForStore(
         StoreIds.sablon,
       ).firstWhere((i) => i.barcode != null);
 
@@ -208,7 +212,7 @@ void main() {
       expect(
         idsOfItems(rows).toSet(),
         idsOfItems(
-          MockQueries.suggestedItemsForSupplier(
+          DatasetQueries.suggestedItemsForSupplier(
             StoreIds.sablon,
             SupplierIds.maraicher,
           ),
@@ -221,26 +225,26 @@ void main() {
     test('are cheapest first, which is what promotion depends on', () async {
       final repo = SupplierRepository(db);
       final item = mockItems.firstWhere(
-        (i) => MockQueries.pricesForItem(i.id).length >= 3,
+        (i) => DatasetQueries.pricesForItem(i.id).length >= 3,
       );
 
       final prices = await repo.pricesForItem(item.id);
       expect(
         prices.map((p) => p.pricePerUnit),
-        MockQueries.pricesForItem(item.id).map((p) => p.pricePerUnit),
+        DatasetQueries.pricesForItem(item.id).map((p) => p.pricePerUnit),
       );
       expect(
         (await repo.cheapestPriceForItem(item.id))?.id,
-        MockQueries.cheapestPriceForItem(item.id)?.id,
+        DatasetQueries.cheapestPriceForItem(item.id)?.id,
       );
     });
 
     test('the overpayment gap matches the report it feeds', () async {
       final repo = SupplierRepository(db);
-      for (final item in MockQueries.itemsForStore(StoreIds.sablon)) {
+      for (final item in DatasetQueries.itemsForStore(StoreIds.sablon)) {
         expect(
           await repo.overpayPerUnit(item.id),
-          closeTo(MockQueries.overpayPerUnit(item.id), 0.0001),
+          closeTo(DatasetQueries.overpayPerUnit(item.id), 0.0001),
           reason: item.name,
         );
       }
@@ -253,20 +257,20 @@ void main() {
 
       expect(
         (await repo.priceFor(entry.itemId, entry.supplierId))?.id,
-        MockQueries.priceFor(entry.itemId, entry.supplierId)?.id,
+        DatasetQueries.priceFor(entry.itemId, entry.supplierId)?.id,
       );
 
       final history = await repo.priceHistoryFor(entry.itemId, entry.supplierId);
       expect(
         history.map((h) => h.id),
-        MockQueries.priceHistoryFor(entry.itemId, entry.supplierId).map((h) => h.id),
+        DatasetQueries.priceHistoryFor(entry.itemId, entry.supplierId).map((h) => h.id),
       );
     });
 
     test('counts the articles a supplier is linked to', () async {
       expect(
         await SupplierRepository(db).itemCountForSupplier(SupplierIds.maraicher),
-        MockQueries.itemCountForSupplier(SupplierIds.maraicher),
+        DatasetQueries.itemCountForSupplier(SupplierIds.maraicher),
       );
     });
   });
@@ -280,7 +284,7 @@ void main() {
 
       expect(
         movements.map((m) => m.id).toSet(),
-        MockQueries.movementsForStore(StoreIds.sablon).map((m) => m.id).toSet(),
+        DatasetQueries.movementsForStore(StoreIds.sablon).map((m) => m.id).toSet(),
       );
 
       for (var i = 1; i < movements.length; i++) {
@@ -312,12 +316,12 @@ void main() {
 
       expect(
         orders.map((o) => o.id),
-        MockQueries.ordersForStore(StoreIds.sablon).map((o) => o.id),
+        DatasetQueries.ordersForStore(StoreIds.sablon).map((o) => o.id),
       );
       for (final order in orders) {
         expect(
           order.lines.map((l) => l.id),
-          MockQueries.orderById(order.id)!.lines.map((l) => l.id),
+          DatasetQueries.orderById(order.id)!.lines.map((l) => l.id),
           reason: '${order.reference} lines are out of order',
         );
       }
@@ -325,7 +329,7 @@ void main() {
 
     test('open means sent or partial', () async {
       final open = await OrderRepository(db).openOrders(StoreIds.sablon);
-      expect(open.map((o) => o.id), MockQueries.openOrders(StoreIds.sablon).map((o) => o.id));
+      expect(open.map((o) => o.id), DatasetQueries.openOrders(StoreIds.sablon).map((o) => o.id));
       expect(open.every(orderIsOpen), isTrue);
     });
 
@@ -337,8 +341,8 @@ void main() {
       final repo = OrderRepository(db);
       var checked = 0;
 
-      for (final item in MockQueries.itemsForStore(StoreIds.sablon)) {
-        final expected = MockQueries.onOrderQuantity(StoreIds.sablon, item.id);
+      for (final item in DatasetQueries.itemsForStore(StoreIds.sablon)) {
+        final expected = DatasetQueries.onOrderQuantity(StoreIds.sablon, item.id);
         expect(
           await repo.onOrderQuantity(StoreIds.sablon, item.id),
           closeTo(expected, 0.0001),
@@ -351,14 +355,14 @@ void main() {
     });
 
     test('open commandes for an article match the Dart filter', () async {
-      final item = MockQueries.itemsForStore(StoreIds.sablon).firstWhere(
-        (i) => MockQueries.openOrdersForItem(StoreIds.sablon, i.id).isNotEmpty,
+      final item = DatasetQueries.itemsForStore(StoreIds.sablon).firstWhere(
+        (i) => DatasetQueries.openOrdersForItem(StoreIds.sablon, i.id).isNotEmpty,
       );
 
       expect(
         (await OrderRepository(db).openOrdersForItem(StoreIds.sablon, item.id))
             .map((o) => o.id),
-        MockQueries.openOrdersForItem(StoreIds.sablon, item.id).map((o) => o.id),
+        DatasetQueries.openOrdersForItem(StoreIds.sablon, item.id).map((o) => o.id),
       );
     });
 
@@ -368,8 +372,16 @@ void main() {
 
       // Nothing is stale when the threshold is generous, and the same commandes
       // are stale as the mock rule finds when it is the default.
-      expect(await repo.staleOrders(StoreIds.sablon, now: seedInstant),
-          MockQueries.staleOrders(StoreIds.sablon).isEmpty ? isEmpty : isNotEmpty);
+      // The oracle reads the dataset's own dates, which are offsets from
+      // `mockNow`; the seed shifted every one of them to sit the same distance
+      // from `seedInstant`. So the two are asked the same question by measuring
+      // each from its own anchor — the same instant in the dataset's timeline.
+      expect(
+        await repo.staleOrders(StoreIds.sablon, now: seedInstant),
+        DatasetQueries.staleOrders(StoreIds.sablon, now: mockNow).isEmpty
+            ? isEmpty
+            : isNotEmpty,
+      );
 
       await db.customStatement(
         'UPDATE stores SET stale_partial_order_days = 3650 WHERE id = ?',
@@ -386,12 +398,12 @@ void main() {
 
       expect(
         receipts.map((r) => r.id),
-        MockQueries.receiptsForOrder(order).map((r) => r.id),
+        DatasetQueries.receiptsForOrder(order).map((r) => r.id),
       );
       for (final receipt in receipts) {
         expect(
           receipt.lines.map((l) => l.id),
-          MockQueries.receiptById(receipt.id)!.lines.map((l) => l.id),
+          DatasetQueries.receiptById(receipt.id)!.lines.map((l) => l.id),
         );
       }
     });
@@ -402,7 +414,7 @@ void main() {
         final stored = await repo.receipt(receipt.id);
         expect(
           await repo.receiptReferenceOf(stored!),
-          MockQueries.receiptReferenceOf(receipt),
+          DatasetQueries.receiptReferenceOf(receipt),
         );
       }
     });
@@ -421,13 +433,13 @@ void main() {
           reason: member.fullName,
         );
       }
-      expect(await repo.ownerCount(), MockQueries.ownerCount());
+      expect(await repo.ownerCount(), DatasetQueries.ownerCount());
     });
 
     test('scoping a member to an establishment reads the join table', () async {
       expect(
         (await AccountRepository(db).teamForStore(StoreIds.liege)).map((m) => m.id),
-        MockQueries.teamForStore(StoreIds.liege).map((m) => m.id),
+        DatasetQueries.teamForStore(StoreIds.liege).map((m) => m.id),
       );
     });
 
@@ -452,7 +464,7 @@ void main() {
 
       expect(
         notifications.map((n) => n.id).toSet(),
-        MockQueries.notificationsForStore(StoreIds.sablon).map((n) => n.id).toSet(),
+        DatasetQueries.notificationsForStore(StoreIds.sablon).map((n) => n.id).toSet(),
       );
       for (var i = 1; i < notifications.length; i++) {
         expect(
@@ -463,11 +475,11 @@ void main() {
       }
       expect(
         await repo.unreadNotificationCount(StoreIds.sablon),
-        MockQueries.unreadNotificationCount(StoreIds.sablon),
+        DatasetQueries.unreadNotificationCount(StoreIds.sablon),
       );
       expect(
         await repo.watchUnreadCount(StoreIds.sablon).first,
-        MockQueries.unreadNotificationCount(StoreIds.sablon),
+        DatasetQueries.unreadNotificationCount(StoreIds.sablon),
       );
     });
   });
@@ -476,13 +488,13 @@ void main() {
     test('the valuation is the sum of quantity times what it cost', () async {
       expect(
         await ReportRepository(db).stockValuation(StoreIds.sablon),
-        closeTo(MockQueries.stockValuation(StoreIds.sablon), 0.0001),
+        closeTo(DatasetQueries.stockValuation(StoreIds.sablon), 0.0001),
       );
     });
 
     test('the category breakdown matches, shares included', () async {
       final rows = await ReportRepository(db).valuationByCategory(StoreIds.sablon);
-      final expected = MockQueries.valuationByCategory(StoreIds.sablon);
+      final expected = DatasetQueries.valuationByCategory(StoreIds.sablon);
 
       expect(rows.map((r) => r.label), expected.map((r) => r.label));
       for (final (index, row) in rows.indexed) {
@@ -495,7 +507,7 @@ void main() {
     test('the top articles match, and the share is of the whole establishment',
         () async {
       final rows = await ReportRepository(db).valuationByItem(StoreIds.sablon);
-      final expected = MockQueries.valuationByItem(StoreIds.sablon);
+      final expected = DatasetQueries.valuationByItem(StoreIds.sablon);
 
       expect(rows.map((r) => r.label), expected.map((r) => r.label));
       for (final (index, row) in rows.indexed) {
@@ -509,15 +521,15 @@ void main() {
 
       expect(
         await repo.consumptionValue(StoreIds.sablon),
-        closeTo(MockQueries.consumptionValue(StoreIds.sablon), 0.0001),
+        closeTo(DatasetQueries.consumptionValue(StoreIds.sablon), 0.0001),
       );
       expect(
         await repo.wasteValue(StoreIds.sablon),
-        closeTo(MockQueries.wasteValue(StoreIds.sablon), 0.0001),
+        closeTo(DatasetQueries.wasteValue(StoreIds.sablon), 0.0001),
       );
       expect(
         await repo.shrinkageValue(StoreIds.sablon),
-        closeTo(MockQueries.shrinkageValue(StoreIds.sablon), 0.0001),
+        closeTo(DatasetQueries.shrinkageValue(StoreIds.sablon), 0.0001),
       );
     });
 
@@ -535,7 +547,7 @@ void main() {
         "VALUES ('mov-window', ?, ?, 'stockOut', -4, ?, 'Sophie', 'sale', 3.5)",
         [
           StoreIds.sablon,
-          MockQueries.itemsForStore(StoreIds.sablon).first.id,
+          DatasetQueries.itemsForStore(StoreIds.sablon).first.id,
           seedInstant.subtract(const Duration(days: 2)).toIso8601String(),
         ],
       );
@@ -572,8 +584,8 @@ void main() {
       expect(id, isNotNull);
 
       final gap = await SupplierRepository(db).overpayPerUnit(id!);
-      for (final item in MockQueries.itemsForStore(StoreIds.sablon)) {
-        expect(MockQueries.overpayPerUnit(item.id), lessThanOrEqualTo(gap + 0.0001));
+      for (final item in DatasetQueries.itemsForStore(StoreIds.sablon)) {
+        expect(DatasetQueries.overpayPerUnit(item.id), lessThanOrEqualTo(gap + 0.0001));
       }
     });
 
@@ -594,7 +606,7 @@ void main() {
       // This is what replaces the global revision counter: no signal, no
       // invalidation, the database pushes.
       final repo = ItemRepository(db);
-      final item = MockQueries.itemsForStore(StoreIds.sablon).first;
+      final item = DatasetQueries.itemsForStore(StoreIds.sablon).first;
 
       final watcher = StreamIterator(repo.watchItem(item.id));
       addTearDown(watcher.cancel);

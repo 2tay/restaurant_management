@@ -1,7 +1,7 @@
-import '../models/price_history_entry.dart';
-import 'mock_items.dart';
-import 'mock_reference.dart';
-import 'mock_suppliers.dart';
+import '../../../models/price_history_entry.dart';
+import 'items.dart';
+import 'reference.dart';
+import 'suppliers.dart';
 
 /// Recorded price changes, scoped to an item–supplier pair.
 ///

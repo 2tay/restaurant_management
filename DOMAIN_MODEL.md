@@ -806,9 +806,25 @@ never happens inside a widget.
 | Stock status rule | `lib/core/utils/stock_status.dart` |
 | Stock cost arithmetic | `lib/core/utils/stock_cost.dart` |
 | Order and receipt rules | `lib/core/utils/order_status.dart` |
-| Reads / derived queries | `lib/mock_data/mock_queries.dart` |
-| The only quantity writer | `lib/mock_data/mutations/movement_mutations.dart` |
-| Order and receipt writes | `lib/mock_data/mutations/order_mutations.dart` |
-| Supplier and price writes | `lib/mock_data/mutations/supplier_mutations.dart` |
-| Item writes | `lib/mock_data/mutations/item_mutations.dart` |
-| Category and unit writes | `lib/mock_data/mutations/catalog_mutations.dart` |
+| The schema these become on disk | `lib/data/database/tables/` |
+| Row ↔ model | `lib/data/mappers/` |
+| **The only quantity and cost writer** | `lib/data/repositories/movement_repository.dart` |
+| Order and receipt reads and writes | `lib/data/repositories/order_repository.dart` |
+| Supplier and price reads and writes | `lib/data/repositories/supplier_repository.dart` |
+| Article reads and writes | `lib/data/repositories/item_repository.dart` |
+| Category and unit reads and writes | `lib/data/repositories/catalog_repository.dart` |
+| Establishment reads and writes | `lib/data/repositories/store_repository.dart` |
+| Team and notifications | `lib/data/repositories/account_repository.dart` |
+| Derived figures for the reports | `lib/data/repositories/report_repository.dart` |
+| What one screen needs, in one query | `lib/data/view_models/` |
+| The bridge to the widgets | `lib/data/providers.dart` |
+| The demo dataset | `lib/data/seed/dataset/` |
+
+The three `core/utils/` files above are the reason the port was safe: they are pure
+functions over already-loaded objects, they were reused verbatim, and their tests never
+moved. Everything that changed in Phase 2 changed *around* them.
+
+Two of those rules are also written a second time in SQL, where answering them per row would
+have meant a query per row — `lineOutstanding` inside the on-order sum, and the overpayment
+gap inside the comparison report. Both spellings are held to the same answer by a test, and
+neither is allowed to be the only one.

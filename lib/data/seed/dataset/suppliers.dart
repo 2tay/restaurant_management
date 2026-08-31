@@ -1,5 +1,5 @@
-import '../models/supplier.dart';
-import 'mock_stores.dart';
+import '../../../models/supplier.dart';
+import 'stores.dart';
 
 abstract final class SupplierIds {
   static const String grossisteCentral = 'sup-grossiste-central';

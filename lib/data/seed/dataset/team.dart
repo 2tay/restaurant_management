@@ -1,6 +1,6 @@
-import '../models/team_member.dart';
-import 'mock_reference.dart';
-import 'mock_stores.dart';
+import '../../../models/team_member.dart';
+import 'reference.dart';
+import 'stores.dart';
 
 /// The signed-in user, for the top-bar avatar and account settings.
 final TeamMember mockCurrentUser = mockTeam.first;

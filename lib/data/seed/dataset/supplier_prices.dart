@@ -1,7 +1,7 @@
-import '../models/supplier_price.dart';
-import 'mock_items.dart';
-import 'mock_reference.dart';
-import 'mock_suppliers.dart';
+import '../../../models/supplier_price.dart';
+import 'items.dart';
+import 'reference.dart';
+import 'suppliers.dart';
 
 /// Item–supplier links, each carrying its own price.
 ///

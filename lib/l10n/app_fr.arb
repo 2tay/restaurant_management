@@ -930,7 +930,7 @@
   "@syncDemoToggle": {"description": "Debug toggle letting the offline experience be demoed on demand. The brief asks for this explicitly."},
   "syncDemoToggleBody": "Pour la démonstration : affiche la bannière hors ligne dans toute l'application.",
   "@syncDemoToggleBody": {"description": "Explains that the offline toggle is a demo aid, not a real setting."},
-  "syncPhase2Note": "La synchronisation réelle sera ajoutée en phase 2. Les valeurs ci-dessus sont fictives.",
+  "syncLocalOnlyNote": "Les données sont enregistrées sur cet appareil. La synchronisation entre appareils sera ajoutée en phase 3.",
   "@syncPhase2Note": {"description": "Honest note that sync is not implemented in Phase 1."},
 
   "searchTitle": "Recherche",
@@ -1348,8 +1348,6 @@
   "@demoResetTitle": {"description": "Section and action that puts the prototype's data back to how it shipped. Present because a client demo gets walked several times in one sitting and the second run should not start from the first one's leftovers."},
   "demoResetBody": "Remet les articles, les stocks, les commandes et les prix dans leur état d'origine. Les modifications faites pendant la démonstration ne sont conservées que le temps de la session.",
   "@demoResetBody": {"description": "Explains what the reset action does and, implicitly, that nothing persists anyway."},
-  "demoResetNothing": "Aucune modification à annuler.",
-  "@demoResetNothing": {"description": "Shown in place of the reset action when nothing has been changed yet."},
   "demoResetConfirmTitle": "Réinitialiser la démonstration ?",
   "@demoResetConfirmTitle": {"description": "Confirmation before resetting."},
   "demoResetConfirmBody": "Tout ce qui a été créé, modifié ou réceptionné depuis le démarrage sera annulé.",

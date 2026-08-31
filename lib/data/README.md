@@ -1,15 +1,18 @@
 # Data layer
 
-Everything between SQLite and the widget tree. Phase 2 builds it; Phase 1 had no such
-thing — screens read `lib/mock_data/` directly and writes edited global lists.
+Everything between SQLite and the widget tree. Phase 1 had no such thing — screens read a
+set of global lists directly, and writes edited them in place.
 
 ```
-database/      the drift schema and the AppDatabase class
-  tables/        one file per table group
-  migrations/    drift's schema dumps, from version 2 onward
-mappers/       row <-> model, one file per aggregate
-repositories/  the only code allowed to read or write the database
-seed/          the demo dataset, loaded on first launch
+database/       the drift schema and the AppDatabase class
+  tables/         one file per table group
+  migrations/     drift's schema dumps, from version 2 onward
+mappers/        row <-> model, one file per aggregate
+repositories/   the only code allowed to read or write the database
+view_models/    what one screen needs, resolved in one query
+seed/           the demo dataset, loaded on first launch
+  dataset/        the data itself — thirteen files of hand-written restaurant
+providers.dart  the bridge: one provider per screen-level query
 ```
 
 ## Why this is central and not `features/*/data/`

@@ -1,8 +1,8 @@
-import '../models/notification_item.dart';
-import 'mock_items.dart';
-import 'mock_reference.dart';
-import 'mock_stores.dart';
-import 'mock_suppliers.dart';
+import '../../../models/notification_item.dart';
+import 'items.dart';
+import 'reference.dart';
+import 'stores.dart';
+import 'suppliers.dart';
 
 /// Notification centre content.
 ///

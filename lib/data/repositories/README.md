@@ -1,12 +1,11 @@
 # Repositories
 
-The only code allowed to touch the database. One file per aggregate, mirroring what
-`lib/mock_data/mutations/` was in Phase 1 — the seam was built one-to-one on purpose, so
-this is a translation rather than a redesign.
+The only code allowed to touch the database. One file per aggregate, mirroring the write
+layer Phase 1 kept in memory — that seam was built one-to-one on purpose, so this was a
+translation rather than a redesign.
 
 The domain rules did not move: they are still the ones written down in `DOMAIN_MODEL.md`
-and still enforced by the same test suites, which port stage by stage. What changed is
-where the data comes from.
+and still enforced by the same test suites. What changed is where the data comes from.
 
 ## Non-negotiable
 
