@@ -9,7 +9,7 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../../mock_data/mock_data.dart';
+import '../../../../data/providers.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 import '../widgets/export_dialog.dart';
@@ -27,7 +27,15 @@ class StockValuationReportPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     // Valuation is quantity times price, and both move.
-    ref.watch(mockDataRevisionProvider);
+    // Every figure below is one query. The two breakdowns each carry their
+    // rows' share of the total, computed in the same pass that summed it.
+    final valuation = ref.watch(stockValuationProvider(storeId)).value ?? 0;
+    final byCategory =
+        ref.watch(valuationByCategoryProvider(storeId)).value ??
+        const <ValuationRow>[];
+    final byItem =
+        ref.watch(valuationByItemProvider(storeId)).value ??
+        const <ValuationRow>[];
 
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
@@ -84,7 +92,7 @@ class StockValuationReportPage extends ConsumerWidget {
                         alignment: Alignment.centerLeft,
                         child: Text(
                           Formatters.price(
-                            MockQueries.stockValuation(storeId),
+                            valuation,
                           ),
                           style: theme.textTheme.displaySmall,
                         ),
@@ -116,7 +124,7 @@ class StockValuationReportPage extends ConsumerWidget {
               DataColumn(label: Text(l10n.valuationColumnShare)),
             ],
             rows: [
-              for (final row in MockQueries.valuationByCategory(storeId))
+              for (final row in byCategory)
                 _row(context, row),
             ],
           ),
@@ -132,7 +140,7 @@ class StockValuationReportPage extends ConsumerWidget {
               DataColumn(label: Text(l10n.valuationColumnShare)),
             ],
             rows: [
-              for (final row in MockQueries.valuationByItem(storeId))
+              for (final row in byItem)
                 _row(context, row),
             ],
           ),

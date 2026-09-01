@@ -8,46 +8,42 @@ comments, and documentation are in English.
 
 ---
 
-## Status: Phase 1.6 complete — UI, plus the ordering rules in memory
+## Status: Phase 2 complete — the app persists
 
-Still a **demo-ready prototype, not a functioning app**. Every screen renders from data in
-`lib/mock_data/`. There is no database, no networking, no persistence and no repositories.
+**What you do in the app is still there tomorrow.** Every screen reads and writes a local
+SQLite database through drift. Creating an article, receiving a delivery, recording usage,
+renaming a category, changing a price, inviting a colleague: all of it is written to a file
+on the device, and all of it survives closing the app, killing it, and rebooting the tablet.
 
-**What you do in the app now sticks — for as long as the app is open.** Creating an
-article, receiving a delivery, recording usage, renaming a category, changing a price,
-inviting a colleague: all of it runs against the mock lists in memory. A hot restart puts
-everything back, and so does **Paramètres → Synchronisation → Réinitialiser la
-démonstration**.
+The first launch seeds the demo dataset, so a fresh install looks exactly like the Phase 1
+demo did — and **Paramètres → Synchronisation → Réinitialiser la démonstration** puts it
+back, which now means re-seeding the file rather than restoring an in-memory snapshot.
 
-The rules live in `mock_data/mutations/` and are the ones Phase 2 will reimplement against
-real storage. They are there because the app is not demonstrable otherwise — the entire
-point of receiving a delivery is that stock goes up and the price history gains an entry,
-and a screen that reports success while nothing moves teaches the client the wrong thing
-about what they are buying.
+Nothing about the domain rules changed. They moved into `lib/data/repositories/`, one file
+per aggregate, and the tests that pinned them followed. What a receipt does to stock and price history, what counts as on order, how a
+weighted-average cost advances — all of it means the same thing it did, and now it means it
+after a restart.
 
 **Still fake, deliberately:** login, export and sync. Those screens say so on themselves.
-Making two of the three half-work would be worse than leaving them honest.
+There is no server, so there is nothing to sync with; the offline banner reports zero
+pending changes, which is true rather than decorative.
 
-**Still frozen:** the usage and waste trend series on the reports. Stock valuation is now
-derived from live quantities, because a headline figure that does not follow a delivery
-makes the dashboard contradict the inventory two taps away. The trend charts are a bigger
-job — the movement log only covers the last few weeks in detail, so a derived six-month
-trend would be mostly flat zero, which reads as a bug rather than as honesty. Phase 2
-aggregates them properly.
+**No longer frozen:** the usage and waste trend charts are a real aggregation over the
+movement log, and the potential-annual-saving headline is the actual gap between what the
+establishment pays and the best price on offer. The charts are **weekly** rather than
+monthly, and deliberately so — the seeded history covers a few weeks, and a six-month series
+over it would be five empty columns and one tall one, which reads as a broken chart rather
+than as a young dataset.
 
-| Stage | Scope | Status |
+| Phase | Scope | Status |
 |---|---|---|
-| 0 | Dependencies, l10n pipeline, folder skeleton, lints | Done |
-| 1 | Design system — palette, typography, spacing, theme | Done |
-| 2 | Models + mock data | Done |
-| 3 | go_router shell + navigation | Done |
-| 4 | Shared component library | Done |
-| 5 | Screens (37 routes across 35 page files) | Done |
-| 6 | Polish pass + UX audit | Done |
-| 7 | Phase 2 stubs + handoff | Done |
-| 1.5 | Navigation fixes + UI polish pass | Done |
-| 1.6 | Purchase orders + receiving, item barcode | Done |
-| 1.7 | In-memory writes across the rest of the app | Done |
+| 1.0–1.7 | UI, design system, navigation, and the domain rules in memory | Done |
+| 2 | Local-first SQLite storage via drift | Done |
+| 3 | Sync, remote API, real authentication | Not started |
+
+Phase 2's eleven stages, and what each one actually cost, are in
+[`phase2.md`](phase2.md) — every stage carries an "As built" section recording where the
+plan was wrong.
 
 The original brief is in [`.claude/phase1.md`](.claude/phase1.md).
 
@@ -90,12 +86,16 @@ Worth walking in this order — it is the order that tells the story:
      chicken's price history gains an entry
 9. Back on **Inventaire → Blanc de poulet**: the quantity has moved, **Historique des prix**
    has the new entry, and the movement links back to the receipt it came from.
-10. **Alertes** → each low item now says whether anything is already on order. **Créer les
+10. **Kill the app completely and reopen it.** Everything above is still there — the
+    quantity, the movement, the price history entry, the commande's new status. This is the
+    whole point of Phase 2 and the only step that proves it.
+11. **Alertes** → each low item now says whether anything is already on order. **Créer les
     commandes** groups them by supplier and pre-fills a draft.
-11. **Taverne Saint-Gilles** from the store switcher → a brand-new empty store, so every
+12. **Taverne Saint-Gilles** from the store switcher → a brand-new empty store, so every
     empty state is real rather than described.
-12. **Paramètres → Synchronisation** → toggle offline mode to show the offline banner, and
+13. **Paramètres → Synchronisation** → toggle offline mode to show the offline banner, and
     **Réinitialiser la démonstration** to put everything back before the next walkthrough.
+    Reopen the app once more: the reset persisted too.
 
 Barcodes are woven through rather than being their own step: about half the catalogue has
 one (beverages and packaged dry goods; nothing fresh). Copy one from a beverage's detail
@@ -121,12 +121,17 @@ feature without touching UI code.
 lib/
   app/          MaterialApp, router, route paths
   core/         theme, formatters, constants, responsive helpers
-  features/     one folder per feature, presentation/ only in Phase 1
-  shared/       cross-feature widgets (buttons, dialogs, states, shell)
-  models/       immutable plain Dart classes — shape only, no logic
-  mock_data/    ALL static data, the lookups over it, and the in-memory writes
-    mutations/  the write layer — one file per aggregate, plus shared plumbing
-  services/     Phase 2 stubs — empty classes, no logic
+  features/     one folder per feature, presentation/ only
+  shared/        cross-feature widgets (buttons, dialogs, states, shell)
+  models/        immutable plain Dart classes — shape only, no logic
+  data/          everything to do with storage
+    database/    drift schema, the database class, migrations
+    mappers/     row <-> model, one file per aggregate
+    repositories/ the write and read layer — one file per aggregate
+    view_models/ what one screen needs, resolved in one query
+    seed/        the demo dataset and the code that writes it
+    providers.dart  the bridge: one provider per screen-level query
+  services/      Phase 3 stubs — empty classes, no logic
   l10n/         .arb translations + generated AppLocalizations
   dev/          development-only reference. Not product — see below.
 tool/
@@ -145,58 +150,53 @@ folder imports it, so removing it is a two-line change.
 
 ---
 
-## Where Phase 2 plugs in
+## How the data layer fits together
 
-Four empty stubs in `lib/services/` mark the seams:
+```
+screen  →  provider  →  repository  →  drift  →  SQLite file
+```
 
-| File | Phase 2 responsibility |
+Nothing skips a step. A screen names the query it wants — `itemRowsProvider(...)`,
+`orderDetailProvider(...)` — and receives plain data with every name already resolved. It
+never holds a database, never writes a table, and cannot: `tool/ux_audit.py` fails the build
+if a file under `features/` imports `data/database/` or drift itself.
+
+| Folder | Owns |
 |---|---|
-| `local_database_service.dart` | Local-first storage (drift/isar) |
+| `data/database/` | The schema — 14 tables, real foreign keys, `PRAGMA foreign_keys = ON`, a migration strategy from version 1 |
+| `data/mappers/` | Row ↔ model, one file per aggregate. Models stay plain Dart with no persistence annotations |
+| `data/repositories/` | Every query and every write. **`movement_repository.dart` is the only file that changes an item's quantity or average cost** |
+| `data/view_models/` | What one screen needs, in one query. A row in a list is handed text, not ids |
+| `data/seed/` | The demo dataset, and the transaction that writes it on a first launch |
+| `data/providers.dart` | One provider per screen-level query, keyed the way the screen keys it |
+
+**Queries are streams.** A write anywhere re-runs every query whose tables it touched, and
+the screens watching them rebuild. There is no change counter and nothing to remember to
+notify — the database says what changed.
+
+### Where Phase 3 plugs in
+
+Three stubs in `lib/services/` still mark the seams:
+
+| File | Phase 3 responsibility |
+|---|---|
 | `sync_service.dart` | Offline queue + conflict resolution |
 | `api_service.dart` | Remote API client |
 | `auth_service.dart` | Real authentication |
 
-**The migration path is `mock_data/mock_queries.dart` for reads and
-`mock_data/mutations/` for writes.** Screens never touch the mock lists directly. Reads go
-through `MockQueries.itemsForStore(...)`, `MockQueries.onOrderQuantity(...)`; writes go
-through the mutation classes. Replace both with repositories returning the same shapes and
-the call sites barely move.
+`local_database_service.dart` is no longer a stub — it owns the open `AppDatabase`.
 
-The write layer is split one file per aggregate — **because that is how Phase 2's
-repositories will split**. A one-to-one seam is easier to walk across than one large class.
-
-| File | Owns |
-|---|---|
-| `movement_mutations.dart` | Stock in, out, adjustments, opening balances. **The only file in the app that changes an item's quantity.** |
-| `item_mutations.dart` | Articles. Notably *not* their quantity. |
-| `catalog_mutations.dart` | Categories and units. |
-| `supplier_mutations.dart` | Suppliers, and the item–supplier links that carry prices. |
-| `order_mutations.dart` | Commandes and receiving. |
-| `account_mutations.dart` | Stores, per-store settings, notifications. |
-| `employee_mutations.dart` | Personnel records — create, edit, archive, restore. |
-| `attendance_mutations.dart` | Pointage — clock-in, breaks, clock-out. **The only file that writes an attendance row**, and it refuses every write against a day a payroll run has locked. |
-| `payroll_mutations.dart` | Paie — compute-and-pay. **The only file that writes a payroll period and the only path that flips an attendance day to paid.** A paid period is permanent. |
-
-`mutations/mock_write.dart` holds what they all share:
-
-| | |
-|---|---|
-| `MockWrite.revision` | A change counter, exposed to widgets as `mockDataRevisionProvider`. Screens showing anything a write can change watch it, so a receipt confirmed on one screen is visible on the one underneath. Phase 2 swaps it for the storage layer's own change stream. |
-| `MockWrite.id(prefix)` | Ids for records created in-session — `item-new-7`, obviously generated. |
-| `MockWrite.captureSeed()` / `reset()` | The pristine snapshot behind **Paramètres → Synchronisation → Réinitialiser la démonstration**. Captured in `main()` before the first frame; the models are immutable, so copying the lists is a true deep snapshot. |
-
-The reset exists because a client demo gets walked several times in one sitting and the
-second run should not start from the first one's leftovers — and the only other way back is
-a hot restart, which is not something to do in front of anybody. The test suite uses the
-same snapshot to isolate tests from each other, so the mechanism is exercised on every run
-rather than only when somebody taps the button.
+Two things are already shaped for what comes next. `currentEmployeeProvider` resolves the
+signed-in person from a `meta` row (`currentEmployeeId`) rather than from a constant, and the
+name every movement and price change is stamped with (`meta.currentUserName`) is refreshed by
+`SessionRepository.signIn` — so Phase 3's real auth is a change to how that row gets written,
+not a refactor of everything downstream. And `pendingChangesProvider` reports zero because
+there is no outbox; Phase 3 fills it from the real one and the offline banner starts telling
+the truth about a queue instead of about an absence.
 
 The rules those writes implement — the status transitions, what a receipt does to stock and
-price history, what counts as on order — are pinned by `test/orders_test.dart`. That file is
-the specification; the screens are the cheap part.
-
-The models are already Phase 2 ready: immutable, no `fromJson`, no persistence annotations,
-no methods with logic. Add serialization alongside them rather than inside them.
+price history, what counts as on order — are pinned by `test/db/orders_test.dart`. That file
+is the specification; the screens are the cheap part.
 
 Store scoping is structural rather than stateful — the store id is in the route path
 (`/store/:storeId/inventory`), so no screen can render without knowing which store it is
@@ -214,7 +214,8 @@ for, and store switching is just navigation.
   with the `fr_BE` locale, via `core/utils/formatters.dart`.
 - **`intl` is pinned to exactly `0.20.2`** — `flutter_localizations` from the SDK requires
   it. Widening that constraint breaks `flutter pub get`.
-- **All static data lives in `mock_data/`.** A hardcoded list inside a widget is a bug.
+- **All static data lives in `data/seed/dataset/`.** A hardcoded list inside a widget is
+  a bug. Nothing but the seed reads it.
 - **Models carry no logic** — no `fromJson`, no persistence annotations.
 - Run `flutter analyze` and `flutter test` before committing. Both are clean; lints are
   strict and `unused_import` is an error.
@@ -244,7 +245,7 @@ for, and store switching is just navigation.
    A new store starts genuinely empty — categories, units, items and suppliers are all
    per-store, so what the user sees next is every empty state in the app doing its job.
 5. **Every change to an item's quantity is a stock movement.** One file writes quantity —
-   `mutations/movement_mutations.dart` — and everything comes through it: receiving a
+   `data/repositories/movement_repository.dart` — and everything comes through it: receiving a
    delivery, a manual stock-in, usage mid-service, a physical count, and the opening balance
    on a brand-new article. So `quantity == opening balance + Σ movements` holds by
    construction, and the history is a complete record rather than a partial one that looks
@@ -301,20 +302,26 @@ The brief's users are standing, moving fast, with wet hands, mid-service. That d
 colour comes from `app_colors.dart`, every text style from `app_typography.dart`, every
 padding value from the spacing scale, and that no screen navigates with a raw `context.go()`.
 
-Phase 1.6 added two invariants to it that are about semantics rather than style:
+Six of the fifteen checks are about semantics rather than style, and they are the ones worth
+knowing about:
 
 - **no single-object barcode lookups** — a `firstWhere` on a barcode anywhere is flagged,
   because it is the shape that makes "several barcodes per item" expensive later
-- **no stock writes outside `mock_mutations.dart`** — a screen assigning into `mockItems`
-  would bypass the movement log, and the movement log is the single source of truth for
-  stock levels
+- **no database writes outside `data/repositories/`** — every guard the repositories hold
+  (the movement behind a quantity change, the price history behind a price, the transaction
+  around a delivery) is bypassed by anything that reaches a table directly
+- **no feature code importing `data/database/` or drift** — the same rule from the other
+  side. A screen that cannot name a table cannot write one
+- **`items.quantity` and `items.averageCost` written only by `movement_repository.dart`** —
+  checked by finding each `ItemsCompanion` and reading the call that follows it, because a
+  companion spans several lines and `quantity:` also appears in perfectly legitimate calls
+- **`averageCost` assigned only in the repository layer** — a running total is safe only
+  while exactly one thing advances it
+- **no quantity multiplied by a supplier price** — the bug the valuation exists to avoid: a
+  supplier price is what the *next* unit costs, so multiplying it by stock on hand revalues
+  goods bought weeks ago at this morning's price
 
-Phase 1.7 generalised the second of those: **no mock list is written outside
-`mock_data/mutations/`** at all, not just `mockItems`. A screen calling `mockSuppliers.add(...)`
-would bypass both the reset snapshot and the change signal, and neither failure is visible
-until a demo starts behaving strangely halfway through.
-
-Twelve checks, currently zero violations. Re-run it after adding screens.
+Fifteen checks, currently zero violations. Re-run it after adding screens.
 
 ## Navigation
 
@@ -346,7 +353,8 @@ back gesture alike.
 flutter test
 ```
 
-402 tests. The ones that earn their keep:
+A full run takes a few minutes — most of it the route walk, which seeds a database per test.
+The ones that earn their keep:
 
 - **`navigation_test.dart`** pins the navigation contract: all 15 root screens show no back
   control and all 24 pushed screens do; push-then-pop returns you where you were and five
@@ -363,51 +371,64 @@ flutter test
   Phase 1.6: `SectionHeader` laid its action button out unbounded, so "Associer un
   fournisseur" ran off the 434dp detail pane the moment content above it shifted, and the
   low-stock row gained one column too many to survive portrait.
-- **`mock_data_test.dart`** checks referential integrity across the hand-written dataset,
-  and asserts the demo-critical properties: all three stock statuses present, one store
-  empty, at least one item with three competing suppliers, at least one where the default
-  supplier is not the cheapest.
+- **`db/seed_test.dart`** checks referential integrity across the hand-written dataset —
+  against a seeded database, so the schema's own foreign keys catch some of it and this
+  catches the rest, including the six references that carry no key by design. It asserts the
+  demo-critical properties too: all three stock statuses present, one establishment empty, an
+  article with three competing suppliers, another where the default is not the cheapest. And
+  that a generated id can never collide with a seeded one, which stopped being merely tidy
+  the moment ids outlived the process.
 - **`components_test.dart`** pins the component behaviour the brief depends on — the status
   badge never using colour alone, the stepper accepting `2,5`, the dropdown's inline
   "+ Créer".
-- **`mock_write_test.dart`** pins the write foundation: that the change counter climbs on
-  every write and keeps climbing across a reset (so screens listening to it redraw when the
-  data goes *backwards*), that generated ids never collide with seeded ones, and that a
-  reset restores values rather than just list lengths. Its last test clears every mutable
-  list and asserts the reset brings all of it back — which is what catches a new list
-  somebody forgot to add to the snapshot.
-- **`catalog_test.dart`** pins the two catalogue rules — unique names, no deleting what is
+- **`db/queries_test.dart`** is a differential suite. It asks the database a question and
+  asks `test/support/dataset_queries.dart` — the Phase 1 read layer, kept in the test tree —
+  the same question, and fails when they disagree. That is the strongest available evidence
+  that porting fifty-odd queries from Dart list scans into SQL changed nothing, because an
+  expected number is only ever as right as whoever typed it.
+- **`provider_layer_test.dart`** pins the bridge: that the shell draws chrome rather than a
+  blank screen while its establishment resolves, that a write reaches a watching widget with
+  nothing in between, that the skeleton does not flash when it does, and that an error beats
+  a still-loading sibling when several queries are folded together.
+- **`db/catalog_test.dart`** pins the two catalogue rules — unique names, no deleting what is
   in use — including the cases that are easy to get backwards: a rename must not collide
   with itself, a refused write must not half-apply, and the same name in a different store
   is fine because categories are per-store. It finishes by deleting every category and every
   unit it can and asserting no item was left pointing at nothing.
-- **`inventory_test.dart`** pins the invariant the whole app rests on:
+- **`db/inventory_test.dart`** pins the invariant the whole app rests on:
   `quantity == opening balance + Σ movements`, checked after an arbitrary sequence of
   deliveries, usage and a correction. Also that editing an item cannot change its quantity,
   that a stock-out is allowed to take an item to −4, that deleting an item on an open order
   is refused, and that deleting every item in the store leaves no orphaned movement.
-- **`suppliers_test.dart`** pins the link rules — an item never has two defaults, removing
+- **`db/suppliers_test.dart`** pins the link rules — an item never has two defaults, removing
   the default promotes the cheapest remaining one, a price change writes history for the
   pair, and deleting a supplier keeps the movements and closed orders that name them, since
   a movement records goods that really moved.
-- **`account_test.dart`** covers stores and notifications, including the rule worth having:
-  a new store starts genuinely empty.
-- **`employees_test.dart`** pins the personnel rules — CIN and email unique account-wide
-  (self-exclusion on a rename, the same value refused in another store), a soft archive that
-  never touches history and can be restored, and `update` unable to change `archivedAt`.
-- **`attendance_test.dart`** pins the pointage state machine — one row per employee per day,
-  N breaks per day, every transition refusing the wrong prior state, late/overtime measured
-  against the resolved schedule (personal override beats store hours), break-overrun per
-  segment, a payroll-locked day refusing every write, and the Historique filters +
-  pagination. (No absence handling — dropped by the client during Phase 3.)
-- **`payroll_test.dart`** pins the paie — the hourly rate (an extra's own rate, a fixed
-  employee's derived from monthly pay ÷ working days ÷ 8h), the overtime premium on top of
-  worked hours, a day that is not `done` worth nothing, `preview` summing the unpaid
-  finished days while persisting nothing, and `pay` creating the period, locking every
-  covered day, and freezing `appliedRate` so a later raise never moves a paid period.
-- **`orders_test.dart`** is the one that matters most, because the ordering rules are the
-  part of this phase with actual behaviour. It runs them against the in-memory layer and
-  restores the mock lists afterwards: that sending an order moves no stock but does count
+- **`db/account_test.dart`** covers stores and notifications, including the rule worth
+  having: a new store starts genuinely empty. (There is no team module — Gestion Employée
+  replaced it; everyone is an `Employee` with a `role`.)
+- **`db/employees_test.dart`** pins the personnel rules — CIN and email unique account-wide
+  (self-exclusion on a rename), a soft archive that never touches history and can be
+  restored, `update` unable to change `archivedAt`, and `create` writing the person and
+  their PIN in one transaction.
+- **`db/attendance_test.dart`** pins the pointage state machine — one row per employee per
+  day, N breaks per day, every transition refusing the wrong prior state, late/overtime
+  measured against the resolved schedule (personal override beats store hours), break-overrun
+  per segment, a payroll-locked day refusing every write, the Historique filters +
+  pagination, and a double-tapped Pause resolving to exactly one appended break.
+- **`db/payroll_test.dart`** pins the paie — the hourly rate, the overtime premium, a day
+  that is not `done` worth nothing, `preview` persisting nothing, `pay` creating the period,
+  locking every covered day and freezing `appliedRate` in one transaction, and a rollback
+  that leaves nothing behind when a day slips to paid mid-run.
+- **`db/store_settings_test.dart`** pins the establishment settings persisting and the
+  session round-tripping through `meta.currentEmployeeId`.
+- **`permissions_test.dart`** drives the `can()` table, the router guard and the sidebar
+  filtering from one place: a signed-out session redirects to `/login`, a manager is bounced
+  from the roster and payroll but reaches the pointage board, and each role sees only the
+  Gestion Employée children it can hold.
+- **`db/orders_test.dart`** is the one that matters most, because the ordering rules are the
+  part of this app with the most behaviour. Each test gets its own seeded in-memory
+  database: that sending an order moves no stock but does count
   towards "on order", that a sent order refuses edits and a partially received one refuses
   cancellation, that receiving generates one stock movement per line carrying its order and
   receipt references, that closing short settles the line without inventing stock and stops
@@ -415,12 +436,23 @@ flutter test
   not, and that the seeded dataset actually covers every status and every receipt outcome
   the walkthrough needs.
 
-Dates in the mock data are anchored to `DateTime.now()` so the demo always looks current;
-nothing asserts on them.
+Dates in the dataset are offsets from a single anchor, so the demo always looks current. The
+seed takes that anchor as an argument, which is why the suites *can* assert on dates: they
+seed at a fixed instant and "sent three days ago" becomes a date a test can name.
+
+The one thing worth knowing before writing a widget test here: `pumpAndSettle` never returns
+while a skeleton is on screen, because `SkeletonBlock` pulses on a repeating controller. Pump
+a fixed duration instead when you need to look at a loading state.
 
 ---
 
-## Out of scope for Phase 1
+## Out of scope for Phase 2
 
-Real authentication, any persistence, sync, network calls, repositories or business logic
-layers, real PDF/CSV export, and recipe/BOM costing (out of the MVP entirely).
+Real authentication, sync, network calls, real CSV export, and recipe/BOM costing (out of
+the MVP entirely). The bon de réception is a real PDF; the export dialogs on the reports are
+not.
+
+One thing to check before shipping to a platform other than Android: `sqlite3_flutter_libs`
+links a native library per platform, and only the Android build has been run end to end from
+this repository. `flutter build windows` and `flutter build macos` should be exercised once
+on the machine the app ships from.

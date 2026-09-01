@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../data/providers.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../../mock_data/mock_data.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 
@@ -51,17 +52,17 @@ abstract final class CreateSheets {
   }
 }
 
-class _CategorySheet extends StatefulWidget {
+class _CategorySheet extends ConsumerStatefulWidget {
   const _CategorySheet({required this.storeId, this.existing});
 
   final String storeId;
   final Category? existing;
 
   @override
-  State<_CategorySheet> createState() => _CategorySheetState();
+  ConsumerState<_CategorySheet> createState() => _CategorySheetState();
 }
 
-class _CategorySheetState extends State<_CategorySheet> {
+class _CategorySheetState extends ConsumerState<_CategorySheet> {
   late final TextEditingController _name = TextEditingController(
     text: widget.existing?.name ?? '',
   );
@@ -104,16 +105,16 @@ class _CategorySheetState extends State<_CategorySheet> {
     );
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     final name = _name.text.trim();
     if (name.isEmpty) return;
 
+    final catalog = ref.read(catalogRepositoryProvider);
     final result = _isEditing
-        ? CatalogMutations.renameCategory(widget.existing!.id, name)
-        : CatalogMutations.createCategory(
-            storeId: widget.storeId,
-            name: name,
-          );
+        ? await catalog.renameCategory(widget.existing!.id, name)
+        : await catalog.createCategory(storeId: widget.storeId, name: name);
+
+    if (!mounted) return;
 
     // Null means the name collides — the only way these can fail once the
     // field is non-empty.
@@ -125,17 +126,17 @@ class _CategorySheetState extends State<_CategorySheet> {
   }
 }
 
-class _UnitSheet extends StatefulWidget {
+class _UnitSheet extends ConsumerStatefulWidget {
   const _UnitSheet({required this.storeId, this.existing});
 
   final String storeId;
   final UnitOfMeasure? existing;
 
   @override
-  State<_UnitSheet> createState() => _UnitSheetState();
+  ConsumerState<_UnitSheet> createState() => _UnitSheetState();
 }
 
-class _UnitSheetState extends State<_UnitSheet> {
+class _UnitSheetState extends ConsumerState<_UnitSheet> {
   late final TextEditingController _name = TextEditingController(
     text: widget.existing?.name ?? '',
   );
@@ -204,45 +205,47 @@ class _UnitSheetState extends State<_UnitSheet> {
     );
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     final name = _name.text.trim();
     final abbreviation = _abbreviation.text.trim();
 
+    final catalog = ref.read(catalogRepositoryProvider);
     final result = _isEditing
-        ? CatalogMutations.updateUnit(
+        ? await catalog.updateUnit(
             widget.existing!.id,
             name: name,
             abbreviation: abbreviation,
           )
-        : CatalogMutations.createUnit(
+        : await catalog.createUnit(
             storeId: widget.storeId,
             name: name,
             abbreviation: abbreviation,
           );
 
+    if (!mounted) return;
     if (result != null) {
       Navigator.of(context).pop(result);
       return;
     }
 
-    // The mutation reports failure as a single null, so the sheet works out
-    // which of the two fields to flag. Asking the query layer directly keeps
-    // the mutation's contract simple and puts the error under the right field.
+    // The write reports failure as a single null, so the sheet works out which
+    // of the two fields to flag. Asking the read side directly keeps the
+    // write's contract simple and puts the error under the right field.
+    final clashingName = await catalog.unitNamed(
+      widget.storeId,
+      name,
+      excludingId: widget.existing?.id,
+    );
+    final clashingAbbreviation = await catalog.unitAbbreviated(
+      widget.storeId,
+      abbreviation,
+      excludingId: widget.existing?.id,
+    );
+
+    if (!mounted) return;
     setState(() {
-      _nameTaken =
-          MockQueries.unitNamed(
-            widget.storeId,
-            name,
-            excludingId: widget.existing?.id,
-          ) !=
-          null;
-      _abbreviationTaken =
-          MockQueries.unitAbbreviated(
-            widget.storeId,
-            abbreviation,
-            excludingId: widget.existing?.id,
-          ) !=
-          null;
+      _nameTaken = clashingName != null;
+      _abbreviationTaken = clashingAbbreviation != null;
     });
   }
 }

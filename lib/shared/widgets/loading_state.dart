@@ -110,7 +110,26 @@ class SkeletonList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // A skeleton stands in for a list, and lists in this app live in two very
+    // different places: inside a page's own scroll view, where the height is
+    // unbounded, and filling a pane on their own, where it is not.
+    //
+    // Getting this wrong is not cosmetic. Shrink-wrapping in a bounded pane
+    // overflows — six rows are taller than a 600dp tablet's content area — and
+    // *not* shrink-wrapping inside a scroll view throws outright. So the
+    // decision is made from the constraints rather than guessed once.
+    return LayoutBuilder(
+      builder: (context, constraints) =>
+          _list(shrinkWrap: !constraints.hasBoundedHeight),
+    );
+  }
+
+  Widget _list({required bool shrinkWrap}) {
     return ListView.separated(
+      shrinkWrap: shrinkWrap,
+      // Never scrollable either way: there is nothing below the fold worth
+      // reaching, and a placeholder that scrolls invites somebody to try.
+      physics: const NeverScrollableScrollPhysics(),
       itemCount: rows,
       separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
       itemBuilder: (context, index) => Container(
@@ -169,7 +188,17 @@ class SkeletonGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Same reason as [SkeletonList].
+    return LayoutBuilder(
+      builder: (context, constraints) =>
+          _grid(shrinkWrap: !constraints.hasBoundedHeight),
+    );
+  }
+
+  Widget _grid({required bool shrinkWrap}) {
     return GridView.builder(
+      shrinkWrap: shrinkWrap,
+      physics: const NeverScrollableScrollPhysics(),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: columns,
         crossAxisSpacing: AppSpacing.lg,

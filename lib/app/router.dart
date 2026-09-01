@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../data/providers.dart';
 import '../dev/theme_gallery_page.dart';
 import '../features/alerts/presentation/pages/low_stock_alerts_page.dart';
 import '../features/alerts/presentation/pages/notifications_page.dart';
@@ -47,7 +49,7 @@ import '../features/suppliers/presentation/pages/supplier_detail_page.dart';
 import '../features/suppliers/presentation/pages/supplier_pricing_page.dart';
 import '../features/suppliers/presentation/pages/suppliers_list_page.dart';
 import '../core/utils/permissions.dart';
-import '../mock_data/mock_data.dart';
+import '../data/current_employee.dart';
 import '../models/models.dart';
 import '../shared/widgets/app_scaffold.dart';
 import 'page_transitions.dart';
@@ -108,11 +110,14 @@ Capability? _capabilityFor(String location) {
 String? _guard(BuildContext context, GoRouterState state) {
   final location = state.matchedLocation;
 
-  if (!MockSession.isSignedIn) {
+  // Read synchronously — `currentEmployeeSnapshot` is resolved before the first
+  // frame (`main()` awaits `hydrate()`; the widget-test fixtures seed it) and
+  // kept in step with `currentEmployeeProvider` by its notifier.
+  final employee = currentEmployeeSnapshot;
+
+  if (employee == null) {
     return _authRoutes.contains(location) ? null : Routes.login;
   }
-
-  final employee = mockCurrentEmployee;
 
   // Staff have no active app access — they should never hold a session.
   if (employee.role == EmployeeRole.staff) {
@@ -179,14 +184,8 @@ final GoRouter appRouter = GoRouter(
     // Store-scoped — inside the shell
     // -------------------------------------------------------------------------
     ShellRoute(
-      builder: (context, state, child) {
-        // Falls back to the first store rather than throwing, so a stale link
-        // or a hot reload mid-navigation shows the app instead of a red screen.
-        final store = MockQueries.storeByIdOrFirst(
-          state.pathParameters['storeId'],
-        );
-        return AppScaffold(store: store, child: child);
-      },
+      builder: (context, state, child) =>
+          _StoreShell(storeId: state.pathParameters['storeId'], child: child),
       routes: [
         GoRoute(
           path: Routes.dashboard,
@@ -589,3 +588,40 @@ final GoRouter appRouter = GoRouter(
     ),
   ),
 );
+
+/// Resolves the establishment the shell is showing, and holds the chrome
+/// steady while it does.
+///
+/// Phase 1 read the store synchronously from a compiled-in list, which is why
+/// the `ShellRoute` builder could return [AppScaffold] directly. A query takes
+/// a frame, so this is the one place in the app where a loading state gates
+/// every store-scoped screen at once — and the reason [AppScaffoldSkeleton]
+/// draws the rail and top bar rather than nothing.
+///
+/// Falls back to the first establishment for an id that does not resolve, so a
+/// stale bookmark or a hot reload mid-navigation shows the app rather than a
+/// red screen. That was true in Phase 1 too; what is new is that "no
+/// establishment at all" is now a real answer, handled by [AppScaffoldNoStore].
+class _StoreShell extends ConsumerWidget {
+  const _StoreShell({required this.storeId, required this.child});
+
+  final String? storeId;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return ref
+        .watch(currentStoreProvider(storeId))
+        .when(
+          skipLoadingOnReload: true,
+          data: (store) => store == null
+              ? const AppScaffoldNoStore()
+              : AppScaffold(store: store, child: child),
+          loading: () => const AppScaffoldSkeleton(),
+          // The chrome cannot render without an establishment, so a failed
+          // query lands here rather than on the page inside it. No retry: the
+          // stream is still live, and it will deliver if the database recovers.
+          error: (error, stackTrace) => const AppScaffoldNoStore(),
+        );
+  }
+}

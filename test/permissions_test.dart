@@ -3,33 +3,35 @@
 // three from one place.
 
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:stock_inventory/app/app.dart';
 import 'package:stock_inventory/app/router.dart';
 import 'package:stock_inventory/app/routes.dart';
 import 'package:stock_inventory/core/utils/permissions.dart';
-import 'package:stock_inventory/mock_data/mock_data.dart';
+import 'package:stock_inventory/data/database/app_database.dart';
+import 'package:stock_inventory/data/repositories/repositories.dart';
+import 'package:stock_inventory/data/seed/dataset/dataset.dart';
 import 'package:stock_inventory/models/models.dart';
 import 'package:stock_inventory/shared/widgets/widgets.dart';
 
-import 'support/mock_reset.dart';
+import 'support/app_harness.dart';
+import 'support/db_fixture.dart';
 
 const Size _tablet = Size(1280, 800);
 const String _store = StoreIds.sablon;
 
-Future<void> _pump(WidgetTester tester) async {
-  tester.view.physicalSize = _tablet;
-  tester.view.devicePixelRatio = 1.0;
-  addTearDown(tester.view.reset);
-  await tester.pumpWidget(const ProviderScope(child: StockInventoryApp()));
-  await tester.pumpAndSettle();
-}
-
 void main() {
-  setUp(restoreMockData);
-
   group('can()', () {
+    late AppDatabase db;
+    late Employee owner;
+    late Employee manager;
+
+    setUp(() async {
+      db = await openSeededDatabase();
+      final repo = EmployeeRepository(db);
+      owner = (await repo.employee(EmployeeIds.marc))!;
+      manager = (await repo.employee(EmployeeIds.amelie))!;
+    });
+
     test('the owner holds every capability', () {
       for (final capability in Capability.values) {
         expect(can(EmployeeRole.owner, capability), isTrue, reason: '$capability');
@@ -51,9 +53,6 @@ void main() {
     });
 
     test('canAccessStore: owner spans, others are bound to their store', () {
-      final owner = MockQueries.employeeById(EmployeeIds.marc)!;
-      final manager = MockQueries.employeeById(EmployeeIds.amelie)!;
-
       expect(canAccessStore(owner, StoreIds.sablon), isTrue);
       expect(canAccessStore(owner, StoreIds.liege), isTrue);
       expect(canAccessStore(manager, manager.storeId), isTrue);
@@ -61,9 +60,6 @@ void main() {
     });
 
     test('visibleStores: everything for the owner, one store otherwise', () {
-      final owner = MockQueries.employeeById(EmployeeIds.marc)!;
-      final manager = MockQueries.employeeById(EmployeeIds.amelie)!;
-
       expect(visibleStores(owner, mockStores).length, mockStores.length);
       expect(
         visibleStores(manager, mockStores).map((s) => s.id),
@@ -79,9 +75,8 @@ void main() {
   });
 
   group('router guard', () {
-    testWidgets('a signed-out session is bounced to the login', (tester) async {
-      MockSession.signOut();
-      await _pump(tester);
+    testApp('a signed-out session is bounced to the login', (tester) async {
+      await pumpApp(tester, size: _tablet, asEmployeeId: '');
 
       appRouter.go(Routes.toDashboard(_store));
       await tester.pumpAndSettle();
@@ -89,9 +84,8 @@ void main() {
       expect(appRouter.state.uri.path, Routes.login);
     });
 
-    testWidgets('a manager cannot reach the roster or payroll', (tester) async {
-      MockSession.signIn(MockQueries.employeeById(EmployeeIds.amelie)!);
-      await _pump(tester);
+    testApp('a manager cannot reach the roster or payroll', (tester) async {
+      await pumpApp(tester, size: _tablet, asEmployeeId: EmployeeIds.amelie);
 
       for (final blocked in [
         Routes.toEmployees(_store),
@@ -108,11 +102,8 @@ void main() {
       }
     });
 
-    testWidgets('a manager can reach the pointage board and history', (
-      tester,
-    ) async {
-      MockSession.signIn(MockQueries.employeeById(EmployeeIds.amelie)!);
-      await _pump(tester);
+    testApp('a manager can reach the pointage board and history', (tester) async {
+      await pumpApp(tester, size: _tablet, asEmployeeId: EmployeeIds.amelie);
 
       for (final allowed in [
         Routes.toTimeclock(_store),
@@ -124,24 +115,21 @@ void main() {
       }
     });
 
-    testWidgets('a manager cannot open the add-store screen', (tester) async {
-      MockSession.signIn(MockQueries.employeeById(EmployeeIds.amelie)!);
-      await _pump(tester);
+    testApp('a manager cannot open the add-store screen', (tester) async {
+      await pumpApp(tester, size: _tablet, asEmployeeId: EmployeeIds.amelie);
 
       appRouter.go(Routes.addStore);
       await tester.pumpAndSettle();
 
-      // Sent home — a manager's home is their own store's dashboard.
       expect(appRouter.state.uri.path, Routes.toDashboard(_store));
     });
   });
 
   group('store scoping', () {
-    testWidgets('a manager cannot reach another store, and is sent home', (
+    testApp('a manager cannot reach another store, and is sent home', (
       tester,
     ) async {
-      MockSession.signIn(MockQueries.employeeById(EmployeeIds.amelie)!);
-      await _pump(tester);
+      await pumpApp(tester, size: _tablet, asEmployeeId: EmployeeIds.amelie);
 
       for (final foreign in [
         Routes.toDashboard(StoreIds.liege),
@@ -158,11 +146,10 @@ void main() {
       }
     });
 
-    testWidgets('a manager lands on the store grid → sent to their store', (
+    testApp('a manager lands on the store grid → sent to their store', (
       tester,
     ) async {
-      MockSession.signIn(MockQueries.employeeById(EmployeeIds.amelie)!);
-      await _pump(tester);
+      await pumpApp(tester, size: _tablet, asEmployeeId: EmployeeIds.amelie);
 
       appRouter.go(Routes.stores);
       await tester.pumpAndSettle();
@@ -170,9 +157,8 @@ void main() {
       expect(appRouter.state.uri.path, Routes.toDashboard(_store));
     });
 
-    testWidgets('the owner reaches any store and the grid', (tester) async {
-      MockSession.resetToDefault(); // owner
-      await _pump(tester);
+    testApp('the owner reaches any store and the grid', (tester) async {
+      await pumpApp(tester, size: _tablet, asEmployeeId: EmployeeIds.marc);
 
       for (final anywhere in [
         Routes.toDashboard(StoreIds.liege),
@@ -185,11 +171,10 @@ void main() {
       }
     });
 
-    testWidgets('a manager who signs in lands on their store dashboard', (
+    testApp('a manager who signs in lands on their store dashboard', (
       tester,
     ) async {
-      MockSession.signOut();
-      await _pump(tester);
+      await pumpApp(tester, size: _tablet, asEmployeeId: '');
 
       await tester.enterText(
         find.byType(TextField).at(0),
@@ -204,11 +189,8 @@ void main() {
   });
 
   group('sidebar', () {
-    testWidgets('the owner sees all four Gestion Employée children', (
-      tester,
-    ) async {
-      MockSession.resetToDefault(); // owner
-      await _pump(tester);
+    testApp('the owner sees all four Gestion Employée children', (tester) async {
+      await pumpApp(tester, size: _tablet, asEmployeeId: EmployeeIds.marc);
       appRouter.go(Routes.toDashboard(_store));
       await tester.pumpAndSettle();
 
@@ -221,9 +203,8 @@ void main() {
       expect(find.text('Historique de paiement'), findsOneWidget);
     });
 
-    testWidgets('a manager sees only the two pointage children', (tester) async {
-      MockSession.signIn(MockQueries.employeeById(EmployeeIds.amelie)!);
-      await _pump(tester);
+    testApp('a manager sees only the two pointage children', (tester) async {
+      await pumpApp(tester, size: _tablet, asEmployeeId: EmployeeIds.amelie);
       appRouter.go(Routes.toDashboard(_store));
       await tester.pumpAndSettle();
 

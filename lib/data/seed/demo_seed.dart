@@ -1,7 +1,7 @@
 import 'package:drift/drift.dart';
 
 import '../../core/utils/employee_status.dart';
-import '../../mock_data/mock_data.dart';
+import 'dataset/dataset.dart';
 import '../database/app_database.dart';
 import '../database/meta_keys.dart';
 import '../mappers/mappers.dart';
@@ -19,12 +19,13 @@ import '../mappers/mappers.dart';
 /// Everything goes in one batch, which drift runs as a single transaction. A
 /// half-written demo is not a state worth having recovery code for.
 ///
-/// The source is still `lib/mock_data/` — both for the stock dataset written
-/// here and for the employee module, which has not been ported to the database
-/// at all. Stage 10 moves the stock fixture under this folder.
+/// The source is `dataset/`, which used to be `lib/mock_data/` — an app layer
+/// every screen read from. Nothing reads it now except this function, which is
+/// what it always should have been: a fixture that happens to ship. The Gestion
+/// Employée block below reads the same folder.
 ///
 /// [at] is the instant the dataset should read as having been written. Every
-/// date in `mock_data/` is an offset from `mockNow`, frozen when that library
+/// date in the dataset is an offset from `mockNow`, frozen when that library
 /// loaded, so shifting by the difference re-anchors the whole timeline: the
 /// order sent three days ago is still three days ago, relative to [at]. It
 /// defaults to now, which is what the app wants; tests pass a fixed instant and
@@ -171,12 +172,16 @@ Future<void> seedDemoData(AppDatabase db, {DateTime? at}) async {
         key: MetaKeys.seededAt,
         value: seededAt.toIso8601String(),
       ),
-      // The name every movement and price change is stamped with. The employee
-      // module runs on `lib/mock_data/`, so this is that module's current user
-      // frozen into a string — good enough until the two layers meet.
+      // The name every movement and price change is stamped with. A fresh
+      // install is signed out, so nothing has set this yet; seed the owner of
+      // the flagship establishment so a movement made before the first login
+      // is still attributed to somebody. `SessionRepository.signIn` refreshes
+      // it to whoever actually signs in.
       MetaCompanion.insert(
         key: MetaKeys.currentUserName,
-        value: employeeDisplayName(mockCurrentEmployee),
+        value: employeeDisplayName(
+          mockEmployees.firstWhere((e) => e.id == EmployeeIds.marc),
+        ),
       ),
     ]);
   });

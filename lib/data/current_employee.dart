@@ -16,16 +16,39 @@ import 'repositories/session_repository.dart';
 /// [build] returns null — the signed-out state. `main()` (and every widget
 /// test's fixture) calls [hydrate] before `runApp`, so `_guard`'s first
 /// `ref.read` already sees the resolved value rather than a loading one.
+/// A synchronous snapshot of [currentEmployeeProvider]'s state.
+///
+/// For the one caller that cannot hold a `Ref` and cannot await:
+/// `router.dart`'s `_guard`, which runs inside a go_router `redirect` on every
+/// navigation. [CurrentEmployee] is the only writer — it updates this on every
+/// state change so the guard and the provider never disagree.
+///
+/// A widget test that pumps the app without going through `main()` sets it via
+/// [seedCurrentEmployeeSnapshot] in its fixture, the same way the old
+/// `MockSession` default worked.
+Employee? currentEmployeeSnapshot;
+
+/// Test-only: seed [currentEmployeeSnapshot] directly. Used by `db_fixture` /
+/// `app_harness` so a pumped app starts from a known session without a login.
+void seedCurrentEmployeeSnapshot(Employee? employee) {
+  currentEmployeeSnapshot = employee;
+}
+
 class CurrentEmployee extends Notifier<Employee?> {
   @override
-  Employee? build() => null;
+  Employee? build() => currentEmployeeSnapshot;
 
   SessionRepository get _session => ref.read(sessionRepositoryProvider);
+
+  void _set(Employee? employee) {
+    state = employee;
+    currentEmployeeSnapshot = employee;
+  }
 
   /// Resolves the session from the database into [state]. Idempotent — safe to
   /// call again after the database is re-seeded (the demo reset).
   Future<void> hydrate() async {
-    state = await _session.currentEmployee();
+    _set(await _session.currentEmployee());
   }
 
   /// Signs [employeeId] in: writes the `meta` row and moves [state] in one
@@ -33,14 +56,14 @@ class CurrentEmployee extends Notifier<Employee?> {
   /// (in which case nothing changes).
   Future<Employee?> signIn(String employeeId) async {
     final employee = await _session.signIn(employeeId);
-    if (employee != null) state = employee;
+    if (employee != null) _set(employee);
     return employee;
   }
 
   /// Signs out: drops the `meta` row and clears [state].
   Future<void> signOut() async {
     await _session.signOut();
-    state = null;
+    _set(null);
   }
 }
 

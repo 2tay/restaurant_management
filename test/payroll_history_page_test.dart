@@ -3,30 +3,30 @@
 // unpaid days for the shown range.
 
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:stock_inventory/app/app.dart';
 import 'package:stock_inventory/app/router.dart';
 import 'package:stock_inventory/app/routes.dart';
-import 'package:stock_inventory/mock_data/mock_data.dart';
+import 'package:stock_inventory/data/database/app_database.dart';
+import 'package:stock_inventory/data/repositories/repositories.dart';
+import 'package:stock_inventory/data/seed/dataset/dataset.dart';
 import 'package:stock_inventory/models/models.dart';
 import 'package:stock_inventory/shared/widgets/widgets.dart';
 
-import 'support/mock_reset.dart';
+import 'support/app_harness.dart';
 
-Future<void> _openPayroll(
+Future<AppDatabase> _openPayroll(
   WidgetTester tester, {
   Size size = const Size(1280, 800),
 }) async {
-  tester.view.physicalSize = size;
-  tester.view.devicePixelRatio = 1.0;
-  addTearDown(tester.view.reset);
-
-  await tester.pumpWidget(const ProviderScope(child: StockInventoryApp()));
-  await tester.pumpAndSettle();
+  final db = await pumpApp(
+    tester,
+    size: size,
+    asEmployeeId: EmployeeIds.marc,
+  );
 
   appRouter.go(Routes.toPayroll(StoreIds.sablon));
   await tester.pumpAndSettle();
+  return db;
 }
 
 Future<void> _pickKarim(WidgetTester tester) async {
@@ -44,9 +44,7 @@ Future<void> _pickKarim(WidgetTester tester) async {
 }
 
 void main() {
-  setUp(restoreMockData);
-
-  testWidgets('opens on every employee, with no pay button until one is picked',
+  testApp('opens on every employee, with no pay button until one is picked',
       (tester) async {
     await _openPayroll(tester);
 
@@ -60,7 +58,7 @@ void main() {
     expect(find.widgetWithText(PrimaryButton, 'Payer'), findsNothing);
   });
 
-  testWidgets('picking an employee narrows the view and reveals "Payer"',
+  testApp('picking an employee narrows the view and reveals "Payer"',
       (tester) async {
     await _openPayroll(tester);
     await _pickKarim(tester);
@@ -73,7 +71,7 @@ void main() {
     expect(find.widgetWithText(PrimaryButton, 'Payer'), findsOneWidget);
   });
 
-  testWidgets('the employee view survives the narrow and portrait breakpoints',
+  testApp('the employee view survives the narrow and portrait breakpoints',
       (tester) async {
     for (final size in const [Size(1024, 600), Size(800, 1280)]) {
       await _openPayroll(tester, size: size);
@@ -85,13 +83,14 @@ void main() {
     }
   });
 
-  testWidgets('"Payer" confirms, then flips the unpaid days to paid',
+  testApp('"Payer" confirms, then flips the unpaid days to paid',
       (tester) async {
-    await _openPayroll(tester);
+    final db = await _openPayroll(tester);
     await _pickKarim(tester);
 
+    final attendance = AttendanceRepository(db);
     expect(
-      MockQueries.attendanceById(AttendanceIds.karim1)!.paymentStatus,
+      (await attendance.attendance(AttendanceIds.karim1))!.paymentStatus,
       PaymentStatus.unpaid,
     );
 
@@ -113,7 +112,7 @@ void main() {
 
     expect(find.text('Paiement enregistré'), findsOneWidget);
     expect(
-      MockQueries.attendanceById(AttendanceIds.karim1)!.paymentStatus,
+      (await attendance.attendance(AttendanceIds.karim1))!.paymentStatus,
       PaymentStatus.paid,
     );
   });

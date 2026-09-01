@@ -22,6 +22,16 @@ import '../database/app_database.dart';
 /// An article with no cost on file contributes nothing rather than an invented
 /// figure. Understating is the safer direction: a valuation built partly on
 /// guesses is worse than one that is visibly incomplete.
+/// What counts as waste: thrown away, or spoiled before it could be used.
+///
+/// Named once because two figures are built from it — the waste value and the
+/// waste trend — and a definition of waste that differed between a number and
+/// the chart beside it would be worse than either.
+const Set<StockOutReason> wasteReasons = {
+  StockOutReason.waste,
+  StockOutReason.spoilage,
+};
+
 class ReportRepository {
   const ReportRepository(this._db);
 
@@ -150,7 +160,7 @@ class ReportRepository {
         storeId,
         from: from,
         to: to,
-        reasons: const {StockOutReason.waste, StockOutReason.spoilage},
+        reasons: wasteReasons,
       );
 
   /// The cost of stock that went missing between counts, in the window.
@@ -185,6 +195,112 @@ class ReportRepository {
   /// This was a Dart loop in `initState` that read every article in the
   /// establishment and called two lookups for each. It is a report query; it now
   /// lives with the report queries.
+  /// Weekly outbound value, oldest first — the usage and waste trend lines.
+  ///
+  /// Phase 1 drew these from two frozen lists in `mock_reports.dart` that could
+  /// not follow a stock-out recorded during the session. They are a `GROUP BY`
+  /// over the movement log now, which means they move when the log does.
+  ///
+  /// **By week, not by month.** The seeded movement history covers a few weeks
+  /// in detail, and a six-month series over it would be five empty columns and
+  /// one tall one — which reads as a broken chart rather than as a young
+  /// dataset. Weeks are the finest grain this data supports and the grain a
+  /// kitchen actually plans in.
+  ///
+  /// The bucket is `strftime('%Y-%W')`, and each point is dated to the Monday
+  /// that starts its week so the axis can be formatted like any other date.
+  Future<List<TrendPoint>> usageTrend(String storeId, {int weeks = 8}) =>
+      _trend(storeId, weeks: weeks, reasons: null);
+
+  /// The same, restricted to what was thrown away.
+  Future<List<TrendPoint>> wasteTrend(String storeId, {int weeks = 8}) =>
+      _trend(storeId, weeks: weeks, reasons: wasteReasons);
+
+  Future<List<TrendPoint>> _trend(
+    String storeId, {
+    required int weeks,
+    required Set<StockOutReason>? reasons,
+  }) async {
+    final from = _startOfWeek(
+      DateTime.now(),
+    ).subtract(Duration(days: 7 * (weeks - 1)));
+
+    final movements = await (_db.select(_db.stockMovements)..where(
+          (m) =>
+              m.storeId.equals(storeId) &
+              m.type.equalsValue(StockMovementType.stockOut) &
+              m.occurredAt.isBiggerOrEqualValue(from),
+        ))
+        .get();
+
+    // Bucketed in Dart rather than in SQL. `strftime` would need the epoch
+    // conversion spelled out and would still hand back a string to parse, and
+    // the rows here are a few weeks of one establishment's stock-outs — not a
+    // scan worth pushing down.
+    final totals = <DateTime, double>{
+      for (var i = 0; i < weeks; i++) from.add(Duration(days: 7 * i)): 0,
+    };
+
+    for (final row in movements) {
+      if (reasons != null && !reasons.contains(row.reason)) continue;
+      final bucket = _startOfWeek(row.occurredAt);
+      if (!totals.containsKey(bucket)) continue;
+      totals[bucket] = totals[bucket]! + row.quantity.abs() * (row.unitCost ?? 0);
+    }
+
+    final points = [
+      for (final entry in totals.entries)
+        TrendPoint(date: entry.key, value: entry.value),
+    ]..sort((a, b) => a.date.compareTo(b.date));
+    return points;
+  }
+
+  /// Midnight on the Monday that starts the given date's week.
+  static DateTime _startOfWeek(DateTime date) {
+    final day = DateTime(date.year, date.month, date.day);
+    return day.subtract(Duration(days: day.weekday - DateTime.monday));
+  }
+
+  /// What a year of the current overpayment would cost.
+  ///
+  /// The headline figure on the reports dashboard, and the one number in this
+  /// app that a restaurant owner will repeat to somebody else. Phase 1 had it
+  /// as a constant; it is now the actual gap between what the establishment
+  /// pays and the best price on offer, across everything it bought in the last
+  /// year, annualised.
+  ///
+  /// Deliberately conservative: it counts only articles that have both a
+  /// default supplier and a cheaper one, and only what was actually delivered.
+  /// A figure built from what somebody *might* buy would be a bigger number and
+  /// a worse one.
+  Future<double> potentialAnnualSaving(String storeId) async {
+    final row = await _db
+        .customSelect(
+          'SELECT COALESCE(SUM(m.quantity * ('
+          '  d.price_per_unit - ('
+          '    SELECT MIN(p.price_per_unit) FROM supplier_prices p '
+          '    WHERE p.item_id = d.item_id'
+          '  )'
+          ')), 0) AS saving '
+          'FROM stock_movements m '
+          'JOIN items i ON i.id = m.item_id '
+          'JOIN supplier_prices d ON d.item_id = i.id AND d.is_default = 1 '
+          "WHERE m.store_id = ? AND m.type = 'stockIn' "
+          'AND m.occurred_at >= ?',
+          variables: [
+            Variable<String>(storeId),
+            Variable<DateTime>(
+              DateTime.now().subtract(const Duration(days: 365)),
+            ),
+          ],
+          readsFrom: {_db.stockMovements, _db.items, _db.supplierPrices},
+        )
+        .getSingle();
+
+    final saving = row.read<double?>('saving') ?? 0;
+    return saving < 0 ? 0 : saving;
+  }
+
   Future<String?> largestOverpayItemId(String storeId) async {
     final overpaying = await _db
         .customSelect(

@@ -73,9 +73,9 @@ class PurchaseOrder {
 
   final String? note;
 
-  /// Rebuilt rather than mutated. The in-memory layer replaces the element in
-  /// the mock list, which keeps the model immutable and means Phase 2 can put
-  /// persistence behind the same shape without touching call sites.
+  /// Rebuilt rather than mutated, which is what kept the model immutable while
+  /// the storage underneath it changed completely. The repository writes a row
+  /// and hands back a rebuilt commande; no call site noticed the difference.
   ///
   /// This is a constructor convenience, not business logic — the rules that
   /// decide *which* status to move to live in `core/utils/order_status.dart`.

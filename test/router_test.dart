@@ -8,14 +8,14 @@
 // Rendered at 1280x800, the design baseline (a 10" tablet in landscape).
 
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:stock_inventory/app/app.dart';
 import 'package:stock_inventory/app/router.dart';
 import 'package:stock_inventory/app/routes.dart';
 import 'package:stock_inventory/core/theme/app_spacing.dart';
-import 'package:stock_inventory/mock_data/mock_data.dart';
+import 'package:stock_inventory/data/seed/dataset/dataset.dart';
 import 'package:stock_inventory/shared/widgets/app_scaffold.dart';
+
+import 'support/app_harness.dart';
 
 /// The design baseline — a 10" tablet in landscape.
 const Size _tabletLandscape = Size(1280, 800);
@@ -193,19 +193,13 @@ List<({String label, String path, bool inShell})> _allRoutes() {
   ];
 }
 
-Future<void> _pumpAt(WidgetTester tester, Size size) async {
-  tester.view.physicalSize = size;
-  tester.view.devicePixelRatio = 1.0;
-  addTearDown(tester.view.reset);
-
-  await tester.pumpWidget(const ProviderScope(child: StockInventoryApp()));
-  await tester.pumpAndSettle();
-}
+Future<void> _pumpAt(WidgetTester tester, Size size) =>
+    pumpApp(tester, size: size);
 
 void main() {
   group('every route renders at tablet size', () {
     for (final route in _allRoutes()) {
-      testWidgets(route.label, (tester) async {
+      testApp(route.label, (tester) async {
         await _pumpAt(tester, _tabletLandscape);
 
         appRouter.go(route.path);
@@ -235,7 +229,7 @@ void main() {
   // something the client finds during the demo.
   group('every route survives the narrow breakpoint', () {
     for (final route in _allRoutes()) {
-      testWidgets('${route.label} at 1024x600', (tester) async {
+      testApp('${route.label} at 1024x600', (tester) async {
         await _pumpAt(tester, _smallTablet);
 
         appRouter.go(route.path);
@@ -255,7 +249,7 @@ void main() {
   // and every screen has to survive it.
   group('every route survives portrait', () {
     for (final route in _allRoutes()) {
-      testWidgets('${route.label} at 800x1280', (tester) async {
+      testApp('${route.label} at 800x1280', (tester) async {
         await _pumpAt(tester, _portraitTablet);
 
         appRouter.go(route.path);
@@ -276,7 +270,7 @@ void main() {
     // area, overflowing the top bar. These guard that fix, and would catch the
     // same thing happening again when Dutch is added.
 
-    testWidgets('rail is extended and pinned at the 1280x800 baseline', (
+    testApp('rail is extended and pinned at the 1280x800 baseline', (
       tester,
     ) async {
       await _pumpAt(tester, _tabletLandscape);
@@ -295,7 +289,7 @@ void main() {
       );
     });
 
-    testWidgets('nothing overflows at 1024x600 with the rail still extended', (
+    testApp('nothing overflows at 1024x600 with the rail still extended', (
       tester,
     ) async {
       await _pumpAt(tester, _smallTablet);
@@ -313,7 +307,7 @@ void main() {
       );
     });
 
-    testWidgets('rail collapses to icons on a narrow tablet', (tester) async {
+    testApp('rail collapses to icons on a narrow tablet', (tester) async {
       await _pumpAt(tester, _narrowTablet);
 
       appRouter.go(Routes.toInventory(StoreIds.sablon));
@@ -331,7 +325,7 @@ void main() {
   });
 
   group('store scoping', () {
-    testWidgets('the shell resolves the store from the path', (tester) async {
+    testApp('the shell resolves the store from the path', (tester) async {
       await _pumpAt(tester, _tabletLandscape);
 
       appRouter.go(Routes.toDashboard(StoreIds.liege));
@@ -342,7 +336,7 @@ void main() {
       expect(find.text('Le Comptoir de Liège'), findsWidgets);
     });
 
-    testWidgets('an unknown store id falls back instead of crashing', (
+    testApp('an unknown store id falls back instead of crashing', (
       tester,
     ) async {
       await _pumpAt(tester, _tabletLandscape);

@@ -829,6 +829,81 @@ skeleton → data; a test asserts `_guard` redirects a signed-out session to `/l
 manager away from another store's routes — the `permissions_test` guarantees, now against
 the provider.
 
+### As built
+
+Stages 8, 9 and 10 landed together on `feat/merge-employee-stock`, the branch that merges
+`phase2.md`'s finished stock cutover (its stages 8–10) into this one. Doing 8–9 *was* that
+merge: `phase2.md`'s teardown deleted `lib/mock_data/`, the layer every employee screen
+still stood on, so the merge could not be resolved without cutting those screens over.
+
+**1. `_guard` reads a top-level mirror, not a `Ref`.** The plan offered both. The mirror
+won because `router.dart`'s `appRouter` is a top-level `GoRouter` singleton that four test
+files drive directly (`router_test`, `navigation_test`, `permissions_test`,
+`payroll_history_page_test`); turning it into a `routerProvider` to give `_guard` a `Ref`
+would have rewritten every one of those. `lib/data/current_employee.dart` now exposes
+`Employee? currentEmployeeSnapshot`, which `CurrentEmployee` writes on every state change
+(`_set`), and `_guard` reads synchronously. `main()` awaits `hydrate()` into a
+`ProviderContainer` before `runApp` (now `UncontrolledProviderScope`); the widget-test
+fixture (`app_harness.pumpAppWith`, `asEmployeeId:`) seeds the snapshot the same way
+`MockSession`'s default owner used to work.
+
+**2. `currentUserProvider` (TeamMember) is gone; `currentEmployeeProvider` (Employee) took
+its place.** `phase2.md` migrated the Équipe module onto drift without knowing this phase's
+decision #1 (`Employee` and `TeamMember` merge). The merge purged all of it: the team
+providers, `AccountRepository.team*/ownerCount/invite/…`, the `team_members` tables, the
+team l10n keys, the team test groups, `lib/features/team/`. `app_top_bar`, `store_switcher`,
+`store_selector`, `account_settings`, `store_dashboard` and `app_sidebar` (now a
+`ConsumerStatefulWidget`) all read `currentEmployeeProvider`.
+
+**3. The "who acted" stamp needed no rework.** Movement / order / supplier repos stamp
+`userName` from `AccountRepository.currentUserName()` → `meta.currentUserName`, a plain
+string. `SessionRepository.signIn` refreshes it. `demo_seed` seeds it to the owner so a
+movement made before the first login is still attributed.
+
+**4. Screen-level providers, as landed** (`lib/data/providers.dart`): `employeesProvider`,
+`activeEmployeesProvider`, `employeeProvider`, `credentialForEmployeeProvider`,
+`attendanceForEmployeeProvider`, `attendanceTodayProvider`, `attendanceBoardProvider`
+(the board's join — see 6), `attendancePageProvider` + `attendanceStatsProvider` keyed on
+`AttendanceLogKey`, `payrollForEmployeeProvider`, `payrollDaysProvider` +
+`payrollPageProvider` keyed on their records, `storeSettingsProvider`. The families cannot
+be given a written-out type (Riverpod 3 exports no `StreamProviderFamily`), same as
+`phase2.md` stage 8.
+
+**5. `payrollDays` / `days` grew two lookups.** The paie day table needed the employee
+behind each row (name, schedule, `dayAmount`) and, for a paid day, its period's `paidAt` —
+both were `MockQueries.*ById` per row. `PayrollDays` now carries `employeesById` and
+`paidAtByPeriod`, filled by one extra query each inside `days`. Same shape the plan's Stage
+3 "no query per row" rule asks for.
+
+**6. The pointage board is `attendanceBoardProvider`, not 8 × `watchToday`.** The plan's
+preferred option. `AttendanceRepository.watchTodayForStore(storeId)` returns
+`Stream<Map<String, Attendance>>` keyed by employee id; the board watches it plus
+`activeEmployeesProvider` and joins in Dart, so the sort-by-status and every card read one
+stream between them.
+
+**7. `payrollDaysProvider` is a `FutureProvider`, invalidated after `pay`.** `days` is a
+heavy fold and the only thing that changes it is an explicit "Payer", so a live stream
+would re-fold on every unrelated write for no benefit. `attendance` history uses
+`watchPage` (a real stream) because the pointage board writes to it from elsewhere.
+
+**8. Forms split gate + form where they fill from a query.** `AddEditEmployeePage` became
+an outer `ConsumerWidget` that resolves the employee and an inner `_EmployeeForm`
+(`ConsumerStatefulWidget`) keyed on its id — `initState` cannot await the row. `create`
+takes `pin:` (Stage 4's one-transaction contract); `update` + `setPin` is two calls.
+`store_settings_page` was already gate+form from `phase2.md`; it regained the five
+pointage/paie fields on `storeRepository.updateStoreSettings` (Stage 7).
+
+**9. `employee_queries_test.dart` was deleted, not ported.** It was written as a
+differential oracle against `MockQueries` and its own header said it "goes away with
+`MockQueries` in stage 10". Stage 10 happened. `attendance_test` / `payroll_test` /
+`employees_test` / `auth_test` cover the same ground behaviourally. The stale Phase-1 root
+suites (`test/account_test.dart` etc., superseded by `test/db/`) went with it.
+
+**Verified at the stage boundary:** `flutter analyze` clean on `lib` and `test`;
+`python tool/ux_audit.py` clean across all 16 checks; `dart run build_runner build
+--force-jit` regenerates `app_database.g.dart` identically. `flutter test` — see the
+merge commit.
+
 ---
 
 ## Stage 9 — Screen cutover *(L)*
@@ -877,6 +952,28 @@ Three shapes of work (same as `phase2.md` stage 9):
 - Run `router_test` at all three viewports against the **skeleton** state too — the pointage
   board and the two history tables are new layouts.
 
+### As built
+
+See Stage 8's combined "As built" above. The screen order landed as written. Notes specific
+to this stage:
+
+- **`add_edit_employee_page`** split gate + form (`_EmployeeForm`, keyed on id); `_submit`
+  is async, `create` passes `pin:`, `update` + `setPin` is two calls, and the CIN/email
+  uniqueness re-check after a null result is now an awaited `employeeByCin`/`employeeByEmail`.
+- **`employee_detail_page`** folds `employeeProvider` + `attendanceForEmployeeProvider` +
+  `storeSettingsProvider` through `asyncAll3`; the payroll section stays the honest
+  placeholder card (the plan's list can come with Phase 3's screen work).
+- **`timeclock_board_page`**: `_EmployeeCard` / `_ActionArea` / `_DoneSummary` take their
+  data down as plain values; `_ActionArea` is the one `ConsumerWidget` (it needs
+  `attendanceRepositoryProvider` for the four writes), each handler awaits and checks
+  `mounted` before the snackbar.
+- **`attendance_history_page`** / **`payroll_history_page`**: `_HistoryTable` / `_DaysTable`
+  take an `employeesById` map so no row queries; pagination is reconciled in a post-frame
+  `setState` when the repository clamps the page.
+- **`app_harness.pumpApp(asEmployeeId:)`** replaces the per-test `restoreMockData` +
+  `MockSession` dance — it seeds the DB session and `currentEmployeeSnapshot` for the pump.
+  `''` = signed out.
+
 ---
 
 ## Stage 10 — Teardown, tooling and docs *(M)*
@@ -907,6 +1004,31 @@ Three shapes of work (same as `phase2.md` stage 9):
    employee module joins "the app persists". `DOMAIN_MODEL.md` — the "Where this lives"
    table repointed at the four repositories. `.claude/phase_gestion_employee.md` — a closing
    note that Phase 2's storage seam has been crossed for this module too.
+
+### As built
+
+See Stage 8's combined "As built" above — 8, 9 and 10 landed as one merge commit on
+`feat/merge-employee-stock`.
+
+- **Deleted:** `lib/data/seed/dataset/mutations/{employee,attendance,payroll,credential}_mutations.dart`,
+  `mock_session.dart`, and the stale Phase-1 root test suites. `AccountMutations` no longer
+  exists (it went with `phase2.md`'s own teardown).
+- **Moved + renamed:** `mock_employees.dart` → `employees.dart`, `mock_credentials.dart` →
+  `credentials.dart`, `mock_attendances.dart` → `attendances.dart`,
+  `mock_payroll_periods.dart` → `payroll_periods.dart`, `mock_store_settings.dart` →
+  `store_settings.dart`, all under `lib/data/seed/dataset/` and re-exported from
+  `dataset.dart`. Their internal imports repointed (`../../../models/`, sibling names).
+- **`tool/ux_audit.py`:** the `SINGLE_WRITER_COMPANIONS` guard (Stage 4/5) is now permanent
+  alongside `phase2.md`'s "no DB write outside `repositories/`" and "no feature imports
+  `data/database/`" checks — 16 checks, all clean.
+- **`test/support/dataset_queries.dart`** kept `phase2.md`'s trimmed `DatasetQueries` (the
+  stock differential witness); the employee `teamForStore`/`ownerCount` helpers were removed
+  with the module. `db_fixture.dart` / the employee `test/db/*` suites repointed their
+  `EmployeeIds` / `StoreIds` / `AttendanceIds` imports from `mock_data/` to
+  `data/seed/dataset/`.
+- **`DOMAIN_MODEL.md`** still names `TeamMember` in three places — a documentation follow-up,
+  not a code issue (the model and tables are gone; `flutter analyze` and `ux_audit` are
+  clean).
 
 ---
 

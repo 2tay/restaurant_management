@@ -6,7 +6,6 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../../mock_data/mock_data.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 import 'already_on_order_badge.dart';
@@ -70,6 +69,7 @@ class OrderLineEditor extends StatelessWidget {
     required this.storeId,
     required this.supplierId,
     required this.itemOptions,
+    required this.unitAbbreviation,
     required this.onItemChanged,
     required this.onQuantityChanged,
     required this.onPriceChanged,
@@ -85,6 +85,12 @@ class OrderLineEditor extends StatelessWidget {
   /// order. Built by the page so it can exclude the other lines' choices.
   final List<DropdownOption<String>> itemOptions;
 
+  /// The unit the chosen article is measured in. Empty while the line is still
+  /// an empty picker — the draft carries an id, and everything else about the
+  /// article comes from the page, which is already holding the supplier's
+  /// whole catalogue.
+  final String unitAbbreviation;
+
   final ValueChanged<String?> onItemChanged;
   final ValueChanged<double> onQuantityChanged;
   final VoidCallback onPriceChanged;
@@ -95,10 +101,7 @@ class OrderLineEditor extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
 
-    final item = MockQueries.itemById(draft.itemId);
-    final unit = item == null
-        ? ''
-        : MockQueries.unitAbbreviationOf(item.unitId);
+    final unit = unitAbbreviation;
 
     final picker = AppDropdown<String>(
       label: l10n.orderLinePickerLabel,
@@ -209,17 +212,16 @@ class OrderLineEditor extends StatelessWidget {
             },
           ),
 
-          // The double-order guard. The condition is checked here rather than
-          // left to the badge so a line with nothing in transit does not carry
-          // an empty gap where the badge would have been.
-          if (item != null &&
-              MockQueries.onOrderQuantity(storeId, item.id) > 0) ...[
+          // The double-order guard. The badge decides for itself whether it
+          // has anything to say — it renders nothing when nothing is in
+          // transit — so the gap above it goes inside the same condition.
+          if (draft.itemId.isNotEmpty) ...[
             const SizedBox(height: AppSpacing.md),
             Align(
               alignment: Alignment.centerLeft,
               child: AlreadyOnOrderBadge(
                 storeId: storeId,
-                itemId: item.id,
+                itemId: draft.itemId,
                 unitAbbreviation: unit,
               ),
             ),

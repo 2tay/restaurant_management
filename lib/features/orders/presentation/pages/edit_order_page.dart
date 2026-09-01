@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../app/navigation.dart';
 import '../../../../app/routes.dart';
 import '../../../../core/utils/order_status.dart';
+import '../../../../data/providers.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../../mock_data/mock_data.dart';
 import '../../../../shared/widgets/widgets.dart';
 import 'create_order_page.dart';
 
@@ -18,7 +19,7 @@ import 'create_order_page.dart';
 /// cannot save. A sent order is locked: the supplier is holding a copy of it,
 /// and an order that quietly disagrees with the document in their inbox is
 /// worse than no order at all.
-class EditOrderPage extends StatelessWidget {
+class EditOrderPage extends ConsumerWidget {
   const EditOrderPage({
     required this.storeId,
     required this.orderId,
@@ -29,17 +30,20 @@ class EditOrderPage extends StatelessWidget {
   final String orderId;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    final order = MockQueries.orderById(orderId);
+    final asyncOrder = ref.watch(orderProvider(orderId));
+    final order = asyncOrder.value;
 
     if (order == null) {
       return ShellPage(
         title: l10n.ordersTitle,
-        child: ErrorState(
-          message: l10n.errorStateBody,
-          onRetry: () => context.goSection(Routes.toOrders(storeId)),
-        ),
+        child: asyncOrder.isLoading
+            ? const SkeletonList(rows: 3, rowHeight: 100)
+            : ErrorState(
+                message: l10n.errorStateBody,
+                onRetry: () => context.goSection(Routes.toOrders(storeId)),
+              ),
       );
     }
 

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
@@ -8,8 +9,9 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/utils/permissions.dart';
 import '../../core/utils/responsive.dart';
+import '../../data/current_employee.dart';
 import '../../l10n/app_localizations.dart';
-import '../../mock_data/mock_data.dart';
+import '../../models/models.dart';
 
 /// One entry in the navigation rail.
 ///
@@ -81,16 +83,16 @@ class _ChildDestination {
 /// for it explicitly. It collapses to icons only below
 /// [AppBreakpoints.railCollapse] so a 7" tablet, or a 10" held in portrait,
 /// keeps enough width for the content area.
-class AppSidebar extends StatefulWidget {
+class AppSidebar extends ConsumerStatefulWidget {
   const AppSidebar({required this.storeId, super.key});
 
   final String storeId;
 
   @override
-  State<AppSidebar> createState() => _AppSidebarState();
+  ConsumerState<AppSidebar> createState() => _AppSidebarState();
 }
 
-class _AppSidebarState extends State<AppSidebar> {
+class _AppSidebarState extends ConsumerState<AppSidebar> {
   /// Whether the Gestion Employée entry is expanded, showing its children in
   /// place. A location already inside the family forces this open regardless
   /// of the flag — you cannot hide the section you are standing in — but the
@@ -237,7 +239,10 @@ class _AppSidebarState extends State<AppSidebar> {
     final railActions = <VoidCallback>[];
     int? selectedIndex;
 
-    final role = mockCurrentEmployee.role;
+    // The most restrictive role if somehow signed out — the guard makes that
+    // unreachable, but a sidebar showing everything would be the wrong failure.
+    final role =
+        ref.watch(currentEmployeeProvider)?.role ?? EmployeeRole.staff;
 
     for (var baseIndex = 0; baseIndex < _destinations.length; baseIndex++) {
       final destination = _destinations[baseIndex];

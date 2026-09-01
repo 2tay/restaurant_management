@@ -7,8 +7,9 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/attendance_status.dart';
 import '../../../../core/utils/employee_status.dart';
 import '../../../../core/utils/formatters.dart';
+import '../../../../data/providers.dart';
+import '../../../../data/repositories/repositories.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../../mock_data/mock_data.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 
@@ -60,46 +61,98 @@ class _AttendanceHistoryPageState extends ConsumerState<AttendanceHistoryPage> {
 
   @override
   Widget build(BuildContext context) {
-    // Written to directly by the pointage board, so this page redraws when a
-    // card's status changes elsewhere.
-    ref.watch(mockDataRevisionProvider);
-
     final l10n = AppLocalizations.of(context);
+    final base = asyncAll2(
+      ref.watch(employeesProvider(widget.storeId)),
+      ref.watch(storeSettingsProvider(widget.storeId)),
+      (employees, settings) => (employees: employees, settings: settings),
+    );
 
     return ShellPage(
       title: l10n.attendanceHistoryTitle,
       subtitle: l10n.attendanceHistorySubtitle,
-      child: _buildBody(l10n),
+      child: AsyncContent<
+        ({List<Employee> employees, StoreSettings settings})
+      >(
+        value: base,
+        onRetry: () {
+          ref.invalidate(employeesProvider(widget.storeId));
+          ref.invalidate(storeSettingsProvider(widget.storeId));
+        },
+        builder: (context, b) {
+          final employees = [...b.employees]
+            ..sort(
+              (x, y) =>
+                  employeeDisplayName(x).compareTo(employeeDisplayName(y)),
+            );
+          return _buildBody(l10n, employees, b.settings);
+        },
+      ),
     );
   }
 
-  Widget _buildBody(AppLocalizations l10n) {
-    final employees = MockQueries.employeesForStore(
-      widget.storeId,
-    )..sort((a, b) => employeeDisplayName(a).compareTo(employeeDisplayName(b)));
-
-    final stats = MockQueries.attendanceStatsForStore(
-      widget.storeId,
-      from: _from,
-      to: _to,
-      employeeId: _employeeId,
-    );
-    final result = MockQueries.attendancesForStore(
-      widget.storeId,
+  Widget _buildBody(
+    AppLocalizations l10n,
+    List<Employee> employees,
+    StoreSettings settings,
+  ) {
+    final employeesById = {for (final e in employees) e.id: e};
+    final key = (
+      storeId: widget.storeId,
       from: _from,
       to: _to,
       status: _status,
       employeeId: _employeeId,
       page: _page,
-      pageSize: _pageSize,
     );
-    // The clamp inside the query can move us; keep local state in step.
-    if (result.page != _page) _page = result.page;
+    final statsAsync = ref.watch(attendanceStatsProvider(key));
+    final pageAsync = ref.watch(attendancePageProvider(key));
 
-    final storeEmpty =
-        MockQueries.attendancesForStore(widget.storeId).totalCount == 0;
-    final settings = MockQueries.storeSettings(widget.storeId);
+    return AsyncContent<AttendancePage>(
+      value: pageAsync,
+      skeleton: const SkeletonList(rows: 6, rowHeight: 64),
+      onRetry: () => ref.invalidate(attendancePageProvider(key)),
+      builder: (context, result) {
+        if (result.page != _page) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted && _page != result.page) {
+              setState(() => _page = result.page);
+            }
+          });
+        }
+        final stats =
+            statsAsync.value ??
+            (
+              days: 0,
+              worked: Duration.zero,
+              lateArrivals: 0,
+              overtime: Duration.zero,
+              lateBreaks: 0,
+            );
+        final storeEmpty = !_hasActiveFilters && result.totalCount == 0;
 
+        return _content(
+          l10n,
+          employees,
+          employeesById,
+          settings,
+          stats,
+          result,
+          storeEmpty,
+        );
+      },
+    );
+  }
+
+  Widget _content(
+    AppLocalizations l10n,
+    List<Employee> employees,
+    Map<String, Employee> employeesById,
+    StoreSettings settings,
+    AttendanceStats stats,
+    AttendancePage result,
+    bool storeEmpty,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -141,7 +194,7 @@ class _AttendanceHistoryPageState extends ConsumerState<AttendanceHistoryPage> {
             status: _status,
             employeeName: _employeeId == null
                 ? null
-                : employeeDisplayName(MockQueries.employeeById(_employeeId!)!),
+                : employeeDisplayName(employeesById[_employeeId!]!),
             onClear: _clearFilters,
             onRemoveDateRange: () => setState(() {
               _from = _defaultFrom;
@@ -174,6 +227,7 @@ class _AttendanceHistoryPageState extends ConsumerState<AttendanceHistoryPage> {
                   children: [
                     _HistoryTable(
                       rows: result.rows,
+                      employeesById: employeesById,
                       settings: settings,
                       selected: _selected,
                       onSelect: (a) => setState(() => _selected = a),
@@ -198,6 +252,7 @@ class _AttendanceHistoryPageState extends ConsumerState<AttendanceHistoryPage> {
                   width: 320,
                   child: _DetailPanel(
                     attendance: _selected!,
+                    employee: employeesById[_selected!.employeeId],
                     settings: settings,
                     onClose: () => setState(() => _selected = null),
                   ),
@@ -481,12 +536,14 @@ class _Chip extends StatelessWidget {
 class _HistoryTable extends StatelessWidget {
   const _HistoryTable({
     required this.rows,
+    required this.employeesById,
     required this.settings,
     required this.selected,
     required this.onSelect,
   });
 
   final List<Attendance> rows;
+  final Map<String, Employee> employeesById;
   final StoreSettings settings;
   final Attendance? selected;
   final ValueChanged<Attendance> onSelect;
@@ -514,7 +571,7 @@ class _HistoryTable extends StatelessWidget {
   }
 
   DataRow _row(BuildContext context, AppLocalizations l10n, Attendance a) {
-    final employee = MockQueries.employeeById(a.employeeId);
+    final employee = employeesById[a.employeeId];
     final schedule = employee == null
         ? (
             startMinutes: settings.openMinutes,
@@ -593,11 +650,13 @@ class _HistoryTable extends StatelessWidget {
 class _DetailPanel extends StatelessWidget {
   const _DetailPanel({
     required this.attendance,
+    required this.employee,
     required this.settings,
     required this.onClose,
   });
 
   final Attendance attendance;
+  final Employee? employee;
   final StoreSettings settings;
   final VoidCallback onClose;
 
@@ -605,7 +664,7 @@ class _DetailPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final employee = MockQueries.employeeById(attendance.employeeId);
+    final employee = this.employee;
     final worked = workedDuration(attendance);
 
     return AppCard(

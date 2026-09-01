@@ -7,6 +7,8 @@ import '../../models/supplier.dart';
 import '../../models/supplier_price.dart';
 import '../database/app_database.dart';
 import '../mappers/mappers.dart';
+import '../view_models/item_detail_views.dart';
+import '../view_models/supplier_views.dart';
 import 'account_repository.dart';
 import 'new_id.dart';
 import 'order_repository.dart';
@@ -53,6 +55,87 @@ class SupplierRepository {
   // ---------------------------------------------------------------------------
   // Prices — the item–supplier link
   // ---------------------------------------------------------------------------
+
+  /// Every supplier of the establishment with the number of articles it
+  /// supplies — what the suppliers list draws.
+  ///
+  /// `LEFT OUTER JOIN` so a supplier with no articles yet still appears: one
+  /// that has just been created is exactly the one somebody is looking for.
+  Stream<List<SupplierRowView>> watchSupplierRows(String storeId) {
+    final count = _db.supplierPrices.id.count();
+    final query = _db.select(_db.suppliers).join([
+      leftOuterJoin(
+        _db.supplierPrices,
+        _db.supplierPrices.supplierId.equalsExp(_db.suppliers.id),
+      ),
+    ]);
+    query
+      ..where(_db.suppliers.storeId.equals(storeId))
+      ..addColumns([count])
+      ..groupBy([_db.suppliers.id])
+      ..orderBy([OrderingTerm(expression: _db.suppliers.name)]);
+
+    return query.watch().map(
+      (rows) => [
+        for (final row in rows)
+          SupplierRowView(
+            supplier: supplierFromRow(row.readTable(_db.suppliers)),
+            productCount: row.read(count) ?? 0,
+          ),
+      ],
+    );
+  }
+
+  /// Everything one supplier offers, named, with the best price on the market
+  /// for each article alongside.
+  ///
+  /// The second number is what lets a row say "le moins cher" without asking a
+  /// question of its own. It is a correlated subquery — one `MIN` per row,
+  /// answered by the same index that orders the article's offers — rather than
+  /// the per-row call the supplier screens made in Phase 1.
+  Stream<List<SupplierProductView>> watchSupplierProducts(String supplierId) {
+    final cheapest = subqueryExpression<double>(
+      _db.selectOnly(_db.supplierPrices, distinct: true)
+        ..addColumns([_db.supplierPrices.pricePerUnit.min()])
+        ..where(
+          _db.supplierPrices.itemId.equalsExp(_db.items.id),
+        ),
+    );
+
+    final query =
+        _db.select(_db.supplierPrices).join([
+            leftOuterJoin(
+              _db.items,
+              _db.items.id.equalsExp(_db.supplierPrices.itemId),
+            ),
+            leftOuterJoin(_db.units, _db.units.id.equalsExp(_db.items.unitId)),
+            leftOuterJoin(
+              _db.categories,
+              _db.categories.id.equalsExp(_db.items.categoryId),
+            ),
+          ])
+          ..where(_db.supplierPrices.supplierId.equals(supplierId))
+          ..addColumns([cheapest])
+          // By article name: this is a catalogue, and somebody scanning it is
+          // looking for a product rather than for a price.
+          ..orderBy([OrderingTerm(expression: _db.items.name)]);
+
+    return query.watch().map(
+      (rows) => [
+        for (final row in rows)
+          SupplierProductView(
+            price: supplierPriceFromRow(row.readTable(_db.supplierPrices)),
+            itemName: row.readTableOrNull(_db.items)?.name ?? '—',
+            unitAbbreviation:
+                row.readTableOrNull(_db.units)?.abbreviation ?? '',
+            categoryName: row.readTableOrNull(_db.categories)?.name ?? '—',
+            cheapestPricePerUnit:
+                row.read(cheapest) ??
+                row.readTable(_db.supplierPrices).pricePerUnit,
+          ),
+      ],
+    );
+  }
 
   /// Every supplier offering this article, **cheapest first**.
   ///
@@ -126,6 +209,55 @@ class SupplierRepository {
 
     final gap = row?.read<double?>('gap');
     return (gap == null || gap < 0) ? 0 : gap;
+  }
+
+  /// Every supplier of one article, named, plus what the default costs extra.
+  ///
+  /// What the item detail screen draws: a table of offers and, above it, the
+  /// single most useful sentence this app produces — "vous payez 0,45 € de plus
+  /// par kg que chez Boucherie Vanderlinden".
+  ///
+  /// One query and one derivation rather than four calls. The overpayment is
+  /// computed from the same rows the table shows, so the callout cannot name a
+  /// supplier the table does not list.
+  Stream<ItemPricing> watchPricing(String itemId) {
+    final query = _pricesForItem(itemId).join([
+      leftOuterJoin(
+        _db.suppliers,
+        _db.suppliers.id.equalsExp(_db.supplierPrices.supplierId),
+      ),
+    ]);
+
+    return query.watch().map((rows) {
+      final prices = [
+        for (final row in rows)
+          SupplierPriceView(
+            price: supplierPriceFromRow(row.readTable(_db.supplierPrices)),
+            supplierName: row.readTableOrNull(_db.suppliers)?.name ?? '—',
+          ),
+      ];
+      return ItemPricing(prices: prices, overpayPerUnit: _overpayIn(prices));
+    });
+  }
+
+  /// The same rule as [overpayPerUnit], over rows already in hand.
+  ///
+  /// Written twice on purpose: the SQL version answers it for one article
+  /// without loading the others, which is what the comparison report needs
+  /// across a whole establishment; this one answers it for free from a list the
+  /// screen already has. A test holds them to the same number.
+  static double _overpayIn(List<SupplierPriceView> prices) {
+    if (prices.isEmpty) return 0;
+
+    double? defaultPrice;
+    for (final entry in prices) {
+      if (entry.price.isDefault) defaultPrice = entry.price.pricePerUnit;
+    }
+    if (defaultPrice == null) return 0;
+
+    // Cheapest first, so the first row is the floor.
+    final gap = defaultPrice - prices.first.price.pricePerUnit;
+    return gap < 0 ? 0 : gap;
   }
 
   /// Price changes for one item–supplier pair, newest first.

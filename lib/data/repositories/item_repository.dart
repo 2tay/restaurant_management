@@ -3,6 +3,8 @@ import 'package:drift/drift.dart';
 import '../../models/item.dart';
 import '../database/app_database.dart';
 import '../mappers/mappers.dart';
+import '../view_models/item_row_view.dart';
+import '../view_models/low_stock_alert_view.dart';
 import 'movement_repository.dart';
 import 'new_id.dart';
 import 'order_repository.dart';
@@ -30,6 +32,21 @@ class ItemFilter {
   final bool lowStockOnly;
 
   static const ItemFilter none = ItemFilter();
+
+  // Value equality because a filter is a provider family's key. Riverpod keys
+  // on `==`, so without this a screen that rebuilds — which the inventory list
+  // does on every keystroke in its search field — would construct an
+  // equal-but-not-identical filter, be handed a different provider, and tear
+  // down a live query only to open the same one again.
+  @override
+  bool operator ==(Object other) =>
+      other is ItemFilter &&
+      other.categoryId == categoryId &&
+      other.supplierId == supplierId &&
+      other.lowStockOnly == lowStockOnly;
+
+  @override
+  int get hashCode => Object.hash(categoryId, supplierId, lowStockOnly);
 }
 
 /// What is standing between an article and deletion.
@@ -68,6 +85,106 @@ class ItemRepository {
     ItemFilter filter = ItemFilter.none,
   }) => _attentionFirst(storeId, filter).get().then(_toItems);
 
+  /// The inventory list, with the two names each row shows already resolved.
+  ///
+  /// Same rows and the same order as [watchItems] — this is that query with two
+  /// left outer joins on it. Outer rather than inner so a row is still produced
+  /// if a category or unit somehow went missing: an article that fails to
+  /// appear is a bug nobody can see, and one that appears with a dash is a bug
+  /// somebody reports.
+  Stream<List<ItemRowView>> watchItemRows(
+    String storeId, {
+    ItemFilter filter = ItemFilter.none,
+  }) {
+    final query = _attentionFirst(storeId, filter).join([
+      leftOuterJoin(
+        _db.categories,
+        _db.categories.id.equalsExp(_db.items.categoryId),
+      ),
+      leftOuterJoin(_db.units, _db.units.id.equalsExp(_db.items.unitId)),
+    ]);
+
+    return query.watch().map(
+      (rows) => [
+        for (final row in rows)
+          ItemRowView(
+            item: itemFromRow(row.readTable(_db.items)),
+            categoryName: row.readTableOrNull(_db.categories)?.name ?? '—',
+            unitAbbreviation:
+                row.readTableOrNull(_db.units)?.abbreviation ?? '',
+          ),
+      ],
+    );
+  }
+
+  /// The low-stock screen: what needs attention, and whether anybody has acted.
+  ///
+  /// Three questions per row in Phase 1 — the default supplier, that supplier's
+  /// name, and the quantity already on order — became three joins and one
+  /// correlated subquery for the whole screen.
+  ///
+  /// The outstanding sum is the same `CASE` as [OrderRepository.onOrderQuantity]
+  /// and for the same reason: `closedShort` lines owe nothing, and a line that
+  /// over-delivered does not owe a negative amount. A test holds every spelling
+  /// of that rule to the same answer.
+  Stream<List<LowStockAlertView>> watchLowStockAlerts(String storeId) {
+    const onOrder = CustomExpression<double>(
+      '(SELECT COALESCE(SUM('
+      '  CASE WHEN l.closed_short THEN 0 '
+      '  ELSE MAX(0, l.quantity_ordered - l.quantity_received) END'
+      '), 0) '
+      'FROM purchase_order_lines l '
+      'JOIN purchase_orders o ON o.id = l.order_id '
+      'WHERE o.store_id = items.store_id AND l.item_id = items.id '
+      "AND o.status IN ('sent', 'partial'))",
+      precedence: Precedence.primary,
+    );
+
+    final query =
+        _attentionFirst(
+          storeId,
+          const ItemFilter(lowStockOnly: true),
+        ).join([
+          leftOuterJoin(
+            _db.categories,
+            _db.categories.id.equalsExp(_db.items.categoryId),
+          ),
+          leftOuterJoin(_db.units, _db.units.id.equalsExp(_db.items.unitId)),
+          // The article's default offer, and whoever it belongs to. An article
+          // with no offers joins to nothing and simply has no shortcut.
+          leftOuterJoin(
+            _db.supplierPrices,
+            _db.supplierPrices.itemId.equalsExp(_db.items.id) &
+                _db.supplierPrices.isDefault.equals(true),
+          ),
+          leftOuterJoin(
+            _db.suppliers,
+            _db.suppliers.id.equalsExp(_db.supplierPrices.supplierId),
+          ),
+        ])..addColumns([onOrder]);
+
+    return query.watch().map(
+      (rows) => [
+        for (final row in rows)
+          LowStockAlertView(
+            row: ItemRowView(
+              item: itemFromRow(row.readTable(_db.items)),
+              categoryName: row.readTableOrNull(_db.categories)?.name ?? '—',
+              unitAbbreviation:
+                  row.readTableOrNull(_db.units)?.abbreviation ?? '',
+            ),
+            onOrderQuantity: row.read(onOrder) ?? 0,
+            // The offer wins over the preference recorded on the article: a
+            // link with a price is a fact, and `defaultSupplierId` is a note.
+            defaultSupplierId:
+                row.readTableOrNull(_db.supplierPrices)?.supplierId ??
+                row.readTable(_db.items).defaultSupplierId,
+            defaultSupplierName: row.readTableOrNull(_db.suppliers)?.name,
+          ),
+      ],
+    );
+  }
+
   /// Every article in the establishment, alphabetically.
   ///
   /// For the callers that do their own ordering — the reports, the valuation,
@@ -76,6 +193,32 @@ class ItemRepository {
       _byName(storeId).watch().map(_toItems);
 
   Future<List<Item>> items(String storeId) => _byName(storeId).get().then(_toItems);
+
+  /// One article with its category and unit named — the detail screen's header.
+  ///
+  /// Same joins as [watchItemRows], for one row. Null when the article is gone,
+  /// which the screen shows as an error with a way back to the list rather than
+  /// as a blank page.
+  Stream<ItemRowView?> watchItemRow(String id) {
+    final query = (_db.select(_db.items)..where((i) => i.id.equals(id))).join([
+      leftOuterJoin(
+        _db.categories,
+        _db.categories.id.equalsExp(_db.items.categoryId),
+      ),
+      leftOuterJoin(_db.units, _db.units.id.equalsExp(_db.items.unitId)),
+    ]);
+
+    return query.watchSingleOrNull().map(
+      (row) => row == null
+          ? null
+          : ItemRowView(
+              item: itemFromRow(row.readTable(_db.items)),
+              categoryName: row.readTableOrNull(_db.categories)?.name ?? '—',
+              unitAbbreviation:
+                  row.readTableOrNull(_db.units)?.abbreviation ?? '',
+            ),
+    );
+  }
 
   Stream<Item?> watchItem(String id) =>
       (_db.select(_db.items)..where((i) => i.id.equals(id)))

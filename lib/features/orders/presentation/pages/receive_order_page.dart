@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../app/navigation.dart';
@@ -7,8 +8,11 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/utils/order_status.dart';
+import '../../../../data/providers.dart';
+import '../../../../data/repositories/repositories.dart';
+import '../../../../data/view_models/view_models.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../../mock_data/mock_data.dart';
+import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 import '../widgets/receive_line_row.dart';
 import '../widgets/order_summary_card.dart';
@@ -28,7 +32,7 @@ import '../widgets/order_summary_card.dart';
 /// - **Unordered items are allowed but flagged.** The driver brought something
 ///   extra; refusing it would only push staff to the manual stock-in screen and
 ///   lose the link to the delivery.
-class ReceiveOrderPage extends StatefulWidget {
+class ReceiveOrderPage extends ConsumerWidget {
   const ReceiveOrderPage({
     required this.storeId,
     required this.orderId,
@@ -39,21 +43,58 @@ class ReceiveOrderPage extends StatefulWidget {
   final String orderId;
 
   @override
-  State<ReceiveOrderPage> createState() => _ReceiveOrderPageState();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final detail = ref.watch(orderDetailProvider(orderId));
+    final view = detail.value;
+
+    if (view == null) {
+      return ShellPage(
+        title: l10n.ordersTitle,
+        child: detail.isLoading
+            ? const SkeletonList(rows: 4, rowHeight: 110)
+            : ErrorState(
+                message: l10n.errorStateBody,
+                onRetry: () => context.goSection(Routes.toOrders(storeId)),
+              ),
+      );
+    }
+
+    return _ReceiveForm(
+      // Keyed on the commande so opening a different one rebuilds the lines
+      // rather than keeping the previous delivery's numbers.
+      key: ValueKey(orderId),
+      storeId: storeId,
+      view: view,
+    );
+  }
 }
 
-class _ReceiveOrderPageState extends State<ReceiveOrderPage> {
+class _ReceiveForm extends ConsumerStatefulWidget {
+  const _ReceiveForm({required this.storeId, required this.view, super.key});
+
+  final String storeId;
+  final OrderDetailView view;
+
+  @override
+  ConsumerState<_ReceiveForm> createState() => _ReceiveOrderPageState();
+}
+
+class _ReceiveOrderPageState extends ConsumerState<_ReceiveForm> {
   final _noteController = TextEditingController();
   final List<ReceiveLineDraft> _lines = [];
+
+  /// The article on each line, by id — for the row labels and the price
+  /// warnings. Taken from the commande, which already names every line.
+  late final Map<String, OrderLineView> _lineViews = {
+    for (final line in widget.view.lines) line.line.itemId: line,
+  };
 
   @override
   void initState() {
     super.initState();
 
-    final order = MockQueries.orderById(widget.orderId);
-    if (order == null) return;
-
-    for (final line in order.lines) {
+    for (final line in widget.view.order.lines) {
       final outstanding = lineOutstanding(line);
       // Settled lines are not shown. They are done, and listing them would bury
       // the two lines that actually need attention.
@@ -100,17 +141,7 @@ class _ReceiveOrderPageState extends State<ReceiveOrderPage> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final order = MockQueries.orderById(widget.orderId);
-
-    if (order == null) {
-      return ShellPage(
-        title: l10n.ordersTitle,
-        child: ErrorState(
-          message: l10n.errorStateBody,
-          onRetry: () => context.goSection(Routes.toOrders(widget.storeId)),
-        ),
-      );
-    }
+    final order = widget.view.order;
 
     final back = BackDestination(
       label: order.reference,
@@ -165,6 +196,8 @@ class _ReceiveOrderPageState extends State<ReceiveOrderPage> {
                 child: ReceiveLineRow(
                   key: ValueKey('${line.itemId}-${line.wasUnordered}'),
                   draft: line,
+                  itemName: _nameOf(line.itemId),
+                  unitAbbreviation: _unitOf(line.itemId),
                   onChanged: () => setState(() {}),
                   onRemove: line.wasUnordered ? () => _removeLine(line) : null,
                 ),
@@ -220,9 +253,7 @@ class _ReceiveOrderPageState extends State<ReceiveOrderPage> {
   }
 
   Future<void> _addUnorderedLine() async {
-    final order = MockQueries.orderById(widget.orderId);
-    if (order == null) return;
-
+    final order = widget.view.order;
     final onReceipt = _lines.map((line) => line.itemId).toSet();
     final choice = await _UnorderedItemSheet.show(
       context,
@@ -233,6 +264,19 @@ class _ReceiveOrderPageState extends State<ReceiveOrderPage> {
     if (choice == null || !mounted) return;
 
     setState(() {
+      _lineViews[choice.itemId] = OrderLineView(
+        // A line that was never ordered still needs a name and a unit on the
+        // row, and the picker has just handed both over.
+        line: PurchaseOrderLine(
+          id: 'unordered-${choice.itemId}',
+          itemId: choice.itemId,
+          quantityOrdered: 0,
+          quantityReceived: 0,
+          unitPrice: choice.unitPrice,
+        ),
+        itemName: choice.itemName,
+        unitAbbreviation: choice.unitAbbreviation,
+      );
       _lines.add(
         ReceiveLineDraft(
           itemId: choice.itemId,
@@ -272,12 +316,11 @@ class _ReceiveOrderPageState extends State<ReceiveOrderPage> {
         continue;
       }
 
-      final item = MockQueries.itemById(line.itemId);
       final confirmed = await ConfirmDialog.show(
         context,
         title: l10n.receivePriceConfirmTitle,
         message: l10n.receivePriceConfirmBody(
-          item?.name ?? '—',
+          _nameOf(line.itemId),
           Formatters.price(line.orderedUnitPrice),
           Formatters.price(line.actualUnitPrice),
         ),
@@ -291,29 +334,47 @@ class _ReceiveOrderPageState extends State<ReceiveOrderPage> {
       if (!mounted) return;
     }
 
-    OrderMutations.confirmReceipt(
-      orderId: widget.orderId,
-      lines: [
-        for (final line in _lines)
-          if (line.quantityReceived > 0) line.toDraftLine(),
-      ],
-      note: _noteController.text.trim().isEmpty
-          ? null
-          : _noteController.text.trim(),
-    );
+    final orderId = widget.view.order.id;
+    await ref
+        .read(orderRepositoryProvider)
+        .confirmReceipt(
+          orderId: orderId,
+          lines: [
+            for (final line in _lines)
+              if (line.quantityReceived > 0) line.toDraftLine(),
+          ],
+          note: _noteController.text.trim().isEmpty
+              ? null
+              : _noteController.text.trim(),
+        );
 
     if (!mounted) return;
     AppSnackBar.success(context, l10n.receiveConfirmed);
-    context.backTo(Routes.toOrder(widget.storeId, widget.orderId));
+    context.backTo(Routes.toOrder(widget.storeId, orderId));
   }
+
+  String _nameOf(String itemId) => _lineViews[itemId]?.itemName ?? '—';
+
+  String _unitOf(String itemId) => _lineViews[itemId]?.unitAbbreviation ?? '';
 }
 
 /// What the receiver picked when adding a line that was not on the order.
 @immutable
 class _UnorderedChoice {
-  const _UnorderedChoice({required this.itemId, required this.unitPrice});
+  const _UnorderedChoice({
+    required this.itemId,
+    required this.itemName,
+    required this.unitAbbreviation,
+    required this.unitPrice,
+  });
 
   final String itemId;
+
+  /// Carried back with the id so the row it becomes has a name without asking
+  /// again — the sheet was already showing one.
+  final String itemName;
+  final String unitAbbreviation;
+
   final double unitPrice;
 }
 
@@ -322,7 +383,7 @@ class _UnorderedChoice {
 /// Offers every item in the store rather than only this supplier's, because the
 /// point of the case is that something turned up which the order did not
 /// anticipate. The supplier's own price is pre-filled when there is one.
-class _UnorderedItemSheet extends StatefulWidget {
+class _UnorderedItemSheet extends ConsumerStatefulWidget {
   const _UnorderedItemSheet({
     required this.storeId,
     required this.supplierId,
@@ -352,19 +413,28 @@ class _UnorderedItemSheet extends StatefulWidget {
   }
 
   @override
-  State<_UnorderedItemSheet> createState() => _UnorderedItemSheetState();
+  ConsumerState<_UnorderedItemSheet> createState() =>
+      _UnorderedItemSheetState();
 }
 
-class _UnorderedItemSheetState extends State<_UnorderedItemSheet> {
+class _UnorderedItemSheetState extends ConsumerState<_UnorderedItemSheet> {
   String? _itemId;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
 
-    final items = MockQueries.itemsForStore(
-      widget.storeId,
-    ).where((item) => !widget.excludedItemIds.contains(item.id)).toList();
+    final rows =
+        ref.watch(itemRowsProvider((
+              storeId: widget.storeId,
+              filter: ItemFilter.none,
+            ))).value ??
+        const <ItemRowView>[];
+
+    final items = [
+      for (final row in rows)
+        if (!widget.excludedItemIds.contains(row.item.id)) row,
+    ];
 
     return Padding(
       padding: EdgeInsets.only(
@@ -385,11 +455,11 @@ class _UnorderedItemSheetState extends State<_UnorderedItemSheet> {
             label: l10n.orderLinePickerLabel,
             value: _itemId,
             options: [
-              for (final item in items)
+              for (final row in items)
                 DropdownOption(
-                  value: item.id,
-                  label: item.name,
-                  secondaryLabel: MockQueries.categoryNameOf(item.categoryId),
+                  value: row.item.id,
+                  label: row.item.name,
+                  secondaryLabel: row.categoryName,
                 ),
             ],
             onChanged: (value) => setState(() => _itemId = value),
@@ -405,7 +475,7 @@ class _UnorderedItemSheetState extends State<_UnorderedItemSheet> {
               PrimaryButton(
                 label: l10n.orderAddLine,
                 icon: LucideIcons.plus,
-                onPressed: _itemId == null ? null : _submit,
+                onPressed: _itemId == null ? null : () => _submit(items),
               ),
             ],
           ),
@@ -414,10 +484,31 @@ class _UnorderedItemSheetState extends State<_UnorderedItemSheet> {
     );
   }
 
-  void _submit() {
-    final price = MockQueries.priceFor(_itemId!, widget.supplierId);
+  Future<void> _submit(List<ItemRowView> items) async {
+    final itemId = _itemId!;
+    final price = await ref
+        .read(supplierRepositoryProvider)
+        .priceFor(itemId, widget.supplierId);
+    if (!mounted) return;
+
+    var name = '—';
+    var unit = '';
+    for (final row in items) {
+      if (row.item.id == itemId) {
+        name = row.item.name;
+        unit = row.unitAbbreviation;
+      }
+    }
+
     Navigator.of(context).pop(
-      _UnorderedChoice(itemId: _itemId!, unitPrice: price?.pricePerUnit ?? 0),
+      _UnorderedChoice(
+        itemId: itemId,
+        itemName: name,
+        unitAbbreviation: unit,
+        // Zero when this supplier has no price on file for the article, which
+        // is ordinary for something that was not ordered from them.
+        unitPrice: price?.pricePerUnit ?? 0,
+      ),
     );
   }
 }

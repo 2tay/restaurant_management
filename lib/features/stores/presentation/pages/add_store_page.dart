@@ -1,26 +1,27 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../app/routes.dart';
 import '../../../../app/navigation.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../data/providers.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../../mock_data/mock_data.dart';
 import '../../../../shared/widgets/widgets.dart';
 
 /// Create a new store.
 ///
-/// Saves nothing — Phase 1 has no persistence. Submitting confirms and returns
-/// to the selector, which is enough to demo the flow.
-class AddStorePage extends StatefulWidget {
+/// The new establishment is written and the selector shows it on the way back —
+/// the grid is watching the same table.
+class AddStorePage extends ConsumerStatefulWidget {
   const AddStorePage({super.key});
 
   @override
-  State<AddStorePage> createState() => _AddStorePageState();
+  ConsumerState<AddStorePage> createState() => _AddStorePageState();
 }
 
-class _AddStorePageState extends State<AddStorePage> {
+class _AddStorePageState extends ConsumerState<AddStorePage> {
   final _name = TextEditingController();
   final _address = TextEditingController();
   final _postalCode = TextEditingController();
@@ -175,21 +176,24 @@ class _AddStorePageState extends State<AddStorePage> {
     );
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     final l10n = AppLocalizations.of(context);
 
     // Starts with no categories, units, items or suppliers — correct rather
     // than lazy, since all four are per-store by design. What the user sees
     // next is every empty state in the app, doing its job.
-    AccountMutations.createStore(
-      name: _name.text,
-      addressLine: _address.text,
-      postalCode: _postalCode.text,
-      city: _city.text,
-      phone: _phone.text,
-      vatNumber: _vatNumber.text,
-    );
+    await ref
+        .read(storeRepositoryProvider)
+        .createStore(
+          name: _name.text,
+          addressLine: _address.text,
+          postalCode: _postalCode.text,
+          city: _city.text,
+          phone: _phone.text,
+          vatNumber: _vatNumber.text,
+        );
 
+    if (!mounted) return;
     AppSnackBar.success(context, l10n.addStoreCreated);
     context.goSection(Routes.stores);
   }

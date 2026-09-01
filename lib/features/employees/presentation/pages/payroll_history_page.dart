@@ -8,8 +8,10 @@ import '../../../../core/utils/attendance_status.dart';
 import '../../../../core/utils/employee_status.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/utils/payroll_math.dart';
+import '../../../../data/current_employee.dart';
+import '../../../../data/providers.dart';
+import '../../../../data/repositories/repositories.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../../mock_data/mock_data.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 
@@ -44,6 +46,17 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
   PaymentStatus? _statusFilter;
   int _page = 0;
 
+  /// The roster, cached from the last build so the synchronous filter handlers
+  /// (`_onEmployeeChanged`, `_pickerFloor`) can resolve an id without a query.
+  List<Employee> _employees = const [];
+
+  Employee? _employeeById(String id) {
+    for (final e in _employees) {
+      if (e.id == id) return e;
+    }
+    return null;
+  }
+
   String? get _employeeId =>
       _employeeSel == _kAllEmployees ? null : _employeeSel;
 
@@ -61,7 +74,7 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
       _page = 0;
       final id = _employeeId;
       if (id == null) return;
-      final employee = MockQueries.employeeById(id);
+      final employee = _employeeById(id);
       if (employee == null) return;
       final hire = _dayOnly(employee.hireDate);
       if (_from.isBefore(hire)) _from = hire;
@@ -71,38 +84,78 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
 
   @override
   Widget build(BuildContext context) {
-    ref.watch(mockDataRevisionProvider);
     final l10n = AppLocalizations.of(context);
+    final data = asyncAll2(
+      ref.watch(activeEmployeesProvider(widget.storeId)),
+      ref.watch(storeSettingsProvider(widget.storeId)),
+      (employees, settings) => (employees: employees, settings: settings),
+    );
 
     return ShellPage(
       title: l10n.payrollHistoryTitle,
       subtitle: l10n.payrollHistorySubtitle,
       scrollable: true,
-      child: _buildBody(l10n),
+      child: AsyncContent<
+        ({List<Employee> employees, StoreSettings settings})
+      >(
+        value: data,
+        onRetry: () {
+          ref.invalidate(activeEmployeesProvider(widget.storeId));
+          ref.invalidate(storeSettingsProvider(widget.storeId));
+        },
+        builder: (context, base) {
+          _employees = [...base.employees]
+            ..sort(
+              (a, b) =>
+                  employeeDisplayName(a).compareTo(employeeDisplayName(b)),
+            );
+          return _buildBody(l10n, _employees, base.settings);
+        },
+      ),
     );
   }
 
-  Widget _buildBody(AppLocalizations l10n) {
-    final employees = MockQueries.activeEmployeesForStore(
-      widget.storeId,
-    )..sort((a, b) => employeeDisplayName(a).compareTo(employeeDisplayName(b)));
-
-    final settings = MockQueries.storeSettings(widget.storeId);
-    final data = MockQueries.payrollDays(
-      widget.storeId,
+  Widget _buildBody(
+    AppLocalizations l10n,
+    List<Employee> employees,
+    StoreSettings settings,
+  ) {
+    final key = (
+      storeId: widget.storeId,
       employeeId: _employeeId,
       from: _from,
       to: _to,
       status: _statusFilter,
       page: _page,
-      pageSize: _pageSize,
     );
-    if (data.page != _page) _page = data.page;
+    final daysAsync = ref.watch(payrollDaysProvider(key));
+
+    return AsyncContent<PayrollDays>(
+      value: daysAsync,
+      skeleton: const SkeletonList(rows: 4, rowHeight: 120),
+      onRetry: () => ref.invalidate(payrollDaysProvider(key)),
+      builder: (context, data) =>
+          _table(l10n, employees, settings, data, key),
+    );
+  }
+
+  Widget _table(
+    AppLocalizations l10n,
+    List<Employee> employees,
+    StoreSettings settings,
+    PayrollDays data,
+    PayrollDaysKey key,
+  ) {
+    if (data.page != _page) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _page != data.page) setState(() => _page = data.page);
+      });
+    }
 
     final hasAnyDay = data.paidDays + data.unpaidDays > 0;
     final selectedEmployee = _employeeId == null
         ? null
-        : MockQueries.employeeById(_employeeId!);
+        : _employeeById(_employeeId!);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -134,6 +187,8 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
         else ...[
           _DaysTable(
             rows: data.rows,
+            employeesById: data.employeesById,
+            paidAtByPeriod: data.paidAtByPeriod,
             settings: settings,
             openMinutes: settings.openMinutes,
             closeMinutes: settings.closeMinutes,
@@ -251,7 +306,7 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
   /// never later than the current [_from].
   DateTime _pickerFloor(List<Employee> employees) {
     if (_employeeId != null) {
-      final e = MockQueries.employeeById(_employeeId!);
+      final e = _employeeById(_employeeId!);
       return e == null ? _from : _dayOnly(e.hireDate);
     }
     final hires = employees.map((e) => _dayOnly(e.hireDate));
@@ -261,20 +316,7 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
     return earliest.isBefore(_from) ? earliest : _from;
   }
 
-  Widget _kpiRow(
-    AppLocalizations l10n,
-    ({
-      List<Attendance> rows,
-      int paidDays,
-      int unpaidDays,
-      Duration worked,
-      Duration overtime,
-      int totalCount,
-      int page,
-      int pageCount,
-    })
-    data,
-  ) {
+  Widget _kpiRow(AppLocalizations l10n, PayrollDays data) {
     return Row(
       children: [
         Expanded(
@@ -327,13 +369,14 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
 
   Future<void> _confirmPay(Employee employee) async {
     final l10n = AppLocalizations.of(context);
-    final preview = PayrollMutations.preview(
+    final payroll = ref.read(payrollRepositoryProvider);
+    final preview = await payroll.preview(
       employee.id,
       widget.storeId,
       from: _from,
       to: _to,
     );
-    if (preview.isEmpty) return;
+    if (!mounted || preview.isEmpty) return;
 
     final rangeLabel = '${Formatters.date(_from)} – ${Formatters.date(_to)}';
 
@@ -349,15 +392,20 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
     );
     if (!ok || !mounted) return;
 
-    final period = PayrollMutations.pay(
+    final actorId = ref.read(currentEmployeeProvider)?.id;
+    if (actorId == null) return;
+
+    final period = await payroll.pay(
       employee.id,
       widget.storeId,
       from: _from,
       to: _to,
-      paidByEmployeeId: mockCurrentEmployee.id,
+      paidByEmployeeId: actorId,
     );
-    if (period == null || !mounted) return;
+    if (!mounted || period == null) return;
 
+    // A `FutureProvider` — nudge it so the table reflects the settled days.
+    ref.invalidate(payrollDaysProvider);
     AppSnackBar.success(context, l10n.payrollPaid);
   }
 }
@@ -365,6 +413,8 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
 class _DaysTable extends StatelessWidget {
   const _DaysTable({
     required this.rows,
+    required this.employeesById,
+    required this.paidAtByPeriod,
     required this.settings,
     required this.openMinutes,
     required this.closeMinutes,
@@ -372,6 +422,8 @@ class _DaysTable extends StatelessWidget {
   });
 
   final List<Attendance> rows;
+  final Map<String, Employee> employeesById;
+  final Map<String, DateTime> paidAtByPeriod;
   final StoreSettings settings;
   final int openMinutes;
   final int closeMinutes;
@@ -399,7 +451,7 @@ class _DaysTable extends StatelessWidget {
   }
 
   DataRow _row(Attendance a) {
-    final employee = MockQueries.employeeById(a.employeeId);
+    final employee = employeesById[a.employeeId];
     final scheduleEnd = employee == null
         ? closeMinutes
         : resolvedSchedule(
@@ -415,7 +467,7 @@ class _DaysTable extends StatelessWidget {
         : dayAmount(a, employee, settings, scheduledEndMinutes: scheduleEnd);
     final paidAt = a.payrollPeriodId == null
         ? null
-        : MockQueries.payrollPeriodById(a.payrollPeriodId!)?.paidAt;
+        : paidAtByPeriod[a.payrollPeriodId!];
 
     return DataRow(
       cells: [

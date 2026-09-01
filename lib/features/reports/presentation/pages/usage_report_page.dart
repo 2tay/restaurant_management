@@ -11,7 +11,7 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/utils/responsive.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../../mock_data/mock_data.dart';
+import '../../../../data/providers.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 import '../../../dashboard/presentation/widgets/summary_tile.dart';
@@ -36,28 +36,41 @@ class _UsageReportPageState extends ConsumerState<UsageReportPage> {
 
   @override
   Widget build(BuildContext context) {
-    // Usage is read from the movement log, which every stock-out appends to.
-    ref.watch(mockDataRevisionProvider);
-
     final l10n = AppLocalizations.of(context);
 
-    final usage = mockUsageTrend
-        .where(
-          (point) => point.date.isAfter(
-            DateTime.now().subtract(Duration(days: _rangeDays)),
-          ),
-        )
-        .toList();
+    // Everything on this screen is read from the movement log, which every
+    // stock-out appends to. The two charts were frozen lists in Phase 1 and are
+    // a weekly `GROUP BY` now — **weekly**, because the establishment's history
+    // is measured in weeks, and a monthly series over it would be mostly empty
+    // columns that read as a broken chart rather than as a young dataset.
+    final trend =
+        ref.watch(usageTrendProvider(widget.storeId)).value ??
+        const <TrendPoint>[];
+    final wasteTrend =
+        ref.watch(wasteTrendProvider(widget.storeId)).value ??
+        const <TrendPoint>[];
+
+    // The chart shows whole weeks, so the range chip picks how many of them.
+    final weeks = (_rangeDays / 7).ceil();
+    final usage = trend.length <= weeks
+        ? trend
+        : trend.sublist(trend.length - weeks);
 
     final total = usage.fold<double>(0, (sum, point) => sum + point.value);
 
-    // Real figures now that every movement records the cost it applied. These
-    // used to be constants in `mock_reports.dart`, which could not follow a
-    // stock-out recorded during the session — a waste figure that ignores the
-    // waste you just recorded is worse than no figure.
-    final from = DateTime.now().subtract(Duration(days: _rangeDays));
-    final wasted = MockQueries.wasteValue(widget.storeId, from: from);
-    final consumed = MockQueries.consumptionValue(widget.storeId, from: from);
+    final wasted =
+        ref.watch(
+          wasteValueProvider((storeId: widget.storeId, days: _rangeDays)),
+        ).value ??
+        0;
+    final consumed =
+        ref.watch(
+          consumptionValueProvider((
+            storeId: widget.storeId,
+            days: _rangeDays,
+          )),
+        ).value ??
+        0;
 
     return ShellPage(
       back: BackDestination(
@@ -122,7 +135,7 @@ class _UsageReportPageState extends ConsumerState<UsageReportPage> {
           AppCard(
             child: SizedBox(
               height: 240,
-              child: _WasteChart(points: mockWasteTrend),
+              child: _WasteChart(points: wasteTrend),
             ),
           ),
         ],

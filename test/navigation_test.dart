@@ -7,25 +7,18 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:stock_inventory/app/app.dart';
 import 'package:stock_inventory/app/router.dart';
 import 'package:stock_inventory/app/routes.dart';
-import 'package:stock_inventory/mock_data/mock_data.dart';
+import 'package:stock_inventory/data/seed/dataset/dataset.dart';
 import 'package:stock_inventory/shared/widgets/widgets.dart';
+
+import 'support/app_harness.dart';
 
 const Size _tablet = Size(1280, 800);
 const String _store = StoreIds.sablon;
 
-Future<void> _pump(WidgetTester tester) async {
-  tester.view.physicalSize = _tablet;
-  tester.view.devicePixelRatio = 1.0;
-  addTearDown(tester.view.reset);
-
-  await tester.pumpWidget(const ProviderScope(child: StockInventoryApp()));
-  await tester.pumpAndSettle();
-}
+Future<void> _pump(WidgetTester tester) => pumpApp(tester, size: _tablet);
 
 /// Root sections show no back control — the sidebar is their navigation, and a
 /// back control there would be lying about the stack.
@@ -87,7 +80,7 @@ Map<String, String> _pushedScreens() {
 void main() {
   group('back control appears exactly where it should', () {
     for (final entry in _rootScreens.entries) {
-      testWidgets('${entry.key} (root) shows no back control', (tester) async {
+      testApp('${entry.key} (root) shows no back control', (tester) async {
         await _pump(tester);
         appRouter.go(entry.value);
         await tester.pumpAndSettle();
@@ -101,7 +94,7 @@ void main() {
     }
 
     for (final entry in _pushedScreens().entries) {
-      testWidgets('${entry.key} (pushed) offers a back control', (
+      testApp('${entry.key} (pushed) offers a back control', (
         tester,
       ) async {
         await _pump(tester);
@@ -118,7 +111,7 @@ void main() {
   });
 
   group('the stack behaves', () {
-    testWidgets('pushing then popping returns to where you were', (
+    testApp('pushing then popping returns to where you were', (
       tester,
     ) async {
       await _pump(tester);
@@ -140,7 +133,7 @@ void main() {
       );
     });
 
-    testWidgets('repeated push and pop never corrupts the stack', (
+    testApp('repeated push and pop never corrupts the stack', (
       tester,
     ) async {
       // The failure this guards against is a screen that pushes instead of
@@ -161,7 +154,7 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('switching section clears anything pushed on top', (
+    testApp('switching section clears anything pushed on top', (
       tester,
     ) async {
       await _pump(tester);
@@ -180,7 +173,7 @@ void main() {
   });
 
   group('the sidebar tracks where the user is', () {
-    testWidgets('highlights the section a nested screen belongs to', (
+    testApp('highlights the section a nested screen belongs to', (
       tester,
     ) async {
       await _pump(tester);
@@ -196,7 +189,7 @@ void main() {
       );
     });
 
-    testWidgets('highlights Fournisseurs on a supplier pricing screen', (
+    testApp('highlights Fournisseurs on a supplier pricing screen', (
       tester,
     ) async {
       await _pump(tester);
@@ -212,7 +205,7 @@ void main() {
       expect(rail.selectedIndex, 4);
     });
 
-    testWidgets('highlights Gestion Employée from a nested employee screen', (
+    testApp('highlights Gestion Employée from a nested employee screen', (
       tester,
     ) async {
       await _pump(tester);
@@ -229,7 +222,7 @@ void main() {
   });
 
   group('the Gestion Employée dropdown', () {
-    testWidgets('expands to reveal all four sections, and each navigates', (
+    testApp('expands to reveal all four sections, and each navigates', (
       tester,
     ) async {
       await _pump(tester);
@@ -249,7 +242,7 @@ void main() {
       expect(appRouter.state.uri.path, Routes.toEmployees(_store));
     });
 
-    testWidgets('the Tableau de bord item reaches the pointage board', (
+    testApp('the Tableau de bord item reaches the pointage board', (
       tester,
     ) async {
       await _pump(tester);
@@ -266,7 +259,7 @@ void main() {
   });
 
   group('forms protect unsaved input', () {
-    testWidgets('a clean form leaves without asking', (tester) async {
+    testApp('a clean form leaves without asking', (tester) async {
       await _pump(tester);
       appRouter.go(Routes.toInventory(_store));
       await tester.pumpAndSettle();
@@ -280,7 +273,7 @@ void main() {
       expect(appRouter.state.uri.path, Routes.toInventory(_store));
     });
 
-    testWidgets('a dirty form confirms before discarding', (tester) async {
+    testApp('a dirty form confirms before discarding', (tester) async {
       await _pump(tester);
       appRouter.go(Routes.toInventory(_store));
       await tester.pumpAndSettle();
@@ -314,7 +307,7 @@ void main() {
   });
 
   group('dialogs follow the button convention', () {
-    testWidgets('dismissive action sits left of the confirming action', (
+    testApp('dismissive action sits left of the confirming action', (
       tester,
     ) async {
       await _pump(tester);

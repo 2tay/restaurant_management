@@ -8,8 +8,8 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/responsive.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../../mock_data/mock_data.dart';
-import '../../../../models/models.dart';
+import '../../../../data/providers.dart';
+import '../../../../data/view_models/view_models.dart';
 import '../../../../shared/widgets/widgets.dart';
 import 'supplier_detail_page.dart';
 
@@ -36,15 +36,13 @@ class _SuppliersListPageState extends ConsumerState<SuppliersListPage> {
 
   @override
   Widget build(BuildContext context) {
-    // Suppliers are creatable and deletable, and each row counts their items.
-    ref.watch(mockDataRevisionProvider);
-
     final l10n = AppLocalizations.of(context);
-    final all = MockQueries.suppliersForStore(widget.storeId);
-    final suppliers = _filtered(all);
     final canSplit = context.canSplitView;
 
-    final selected = _resolveSelection(suppliers, canSplit);
+    // Suppliers are creatable and deletable, and each row counts the articles
+    // it supplies — all in the one query, so a link made on another screen
+    // moves the number here without anything telling it to.
+    final rows = ref.watch(supplierRowsProvider(widget.storeId));
 
     return ShellPage(
       title: l10n.suppliersTitle,
@@ -58,43 +56,15 @@ class _SuppliersListPageState extends ConsumerState<SuppliersListPage> {
               context.pushScreen(Routes.toAddSupplier(widget.storeId)),
         ),
       ],
-      child: canSplit
-          ? Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  flex: 4,
-                  child: _ListPane(
-                    storeId: widget.storeId,
-                    suppliers: suppliers,
-                    allCount: all.length,
-                    selectedId: selected?.id,
-                    canSplit: true,
-                    onQueryChanged: (value) => setState(() => _query = value),
-                    onSelected: (id) => setState(() => _selectedId = id),
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.xl),
-                Expanded(
-                  flex: 5,
-                  child: selected == null
-                      ? AppCard(
-                          child: EmptyState(
-                            icon: LucideIcons.mousePointerClick,
-                            title: l10n.suppliersTitle,
-                            message: l10n.suppliersSubtitle,
-                          ),
-                        )
-                      : SupplierDetailPage(
-                          key: ValueKey(selected.id),
-                          storeId: widget.storeId,
-                          supplierId: selected.id,
-                          embedded: true,
-                        ),
-                ),
-              ],
-            )
-          : _ListPane(
+      child: AsyncContent<List<SupplierRowView>>(
+        value: rows,
+        onRetry: () => ref.invalidate(supplierRowsProvider(widget.storeId)),
+        builder: (context, all) {
+          final suppliers = _filtered(all);
+          final selected = _resolveSelection(suppliers, canSplit);
+
+          if (!canSplit) {
+            return _ListPane(
               storeId: widget.storeId,
               suppliers: suppliers,
               allCount: all.length,
@@ -103,29 +73,76 @@ class _SuppliersListPageState extends ConsumerState<SuppliersListPage> {
               onQueryChanged: (value) => setState(() => _query = value),
               onSelected: (id) =>
                   context.pushScreen(Routes.toSupplier(widget.storeId, id)),
-            ),
+            );
+          }
+
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                flex: 4,
+                child: _ListPane(
+                  storeId: widget.storeId,
+                  suppliers: suppliers,
+                  allCount: all.length,
+                  selectedId: selected?.supplier.id,
+                  canSplit: true,
+                  onQueryChanged: (value) => setState(() => _query = value),
+                  onSelected: (id) => setState(() => _selectedId = id),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.xl),
+              Expanded(
+                flex: 5,
+                child: selected == null
+                    ? AppCard(
+                        child: EmptyState(
+                          icon: LucideIcons.mousePointerClick,
+                          title: l10n.suppliersTitle,
+                          message: l10n.suppliersSubtitle,
+                        ),
+                      )
+                    : SupplierDetailPage(
+                        key: ValueKey(selected.supplier.id),
+                        storeId: widget.storeId,
+                        supplierId: selected.supplier.id,
+                        embedded: true,
+                      ),
+              ),
+            ],
+          );
+        },
+      ),
     );
   }
 
-  List<Supplier> _filtered(List<Supplier> all) {
+  /// The search box, applied over rows already in hand.
+  ///
+  /// Three fields, matched as substrings. Kept in Dart for the same reason
+  /// `itemMatchesSearch` is: SQLite's `LOWER()` folds ASCII only, so a SQL
+  /// version would stop matching accented names.
+  List<SupplierRowView> _filtered(List<SupplierRowView> all) {
     final query = _query.trim().toLowerCase();
     if (query.isEmpty) return all;
     return all
         .where(
-          (supplier) =>
-              supplier.name.toLowerCase().contains(query) ||
-              supplier.city.toLowerCase().contains(query) ||
-              supplier.contactName.toLowerCase().contains(query),
+          (row) =>
+              row.supplier.name.toLowerCase().contains(query) ||
+              row.supplier.city.toLowerCase().contains(query) ||
+              row.supplier.contactName.toLowerCase().contains(query),
         )
         .toList();
   }
 
   /// Keeps the detail pane populated rather than blank — a split view whose
   /// right half is empty on load looks broken.
-  Supplier? _resolveSelection(List<Supplier> suppliers, bool canSplit) {
+  SupplierRowView? _resolveSelection(
+    List<SupplierRowView> suppliers,
+    bool canSplit,
+  ) {
     if (!canSplit || suppliers.isEmpty) return null;
-    for (final supplier in suppliers) {
-      if (supplier.id == _selectedId) return supplier;
+    for (final row in suppliers) {
+      if (row.supplier.id == _selectedId) return row;
     }
     return suppliers.first;
   }
@@ -143,7 +160,7 @@ class _ListPane extends StatelessWidget {
   });
 
   final String storeId;
-  final List<Supplier> suppliers;
+  final List<SupplierRowView> suppliers;
   final int allCount;
   final String? selectedId;
   final bool canSplit;
@@ -182,11 +199,11 @@ class _ListPane extends StatelessWidget {
                   separatorBuilder: (_, _) =>
                       const SizedBox(height: AppSpacing.sm),
                   itemBuilder: (context, index) {
-                    final supplier = suppliers[index];
+                    final row = suppliers[index];
                     return _SupplierRow(
-                      supplier: supplier,
-                      selected: canSplit && supplier.id == selectedId,
-                      onTap: () => onSelected(supplier.id),
+                      view: row,
+                      selected: canSplit && row.supplier.id == selectedId,
+                      onTap: () => onSelected(row.supplier.id),
                     );
                   },
                 ),
@@ -198,12 +215,12 @@ class _ListPane extends StatelessWidget {
 
 class _SupplierRow extends StatelessWidget {
   const _SupplierRow({
-    required this.supplier,
+    required this.view,
     required this.selected,
     required this.onTap,
   });
 
-  final Supplier supplier;
+  final SupplierRowView view;
   final bool selected;
   final VoidCallback onTap;
 
@@ -211,7 +228,8 @@ class _SupplierRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final productCount = MockQueries.itemCountForSupplier(supplier.id);
+    final supplier = view.supplier;
+    final productCount = view.productCount;
     // The pill shows a bare count; the tooltip says what it counts, so the
     // number is scannable without being cryptic.
 

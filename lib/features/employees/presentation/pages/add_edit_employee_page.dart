@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../app/navigation.dart';
@@ -8,8 +9,8 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/credential_status.dart';
 import '../../../../core/utils/formatters.dart';
+import '../../../../data/providers.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../../mock_data/mock_data.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 
@@ -20,7 +21,11 @@ import '../../../../shared/widgets/widgets.dart';
 /// as the contract type changes — reactive form state, not two fields, since
 /// exactly one applies. The role picker shows what each role can do rather
 /// than just its name.
-class AddEditEmployeePage extends StatefulWidget {
+///
+/// Split in two, like the other forms whose fields fill from a query: this
+/// resolves the employee being edited, and [_EmployeeForm] owns the
+/// controllers — `initState` cannot wait for the row.
+class AddEditEmployeePage extends ConsumerWidget {
   const AddEditEmployeePage({required this.storeId, this.employeeId, super.key});
 
   final String storeId;
@@ -29,10 +34,36 @@ class AddEditEmployeePage extends StatefulWidget {
   final String? employeeId;
 
   @override
-  State<AddEditEmployeePage> createState() => _AddEditEmployeePageState();
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (employeeId == null) {
+      return _EmployeeForm(storeId: storeId);
+    }
+    final employee = ref.watch(employeeProvider(employeeId!));
+    return AsyncContent<Employee?>(
+      value: employee,
+      onRetry: () => ref.invalidate(employeeProvider(employeeId!)),
+      builder: (context, employee) => employee == null
+          ? const ErrorState()
+          : _EmployeeForm(
+              key: ValueKey(employee.id),
+              storeId: storeId,
+              employee: employee,
+            ),
+    );
+  }
 }
 
-class _AddEditEmployeePageState extends State<AddEditEmployeePage> {
+class _EmployeeForm extends ConsumerStatefulWidget {
+  const _EmployeeForm({required this.storeId, this.employee, super.key});
+
+  final String storeId;
+  final Employee? employee;
+
+  @override
+  ConsumerState<_EmployeeForm> createState() => _EmployeeFormState();
+}
+
+class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
   final _firstName = TextEditingController();
   final _lastName = TextEditingController();
   final _cin = TextEditingController();
@@ -52,11 +83,9 @@ class _AddEditEmployeePageState extends State<AddEditEmployeePage> {
   bool _cinTaken = false;
   bool _emailTaken = false;
 
-  bool get _isEditing => widget.employeeId != null;
+  bool get _isEditing => widget.employee != null;
 
-  Employee? get _employee => widget.employeeId == null
-      ? null
-      : MockQueries.employeeById(widget.employeeId!);
+  Employee? get _employee => widget.employee;
 
   late final Map<TextEditingController, String> _initialText;
   late EmployeeRole _initialRole;
@@ -176,7 +205,7 @@ class _AddEditEmployeePageState extends State<AddEditEmployeePage> {
       ],
       submitLabel: l10n.actionSave,
       submitIcon: LucideIcons.check,
-      onSubmit: _canSubmit ? _submit : null,
+      onSubmit: _canSubmit ? () => _submit() : null,
       isDirty: _isDirty,
       maxWidth: 720,
       child: Column(
@@ -428,7 +457,7 @@ class _AddEditEmployeePageState extends State<AddEditEmployeePage> {
     );
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     final l10n = AppLocalizations.of(context);
     final pay = _parsedPay;
     if (pay == null) return;
@@ -437,66 +466,76 @@ class _AddEditEmployeePageState extends State<AddEditEmployeePage> {
     final end = _parsedTime(_scheduleEnd);
     if (start == -1 || end == -1) return;
 
-    final result = _isEditing
-        ? EmployeeMutations.update(
-            widget.employeeId!,
-            firstName: _firstName.text,
-            lastName: _lastName.text,
-            cin: _cin.text,
-            phone: _phone.text,
-            email: _email.text,
-            role: _role,
-            contractType: _contract,
-            pay: pay,
-            scheduledStartMinutes: start,
-            scheduledEndMinutes: end,
-            clearSchedule: start == null && end == null,
-          )
-        : EmployeeMutations.create(
-            storeId: widget.storeId,
-            firstName: _firstName.text,
-            lastName: _lastName.text,
-            cin: _cin.text,
-            phone: _phone.text,
-            email: _email.text,
-            role: _role,
-            contractType: _contract,
-            pay: pay,
-            scheduledStartMinutes: start,
-            scheduledEndMinutes: end,
-          );
+    final employees = ref.read(employeeRepositoryProvider);
+    final existingId = widget.employee?.id;
+
+    final Employee? result;
+    if (existingId != null) {
+      result = await employees.update(
+        existingId,
+        firstName: _firstName.text,
+        lastName: _lastName.text,
+        cin: _cin.text,
+        phone: _phone.text,
+        email: _email.text,
+        role: _role,
+        contractType: _contract,
+        pay: pay,
+        scheduledStartMinutes: start,
+        scheduledEndMinutes: end,
+        clearSchedule: start == null && end == null,
+      );
+      // The PIN, when the fields were filled — a nested write, not part of the
+      // update transaction, but a refused PIN there is only a validation miss
+      // and the details have already saved.
+      if (result != null && _pinTouched) {
+        await ref
+            .read(credentialRepositoryProvider)
+            .setPin(result.id, _pin.text);
+      }
+    } else {
+      result = await employees.create(
+        storeId: widget.storeId,
+        firstName: _firstName.text,
+        lastName: _lastName.text,
+        cin: _cin.text,
+        phone: _phone.text,
+        email: _email.text,
+        role: _role,
+        contractType: _contract,
+        pay: pay,
+        scheduledStartMinutes: start,
+        scheduledEndMinutes: end,
+        pin: _pin.text,
+      );
+    }
+
+    if (!mounted) return;
 
     if (result == null) {
       // The only failures that reach here are the two uniqueness guards.
+      final byCin = await employees.employeeByCin(
+        _cin.text.trim(),
+        excludingId: existingId,
+      );
+      final byEmail = await employees.employeeByEmail(
+        _email.text.trim(),
+        excludingId: existingId,
+      );
+      if (!mounted) return;
       setState(() {
-        _cinTaken =
-            MockQueries.employeeByCin(
-              _cin.text.trim(),
-              excludingId: widget.employeeId,
-            ) !=
-            null;
-        _emailTaken =
-            MockQueries.employeeByEmail(
-              _email.text.trim(),
-              excludingId: widget.employeeId,
-            ) !=
-            null;
+        _cinTaken = byCin != null;
+        _emailTaken = byEmail != null;
       });
       return;
-    }
-
-    // Phase 6: persist the PIN. Required on create; on edit only when the
-    // fields were filled (blank keeps the existing code).
-    if (!_isEditing || _pinTouched) {
-      CredentialMutations.setPin(result.id, _pin.text);
     }
 
     AppSnackBar.success(
       context,
       _isEditing ? l10n.employeeUpdated : l10n.employeeCreated,
     );
-    if (_isEditing) {
-      context.pushScreen(Routes.toEmployee(widget.storeId, widget.employeeId!));
+    if (existingId != null) {
+      context.pushScreen(Routes.toEmployee(widget.storeId, existingId));
     } else {
       context.goSection(Routes.toEmployees(widget.storeId));
     }

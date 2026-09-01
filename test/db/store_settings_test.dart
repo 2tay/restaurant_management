@@ -12,7 +12,7 @@ import 'package:stock_inventory/data/database/app_database.dart';
 import 'package:stock_inventory/data/database/meta_keys.dart';
 import 'package:stock_inventory/data/providers.dart';
 import 'package:stock_inventory/data/repositories/repositories.dart';
-import 'package:stock_inventory/mock_data/mock_data.dart'
+import 'package:stock_inventory/data/seed/dataset/dataset.dart'
     show EmployeeIds, StoreIds;
 
 import '../support/db_fixture.dart';

@@ -159,7 +159,7 @@ record(
 # single-object lookup makes it a rewrite of every call site.
 single_barcode_lookup = [
     f'{p}:{n}  {line.strip()}'
-    for p in dart_files(*ROOTS, 'lib/mock_data')
+    for p in dart_files(*ROOTS, 'lib/data')
     for n, line in enumerate(read(p).splitlines(), 1)
     if re.search(r'(firstWhere|singleWhere)\([^)]*barcode', line)
 ]
@@ -169,44 +169,61 @@ record(
     'Barcode lookup that is not collection-shaped',
 )
 
-# --- The mock lists are written in one place only -----------------------------
-# Two rules, one check. Stock levels have a single source of truth — the movement
-# log — so a screen assigning into mockItems would bypass it. And every other
-# list has to go through the mutation layer too, or the reset snapshot and the
-# change signal both stop being reliable.
-MUTATION_LAYER = 'lib/mock_data/mutations/'
+# --- Writes go through a repository -------------------------------------------
+# The rule the mutation layer used to enforce, for the layer that replaced it.
+# A screen that reaches past a repository into drift bypasses every guard those
+# repositories exist to hold: the movement behind a quantity change, the price
+# history behind a price, the transaction around a delivery.
+#
+# Matched by shape rather than by name: `into(`, `update(`, `delete(` and
+# `customStatement(` are how anything is written through drift, and none of them
+# belong outside `lib/data/repositories/`.
+REPOSITORY_LAYER = 'lib/data/repositories/'
 
-stock_writes = [
+# `_db.into(_db.items)`, `_db.update(_db.stores)`, `_db.delete(_db.units)` and
+# the two escape hatches. Matched with the receiver included, because that is
+# how every one of them is actually written.
+drift_write = re.compile(
+    r'\.\s*(?:into|update|delete)\s*\(\s*[\w.]+\s*\)'
+    r'|customStatement\s*\(|\.\s*batch\s*\('
+)
+writes_outside_repositories = [
     f'{p}:{n}  {line.strip()}'
-    for p in dart_files(*ROOTS, 'lib/mock_data')
-    if not p.startswith(MUTATION_LAYER)
+    # Only the data layer. A screen calling `repository.delete(id)` has the same
+    # shape and is exactly what is supposed to happen; check 15 is what stops a
+    # screen reaching a table at all.
+    for p in dart_files('lib/data')
+    if not p.startswith(REPOSITORY_LAYER)
+    and not p.startswith('lib/data/seed/')
+    and not p.startswith('lib/data/database/')
     for n, line in enumerate(read(p).splitlines(), 1)
-    if re.search(r'mockItems\[[^\]]+\]\s*=', line)
+    if drift_write.search(line) and not line.strip().startswith('//')
 ]
 record(
-    'stock writes outside the mutation layer',
-    stock_writes,
-    'Stock quantity changed without a movement',
+    'database writes outside the repository layer',
+    writes_outside_repositories,
+    'A table written without going through a repository',
 )
 
 # --- Cost is written in one place, and read for the right job -----------------
 # `Item.averageCost` is a running total, and a running total is only safe while
-# exactly one thing advances it. The mutation layer advances it; the arithmetic
-# lives in stock_cost.dart. Seed literals in `mock_items.dart` are the starting
+# exactly one thing advances it. The movement repository advances it; the
+# arithmetic lives in stock_cost.dart. Dataset literals are the starting
 # balance, not a write, so this looks for the two shapes that actually move it:
 # an assignment, and a `copyWith` carrying it.
-COST_WRITERS = (MUTATION_LAYER, 'lib/core/utils/stock_cost.dart')
+COST_WRITERS = (REPOSITORY_LAYER, 'lib/core/utils/stock_cost.dart')
 
 cost_writes = [
     f'{p}:{n}  {line.strip()}'
-    for p in dart_files(*ROOTS, 'lib/mock_data')
+    for p in dart_files(*ROOTS, 'lib/data')
     if not p.startswith(COST_WRITERS)
     for n, line in enumerate(read(p).splitlines(), 1)
-    if re.search(r'averageCost\s*=[^=]', line)
+    # `=>` is a declaration, not a write: the schema names the column that way.
+    if re.search(r'averageCost\s*=(?![=>])', line)
     or ('copyWith(' in line and 'averageCost' in line)
 ]
 record(
-    'average cost written outside the mutation layer',
+    'average cost written outside the movement repository',
     cost_writes,
     'Stock cost changed without a movement',
 )
@@ -222,7 +239,7 @@ record(
 # quantity and a purchase price meeting in one expression.
 quantity_times_price = [
     f'{p}:{n}  {line.strip()}'
-    for p in dart_files(*ROOTS, 'lib/mock_data')
+    for p in dart_files(*ROOTS, 'lib/data')
     for n, line in enumerate(read(p).splitlines(), 1)
     if 'pricePerUnit' in line
     and re.search(r'\bquantity\b', line)
@@ -232,25 +249,6 @@ record(
     'stock quantity multiplied by a supplier price',
     quantity_times_price,
     'Stock valued at a purchase price rather than at what it cost',
-)
-
-# `.clear()` and `.addAll()` are how the reset refills the live lists, so they
-# are only legitimate inside the mutation layer as well.
-list_write = re.compile(
-    r'(?<![\w.])(mock[A-Z]\w*)\s*(?:\.\s*(add|addAll|insert|remove|removeWhere|'
-    r'removeAt|clear|sort|replaceRange)\s*\(|\[[^\]]+\]\s*=)'
-)
-direct_writes = [
-    f'{p}:{n}  {line.strip()}'
-    for p in dart_files(*ROOTS, 'lib/mock_data')
-    if not p.startswith(MUTATION_LAYER)
-    for n, line in enumerate(read(p).splitlines(), 1)
-    if list_write.search(line) and not line.strip().startswith('//')
-]
-record(
-    'mock lists written outside the mutation layer',
-    direct_writes,
-    'Mock data edited without going through mutations/',
 )
 
 # --- Quantity and cost are written in one place, in the data layer ------------
@@ -353,6 +351,27 @@ record(
     'Gestion Employée tables written outside their repository',
     employee_table_writes,
     'an employee-module table changed outside its single writer',
+)
+
+# --- Screens talk to repositories, never to drift -----------------------------
+# The provider layer exists so a widget names what it needs rather than holding
+# a database. A feature importing `data/database/` has reached past that — and
+# would be able to write a table from inside a `build`, which is the shape every
+# check above exists to prevent.
+#
+# `data/repositories/` is fine: a form reads `ItemFilter` and `ReceiptDraftLine`
+# from there, and both are argument types rather than access to anything.
+feature_database_imports = [
+    f'{p}:{n}  {line.strip()}'
+    for p in dart_files('lib/features', 'lib/shared')
+    for n, line in enumerate(read(p).splitlines(), 1)
+    if re.search(r"import '[^']*data/database/", line)
+    or re.search(r"import 'package:drift/", line)
+]
+record(
+    'feature code importing the database directly',
+    feature_database_imports,
+    'A screen reaching past its repository into drift',
 )
 
 # --- Product code never imports the dev gallery -------------------------------

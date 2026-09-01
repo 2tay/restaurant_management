@@ -10,7 +10,8 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/utils/order_status.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../../mock_data/mock_data.dart';
+import '../../../../data/providers.dart';
+import '../../../../data/view_models/view_models.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 import '../../documents/receipt_document_button.dart';
@@ -49,23 +50,27 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
     final l10n = AppLocalizations.of(context);
 
     // Receiving, sending and closing all happen from here or from a screen
-    // pushed above it, so this has to redraw when any of them lands.
-    ref.watch(mockDataRevisionProvider);
+    // pushed above it, and the query behind this watches every table they
+    // touch — so the page is right when the user comes back to it.
+    final detail = ref.watch(orderDetailProvider(widget.orderId));
+    final view = detail.value;
 
-    final order = MockQueries.orderById(widget.orderId);
-
-    if (order == null) {
+    if (view == null) {
       return ShellPage(
         title: l10n.ordersTitle,
-        child: ErrorState(
-          message: l10n.errorStateBody,
-          onRetry: () => context.goSection(Routes.toOrders(widget.storeId)),
-        ),
+        child: detail.isLoading
+            ? const SkeletonList(rows: 4, rowHeight: 110)
+            : ErrorState(
+                message: l10n.errorStateBody,
+                onRetry: () =>
+                    context.goSection(Routes.toOrders(widget.storeId)),
+              ),
       );
     }
 
-    final supplierName = MockQueries.supplierNameOf(order.supplierId);
-    final receipts = MockQueries.receiptsForOrder(order.id);
+    final order = view.order;
+    final supplierName = view.supplierName;
+    final receipts = view.receipts;
 
     return ShellPage(
       back: BackDestination(
@@ -103,7 +108,7 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
           ],
 
           if (_tab == _tabLines)
-            _LinesTable(order: order)
+            _LinesTable(lines: view.lines)
           else
             _Receipts(
               storeId: widget.storeId,
@@ -212,7 +217,9 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
     );
     if (!confirmed || !mounted) return;
 
-    OrderMutations.send(order.id);
+    await ref.read(orderRepositoryProvider).send(order.id);
+
+    if (!mounted) return;
     AppSnackBar.success(context, l10n.orderSent(supplierName));
   }
 
@@ -226,7 +233,9 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
     );
     if (!confirmed || !mounted) return;
 
-    OrderMutations.deleteDraft(order.id);
+    await ref.read(orderRepositoryProvider).deleteDraft(order.id);
+
+    if (!mounted) return;
     AppSnackBar.success(context, l10n.orderDeleted);
     context.goSection(Routes.toOrders(widget.storeId));
   }
@@ -242,7 +251,9 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
     );
     if (!confirmed || !mounted) return;
 
-    OrderMutations.cancel(order.id);
+    await ref.read(orderRepositoryProvider).cancel(order.id);
+
+    if (!mounted) return;
     AppSnackBar.success(context, l10n.orderCancelled);
   }
 
@@ -258,7 +269,9 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
     );
     if (!confirmed || !mounted) return;
 
-    OrderMutations.closeShort(order.id);
+    await ref.read(orderRepositoryProvider).closeShort(order.id);
+
+    if (!mounted) return;
     AppSnackBar.success(context, l10n.orderClosed);
   }
 }
@@ -375,9 +388,9 @@ class _LockedNotice extends StatelessWidget {
 }
 
 class _LinesTable extends StatelessWidget {
-  const _LinesTable({required this.order});
+  const _LinesTable({required this.lines});
 
-  final PurchaseOrder order;
+  final List<OrderLineView> lines;
 
   @override
   Widget build(BuildContext context) {
@@ -393,24 +406,22 @@ class _LinesTable extends StatelessWidget {
         DataColumn(label: Text(l10n.orderColumnLineTotal), numeric: true),
         DataColumn(label: Text(l10n.orderTabReceipts)),
       ],
-      rows: [for (final line in order.lines) _row(context, l10n, line)],
+      rows: [for (final line in lines) _row(context, l10n, line)],
     );
   }
 
   DataRow _row(
     BuildContext context,
     AppLocalizations l10n,
-    PurchaseOrderLine line,
+    OrderLineView view,
   ) {
-    final item = MockQueries.itemById(line.itemId);
-    final unit = item == null
-        ? ''
-        : MockQueries.unitAbbreviationOf(item.unitId);
+    final line = view.line;
+    final unit = view.unitAbbreviation;
     final outstanding = lineOutstanding(line);
 
     return DataRow(
       cells: [
-        DataCell(Text(item?.name ?? '—')),
+        DataCell(Text(view.itemName)),
         DataCell(
           NumericCell(Formatters.quantityWithUnit(line.quantityOrdered, unit)),
         ),
@@ -511,13 +522,12 @@ class _Receipts extends StatelessWidget {
   });
 
   final String storeId;
-  final List<GoodsReceipt> receipts;
+  final List<ReceiptRowView> receipts;
   final String emptyMessage;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
 
     if (receipts.isEmpty) {
       return AppCard(
@@ -532,82 +542,98 @@ class _Receipts extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        for (final receipt in receipts)
+        for (final view in receipts)
           Padding(
             padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-            child: AppCard(
-              onTap: () =>
-                  context.pushScreen(Routes.toReceipt(storeId, receipt.id)),
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.lg,
-                vertical: AppSpacing.md,
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: AppColors.inStock.container,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      LucideIcons.packageCheck,
-                      size: AppSizing.iconMd,
-                      color: AppColors.inStock.foreground,
-                    ),
-                  ),
-                  const SizedBox(width: AppSpacing.md),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // The document reference leads rather than the date: a
-                        // three-delivery order shows three rows that otherwise
-                        // differ only by timestamp, and the reference is what
-                        // staff and the supplier actually name them by.
-                        Text(
-                          MockQueries.receiptReferenceOf(receipt),
-                          style: theme.textTheme.titleSmall,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        Text(
-                          '${Formatters.dateTime(receipt.receivedAt)} · '
-                          '${l10n.receiptReceivedBy(receipt.receivedByName)}',
-                          style: theme.textTheme.bodySmall,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: AppSpacing.md),
-                  Text(
-                    l10n.ordersColumnLines(receipt.lines.length),
-                    style: theme.textTheme.bodySmall,
-                  ),
-                  const SizedBox(width: AppSpacing.lg),
-                  Text(
-                    Formatters.price(receiptValue(receipt)),
-                    style: AppTypography.numeric,
-                  ),
-                  const SizedBox(width: AppSpacing.sm),
-                  // Straight from the list: the partial delivery somebody needs
-                  // to send on is usually one of several on the order, and
-                  // making them open each one to find it is how the feature
-                  // ends up unused.
-                  ReceiptDocumentButton(receipt: receipt, compact: true),
-                  const Icon(
-                    LucideIcons.chevronRight,
-                    size: AppSizing.iconSm,
-                    color: AppColors.textDisabled,
-                  ),
-                ],
-              ),
-            ),
+            child: _ReceiptCard(storeId: storeId, view: view),
           ),
       ],
+    );
+  }
+}
+
+/// One delivery against the commande.
+class _ReceiptCard extends StatelessWidget {
+  const _ReceiptCard({required this.storeId, required this.view});
+
+  final String storeId;
+  final ReceiptRowView view;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final receipt = view.receipt;
+
+    return AppCard(
+      onTap: () => context.pushScreen(Routes.toReceipt(storeId, receipt.id)),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.lg,
+        vertical: AppSpacing.md,
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: AppColors.inStock.container,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              LucideIcons.packageCheck,
+              size: AppSizing.iconMd,
+              color: AppColors.inStock.foreground,
+            ),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // The document reference leads rather than the date: a
+                // three-delivery order shows three rows that otherwise
+                // differ only by timestamp, and the reference is what
+                // staff and the supplier actually name them by.
+                Text(
+                  view.reference,
+                  style: theme.textTheme.titleSmall,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  '${Formatters.dateTime(receipt.receivedAt)} · '
+                  '${l10n.receiptReceivedBy(receipt.receivedByName)}',
+                  style: theme.textTheme.bodySmall,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Text(
+            l10n.ordersColumnLines(receipt.lines.length),
+            style: theme.textTheme.bodySmall,
+          ),
+          const SizedBox(width: AppSpacing.lg),
+          Text(
+            Formatters.price(receiptValue(receipt)),
+            style: AppTypography.numeric,
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          // Straight from the list: the partial delivery somebody needs
+          // to send on is usually one of several on the order, and
+          // making them open each one to find it is how the feature
+          // ends up unused.
+          ReceiptDocumentButton(receipt: receipt, compact: true),
+          const Icon(
+            LucideIcons.chevronRight,
+            size: AppSizing.iconSm,
+            color: AppColors.textDisabled,
+          ),
+        ],
+      ),
     );
   }
 }

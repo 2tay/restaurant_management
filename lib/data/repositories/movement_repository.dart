@@ -5,6 +5,7 @@ import '../../models/item.dart';
 import '../../models/stock_movement.dart';
 import '../database/app_database.dart';
 import '../mappers/mappers.dart';
+import '../view_models/item_detail_views.dart';
 import 'account_repository.dart';
 import 'new_id.dart';
 
@@ -58,6 +59,75 @@ class MovementRepository {
   Future<List<StockMovement>> recentActivity(String storeId, {int limit = 8}) =>
       (_forStore(storeId)..limit(limit)).get().then(_toMovements);
 
+
+  // ---------------------------------------------------------------------------
+  // Rows for the screens
+  // ---------------------------------------------------------------------------
+
+  /// The movement log with everything each line names already resolved.
+  ///
+  /// Four lookups per row became three joins for the whole list. That is the
+  /// difference that matters here more than anywhere else in the app: the
+  /// history screen is the one list with no natural ceiling on its length, and
+  /// it is the screen somebody scrolls when they are trying to work out where
+  /// stock went.
+  Stream<List<MovementRowView>> watchMovementRowsForStore(
+    String storeId, {
+    int? limit,
+  }) => _rows(_db.stockMovements.storeId.equals(storeId), limit);
+
+  /// The same, for one article — the recent-activity strip on its detail page.
+  Stream<List<MovementRowView>> watchMovementRowsForItem(
+    String itemId, {
+    int? limit,
+  }) => _rows(_db.stockMovements.itemId.equals(itemId), limit);
+
+  Stream<List<MovementRowView>> _rows(Expression<bool> predicate, int? limit) {
+    final query =
+        _db.select(_db.stockMovements).join([
+            leftOuterJoin(
+              _db.items,
+              _db.items.id.equalsExp(_db.stockMovements.itemId),
+            ),
+            leftOuterJoin(_db.units, _db.units.id.equalsExp(_db.items.unitId)),
+            leftOuterJoin(
+              _db.suppliers,
+              _db.suppliers.id.equalsExp(_db.stockMovements.supplierId),
+            ),
+            leftOuterJoin(
+              _db.purchaseOrders,
+              _db.purchaseOrders.id.equalsExp(_db.stockMovements.orderId),
+            ),
+          ])
+          ..where(predicate)
+          // Newest first, with the id breaking ties: two movements in the same
+          // millisecond are ordinary inside one delivery.
+          ..orderBy([
+            OrderingTerm(
+              expression: _db.stockMovements.occurredAt,
+              mode: OrderingMode.desc,
+            ),
+            OrderingTerm(
+              expression: _db.stockMovements.id,
+              mode: OrderingMode.desc,
+            ),
+          ]);
+    if (limit != null) query.limit(limit);
+
+    return query.watch().map(
+      (rows) => [
+        for (final row in rows)
+          MovementRowView(
+            movement: movementFromRow(row.readTable(_db.stockMovements)),
+            itemName: row.readTableOrNull(_db.items)?.name ?? '—',
+            unitAbbreviation:
+                row.readTableOrNull(_db.units)?.abbreviation ?? '',
+            supplierName: row.readTableOrNull(_db.suppliers)?.name,
+            orderReference: row.readTableOrNull(_db.purchaseOrders)?.reference,
+          ),
+      ],
+    );
+  }
 
   // ---------------------------------------------------------------------------
   // Writes — the only place quantity and average cost move

@@ -10,8 +10,8 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/utils/stock_status.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../../mock_data/mock_data.dart';
-import '../../../../models/models.dart';
+import '../../../../data/providers.dart';
+import '../../../../data/view_models/view_models.dart';
 import '../../../../shared/widgets/widgets.dart';
 
 /// Everything at or below its threshold, worst first.
@@ -33,10 +33,10 @@ class LowStockAlertsPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
 
-    // Ordering and receiving both change what this screen should say.
-    ref.watch(mockDataRevisionProvider);
-
-    final alerts = MockQueries.lowStockItems(storeId);
+    // Ordering and receiving both change what this screen should say, and the
+    // query watches the tables both of them write to.
+    final asyncAlerts = ref.watch(lowStockAlertsProvider(storeId));
+    final alerts = asyncAlerts.value ?? const <LowStockAlertView>[];
 
     return ShellPage(
       tabs: SectionTabs(
@@ -66,18 +66,21 @@ class LowStockAlertsPage extends ConsumerWidget {
               : () => _startOrders(context, alerts),
         ),
       ],
-      child: alerts.isEmpty
-          ? EmptyState(
-              icon: LucideIcons.circleCheck,
-              title: l10n.alertsEmpty,
-              message: l10n.alertsEmptyBody,
-            )
-          : ListView.separated(
-              itemCount: alerts.length,
-              separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
-              itemBuilder: (context, index) =>
-                  _AlertCard(item: alerts[index], storeId: storeId),
-            ),
+      child: AsyncListContent<LowStockAlertView>(
+        value: asyncAlerts,
+        onRetry: () => ref.invalidate(lowStockAlertsProvider(storeId)),
+        empty: EmptyState(
+          icon: LucideIcons.circleCheck,
+          title: l10n.alertsEmpty,
+          message: l10n.alertsEmptyBody,
+        ),
+        builder: (context, alerts) => ListView.separated(
+          itemCount: alerts.length,
+          separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
+          itemBuilder: (context, index) =>
+              _AlertCard(view: alerts[index], storeId: storeId),
+        ),
+      ),
     );
   }
 
@@ -87,14 +90,21 @@ class LowStockAlertsPage extends ConsumerWidget {
   /// Grouping matters because a commande goes to exactly one supplier: offering
   /// a single "order everything" button would produce a document nobody can
   /// send. One tap per supplier is the smallest honest version of the action.
-  Future<void> _startOrders(BuildContext context, List<Item> alerts) async {
-    final grouped = <String, int>{};
-    for (final item in alerts) {
-      final supplierId =
-          MockQueries.defaultPriceForItem(item.id)?.supplierId ??
-          item.defaultSupplierId;
+  Future<void> _startOrders(
+    BuildContext context,
+    List<LowStockAlertView> alerts,
+  ) async {
+    // Counted per supplier, and named from the same rows — the sheet lists who
+    // would fill each group, and the row it came from already knows.
+    final grouped = <String, ({String name, int count})>{};
+    for (final alert in alerts) {
+      final supplierId = alert.defaultSupplierId;
       if (supplierId == null) continue;
-      grouped[supplierId] = (grouped[supplierId] ?? 0) + 1;
+      final existing = grouped[supplierId];
+      grouped[supplierId] = (
+        name: alert.defaultSupplierName ?? existing?.name ?? '—',
+        count: (existing?.count ?? 0) + 1,
+      );
     }
 
     final supplierId = await _SupplierGroupSheet.show(context, grouped);
@@ -113,9 +123,12 @@ class _SupplierGroupSheet extends StatelessWidget {
   const _SupplierGroupSheet({required this.grouped});
 
   /// Supplier id to how many low items they supply.
-  final Map<String, int> grouped;
+  final Map<String, ({String name, int count})> grouped;
 
-  static Future<String?> show(BuildContext context, Map<String, int> grouped) {
+  static Future<String?> show(
+    BuildContext context,
+    Map<String, ({String name, int count})> grouped,
+  ) {
     return showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
@@ -129,7 +142,7 @@ class _SupplierGroupSheet extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final entries = grouped.entries.toList()
-      ..sort((a, b) => b.value.compareTo(a.value));
+      ..sort((a, b) => b.value.count.compareTo(a.value.count));
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(
@@ -173,7 +186,7 @@ class _SupplierGroupSheet extends StatelessWidget {
                       const SizedBox(width: AppSpacing.md),
                       Expanded(
                         child: Text(
-                          MockQueries.supplierNameOf(entry.key),
+                          entry.value.name,
                           style: theme.textTheme.titleSmall,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -181,7 +194,7 @@ class _SupplierGroupSheet extends StatelessWidget {
                       ),
                       const SizedBox(width: AppSpacing.md),
                       Text(
-                        l10n.ordersColumnLines(entry.value),
+                        l10n.ordersColumnLines(entry.value.count),
                         style: theme.textTheme.bodySmall,
                       ),
                       const SizedBox(width: AppSpacing.sm),
@@ -201,9 +214,9 @@ class _SupplierGroupSheet extends StatelessWidget {
 }
 
 class _AlertCard extends StatelessWidget {
-  const _AlertCard({required this.item, required this.storeId});
+  const _AlertCard({required this.view, required this.storeId});
 
-  final Item item;
+  final LowStockAlertView view;
   final String storeId;
 
   @override
@@ -211,12 +224,14 @@ class _AlertCard extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
 
+    final item = view.row.item;
     final status = stockStatusOf(item);
     final colors = StockStatusBadge.colorsFor(status);
-    final unit = MockQueries.unitAbbreviationOf(item.unitId);
+    final unit = view.row.unitAbbreviation;
     final shortfall = item.lowStockThreshold - item.quantity;
-    final defaultPrice = MockQueries.defaultPriceForItem(item.id);
-    final onOrder = MockQueries.onOrderQuantity(storeId, item.id);
+    final supplierId = view.defaultSupplierId;
+    final supplierName = view.defaultSupplierName;
+    final onOrder = view.onOrderQuantity;
 
     final nameBlock = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -229,7 +244,7 @@ class _AlertCard extends StatelessWidget {
         ),
         const SizedBox(height: AppSpacing.xxs),
         Text(
-          MockQueries.categoryNameOf(item.categoryId),
+          view.row.categoryName,
           style: theme.textTheme.bodySmall,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
@@ -265,15 +280,13 @@ class _AlertCard extends StatelessWidget {
       unitAbbreviation: unit,
     );
 
-    final orderButton = defaultPrice == null
+    final orderButton = supplierId == null || supplierName == null
         ? null
         : SecondaryButton(
-            label: l10n.alertsOrderFrom(
-              MockQueries.supplierNameOf(defaultPrice.supplierId),
-            ),
+            label: l10n.alertsOrderFrom(supplierName),
             icon: LucideIcons.truck,
             onPressed: () => context.pushScreen(
-              '${Routes.toNewOrder(storeId)}?supplier=${defaultPrice.supplierId}&prefill=1',
+              '${Routes.toNewOrder(storeId)}?supplier=$supplierId&prefill=1',
             ),
           );
 

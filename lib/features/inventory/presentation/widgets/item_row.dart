@@ -6,7 +6,7 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/utils/stock_status.dart';
-import '../../../../mock_data/mock_data.dart';
+import '../../../../data/view_models/view_models.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 
@@ -17,22 +17,22 @@ import '../../../../shared/widgets/widgets.dart';
 /// problem. Everything else is secondary and sized accordingly.
 class ItemRow extends StatelessWidget {
   const ItemRow({
-    required this.item,
+    required this.view,
     required this.onTap,
     this.selected = false,
     super.key,
   });
 
-  final Item item;
+  final ItemRowView view;
   final VoidCallback onTap;
   final bool selected;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final item = view.item;
     final status = stockStatusOf(item);
     final colors = StockStatusBadge.colorsFor(status);
-    final unit = MockQueries.unitAbbreviationOf(item.unitId);
 
     return AppCard(
       onTap: onTap,
@@ -59,7 +59,7 @@ class ItemRow extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  MockQueries.categoryNameOf(item.categoryId),
+                  view.categoryName,
                   style: theme.textTheme.bodySmall,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -73,7 +73,10 @@ class ItemRow extends StatelessWidget {
             child: Align(
               alignment: Alignment.centerRight,
               child: Text(
-                Formatters.quantityWithUnit(item.quantity, unit),
+                Formatters.quantityWithUnit(
+                  item.quantity,
+                  view.unitAbbreviation,
+                ),
                 style: AppTypography.numeric,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,

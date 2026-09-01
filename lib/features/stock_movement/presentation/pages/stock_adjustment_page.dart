@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../app/routes.dart';
@@ -8,7 +9,9 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../../mock_data/mock_data.dart';
+import '../../../../data/providers.dart';
+import '../../../../data/repositories/repositories.dart';
+import '../../../../data/view_models/view_models.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 
@@ -21,16 +24,17 @@ import '../../../../shared/widgets/widgets.dart';
 /// A large downward correction confirms first, per the brief, and the dialog
 /// states the size of the drop. Someone who typed 8 when they meant 80 should
 /// be stopped by reading the number back to them.
-class StockAdjustmentPage extends StatefulWidget {
+class StockAdjustmentPage extends ConsumerStatefulWidget {
   const StockAdjustmentPage({required this.storeId, super.key});
 
   final String storeId;
 
   @override
-  State<StockAdjustmentPage> createState() => _StockAdjustmentPageState();
+  ConsumerState<StockAdjustmentPage> createState() =>
+      _StockAdjustmentPageState();
 }
 
-class _StockAdjustmentPageState extends State<StockAdjustmentPage> {
+class _StockAdjustmentPageState extends ConsumerState<StockAdjustmentPage> {
   final _noteController = TextEditingController();
 
   String? _itemId;
@@ -46,29 +50,39 @@ class _StockAdjustmentPageState extends State<StockAdjustmentPage> {
     super.dispose();
   }
 
-  Item? get _item => _itemId == null ? null : MockQueries.itemById(_itemId!);
-
-  double get _difference => (_item?.quantity ?? 0) - _counted;
-
-  /// Counted minus system: negative means stock is missing.
-  double get _delta => _counted - (_item?.quantity ?? 0);
-
-  bool get _hasChange => _item != null && _delta.abs() > 0.001;
-
-  bool get _isLargeDrop {
-    final item = _item;
-    if (item == null || item.quantity <= 0 || _delta >= 0) return false;
-    return (_delta.abs() / item.quantity) >= _largeDropThreshold;
+  /// The picked article, resolved from the list the dropdown already shows.
+  ///
+  /// Read fresh on every build rather than cached, so a delivery landing while
+  /// somebody is counting moves the "système" figure under their eyes instead
+  /// of leaving them comparing against a number that has stopped being true.
+  ItemRowView? _selected(List<ItemRowView> rows) {
+    for (final row in rows) {
+      if (row.item.id == _itemId) return row;
+    }
+    return null;
   }
 
-  void _onItemChanged(String? itemId) {
+  double _difference(Item? item) => (item?.quantity ?? 0) - _counted;
+
+  /// Counted minus system: negative means stock is missing.
+  double _delta(Item? item) => _counted - (item?.quantity ?? 0);
+
+  bool _hasChange(Item? item) => item != null && _delta(item).abs() > 0.001;
+
+  bool _isLargeDrop(Item? item) {
+    if (item == null || item.quantity <= 0 || _delta(item) >= 0) return false;
+    return (_delta(item).abs() / item.quantity) >= _largeDropThreshold;
+  }
+
+  void _onItemChanged(String? itemId, List<ItemRowView> rows) {
     setState(() {
       _itemId = itemId;
       // Seed the count with what the system believes, so the user adjusts from
       // there rather than typing a number from scratch.
-      _counted = itemId == null
-          ? 0
-          : MockQueries.itemById(itemId)?.quantity ?? 0;
+      _counted = 0;
+      for (final row in rows) {
+        if (row.item.id == itemId) _counted = row.item.quantity;
+      }
     });
   }
 
@@ -77,23 +91,29 @@ class _StockAdjustmentPageState extends State<StockAdjustmentPage> {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
 
-    final item = _item;
-    final unit = item == null
-        ? ''
-        : MockQueries.unitAbbreviationOf(item.unitId);
+    // Alphabetical, not worst-first: this is a picker.
+    final rows =
+        ref.watch(itemRowsProvider((
+              storeId: widget.storeId,
+              filter: ItemFilter.none,
+            ))).value ??
+        const <ItemRowView>[];
 
-    final items = MockQueries.itemsForStore(widget.storeId)
-        .map(
-          (i) => DropdownOption(
-            value: i.id,
-            label: i.name,
-            secondaryLabel: Formatters.quantityWithUnit(
-              i.quantity,
-              MockQueries.unitAbbreviationOf(i.unitId),
-            ),
+    final row = _selected(rows);
+    final item = row?.item;
+    final unit = row?.unitAbbreviation ?? '';
+
+    final items = [
+      for (final row in rows)
+        DropdownOption(
+          value: row.item.id,
+          label: row.item.name,
+          secondaryLabel: Formatters.quantityWithUnit(
+            row.item.quantity,
+            row.unitAbbreviation,
           ),
-        )
-        .toList();
+        ),
+    ];
 
     return FormScaffold(
       title: l10n.adjustmentTitle,
@@ -108,8 +128,8 @@ class _StockAdjustmentPageState extends State<StockAdjustmentPage> {
       ],
       submitLabel: l10n.adjustmentSubmit,
       submitIcon: LucideIcons.clipboardCheck,
-      onSubmit: _hasChange ? _submit : null,
-      isDirty: _hasChange,
+      onSubmit: _hasChange(item) ? () => _submit(row) : null,
+      isDirty: _hasChange(item),
       maxWidth: 720,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -119,7 +139,7 @@ class _StockAdjustmentPageState extends State<StockAdjustmentPage> {
               label: l10n.stockInItem,
               value: _itemId,
               options: items,
-              onChanged: _onItemChanged,
+              onChanged: (value) => _onItemChanged(value, rows),
             ),
           ),
           const SizedBox(height: AppSpacing.lg),
@@ -157,7 +177,7 @@ class _StockAdjustmentPageState extends State<StockAdjustmentPage> {
                     onChanged: (value) => setState(() => _counted = value),
                   ),
                   const SizedBox(height: AppSpacing.xl),
-                  _DifferenceRow(delta: _delta, unit: unit),
+                  _DifferenceRow(delta: _delta(item), unit: unit),
                 ],
               ),
             ),
@@ -178,20 +198,26 @@ class _StockAdjustmentPageState extends State<StockAdjustmentPage> {
     );
   }
 
-  Future<void> _submit() async {
+  Future<void> _submit(ItemRowView? row) async {
     final l10n = AppLocalizations.of(context);
-    final item = _item;
-    if (item == null) return;
+    if (row == null) return;
 
-    if (_isLargeDrop) {
-      final share = _delta.abs() / item.quantity;
+    // Re-read rather than trusting the row on screen. A correction says what
+    // the system believed at the moment it was made, and between the last
+    // rebuild and this tap a delivery may have changed that — recording a stale
+    // "système" figure would put a wrong number into the audit trail for ever.
+    final item = await ref.read(itemRepositoryProvider).item(row.item.id);
+    if (!mounted || item == null) return;
+
+    if (_isLargeDrop(item)) {
+      final share = _delta(item).abs() / item.quantity;
       final confirmed = await ConfirmDialog.show(
         context,
         title: l10n.adjustmentLargeConfirmTitle,
         message: l10n.adjustmentLargeConfirmBody(
           Formatters.quantityWithUnit(
-            _difference,
-            MockQueries.unitAbbreviationOf(item.unitId),
+            _difference(item),
+            row.unitAbbreviation,
           ),
           item.name,
           Formatters.percent(share),
@@ -201,20 +227,21 @@ class _StockAdjustmentPageState extends State<StockAdjustmentPage> {
       if (!confirmed || !mounted) return;
     }
 
-    if (!mounted) return;
-
     // Both figures are recorded, not just the difference: "we thought 40, we
     // counted 31" is the useful record and "−9" on its own is not.
-    MovementMutations.recordAdjustment(
-      storeId: widget.storeId,
-      itemId: item.id,
-      systemQuantity: item.quantity,
-      countedQuantity: _counted,
-      note: _noteController.text.trim().isEmpty
-          ? null
-          : _noteController.text.trim(),
-    );
+    await ref
+        .read(movementRepositoryProvider)
+        .recordAdjustment(
+          storeId: widget.storeId,
+          itemId: item.id,
+          systemQuantity: item.quantity,
+          countedQuantity: _counted,
+          note: _noteController.text.trim().isEmpty
+              ? null
+              : _noteController.text.trim(),
+        );
 
+    if (!mounted) return;
     AppSnackBar.success(context, l10n.adjustmentRecorded);
     context.goSection(Routes.toMovements(widget.storeId));
   }

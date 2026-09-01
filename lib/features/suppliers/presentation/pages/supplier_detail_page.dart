@@ -10,7 +10,8 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/utils/order_status.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../../mock_data/mock_data.dart';
+import '../../../../data/providers.dart';
+import '../../../../data/view_models/view_models.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 import '../../../orders/presentation/widgets/order_row.dart';
@@ -51,28 +52,41 @@ class _SupplierDetailPageState extends ConsumerState<SupplierDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    // Prices, linked items and the order history all move under this screen.
-    ref.watch(mockDataRevisionProvider);
-
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final supplier = MockQueries.supplierById(supplierId);
+
+    // Prices, linked articles and the order history all move under this screen,
+    // and all three queries watch the tables that move them.
+    final supplier = ref.watch(supplierProvider(supplierId)).value;
+    final products =
+        ref.watch(supplierProductsProvider(supplierId)).value ??
+        const <SupplierProductView>[];
+    final orders =
+        ref.watch(ordersForSupplierProvider(supplierId)).value ??
+        const <OrderRowView>[];
+    final staleDays =
+        ref.watch(stalePartialOrderDaysProvider(storeId)).value ??
+        OrderRules.defaultStalePartialDays;
 
     if (supplier == null) {
-      return ShellPage(
-        title: l10n.suppliersTitle,
-        child: ErrorState(
-          onRetry: () => context.goSection(Routes.toSuppliers(storeId)),
-        ),
-      );
+      final loading = ref.watch(supplierProvider(supplierId)).isLoading;
+      final placeholder = loading
+          ? const SkeletonList(rows: 3, rowHeight: 120)
+          : ErrorState(
+              onRetry: () => context.goSection(Routes.toSuppliers(storeId)),
+            );
+      return embedded
+          ? placeholder
+          : ShellPage(title: l10n.suppliersTitle, child: placeholder);
     }
 
-    final prices = MockQueries.pricesForSupplier(supplierId);
-    final orders = MockQueries.ordersForSupplier(supplierId);
-
     final body = _tab == _tabOrders
-        ? _OrderHistory(storeId: storeId, orders: orders)
-        : _body(context, l10n, theme, supplier, prices);
+        ? _OrderHistory(
+            storeId: storeId,
+            orders: orders,
+            stalePartialDays: staleDays,
+          )
+        : _body(context, l10n, theme, supplier, products);
 
     final tabs = SectionTabs(
       currentPath: _tab,
@@ -134,7 +148,7 @@ class _SupplierDetailPageState extends ConsumerState<SupplierDetailPage> {
     AppLocalizations l10n,
     ThemeData theme,
     Supplier supplier,
-    List<SupplierPrice> prices,
+    List<SupplierProductView> products,
   ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -182,9 +196,9 @@ class _SupplierDetailPageState extends ConsumerState<SupplierDetailPage> {
 
         SectionHeader(
           title: l10n.supplierProducts,
-          count: prices.isEmpty ? null : prices.length,
+          count: products.isEmpty ? null : products.length,
         ),
-        if (prices.isEmpty)
+        if (products.isEmpty)
           AppCard(
             child: Padding(
               padding: const EdgeInsets.all(AppSpacing.lg),
@@ -209,8 +223,8 @@ class _SupplierDetailPageState extends ConsumerState<SupplierDetailPage> {
               DataColumn(label: Text(l10n.supplierPricingColumnCompare)),
             ],
             rows: [
-              for (final price in prices)
-                _productRow(context, l10n, price.itemId, price),
+              for (final product in products)
+                _productRow(context, l10n, product),
             ],
           ),
         const SizedBox(height: AppSpacing.xl),
@@ -222,7 +236,7 @@ class _SupplierDetailPageState extends ConsumerState<SupplierDetailPage> {
             icon: LucideIcons.trash2,
             filled: false,
             onPressed: () =>
-                _confirmDelete(context, supplier, prices.length),
+                _confirmDelete(context, supplier, products.length),
           ),
         ),
       ],
@@ -232,24 +246,18 @@ class _SupplierDetailPageState extends ConsumerState<SupplierDetailPage> {
   DataRow _productRow(
     BuildContext context,
     AppLocalizations l10n,
-    String itemId,
-    SupplierPrice price,
+    SupplierProductView product,
   ) {
-    final item = MockQueries.itemById(itemId);
-    final unit = item == null
-        ? ''
-        : MockQueries.unitAbbreviationOf(item.unitId);
-    final cheapest = MockQueries.cheapestPriceForItem(itemId);
-    final isCheapest = cheapest?.supplierId == supplierId;
-    final gap = cheapest == null
-        ? 0.0
-        : price.pricePerUnit - cheapest.pricePerUnit;
+    final price = product.price;
+    final unit = product.unitAbbreviation;
+    final isCheapest = product.isCheapest;
+    final gap = price.pricePerUnit - product.cheapestPricePerUnit;
 
     return DataRow(
       onSelectChanged: (_) =>
-          context.pushScreen(Routes.toItem(storeId, itemId)),
+          context.pushScreen(Routes.toItem(storeId, price.itemId)),
       cells: [
-        DataCell(Text(item?.name ?? '—')),
+        DataCell(Text(product.itemName)),
         DataCell(
           NumericCell('${Formatters.price(price.pricePerUnit)} / $unit'),
         ),
@@ -281,10 +289,14 @@ class _SupplierDetailPageState extends ConsumerState<SupplierDetailPage> {
 
     // A supplier holding an open commande cannot go: the document is in their
     // inbox, and anything already delivered against it produced stock
-    // movements that would be orphaned.
-    final openOrders = MockQueries.ordersForSupplier(supplier.id)
-        .where(orderIsOpen)
-        .length;
+    // movements that would be orphaned. The repository refuses it as well —
+    // this is the sentence that explains why, before anybody is asked.
+    final all = await ref
+        .read(orderRepositoryProvider)
+        .ordersForSupplier(supplier.id);
+    if (!context.mounted) return;
+
+    final openOrders = all.where(orderIsOpen).length;
     if (openOrders > 0) {
       await ConfirmDialog.blocked(
         context,
@@ -303,7 +315,9 @@ class _SupplierDetailPageState extends ConsumerState<SupplierDetailPage> {
     );
     if (!confirmed || !context.mounted) return;
 
-    SupplierMutations.delete(supplier.id);
+    await ref.read(supplierRepositoryProvider).delete(supplier.id);
+
+    if (!context.mounted) return;
     AppSnackBar.success(context, l10n.supplierDeleted);
     context.goSection(Routes.toSuppliers(storeId));
   }
@@ -315,10 +329,15 @@ class _SupplierDetailPageState extends ConsumerState<SupplierDetailPage> {
 /// that — but "how do they actually behave": how often we order, how much we
 /// spend, and how many orders had to be closed short.
 class _OrderHistory extends StatelessWidget {
-  const _OrderHistory({required this.storeId, required this.orders});
+  const _OrderHistory({
+    required this.storeId,
+    required this.orders,
+    required this.stalePartialDays,
+  });
 
   final String storeId;
-  final List<PurchaseOrder> orders;
+  final List<OrderRowView> orders;
+  final int stalePartialDays;
 
   @override
   Widget build(BuildContext context) {
@@ -349,13 +368,14 @@ class _OrderHistory extends StatelessWidget {
             onPressed: () => context.pushScreen(Routes.toNewOrder(storeId)),
           ),
         ),
-        for (final order in orders)
+        for (final view in orders)
           Padding(
             padding: const EdgeInsets.only(bottom: AppSpacing.sm),
             child: OrderRow(
-              order: order,
+              view: view,
+              stalePartialDays: stalePartialDays,
               onTap: () =>
-                  context.pushScreen(Routes.toOrder(storeId, order.id)),
+                  context.pushScreen(Routes.toOrder(storeId, view.order.id)),
             ),
           ),
       ],

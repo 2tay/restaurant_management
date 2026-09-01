@@ -9,8 +9,8 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/attendance_status.dart';
 import '../../../../core/utils/employee_status.dart';
 import '../../../../core/utils/formatters.dart';
+import '../../../../data/providers.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../../mock_data/mock_data.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 
@@ -31,23 +31,59 @@ class EmployeeDetailPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    ref.watch(mockDataRevisionProvider);
-
     final l10n = AppLocalizations.of(context);
-    final employee = MockQueries.employeeById(employeeId);
+    final data = asyncAll3(
+      ref.watch(employeeProvider(employeeId)),
+      ref.watch(attendanceForEmployeeProvider(employeeId)),
+      ref.watch(storeSettingsProvider(storeId)),
+      (employee, attendances, settings) =>
+          (employee: employee, attendances: attendances, settings: settings),
+    );
 
-    if (employee == null) {
-      return ShellPage(
-        title: l10n.employeesTitle,
-        child: ErrorState(
-          onRetry: () => context.goSection(Routes.toEmployees(storeId)),
-        ),
-      );
-    }
+    return AsyncContent<
+      ({
+        Employee? employee,
+        List<Attendance> attendances,
+        StoreSettings settings,
+      })
+    >(
+      value: data,
+      onRetry: () {
+        ref.invalidate(employeeProvider(employeeId));
+        ref.invalidate(attendanceForEmployeeProvider(employeeId));
+        ref.invalidate(storeSettingsProvider(storeId));
+      },
+      builder: (context, data) {
+        final employee = data.employee;
+        if (employee == null) {
+          return ShellPage(
+            title: l10n.employeesTitle,
+            child: ErrorState(
+              onRetry: () => context.goSection(Routes.toEmployees(storeId)),
+            ),
+          );
+        }
+        return _detail(
+          context,
+          ref,
+          l10n,
+          employee,
+          data.attendances,
+          data.settings,
+        );
+      },
+    );
+  }
 
+  Widget _detail(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations l10n,
+    Employee employee,
+    List<Attendance> attendances,
+    StoreSettings settings,
+  ) {
     final archived = !isEmployeeActive(employee);
-    final attendances = MockQueries.attendancesForEmployee(employeeId);
-    final settings = MockQueries.storeSettings(storeId);
     final schedule = resolvedSchedule(
       employee,
       storeOpenMinutes: settings.openMinutes,
@@ -76,14 +112,14 @@ class EmployeeDetailPage extends ConsumerWidget {
           SecondaryButton(
             label: l10n.employeeRestore,
             icon: LucideIcons.userCheck,
-            onPressed: () => _restore(context, employee),
+            onPressed: () => _restore(context, ref, employee),
           )
         else
           DestructiveButton(
             label: l10n.employeeArchiveConfirm,
             icon: LucideIcons.userMinus,
             filled: false,
-            onPressed: () => _confirmArchive(context, employee),
+            onPressed: () => _confirmArchive(context, ref, employee),
           ),
       ],
       child: Column(
@@ -198,7 +234,11 @@ class EmployeeDetailPage extends ConsumerWidget {
     return '$from – $to';
   }
 
-  Future<void> _confirmArchive(BuildContext context, Employee employee) async {
+  Future<void> _confirmArchive(
+    BuildContext context,
+    WidgetRef ref,
+    Employee employee,
+  ) async {
     final l10n = AppLocalizations.of(context);
 
     final confirmed = await ConfirmDialog.show(
@@ -211,14 +251,20 @@ class EmployeeDetailPage extends ConsumerWidget {
     );
     if (!confirmed || !context.mounted) return;
 
-    EmployeeMutations.archive(employee.id);
+    await ref.read(employeeRepositoryProvider).archive(employee.id);
+    if (!context.mounted) return;
     AppSnackBar.success(context, l10n.employeeArchived);
     context.goSection(Routes.toEmployees(storeId));
   }
 
-  void _restore(BuildContext context, Employee employee) {
+  Future<void> _restore(
+    BuildContext context,
+    WidgetRef ref,
+    Employee employee,
+  ) async {
     final l10n = AppLocalizations.of(context);
-    EmployeeMutations.restore(employee.id);
+    await ref.read(employeeRepositoryProvider).restore(employee.id);
+    if (!context.mounted) return;
     AppSnackBar.success(context, l10n.employeeRestored);
   }
 }

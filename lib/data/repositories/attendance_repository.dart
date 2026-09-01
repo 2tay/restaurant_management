@@ -71,6 +71,24 @@ class AttendanceRepository {
         return (await _assemble([row])).first;
       });
 
+  /// Every today's-row for a store, keyed by employee id — the pointage board
+  /// reads this once and joins it against the active roster, rather than
+  /// opening a `watchToday` per card (8 cards × a stream each is the shape to
+  /// avoid). An employee with no entry today is simply absent from the map.
+  Stream<Map<String, Attendance>> watchTodayForStore(
+    String storeId, {
+    DateTime? now,
+  }) {
+    final day = _dayOf(now ?? _clock());
+    return (_db.select(_db.attendances)
+          ..where((a) => a.storeId.equals(storeId) & a.date.equals(day)))
+        .watch()
+        .asyncMap((rows) async {
+          final assembled = await _assemble(rows);
+          return {for (final a in assembled) a.employeeId: a};
+        });
+  }
+
   /// One employee's attendance, **most recent day first** — `date` descending,
   /// then `clockInAt` descending so several rows on one day keep a stable
   /// order.

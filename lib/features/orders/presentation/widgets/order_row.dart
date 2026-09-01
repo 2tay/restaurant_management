@@ -6,9 +6,8 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/utils/order_status.dart';
+import '../../../../data/view_models/view_models.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../../mock_data/mock_data.dart';
-import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 import 'order_status_badge.dart';
 
@@ -19,13 +18,22 @@ import 'order_status_badge.dart';
 /// when they have the paperwork in hand.
 class OrderRow extends StatelessWidget {
   const OrderRow({
-    required this.order,
+    required this.view,
+    required this.stalePartialDays,
     this.onTap,
     this.selected = false,
     super.key,
   });
 
-  final PurchaseOrder order;
+  final OrderRowView view;
+
+  /// The establishment's threshold for flagging a partial commande as stale.
+  ///
+  /// Passed in rather than read here. It is a column on the establishment now,
+  /// so reading it inside the row would be a query per row on the busiest list
+  /// in the app — and every row on one screen shares the same answer.
+  final int stalePartialDays;
+
   final VoidCallback? onTap;
   final bool selected;
 
@@ -33,11 +41,9 @@ class OrderRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    final order = view.order;
     final colors = OrderStatusBadge.colorsFor(order.status);
-    final stale = orderIsStale(
-      order,
-      MockQueries.storeSettings(order.storeId).stalePartialOrderDays,
-    );
+    final stale = orderIsStale(order, stalePartialDays);
 
     return AppCard(
       onTap: onTap,
@@ -55,7 +61,7 @@ class OrderRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  MockQueries.supplierNameOf(order.supplierId),
+                  view.supplierName,
                   style: theme.textTheme.titleSmall,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,

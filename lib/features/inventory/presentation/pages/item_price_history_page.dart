@@ -10,7 +10,8 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../../mock_data/mock_data.dart';
+import '../../../../data/providers.dart';
+import '../../../../data/view_models/view_models.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 
@@ -33,25 +34,79 @@ class ItemPriceHistoryPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Receiving a delivery at a different price appends to this history.
-    ref.watch(mockDataRevisionProvider);
-
     final l10n = AppLocalizations.of(context);
-    final item = MockQueries.itemById(itemId);
-    final supplier = MockQueries.supplierById(supplierId);
-    final current = MockQueries.priceFor(itemId, supplierId);
 
-    if (item == null || supplier == null || current == null) {
-      return ShellPage(
+    // Receiving a delivery at a different price appends to this history, and
+    // both queries below watch the tables it touches — so the chart grows a row
+    // while somebody is looking at it.
+    final data = asyncAll3(
+      ref.watch(itemRowProvider(itemId)),
+      ref.watch(itemPricingProvider(itemId)),
+      ref.watch(
+        priceHistoryProvider((itemId: itemId, supplierId: supplierId)),
+      ),
+      (row, pricing, entries) => (
+        row: row,
+        pricing: pricing,
+        entries: entries,
+      ),
+    );
+
+    return AsyncContent<
+      ({
+        ItemRowView? row,
+        ItemPricing pricing,
+        List<PriceHistoryEntry> entries,
+      })
+    >(
+      value: data,
+      skeleton: ShellPage(
         title: l10n.priceHistoryTitle,
-        child: ErrorState(
-          onRetry: () => context.goSection(Routes.toInventory(storeId)),
-        ),
-      );
-    }
+        child: const SkeletonList(rows: 4, rowHeight: 90),
+      ),
+      onRetry: () {
+        ref.invalidate(itemRowProvider(itemId));
+        ref.invalidate(itemPricingProvider(itemId));
+        ref.invalidate(
+          priceHistoryProvider((itemId: itemId, supplierId: supplierId)),
+        );
+      },
+      builder: (context, data) {
+        final row = data.row;
 
-    final unit = MockQueries.unitAbbreviationOf(item.unitId);
-    final entries = MockQueries.priceHistoryFor(itemId, supplierId);
+        // The offer this page is about. Null when the supplier has been
+        // unlinked since — the history survives the link, but a page titled
+        // "prices from this supplier" has nothing left to head itself with.
+        SupplierPriceView? entry;
+        for (final candidate in data.pricing.prices) {
+          if (candidate.price.supplierId == supplierId) entry = candidate;
+        }
+
+        if (row == null || entry == null) {
+          return ShellPage(
+            title: l10n.priceHistoryTitle,
+            child: ErrorState(
+              onRetry: () => context.goSection(Routes.toInventory(storeId)),
+            ),
+          );
+        }
+
+        return _body(context, l10n, row, entry, data.entries);
+      },
+    );
+  }
+
+  Widget _body(
+    BuildContext context,
+    AppLocalizations l10n,
+    ItemRowView row,
+    SupplierPriceView entry,
+    List<PriceHistoryEntry> entries,
+  ) {
+    final item = row.item;
+    final unit = row.unitAbbreviation;
+    final current = entry.price;
+    final supplierName = entry.supplierName;
 
     // Oldest recorded price, for the total-change figure. Falls back to the
     // current price when nothing has ever changed.
@@ -71,7 +126,7 @@ class ItemPriceHistoryPage extends ConsumerWidget {
         Crumb(l10n.priceHistoryTitle),
       ],
       title: l10n.priceHistoryTitle,
-      subtitle: l10n.priceHistoryFor(item.name, supplier.name),
+      subtitle: l10n.priceHistoryFor(item.name, supplierName),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [

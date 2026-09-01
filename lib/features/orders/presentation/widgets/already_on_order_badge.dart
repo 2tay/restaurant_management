@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/formatters.dart';
+import '../../../../data/providers.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../../mock_data/mock_data.dart';
 
 /// "This is already on its way."
 ///
@@ -16,8 +17,15 @@ import '../../../../mock_data/mock_data.dart';
 /// orders 20 kg again.
 ///
 /// Renders nothing when there is nothing on order, so call sites can drop it in
-/// without guarding first.
-class AlreadyOnOrderBadge extends StatelessWidget {
+/// without guarding first — and nothing while the answer is still out, which is
+/// the same shape and therefore costs no layout when it arrives.
+///
+/// This one **does** query per instance, which the other leaf widgets
+/// deliberately do not. It is the exception worth making: it appears on a
+/// handful of rows rather than on every row of a long list, and every instance
+/// asking about the same article shares one live subscription rather than
+/// opening its own.
+class AlreadyOnOrderBadge extends ConsumerWidget {
   const AlreadyOnOrderBadge({
     required this.storeId,
     required this.itemId,
@@ -30,13 +38,20 @@ class AlreadyOnOrderBadge extends StatelessWidget {
   final String unitAbbreviation;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    final quantity = MockQueries.onOrderQuantity(storeId, itemId);
-    if (quantity <= 0) return const SizedBox.shrink();
+    final onOrder = ref
+        .watch(itemOnOrderProvider((storeId: storeId, itemId: itemId)))
+        .value;
+    if (onOrder == null || onOrder.quantity <= 0) {
+      return const SizedBox.shrink();
+    }
 
-    final orders = MockQueries.openOrdersForItem(storeId, itemId);
-    final formatted = Formatters.quantityWithUnit(quantity, unitAbbreviation);
+    final orders = onOrder.orders;
+    final formatted = Formatters.quantityWithUnit(
+      onOrder.quantity,
+      unitAbbreviation,
+    );
 
     return Tooltip(
       message: l10n.orderAlreadyOnOrderDetail(formatted, orders.length),

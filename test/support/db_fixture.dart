@@ -14,7 +14,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:stock_inventory/data/database/app_database.dart';
 import 'package:stock_inventory/data/database/meta_keys.dart';
 import 'package:stock_inventory/data/seed/demo_seed.dart';
-import 'package:stock_inventory/mock_data/mock_employees.dart' show EmployeeIds;
+import 'package:stock_inventory/data/seed/dataset/employees.dart' show EmployeeIds;
 
 import 'sqlite.dart';
 

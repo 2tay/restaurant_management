@@ -9,8 +9,9 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../../mock_data/mock_data.dart';
-import '../../../../models/models.dart';
+import '../../../../data/providers.dart';
+import '../../../../data/repositories/repositories.dart';
+import '../../../../data/view_models/view_models.dart';
 import '../../../../shared/widgets/widgets.dart';
 import '../widgets/export_dialog.dart';
 
@@ -37,52 +38,52 @@ class _PriceComparisonReportPageState
     extends ConsumerState<PriceComparisonReportPage> {
   String? _itemId;
 
-  @override
-  void initState() {
-    super.initState();
-    _itemId = _mostInterestingItem();
-  }
-
-  /// The item with the largest gap between its default and cheapest supplier,
-  /// falling back to any multi-supplier item, then to the first item.
-  String? _mostInterestingItem() {
-    final items = MockQueries.itemsForStore(widget.storeId);
-    if (items.isEmpty) return null;
-
-    Item? best;
-    var bestGap = 0.0;
-
-    for (final item in items) {
-      final gap = MockQueries.overpayPerUnit(item.id);
-      if (gap > bestGap) {
-        bestGap = gap;
-        best = item;
-      }
-    }
-    if (best != null) return best.id;
-
-    for (final item in items) {
-      if (MockQueries.pricesForItem(item.id).length > 1) return item.id;
-    }
-    return items.first.id;
-  }
+  /// Whether the screen has already chosen what to open on.
+  ///
+  /// The choice is a query — the article with the biggest gap between what the
+  /// establishment pays and what it could — and `initState` cannot wait for
+  /// one. Phase 1 answered it by scanning every article in the establishment
+  /// from `initState`, which is a report query that had leaked into a widget.
+  bool _opened = false;
 
   @override
   Widget build(BuildContext context) {
-    // Prices captured at receiving feed straight into this comparison.
-    ref.watch(mockDataRevisionProvider);
-
     final l10n = AppLocalizations.of(context);
 
-    final items = MockQueries.itemsForStore(widget.storeId);
-    final item = _itemId == null ? null : MockQueries.itemById(_itemId!);
-    final prices = item == null
-        ? <SupplierPrice>[]
-        : MockQueries.pricesForItem(item.id);
-    final cheapest = prices.isEmpty ? null : prices.first;
-    final unit = item == null
-        ? ''
-        : MockQueries.unitAbbreviationOf(item.unitId);
+    // Prices captured at receiving feed straight into this comparison, and
+    // both queries watch the tables receiving writes to.
+    final rows =
+        ref.watch(itemRowsProvider((
+              storeId: widget.storeId,
+              filter: ItemFilter.none,
+            ))).value ??
+        const <ItemRowView>[];
+
+    if (!_opened && rows.isNotEmpty) {
+      final suggested = ref.watch(
+        largestOverpayItemProvider(widget.storeId),
+      );
+      if (suggested.hasValue) {
+        _opened = true;
+        // Falls back to the first article when nothing is overpaid, so the
+        // screen opens on something rather than on an empty picker.
+        _itemId = suggested.value ?? rows.first.item.id;
+      }
+    }
+
+    ItemRowView? row;
+    for (final candidate in rows) {
+      if (candidate.item.id == _itemId) row = candidate;
+    }
+
+    final item = row?.item;
+    final unit = row?.unitAbbreviation ?? '';
+    final pricing = item == null
+        ? null
+        : ref.watch(itemPricingProvider(item.id)).value;
+    final prices = pricing?.prices ?? const <SupplierPriceView>[];
+    final cheapest = pricing?.cheapest;
+    final overpay = pricing?.overpayPerUnit ?? 0;
 
     return ShellPage(
       back: BackDestination(
@@ -112,13 +113,11 @@ class _PriceComparisonReportPageState
                 label: l10n.comparisonPickItem,
                 value: _itemId,
                 options: [
-                  for (final i in items)
+                  for (final candidate in rows)
                     DropdownOption(
-                      value: i.id,
-                      label: i.name,
-                      secondaryLabel: l10n.suppliersProductCount(
-                        MockQueries.pricesForItem(i.id).length,
-                      ),
+                      value: candidate.item.id,
+                      label: candidate.item.name,
+                      secondaryLabel: candidate.categoryName,
                     ),
                 ],
                 onChanged: (value) => setState(() => _itemId = value),
@@ -149,13 +148,13 @@ class _PriceComparisonReportPageState
               ),
             )
           else ...[
-            if (MockQueries.overpayPerUnit(item.id) > 0)
+            if (overpay > 0 && cheapest != null)
               Padding(
                 padding: const EdgeInsets.only(bottom: AppSpacing.lg),
                 child: _SavingCallout(
-                  item: item,
+                  gap: overpay,
                   unit: unit,
-                  cheapest: cheapest!,
+                  cheapestSupplier: cheapest.supplierName,
                 ),
               ),
             DataTableWrapper(
@@ -173,8 +172,8 @@ class _PriceComparisonReportPageState
                 DataColumn(label: Text(l10n.comparisonColumnUpdated)),
               ],
               rows: [
-                for (final price in prices)
-                  _row(context, l10n, price, cheapest!, unit, item.id),
+                for (final view in prices)
+                  _row(context, l10n, view, cheapest!, unit, item.id),
               ],
             ),
           ],
@@ -186,13 +185,14 @@ class _PriceComparisonReportPageState
   DataRow _row(
     BuildContext context,
     AppLocalizations l10n,
-    SupplierPrice price,
-    SupplierPrice cheapest,
+    SupplierPriceView view,
+    SupplierPriceView cheapest,
     String unit,
     String itemId,
   ) {
-    final isCheapest = price.id == cheapest.id;
-    final gap = price.pricePerUnit - cheapest.pricePerUnit;
+    final price = view.price;
+    final isCheapest = price.id == cheapest.price.id;
+    final gap = price.pricePerUnit - cheapest.price.pricePerUnit;
 
     return DataRow(
       // Tints the row the store is currently buying from, so the comparison is
@@ -213,7 +213,7 @@ class _PriceComparisonReportPageState
             children: [
               Flexible(
                 child: Text(
-                  MockQueries.supplierNameOf(price.supplierId),
+                  view.supplierName,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -263,19 +263,18 @@ class _PriceComparisonReportPageState
 /// States the overpayment in euros per unit, and names the alternative.
 class _SavingCallout extends StatelessWidget {
   const _SavingCallout({
-    required this.item,
+    required this.gap,
     required this.unit,
-    required this.cheapest,
+    required this.cheapestSupplier,
   });
 
-  final Item item;
+  final double gap;
   final String unit;
-  final SupplierPrice cheapest;
+  final String cheapestSupplier;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final gap = MockQueries.overpayPerUnit(item.id);
 
     return Container(
       padding: const EdgeInsets.all(AppSpacing.lg),
@@ -296,7 +295,7 @@ class _SavingCallout extends StatelessWidget {
               l10n.itemOverpayWarning(
                 Formatters.price(gap),
                 unit,
-                MockQueries.supplierNameOf(cheapest.supplierId),
+                cheapestSupplier,
               ),
               style: Theme.of(context).textTheme.titleSmall?.copyWith(
                 color: AppColors.lowStock.foreground,

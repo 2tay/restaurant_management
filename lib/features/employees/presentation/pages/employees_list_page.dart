@@ -7,8 +7,8 @@ import '../../../../app/routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/employee_status.dart';
+import '../../../../data/providers.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../../mock_data/mock_data.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 
@@ -33,11 +33,8 @@ class _EmployeesListPageState extends ConsumerState<EmployeesListPage> {
 
   @override
   Widget build(BuildContext context) {
-    ref.watch(mockDataRevisionProvider);
-
     final l10n = AppLocalizations.of(context);
-    final all = MockQueries.employeesForStore(widget.storeId);
-    final filtered = _filtered(all);
+    final employees = ref.watch(employeesProvider(widget.storeId));
 
     return ShellPage(
       title: l10n.employeesTitle,
@@ -50,12 +47,22 @@ class _EmployeesListPageState extends ConsumerState<EmployeesListPage> {
               context.pushScreen(Routes.toAddEmployee(widget.storeId)),
         ),
       ],
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _KpiRow(employees: all),
-          const SizedBox(height: AppSpacing.lg),
-          Row(
+      child: AsyncContent<List<Employee>>(
+        value: employees,
+        onRetry: () => ref.invalidate(employeesProvider(widget.storeId)),
+        builder: (context, all) => _content(context, l10n, all),
+      ),
+    );
+  }
+
+  Widget _content(BuildContext context, AppLocalizations l10n, List<Employee> all) {
+    final filtered = _filtered(all);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _KpiRow(employees: all),
+        const SizedBox(height: AppSpacing.lg),
+        Row(
             children: [
               Expanded(
                 child: SearchField(
@@ -102,8 +109,7 @@ class _EmployeesListPageState extends ConsumerState<EmployeesListPage> {
                   storeId: widget.storeId,
                 ),
               ),
-        ],
-      ),
+      ],
     );
   }
 

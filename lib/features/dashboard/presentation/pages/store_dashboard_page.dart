@@ -10,7 +10,11 @@ import '../../../../core/utils/formatters.dart';
 import '../../../../core/utils/responsive.dart';
 import '../../../../core/utils/stock_status.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../../mock_data/mock_data.dart';
+import '../../../../core/utils/order_status.dart';
+import '../../../../data/current_employee.dart';
+import '../../../../data/providers.dart';
+import '../../../../data/repositories/repositories.dart';
+import '../../../../data/view_models/view_models.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 import '../../../orders/presentation/pages/orders_list_page.dart';
@@ -35,15 +39,84 @@ class StoreDashboardPage extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
 
     // The dashboard summarises everything a write can touch — stock levels,
-    // open orders, recent movements — so it redraws whenever one lands.
-    ref.watch(mockDataRevisionProvider);
+    // open orders, recent movements — so every one of these follows the tables
+    // it reads, and the page redraws whenever a delivery or a correction lands.
+    //
+    // Six queries, folded into one decision. Six skeletons resolving at six
+    // different moments would read as a page assembling itself.
+    final data = asyncAll4(
+      ref.watch(itemRowsProvider((storeId: storeId, filter: ItemFilter.none))),
+      ref.watch(suppliersProvider(storeId)),
+      ref.watch(movementRowsForStoreProvider(storeId)),
+      ref.watch(openOrderRowsProvider(storeId)),
+      (rows, suppliers, activity, openOrders) => (
+        rows: rows,
+        suppliers: suppliers,
+        activity: activity,
+        openOrders: openOrders,
+      ),
+    );
 
-    final items = MockQueries.itemsForStore(storeId);
-    final alerts = MockQueries.lowStockItems(storeId);
-    final suppliers = MockQueries.suppliersForStore(storeId);
-    final activity = MockQueries.recentActivity(storeId);
-    final openOrders = MockQueries.openOrders(storeId);
-    final staleOrders = MockQueries.staleOrders(storeId);
+    return AsyncContent<
+      ({
+        List<ItemRowView> rows,
+        List<Supplier> suppliers,
+        List<MovementRowView> activity,
+        List<OrderRowView> openOrders,
+      })
+    >(
+      value: data,
+      onRetry: () {
+        ref.invalidate(
+          itemRowsProvider((storeId: storeId, filter: ItemFilter.none)),
+        );
+        ref.invalidate(suppliersProvider(storeId));
+        ref.invalidate(movementRowsForStoreProvider(storeId));
+        ref.invalidate(openOrderRowsProvider(storeId));
+      },
+      skeleton: ShellPage(
+        title: l10n.dashboardTitle,
+        child: const SkeletonList(rows: 3, rowHeight: 140),
+      ),
+      builder: (context, data) => _body(context, ref, l10n, data),
+    );
+  }
+
+  Widget _body(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations l10n,
+    ({
+      List<ItemRowView> rows,
+      List<Supplier> suppliers,
+      List<MovementRowView> activity,
+      List<OrderRowView> openOrders,
+    })
+    data,
+  ) {
+    final items = data.rows;
+    final suppliers = data.suppliers;
+    final openOrders = data.openOrders;
+
+    // Only the most recent handful, and only after the whole log has been
+    // fetched for the store — which the alerts strip beside it needs anyway.
+    final activity = data.activity.take(8).toList();
+
+    final alerts = [
+      for (final row in items)
+        if (needsAttention(row.item)) row,
+    ];
+
+    // Watched separately because a Future cannot join the fold above, and
+    // because an empty answer is the right thing to draw while it is out: no
+    // warning is better than a warning that appears and then retracts.
+    final staleOrders =
+        ref.watch(staleOrdersProvider(storeId)).value ??
+        const <PurchaseOrder>[];
+
+    // The greeting names whoever is signed in; blank until it knows, which
+    // reads as a plain "Bonjour" rather than as a missing name.
+    final userName = ref.watch(currentEmployeeProvider)?.firstName;
 
     if (items.isEmpty) {
       return ShellPage(
@@ -64,7 +137,7 @@ class StoreDashboardPage extends ConsumerWidget {
 
     return ShellPage(
       title: l10n.dashboardTitle,
-      subtitle: l10n.dashboardGreeting(mockCurrentEmployee.firstName),
+      subtitle: l10n.dashboardGreeting(userName ?? ''),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -87,7 +160,9 @@ class StoreDashboardPage extends ConsumerWidget {
             children: [
               SummaryTile(
                 label: l10n.dashboardTileStockValue,
-                value: Formatters.priceCompact(MockQueries.stockValuation(storeId)),
+                value: Formatters.priceCompact(
+                  ref.watch(stockValuationProvider(storeId)).value ?? 0,
+                ),
                 icon: LucideIcons.wallet,
                 caption: l10n.valuationBasis,
                 onTap: () =>
@@ -122,9 +197,7 @@ class StoreDashboardPage extends ConsumerWidget {
                 label: l10n.dashboardTileSuppliers,
                 value: '${suppliers.length}',
                 icon: LucideIcons.truck,
-                caption: l10n.suppliersProductCount(
-                  MockQueries.itemsForStore(storeId).length,
-                ),
+                caption: l10n.suppliersProductCount(items.length),
                 onTap: () => context.goSection(Routes.toSuppliers(storeId)),
               ),
             ],
@@ -210,6 +283,13 @@ class _StaleOrdersWarning extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
 
+    // The establishment's own threshold, a column since this phase rather than
+    // the mutable global it was in Phase 1. Falls back to the default while the
+    // query is out, which is the number the settings form falls back to too.
+    final days =
+        ref.watch(stalePartialOrderDaysProvider(storeId)).value ??
+        OrderRules.defaultStalePartialDays;
+
     return Container(
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
@@ -229,10 +309,7 @@ class _StaleOrdersWarning extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  l10n.dashboardStaleOrdersTitle(
-                    count,
-                    MockQueries.storeSettings(storeId).stalePartialOrderDays,
-                  ),
+                  l10n.dashboardStaleOrdersTitle(count, days),
                   style: theme.textTheme.titleSmall?.copyWith(
                     color: AppColors.lowStock.foreground,
                   ),
@@ -268,7 +345,7 @@ class _ActivityPanel extends StatelessWidget {
   const _ActivityPanel({required this.storeId, required this.activity});
 
   final String storeId;
-  final List<StockMovement> activity;
+  final List<MovementRowView> activity;
 
   @override
   Widget build(BuildContext context) {
@@ -295,14 +372,15 @@ class _ActivityPanel extends StatelessWidget {
             ),
           )
         else
-          for (final movement in activity)
+          for (final view in activity)
             Padding(
               padding: const EdgeInsets.only(bottom: AppSpacing.sm),
               child: MovementRow(
-                movement: movement,
+                view: view,
                 storeId: storeId,
-                onTap: () =>
-                    context.pushScreen(Routes.toItem(storeId, movement.itemId)),
+                onTap: () => context.pushScreen(
+                  Routes.toItem(storeId, view.movement.itemId),
+                ),
               ),
             ),
       ],
@@ -314,7 +392,7 @@ class _AlertsPanel extends StatelessWidget {
   const _AlertsPanel({required this.storeId, required this.alerts});
 
   final String storeId;
-  final List<Item> alerts;
+  final List<ItemRowView> alerts;
 
   @override
   Widget build(BuildContext context) {
@@ -347,8 +425,8 @@ class _AlertsPanel extends StatelessWidget {
             padding: EdgeInsets.zero,
             child: Column(
               children: [
-                for (final item in shown)
-                  _AlertLine(item: item, storeId: storeId),
+                for (final view in shown)
+                  _AlertLine(view: view, storeId: storeId),
               ],
             ),
           ),
@@ -358,15 +436,16 @@ class _AlertsPanel extends StatelessWidget {
 }
 
 class _AlertLine extends StatelessWidget {
-  const _AlertLine({required this.item, required this.storeId});
+  const _AlertLine({required this.view, required this.storeId});
 
-  final Item item;
+  final ItemRowView view;
   final String storeId;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final unit = MockQueries.unitAbbreviationOf(item.unitId);
+    final item = view.item;
+    final unit = view.unitAbbreviation;
 
     return InkWell(
       onTap: () => context.pushScreen(Routes.toItem(storeId, item.id)),

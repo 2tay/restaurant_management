@@ -6,20 +6,23 @@ import '../../../../app/routes.dart';
 import '../../../../app/navigation.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/utils/item_search.dart';
 import '../../../../core/utils/responsive.dart';
-import '../../../../core/utils/stock_status.dart';
+import '../../../../data/providers.dart';
+import '../../../../data/repositories/repositories.dart';
+import '../../../../data/view_models/view_models.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../../mock_data/mock_data.dart';
-import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 import '../widgets/item_detail_view.dart';
 import '../widgets/item_row.dart';
 
 /// Local filter state for the inventory list.
 ///
-/// Exactly the kind of trivial UI state Riverpod is permitted to hold in Phase
-/// 1 — which chip is selected, what is typed in the search box. No repository,
-/// no business logic.
+/// Which chip is selected, what is typed in the search box, which row is
+/// showing on the right. No repository and no business logic: the parts of this
+/// that the database can answer become an [ItemFilter] and go into the query,
+/// while the search text and the selection stay here, because neither is a
+/// question about the data.
 class InventoryFilter {
   const InventoryFilter({
     this.query = '',
@@ -40,6 +43,16 @@ class InventoryFilter {
       categoryId != null ||
       supplierId != null ||
       lowStockOnly;
+
+  /// The part of this the database can answer.
+  ///
+  /// The search text is deliberately not in it: `itemMatchesSearch` explains
+  /// why it stays a Dart predicate. Everything else is a `WHERE` clause.
+  ItemFilter get itemFilter => ItemFilter(
+    categoryId: categoryId,
+    supplierId: supplierId,
+    lowStockOnly: lowStockOnly,
+  );
 
   InventoryFilter copyWith({
     String? query,
@@ -102,15 +115,15 @@ class InventoryListPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
 
-    // Receiving a delivery changes quantities under this screen, so it has to
-    // redraw when one lands rather than showing what it read on the way in.
-    ref.watch(mockDataRevisionProvider);
-
+    // Receiving a delivery changes quantities under this screen. The query
+    // re-runs itself when the table changes, so this redraws without being
+    // told to. The ordering — worst status first, then alphabetical — is that
+    // query's ORDER BY rather than a sort here.
     final filter = ref.watch(inventoryFilterProvider);
-    final items = _visibleItems(filter);
+    final rows = ref.watch(
+      itemRowsProvider((storeId: storeId, filter: filter.itemFilter)),
+    );
     final canSplit = context.canSplitView;
-
-    final selected = _resolveSelection(items, filter, canSplit);
 
     return ShellPage(
       title: l10n.inventoryTitle,
@@ -122,84 +135,70 @@ class InventoryListPage extends ConsumerWidget {
           onPressed: () => context.pushScreen(Routes.toAddItem(storeId)),
         ),
       ],
-      child: canSplit
-          ? Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  flex: 5,
-                  child: _ListPane(storeId: storeId, items: items),
-                ),
-                const SizedBox(width: AppSpacing.xl),
-                Expanded(
-                  flex: 4,
-                  child: selected == null
-                      ? _NoSelection(l10n: l10n)
-                      : ItemDetailView(item: selected, storeId: storeId),
-                ),
-              ],
-            )
-          : _ListPane(storeId: storeId, items: items),
+      child: AsyncContent<List<ItemRowView>>(
+        value: rows,
+        onRetry: () => ref.invalidate(
+          itemRowsProvider((storeId: storeId, filter: filter.itemFilter)),
+        ),
+        builder: (context, allRows) {
+          // The search box is applied here rather than in SQL, for the reasons
+          // written down in `item_search.dart`.
+          final query = filter.query.trim().toLowerCase();
+          final visible = [
+            for (final row in allRows)
+              if (itemMatchesSearch(row.item, query)) row,
+          ];
+          final selected = _resolveSelection(visible, filter, canSplit);
+
+          if (!canSplit) return _ListPane(storeId: storeId, rows: visible);
+
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                flex: 5,
+                child: _ListPane(storeId: storeId, rows: visible),
+              ),
+              const SizedBox(width: AppSpacing.xl),
+              Expanded(
+                flex: 4,
+                child: selected == null
+                    ? _NoSelection(l10n: l10n)
+                    : ItemDetailView(
+                        itemId: selected.item.id,
+                        storeId: storeId,
+                      ),
+              ),
+            ],
+          );
+        },
+      ),
     );
   }
 
   /// Keeps the detail pane populated rather than blank on first load — a split
   /// view whose right half is empty looks broken.
-  Item? _resolveSelection(
-    List<Item> items,
+  ItemRowView? _resolveSelection(
+    List<ItemRowView> rows,
     InventoryFilter filter,
     bool canSplit,
   ) {
-    if (!canSplit || items.isEmpty) return null;
-    if (filter.selectedItemId == null) return items.first;
+    if (!canSplit || rows.isEmpty) return null;
+    if (filter.selectedItemId == null) return rows.first;
 
-    for (final item in items) {
-      if (item.id == filter.selectedItemId) return item;
+    for (final row in rows) {
+      if (row.item.id == filter.selectedItemId) return row;
     }
     // The selected item was filtered out; fall back rather than showing nothing.
-    return items.first;
+    return rows.first;
   }
-
-  List<Item> _visibleItems(InventoryFilter filter) {
-    final query = filter.query.trim().toLowerCase();
-
-    final items = MockQueries.itemsForStore(storeId).where((item) {
-      // Shared with global search so "paste a barcode, find the item" cannot
-      // be true on one screen and false on the other.
-      if (!MockQueries.itemMatchesSearch(item, query)) return false;
-      if (filter.categoryId != null && item.categoryId != filter.categoryId) {
-        return false;
-      }
-      if (filter.supplierId != null) {
-        final suppliesIt = MockQueries.pricesForItem(
-          item.id,
-        ).any((price) => price.supplierId == filter.supplierId);
-        if (!suppliesIt) return false;
-      }
-      if (filter.lowStockOnly && !needsAttention(item)) return false;
-      return true;
-    }).toList();
-
-    // Worst status first, then alphabetical — what needs attention floats up.
-    items.sort((a, b) {
-      final byStatus = _rank(a).compareTo(_rank(b));
-      return byStatus != 0 ? byStatus : a.name.compareTo(b.name);
-    });
-    return items;
-  }
-
-  int _rank(Item item) => switch (stockStatusOf(item)) {
-    StockStatus.outOfStock => 0,
-    StockStatus.lowStock => 1,
-    StockStatus.inStock => 2,
-  };
 }
 
 class _ListPane extends ConsumerWidget {
-  const _ListPane({required this.storeId, required this.items});
+  const _ListPane({required this.storeId, required this.rows});
 
   final String storeId;
-  final List<Item> items;
+  final List<ItemRowView> rows;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -208,9 +207,11 @@ class _ListPane extends ConsumerWidget {
     final notifier = ref.read(inventoryFilterProvider.notifier);
     final canSplit = context.canSplitView;
 
-    final categories = MockQueries.categoriesForStore(storeId);
-    final suppliers = MockQueries.suppliersForStore(storeId);
-    final storeHasItems = MockQueries.itemsForStore(storeId).isNotEmpty;
+    // The two filter menus. Empty while their queries are out, which draws
+    // each menu with only its "toutes" entry — briefly, and better than a menu
+    // that grows a frame after somebody has reached for it.
+    final categories = ref.watch(categoriesProvider(storeId)).value ?? const [];
+    final suppliers = ref.watch(suppliersProvider(storeId)).value ?? const [];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -267,26 +268,32 @@ class _ListPane extends ConsumerWidget {
         ),
         const SizedBox(height: AppSpacing.md),
         Text(
-          l10n.inventoryCount(items.length),
+          l10n.inventoryCount(rows.length),
           style: Theme.of(context).textTheme.bodySmall,
         ),
         const SizedBox(height: AppSpacing.md),
 
         Expanded(
-          child: items.isEmpty
+          child: rows.isEmpty
               ? _EmptyList(
                   storeId: storeId,
-                  storeHasItems: storeHasItems,
+                  // With no filter active, an empty result means the
+                  // establishment is empty. With one active it means the
+                  // filter matched nothing. Two different sentences and two
+                  // different buttons, and this is the whole difference
+                  // between them.
+                  storeHasItems: filter.hasActiveFilters,
                   onClearFilters: notifier.clear,
                 )
               : ListView.separated(
-                  itemCount: items.length,
+                  itemCount: rows.length,
                   separatorBuilder: (_, _) =>
                       const SizedBox(height: AppSpacing.sm),
                   itemBuilder: (context, index) {
-                    final item = items[index];
+                    final row = rows[index];
+                    final item = row.item;
                     return ItemRow(
-                      item: item,
+                      view: row,
                       selected: canSplit && filter.selectedItemId == item.id,
                       onTap: () {
                         if (canSplit) {

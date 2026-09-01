@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../app/navigation.dart';
@@ -8,31 +9,34 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/credential_status.dart';
 import '../../../../core/utils/permissions.dart';
+import '../../../../data/current_employee.dart';
+import '../../../../data/providers.dart';
+import '../../../../data/repositories/credential_repository.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../../mock_data/mock_data.dart';
 import '../../../../shared/widgets/widgets.dart';
 import '../widgets/auth_layout.dart';
 
-/// The login screen — CIN + PIN, checked against `mockCredentials` (Phase 6).
+/// The login screen — CIN + PIN, checked against the `employee_credentials`
+/// table (Phase 6).
 ///
 /// Still fake, deliberately: no backend, no real hashing, no network. What it
-/// does do is issue a real [MockSession], enforce the lockout after
-/// [AuthRules.maxFailedAttempts] wrong PINs, and refuse a `staff` account,
-/// which has no active access to the app. The demo notice at the bottom keeps
-/// saying the authentication is not real.
-class LoginPage extends StatefulWidget {
+/// does do is resolve the session into `currentEmployeeProvider`, enforce the
+/// lockout after [AuthRules.maxFailedAttempts] wrong PINs, and refuse a `staff`
+/// account, which has no active access to the app. The demo notice at the
+/// bottom keeps saying the authentication is not real.
+class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
 
   @override
-  State<LoginPage> createState() => _LoginPageState();
+  ConsumerState<LoginPage> createState() => _LoginPageState();
 }
 
-class _LoginPageState extends State<LoginPage> {
-  // Pre-filled with the owner's CIN and the demo PIN, the same courtesy the
-  // Phase 1 form paid with an email and password.
-  final _cin = TextEditingController(
-    text: MockQueries.employeeById(EmployeeIds.marc)?.cin ?? '',
-  );
+class _LoginPageState extends ConsumerState<LoginPage> {
+  /// The seeded owner's CIN, pre-filled as a demo courtesy — the same one the
+  /// Phase 1 form paid with an email and password. `1234` is every seeded PIN.
+  static const _demoCin = '78.02.14-153.24';
+
+  final _cin = TextEditingController(text: _demoCin);
   final _pin = TextEditingController(text: '1234');
   bool _rememberMe = true;
   bool _obscurePin = true;
@@ -122,7 +126,7 @@ class _LoginPageState extends State<LoginPage> {
           icon: LucideIcons.logIn,
           fullWidth: true,
           large: true,
-          onPressed: _signIn,
+          onPressed: () => _signIn(),
         ),
         const SizedBox(height: AppSpacing.xl),
         Container(
@@ -157,14 +161,18 @@ class _LoginPageState extends State<LoginPage> {
     if (_error != null) setState(() => _error = null);
   }
 
-  void _signIn() {
+  Future<void> _signIn() async {
     final l10n = AppLocalizations.of(context);
-    final attempt = CredentialMutations.authenticate(_cin.text, _pin.text);
+    final attempt = await ref
+        .read(credentialRepositoryProvider)
+        .authenticate(_cin.text, _pin.text);
+    if (!mounted) return;
 
     switch (attempt.outcome) {
       case LoginOutcome.success:
         final employee = attempt.employee!;
-        MockSession.signIn(employee);
+        await ref.read(currentEmployeeProvider.notifier).signIn(employee.id);
+        if (!mounted) return;
         // The owner picks a store from the grid; a manager goes straight to
         // the store they belong to.
         context.goSection(

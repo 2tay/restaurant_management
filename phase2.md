@@ -966,7 +966,112 @@ screen is touched.
 **Done when:** a widget test pumps a screen-sized harness against an in-memory DB, asserts
 skeleton → data, and asserts an injected failure renders `ErrorState`.
 
+### As built
+
+Stage 8 is done. `lib/data/providers.dart` grew 27 screen-level queries over the nine
+repository providers already there, `lib/shared/widgets/async_content.dart` is new, the
+shell resolves its establishment from the database, and `test/provider_layer_test.dart`
+(13) pins the layer. No screen has been touched: every page under `lib/features/` still
+reads the mock lists, which is stage 9.
+
+**1. The family types cannot be written down, so they are not.** Riverpod 3 does not
+export `StreamProviderFamily` or `FutureProviderFamily` — `riverpod.dart` shows only
+`StreamProvider`, `FutureProvider` and the rest of the public surface. The house style
+annotates every top-level `final`, and here it cannot, so the 27 families are declared as
+`final xProvider = StreamProvider.family<T, Arg>(...)` and take their type from the
+builder. Worth knowing before somebody tries to "fix" the inconsistency.
+
+**2. Two-key queries take a record, and `ItemFilter` had to grow value equality.** A
+family keys on `==`. Records have structural equality for free, which is why
+`(storeId: s, itemId: i)` is the right key for `onOrderQuantityProvider` and its
+neighbours. `ItemFilter` did not: it was a plain class with three fields, so the inventory
+list — which rebuilds on every keystroke in its search field — would have handed the
+family an equal-but-not-identical key each time, tearing down a live query and opening the
+same one again. `operator ==` and `hashCode` are on it now, with a comment saying which
+caller they are for, because nothing else in the app compares two filters.
+
+**3. `AsyncContent` is handed a value, not a provider, and that is deliberate.** The
+obvious shape is a widget that takes the provider and watches it itself, which would also
+let it write its own retry. It cannot be typed: `ref.invalidate` wants a `ProviderOrFamily`
+and the widget would only have a `ProviderListenable`, so the ergonomic version needs a
+cast. The call site writes `onRetry: () => ref.invalidate(itemsProvider(storeId))` instead
+— one line, and it names the query being retried.
+
+Three pieces, and the third is the one that was not in the plan:
+
+- `AsyncContent<T>` — data, skeleton, error, with `skipLoadingOnReload: true` so a live
+  drift stream re-running does not blink the screen. A test pins that: after a write, the
+  frame before the new rows land still shows the old ones.
+- `AsyncListContent<T>` — the same, plus the empty case, because "loading" and "the
+  establishment genuinely has no articles" are different screens and every list in this app
+  needs both.
+- `asyncAll2/3/4` — folds several `AsyncValue`s into one. The dashboard watches four
+  queries; four independent `.when`s give four skeletons resolving at four different
+  moments, which reads as a page assembling itself rather than a page loading. **Error wins
+  over loading**, which is the part that is easy to get backwards: a screen whose first
+  query failed and whose second never answers would otherwise show a skeleton for ever.
+
+**4. The shell has three states now, and one of them is new to the app.**
+`_StoreShell` in `router.dart` watches `currentStoreProvider(routeStoreId)`.
+`AppScaffoldSkeleton` draws the rail and top bar as placeholders rather than the live
+widgets — both need a store to navigate to, and a rail that can be tapped before the
+destination exists is a rail that navigates nowhere. `AppScaffoldNoStore` is the state
+Phase 1 could not reach: `storeByIdOrFirst` read a list that was compiled in and always had
+three, and a database can genuinely hold none. Two new French strings carry it.
+
+**5. The skeleton frame is real but not observable through the router in a test.** An
+in-memory database answers inside the same batch of microtasks that builds the route, so
+by the first frame the shell has its establishment. The test holds the query open with an
+overridden `currentStoreProvider` instead — which is honest about what it is proving: that
+the loading branch renders chrome, not that a seeded in-memory database is slow.
+
+The same subtlety, one layer down: `tester.pumpWidget` already draws a frame, so a
+skeleton assertion goes **immediately after** the pump, not after an extra `pump()`.
+
+**6. `pumpAndSettle` will not settle while a skeleton is on screen.** `SkeletonBlock`
+pulses on a repeating `AnimationController`. It has never mattered because no screen showed
+one; from stage 9 several will, and a route walk that settles will hang on any screen still
+loading. Tests that need to look at a loading state pump a fixed duration instead.
+
+**7. The widget suites needed a database, a stage earlier than the plan said.** The plan
+put that in stage 9, but the shell reads `databaseProvider` from this stage, and that
+provider has no default on purpose — so `ProviderScope(child: StockInventoryApp())` throws
+before the first frame. `test/support/app_harness.dart` is new: one seeded in-memory
+database per test, and `router_test`, `navigation_test` and `widget_test` pump through it.
+All 485 existing tests stayed green.
+
+It also carries `testApp`, which is `testWidgets` plus two lines, and the reason is worth
+recording. Cancelling a drift query stream schedules a zero-duration timer — drift keeps a
+cancelled query for one turn of the event loop so a quick re-listen reuses it. Riverpod
+cancels every subscription when the `ProviderScope` unmounts, `flutter_test` unmounts the
+tree itself once the body returns and then immediately asserts that no timer is pending,
+and the assertion loses that race every time: *"A Timer is still pending even after the
+widget tree was disposed."* `addTearDown` cannot fix it, because teardowns run **after**
+the invariant check. So the unmount happens at the end of the body, followed by a pump that
+elapses zero time, which is what fires a zero-duration timer under `fake_async`.
+
+**8. `pendingChangesProvider` returns 0.** It hardcoded 3 to make the offline banner look
+alive in a demo. There is no outbound queue in Phase 2 and nothing is waiting, so any
+number above zero is now a claim about work the app is not doing. The French plural already
+has a `=0` case — *"Aucune modification en attente"* — so the banner reads correctly
+without a new string. The provider stays for Phase 3.
+
+**9. Do not run `dart format` over this repository.** 28 of 188 files under `lib/` differ
+from what the formatter would produce, because the wrapping here is by hand and reads
+better than the machine's. Formatting one file to tidy an edit produces a diff of unrelated
+reflow; two files were reformatted and put back during this stage. New files are written in
+formatter-compatible style, which is a different thing from running the formatter.
+
+**10. What stage 8 does *not* finish.** `currentUserProvider` exists and nothing calls it
+yet. `MockSettings` still stands. `AppTopBar` still reads `MockQueries.unreadNotificationCount`
+even though `unreadCountProvider` is now sitting next to it — it is a shared widget, and
+converting it belongs with the screens that surround it rather than half a stage early.
+
+**Verified at the stage boundary:** `flutter analyze` clean; `flutter test` 498/498 green
+(485 before, plus 13 new); `python tool/ux_audit.py` clean.
+
 ---
+
 
 ## Stage 9 — Screen cutover *(L)*
 
@@ -1024,7 +1129,112 @@ Three shapes of work, and the second is the one that will surprise you:
   English and it caught eight real overflow bugs across Phase 1.5–1.6. Loading skeletons
   are new layouts — run it at all three viewports against the skeleton state too.
 
+### As built
+
+Stage 9 is done. Every file under `lib/features/`, plus `app_top_bar.dart` and
+`store_switcher.dart` in the shell, reads and writes through repositories. The only
+remaining mention of `MockQueries` anywhere outside `lib/mock_data/` is a sentence in a
+comment. The mock layer is still on disk and still seeds the database — stage 10 deletes it.
+
+**1. Nine view models, not two.** The plan named `ItemRowView` and `MovementRowView`. The
+screens needed more, and each extra one paid for itself the same way — by removing a query
+from inside a `build`:
+
+| View model | Replaces |
+|---|---|
+| `ItemRowView` | two lookups per row of the inventory list, per rebuild |
+| `MovementRowView` | four per row of the movement log — the longest list in the app |
+| `StoreCardView` | a full scan of every article in the account, per card on the opening screen |
+| `CategoryRowView` / `UnitRowView` | one count per row, twice — the row shows it and the delete checks it |
+| `SupplierRowView` / `SupplierProductView` | a count per supplier, and a "who is cheapest" per article |
+| `ItemPricing` | four calls on the item detail — prices, cheapest, default, overpayment |
+| `ItemOnOrder` | a total and the commandes behind it, which a screen must not disagree about |
+| `OrderDetailView` / `ReceiptDetailView` | the header, the lines and the deliveries of one document |
+| `LowStockAlertView` | three per row: the default supplier, its name, and what is already on order |
+
+The rule they all follow: **a view model bundles what one screen decides together.** Splitting
+`ItemPricing` into a list and a number would let the callout name a supplier the table below
+it does not list; splitting `ItemOnOrder` would let a total disagree with the commandes it
+sums.
+
+**2. Forms split into a gate and a form, five times.** A form fills its controllers in
+`initState` from the record being edited, and that record is a query now — `initState` cannot
+wait for one, and filling a controller during `build` writes to a field while it is being laid
+out. So `AddEditItemPage`, `AddEditSupplierPage`, `AddEditMemberPage`, `OrderFormPage`,
+`ReceiveOrderPage` and `StoreSettingsPage` became an outer widget that resolves and an inner
+one that owns the state, keyed on the record's id so opening a different one through the same
+route rebuilds rather than keeping the last one's values.
+
+**3. The article form has to wait for its dropdowns, and that is a bug fix.** Gating it on the
+article alone crashed: `DropdownButtonFormField` asserts when it is given a selected value that
+is not among its options, so an edit form drawn before its categories arrived threw on the
+article's own category. The router walk caught it. Both menus are now part of what the gate
+waits for.
+
+**4. `pumpAndSettle` and the empty state, which is the subtle one.** The notifications screen
+first read its list as `?? const []` and drew *"aucune notification"* while the query was still
+out. Two things wrong with that, and the second is what failed the build: it states something
+untrue in the one place a user would trust, and the empty state is a tall `Column` that does
+not fit the short pane it lands in — 84 pixels of overflow at 1024×600, which
+`router_test.dart` caught exactly as it was designed to.
+
+The rule that came out of it: **`?? const []` is fine for a menu's options and wrong for a list
+that drives an empty state.** A menu with nothing in it yet is honest; an empty state is a
+claim.
+
+**5. `SkeletonList` now reads its constraints.** Stage 8 gave it `shrinkWrap: true` so it could
+sit inside a page's scroll view. That overflows in a bounded pane — six rows are taller than a
+600dp tablet's content area — and not shrink-wrapping inside a scroll view throws outright. It
+is a `LayoutBuilder` now and decides from `hasBoundedHeight`. Both failures are real; neither is
+avoidable by picking one answer.
+
+**6. `AlreadyOnOrderBadge` is the one leaf widget that still queries, deliberately.** Every
+other row was given its data. This one appears on a handful of rows rather than on every row of
+a long list, both halves of its answer come from one provider, and Riverpod hands every asker
+the same live subscription. Making it take data instead would have meant threading an
+`ItemOnOrder` through three widgets to save nothing.
+
+**7. Three screens stopped lying, and one number became real.**
+
+- *"Dernière synchronisation"* was `hoursAgo(2)` — an invented timestamp on a screen whose whole
+  point is to say that nothing syncs. It is the instant the local dataset was written, from the
+  `meta` table, which is a real fact about the installation.
+- *Réinitialiser la démonstration* was disabled until something had been edited, which Phase 1
+  could tell because every change lived in one process and vanished on restart. Changes outlive
+  the session now, so "has anything been touched?" is a question about the whole history of the
+  file. The button is always offered, and a reset is meaningful either way.
+- The two trend charts were frozen lists in `mock_reports.dart` that could not follow a
+  stock-out recorded in the same session. They are a `GROUP BY` over the movement log now —
+  **weekly, not monthly**, which is the plan's "pick one and say so": the seeded history covers
+  a few weeks, and a six-month series over it would be five empty columns and one tall one,
+  which reads as a broken chart rather than as a young dataset.
+- `mockPotentialAnnualSaving` — the headline figure on the reports dashboard and the one number
+  an owner will repeat to somebody else — was a constant. It is now the actual gap between what
+  the establishment pays and the best price on offer, over what it actually bought in the last
+  year. Deliberately conservative: only articles that have both a default supplier and a cheaper
+  one, and only what was really delivered.
+
+**8. `_mostInterestingItem` left the widget.** The price comparison report opened by scanning
+every article in the establishment from `initState`, which the plan already flagged as a report
+query hiding in a screen. It is `reportRepository.largestOverpayItemId` — one query — and the
+screen picks its opening article on the first build that has the answer.
+
+**9. The search box, the movement filters and the commande filters stay in Dart.** All three
+operate on rows already in hand, and `item_search.dart` explains the part that is not just
+convenience: SQLite's `LOWER()` folds ASCII only, so a SQL `LIKE` would stop matching
+*Épicerie*. The filters that *can* go into SQL did: category, supplier and low-stock are an
+`ItemFilter` on the query.
+
+**10. What stage 9 does *not* finish.** `lib/mock_data/` still exists and the seed still reads
+it. `MockWrite.captureSeed()` still runs in `main()`. `tool/ux_audit.py` still points its
+"where writes are allowed" checks at `lib/mock_data/mutations/`. All three are stage 10.
+
+**Verified at the stage boundary:** `flutter analyze` clean; `flutter test` 498/498 green;
+`python tool/ux_audit.py` clean. The route walk — 140 assertions across four viewports — is the
+one that matters here, and it caught two real layout regressions during the stage.
+
 ---
+
 
 ## Stage 10 — Teardown, tooling and docs *(M)*
 
@@ -1072,6 +1282,119 @@ Three shapes of work, and the second is the one that will surprise you:
    checks" figures corrected, and the demo path updated with one new step: *close the app,
    reopen it, the delivery is still there.* `DOMAIN_MODEL.md` — its "Where this lives in
    the code" table (lines 803-815) repointed at repositories.
+
+### As built
+
+Stage 10 is done, and Phase 2 with it. `lib/mock_data/` no longer exists.
+
+**1. The dataset moved and lost its prefix.** Thirteen files went to
+`lib/data/seed/dataset/` and dropped `mock_` from their names — `items.dart`, `stores.dart`,
+`purchase_orders.dart`. The prefix meant "this is not the real thing" and the directory now
+says what it is: a fixture the seed reads and nothing else does. `mock_queries.dart`,
+`mock_settings.dart`, `mock_reports.dart` and all six mutation files are gone; so is
+`MockWrite.captureSeed()` from `main()`, because putting the demo back is a re-seed now and a
+re-seed survives the restart that used to be the only alternative.
+
+**2. `MockQueries` is not deleted — it is a witness now.** `test/db/queries_test.dart` was
+written at stage 3 as a *differential* suite: ask the database, ask the old list scan, fail
+when they disagree. Deleting the second half would have turned fifty comparisons into fifty
+hand-typed expected values, and a hand-typed expected value is only ever as right as whoever
+typed it.
+
+So the Phase 1 read layer lives on as `test/support/dataset_queries.dart`, trimmed from 64
+members to the 40-odd the suite actually asks for. It is in the test tree, where a second
+independent implementation belongs, and its header says the thing that matters: **do not add
+to it.** A query only it can answer is a query with no second opinion.
+
+One real subtlety surfaced when it moved. The dataset's dates are offsets from `mockNow`,
+frozen at library load; the seed shifts every one of them to sit the same distance from
+`seedInstant`. So asking both sides "what is stale today?" with the same `DateTime` asks two
+different questions. Each is now measured from its own anchor, which is the same instant in
+the dataset's own timeline — and the test failed loudly until it was.
+
+**3. `tool/ux_audit.py` grew from fourteen checks to fifteen, and two were rewritten rather
+than repointed.** Check 10 was "no screen assigns into `mockItems`" and check 13 was "no mock
+list is written outside `mutations/`". Both were regexes over a naming convention that no
+longer exists. They became:
+
+- **no database write outside `lib/data/repositories/`** — `.into(...)`, `.update(...)`,
+  `.delete(...)`, `customStatement(` and `.batch(` anywhere in the data layer but the
+  repositories;
+- **no file under `features/` or `shared/` importing `data/database/` or drift** — the same
+  rule from the other side, and the new fifteenth check.
+
+Both were verified by planting a violation and watching the audit catch it. The first one
+did *not* catch its violation on the first attempt: the regex had a `(?<![\w.])` lookbehind
+that excluded exactly the shape drift uses — `_db.into(...)` — so the check was inert. It is
+the second time in this phase that a guard written without a teeth check would have shipped
+looking like it worked.
+
+A false positive came out of the same pass and is worth recording: `averageCost =>` in the
+schema matched "average cost written outside the repository layer", because `=>` is an `=`
+followed by something. A column declaration is not a write, and the pattern says so now.
+
+**4. Two tests replaced ten.** `mock_write_test.dart` tested the change counter and the
+in-memory snapshot — infrastructure that no longer exists. Its intent survives as two
+assertions in `test/db/seed_test.dart`: that a reset restores *values* rather than row
+counts (already there since stage 2), and that a generated id can never collide with a seeded
+one. The second is stronger than the original: it checks not only that 500 UUIDs miss every
+seeded slug, but that the two are different *shapes*, which is what makes the guarantee hold
+for ids the test never saw. That stopped being tidiness the moment ids outlived the process —
+Phase 1's `item-new-7` came from a counter that restarted with the app.
+
+**5. The frozen figures thawed in stage 9, not here.** The plan put the trend charts and the
+annual-saving headline in this stage; they were done with the screens that show them, because
+converting a screen to real data and leaving three numbers fake would have been a strange
+place to stop. What is recorded here is the decision the plan asked for and the reason:
+**weekly, not monthly**, and the reason is that the seeded history is weeks long. A six-month
+series over it would be five empty columns and one tall one, which reads as a broken chart
+rather than as a young dataset.
+
+**6. Three service stubs still say TODO, and now say the right phase.** They also say what
+Phase 2 left them, which is more useful than a bare marker: `sync_service.dart` gets a local
+database that is already the source of truth and writes that already go through one
+transaction per aggregate; `auth_service.dart` gets `currentUserProvider` reading a `meta`
+row, so signing somebody in is a write to that row rather than a change to everything that
+stamps a movement.
+
+**7. Docs.** `README.md` has a new status section, the data-layer diagram, a corrected test
+count and check count, and one new step in the demo path — *kill the app completely and
+reopen it* — which is the only step that proves the phase happened. `DOMAIN_MODEL.md`'s
+"Where this lives in the code" table points at repositories, and gained the note that two of
+its rules are deliberately written twice, once in Dart and once in SQL, with a test holding
+them to the same answer.
+
+One French string changed meaning rather than wording: the sync screen said *"la
+synchronisation réelle sera ajoutée en phase 2"*, which is now both wrong and unhelpful. It
+says the data is stored on the device and that sync between devices comes in phase 3.
+
+**Verified at the stage boundary:** `flutter analyze` clean; `flutter test` 475/475 green
+(498 before, minus the 24 tests whose subject no longer exists, plus one); `python
+tool/ux_audit.py` clean across all fifteen checks.
+
+---
+
+## Phase 2, finished
+
+Eleven stages. What it cost, honestly:
+
+- **The plan was right about the shape and wrong about the size.** The seam it described —
+  `MockQueries` → repository reads, `mutations/` → repository writes — held exactly. What it
+  underestimated was the leaf widgets: it named two row view-models and the screens needed
+  nine, because the number of lookups hiding inside a `build` was larger than a grep for
+  `MockQueries.` suggested.
+- **Every stage that mattered was caught by a test, not by reading.** The `_writeGrants`
+  append-only bug, the dropdown asserting on its own category, the notifications screen
+  claiming to be empty, the inert audit regex, the two anchors measuring different instants.
+  The pattern is consistent enough to be worth stating: **a guard nobody has watched fail is
+  not a guard.**
+- **The invariant survived.** `quantity == opening balance + Σ movements` is still true,
+  still enforced by one file, and still checked mechanically — now by two audit rules instead
+  of one, because a database offers more ways to break it than a list did.
+
+What Phase 3 inherits: a local database that is the source of truth, writes that already run
+in transactions, an acting user resolved from a row rather than a constant, and an offline
+banner that reports zero because zero is true.
 
 ---
 

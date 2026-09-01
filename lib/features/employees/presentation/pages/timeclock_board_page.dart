@@ -10,8 +10,8 @@ import '../../../../core/utils/attendance_status.dart';
 import '../../../../core/utils/employee_status.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/utils/responsive.dart';
+import '../../../../data/providers.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../../mock_data/mock_data.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 
@@ -46,24 +46,51 @@ class _TimeclockBoardPageState extends ConsumerState<TimeclockBoardPage> {
 
   @override
   Widget build(BuildContext context) {
-    ref.watch(mockDataRevisionProvider);
     _fullScreen = ref.read(isFullScreenProvider.notifier);
 
     final l10n = AppLocalizations.of(context);
+    final data = asyncAll3(
+      ref.watch(activeEmployeesProvider(widget.storeId)),
+      ref.watch(attendanceBoardProvider(widget.storeId)),
+      ref.watch(storeSettingsProvider(widget.storeId)),
+      (employees, board, settings) =>
+          (employees: employees, board: board, settings: settings),
+    );
 
     return ShellPage(
       title: l10n.timeclockBoardTitle,
       subtitle: l10n.timeclockBoardSubtitle,
       actions: const [_LiveClock(), _FullScreenToggleButton()],
-      child: _buildBoard(l10n),
+      child: AsyncContent<
+        ({
+          List<Employee> employees,
+          Map<String, Attendance> board,
+          StoreSettings settings,
+        })
+      >(
+        value: data,
+        skeleton: const SkeletonGrid(),
+        onRetry: () {
+          ref.invalidate(activeEmployeesProvider(widget.storeId));
+          ref.invalidate(attendanceBoardProvider(widget.storeId));
+          ref.invalidate(storeSettingsProvider(widget.storeId));
+        },
+        builder: (context, data) =>
+            _buildBoard(l10n, data.employees, data.board, data.settings),
+      ),
     );
   }
 
-  Widget _buildBoard(AppLocalizations l10n) {
-    final all = MockQueries.activeEmployeesForStore(widget.storeId)
+  Widget _buildBoard(
+    AppLocalizations l10n,
+    List<Employee> employees,
+    Map<String, Attendance> board,
+    StoreSettings settings,
+  ) {
+    final all = [...employees]
       ..sort((a, b) {
-        final rankA = _rank(MockQueries.attendanceForToday(a.id));
-        final rankB = _rank(MockQueries.attendanceForToday(b.id));
+        final rankA = _rank(board[a.id]);
+        final rankB = _rank(board[b.id]);
         if (rankA != rankB) return rankA.compareTo(rankB);
         return employeeDisplayName(a).compareTo(employeeDisplayName(b));
       });
@@ -118,8 +145,12 @@ class _TimeclockBoardPageState extends ConsumerState<TimeclockBoardPage> {
               mainAxisExtent: 320,
             ),
             itemCount: shown.length,
-            itemBuilder: (context, index) =>
-                _EmployeeCard(employee: shown[index], storeId: widget.storeId),
+            itemBuilder: (context, index) => _EmployeeCard(
+              employee: shown[index],
+              entry: board[shown[index].id],
+              settings: settings,
+              storeId: widget.storeId,
+            ),
           ),
       ],
     );
@@ -203,19 +234,25 @@ class _FullScreenToggleButton extends ConsumerWidget {
 /// A vertical pointage card: identity, status, the day's timestamp log, and
 /// the action area.
 class _EmployeeCard extends StatelessWidget {
-  const _EmployeeCard({required this.employee, required this.storeId});
+  const _EmployeeCard({
+    required this.employee,
+    required this.entry,
+    required this.settings,
+    required this.storeId,
+  });
 
   final Employee employee;
+  final Attendance? entry;
+  final StoreSettings settings;
   final String storeId;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
-    final entry = MockQueries.attendanceForToday(employee.id);
     final status = entry?.status ?? AttendanceStatus.notClockedIn;
-    final maxBreak = MockQueries.storeSettings(storeId).maxBreakMinutes;
-    final lateBreak = entry != null && hasLateBreak(entry, maxBreak);
+    final lateBreak =
+        entry != null && hasLateBreak(entry!, settings.maxBreakMinutes);
 
     return AppCard(
       child: Column(
@@ -268,9 +305,17 @@ class _EmployeeCard extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.sm),
           if (entry != null)
-            _TimestampLog(entry: entry, maxBreakMinutes: maxBreak),
+            _TimestampLog(
+              entry: entry!,
+              maxBreakMinutes: settings.maxBreakMinutes,
+            ),
           const Spacer(),
-          _ActionArea(entry: entry, employee: employee, storeId: storeId),
+          _ActionArea(
+            entry: entry,
+            employee: employee,
+            settings: settings,
+            storeId: storeId,
+          ),
         ],
       ),
     );
@@ -365,36 +410,46 @@ class _LogChip extends StatelessWidget {
   }
 }
 
-/// The buttons, or a read-only summary once the day is finished or an absence.
-class _ActionArea extends StatelessWidget {
+/// The buttons, or a read-only summary once the day is finished.
+class _ActionArea extends ConsumerWidget {
   const _ActionArea({
     required this.entry,
     required this.employee,
+    required this.settings,
     required this.storeId,
   });
 
   final Attendance? entry;
   final Employee employee;
+  final StoreSettings settings;
   final String storeId;
 
+  Future<void> _run(
+    BuildContext context,
+    Future<Attendance?> Function() action,
+    String Function(String name) message,
+  ) async {
+    final result = await action();
+    if (!context.mounted || result == null) return;
+    AppSnackBar.success(context, message(employeeDisplayName(employee)));
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final current = entry;
+    final repo = ref.read(attendanceRepositoryProvider);
 
     if (current == null) {
       return _BigButton(
         label: l10n.timeclockClockIn,
         icon: LucideIcons.circle,
         color: AppColors.inStock.solid,
-        onPressed: () {
-          final created = AttendanceMutations.clockIn(employee.id, storeId);
-          if (created == null) return;
-          AppSnackBar.success(
-            context,
-            l10n.timeclockClockInDone(employeeDisplayName(employee)),
-          );
-        },
+        onPressed: () => _run(
+          context,
+          () => repo.clockIn(employee.id, storeId),
+          l10n.timeclockClockInDone,
+        ),
       );
     }
 
@@ -409,23 +464,19 @@ class _ActionArea extends StatelessWidget {
               label: l10n.timeclockStartPause,
               icon: LucideIcons.pause,
               color: AppColors.lowStock.solid,
-              onPressed: () {
-                if (AttendanceMutations.startPause(current.id) == null) return;
-                AppSnackBar.success(
-                  context,
-                  l10n.timeclockPauseStartDone(employeeDisplayName(employee)),
-                );
-              },
+              onPressed: () => _run(
+                context,
+                () => repo.startPause(current.id),
+                l10n.timeclockPauseStartDone,
+              ),
             ),
             const SizedBox(height: AppSpacing.xs),
             TextButton.icon(
-              onPressed: () {
-                if (AttendanceMutations.clockOut(current.id) == null) return;
-                AppSnackBar.success(
-                  context,
-                  l10n.timeclockClockOutDone(employeeDisplayName(employee)),
-                );
-              },
+              onPressed: () => _run(
+                context,
+                () => repo.clockOut(current.id),
+                l10n.timeclockClockOutDone,
+              ),
               icon: const Icon(LucideIcons.circleCheck, size: AppSizing.iconSm),
               label: Text(l10n.timeclockClockOut),
             ),
@@ -437,20 +488,18 @@ class _ActionArea extends StatelessWidget {
           label: l10n.timeclockEndPause,
           icon: LucideIcons.play,
           color: AppColors.inStock.solid,
-          onPressed: () {
-            if (AttendanceMutations.endPause(current.id) == null) return;
-            AppSnackBar.success(
-              context,
-              l10n.timeclockPauseEndDone(employeeDisplayName(employee)),
-            );
-          },
+          onPressed: () => _run(
+            context,
+            () => repo.endPause(current.id),
+            l10n.timeclockPauseEndDone,
+          ),
         );
 
       case AttendanceStatus.done:
         return _DoneSummary(
           entry: current,
           employee: employee,
-          storeId: storeId,
+          settings: settings,
         );
     }
   }
@@ -490,18 +539,17 @@ class _DoneSummary extends StatelessWidget {
   const _DoneSummary({
     required this.entry,
     required this.employee,
-    required this.storeId,
+    required this.settings,
   });
 
   final Attendance entry;
   final Employee employee;
-  final String storeId;
+  final StoreSettings settings;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final settings = MockQueries.storeSettings(storeId);
     final schedule = resolvedSchedule(
       employee,
       storeOpenMinutes: settings.openMinutes,

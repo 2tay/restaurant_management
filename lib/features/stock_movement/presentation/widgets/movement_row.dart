@@ -7,22 +7,17 @@ import '../../../../app/navigation.dart';
 import '../../../../app/routes.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/formatters.dart';
+import '../../../../data/view_models/view_models.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../../mock_data/mock_data.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 import 'movement_labels.dart';
 
 /// One entry in the movement history.
 class MovementRow extends StatelessWidget {
-  const MovementRow({
-    required this.movement,
-    this.storeId,
-    this.onTap,
-    super.key,
-  });
+  const MovementRow({required this.view, this.storeId, this.onTap, super.key});
 
-  final StockMovement movement;
+  final MovementRowView view;
 
   /// Needed to link back to the receipt. Omitted where the row is decorative.
   final String? storeId;
@@ -34,13 +29,8 @@ class MovementRow extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
 
-    final order = movement.orderId == null
-        ? null
-        : MockQueries.orderById(movement.orderId!);
-    final item = MockQueries.itemById(movement.itemId);
-    final unit = item == null
-        ? ''
-        : MockQueries.unitAbbreviationOf(item.unitId);
+    final movement = view.movement;
+    final unit = view.unitAbbreviation;
     final isIncrease = movement.quantity > 0;
 
     final accent = switch (movement.type) {
@@ -78,7 +68,7 @@ class MovementRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  item?.name ?? '—',
+                  view.itemName,
                   style: theme.textTheme.titleSmall,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -87,8 +77,8 @@ class MovementRow extends StatelessWidget {
                   movementDescription(
                     l10n,
                     movement,
-                    MockQueries.supplierNameOf(movement.supplierId),
-                    orderReference: order?.reference,
+                    view.supplierName ?? '—',
+                    orderReference: view.orderReference,
                   ),
                   style: theme.textTheme.bodySmall,
                   maxLines: 1,

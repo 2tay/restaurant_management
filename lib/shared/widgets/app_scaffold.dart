@@ -4,11 +4,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../app/navigation.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../core/utils/responsive.dart';
+import '../../l10n/app_localizations.dart';
 import '../../models/models.dart';
 import 'app_breadcrumbs.dart';
 import 'app_sidebar.dart';
 import 'app_top_bar.dart';
 import 'back_control.dart';
+import 'error_state.dart';
+import 'loading_state.dart';
 import 'offline_banner.dart';
 
 /// Whether the shell's navigation rail and top bar are hidden so the current
@@ -85,6 +89,118 @@ class AppScaffold extends ConsumerWidget {
                   ),
                 ],
               ),
+      ),
+    );
+  }
+}
+
+/// The shell before the establishment has resolved.
+///
+/// The rail and the top bar are drawn as placeholders rather than left blank,
+/// so switching establishments does not flash empty chrome and then paint it
+/// back — the page changes underneath a frame that stays where it is.
+///
+/// The placeholders are deliberately not the real [AppSidebar] and [AppTopBar]:
+/// both need a store to navigate to, and a rail that can be tapped before the
+/// destination exists is a rail that navigates nowhere.
+class AppScaffoldSkeleton extends StatelessWidget {
+  const AppScaffoldSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final double railWidth = context.isRailCollapsed
+        ? AppSizing.railWidthCollapsed
+        : AppSizing.railWidthExpanded;
+
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: SafeArea(
+        child: Row(
+          children: [
+            Container(
+              width: railWidth,
+              decoration: const BoxDecoration(
+                color: AppColors.surface,
+                border: Border(right: BorderSide(color: AppColors.border)),
+              ),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.lg,
+                vertical: AppSpacing.xl,
+              ),
+              child: const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SkeletonBlock(height: 20),
+                  SizedBox(height: AppSpacing.xxl),
+                  SkeletonBlock(height: 14),
+                  SizedBox(height: AppSpacing.lg),
+                  SkeletonBlock(height: 14),
+                  SizedBox(height: AppSpacing.lg),
+                  SkeletonBlock(height: 14),
+                  SizedBox(height: AppSpacing.lg),
+                  SkeletonBlock(height: 14),
+                ],
+              ),
+            ),
+            Expanded(
+              child: Column(
+                children: [
+                  Container(
+                    height: AppSizing.topBarHeight,
+                    decoration: const BoxDecoration(
+                      color: AppColors.surface,
+                      border: Border(
+                        bottom: BorderSide(color: AppColors.border),
+                      ),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.xl,
+                    ),
+                    child: const Row(
+                      children: [
+                        SkeletonBlock(width: 180, height: 18),
+                        Spacer(),
+                        SkeletonBlock(width: 32, height: 32),
+                      ],
+                    ),
+                  ),
+                  const Expanded(
+                    child: Padding(
+                      padding: AppSpacing.pageInsets,
+                      child: SkeletonList(),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The shell when the database holds no establishments at all.
+///
+/// Phase 1 could not reach this: `storeByIdOrFirst` read a list that was
+/// compiled in and always had three. A database can genuinely be empty — a
+/// failed seed, or a Phase 3 account whose first establishment has not been
+/// created yet — and showing the chrome around a blank page would leave
+/// somebody tapping a rail that leads nowhere.
+class AppScaffoldNoStore extends StatelessWidget {
+  const AppScaffoldNoStore({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: SafeArea(
+        child: ErrorState(
+          title: l10n.shellNoStoreTitle,
+          message: l10n.shellNoStoreBody,
+        ),
       ),
     );
   }

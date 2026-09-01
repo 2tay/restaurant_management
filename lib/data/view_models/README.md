@@ -14,9 +14,22 @@ those stay in `core/utils/` where both this layer and the tests can reach them.
 
 ## What lives here
 
-- `receipt_document_sources.dart` — the letterhead, the commande, the supplier and a name and
-  unit per article, for the bon de réception. Added in stage 7, when the document assembly
-  stopped making its own lookups.
+| File | For |
+|---|---|
+| `item_row_view.dart` | A row of the inventory list: the article, its category name, its unit |
+| `movement_row_view.dart` — in `item_detail_views.dart` | A line of the movement log, with its article, unit, supplier and commande all named |
+| `item_detail_views.dart` | The item detail screen: its offers and what the default costs extra (`ItemPricing`), and what is on its way and from whom (`ItemOnOrder`) |
+| `order_detail_view.dart` | One commande with its lines and deliveries, and one delivery with its lines |
+| `supplier_views.dart` | A supplier with its article count, and one article it offers with the best price on the market beside it |
+| `catalog_row_views.dart` | A category or unit with the number of articles using it |
+| `store_card_view.dart` | An establishment with its article and alert counts |
+| `low_stock_alert_view.dart` | A low article, who would fill it, and how much is already ordered |
+| `receipt_document_sources.dart` | Everything the bon de réception needs besides the receipt |
 
-Stage 9 adds the row view-models for the lists — `ItemRowView`, `MovementRowView` and their
-neighbours — for the same reason.
+## The rule they follow
+
+**A view model bundles what one screen decides together.** Splitting `ItemPricing` into a
+list of offers and an overpayment figure would let the callout name a supplier the table
+underneath it does not list. Splitting `ItemOnOrder` would let a total disagree with the
+commandes it sums. That is the test for whether two things belong in the same bundle — not
+whether they come from the same table.

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../app/routes.dart';
@@ -8,7 +9,8 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../../mock_data/mock_data.dart';
+import '../../../../data/providers.dart';
+import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 import '../../../catalog/presentation/widgets/create_sheets.dart';
 
@@ -21,7 +23,7 @@ import '../../../catalog/presentation/widgets/create_sheets.dart';
 ///
 /// Its absence is explained on screen rather than left as a puzzle — a
 /// restaurant owner who has used any other inventory app will look for it.
-class AddEditItemPage extends StatefulWidget {
+class AddEditItemPage extends ConsumerWidget {
   const AddEditItemPage({required this.storeId, this.itemId, super.key});
 
   final String storeId;
@@ -30,10 +32,93 @@ class AddEditItemPage extends StatefulWidget {
   final String? itemId;
 
   @override
-  State<AddEditItemPage> createState() => _AddEditItemPageState();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+
+    // Three things, and the form cannot be drawn without any of them.
+    //
+    // The article is obvious: `initState` fills the fields from it. The
+    // categories and units are less so, and skipping them is a real bug rather
+    // than a slow frame — a dropdown asked to show a selected value that is not
+    // among its options throws, so an edit form drawn before its categories
+    // arrive crashes on the article's own category. Creating waits for the same
+    // two, since a form whose only two required fields have empty menus has
+    // nothing to offer anyway.
+    final existing = itemId == null
+        ? const AsyncValue<Item?>.data(null)
+        : ref.watch(itemProvider(itemId!));
+
+    final data = asyncAll3(
+      existing,
+      ref.watch(categoriesProvider(storeId)),
+      ref.watch(unitsProvider(storeId)),
+      (item, categories, units) => (
+        item: item,
+        categories: categories,
+        units: units,
+      ),
+    );
+
+    return AsyncContent<
+      ({Item? item, List<Category> categories, List<UnitOfMeasure> units})
+    >(
+      value: data,
+      skeleton: FormScaffold(
+        title: itemId == null ? l10n.addItemTitle : l10n.editItemTitle,
+        back: BackDestination(
+          label: l10n.inventoryTitle,
+          path: Routes.toInventory(storeId),
+        ),
+        submitLabel: l10n.actionSave,
+        onSubmit: null,
+        child: const SkeletonList(rows: 4, rowHeight: 80),
+      ),
+      onRetry: () {
+        if (itemId != null) ref.invalidate(itemProvider(itemId!));
+        ref.invalidate(categoriesProvider(storeId));
+        ref.invalidate(unitsProvider(storeId));
+      },
+      builder: (context, data) => _ItemForm(
+        // Keyed on the article so opening a different one through the same
+        // route rebuilds the state instead of keeping the last one's name in
+        // the field.
+        key: ValueKey(itemId),
+        storeId: storeId,
+        existing: data.item,
+        categories: data.categories,
+        units: data.units,
+      ),
+    );
+  }
 }
 
-class _AddEditItemPageState extends State<AddEditItemPage> {
+class _ItemForm extends ConsumerStatefulWidget {
+  const _ItemForm({
+    required this.storeId,
+    required this.existing,
+    required this.categories,
+    required this.units,
+    super.key,
+  });
+
+  final String storeId;
+
+  /// Null when creating, and null too when the article being edited has been
+  /// deleted from another screen — the form treats that as a create, which is
+  /// the only thing left that it can usefully do.
+  final Item? existing;
+
+  /// Passed in rather than watched here, so the two menus are never empty while
+  /// a value is selected. They still arrive live: creating a category from the
+  /// inline row rebuilds the page above and hands this a longer list.
+  final List<Category> categories;
+  final List<UnitOfMeasure> units;
+
+  @override
+  ConsumerState<_ItemForm> createState() => _ItemFormState();
+}
+
+class _ItemFormState extends ConsumerState<_ItemForm> {
   final _nameController = TextEditingController();
   final _noteController = TextEditingController();
   final _barcodeController = TextEditingController();
@@ -64,15 +149,13 @@ class _AddEditItemPageState extends State<AddEditItemPage> {
   double _initialQuantity = 0;
   double _initialThreshold = 0;
 
-  bool get _isEditing => widget.itemId != null;
+  bool get _isEditing => widget.existing != null;
 
   @override
   void initState() {
     super.initState();
 
-    final existing = widget.itemId == null
-        ? null
-        : MockQueries.itemById(widget.itemId!);
+    final existing = widget.existing;
 
     if (existing != null) {
       _nameController.text = existing.name;
@@ -126,12 +209,12 @@ class _AddEditItemPageState extends State<AddEditItemPage> {
     // the inline "+ Créer" row now creates the real record, so there is no
     // second kind of category to keep track of.
     final categories = [
-      for (final c in MockQueries.categoriesForStore(widget.storeId))
+      for (final c in widget.categories)
         DropdownOption(value: c.id, label: c.name),
     ];
 
     final units = [
-      for (final u in MockQueries.unitsForStore(widget.storeId))
+      for (final u in widget.units)
         DropdownOption(
           value: u.id,
           label: u.name,
@@ -139,9 +222,10 @@ class _AddEditItemPageState extends State<AddEditItemPage> {
         ),
     ];
 
-    final unitAbbreviation = _unitId == null
-        ? ''
-        : MockQueries.unitAbbreviationOf(_unitId!);
+    var unitAbbreviation = '';
+    for (final unit in widget.units) {
+      if (unit.id == _unitId) unitAbbreviation = unit.abbreviation;
+    }
 
     return FormScaffold(
       title: _isEditing ? l10n.editItemTitle : l10n.addItemTitle,
@@ -364,22 +448,24 @@ class _AddEditItemPageState extends State<AddEditItemPage> {
     AppSnackBar.success(context, AppLocalizations.of(context).unitCreated);
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     final l10n = AppLocalizations.of(context);
+    final items = ref.read(itemRepositoryProvider);
 
     // Uniqueness is checked here rather than on every keystroke, and against
     // the other items of *this store* only — two shops can stock the same
     // product, and a barcode collision across them is not a collision.
     final barcode = _barcodeController.text.trim();
     if (barcode.isNotEmpty) {
-      final conflict = MockQueries.barcodeConflict(
+      final conflict = await items.barcodeConflict(
         widget.storeId,
         barcode,
         // Excluding the item being edited is what lets somebody save an item
         // with its own barcode unchanged. Without it every edit would fail
         // against itself.
-        excludingItemId: widget.itemId,
+        excludingItemId: widget.existing?.id,
       );
+      if (!mounted) return;
       if (conflict != null) {
         setState(() => _barcodeConflictName = conflict.name);
         return;
@@ -389,8 +475,8 @@ class _AddEditItemPageState extends State<AddEditItemPage> {
     final note = _noteController.text.trim();
 
     if (_isEditing) {
-      ItemMutations.update(
-        widget.itemId!,
+      await items.update(
+        widget.existing!.id,
         name: _nameController.text.trim(),
         categoryId: _categoryId,
         unitId: _unitId,
@@ -401,7 +487,7 @@ class _AddEditItemPageState extends State<AddEditItemPage> {
         clearNote: note.isEmpty,
       );
     } else {
-      final created = ItemMutations.create(
+      final created = await items.create(
         storeId: widget.storeId,
         name: _nameController.text.trim(),
         categoryId: _categoryId!,
@@ -412,9 +498,7 @@ class _AddEditItemPageState extends State<AddEditItemPage> {
         // Blank, or something that is not a number yet, leaves the cost
         // unknown. Never blocks the save: an article is worth having in the
         // catalogue even when nobody remembers what it cost.
-        openingUnitCost: Formatters.parseDecimal(
-          _openingCostController.text,
-        ),
+        openingUnitCost: Formatters.parseDecimal(_openingCostController.text),
         lowStockThreshold: _threshold,
         barcode: barcode.isEmpty ? null : barcode,
         note: note.isEmpty ? null : note,
@@ -422,6 +506,7 @@ class _AddEditItemPageState extends State<AddEditItemPage> {
       if (created == null) return;
     }
 
+    if (!mounted) return;
     AppSnackBar.success(
       context,
       _isEditing ? l10n.itemUpdated : l10n.itemCreated,
@@ -431,7 +516,7 @@ class _AddEditItemPageState extends State<AddEditItemPage> {
 
   void _leave() {
     if (_isEditing) {
-      context.pushScreen(Routes.toItem(widget.storeId, widget.itemId!));
+      context.pushScreen(Routes.toItem(widget.storeId, widget.existing!.id));
     } else {
       context.goSection(Routes.toInventory(widget.storeId));
     }
