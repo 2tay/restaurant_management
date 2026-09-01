@@ -303,18 +303,19 @@ record(
     'items.quantity or items.averageCost changed without a movement',
 )
 
-# --- The employee identity tables have one writer each ------------------------
+# --- The Gestion Employée tables have one writer each -------------------------
 # Same single-writer rule as stock quantity, for the aggregates Phase 2 employé
-# moves onto the database. `employees` may only be written by
-# `employee_repository.dart`; `employee_credentials` only by
-# `credential_repository.dart`. That keeps CIN / email uniqueness in one place
-# and the failed-attempt / lockout state machine in another, rather than spread
-# across whatever screen felt like touching a companion.
+# moves onto the database. Each table is written by exactly one repository, so
+# its invariants — CIN / email uniqueness, the lockout state machine, the
+# pointage transitions, the frozen payroll rate — live in one place rather than
+# spread across whatever screen felt like touching a companion.
 #
 # Each aggregate's mapper is allowed — it is how a whole record becomes a row,
 # and the seed and the repository both go through it without deciding anything
-# there. Same exemption `item_mapper.dart` gets above.
-IDENTITY_WRITERS = {
+# there. Same exemption `item_mapper.dart` gets above. `attendance_repository`
+# is allowed to write `AttendancesCompanion` because it owns both the pointage
+# and the `payrollPeriodId` lock that `PayrollRepository.pay` calls into.
+SINGLE_WRITER_COMPANIONS = {
     'EmployeesCompanion': (
         'lib/data/repositories/employee_repository.dart',
         'lib/data/mappers/employee_mapper.dart',
@@ -323,10 +324,22 @@ IDENTITY_WRITERS = {
         'lib/data/repositories/credential_repository.dart',
         'lib/data/mappers/credential_mapper.dart',
     ),
+    'AttendancesCompanion': (
+        'lib/data/repositories/attendance_repository.dart',
+        'lib/data/mappers/attendance_mapper.dart',
+    ),
+    'AttendancePausesCompanion': (
+        'lib/data/repositories/attendance_repository.dart',
+        'lib/data/mappers/attendance_mapper.dart',
+    ),
+    'PayrollPeriodsCompanion': (
+        'lib/data/repositories/payroll_repository.dart',
+        'lib/data/mappers/payroll_mapper.dart',
+    ),
 }
 
-identity_writes = []
-for companion, allowed in IDENTITY_WRITERS.items():
+employee_table_writes = []
+for companion, allowed in SINGLE_WRITER_COMPANIONS.items():
     marker = re.compile(r'\b' + companion + r'(?:\.insert)?\(')
     for path in dart_files(*ROOTS, 'lib/data'):
         if path in allowed:
@@ -335,11 +348,11 @@ for companion, allowed in IDENTITY_WRITERS.items():
             if line.strip().startswith('//'):
                 continue
             if marker.search(line):
-                identity_writes.append(f'{path}:{line_no}  {line.strip()}')
+                employee_table_writes.append(f'{path}:{line_no}  {line.strip()}')
 record(
-    'employee identity tables written outside their repository',
-    identity_writes,
-    'employees or employee_credentials changed outside its single writer',
+    'Gestion Employée tables written outside their repository',
+    employee_table_writes,
+    'an employee-module table changed outside its single writer',
 )
 
 # --- Product code never imports the dev gallery -------------------------------

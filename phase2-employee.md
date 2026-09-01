@@ -607,6 +607,46 @@ already take an `Attendance` object; they now get one built from rows. Delete th
 
 **Done when:** ported suite green, original deleted, the concurrency test proven.
 
+### As built
+
+Stage 5 is done. `attendance_repository.dart` grew its write half (`clockIn`, `startPause`,
+`endPause`, `clockOut`, `lockForPayroll` + a private `_mutate` helper); `test/attendance_test.dart`
+(23) → `test/db/attendance_test.dart` (21), original deleted. 730 green (732 → 730 — the
+ported suite carries two fewer, the mock-reset test dropped and the derivation groups
+unchanged).
+
+**1. `_mutate` wraps every transition in `_db.transaction`.** The three state changes
+(`startPause` / `endPause` / `clockOut`) share one helper: it opens a transaction, reads the
+row, refuses if it is missing or `payrollPeriodId`-locked, runs the caller's transition
+(which does its own child writes and returns the new status), and writes the status only if
+it changed. `clockIn` is separate — it inserts rather than transitions — but also wraps its
+existence-check-then-insert in a transaction.
+
+**2. The concurrency test's teeth are the `(attendanceId, position)` unique index, not a
+double append.** Two `startPause` futures on one row, raced with `Future.wait`. With the
+`_db.transaction` in place drift serialises them: the first appends position 0 and flips the
+day to `onBreak`, the second re-reads inside its own transaction, sees `onBreak`, and
+refuses — one pause. Swap the transaction for `Future.sync` and both reads see count 0, both
+insert position 0, and the Stage 1 unique index throws `SqliteException(2067)`. Proven by
+that swap, reverted.
+
+**3. `paymentStatus` is never written.** `lockForPayroll` stamps only `payrollPeriodId`; the
+mapper derives `paid` / `unpaid` from the FK (Stage 1 decision). So the "flip it too" clause
+in the plan is a no-op — there is nothing else to flip.
+
+**4. `_pauseCount` is a `selectOnly` aggregate**, not `rows.length` over a fetched list —
+the count is all `startPause` needs for the next position.
+
+**5. `ux_audit.py`: `IDENTITY_WRITERS` → `SINGLE_WRITER_COMPANIONS`.** The guard now also
+pins `AttendancesCompanion` / `AttendancePausesCompanion` to `attendance_repository.dart`
+(+ its mapper) and `PayrollPeriodsCompanion` to `payroll_repository.dart` (+ its mapper) —
+written now while the write paths are being built, ahead of Stage 6 actually using the
+payroll one.
+
+**Verified at the stage boundary:** `flutter analyze` clean; `flutter test` 730/730 green;
+`python tool/ux_audit.py` clean; `dart run build_runner build --force-jit` regenerates
+identically.
+
 ---
 
 ## Stage 6 — The payroll repository *(L — the hardest stage)*

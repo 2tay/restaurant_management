@@ -5,6 +5,7 @@ import '../../models/attendance.dart';
 import '../../models/store_settings.dart';
 import '../database/app_database.dart';
 import '../mappers/mappers.dart';
+import 'new_id.dart';
 import 'store_repository.dart';
 
 /// The KPI figures above the Historique de pointage table.
@@ -27,9 +28,14 @@ typedef AttendancePage = ({
 /// The pointage — attendance rows, their pauses, and the figures derived from
 /// the two.
 ///
-/// Reads only in this stage; `clockIn` / `startPause` / `endPause` / `clockOut`
-/// / `lockForPayroll` land in stage 5, along with the `ux_audit.py` guard that
-/// only this file and `payroll_repository.dart` may write `attendances`.
+/// **The only file that writes `attendances` and `attendance_pauses`**, the same
+/// single-writer discipline every other aggregate keeps; `ux_audit.py` enforces
+/// it. `PayrollRepository.pay` reaches the `payrollPeriodId` lock through
+/// [lockForPayroll] here rather than writing the column itself.
+///
+/// Every write refuses the wrong prior state (returns `null` / `false`) rather
+/// than coercing it, and **refuses any write against a day a payroll run has
+/// locked** — a paid day is immutable.
 ///
 /// **The clock is injected.** "Today" is resolved when a query runs, and a test
 /// pins it between two calls. [clock] defaults to `DateTime.now`; the provider
@@ -197,6 +203,166 @@ class AttendanceRepository {
       overtime: overtime,
       lateBreaks: lateBreaks,
     );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Writes
+  // ---------------------------------------------------------------------------
+
+  /// `Pointer`. Creates the day's `working` row. Refuses (returns null) if one
+  /// already exists for this employee today — one row per employee per calendar
+  /// day, which the `(employeeId, date)` unique index also enforces.
+  Future<Attendance?> clockIn(
+    String employeeId,
+    String storeId, {
+    DateTime? now,
+  }) {
+    final at = now ?? _clock();
+    final day = _dayOf(at);
+
+    return _db.transaction(() async {
+      final existing = await (_db.select(_db.attendances)..where(
+            (a) => a.employeeId.equals(employeeId) & a.date.equals(day),
+          ))
+          .getSingleOrNull();
+      if (existing != null) return null;
+
+      final entry = Attendance(
+        id: newId(),
+        storeId: storeId,
+        employeeId: employeeId,
+        date: day,
+        status: AttendanceStatus.working,
+        clockInAt: at,
+        pauses: const [],
+        paymentStatus: PaymentStatus.unpaid,
+      );
+      await _db.into(_db.attendances).insert(attendanceToRow(entry));
+      return entry;
+    });
+  }
+
+  /// `Pause`. Refuses unless the day is `working`. Appends a pause row at
+  /// `position = count` and flips the day to `onBreak`. There is no cap — the
+  /// button offers `Pause` again after every `Reprendre`.
+  ///
+  /// The count-then-insert runs inside the transaction, so two Pause taps
+  /// racing each other resolve to exactly one appended break: drift serialises
+  /// the write transactions, the second sees `onBreak` and refuses.
+  Future<Attendance?> startPause(String attendanceId, {DateTime? now}) {
+    return _mutate(attendanceId, (row) async {
+      if (row.status != AttendanceStatus.working) return null;
+
+      final count = await _pauseCount(attendanceId);
+      await _db
+          .into(_db.attendancePauses)
+          .insert(
+            pauseToRow(
+              AttendancePause(startAt: now ?? _clock()),
+              attendanceId: attendanceId,
+              position: count,
+              id: newId(),
+            ),
+          );
+      return AttendanceStatus.onBreak;
+    });
+  }
+
+  /// `Reprendre`. Refuses unless the day is `onBreak` with an open break.
+  /// Closes that break and flips the day back to `working`.
+  Future<Attendance?> endPause(String attendanceId, {DateTime? now}) {
+    return _mutate(attendanceId, (row) async {
+      if (row.status != AttendanceStatus.onBreak) return null;
+
+      final open =
+          await (_db.select(_db.attendancePauses)
+                ..where(
+                  (p) => p.attendanceId.equals(attendanceId) & p.endAt.isNull(),
+                )
+                ..orderBy([(p) => OrderingTerm(expression: p.position)]))
+              .get();
+      if (open.isEmpty) return null;
+
+      await (_db.update(_db.attendancePauses)
+            ..where((p) => p.id.equals(open.first.id)))
+          .write(AttendancePausesCompanion(endAt: Value(now ?? _clock())));
+      return AttendanceStatus.working;
+    });
+  }
+
+  /// `Fin de journée`. Refuses unless the day is `working` — in particular it
+  /// refuses while `onBreak`, so nobody clocks out mid-break.
+  Future<Attendance?> clockOut(String attendanceId, {DateTime? now}) {
+    return _mutate(attendanceId, (row) async {
+      if (row.status != AttendanceStatus.working) return null;
+      await (_db.update(_db.attendances)
+            ..where((a) => a.id.equals(attendanceId)))
+          .write(AttendancesCompanion(clockOutAt: Value(now ?? _clock())));
+      return AttendanceStatus.done;
+    });
+  }
+
+  /// Locks a set of finished days against a payroll run — stamps
+  /// [payrollPeriodId] on each. **Called only by `PayrollRepository.pay`**,
+  /// inside its transaction, so the attendance rows still have exactly one
+  /// writer.
+  ///
+  /// Refuses the whole call (returns false, touches nothing) if any id is
+  /// missing or already points at a period. `paymentStatus` is derived from the
+  /// FK, so there is nothing else to flip.
+  Future<bool> lockForPayroll(
+    Iterable<String> attendanceIds,
+    String payrollPeriodId,
+  ) {
+    final ids = attendanceIds.toList();
+    return _db.transaction(() async {
+      final rows = await (_db.select(
+        _db.attendances,
+      )..where((a) => a.id.isIn(ids))).get();
+
+      if (rows.length != ids.length) return false;
+      if (rows.any((r) => r.payrollPeriodId != null)) return false;
+
+      await (_db.update(_db.attendances)..where((a) => a.id.isIn(ids))).write(
+        AttendancesCompanion(payrollPeriodId: Value(payrollPeriodId)),
+      );
+      return true;
+    });
+  }
+
+  /// Applies [transition] to the row and writes the resulting status, or returns
+  /// null when the row is missing, locked by payroll, or [transition] itself
+  /// refuses (wrong prior state — it returns null). [transition] does its own
+  /// child writes (the pause insert / close) and hands back the new status.
+  Future<Attendance?> _mutate(
+    String attendanceId,
+    Future<AttendanceStatus?> Function(AttendanceRow row) transition,
+  ) {
+    return _db.transaction(() async {
+      final row = await (_db.select(
+        _db.attendances,
+      )..where((a) => a.id.equals(attendanceId))).getSingleOrNull();
+      if (row == null) return null;
+      if (row.payrollPeriodId != null) return null;
+
+      final status = await transition(row);
+      if (status == null) return null;
+
+      if (status != row.status) {
+        await (_db.update(_db.attendances)
+              ..where((a) => a.id.equals(attendanceId)))
+            .write(AttendancesCompanion(status: Value(status)));
+      }
+      return attendance(attendanceId);
+    });
+  }
+
+  Future<int> _pauseCount(String attendanceId) async {
+    final count = _db.attendancePauses.id.count();
+    final query = _db.selectOnly(_db.attendancePauses)
+      ..addColumns([count])
+      ..where(_db.attendancePauses.attendanceId.equals(attendanceId));
+    return (await query.getSingle()).read(count) ?? 0;
   }
 
   // ---------------------------------------------------------------------------
