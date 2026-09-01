@@ -15,5 +15,6 @@ export 'movement_repository.dart';
 export 'order_repository.dart';
 export 'payroll_repository.dart';
 export 'report_repository.dart';
+export 'session_repository.dart';
 export 'store_repository.dart';
 export 'supplier_repository.dart';

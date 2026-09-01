@@ -196,6 +196,43 @@ class StoreRepository {
     });
   }
 
+  /// Edits the pointage / paie settings — opening hours, the break allowance,
+  /// the payroll coefficients. One `UPDATE stores`.
+  ///
+  /// A field left null keeps its current value. A nonsense value (a negative
+  /// number, a time of day outside 0–1439, a multiplier below 1) is **ignored,
+  /// not refused** — the same forgiving stance the settings screen takes, where
+  /// a half-typed field should not block the save of the rest. The
+  /// stale-order threshold has its own method ([setStalePartialOrderDays])
+  /// because that one does refuse.
+  Future<StoreSettings> updateStoreSettings(
+    String storeId, {
+    int? openMinutes,
+    int? closeMinutes,
+    int? maxBreakMinutes,
+    double? overtimeMultiplier,
+    int? workingDaysPerMonth,
+  }) async {
+    Value<int> time(int? m) => m != null && m >= 0 && m < 24 * 60
+        ? Value(m)
+        : const Value.absent();
+    Value<int> count(int? n) =>
+        n != null && n > 0 ? Value(n) : const Value.absent();
+
+    await (_db.update(_db.stores)..where((s) => s.id.equals(storeId))).write(
+      StoresCompanion(
+        openMinutes: time(openMinutes),
+        closeMinutes: time(closeMinutes),
+        maxBreakMinutes: count(maxBreakMinutes),
+        overtimeMultiplier: overtimeMultiplier != null && overtimeMultiplier >= 1
+            ? Value(overtimeMultiplier)
+            : const Value.absent(),
+        workingDaysPerMonth: count(workingDaysPerMonth),
+      ),
+    );
+    return settings(storeId);
+  }
+
   /// Sets how long a `partial` commande may sit before the dashboard flags it.
   ///
   /// Refuses a non-positive number rather than storing it: zero days would flag

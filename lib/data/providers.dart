@@ -61,3 +61,8 @@ final Provider<ReportRepository> reportRepositoryProvider =
 
 final Provider<DemoRepository> demoRepositoryProvider =
     Provider<DemoRepository>((ref) => DemoRepository(ref.watch(databaseProvider)));
+
+final Provider<SessionRepository> sessionRepositoryProvider =
+    Provider<SessionRepository>(
+      (ref) => SessionRepository(ref.watch(databaseProvider)),
+    );

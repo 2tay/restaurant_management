@@ -764,6 +764,42 @@ sign you out — Phase 3's problem).
 
 **Done when:** settings persist, the session round-trips, the data layer is complete.
 
+### As built
+
+Stage 7 is done. `store_repository.dart` grew `updateStoreSettings`; new
+`session_repository.dart` and `lib/data/current_employee.dart`; `providers.dart` gains
+`sessionRepositoryProvider`. New `test/db/store_settings_test.dart` (11 tests). Full suite
+green.
+
+**1. `updateStoreSettings` builds one `StoresCompanion` where "leave" and "reject" are both
+`Value.absent()`.** A field left null, and a field given a nonsense value (negative, a time
+≥ 1440, a multiplier < 1), produce the same result — the column is untouched — so one
+`UPDATE stores` covers both and the method never needs to read the row first. It returns
+`settings(storeId)` (the freshly-read record) rather than a hand-merged one. The
+stale-order threshold keeps its own `setStalePartialOrderDays`, which *does* refuse.
+
+**2. `SessionRepository` owns `meta.currentEmployeeId` — the only writer.** `signIn` wraps
+the resolve + two `meta` writes in a transaction and also refreshes
+`meta.currentUserName` to the employee's display name, so the string every movement is
+stamped with tracks the session instead of staying whatever the seed wrote. `signOut`
+drops only `currentEmployeeId` and leaves the last name in place (better attribution than
+an empty string for a stray post-logout write). An unknown id writes nothing and returns
+null.
+
+**3. `currentEmployeeProvider` is a `Notifier<Employee?>` whose `build()` returns null.**
+The signed-out state is the default; `hydrate()` resolves the stored session into `state`
+and is idempotent (safe to call again after a demo reset). `signIn` / `signOut` write the
+`meta` row through `SessionRepository` **and** move `state` in one step. `main()` and the
+widget-test fixtures call `hydrate()` before the first frame (Stage 8), so `_guard`'s
+`ref.read` never sees a loading value — that wiring, and the guard cutover, are Stage 8.
+
+**4. `session_repository` needs no `package:drift/drift.dart` import** — `app_database.dart`
+re-exports it, and `unused_import` is an error here.
+
+**Verified at the stage boundary:** `flutter analyze` clean; `flutter test` green;
+`python tool/ux_audit.py` clean; `dart run build_runner build --force-jit` regenerates
+identically.
+
 ---
 
 ## Stage 8 — Provider layer *(M)*
