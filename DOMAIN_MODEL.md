@@ -62,8 +62,9 @@ Models that carry `storeId`: `Item`, `Category`, `UnitOfMeasure`, `Supplier`,
 Models that do **not** carry `storeId` (they inherit it from their parent):
 `SupplierPrice`, `PriceHistoryEntry`, `PurchaseOrderLine`, `GoodsReceiptLine`.
 
-`TeamMember` is different: it holds a **list** of `storeIds`, because one person
-can work in several stores.
+`Employee` carries a single `storeId` — one person belongs to one store.
+Multi-store is the owner's concern only: an owner creates stores and switches
+between them by navigation.
 
 ---
 
@@ -694,26 +695,30 @@ honest.
 
 ## Step 13 — Supporting models
 
-**`TeamMember`** — someone with access.
+**`Employee`** — someone with access. The Gestion Employée module (roster,
+pointage, paie, CIN + PIN auth) owns it in full; see
+`.claude/phase_gestion_employee.md` and `phase2-employee.md`. In brief:
 
 | Field | Meaning |
 |---|---|
-| `fullName`, `email` | who; email is unique across the team |
+| `firstName`, `lastName`, `cin`, `email` | who; `cin` and `email` are unique account-wide, `cin` is the login id |
+| `storeId` | the one store this person belongs to |
 | `role` | `owner`, `manager` or `staff` |
-| `storeIds` | which stores they can see (an owner holds all of them) |
-| `isActive` | false while an invitation is still outstanding |
-| `invitedAt`, `lastActiveAt` | timeline |
+| `contractType` | `fixed` (Salarié fixe) or `extra` |
+| `pay` | monthly salary (fixed) or hourly rate (extra) |
+| `scheduledStartMinutes` / `scheduledEndMinutes` | a personal schedule override, null = use store hours |
+| `archivedAt` | soft delete — the only delete; history is left untouched |
 
 | Role | Can do |
 |---|---|
-| `owner` | everything on every store, including billing and team |
-| `manager` | everything on their assigned stores, except account settings |
-| `staff` | record deliveries and usage, read inventory. No deleting items, no supplier management, no reports |
+| `owner` | everything on every store, including account settings and payroll |
+| `manager` | the pointage board and its history on their store; not the roster, payroll or store settings |
+| `staff` | no app access — they clock in at the kiosk, nothing more |
 
 Only three roles on purpose: a restaurant is not an enterprise, and a
-permissions matrix nobody understands is worse than none. The app also refuses
-to remove the last `owner` — an account nobody can administer is not a state
-worth being able to reach by accident.
+permissions matrix nobody understands is worse than none. Login secrets live in
+a separate `EmployeeCredential` (fake PIN hash, lockout counters) — Phase 3 owns
+real auth.
 
 **`NotificationItem`** — one entry in the notification centre.
 Kinds: `lowStock`, `outOfStock`, `priceChange`, `largeAdjustment`, `delivery`.
@@ -734,9 +739,9 @@ never happens inside a widget.
                           └────┬────┘
         ┌──────────────┬───────┼────────┬──────────────┐
         │              │       │        │              │
-   ┌────▼─────┐  ┌─────▼────┐  │  ┌─────▼────┐   ┌─────▼──────┐
-   │ Category │  │   Unit   │  │  │ Supplier │   │ TeamMember │
-   └────┬─────┘  └─────┬────┘  │  └─────┬────┘   └────────────┘
+   ┌────▼─────┐  ┌─────▼────┐  │  ┌─────▼────┐   ┌─────▼─────┐
+   │ Category │  │   Unit   │  │  │ Supplier │   │ Employee  │
+   └────┬─────┘  └─────┬────┘  │  └─────┬────┘   └───────────┘
         │              │       │        │
         └──────┬───────┘       │        │
                │               │        │
@@ -813,9 +818,10 @@ never happens inside a widget.
 | Supplier and price reads and writes | `lib/data/repositories/supplier_repository.dart` |
 | Article reads and writes | `lib/data/repositories/item_repository.dart` |
 | Category and unit reads and writes | `lib/data/repositories/catalog_repository.dart` |
-| Establishment reads and writes | `lib/data/repositories/store_repository.dart` |
-| Team and notifications | `lib/data/repositories/account_repository.dart` |
+| Establishment reads and writes, plus its pointage / paie settings | `lib/data/repositories/store_repository.dart` |
+| Notifications | `lib/data/repositories/account_repository.dart` |
 | Derived figures for the reports | `lib/data/repositories/report_repository.dart` |
+| Employees, credentials, pointage, paie, the session | `lib/data/repositories/{employee,credential,attendance,payroll,session}_repository.dart` |
 | What one screen needs, in one query | `lib/data/view_models/` |
 | The bridge to the widgets | `lib/data/providers.dart` |
 | The demo dataset | `lib/data/seed/dataset/` |
