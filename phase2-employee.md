@@ -695,6 +695,48 @@ moves to Stage 9. Delete the original.
 Stage 6 the entire employee data layer is done and tested, and the app still runs on
 mocks** — same deliberate low-risk boundary as `phase2.md` stage 7.
 
+### As built
+
+Stage 6 is done. `payroll_repository.dart` grew `preview`, `pay`, `_payableDays` and a
+private `_PayrollAborted` sentinel; `days`, `page`, `forEmployee` already landed in Stage 3.
+`test/payroll_test.dart` (mock, ~24) → `test/db/payroll_test.dart` (20), original deleted.
+Full suite green.
+
+**1. `pay` is one `_db.transaction`, rolled back through a private exception.** drift commits
+a transaction callback that returns normally, so the "a day slipped to paid" branch cannot
+just `return null` after the period row is already inserted — it `throw const _PayrollAborted()`,
+which `pay` catches outside the transaction and turns into `null`. The period insert and any
+partial lock go back with it. Same posture as `order_repository.confirmReceipt`'s
+`StateError`, with a named type because this one is expected rather than a bug.
+
+**2. The period row is inserted *before* `lockForPayroll`, not after.** The mock locked first
+then appended the period to a list; here `attendances.payrollPeriodId` is a `RESTRICT` FK
+into `payroll_periods`, so the period must exist before a day can point at it. Order: insert
+period → `AttendanceRepository(_db).lockForPayroll(dayIds, period.id)` in the same
+transaction (a savepoint) → on `false`, abort.
+
+**3. The concurrency test's teeth are a duplicate period, not a stranded one.** Two `pay`
+futures for the same range, raced with `Future.wait`. With the transaction: drift serialises
+them, the first locks both days, the second's `_payableDays` comes back empty and it returns
+null — one period. Swap `_db.transaction` for `Future.sync` and both `_payableDays` reads see
+two unpaid days, both insert a period, both `lockForPayroll` run — two `paid` periods for the
+same two days, 208 € each. Proven by that swap, reverted.
+
+**4. `_payableDays` filters `payrollPeriodId IS NULL` in SQL**, takes the hire-date floor and
+the `from`/`to` bounds in Dart after `_assemble` attaches the pauses (`periodTotals` /
+`periodAmount` need them), sorts `date` descending. It takes `hireDate` as a parameter rather
+than re-reading the employee — `preview` and `pay` both already hold the row.
+
+**5. The mock-reset test was dropped, not ported** ("reset restores both mockPayrollPeriods
+and the day locks") — `db_fixture` gives every test its own database. The `payrollDays` group
+overlaps `employee_queries_test.dart`'s `days` tests but comes at it from the other side
+(injected rows and behaviour, not equality with `MockQueries`), so both stay.
+
+**Verified at the stage boundary:** `flutter analyze` clean; `flutter test` green;
+`python tool/ux_audit.py` clean; `dart run build_runner build --force-jit` regenerates
+identically. **The entire employee data layer is now done and tested; the app still runs on
+mocks.**
+
 ---
 
 ## Stage 7 — Store settings and the session *(S)*
