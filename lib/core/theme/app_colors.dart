@@ -80,6 +80,17 @@ abstract final class AppColors {
     container: Color(0xFFFADEDE),
   );
 
+  /// The pointage "en pause" colour. Deliberately in the teal family rather
+  /// than amber: on the kiosk board a break is a normal, benign state, not a
+  /// warning, and the redesign asks for the primary accent here. It is a tinted
+  /// badge (container + dark teal text), never a filled teal surface, so it
+  /// does not compete with the one teal *action* per card.
+  static const StockStatusColors onBreak = StockStatusColors(
+    solid: primary600,
+    foreground: onPrimaryContainer,
+    container: primaryContainer,
+  );
+
   // ---------------------------------------------------------------------------
   // Feedback — snackbars, banners, form validation.
   // ---------------------------------------------------------------------------

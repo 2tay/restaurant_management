@@ -601,6 +601,14 @@ ligne = `notClockedIn` (jamais stocké).
   la place) : sur un écran partagé près de la porte, il ne doit pas se lire par
   dessus l'épaule. Le CIN reste visible sur les écrans admin (liste employés,
   historique) qui sont derrière la connexion.
+- **Cartes centrées + sélecteur.** Refonte UI : chaque carte est centrée
+  (avatar, nom, rôle, statut), les actions collées en bas ; `Pointer` est un
+  bouton **outline neutre** (pas d'accent), `Pause` / `Reprendre` portent le
+  **teal primary** (une action par carte), `Fin de journée` et `Terminé` le
+  fond neutre. Le champ de recherche est remplacé par `EmployeeSelector`
+  (`shared/widgets/employee_selector.dart`) : combobox nom/CIN partagé avec les
+  deux historiques ; sur le kiosque `showCin: false`. Le statut « en pause »
+  passe de l'ambre au teal (`AppColors.onBreak`).
 - **Journée verrouillée = immuable.** Le helper privé `_mutate`
   (`attendance_repository.dart:337`) ouvre la transaction, lit la ligne, et refuse
   (`null`) si elle est absente **ou** si `payrollPeriodId != null`. `startPause` /
@@ -861,6 +869,7 @@ des secrets.
 | Repositories | `lib/data/repositories/{employee,credential,attendance,payroll,session,store}_repository.dart` |
 | Photo employé (fichiers) | `lib/data/employee_photo_store.dart`, `employeePhotoImage()` dans `lib/shared/widgets/employee_avatar.dart` |
 | Dialog CIN (kiosque + paie) | `lib/shared/widgets/identity_prompt_dialog.dart` ; `CredentialRepository.verifyCin` |
+| Sélecteur d'employé (combobox) | `lib/shared/widgets/employee_selector.dart` — kiosque + historiques |
 | Session (Notifier) | `lib/data/current_employee.dart` |
 | Providers | `lib/data/providers.dart` |
 | Seed de démo | `lib/data/seed/demo_seed.dart` |

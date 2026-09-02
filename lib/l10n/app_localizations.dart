@@ -232,6 +232,12 @@ abstract class AppLocalizations {
   /// **'Fermer'**
   String get actionClose;
 
+  /// Clears a selection, e.g. the chosen employee in a selector.
+  ///
+  /// In fr, this message translates to:
+  /// **'Effacer'**
+  String get actionClear;
+
   /// Generic confirm button in a non-destructive dialog.
   ///
   /// In fr, this message translates to:
@@ -3735,6 +3741,12 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Rechercher (nom, CIN)'**
   String get employeesSearchHint;
+
+  /// Placeholder shown in the closed EmployeeSelector combobox when nothing is picked.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rechercher ou sélectionner un employé…'**
+  String get employeeSelectorHint;
 
   /// Toggle on the roster. Off by default, matching items and suppliers defaulting to what is currently usable.
   ///

@@ -23,6 +23,7 @@ export 'date_field.dart';
 export 'empty_state.dart';
 export 'employee_avatar.dart';
 export 'employee_role_badge.dart';
+export 'employee_selector.dart';
 export 'error_state.dart';
 export 'filter_menu.dart';
 export 'filter_pill.dart';

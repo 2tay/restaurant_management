@@ -78,6 +78,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get actionClose => 'Fermer';
 
   @override
+  String get actionClear => 'Effacer';
+
+  @override
   String get actionConfirm => 'Confirmer';
 
   @override
@@ -2281,6 +2284,9 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get employeesSearchHint => 'Rechercher (nom, CIN)';
+
+  @override
+  String get employeeSelectorHint => 'Rechercher ou sélectionner un employé…';
 
   @override
   String get employeesShowArchived => 'Afficher les personnels retirés';

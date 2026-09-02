@@ -96,6 +96,10 @@
   "@actionClose": {
     "description": "Closes a dialog or panel."
   },
+  "actionClear": "Effacer",
+  "@actionClear": {
+    "description": "Clears a selection, e.g. the chosen employee in a selector."
+  },
   "actionConfirm": "Confirmer",
   "@actionConfirm": {
     "description": "Generic confirm button in a non-destructive dialog."
@@ -1393,6 +1397,8 @@
   "@employeesAdd": {"description": "Primary action on the roster page."},
   "employeesSearchHint": "Rechercher (nom, CIN)",
   "@employeesSearchHint": {"description": "Placeholder in the roster search field."},
+  "employeeSelectorHint": "Rechercher ou sélectionner un employé…",
+  "@employeeSelectorHint": {"description": "Placeholder shown in the closed EmployeeSelector combobox when nothing is picked."},
   "employeesShowArchived": "Afficher les personnels retirés",
   "@employeesShowArchived": {"description": "Toggle on the roster. Off by default, matching items and suppliers defaulting to what is currently usable."},
   "employeesArchivedPill": "Retiré",

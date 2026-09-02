@@ -54,7 +54,7 @@ class AttendanceStatusBadge extends StatelessWidget {
       container: AppColors.surfaceVariant,
     ),
     AttendanceStatus.working => AppColors.inStock,
-    AttendanceStatus.onBreak => AppColors.lowStock,
+    AttendanceStatus.onBreak => AppColors.onBreak,
     AttendanceStatus.done => const StockStatusColors(
       solid: AppColors.offline,
       foreground: AppColors.offline,
