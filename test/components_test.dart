@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stock_inventory/core/theme/app_theme.dart';
+import 'package:stock_inventory/data/repositories/repositories.dart';
 import 'package:stock_inventory/l10n/app_localizations.dart';
 import 'package:stock_inventory/models/models.dart';
 import 'package:stock_inventory/shared/widgets/widgets.dart';
@@ -375,6 +376,87 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(tapped, isTrue);
+    });
+  });
+
+  group('PinPromptDialog', () {
+    Future<void> open(
+      WidgetTester tester,
+      Future<PinVerification> Function(String pin) verify,
+    ) async {
+      await tester.pumpWidget(
+        _host(
+          Builder(
+            builder: (context) => ElevatedButton(
+              onPressed: () => PinPromptDialog.show(
+                context,
+                title: 'Confirmation',
+                subtitle: 'Pointer · Karim',
+                verify: verify,
+              ),
+              child: const Text('open'),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> submit(WidgetTester tester, String pin) async {
+      await tester.enterText(find.byType(TextField), pin);
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, 'Valider'));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('a wrong PIN keeps the dialog open with the count left', (
+      tester,
+    ) async {
+      await open(
+        tester,
+        (_) async =>
+            const PinVerification(PinCheckResult.wrongPin, attemptsRemaining: 2),
+      );
+      await submit(tester, '9999');
+
+      expect(find.byType(PinPromptDialog), findsOneWidget);
+      expect(find.textContaining('2 tentatives restantes'), findsOneWidget);
+    });
+
+    testWidgets('the right PIN closes the dialog', (tester) async {
+      await open(
+        tester,
+        (_) async => const PinVerification(PinCheckResult.ok),
+      );
+      await submit(tester, '1234');
+
+      expect(find.byType(PinPromptDialog), findsNothing);
+    });
+
+    testWidgets('a locked result disables Valider and shows a countdown', (
+      tester,
+    ) async {
+      final until = DateTime.now().add(const Duration(minutes: 5));
+      await open(
+        tester,
+        (_) async =>
+            PinVerification(PinCheckResult.locked, lockedUntil: until),
+      );
+      await tester.enterText(find.byType(TextField), '9999');
+      await tester.pump();
+      await tester.tap(find.widgetWithText(FilledButton, 'Valider'));
+      await tester.pump();
+
+      expect(find.textContaining('Réessayez dans'), findsOneWidget);
+      final valider = tester.widget<FilledButton>(
+        find.widgetWithText(FilledButton, 'Valider'),
+      );
+      expect(valider.onPressed, isNull);
+
+      // Close it so the countdown Timer is disposed before the test ends.
+      await tester.tap(find.widgetWithText(TextButton, 'Annuler'));
+      await tester.pumpAndSettle();
     });
   });
 }

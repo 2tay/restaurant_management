@@ -63,6 +63,14 @@ dependencies:
   # counter, which collides across restarts the moment data persists.
   uuid: ^4.6.0
 
+  # Employee photos. `file_picker` opens the OS file dialog to choose an image;
+  # `path_provider` (already transitive via drift_flutter, promoted to a direct
+  # dependency) gives the app-support directory the picked file is copied into.
+  # See lib/data/employee_photo_store.dart.
+  file_picker: ^12.1.3
+  path_provider: ^2.1.6
+  path: ^1.9.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

@@ -2324,8 +2324,14 @@ class AppLocalizationsFr extends AppLocalizations {
   String get employeeFormPhotoAction => 'Choisir une photo';
 
   @override
-  String get employeeFormPhotoMockNotice =>
-      'Le choix de photo n\'est pas encore disponible dans cette version.';
+  String get employeeFormPhotoReplace => 'Remplacer la photo';
+
+  @override
+  String get employeeFormPhotoRemove => 'Supprimer';
+
+  @override
+  String get employeeFormPhotoReadError =>
+      'Impossible de lire ce fichier image.';
 
   @override
   String get employeeFormFirstName => 'Prénom';
@@ -3016,4 +3022,44 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get storeSettingsRetroWarningConfirm => 'Changer quand même';
+
+  @override
+  String get pinPromptTitle => 'Confirmation par code PIN';
+
+  @override
+  String get pinPromptField => 'Code PIN';
+
+  @override
+  String get pinPromptValidate => 'Valider';
+
+  @override
+  String pinPromptWrong(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count tentatives restantes.',
+      one: '1 tentative restante.',
+      zero: 'Compte verrouillé.',
+    );
+    return 'Code incorrect. $_temp0';
+  }
+
+  @override
+  String pinPromptLocked(String time) {
+    return 'Trop de tentatives. Réessayez dans $time.';
+  }
+
+  @override
+  String get pinPromptNoPin =>
+      'Aucun code PIN n\'est défini pour cette personne.';
+
+  @override
+  String pinPromptPointageSubtitle(String action, String name) {
+    return '$action · $name';
+  }
+
+  @override
+  String pinPromptPayrollSubtitle(String name) {
+    return 'Valider le paiement de $name';
+  }
 }

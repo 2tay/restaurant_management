@@ -29,6 +29,44 @@ Future<AppDatabase> _openPayroll(
   return db;
 }
 
+/// Answers the PIN dialog that guards "Payer". Marc (the signed-in owner)
+/// carries the seeded PIN `1234`.
+Future<void> _enterPin(WidgetTester tester, String pin) async {
+  await tester.enterText(
+    find.descendant(
+      of: find.byType(AlertDialog),
+      matching: find.byType(TextField),
+    ),
+    pin,
+  );
+  await tester.pumpAndSettle();
+  await tester.tap(
+    find.descendant(
+      of: find.byType(AlertDialog),
+      matching: find.widgetWithText(FilledButton, 'Valider'),
+    ),
+  );
+  await tester.pumpAndSettle();
+}
+
+Future<void> _confirmPay(WidgetTester tester) async {
+  final payButton = find.widgetWithText(PrimaryButton, 'Payer');
+  await tester.ensureVisible(payButton);
+  await tester.pumpAndSettle();
+  await tester.tap(payButton);
+  await tester.pumpAndSettle();
+
+  // Confirmation dialog names the employee.
+  expect(find.textContaining('Payer Karim Haddouch'), findsOneWidget);
+  await tester.tap(
+    find.descendant(
+      of: find.byType(AlertDialog),
+      matching: find.widgetWithText(FilledButton, 'Payer'),
+    ),
+  );
+  await tester.pumpAndSettle();
+}
+
 Future<void> _pickKarim(WidgetTester tester) async {
   // The employee picker is a searchable dropdown: open it, filter to Karim,
   // then tap the single remaining menu entry (scoped to the menu so the table
@@ -83,7 +121,7 @@ void main() {
     }
   });
 
-  testApp('"Payer" confirms, then flips the unpaid days to paid',
+  testApp('"Payer" confirms, asks for the PIN, then flips the days to paid',
       (tester) async {
     final db = await _openPayroll(tester);
     await _pickKarim(tester);
@@ -94,26 +132,32 @@ void main() {
       PaymentStatus.unpaid,
     );
 
-    final payButton = find.widgetWithText(PrimaryButton, 'Payer');
-    await tester.ensureVisible(payButton);
-    await tester.pumpAndSettle();
-    await tester.tap(payButton);
-    await tester.pumpAndSettle();
+    await _confirmPay(tester);
 
-    // Confirmation dialog names the employee.
-    expect(find.textContaining('Payer Karim Haddouch'), findsOneWidget);
-    await tester.tap(
-      find.descendant(
-        of: find.byType(AlertDialog),
-        matching: find.widgetWithText(FilledButton, 'Payer'),
-      ),
-    );
-    await tester.pumpAndSettle();
+    // The PIN dialog stands between the confirmation and the write.
+    expect(find.text('Code PIN'), findsOneWidget);
+    await _enterPin(tester, '1234');
 
     expect(find.text('Paiement enregistré'), findsOneWidget);
     expect(
       (await attendance.attendance(AttendanceIds.karim1))!.paymentStatus,
       PaymentStatus.paid,
+    );
+  });
+
+  testApp('a wrong PIN leaves the days unpaid', (tester) async {
+    final db = await _openPayroll(tester);
+    await _pickKarim(tester);
+
+    await _confirmPay(tester);
+    await _enterPin(tester, '0000');
+
+    // Dialog stays open, days untouched.
+    expect(find.textContaining('tentative'), findsOneWidget);
+    expect(
+      (await AttendanceRepository(db).attendance(AttendanceIds.karim1))!
+          .paymentStatus,
+      PaymentStatus.unpaid,
     );
   });
 }

@@ -3802,17 +3802,29 @@ abstract class AppLocalizations {
   /// **'Photo'**
   String get employeeFormPhoto;
 
-  /// Button under the employee photo tile. Mocked — see employeeFormPhotoMockNotice.
+  /// Button under the employee photo tile when no photo is set yet.
   ///
   /// In fr, this message translates to:
   /// **'Choisir une photo'**
   String get employeeFormPhotoAction;
 
-  /// Warning snackbar shown when tapping the mocked photo picker.
+  /// Button under the employee photo tile when a photo is already set.
   ///
   /// In fr, this message translates to:
-  /// **'Le choix de photo n\'est pas encore disponible dans cette version.'**
-  String get employeeFormPhotoMockNotice;
+  /// **'Remplacer la photo'**
+  String get employeeFormPhotoReplace;
+
+  /// Button that clears the chosen / existing employee photo.
+  ///
+  /// In fr, this message translates to:
+  /// **'Supprimer'**
+  String get employeeFormPhotoRemove;
+
+  /// Snackbar shown when the picked image file cannot be read.
+  ///
+  /// In fr, this message translates to:
+  /// **'Impossible de lire ce fichier image.'**
+  String get employeeFormPhotoReadError;
 
   /// Employee first name field label.
   ///
@@ -4966,6 +4978,54 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Changer quand même'**
   String get storeSettingsRetroWarningConfirm;
+
+  /// Title of the dialog that asks for a PIN before an action goes through.
+  ///
+  /// In fr, this message translates to:
+  /// **'Confirmation par code PIN'**
+  String get pinPromptTitle;
+
+  /// Label of the PIN input in the confirmation dialog.
+  ///
+  /// In fr, this message translates to:
+  /// **'Code PIN'**
+  String get pinPromptField;
+
+  /// Confirm button of the PIN dialog.
+  ///
+  /// In fr, this message translates to:
+  /// **'Valider'**
+  String get pinPromptValidate;
+
+  /// Shown in the PIN dialog after a wrong PIN, with the number of attempts left before the lockout.
+  ///
+  /// In fr, this message translates to:
+  /// **'Code incorrect. {count, plural, =0{Compte verrouillé.} =1{1 tentative restante.} other{{count} tentatives restantes.}}'**
+  String pinPromptWrong(int count);
+
+  /// Shown in the PIN dialog while the credential is locked, with a mm:ss countdown.
+  ///
+  /// In fr, this message translates to:
+  /// **'Trop de tentatives. Réessayez dans {time}.'**
+  String pinPromptLocked(String time);
+
+  /// Shown in the PIN dialog when the employee has no credential on file.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun code PIN n\'est défini pour cette personne.'**
+  String get pinPromptNoPin;
+
+  /// Subtitle of the PIN dialog on the pointage board — the action being confirmed and whose card it is.
+  ///
+  /// In fr, this message translates to:
+  /// **'{action} · {name}'**
+  String pinPromptPointageSubtitle(String action, String name);
+
+  /// Subtitle of the PIN dialog before settling an employee's payroll days.
+  ///
+  /// In fr, this message translates to:
+  /// **'Valider le paiement de {name}'**
+  String pinPromptPayrollSubtitle(String name);
 }
 
 class _AppLocalizationsDelegate

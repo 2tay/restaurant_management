@@ -226,7 +226,7 @@ erDiagram
 | `cin` | TEXT | non | Numéro de carte d'identité nationale. **Identifiant de connexion** (Phase 6) et **unique au niveau du compte**. Comparé normalisé (trim + minuscules, sans repli d'accents) : `" 78.02.14-153.24 "` résout quand même. |
 | `phone` | TEXT | non | Téléphone. |
 | `email` | TEXT | non | **Unique au niveau du compte.** |
-| `photoAsset` | TEXT | oui | Chemin d'asset photo. Mocké (pas de sélecteur derrière) comme `stores.imageAsset` ; `null` → tuile d'initiales. |
+| `photoAsset` | TEXT | oui | Photo de l'employé. `null` → tuile d'initiales. Le formulaire ouvre le sélecteur de fichiers de l'OS (`file_picker`) ; l'image choisie est **copiée** dans `<support>/employee_photos/<id>-<µs>.<ext>` par `EmployeePhotoStore` et c'est ce chemin absolu qui est stocké. `employeePhotoImage()` (`employee_avatar.dart`) distingue un chemin de fichier d'un chemin d'asset ; un fichier disparu retombe sur les initiales. |
 | `hireDate` | DATETIME | non | Date d'embauche. **Plancher de paie** : aucune journée antérieure à cette date n'est jamais payable, quoi que dise le filtre de période. |
 | `role` | TEXT (enum) | non | `owner` \| `manager` \| `staff`. Voir §permissions. |
 | `contractType` | TEXT (enum) | non | `fixed` (salarié, `pay` mensuel) \| `extra` (`pay` horaire). Décide comment `pay` est lu. |
@@ -529,6 +529,13 @@ une transaction ; **`archivedAt` n'est PAS un paramètre** — l'archivage est s
 propre transition (`archive` / `restore`, `:257`), qui refuse le no-op (archiver
 un archivé, restaurer un actif). Aucun hard delete.
 
+**Photo.** Le formulaire garde en état la source fraîchement choisie
+(`_pickedPhotoPath`) et un drapeau `_photoCleared` ; rien n'est écrit avant le
+submit. Une fois l'`id` connu (après `create` / `update`), `EmployeePhotoStore`
+copie le fichier dans le dossier de l'app et `EmployeeRepository.update` écrit le
+chemin sur la ligne — une écriture séparée des détails, comme le PIN. Une
+suppression appelle `deleteFor(id)` puis `update(clearPhoto: true)`.
+
 **Premier pointage.** L'employé apparaît dans le kiosque
 (`timeclock_board_page.dart`, `watchActiveEmployees`). Un `owner`/`manager` tape
 `Pointer` sur sa carte :
@@ -577,6 +584,16 @@ ligne = `notClockedIn` (jamais stocké).
 
 - **Pas de limite de pauses** : le bouton propose `Pause` de nouveau après chaque
   `Reprendre`.
+- **PIN à chaque action.** Chaque bouton du kiosque (`Pointer`, `Pause`,
+  `Reprendre`, `Fin de journée`) ouvre d'abord `PinPromptDialog`, qui vérifie le
+  PIN **de l'employé concerné** via `CredentialRepository.verifyPin`. L'écriture
+  de pointage ne part que sur un PIN confirmé. `verifyPin` rejoue la machine à
+  états de `authenticate` (3 essais → `lockedUntil = now + 5 min`) sans le
+  lookup CIN ni le gate de rôle, et **repart sur 3 essais** dès qu'un verrou est
+  expiré (au lieu de re-verrouiller au 1ᵉ faux coup). Aucun contournement
+  owner/gérant pour l'instant : un employé verrouillé attend les 5 min. La
+  vérification est côté UI (cohérent avec « auth reste fake ») — les writes de
+  `attendance_repository.dart` gardent leur unique écrivain.
 - **Journée verrouillée = immuable.** Le helper privé `_mutate`
   (`attendance_repository.dart:337`) ouvre la transaction, lit la ligne, et refuse
   (`null`) si elle est absente **ou** si `payrollPeriodId != null`. `startPause` /
@@ -635,8 +652,10 @@ seule définition.
 
 **Écran (cible) :** `lib/features/employees/presentation/pages/payroll_history_page.dart`
 — `watchDays(...)` pour le tableau, puis le flux « Payer » :
-`preview` (future) → `ConfirmDialog` → `pay` → snackbar. `paidByEmployeeId` =
-l'id de `currentEmployeeProvider`.
+`preview` (future) → `ConfirmDialog` → **`PinPromptDialog`** → `pay` → snackbar.
+`paidByEmployeeId` = l'id de `currentEmployeeProvider` ; c'est aussi ce PIN-là
+que `PinPromptDialog` vérifie (`verifyPin`, même verrou 3 essais / 5 min que le
+kiosque) — le règlement ne part que sur PIN confirmé.
 
 **Arithmétique** — `lib/core/utils/payroll_math.dart` (pure, inchangée) :
 
@@ -832,10 +851,12 @@ des secrets.
 | Règles pures | `lib/core/utils/{employee_status,attendance_status,payroll_math,credential_status,permissions}.dart` |
 | Mappers | `lib/data/mappers/{employee,credential,attendance,payroll,store}_mapper.dart` |
 | Repositories | `lib/data/repositories/{employee,credential,attendance,payroll,session,store}_repository.dart` |
+| Photo employé (fichiers) | `lib/data/employee_photo_store.dart`, `employeePhotoImage()` dans `lib/shared/widgets/employee_avatar.dart` |
+| Dialog PIN (kiosque + paie) | `lib/shared/widgets/pin_prompt_dialog.dart` ; `CredentialRepository.verifyPin` |
 | Session (Notifier) | `lib/data/current_employee.dart` |
 | Providers | `lib/data/providers.dart` |
 | Seed de démo | `lib/data/seed/demo_seed.dart` |
 | Garde `unique writer` | `tool/ux_audit.py` (`SINGLE_WRITER_COMPANIONS`) |
-| Tests | `test/db/{schema,migration,employee_seed,employee_queries,employees,auth,attendance,payroll,store_settings}_test.dart` |
+| Tests | `test/db/{schema,migration,employee_seed,employee_queries,employees,auth,attendance,payroll,store_settings}_test.dart`, `test/employee_photo_store_test.dart`, `test/components_test.dart` (PinPromptDialog), `test/payroll_history_page_test.dart` |
 | Écrans (cible Stage 9) | `lib/features/employees/presentation/pages/`, `lib/features/auth/presentation/pages/login_page.dart`, `lib/features/settings/presentation/pages/store_settings_page.dart`, `lib/app/router.dart` (`_guard`) |
 | Plan de migration + journaux « As built » | `phase2-employee.md` |

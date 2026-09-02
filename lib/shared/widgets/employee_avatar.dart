@@ -1,14 +1,31 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:path/path.dart' as p;
 
 import '../../core/theme/app_colors.dart';
 import '../../core/utils/employee_status.dart';
 import '../../models/models.dart';
 
+/// The image behind an `Employee.photoAsset` string.
+///
+/// The value is an absolute path to a file `EmployeePhotoStore` owns once a
+/// photo has been chosen, and a bundled asset path otherwise (the shape the
+/// field always had). An absolute path that no longer exists on disk — a photo
+/// deleted under the app's feet — falls through to `AssetImage`, which the
+/// caller's `errorBuilder` then turns into initials.
+ImageProvider employeePhotoImage(String path) {
+  if (p.isAbsolute(path) && File(path).existsSync()) {
+    return FileImage(File(path));
+  }
+  return AssetImage(path);
+}
+
 /// The circular photo-or-initials tile every employee-facing screen shows.
 ///
 /// One shared widget rather than the four near-identical private copies the
-/// removed module carried. Photo is mocked (`Employee.photoAsset` is a
-/// nullable asset path, no picker behind it) — null renders the initials.
+/// removed module carried. Null [Employee.photoAsset] — and any photo that
+/// fails to load — renders the initials.
 class EmployeeAvatar extends StatelessWidget {
   const EmployeeAvatar({
     required this.employee,
@@ -35,6 +52,8 @@ class EmployeeAvatar extends StatelessWidget {
               : AppColors.onPrimaryContainer,
         );
 
+    final initials = Text(employeeInitials(employee), style: style);
+
     return Container(
       width: size,
       height: size,
@@ -45,8 +64,14 @@ class EmployeeAvatar extends StatelessWidget {
         shape: BoxShape.circle,
       ),
       child: photo != null
-          ? Image.asset(photo, fit: BoxFit.cover, width: size, height: size)
-          : Text(employeeInitials(employee), style: style),
+          ? Image(
+              image: employeePhotoImage(photo),
+              fit: BoxFit.cover,
+              width: size,
+              height: size,
+              errorBuilder: (_, _, _) => initials,
+            )
+          : initials,
     );
   }
 }

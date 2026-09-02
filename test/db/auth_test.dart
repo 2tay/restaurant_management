@@ -156,4 +156,82 @@ void main() {
       expect(await credentials.unlock(EmployeeIds.marc), isFalse);
     });
   });
+
+  // The re-auth the pointage board and the payroll screen ask for. Same state
+  // machine as `authenticate`, minus the CIN lookup and the role gate, plus a
+  // fresh set of three attempts once a lockout has run out.
+  group('verifyPin', () {
+    test('the right PIN passes and clears the counter', () async {
+      await credentials.recordFailedAttempt(EmployeeIds.marc);
+      final result = await credentials.verifyPin(EmployeeIds.marc, '1234');
+
+      expect(result.result, PinCheckResult.ok);
+      final credential = (await credentials.forEmployee(EmployeeIds.marc))!;
+      expect(credential.failedAttempts, 0);
+      expect(credential.lockedUntil, isNull);
+      // Not a login — lastLoginAt is untouched.
+      expect(credential.lastLoginAt, isNull);
+    });
+
+    test('a wrong PIN counts down the remaining attempts', () async {
+      final first = await credentials.verifyPin(EmployeeIds.marc, '0000');
+      expect(first.result, PinCheckResult.wrongPin);
+      expect(first.attemptsRemaining, AuthRules.maxFailedAttempts - 1);
+
+      final second = await credentials.verifyPin(EmployeeIds.marc, '0000');
+      expect(second.result, PinCheckResult.wrongPin);
+      expect(second.attemptsRemaining, AuthRules.maxFailedAttempts - 2);
+    });
+
+    test('the ${AuthRules.maxFailedAttempts}rd wrong PIN locks for '
+        '${AuthRules.lockoutDuration.inMinutes} min', () async {
+      final at = DateTime(2026, 9, 2, 9);
+      PinVerification? last;
+      for (var i = 0; i < AuthRules.maxFailedAttempts; i++) {
+        last = await credentials.verifyPin(EmployeeIds.marc, '0000', now: at);
+      }
+      expect(last!.result, PinCheckResult.locked);
+      expect(last.lockedUntil, at.add(AuthRules.lockoutDuration));
+
+      // Even the right PIN is refused while locked.
+      final duringLock = await credentials.verifyPin(
+        EmployeeIds.marc,
+        '1234',
+        now: at.add(const Duration(minutes: 1)),
+      );
+      expect(duringLock.result, PinCheckResult.locked);
+    });
+
+    test('once the lockout elapses, three fresh attempts are granted', () async {
+      final locked = DateTime(2026, 9, 2, 9);
+      for (var i = 0; i < AuthRules.maxFailedAttempts; i++) {
+        await credentials.verifyPin(EmployeeIds.marc, '0000', now: locked);
+      }
+      final after = locked
+          .add(AuthRules.lockoutDuration)
+          .add(const Duration(minutes: 1));
+
+      // A wrong PIN after expiry does NOT re-lock immediately — the counter
+      // reset, so two attempts remain.
+      final wrong = await credentials.verifyPin(
+        EmployeeIds.marc,
+        '0000',
+        now: after,
+      );
+      expect(wrong.result, PinCheckResult.wrongPin);
+      expect(wrong.attemptsRemaining, AuthRules.maxFailedAttempts - 1);
+
+      final ok = await credentials.verifyPin(
+        EmployeeIds.marc,
+        '1234',
+        now: after,
+      );
+      expect(ok.result, PinCheckResult.ok);
+    });
+
+    test('an employee with no credential on file returns noPin', () async {
+      final result = await credentials.verifyPin('nobody', '1234');
+      expect(result.result, PinCheckResult.noPin);
+    });
+  });
 }

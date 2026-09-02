@@ -1,3 +1,6 @@
+import 'dart:io';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -77,6 +80,13 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
 
   EmployeeRole _role = EmployeeRole.staff;
   ContractType _contract = ContractType.fixed;
+
+  /// A photo file just chosen from disk, not yet copied into the store. Null
+  /// until the user picks one.
+  String? _pickedPhotoPath;
+
+  /// Set when the user removed the photo — clears any existing one on save.
+  bool _photoCleared = false;
 
   /// Set when the entered CIN / email is already used by another employee.
   /// Cleared on the next keystroke so a corrected field stops complaining.
@@ -187,7 +197,44 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
   bool get _isDirty =>
       _initialText.entries.any((e) => e.key.text.trim() != e.value.trim()) ||
       _role != _initialRole ||
-      _contract != _initialContract;
+      _contract != _initialContract ||
+      _pickedPhotoPath != null ||
+      _photoCleared;
+
+  /// The photo the tile should show right now: a fresh pick first, then the
+  /// saved one (unless it was just removed), then null → initials.
+  ImageProvider? get _photoPreview {
+    if (_pickedPhotoPath != null) return FileImage(File(_pickedPhotoPath!));
+    if (_photoCleared) return null;
+    final existing = _employee?.photoAsset;
+    return existing == null ? null : employeePhotoImage(existing);
+  }
+
+  bool get _hasPhoto => _photoPreview != null;
+
+  Future<void> _pickPhoto() async {
+    final l10n = AppLocalizations.of(context);
+    final List<PlatformFile> picked;
+    try {
+      picked = await FilePicker.pickFiles(type: FileType.image);
+    } catch (_) {
+      if (mounted) AppSnackBar.warning(context, l10n.employeeFormPhotoReadError);
+      return;
+    }
+    final path = picked.singleOrNull?.path;
+    if (path == null) return;
+    setState(() {
+      _pickedPhotoPath = path;
+      _photoCleared = false;
+    });
+  }
+
+  void _removePhoto() {
+    setState(() {
+      _pickedPhotoPath = null;
+      _photoCleared = true;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -216,18 +263,34 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
             child: Row(
               children: [
                 _PhotoTile(
+                  image: _photoPreview,
                   firstName: _firstName.text,
                   lastName: _lastName.text,
                 ),
                 const SizedBox(width: AppSpacing.lg),
                 Expanded(
-                  child: SecondaryButton(
-                    label: l10n.employeeFormPhotoAction,
-                    icon: LucideIcons.camera,
-                    onPressed: () => AppSnackBar.warning(
-                      context,
-                      l10n.employeeFormPhotoMockNotice,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      SecondaryButton(
+                        label: _hasPhoto
+                            ? l10n.employeeFormPhotoReplace
+                            : l10n.employeeFormPhotoAction,
+                        icon: LucideIcons.camera,
+                        onPressed: _pickPhoto,
+                      ),
+                      if (_hasPhoto) ...[
+                        const SizedBox(height: AppSpacing.sm),
+                        TextButton.icon(
+                          onPressed: _removePhoto,
+                          icon: const Icon(
+                            LucideIcons.trash2,
+                            size: AppSizing.iconSm,
+                          ),
+                          label: Text(l10n.employeeFormPhotoRemove),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
               ],
@@ -530,6 +593,22 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
       return;
     }
 
+    // The photo — copied into the store and written onto the row now that the
+    // id exists. A separate write from the details, like the PIN above.
+    final photoStore = ref.read(employeePhotoStoreProvider);
+    if (_pickedPhotoPath != null) {
+      final stored = await photoStore.save(
+        employeeId: result.id,
+        sourcePath: _pickedPhotoPath!,
+      );
+      await employees.update(result.id, photoAsset: stored);
+    } else if (_photoCleared && widget.employee?.photoAsset != null) {
+      await photoStore.deleteFor(result.id);
+      await employees.update(result.id, clearPhoto: true);
+    }
+
+    if (!mounted) return;
+
     AppSnackBar.success(
       context,
       _isEditing ? l10n.employeeUpdated : l10n.employeeCreated,
@@ -546,12 +625,16 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
       : value.toString().replaceAll('.', ',');
 }
 
-/// The mocked photo picker's tile — an initials avatar, since no employee in
-/// this demo carries a real `photoAsset` (assumption in the brief: same
-/// treatment as `Store.imageAsset`, no file picker plumbing).
+/// The photo tile on the form — the chosen / current picture, or an initials
+/// avatar when there is none.
 class _PhotoTile extends StatelessWidget {
-  const _PhotoTile({required this.firstName, required this.lastName});
+  const _PhotoTile({
+    required this.image,
+    required this.firstName,
+    required this.lastName,
+  });
 
+  final ImageProvider? image;
   final String firstName;
   final String lastName;
 
@@ -563,20 +646,31 @@ class _PhotoTile extends StatelessWidget {
       if (lastName.trim().isNotEmpty) lastName.trim()[0],
     ].join().toUpperCase();
 
+    final initials = Text(
+      letters.isEmpty ? '?' : letters,
+      style: theme.textTheme.titleLarge?.copyWith(
+        color: AppColors.onPrimaryContainer,
+      ),
+    );
+
     return Container(
       width: 64,
       height: 64,
       alignment: Alignment.center,
+      clipBehavior: Clip.antiAlias,
       decoration: const BoxDecoration(
         color: AppColors.primaryContainer,
         shape: BoxShape.circle,
       ),
-      child: Text(
-        letters.isEmpty ? '?' : letters,
-        style: theme.textTheme.titleLarge?.copyWith(
-          color: AppColors.onPrimaryContainer,
-        ),
-      ),
+      child: image == null
+          ? initials
+          : Image(
+              image: image!,
+              width: 64,
+              height: 64,
+              fit: BoxFit.cover,
+              errorBuilder: (_, _, _) => initials,
+            ),
     );
   }
 }

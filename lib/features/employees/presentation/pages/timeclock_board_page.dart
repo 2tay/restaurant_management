@@ -424,11 +424,29 @@ class _ActionArea extends ConsumerWidget {
   final StoreSettings settings;
   final String storeId;
 
+  /// Every board action is attributed to a person, so each one asks for that
+  /// employee's PIN first — the dialog owns the wrong-attempt / lockout loop.
+  /// Only on a confirmed PIN does the pointage write run.
   Future<void> _run(
     BuildContext context,
+    WidgetRef ref,
+    String actionLabel,
     Future<Attendance?> Function() action,
     String Function(String name) message,
   ) async {
+    final l10n = AppLocalizations.of(context);
+    final ok = await PinPromptDialog.show(
+      context,
+      title: l10n.pinPromptTitle,
+      subtitle: l10n.pinPromptPointageSubtitle(
+        actionLabel,
+        employeeDisplayName(employee),
+      ),
+      verify: (pin) =>
+          ref.read(credentialRepositoryProvider).verifyPin(employee.id, pin),
+    );
+    if (!ok || !context.mounted) return;
+
     final result = await action();
     if (!context.mounted || result == null) return;
     AppSnackBar.success(context, message(employeeDisplayName(employee)));
@@ -447,6 +465,8 @@ class _ActionArea extends ConsumerWidget {
         color: AppColors.inStock.solid,
         onPressed: () => _run(
           context,
+          ref,
+          l10n.timeclockClockIn,
           () => repo.clockIn(employee.id, storeId),
           l10n.timeclockClockInDone,
         ),
@@ -466,6 +486,8 @@ class _ActionArea extends ConsumerWidget {
               color: AppColors.lowStock.solid,
               onPressed: () => _run(
                 context,
+                ref,
+                l10n.timeclockStartPause,
                 () => repo.startPause(current.id),
                 l10n.timeclockPauseStartDone,
               ),
@@ -474,6 +496,8 @@ class _ActionArea extends ConsumerWidget {
             TextButton.icon(
               onPressed: () => _run(
                 context,
+                ref,
+                l10n.timeclockClockOut,
                 () => repo.clockOut(current.id),
                 l10n.timeclockClockOutDone,
               ),
@@ -490,6 +514,8 @@ class _ActionArea extends ConsumerWidget {
           color: AppColors.inStock.solid,
           onPressed: () => _run(
             context,
+            ref,
+            l10n.timeclockEndPause,
             () => repo.endPause(current.id),
             l10n.timeclockPauseEndDone,
           ),
