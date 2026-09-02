@@ -56,7 +56,7 @@ final List<NotificationItem> mockNotifications = [
     storeId: StoreIds.sablon,
     kind: NotificationKind.delivery,
     title: 'Livraison enregistrée',
-    body: 'Maraîcher Vandenbroucke — 6 articles reçus par Sophie Lemmens.',
+    body: 'Maraîcher Vandenbroucke — 6 produits reçus par Sophie Lemmens.',
     createdAt: hoursAgo(20),
     isRead: true,
     relatedSupplierId: SupplierIds.maraicher,

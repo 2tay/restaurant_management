@@ -15,7 +15,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get navDashboard => 'Tableau de bord';
 
   @override
-  String get navInventory => 'Inventaire';
+  String get navInventory => 'Produits';
 
   @override
   String get navStockMovement => 'Mouvements de stock';
@@ -48,7 +48,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get stockStatusOutOfStock => 'Rupture de stock';
 
   @override
-  String get actionAddItem => 'Ajouter un article';
+  String get actionAddItem => 'Ajouter un produit';
 
   @override
   String get actionAddDelivery => 'Enregistrer une livraison';
@@ -138,11 +138,11 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get emptyStateNoItemsTitle => 'Aucun article pour le moment';
+  String get emptyStateNoItemsTitle => 'Aucun produit pour le moment';
 
   @override
   String get emptyStateNoItemsBody =>
-      'Ajoutez votre premier article pour commencer à suivre votre stock.';
+      'Ajoutez votre premier produit pour commencer à suivre votre stock.';
 
   @override
   String get emptyStateNoResultsTitle => 'Aucun résultat';
@@ -252,7 +252,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get onboardingFeatureAlertsBody =>
-      'Recevez une alerte dès qu\'un article passe sous son seuil.';
+      'Recevez une alerte dès qu\'un produit passe sous son seuil.';
 
   @override
   String get storesTitle => 'Vos établissements';
@@ -269,9 +269,9 @@ class AppLocalizationsFr extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count articles',
-      one: '1 article',
-      zero: 'Aucun article',
+      other: '$count produits',
+      one: '1 produit',
+      zero: 'Aucun produit',
     );
     return '$_temp0';
   }
@@ -319,10 +319,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String get addStoreCreated => 'Établissement créé';
 
   @override
-  String get inventoryTitle => 'Inventaire';
+  String get inventoryTitle => 'Produits';
 
   @override
-  String get inventorySearchHint => 'Rechercher un article ou un code-barres…';
+  String get inventorySearchHint => 'Rechercher un produit ou un code-barres…';
 
   @override
   String get inventoryFilterCategory => 'Catégorie';
@@ -344,9 +344,9 @@ class AppLocalizationsFr extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count articles',
-      one: '1 article',
-      zero: 'Aucun article',
+      other: '$count produits',
+      one: '1 produit',
+      zero: 'Aucun produit',
     );
     return '$_temp0';
   }
@@ -355,11 +355,11 @@ class AppLocalizationsFr extends AppLocalizations {
   String get inventoryClearFilters => 'Effacer les filtres';
 
   @override
-  String get inventorySelectPrompt => 'Sélectionnez un article';
+  String get inventorySelectPrompt => 'Sélectionnez un produit';
 
   @override
   String get inventorySelectPromptBody =>
-      'Choisissez un article dans la liste pour voir son détail, ses fournisseurs et ses prix.';
+      'Choisissez un produit dans la liste pour voir son détail, ses fournisseurs et ses prix.';
 
   @override
   String get itemQuantityLabel => 'Quantité en stock';
@@ -422,7 +422,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get itemNoMovements => 'Aucun mouvement enregistré';
 
   @override
-  String get itemDeleted => 'Article supprimé';
+  String get itemDeleted => 'Produit supprimé';
 
   @override
   String get itemSupplierRemoved => 'Fournisseur dissocié';
@@ -432,36 +432,44 @@ class AppLocalizationsFr extends AppLocalizations {
       'Le prix enregistré et son historique pour ce fournisseur seront perdus.';
 
   @override
-  String get addItemTitle => 'Ajouter un article';
+  String get addItemTitle => 'Ajouter un produit';
 
   @override
-  String get editItemTitle => 'Modifier l\'article';
+  String get editItemTitle => 'Modifier le produit';
 
   @override
-  String get itemFormName => 'Nom de l\'article';
+  String get itemFormName => 'Nom du produit';
 
   @override
   String get itemFormNameHint => 'Ex. : Blanc de poulet';
-
-  @override
-  String get itemFormStartingQuantity => 'Quantité de départ';
 
   @override
   String get itemFormThresholdHelp =>
       'Vous serez alerté lorsque le stock atteindra ce niveau ou passera en dessous.';
 
   @override
+  String get itemMaxStockLabel => 'Stock maximum';
+
+  @override
+  String get itemFormMaxStockHelp =>
+      'La quantité visée quand le stock est complet. Une commande propose de remonter à ce niveau. Laissez à 0 si ce produit n\'a pas de maximum.';
+
+  @override
+  String get itemFormMaxStockInvalid =>
+      'Le stock maximum doit être supérieur au seuil d\'alerte.';
+
+  @override
   String get itemFormNoCostTitle => 'Pas de prix sur cette page';
 
   @override
   String get itemFormNoCostBody =>
-      'Le prix dépend du fournisseur. Associez un ou plusieurs fournisseurs à cet article pour enregistrer leurs prix respectifs.';
+      'Le prix dépend du fournisseur. Associez un ou plusieurs fournisseurs à ce produit pour enregistrer leurs prix respectifs.';
 
   @override
-  String get itemCreated => 'Article créé';
+  String get itemCreated => 'Produit créé';
 
   @override
-  String get itemUpdated => 'Article modifié';
+  String get itemUpdated => 'Produit modifié';
 
   @override
   String get itemFormCreateCategory => '+ Créer une catégorie';
@@ -520,7 +528,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get linkSupplierPriceHelp =>
-      'Le prix de ce fournisseur pour cet article. Chaque modification sera enregistrée dans l\'historique.';
+      'Le prix de ce fournisseur pour ce produit. Chaque modification sera enregistrée dans l\'historique.';
 
   @override
   String get linkSupplierSetDefault => 'Définir comme fournisseur par défaut';
@@ -583,7 +591,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get categoriesSubtitle =>
-      'Les catégories servent à classer et filtrer vos articles.';
+      'Les catégories servent à classer et filtrer vos produits.';
 
   @override
   String get categoriesAdd => 'Ajouter une catégorie';
@@ -593,16 +601,16 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get categoriesEmptyBody =>
-      'Créez une première catégorie pour organiser vos articles.';
+      'Créez une première catégorie pour organiser vos produits.';
 
   @override
   String categoriesItemCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count articles',
-      one: '1 article',
-      zero: 'Aucun article',
+      other: '$count produits',
+      one: '1 produit',
+      zero: 'Aucun produit',
     );
     return '$_temp0';
   }
@@ -613,8 +621,8 @@ class AppLocalizationsFr extends AppLocalizations {
       count,
       locale: localeName,
       other:
-          '$count articles utilisent cette catégorie et devront être reclassés.',
-      one: '1 article utilise cette catégorie et devra être reclassé.',
+          '$count produits utilisent cette catégorie et devront être reclassés.',
+      one: '1 produit utilise cette catégorie et devra être reclassé.',
     );
     return '$_temp0';
   }
@@ -640,15 +648,15 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get unitsEmptyBody =>
-      'Créez une première unité pour pouvoir ajouter des articles.';
+      'Créez une première unité pour pouvoir ajouter des produits.';
 
   @override
   String unitsInUseWarning(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count articles utilisent cette unité.',
-      one: '1 article utilise cette unité.',
+      other: '$count produits utilisent cette unité.',
+      one: '1 produit utilise cette unité.',
     );
     return '$_temp0';
   }
@@ -738,10 +746,10 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get stockInSubtitle =>
-      'Ajoutez au stock les articles que vous venez de recevoir.';
+      'Ajoutez au stock les produits que vous venez de recevoir.';
 
   @override
-  String get stockInItem => 'Article';
+  String get stockInItem => 'Produit';
 
   @override
   String get stockInSupplier => 'Fournisseur';
@@ -778,7 +786,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get stockInNoSupplier =>
-      'Cet article n\'a pas encore de fournisseur associé.';
+      'Ce produit n\'a pas encore de fournisseur associé.';
 
   @override
   String get stockOutTitle => 'Sortie de stock';
@@ -981,7 +989,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get dashboardTileStockValue => 'Valeur du stock';
 
   @override
-  String get dashboardTileItems => 'Articles suivis';
+  String get dashboardTileItems => 'Produits suivis';
 
   @override
   String get dashboardTileLowStock => 'À réapprovisionner';
@@ -1003,34 +1011,34 @@ class AppLocalizationsFr extends AppLocalizations {
       'Enregistrez une livraison ou une sortie pour commencer.';
 
   @override
-  String get dashboardAlertsTitle => 'Articles à surveiller';
+  String get dashboardAlertsTitle => 'Produits à surveiller';
 
   @override
   String get dashboardAllGood => 'Tout est en stock';
 
   @override
-  String get dashboardAllGoodBody => 'Aucun article sous son seuil d\'alerte.';
+  String get dashboardAllGoodBody => 'Aucun produit sous son seuil d\'alerte.';
 
   @override
   String get dashboardEmptyStore => 'Cet établissement est vide';
 
   @override
   String get dashboardEmptyStoreBody =>
-      'Commencez par ajouter vos articles pour suivre votre stock.';
+      'Commencez par ajouter vos produits pour suivre votre stock.';
 
   @override
   String get alertsTitle => 'Alertes de stock';
 
   @override
   String get alertsSubtitle =>
-      'Articles à réapprovisionner, les plus urgents en premier.';
+      'Produits à réapprovisionner, les plus urgents en premier.';
 
   @override
   String get alertsEmpty => 'Aucune alerte';
 
   @override
   String get alertsEmptyBody =>
-      'Tous vos articles sont au-dessus de leur seuil d\'alerte.';
+      'Tous vos produits sont au-dessus de leur seuil d\'alerte.';
 
   @override
   String alertsShortfall(String quantity) {
@@ -1088,7 +1096,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get reportsValuationBody =>
-      'Combien vaut ce que vous avez en réserve, par catégorie et par article.';
+      'Combien vaut ce que vous avez en réserve, par catégorie et par produit.';
 
   @override
   String get reportsComparison => 'Comparaison des prix';
@@ -1109,7 +1117,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get reportsPotentialSavingBody =>
-      'Estimation annuelle si chaque article était commandé au meilleur prix disponible.';
+      'Estimation annuelle si chaque produit était commandé au meilleur prix disponible.';
 
   @override
   String get reportsUsage30Days => 'Consommation (30 jours)';
@@ -1147,17 +1155,17 @@ class AppLocalizationsFr extends AppLocalizations {
   String get valuationByCategory => 'Par catégorie';
 
   @override
-  String get valuationByItem => 'Articles les plus valorisés';
+  String get valuationByItem => 'Produits les plus valorisés';
 
   @override
   String get valuationBasis =>
-      'Valorisé au prix du fournisseur par défaut de chaque article.';
+      'Valorisé au prix du fournisseur par défaut de chaque produit.';
 
   @override
   String get valuationColumnCategory => 'Catégorie';
 
   @override
-  String get valuationColumnItems => 'Articles';
+  String get valuationColumnItems => 'Produits';
 
   @override
   String get valuationColumnValue => 'Valeur';
@@ -1170,10 +1178,10 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get comparisonSubtitle =>
-      'Sélectionnez un article pour comparer les prix de tous ses fournisseurs.';
+      'Sélectionnez un produit pour comparer les prix de tous ses fournisseurs.';
 
   @override
-  String get comparisonPickItem => 'Article à comparer';
+  String get comparisonPickItem => 'Produit à comparer';
 
   @override
   String get comparisonColumnSupplier => 'Fournisseur';
@@ -1188,7 +1196,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get comparisonColumnUpdated => 'Mis à jour';
 
   @override
-  String get comparisonSingleSupplier => 'Un seul fournisseur pour cet article';
+  String get comparisonSingleSupplier => 'Un seul fournisseur pour ce produit';
 
   @override
   String get comparisonSingleSupplierBody =>
@@ -1257,7 +1265,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get notificationPrefLowStockBody =>
-      'Recevez une alerte dès qu\'un article passe sous son seuil.';
+      'Recevez une alerte dès qu\'un produit passe sous son seuil.';
 
   @override
   String get notificationPrefPriceChange => 'Changements de prix';
@@ -1320,17 +1328,17 @@ class AppLocalizationsFr extends AppLocalizations {
   String get searchTitle => 'Recherche';
 
   @override
-  String get searchHint => 'Article, code-barres, fournisseur…';
+  String get searchHint => 'Produit, code-barres, fournisseur…';
 
   @override
   String get searchPrompt => 'Que cherchez-vous ?';
 
   @override
   String get searchPromptBody =>
-      'Recherchez parmi vos articles, fournisseurs et catégories.';
+      'Recherchez parmi vos produits, fournisseurs et catégories.';
 
   @override
-  String get searchSectionItems => 'Articles';
+  String get searchSectionItems => 'Produits';
 
   @override
   String get searchSectionSuppliers => 'Fournisseurs';
@@ -1428,7 +1436,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get movementsTabHistory => 'Historique';
 
   @override
-  String get loadingItems => 'Chargement de l\'inventaire…';
+  String get loadingItems => 'Chargement des produits…';
 
   @override
   String get itemBarcodeLabel => 'Code-barres (facultatif)';
@@ -1572,7 +1580,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get orderTabReceipts => 'Réceptions';
 
   @override
-  String get orderColumnItem => 'Article';
+  String get orderColumnItem => 'Produit';
 
   @override
   String get orderColumnOrdered => 'Commandé';
@@ -1715,14 +1723,14 @@ class AppLocalizationsFr extends AppLocalizations {
   String get orderStepSupplier => 'Fournisseur';
 
   @override
-  String get orderStepLines => 'Articles';
+  String get orderStepLines => 'Produits';
 
   @override
   String get orderSupplierPrompt => 'Choisissez un fournisseur';
 
   @override
   String get orderSupplierPromptBody =>
-      'Une commande part chez un seul fournisseur. Ce choix filtre les articles proposés et remplit automatiquement les prix.';
+      'Une commande part chez un seul fournisseur. Ce choix filtre les produits proposés et remplit automatiquement les prix.';
 
   @override
   String get orderSupplierSearchHint => 'Rechercher un fournisseur…';
@@ -1741,17 +1749,17 @@ class AppLocalizationsFr extends AppLocalizations {
       other: 'Les $count lignes déjà saisies seront supprimées.',
       one: 'La ligne déjà saisie sera supprimée.',
     );
-    return '$_temp0 Les articles et les prix dépendent du fournisseur choisi.';
+    return '$_temp0 Les produits et les prix dépendent du fournisseur choisi.';
   }
 
   @override
   String get orderChangeSupplierAction => 'Changer et vider';
 
   @override
-  String get orderAddLine => 'Ajouter un article';
+  String get orderAddLine => 'Ajouter un produit';
 
   @override
-  String get orderLinePickerLabel => 'Article';
+  String get orderLinePickerLabel => 'Produit';
 
   @override
   String get orderLineQuantity => 'Quantité';
@@ -1771,11 +1779,11 @@ class AppLocalizationsFr extends AppLocalizations {
   String get orderLineRemoved => 'Ligne retirée.';
 
   @override
-  String get orderLinesEmptyTitle => 'Aucun article';
+  String get orderLinesEmptyTitle => 'Aucun produit';
 
   @override
   String orderLinesEmptyBody(String supplier) {
-    return 'Ajoutez les articles à commander chez $supplier.';
+    return 'Ajoutez les produits à commander chez $supplier.';
   }
 
   @override
@@ -1790,7 +1798,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get orderSuggestedSubtitle =>
-      'Articles de ce fournisseur à réapprovisionner.';
+      'Produits de ce fournisseur à réapprovisionner.';
 
   @override
   String get orderSuggestedAddAll => 'Tout ajouter';
@@ -1803,15 +1811,15 @@ class AppLocalizationsFr extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count articles ajoutés.',
-      one: '1 article ajouté.',
+      other: '$count produits ajoutés.',
+      one: '1 produit ajouté.',
     );
     return '$_temp0';
   }
 
   @override
   String get orderSuggestedEmpty =>
-      'Aucun article de ce fournisseur n\'est en stock faible.';
+      'Aucun produit de ce fournisseur n\'est en stock faible.';
 
   @override
   String orderSuggestedShortfall(String quantity) {
@@ -1844,7 +1852,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get itemOpenOrdersTitle => 'Commandes en cours';
 
   @override
-  String get itemNoOpenOrders => 'Aucune commande en cours pour cet article.';
+  String get itemNoOpenOrders => 'Aucune commande en cours pour ce produit.';
 
   @override
   String receiveOrderTitle(String reference) {
@@ -1893,11 +1901,11 @@ class AppLocalizationsFr extends AppLocalizations {
   String get receiveUnorderedBadge => 'Non commandé';
 
   @override
-  String get receiveAddUnordered => 'Ajouter un article non commandé';
+  String get receiveAddUnordered => 'Ajouter un produit non commandé';
 
   @override
   String get receiveUnorderedAdded =>
-      'Article non commandé ajouté à la réception.';
+      'Produit non commandé ajouté à la réception.';
 
   @override
   String get receiveUnorderedRemoved => 'Ligne retirée de la réception.';
@@ -2061,7 +2069,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get demoResetBody =>
-      'Remet les articles, les stocks, les commandes et les prix dans leur état d\'origine. Les modifications faites pendant la démonstration ne sont conservées que le temps de la session.';
+      'Remet les produits, les stocks, les commandes et les prix dans leur état d\'origine. Les modifications faites pendant la démonstration ne sont conservées que le temps de la session.';
 
   @override
   String get demoResetConfirmTitle => 'Réinitialiser la démonstration ?';
@@ -2104,8 +2112,8 @@ class AppLocalizationsFr extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count articles sont classés dans cette catégorie.',
-      one: '1 article est classé dans cette catégorie.',
+      other: '$count produits sont classés dans cette catégorie.',
+      one: '1 produit est classé dans cette catégorie.',
     );
     return '$_temp0 Reclassez-les avant de la supprimer.';
   }
@@ -2120,15 +2128,11 @@ class AppLocalizationsFr extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count articles sont mesurés dans cette unité.',
-      one: '1 article est mesuré dans cette unité.',
+      other: '$count produits sont mesurés dans cette unité.',
+      one: '1 produit est mesuré dans cette unité.',
     );
     return '$_temp0 Changez leur unité avant de la supprimer.';
   }
-
-  @override
-  String get itemFormOpeningBalanceHelp =>
-      'Enregistré comme un ajustement d\'inventaire, pour que l\'historique des mouvements soit complet dès le départ.';
 
   @override
   String get itemFormAdjustStock => 'Ajuster le stock';
@@ -2147,8 +2151,8 @@ class AppLocalizationsFr extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'Cet article figure sur $count commandes en cours.',
-      one: 'Cet article figure sur 1 commande en cours.',
+      other: 'Ce produit figure sur $count commandes en cours.',
+      one: 'Ce produit figure sur 1 commande en cours.',
     );
     return '$_temp0 Réceptionnez ou clôturez-la avant de le supprimer.';
   }
@@ -2834,16 +2838,6 @@ class AppLocalizationsFr extends AppLocalizations {
       'Seul le propriétaire peut modifier les paramètres de l\'établissement.';
 
   @override
-  String get itemFormOpeningCost => 'Coût d\'achat unitaire';
-
-  @override
-  String get itemFormOpeningCostHint => 'Ex. : 8,50';
-
-  @override
-  String get itemFormOpeningCostHelp =>
-      'Facultatif. Sans ce montant, l\'article ne sera pas valorisé tant qu\'une livraison n\'aura pas été réceptionnée.';
-
-  @override
   String get itemAverageCost => 'Coût moyen du stock';
 
   @override
@@ -2909,7 +2903,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get receiptDocReceivedBy => 'Réceptionnée par';
 
   @override
-  String get receiptDocColumnItem => 'Article';
+  String get receiptDocColumnItem => 'Produit';
 
   @override
   String get receiptDocColumnOrdered => 'Commandé';

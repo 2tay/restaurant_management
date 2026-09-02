@@ -109,6 +109,7 @@ different names, so a user can rename one into the other to fix a typo.
 | `unitId` | → `UnitOfMeasure` |
 | `quantity` | how much is on hand **right now**, in that unit |
 | `lowStockThreshold` | when to start warning |
+| `maxStock` | what a full shelf holds — the figure a commande tops up **to**. 0 = none declared |
 | `updatedAt` | last time the quantity or details changed |
 | `averageCost` | what one unit of the stock **on hand** cost, in EUR. Null = unknown |
 | `defaultSupplierId` | supplier pre-selected when receiving (optional) |
@@ -130,6 +131,33 @@ otherwise                        → inStock
 
 This is computed from the two numbers every time it is needed, so it can never
 be stale.
+
+A product created through the product form starts at `quantity` 0 and therefore
+reads as **"Rupture de stock"** from its first day. That is deliberate: the
+catalogue knows the product, the shelf has none of it, and the form no longer
+asks for a starting quantity — stock arrives through a receipt or an
+adjustment, which are the screens that leave a movement behind.
+
+### The two thresholds
+
+`lowStockThreshold` is a floor and `maxStock` is a ceiling, and they answer
+different questions:
+
+```
+lowStockThreshold  →  when do I need to order?
+maxStock           →  how much do I order?
+```
+
+A commande pre-fills each line with `maxStock - quantity`. Ordering the
+shortfall below the threshold instead — which is what it did before `maxStock`
+existed — refills a product to exactly its alert line, where the next portion
+sold makes it low again and it reappears on the next commande.
+
+`maxStock` of 0 means no ceiling has been declared, and the old
+threshold-based figure is used. Not nullable for that: a maximum of zero would
+mean "never order any of this", which nobody means, so the sentinel cannot
+collide with a real value. The product form refuses a maximum at or below the
+threshold, so a declared maximum always leaves room to order into.
 
 ### Barcode
 
@@ -658,6 +686,7 @@ stale and contradict the screen two taps away.
 | Overpay per unit | default supplier price − cheapest supplier price |
 | On-order quantity | Σ `lineOutstanding` across all **open** orders for that item |
 | Low-stock list | items at or below threshold, worst first |
+| Commande line quantity | `maxStock - quantity`, or the threshold-based figure when no maximum is set |
 | Suggested order lines | this supplier's items that are at or below threshold |
 
 Two details worth knowing:

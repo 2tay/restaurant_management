@@ -313,13 +313,21 @@ class ItemRepository {
   /// link, and the link cannot exist for an article that did not exist a line
   /// ago. Left empty, the cost stays unknown and the article contributes nothing
   /// to the valuation until a real delivery says what stock costs.
+  ///
+  /// [quantity] and [openingUnitCost] both default to "none": the article form
+  /// asks for neither any more — it describes the product, and stock arrives
+  /// through a receipt or an adjustment, which are the screens that leave a
+  /// record. They stay on the signature because an opening balance is a real
+  /// thing for a caller with one in hand, and because zero is the honest
+  /// default rather than a special case.
   Future<Item?> create({
     required String storeId,
     required String name,
     required String categoryId,
     required String unitId,
-    required double quantity,
     required double lowStockThreshold,
+    double maxStock = 0,
+    double quantity = 0,
     double? openingUnitCost,
     String? barcode,
     String? note,
@@ -345,6 +353,7 @@ class ItemRepository {
         unitId: unitId,
         quantity: 0,
         lowStockThreshold: lowStockThreshold,
+        maxStock: maxStock,
         updatedAt: DateTime.now(),
         defaultSupplierId: defaultSupplierId,
         barcode: cleanBarcode,
@@ -384,6 +393,7 @@ class ItemRepository {
     String? categoryId,
     String? unitId,
     double? lowStockThreshold,
+    double? maxStock,
     String? barcode,
     String? note,
     String? defaultSupplierId,
@@ -417,6 +427,7 @@ class ItemRepository {
           lowStockThreshold: Value(
             lowStockThreshold ?? existing.lowStockThreshold,
           ),
+          maxStock: Value(maxStock ?? existing.maxStock),
           updatedAt: Value(DateTime.now()),
           defaultSupplierId: Value(
             defaultSupplierId ?? existing.defaultSupplierId,

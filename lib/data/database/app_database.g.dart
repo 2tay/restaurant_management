@@ -1790,6 +1790,18 @@ class $ItemsTable extends Items with TableInfo<$ItemsTable, ItemRow> {
         type: DriftSqlType.double,
         requiredDuringInsert: true,
       );
+  static const VerificationMeta _maxStockMeta = const VerificationMeta(
+    'maxStock',
+  );
+  @override
+  late final GeneratedColumn<double> maxStock = GeneratedColumn<double>(
+    'max_stock',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
   static const VerificationMeta _updatedAtMeta = const VerificationMeta(
     'updatedAt',
   );
@@ -1853,6 +1865,7 @@ class $ItemsTable extends Items with TableInfo<$ItemsTable, ItemRow> {
     unitId,
     quantity,
     lowStockThreshold,
+    maxStock,
     updatedAt,
     averageCost,
     defaultSupplierId,
@@ -1926,6 +1939,12 @@ class $ItemsTable extends Items with TableInfo<$ItemsTable, ItemRow> {
       );
     } else if (isInserting) {
       context.missing(_lowStockThresholdMeta);
+    }
+    if (data.containsKey('max_stock')) {
+      context.handle(
+        _maxStockMeta,
+        maxStock.isAcceptableOrUnknown(data['max_stock']!, _maxStockMeta),
+      );
     }
     if (data.containsKey('updated_at')) {
       context.handle(
@@ -2002,6 +2021,10 @@ class $ItemsTable extends Items with TableInfo<$ItemsTable, ItemRow> {
         DriftSqlType.double,
         data['${effectivePrefix}low_stock_threshold'],
       )!,
+      maxStock: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}max_stock'],
+      )!,
       updatedAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}updated_at'],
@@ -2052,6 +2075,16 @@ class ItemRow extends DataClass implements Insertable<ItemRow> {
   /// `tool/ux_audit.py` guards the monopoly mechanically.
   final double quantity;
   final double lowStockThreshold;
+
+  /// How much of this product the establishment wants on the shelf when it is
+  /// fully stocked. What a commande tops up *to*.
+  ///
+  /// Zero means no ceiling has been declared, and the ordering screen falls
+  /// back to its threshold-based figure. Not nullable for that: a maximum of
+  /// zero says "order none of this, ever", which is not a thing anybody means,
+  /// so the sentinel cannot collide with a real value. Defaulted rather than
+  /// backfilled, so a database upgraded in place reads what a fresh one would.
+  final double maxStock;
   final DateTime updatedAt;
 
   /// Weighted average cost (CUMP) of the stock on hand, in EUR.
@@ -2083,6 +2116,7 @@ class ItemRow extends DataClass implements Insertable<ItemRow> {
     required this.unitId,
     required this.quantity,
     required this.lowStockThreshold,
+    required this.maxStock,
     required this.updatedAt,
     this.averageCost,
     this.defaultSupplierId,
@@ -2099,6 +2133,7 @@ class ItemRow extends DataClass implements Insertable<ItemRow> {
     map['unit_id'] = Variable<String>(unitId);
     map['quantity'] = Variable<double>(quantity);
     map['low_stock_threshold'] = Variable<double>(lowStockThreshold);
+    map['max_stock'] = Variable<double>(maxStock);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     if (!nullToAbsent || averageCost != null) {
       map['average_cost'] = Variable<double>(averageCost);
@@ -2124,6 +2159,7 @@ class ItemRow extends DataClass implements Insertable<ItemRow> {
       unitId: Value(unitId),
       quantity: Value(quantity),
       lowStockThreshold: Value(lowStockThreshold),
+      maxStock: Value(maxStock),
       updatedAt: Value(updatedAt),
       averageCost: averageCost == null && nullToAbsent
           ? const Value.absent()
@@ -2151,6 +2187,7 @@ class ItemRow extends DataClass implements Insertable<ItemRow> {
       unitId: serializer.fromJson<String>(json['unitId']),
       quantity: serializer.fromJson<double>(json['quantity']),
       lowStockThreshold: serializer.fromJson<double>(json['lowStockThreshold']),
+      maxStock: serializer.fromJson<double>(json['maxStock']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       averageCost: serializer.fromJson<double?>(json['averageCost']),
       defaultSupplierId: serializer.fromJson<String?>(
@@ -2171,6 +2208,7 @@ class ItemRow extends DataClass implements Insertable<ItemRow> {
       'unitId': serializer.toJson<String>(unitId),
       'quantity': serializer.toJson<double>(quantity),
       'lowStockThreshold': serializer.toJson<double>(lowStockThreshold),
+      'maxStock': serializer.toJson<double>(maxStock),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'averageCost': serializer.toJson<double?>(averageCost),
       'defaultSupplierId': serializer.toJson<String?>(defaultSupplierId),
@@ -2187,6 +2225,7 @@ class ItemRow extends DataClass implements Insertable<ItemRow> {
     String? unitId,
     double? quantity,
     double? lowStockThreshold,
+    double? maxStock,
     DateTime? updatedAt,
     Value<double?> averageCost = const Value.absent(),
     Value<String?> defaultSupplierId = const Value.absent(),
@@ -2200,6 +2239,7 @@ class ItemRow extends DataClass implements Insertable<ItemRow> {
     unitId: unitId ?? this.unitId,
     quantity: quantity ?? this.quantity,
     lowStockThreshold: lowStockThreshold ?? this.lowStockThreshold,
+    maxStock: maxStock ?? this.maxStock,
     updatedAt: updatedAt ?? this.updatedAt,
     averageCost: averageCost.present ? averageCost.value : this.averageCost,
     defaultSupplierId: defaultSupplierId.present
@@ -2221,6 +2261,7 @@ class ItemRow extends DataClass implements Insertable<ItemRow> {
       lowStockThreshold: data.lowStockThreshold.present
           ? data.lowStockThreshold.value
           : this.lowStockThreshold,
+      maxStock: data.maxStock.present ? data.maxStock.value : this.maxStock,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       averageCost: data.averageCost.present
           ? data.averageCost.value
@@ -2243,6 +2284,7 @@ class ItemRow extends DataClass implements Insertable<ItemRow> {
           ..write('unitId: $unitId, ')
           ..write('quantity: $quantity, ')
           ..write('lowStockThreshold: $lowStockThreshold, ')
+          ..write('maxStock: $maxStock, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('averageCost: $averageCost, ')
           ..write('defaultSupplierId: $defaultSupplierId, ')
@@ -2261,6 +2303,7 @@ class ItemRow extends DataClass implements Insertable<ItemRow> {
     unitId,
     quantity,
     lowStockThreshold,
+    maxStock,
     updatedAt,
     averageCost,
     defaultSupplierId,
@@ -2278,6 +2321,7 @@ class ItemRow extends DataClass implements Insertable<ItemRow> {
           other.unitId == this.unitId &&
           other.quantity == this.quantity &&
           other.lowStockThreshold == this.lowStockThreshold &&
+          other.maxStock == this.maxStock &&
           other.updatedAt == this.updatedAt &&
           other.averageCost == this.averageCost &&
           other.defaultSupplierId == this.defaultSupplierId &&
@@ -2293,6 +2337,7 @@ class ItemsCompanion extends UpdateCompanion<ItemRow> {
   final Value<String> unitId;
   final Value<double> quantity;
   final Value<double> lowStockThreshold;
+  final Value<double> maxStock;
   final Value<DateTime> updatedAt;
   final Value<double?> averageCost;
   final Value<String?> defaultSupplierId;
@@ -2307,6 +2352,7 @@ class ItemsCompanion extends UpdateCompanion<ItemRow> {
     this.unitId = const Value.absent(),
     this.quantity = const Value.absent(),
     this.lowStockThreshold = const Value.absent(),
+    this.maxStock = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.averageCost = const Value.absent(),
     this.defaultSupplierId = const Value.absent(),
@@ -2322,6 +2368,7 @@ class ItemsCompanion extends UpdateCompanion<ItemRow> {
     required String unitId,
     required double quantity,
     required double lowStockThreshold,
+    this.maxStock = const Value.absent(),
     required DateTime updatedAt,
     this.averageCost = const Value.absent(),
     this.defaultSupplierId = const Value.absent(),
@@ -2344,6 +2391,7 @@ class ItemsCompanion extends UpdateCompanion<ItemRow> {
     Expression<String>? unitId,
     Expression<double>? quantity,
     Expression<double>? lowStockThreshold,
+    Expression<double>? maxStock,
     Expression<DateTime>? updatedAt,
     Expression<double>? averageCost,
     Expression<String>? defaultSupplierId,
@@ -2359,6 +2407,7 @@ class ItemsCompanion extends UpdateCompanion<ItemRow> {
       if (unitId != null) 'unit_id': unitId,
       if (quantity != null) 'quantity': quantity,
       if (lowStockThreshold != null) 'low_stock_threshold': lowStockThreshold,
+      if (maxStock != null) 'max_stock': maxStock,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (averageCost != null) 'average_cost': averageCost,
       if (defaultSupplierId != null) 'default_supplier_id': defaultSupplierId,
@@ -2376,6 +2425,7 @@ class ItemsCompanion extends UpdateCompanion<ItemRow> {
     Value<String>? unitId,
     Value<double>? quantity,
     Value<double>? lowStockThreshold,
+    Value<double>? maxStock,
     Value<DateTime>? updatedAt,
     Value<double?>? averageCost,
     Value<String?>? defaultSupplierId,
@@ -2391,6 +2441,7 @@ class ItemsCompanion extends UpdateCompanion<ItemRow> {
       unitId: unitId ?? this.unitId,
       quantity: quantity ?? this.quantity,
       lowStockThreshold: lowStockThreshold ?? this.lowStockThreshold,
+      maxStock: maxStock ?? this.maxStock,
       updatedAt: updatedAt ?? this.updatedAt,
       averageCost: averageCost ?? this.averageCost,
       defaultSupplierId: defaultSupplierId ?? this.defaultSupplierId,
@@ -2424,6 +2475,9 @@ class ItemsCompanion extends UpdateCompanion<ItemRow> {
     if (lowStockThreshold.present) {
       map['low_stock_threshold'] = Variable<double>(lowStockThreshold.value);
     }
+    if (maxStock.present) {
+      map['max_stock'] = Variable<double>(maxStock.value);
+    }
     if (updatedAt.present) {
       map['updated_at'] = Variable<DateTime>(updatedAt.value);
     }
@@ -2455,6 +2509,7 @@ class ItemsCompanion extends UpdateCompanion<ItemRow> {
           ..write('unitId: $unitId, ')
           ..write('quantity: $quantity, ')
           ..write('lowStockThreshold: $lowStockThreshold, ')
+          ..write('maxStock: $maxStock, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('averageCost: $averageCost, ')
           ..write('defaultSupplierId: $defaultSupplierId, ')

@@ -109,7 +109,7 @@ abstract class AppLocalizations {
   /// Sidebar label for the inventory list.
   ///
   /// In fr, this message translates to:
-  /// **'Inventaire'**
+  /// **'Produits'**
   String get navInventory;
 
   /// Sidebar label for stock in/out/adjustment history. One of the longest rail labels — size the NavigationRail against this string.
@@ -175,7 +175,7 @@ abstract class AppLocalizations {
   /// Primary action on the inventory list and its empty state.
   ///
   /// In fr, this message translates to:
-  /// **'Ajouter un article'**
+  /// **'Ajouter un produit'**
   String get actionAddItem;
 
   /// Quick action on the dashboard — opens the Stock In screen. Deliberately plain language, not 'create stock ingress record'.
@@ -337,13 +337,13 @@ abstract class AppLocalizations {
   /// Empty state on the inventory list for a brand-new store.
   ///
   /// In fr, this message translates to:
-  /// **'Aucun article pour le moment'**
+  /// **'Aucun produit pour le moment'**
   String get emptyStateNoItemsTitle;
 
   /// Supporting line under the inventory empty state.
   ///
   /// In fr, this message translates to:
-  /// **'Ajoutez votre premier article pour commencer à suivre votre stock.'**
+  /// **'Ajoutez votre premier produit pour commencer à suivre votre stock.'**
   String get emptyStateNoItemsBody;
 
   /// Shown when a search or filter matches nothing.
@@ -535,7 +535,7 @@ abstract class AppLocalizations {
   /// Body for the alerts onboarding bullet.
   ///
   /// In fr, this message translates to:
-  /// **'Recevez une alerte dès qu\'un article passe sous son seuil.'**
+  /// **'Recevez une alerte dès qu\'un produit passe sous son seuil.'**
   String get onboardingFeatureAlertsBody;
 
   /// Store selector heading.
@@ -559,7 +559,7 @@ abstract class AppLocalizations {
   /// Item count on a store card.
   ///
   /// In fr, this message translates to:
-  /// **'{count, plural, =0{Aucun article} =1{1 article} other{{count} articles}}'**
+  /// **'{count, plural, =0{Aucun produit} =1{1 produit} other{{count} produits}}'**
   String storesItemCount(int count);
 
   /// Low-stock alert count badge on a store card.
@@ -631,13 +631,13 @@ abstract class AppLocalizations {
   /// Inventory list heading.
   ///
   /// In fr, this message translates to:
-  /// **'Inventaire'**
+  /// **'Produits'**
   String get inventoryTitle;
 
   /// Placeholder in the inventory search field. Mentions barcodes so staff know pasting or scanning one into the box works — an unadvertised capability is one nobody uses.
   ///
   /// In fr, this message translates to:
-  /// **'Rechercher un article ou un code-barres…'**
+  /// **'Rechercher un produit ou un code-barres…'**
   String get inventorySearchHint;
 
   /// Category filter label on the inventory list.
@@ -673,7 +673,7 @@ abstract class AppLocalizations {
   /// Result count under the inventory search.
   ///
   /// In fr, this message translates to:
-  /// **'{count, plural, =0{Aucun article} =1{1 article} other{{count} articles}}'**
+  /// **'{count, plural, =0{Aucun produit} =1{1 produit} other{{count} produits}}'**
   String inventoryCount(int count);
 
   /// Clears all active inventory filters.
@@ -685,13 +685,13 @@ abstract class AppLocalizations {
   /// Placeholder in the detail pane of the inventory split view.
   ///
   /// In fr, this message translates to:
-  /// **'Sélectionnez un article'**
+  /// **'Sélectionnez un produit'**
   String get inventorySelectPrompt;
 
   /// Supporting line in the empty detail pane.
   ///
   /// In fr, this message translates to:
-  /// **'Choisissez un article dans la liste pour voir son détail, ses fournisseurs et ses prix.'**
+  /// **'Choisissez un produit dans la liste pour voir son détail, ses fournisseurs et ses prix.'**
   String get inventorySelectPromptBody;
 
   /// Label above an item's current quantity.
@@ -805,7 +805,7 @@ abstract class AppLocalizations {
   /// Snackbar confirming an item was deleted.
   ///
   /// In fr, this message translates to:
-  /// **'Article supprimé'**
+  /// **'Produit supprimé'**
   String get itemDeleted;
 
   /// Snackbar confirming a supplier link was removed from an item.
@@ -823,19 +823,19 @@ abstract class AppLocalizations {
   /// Add-item form heading.
   ///
   /// In fr, this message translates to:
-  /// **'Ajouter un article'**
+  /// **'Ajouter un produit'**
   String get addItemTitle;
 
   /// Edit-item form heading.
   ///
   /// In fr, this message translates to:
-  /// **'Modifier l\'article'**
+  /// **'Modifier le produit'**
   String get editItemTitle;
 
   /// Item name field label.
   ///
   /// In fr, this message translates to:
-  /// **'Nom de l\'article'**
+  /// **'Nom du produit'**
   String get itemFormName;
 
   /// Placeholder for the item name field.
@@ -844,17 +844,29 @@ abstract class AppLocalizations {
   /// **'Ex. : Blanc de poulet'**
   String get itemFormNameHint;
 
-  /// Opening stock quantity on the add-item form.
-  ///
-  /// In fr, this message translates to:
-  /// **'Quantité de départ'**
-  String get itemFormStartingQuantity;
-
   /// Helper text explaining the low-stock threshold.
   ///
   /// In fr, this message translates to:
   /// **'Vous serez alerté lorsque le stock atteindra ce niveau ou passera en dessous.'**
   String get itemFormThresholdHelp;
+
+  /// Label for the quantity a full shelf of this product holds. Sits directly under the alert threshold on the product form, and is the figure a commande tops up to.
+  ///
+  /// In fr, this message translates to:
+  /// **'Stock maximum'**
+  String get itemMaxStockLabel;
+
+  /// Helper under the max stock stepper. States both what the figure does on the ordering screen and what zero means, because a stepper has no other way to say "not set".
+  ///
+  /// In fr, this message translates to:
+  /// **'La quantité visée quand le stock est complet. Une commande propose de remonter à ce niveau. Laissez à 0 si ce produit n\'a pas de maximum.'**
+  String get itemFormMaxStockHelp;
+
+  /// Replaces the max stock helper when the entered maximum is at or below the alert threshold. Shown in the error colour at save time rather than on every keystroke.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le stock maximum doit être supérieur au seuil d\'alerte.'**
+  String get itemFormMaxStockInvalid;
 
   /// Heading of the note explaining why the item form has no cost field.
   ///
@@ -865,19 +877,19 @@ abstract class AppLocalizations {
   /// Explains that price lives on the item-supplier link. Without this the missing cost field reads as an oversight.
   ///
   /// In fr, this message translates to:
-  /// **'Le prix dépend du fournisseur. Associez un ou plusieurs fournisseurs à cet article pour enregistrer leurs prix respectifs.'**
+  /// **'Le prix dépend du fournisseur. Associez un ou plusieurs fournisseurs à ce produit pour enregistrer leurs prix respectifs.'**
   String get itemFormNoCostBody;
 
   /// Snackbar confirming item creation.
   ///
   /// In fr, this message translates to:
-  /// **'Article créé'**
+  /// **'Produit créé'**
   String get itemCreated;
 
   /// Snackbar confirming item edit.
   ///
   /// In fr, this message translates to:
-  /// **'Article modifié'**
+  /// **'Produit modifié'**
   String get itemUpdated;
 
   /// Inline create option in the category dropdown.
@@ -985,7 +997,7 @@ abstract class AppLocalizations {
   /// Helper text under the price field.
   ///
   /// In fr, this message translates to:
-  /// **'Le prix de ce fournisseur pour cet article. Chaque modification sera enregistrée dans l\'historique.'**
+  /// **'Le prix de ce fournisseur pour ce produit. Chaque modification sera enregistrée dans l\'historique.'**
   String get linkSupplierPriceHelp;
 
   /// Toggle marking this supplier as the default for the item.
@@ -1075,7 +1087,7 @@ abstract class AppLocalizations {
   /// Supporting line on the categories screen.
   ///
   /// In fr, this message translates to:
-  /// **'Les catégories servent à classer et filtrer vos articles.'**
+  /// **'Les catégories servent à classer et filtrer vos produits.'**
   String get categoriesSubtitle;
 
   /// Primary action on the categories screen.
@@ -1093,19 +1105,19 @@ abstract class AppLocalizations {
   /// Supporting line for the categories empty state.
   ///
   /// In fr, this message translates to:
-  /// **'Créez une première catégorie pour organiser vos articles.'**
+  /// **'Créez une première catégorie pour organiser vos produits.'**
   String get categoriesEmptyBody;
 
   /// How many items use a category.
   ///
   /// In fr, this message translates to:
-  /// **'{count, plural, =0{Aucun article} =1{1 article} other{{count} articles}}'**
+  /// **'{count, plural, =0{Aucun produit} =1{1 produit} other{{count} produits}}'**
   String categoriesItemCount(int count);
 
   /// Extra warning when deleting a category that items still reference.
   ///
   /// In fr, this message translates to:
-  /// **'{count, plural, =1{1 article utilise cette catégorie et devra être reclassé.} other{{count} articles utilisent cette catégorie et devront être reclassés.}}'**
+  /// **'{count, plural, =1{1 produit utilise cette catégorie et devra être reclassé.} other{{count} produits utilisent cette catégorie et devront être reclassés.}}'**
   String categoriesInUseWarning(int count);
 
   /// Snackbar confirming category deletion.
@@ -1147,13 +1159,13 @@ abstract class AppLocalizations {
   /// Supporting line for the units empty state.
   ///
   /// In fr, this message translates to:
-  /// **'Créez une première unité pour pouvoir ajouter des articles.'**
+  /// **'Créez une première unité pour pouvoir ajouter des produits.'**
   String get unitsEmptyBody;
 
   /// Extra warning when deleting a unit that items still reference.
   ///
   /// In fr, this message translates to:
-  /// **'{count, plural, =1{1 article utilise cette unité.} other{{count} articles utilisent cette unité.}}'**
+  /// **'{count, plural, =1{1 produit utilise cette unité.} other{{count} produits utilisent cette unité.}}'**
   String unitsInUseWarning(int count);
 
   /// Snackbar confirming unit deletion.
@@ -1303,13 +1315,13 @@ abstract class AppLocalizations {
   /// Supporting line on the stock-in screen.
   ///
   /// In fr, this message translates to:
-  /// **'Ajoutez au stock les articles que vous venez de recevoir.'**
+  /// **'Ajoutez au stock les produits que vous venez de recevoir.'**
   String get stockInSubtitle;
 
   /// Item picker label on the stock-in form.
   ///
   /// In fr, this message translates to:
-  /// **'Article'**
+  /// **'Produit'**
   String get stockInItem;
 
   /// Supplier picker on the stock-in form. Selecting one auto-fills its current price.
@@ -1369,7 +1381,7 @@ abstract class AppLocalizations {
   /// Shown when the selected item has no supplier links yet.
   ///
   /// In fr, this message translates to:
-  /// **'Cet article n\'a pas encore de fournisseur associé.'**
+  /// **'Ce produit n\'a pas encore de fournisseur associé.'**
   String get stockInNoSupplier;
 
   /// Stock-out screen heading.
@@ -1705,7 +1717,7 @@ abstract class AppLocalizations {
   /// Summary tile: how many items are tracked.
   ///
   /// In fr, this message translates to:
-  /// **'Articles suivis'**
+  /// **'Produits suivis'**
   String get dashboardTileItems;
 
   /// Summary tile: items at or below threshold.
@@ -1747,7 +1759,7 @@ abstract class AppLocalizations {
   /// Dashboard section listing items needing attention.
   ///
   /// In fr, this message translates to:
-  /// **'Articles à surveiller'**
+  /// **'Produits à surveiller'**
   String get dashboardAlertsTitle;
 
   /// Shown when nothing is below threshold.
@@ -1759,7 +1771,7 @@ abstract class AppLocalizations {
   /// Supporting line when there are no alerts.
   ///
   /// In fr, this message translates to:
-  /// **'Aucun article sous son seuil d\'alerte.'**
+  /// **'Aucun produit sous son seuil d\'alerte.'**
   String get dashboardAllGoodBody;
 
   /// Dashboard empty state for a brand-new store.
@@ -1771,7 +1783,7 @@ abstract class AppLocalizations {
   /// Supporting line for the empty-store dashboard.
   ///
   /// In fr, this message translates to:
-  /// **'Commencez par ajouter vos articles pour suivre votre stock.'**
+  /// **'Commencez par ajouter vos produits pour suivre votre stock.'**
   String get dashboardEmptyStoreBody;
 
   /// Low stock alerts screen heading.
@@ -1783,7 +1795,7 @@ abstract class AppLocalizations {
   /// Supporting line on the alerts screen.
   ///
   /// In fr, this message translates to:
-  /// **'Articles à réapprovisionner, les plus urgents en premier.'**
+  /// **'Produits à réapprovisionner, les plus urgents en premier.'**
   String get alertsSubtitle;
 
   /// Empty state when nothing is below threshold.
@@ -1795,7 +1807,7 @@ abstract class AppLocalizations {
   /// Supporting line for the no-alerts state.
   ///
   /// In fr, this message translates to:
-  /// **'Tous vos articles sont au-dessus de leur seuil d\'alerte.'**
+  /// **'Tous vos produits sont au-dessus de leur seuil d\'alerte.'**
   String get alertsEmptyBody;
 
   /// How far below its threshold an item is.
@@ -1879,7 +1891,7 @@ abstract class AppLocalizations {
   /// Describes the valuation report.
   ///
   /// In fr, this message translates to:
-  /// **'Combien vaut ce que vous avez en réserve, par catégorie et par article.'**
+  /// **'Combien vaut ce que vous avez en réserve, par catégorie et par produit.'**
   String get reportsValuationBody;
 
   /// Price comparison report name.
@@ -1915,7 +1927,7 @@ abstract class AppLocalizations {
   /// Explains how the potential saving is estimated.
   ///
   /// In fr, this message translates to:
-  /// **'Estimation annuelle si chaque article était commandé au meilleur prix disponible.'**
+  /// **'Estimation annuelle si chaque produit était commandé au meilleur prix disponible.'**
   String get reportsPotentialSavingBody;
 
   /// Tile: value consumed in the last 30 days.
@@ -1987,13 +1999,13 @@ abstract class AppLocalizations {
   /// Section heading for the highest-value items.
   ///
   /// In fr, this message translates to:
-  /// **'Articles les plus valorisés'**
+  /// **'Produits les plus valorisés'**
   String get valuationByItem;
 
   /// States how the valuation is computed. Necessary because an item has several supplier prices.
   ///
   /// In fr, this message translates to:
-  /// **'Valorisé au prix du fournisseur par défaut de chaque article.'**
+  /// **'Valorisé au prix du fournisseur par défaut de chaque produit.'**
   String get valuationBasis;
 
   /// Category column header.
@@ -2005,7 +2017,7 @@ abstract class AppLocalizations {
   /// Item-count column header.
   ///
   /// In fr, this message translates to:
-  /// **'Articles'**
+  /// **'Produits'**
   String get valuationColumnItems;
 
   /// Value column header.
@@ -2029,13 +2041,13 @@ abstract class AppLocalizations {
   /// Supporting line on the comparison report.
   ///
   /// In fr, this message translates to:
-  /// **'Sélectionnez un article pour comparer les prix de tous ses fournisseurs.'**
+  /// **'Sélectionnez un produit pour comparer les prix de tous ses fournisseurs.'**
   String get comparisonSubtitle;
 
   /// Item picker on the comparison report.
   ///
   /// In fr, this message translates to:
-  /// **'Article à comparer'**
+  /// **'Produit à comparer'**
   String get comparisonPickItem;
 
   /// Supplier column header.
@@ -2065,7 +2077,7 @@ abstract class AppLocalizations {
   /// Shown when there is nothing to compare.
   ///
   /// In fr, this message translates to:
-  /// **'Un seul fournisseur pour cet article'**
+  /// **'Un seul fournisseur pour ce produit'**
   String get comparisonSingleSupplier;
 
   /// Supporting line when an item has only one supplier.
@@ -2197,7 +2209,7 @@ abstract class AppLocalizations {
   /// Describes the low stock notification toggle.
   ///
   /// In fr, this message translates to:
-  /// **'Recevez une alerte dès qu\'un article passe sous son seuil.'**
+  /// **'Recevez une alerte dès qu\'un produit passe sous son seuil.'**
   String get notificationPrefLowStockBody;
 
   /// Toggle: notify when a supplier price changes.
@@ -2311,7 +2323,7 @@ abstract class AppLocalizations {
   /// Placeholder in the global search field. Names barcode explicitly so the capability is discoverable.
   ///
   /// In fr, this message translates to:
-  /// **'Article, code-barres, fournisseur…'**
+  /// **'Produit, code-barres, fournisseur…'**
   String get searchHint;
 
   /// Prompt shown before anything is typed.
@@ -2323,13 +2335,13 @@ abstract class AppLocalizations {
   /// Supporting line under the search prompt.
   ///
   /// In fr, this message translates to:
-  /// **'Recherchez parmi vos articles, fournisseurs et catégories.'**
+  /// **'Recherchez parmi vos produits, fournisseurs et catégories.'**
   String get searchPromptBody;
 
   /// Search results section: items.
   ///
   /// In fr, this message translates to:
-  /// **'Articles'**
+  /// **'Produits'**
   String get searchSectionItems;
 
   /// Search results section: suppliers.
@@ -2485,7 +2497,7 @@ abstract class AppLocalizations {
   /// Accessible label on the inventory skeleton loader.
   ///
   /// In fr, this message translates to:
-  /// **'Chargement de l\'inventaire…'**
+  /// **'Chargement des produits…'**
   String get loadingItems;
 
   /// Label of the barcode field on the add/edit item form. The parenthesis matters: most restaurant stock has no barcode and the form must not read as if one is expected.
@@ -2713,7 +2725,7 @@ abstract class AppLocalizations {
   /// Order lines table column.
   ///
   /// In fr, this message translates to:
-  /// **'Article'**
+  /// **'Produit'**
   String get orderColumnItem;
 
   /// Order lines table column: quantity ordered.
@@ -2947,7 +2959,7 @@ abstract class AppLocalizations {
   /// Second step of creating an order: the line builder.
   ///
   /// In fr, this message translates to:
-  /// **'Articles'**
+  /// **'Produits'**
   String get orderStepLines;
 
   /// Prompt shown before a supplier is chosen on the create order screen.
@@ -2959,7 +2971,7 @@ abstract class AppLocalizations {
   /// Explains why the supplier comes first.
   ///
   /// In fr, this message translates to:
-  /// **'Une commande part chez un seul fournisseur. Ce choix filtre les articles proposés et remplit automatiquement les prix.'**
+  /// **'Une commande part chez un seul fournisseur. Ce choix filtre les produits proposés et remplit automatiquement les prix.'**
   String get orderSupplierPromptBody;
 
   /// Placeholder in the supplier picker search field.
@@ -2983,7 +2995,7 @@ abstract class AppLocalizations {
   /// Body of the change-supplier confirmation.
   ///
   /// In fr, this message translates to:
-  /// **'{count, plural, =1{La ligne déjà saisie sera supprimée.} other{Les {count} lignes déjà saisies seront supprimées.}} Les articles et les prix dépendent du fournisseur choisi.'**
+  /// **'{count, plural, =1{La ligne déjà saisie sera supprimée.} other{Les {count} lignes déjà saisies seront supprimées.}} Les produits et les prix dépendent du fournisseur choisi.'**
   String orderChangeSupplierBody(int count);
 
   /// Confirms changing supplier and clearing the lines. Says what will happen rather than just 'Continuer'.
@@ -2995,13 +3007,13 @@ abstract class AppLocalizations {
   /// Adds a line to the order being built.
   ///
   /// In fr, this message translates to:
-  /// **'Ajouter un article'**
+  /// **'Ajouter un produit'**
   String get orderAddLine;
 
   /// Label of the item picker on an order line. The picker only offers items the chosen supplier actually supplies.
   ///
   /// In fr, this message translates to:
-  /// **'Article'**
+  /// **'Produit'**
   String get orderLinePickerLabel;
 
   /// Quantity field on an order line.
@@ -3037,13 +3049,13 @@ abstract class AppLocalizations {
   /// Empty state in the order line builder.
   ///
   /// In fr, this message translates to:
-  /// **'Aucun article'**
+  /// **'Aucun produit'**
   String get orderLinesEmptyTitle;
 
   /// Body of the order line builder empty state.
   ///
   /// In fr, this message translates to:
-  /// **'Ajoutez les articles à commander chez {supplier}.'**
+  /// **'Ajoutez les produits à commander chez {supplier}.'**
   String orderLinesEmptyBody(String supplier);
 
   /// Note under an auto-filled order line price.
@@ -3061,7 +3073,7 @@ abstract class AppLocalizations {
   /// Subtitle of the suggested items panel.
   ///
   /// In fr, this message translates to:
-  /// **'Articles de ce fournisseur à réapprovisionner.'**
+  /// **'Produits de ce fournisseur à réapprovisionner.'**
   String get orderSuggestedSubtitle;
 
   /// Adds every suggested item to the order in one tap.
@@ -3079,13 +3091,13 @@ abstract class AppLocalizations {
   /// Snackbar after adding suggested items.
   ///
   /// In fr, this message translates to:
-  /// **'{count, plural, =1{1 article ajouté.} other{{count} articles ajoutés.}}'**
+  /// **'{count, plural, =1{1 produit ajouté.} other{{count} produits ajoutés.}}'**
   String orderSuggestedAdded(int count);
 
   /// Shown in place of the suggestions panel when nothing this supplier provides is low.
   ///
   /// In fr, this message translates to:
-  /// **'Aucun article de ce fournisseur n\'est en stock faible.'**
+  /// **'Aucun produit de ce fournisseur n\'est en stock faible.'**
   String get orderSuggestedEmpty;
 
   /// How much a suggested item is below its threshold.
@@ -3127,7 +3139,7 @@ abstract class AppLocalizations {
   /// Shown when an item is on no open order.
   ///
   /// In fr, this message translates to:
-  /// **'Aucune commande en cours pour cet article.'**
+  /// **'Aucune commande en cours pour ce produit.'**
   String get itemNoOpenOrders;
 
   /// Title of the receiving screen.
@@ -3205,13 +3217,13 @@ abstract class AppLocalizations {
   /// Adds a line at receipt time for something that was not ordered.
   ///
   /// In fr, this message translates to:
-  /// **'Ajouter un article non commandé'**
+  /// **'Ajouter un produit non commandé'**
   String get receiveAddUnordered;
 
   /// Snackbar after adding an unordered line.
   ///
   /// In fr, this message translates to:
-  /// **'Article non commandé ajouté à la réception.'**
+  /// **'Produit non commandé ajouté à la réception.'**
   String get receiveUnorderedAdded;
 
   /// Snackbar after removing an unordered line from the receipt being built.
@@ -3451,7 +3463,7 @@ abstract class AppLocalizations {
   /// Explains what the reset action does and, implicitly, that nothing persists anyway.
   ///
   /// In fr, this message translates to:
-  /// **'Remet les articles, les stocks, les commandes et les prix dans leur état d\'origine. Les modifications faites pendant la démonstration ne sont conservées que le temps de la session.'**
+  /// **'Remet les produits, les stocks, les commandes et les prix dans leur état d\'origine. Les modifications faites pendant la démonstration ne sont conservées que le temps de la session.'**
   String get demoResetBody;
 
   /// Confirmation before resetting.
@@ -3523,7 +3535,7 @@ abstract class AppLocalizations {
   /// Explains why a category cannot be deleted and what to do about it. Naming the number and the fix is what makes it actionable.
   ///
   /// In fr, this message translates to:
-  /// **'{count, plural, =1{1 article est classé dans cette catégorie.} other{{count} articles sont classés dans cette catégorie.}} Reclassez-les avant de la supprimer.'**
+  /// **'{count, plural, =1{1 produit est classé dans cette catégorie.} other{{count} produits sont classés dans cette catégorie.}} Reclassez-les avant de la supprimer.'**
   String categoryDeleteBlockedBody(int count);
 
   /// Title of the dialog shown when a unit cannot be deleted because items are measured in it.
@@ -3535,14 +3547,8 @@ abstract class AppLocalizations {
   /// Explains why a unit cannot be deleted and what to do about it.
   ///
   /// In fr, this message translates to:
-  /// **'{count, plural, =1{1 article est mesuré dans cette unité.} other{{count} articles sont mesurés dans cette unité.}} Changez leur unité avant de la supprimer.'**
+  /// **'{count, plural, =1{1 produit est mesuré dans cette unité.} other{{count} produits sont mesurés dans cette unité.}} Changez leur unité avant de la supprimer.'**
   String unitDeleteBlockedBody(int count);
-
-  /// Explains that a new item's starting quantity is recorded as an opening-balance movement rather than simply set.
-  ///
-  /// In fr, this message translates to:
-  /// **'Enregistré comme un ajustement d\'inventaire, pour que l\'historique des mouvements soit complet dès le départ.'**
-  String get itemFormOpeningBalanceHelp;
 
   /// Link from the edit item form to the stock adjustment screen. Quantity is read-only when editing: changing it here would be an untraceable stock change hidden inside a routine form.
   ///
@@ -3565,7 +3571,7 @@ abstract class AppLocalizations {
   /// Explains why an item cannot be deleted. The open order is a document a supplier is holding, so removing the article would leave it referring to nothing.
   ///
   /// In fr, this message translates to:
-  /// **'{count, plural, =1{Cet article figure sur 1 commande en cours.} other{Cet article figure sur {count} commandes en cours.}} Réceptionnez ou clôturez-la avant de le supprimer.'**
+  /// **'{count, plural, =1{Ce produit figure sur 1 commande en cours.} other{Ce produit figure sur {count} commandes en cours.}} Réceptionnez ou clôturez-la avant de le supprimer.'**
   String itemDeleteBlockedBody(int count);
 
   /// States exactly what disappears alongside a deleted item. Naming the counts is what makes the confirmation honest rather than a formality.
@@ -4672,24 +4678,6 @@ abstract class AppLocalizations {
   /// **'Seul le propriétaire peut modifier les paramètres de l\'établissement.'**
   String get storeSettingsReadOnlyNotice;
 
-  /// Label of the optional field on the create-item form for what the starting stock was bought at. Sets the item's average cost, which the stock valuation is built on.
-  ///
-  /// In fr, this message translates to:
-  /// **'Coût d\'achat unitaire'**
-  String get itemFormOpeningCost;
-
-  /// Placeholder for the opening cost field, showing the Belgian comma decimal separator.
-  ///
-  /// In fr, this message translates to:
-  /// **'Ex. : 8,50'**
-  String get itemFormOpeningCostHint;
-
-  /// Helper under the opening cost field. States the consequence of leaving it empty rather than pressing for a number the user may not have: an unknown cost contributes nothing to the valuation instead of an invented figure.
-  ///
-  /// In fr, this message translates to:
-  /// **'Facultatif. Sans ce montant, l\'article ne sera pas valorisé tant qu\'une livraison n\'aura pas été réceptionnée.'**
-  String get itemFormOpeningCostHelp;
-
   /// Label for an item's weighted average cost per unit. Distinct from a supplier price: this is what the stock on hand was paid for, not what the next order will cost.
   ///
   /// In fr, this message translates to:
@@ -4813,7 +4801,7 @@ abstract class AppLocalizations {
   /// PDF table column.
   ///
   /// In fr, this message translates to:
-  /// **'Article'**
+  /// **'Produit'**
   String get receiptDocColumnItem;
 
   /// PDF table column: what was still outstanding when the van arrived.

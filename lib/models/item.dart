@@ -23,6 +23,7 @@ class Item {
     required this.quantity,
     required this.lowStockThreshold,
     required this.updatedAt,
+    this.maxStock = 0,
     this.averageCost,
     this.defaultSupplierId,
     this.barcode,
@@ -41,6 +42,18 @@ class Item {
   /// At or below this, the item reads as "Stock faible". At zero it reads as
   /// "Rupture de stock". See `core/utils/stock_status.dart`.
   final double lowStockThreshold;
+
+  /// What a full shelf of this product looks like, in the item's unit.
+  ///
+  /// The figure a commande tops up *to*: the ordering screen suggests
+  /// `maxStock - quantity` rather than the shortfall below
+  /// [lowStockThreshold], because ordering the shortfall leaves the product
+  /// sitting exactly on its alert line and alerting again on the next sale.
+  ///
+  /// Zero means no ceiling has been declared — see the column note in
+  /// `data/database/tables/items.dart`. The form refuses a maximum at or below
+  /// [lowStockThreshold], so a non-zero value always leaves room to order into.
+  final double maxStock;
 
   final DateTime updatedAt;
 
@@ -101,6 +114,7 @@ class Item {
     String? unitId,
     double? quantity,
     double? lowStockThreshold,
+    double? maxStock,
     DateTime? updatedAt,
     double? averageCost,
     String? defaultSupplierId,
@@ -115,6 +129,7 @@ class Item {
       unitId: unitId ?? this.unitId,
       quantity: quantity ?? this.quantity,
       lowStockThreshold: lowStockThreshold ?? this.lowStockThreshold,
+      maxStock: maxStock ?? this.maxStock,
       updatedAt: updatedAt ?? this.updatedAt,
       averageCost: averageCost ?? this.averageCost,
       defaultSupplierId: defaultSupplierId ?? this.defaultSupplierId,

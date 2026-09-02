@@ -84,7 +84,7 @@ class AppDatabase extends _$AppDatabase {
   static const String databaseName = 'stock_inventory';
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -127,6 +127,15 @@ class AppDatabase extends _$AppDatabase {
         ]) {
           await m.addColumn(stores, column);
         }
+      }
+
+      // v2 → v3: `items.maxStock`, the figure a commande tops up to. Its
+      // column default is zero, which the ordering screen reads as "no ceiling
+      // declared" and answers with its old threshold-based figure — so an
+      // install upgraded in place keeps ordering exactly as it did until
+      // somebody sets a maximum.
+      if (from < 3) {
+        await m.addColumn(items, items.maxStock);
       }
     },
 

@@ -612,7 +612,7 @@ final List<StockMovement> mockStockMovements = [
     userName: 'Marc Delvaux',
     orderId: 'po-2026-015',
     receiptId: 'gr-015-1',
-    note: 'Article non commandé.',
+    note: 'Produit non commandé.',
   ),
   StockMovement(
     id: 'mv-rcp-013-1',

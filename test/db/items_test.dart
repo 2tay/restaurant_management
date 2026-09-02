@@ -14,6 +14,7 @@
 
 import 'package:drift/drift.dart' hide isNotNull, isNull;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:stock_inventory/core/utils/stock_status.dart';
 import 'package:stock_inventory/data/database/app_database.dart';
 import 'package:stock_inventory/data/repositories/repositories.dart';
 import 'package:stock_inventory/data/seed/dataset/dataset.dart'
@@ -83,6 +84,48 @@ void main() {
       expect(await movements.movementsForItem(created.id), isEmpty);
     });
 
+    // The product form asks for neither a quantity nor an opening cost any
+    // more — it describes the product, and stock arrives through a receipt or
+    // an adjustment. That is the shape of the call it makes now.
+    test('a product form with no stock fields still creates the article',
+        () async {
+      final created = (await items.create(
+        storeId: StoreIds.sablon,
+        name: 'Chicons',
+        categoryId: CategoryIds.legumes,
+        unitId: UnitIds.kg,
+        lowStockThreshold: 4,
+      ))!;
+
+      expect(created.quantity, 0);
+      expect(created.averageCost, isNull);
+      expect(await movements.movementsForItem(created.id), isEmpty);
+
+      // And it reads as out of stock from its first day, which is the truth:
+      // the catalogue knows the product, the shelf has none of it.
+      expect(stockStatusOf(created), StockStatus.outOfStock);
+    });
+
+    test('the maximum defaults to none when nothing asks for one', () async {
+      final created = (await chicons())!;
+
+      expect(created.maxStock, 0);
+    });
+
+    test('the maximum is stored and read back', () async {
+      final created = (await items.create(
+        storeId: StoreIds.sablon,
+        name: 'Chicons',
+        categoryId: CategoryIds.legumes,
+        unitId: UnitIds.kg,
+        lowStockThreshold: 4,
+        maxStock: 20,
+      ))!;
+
+      expect(created.maxStock, 20);
+      expect((await items.item(created.id))!.maxStock, 20);
+    });
+
     test('the article and its opening movement arrive together', () async {
       // One transaction, so the state where an article exists with stock and no
       // movement explaining it is not merely unlikely, it is unreachable.
@@ -146,6 +189,25 @@ void main() {
   });
 
   group('editing an article', () {
+    test('the maximum can be changed, and survives an edit that ignores it',
+        () async {
+      final created = (await items.create(
+        storeId: StoreIds.sablon,
+        name: 'Chicons',
+        categoryId: CategoryIds.legumes,
+        unitId: UnitIds.kg,
+        lowStockThreshold: 4,
+        maxStock: 20,
+      ))!;
+
+      expect((await items.update(created.id, maxStock: 30))!.maxStock, 30);
+
+      // An edit that says nothing about the maximum leaves it alone, the way
+      // every other untouched field on this form does.
+      expect((await items.update(created.id, name: 'Chicons belges'))!.maxStock,
+          30);
+    });
+
     test('cannot change the quantity', () async {
       final before = (await items.item(ItemIds.tomates))!.quantity;
 

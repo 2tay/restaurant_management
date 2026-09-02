@@ -123,20 +123,25 @@ class _ItemFormState extends ConsumerState<_ItemForm> {
   final _noteController = TextEditingController();
   final _barcodeController = TextEditingController();
 
-  /// What the starting stock was bought at. Create-only, like the quantity it
-  /// belongs to, and for the same reason: it is a fact about the opening
-  /// balance, not a field that stays editable afterwards.
-  final _openingCostController = TextEditingController();
-
   /// Set when the entered barcode already belongs to another item. Validated at
   /// save time rather than on every keystroke — flagging a duplicate while
   /// somebody is still halfway through typing one is noise.
   String? _barcodeConflictName;
 
+  /// Set when the maximum is at or below the alert threshold. Same timing as
+  /// the barcode conflict, and for the same reason: a form that complains
+  /// while the number is still being typed complains about every number.
+  bool _maxBelowThreshold = false;
+
   String? _categoryId;
   String? _unitId;
+
+  /// The quantity on hand. Displayed on edit, never edited here — see the
+  /// note at its call site. On create it is simply zero: this form describes
+  /// the product, and stock arrives through a receipt or an adjustment.
   double _quantity = 0;
   double _threshold = 0;
+  double _maxStock = 0;
 
   // Snapshot taken in initState. The dirty check compares against these rather
   // than tracking a flag, so undoing an edit back to its original value
@@ -146,8 +151,8 @@ class _ItemFormState extends ConsumerState<_ItemForm> {
   String _initialBarcode = '';
   String? _initialCategoryId;
   String? _initialUnitId;
-  double _initialQuantity = 0;
   double _initialThreshold = 0;
+  double _initialMaxStock = 0;
 
   bool get _isEditing => widget.existing != null;
 
@@ -165,6 +170,7 @@ class _ItemFormState extends ConsumerState<_ItemForm> {
       _unitId = existing.unitId;
       _quantity = existing.quantity;
       _threshold = existing.lowStockThreshold;
+      _maxStock = existing.maxStock;
     }
 
     _initialName = _nameController.text.trim();
@@ -172,8 +178,8 @@ class _ItemFormState extends ConsumerState<_ItemForm> {
     _initialBarcode = _barcodeController.text.trim();
     _initialCategoryId = _categoryId;
     _initialUnitId = _unitId;
-    _initialQuantity = _quantity;
     _initialThreshold = _threshold;
+    _initialMaxStock = _maxStock;
   }
 
   @override
@@ -181,7 +187,6 @@ class _ItemFormState extends ConsumerState<_ItemForm> {
     _nameController.dispose();
     _noteController.dispose();
     _barcodeController.dispose();
-    _openingCostController.dispose();
     super.dispose();
   }
 
@@ -195,11 +200,10 @@ class _ItemFormState extends ConsumerState<_ItemForm> {
       _nameController.text.trim() != _initialName ||
       _noteController.text.trim() != _initialNote ||
       _barcodeController.text.trim() != _initialBarcode ||
-      _openingCostController.text.trim().isNotEmpty ||
       _categoryId != _initialCategoryId ||
       _unitId != _initialUnitId ||
-      _quantity != _initialQuantity ||
-      _threshold != _initialThreshold;
+      _threshold != _initialThreshold ||
+      _maxStock != _initialMaxStock;
 
   @override
   Widget build(BuildContext context) {
@@ -329,22 +333,27 @@ class _ItemFormState extends ConsumerState<_ItemForm> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  _isEditing
-                      ? l10n.itemOnHandLabel
-                      : l10n.itemFormStartingQuantity,
-                  style: Theme.of(context).textTheme.labelMedium,
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                // Editable on create — the starting quantity is recorded as an
-                // opening-balance movement — and read-only afterwards.
+                // The quantity appears here on an edit and nowhere on a create,
+                // because this form describes the product rather than its
+                // stock.
                 //
                 // Dragging a stepper from 40 to 35 on a routine edit form would
                 // be an untraceable stock change: the most consequential thing
                 // in the app, done by accident, with nothing in the movement
                 // log to explain it. Adjusting stock has its own screen, and it
                 // asks for the counted figure and leaves a record.
-                if (_isEditing)
+                //
+                // A new product therefore starts at zero and reads as "Rupture
+                // de stock" until a receipt or an adjustment says otherwise.
+                // That is the truth — you have none of it yet — and it is
+                // preferred over a friendlier-looking state that would have to
+                // be invented.
+                if (_isEditing) ...[
+                  Text(
+                    l10n.itemOnHandLabel,
+                    style: Theme.of(context).textTheme.labelMedium,
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
                   _QuantityFact(
                     value: Formatters.quantityWithUnit(
                       _quantity,
@@ -352,42 +361,9 @@ class _ItemFormState extends ConsumerState<_ItemForm> {
                     ),
                     onAdjust: () =>
                         context.pushScreen(Routes.toAdjustment(widget.storeId)),
-                  )
-                else
-                  QuantityStepper(
-                    value: _quantity,
-                    unitAbbreviation: unitAbbreviation,
-                    onChanged: (value) => setState(() => _quantity = value),
-                  ),
-                if (!_isEditing) ...[
-                  const SizedBox(height: AppSpacing.sm),
-                  Text(
-                    l10n.itemFormOpeningBalanceHelp,
-                    style: Theme.of(context).textTheme.bodySmall,
                   ),
                   const SizedBox(height: AppSpacing.xl),
-                  // What that starting stock was bought at.
-                  //
-                  // Optional, and never blocks saving. Left empty the article
-                  // simply has no known cost and is left out of the valuation
-                  // until a delivery arrives — which is honest, and better than
-                  // demanding a number the person adding the article may not
-                  // have to hand.
-                  AppTextField(
-                    label: l10n.itemFormOpeningCost,
-                    controller: _openingCostController,
-                    hint: l10n.itemFormOpeningCostHint,
-                    helperText: l10n.itemFormOpeningCostHelp,
-                    suffixText: unitAbbreviation.isEmpty
-                        ? Formatters.currencySymbol
-                        : '${Formatters.currencySymbol} / $unitAbbreviation',
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    onChanged: (_) => setState(() {}),
-                  ),
                 ],
-                const SizedBox(height: AppSpacing.xl),
                 Text(
                   l10n.itemThresholdLabel,
                   style: Theme.of(context).textTheme.labelMedium,
@@ -396,12 +372,46 @@ class _ItemFormState extends ConsumerState<_ItemForm> {
                 QuantityStepper(
                   value: _threshold,
                   unitAbbreviation: unitAbbreviation,
-                  onChanged: (value) => setState(() => _threshold = value),
+                  onChanged: (value) => setState(() {
+                    _threshold = value;
+                    _maxBelowThreshold = false;
+                  }),
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 Text(
                   l10n.itemFormThresholdHelp,
                   style: Theme.of(context).textTheme.bodySmall,
+                ),
+
+                // The ceiling, immediately under the floor it has to clear.
+                // Ordering only the shortfall below the threshold refills a
+                // product to exactly its alert line, where the next portion
+                // sold makes it low again. The maximum is what a commande tops
+                // up *to* instead.
+                const SizedBox(height: AppSpacing.xl),
+                Text(
+                  l10n.itemMaxStockLabel,
+                  style: Theme.of(context).textTheme.labelMedium,
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                QuantityStepper(
+                  value: _maxStock,
+                  unitAbbreviation: unitAbbreviation,
+                  onChanged: (value) => setState(() {
+                    _maxStock = value;
+                    _maxBelowThreshold = false;
+                  }),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                Text(
+                  _maxBelowThreshold
+                      ? l10n.itemFormMaxStockInvalid
+                      : l10n.itemFormMaxStockHelp,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: _maxBelowThreshold
+                        ? Theme.of(context).colorScheme.error
+                        : null,
+                  ),
                 ),
               ],
             ),
@@ -452,6 +462,15 @@ class _ItemFormState extends ConsumerState<_ItemForm> {
     final l10n = AppLocalizations.of(context);
     final items = ref.read(itemRepositoryProvider);
 
+    // A maximum at or below the alert line is not a ceiling, it is a
+    // contradiction: the ordering screen would suggest zero or a negative
+    // top-up for a product that is already flagged as low. Zero is the
+    // exception and means no maximum has been set at all.
+    if (_maxStock > 0 && _maxStock <= _threshold) {
+      setState(() => _maxBelowThreshold = true);
+      return;
+    }
+
     // Uniqueness is checked here rather than on every keystroke, and against
     // the other items of *this store* only — two shops can stock the same
     // product, and a barcode collision across them is not a collision.
@@ -481,6 +500,7 @@ class _ItemFormState extends ConsumerState<_ItemForm> {
         categoryId: _categoryId,
         unitId: _unitId,
         lowStockThreshold: _threshold,
+        maxStock: _maxStock,
         barcode: barcode,
         clearBarcode: barcode.isEmpty,
         note: note,
@@ -492,14 +512,12 @@ class _ItemFormState extends ConsumerState<_ItemForm> {
         name: _nameController.text.trim(),
         categoryId: _categoryId!,
         unitId: _unitId!,
-        // Recorded as an opening-balance movement rather than written onto the
-        // item, so the quantity and the movement log agree from day one.
-        quantity: _quantity,
-        // Blank, or something that is not a number yet, leaves the cost
-        // unknown. Never blocks the save: an article is worth having in the
-        // catalogue even when nobody remembers what it cost.
-        openingUnitCost: Formatters.parseDecimal(_openingCostController.text),
+        // No quantity and no opening cost: this form describes the product.
+        // The article is created empty and with an unknown cost, and both are
+        // answered by the first receipt or adjustment — the screens that leave
+        // a movement behind saying where the stock came from and what it cost.
         lowStockThreshold: _threshold,
+        maxStock: _maxStock,
         barcode: barcode.isEmpty ? null : barcode,
         note: note.isEmpty ? null : note,
       );

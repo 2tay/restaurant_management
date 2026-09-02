@@ -41,6 +41,17 @@ class Items extends Table {
   RealColumn get quantity => real()();
 
   RealColumn get lowStockThreshold => real()();
+
+  /// How much of this product the establishment wants on the shelf when it is
+  /// fully stocked. What a commande tops up *to*.
+  ///
+  /// Zero means no ceiling has been declared, and the ordering screen falls
+  /// back to its threshold-based figure. Not nullable for that: a maximum of
+  /// zero says "order none of this, ever", which is not a thing anybody means,
+  /// so the sentinel cannot collide with a real value. Defaulted rather than
+  /// backfilled, so a database upgraded in place reads what a fresh one would.
+  RealColumn get maxStock => real().withDefault(const Constant(0))();
+
   DateTimeColumn get updatedAt => dateTime()();
 
   /// Weighted average cost (CUMP) of the stock on hand, in EUR.

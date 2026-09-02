@@ -8,6 +8,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/formatters.dart';
+import '../../../../core/utils/stock_status.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../data/providers.dart';
 import '../../../../data/repositories/repositories.dart';
@@ -161,6 +162,13 @@ class _OrderFormPageState extends ConsumerState<_OrderForm> {
   /// the user was looking at when they tapped.
   List<SupplierProductView> _offers = const [];
 
+  /// The articles behind those rows, by id.
+  ///
+  /// Refreshed alongside [_offers] and for the same reason. `SupplierProductView`
+  /// answers "what does this supplier charge"; the top-up figure needs "how much
+  /// is on the shelf and how much fits", which is a fact about the article.
+  Map<String, Item> _stockById = const {};
+
   /// Set once, when the suggestion list first arrives for a prefilled order.
   bool _prefilled = false;
 
@@ -258,30 +266,36 @@ class _OrderFormPageState extends ConsumerState<_OrderForm> {
         OrderLineDraft(
           id: _nextLineId(),
           itemId: item.id,
-          // Enough to get back above the threshold, rounded up to something a
-          // person would actually order. Guessing a quantity beats leaving a
-          // zero the user has to notice and fix on every line.
-          quantity: _suggestedQuantity(item),
+          // Guessing a quantity beats leaving a zero the user has to notice
+          // and fix on every line.
+          quantity: topUpQuantity(item),
           unitPrice: _priceFor(item.id),
         ),
       );
     }
   }
 
-  double _suggestedQuantity(Item item) {
-    final shortfall = item.lowStockThreshold - item.quantity;
-    final target = shortfall > 0 ? shortfall : item.lowStockThreshold;
-    return target <= 0 ? 1 : target.ceilToDouble();
+  /// [topUpQuantity] for an article the page knows only by id.
+  ///
+  /// One for an article that is not in the catalogue this build is holding —
+  /// the picker cannot offer one, so this is the empty-line placeholder rather
+  /// than a real answer.
+  double _suggestedQuantityFor(String itemId) {
+    final item = _stockById[itemId];
+    return item == null ? 1 : topUpQuantity(item);
   }
 
   void _addEmptyLine() {
     final available = _availableItems();
     setState(() {
+      final itemId = available.isEmpty ? '' : available.first.price.itemId;
       _lines.add(
         OrderLineDraft(
           id: _nextLineId(),
-          itemId: available.isEmpty ? '' : available.first.price.itemId,
-          quantity: 1,
+          itemId: itemId,
+          // Pre-filled to the top-up for whichever article the picker landed
+          // on, so a hand-added line starts where a suggested one would.
+          quantity: _suggestedQuantityFor(itemId),
           unitPrice: available.isEmpty ? 0 : available.first.price.pricePerUnit,
         ),
       );
@@ -390,6 +404,20 @@ class _OrderFormPageState extends ConsumerState<_OrderForm> {
         ref.watch(supplierProductsProvider(supplierId)).value ??
         const <SupplierProductView>[];
 
+    _stockById = {
+      for (final item
+          in ref
+                  .watch(
+                    itemsProvider((
+                      storeId: widget.storeId,
+                      filter: ItemFilter(supplierId: supplierId),
+                    )),
+                  )
+                  .value ??
+              const <Item>[])
+        item.id: item,
+    };
+
     final suggestions =
         ref.watch(
           itemRowsProvider((
@@ -483,6 +511,10 @@ class _OrderFormPageState extends ConsumerState<_OrderForm> {
                   setState(() {
                     line.itemId = value;
                     line.setPrice(_priceFor(value));
+                    // The quantity belonged to the article that was on this
+                    // line a moment ago. Keeping it would carry 12 kg of
+                    // potatoes over onto the saffron.
+                    line.quantity = _suggestedQuantityFor(value);
                   });
                 },
                 onQuantityChanged: (value) =>
