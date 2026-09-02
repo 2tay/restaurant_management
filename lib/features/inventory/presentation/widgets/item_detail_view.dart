@@ -16,6 +16,7 @@ import '../../../../l10n/app_localizations.dart';
 import '../../../../shared/widgets/widgets.dart';
 import '../../../orders/presentation/widgets/order_status_badge.dart';
 import '../../../stock_movement/presentation/widgets/movement_labels.dart';
+import 'delete_item.dart';
 import 'supplier_price_row.dart';
 
 /// The body of the item detail screen.
@@ -37,6 +38,7 @@ class ItemDetailView extends ConsumerWidget {
     required this.itemId,
     required this.storeId,
     this.showTitle = true,
+    this.onClose,
     super.key,
   });
 
@@ -44,7 +46,17 @@ class ItemDetailView extends ConsumerWidget {
   final String storeId;
 
   /// False when the surrounding page already shows the item name in its header.
+  ///
+  /// It also decides who owns the actions. The page puts "Modifier" and
+  /// "Supprimer" in its own header, so the body must not repeat them; the
+  /// split pane has no header of its own, and without these it was a detail
+  /// view with no way to act on what it was showing — the product could only
+  /// be edited by leaving the screen it was open on.
   final bool showTitle;
+
+  /// Closes the pane. Null when the view is the whole page, which closes by
+  /// going back.
+  final VoidCallback? onClose;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -123,11 +135,58 @@ class ItemDetailView extends ConsumerWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Text(item.name, style: theme.textTheme.headlineSmall),
-              ),
+              // The photo, at the top of the pane, so the product being read
+              // about is the product the user tapped and not a name that could
+              // be any of forty.
+              ProductImage(imagePath: item.imagePath, size: 64),
               const SizedBox(width: AppSpacing.md),
-              StockStatusBadge(status: status),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(item.name, style: theme.textTheme.headlineSmall),
+                    const SizedBox(height: AppSpacing.xs),
+                    StockStatusBadge(status: status),
+                  ],
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              IconButton(
+                onPressed: onClose,
+                tooltip: l10n.actionClose,
+                icon: const Icon(LucideIcons.x),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
+
+          // The two things you came here to do, on the screen you are already
+          // on. Editing used to mean leaving the split view for the full page,
+          // which is the long way round to a form the pane could have opened.
+          Row(
+            children: [
+              Expanded(
+                child: SecondaryButton(
+                  label: l10n.actionEdit,
+                  icon: LucideIcons.pencil,
+                  onPressed: () => context.pushScreen(
+                    Routes.toEditItem(storeId, item.id),
+                  ),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              DestructiveButton(
+                label: l10n.actionDelete,
+                icon: LucideIcons.trash2,
+                filled: false,
+                onPressed: () async {
+                  final deleted =
+                      await confirmDeleteItem(context, ref, storeId, item);
+                  // The pane was showing a product that is gone. Closing it is
+                  // the only honest thing left to do.
+                  if (deleted) onClose?.call();
+                },
+              ),
             ],
           ),
           const SizedBox(height: AppSpacing.lg),

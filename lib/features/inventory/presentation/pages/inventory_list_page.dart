@@ -14,7 +14,7 @@ import '../../../../data/view_models/view_models.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../shared/widgets/widgets.dart';
 import '../widgets/item_detail_view.dart';
-import '../widgets/item_row.dart';
+import '../widgets/item_card.dart';
 
 /// Local filter state for the inventory list.
 ///
@@ -62,13 +62,15 @@ class InventoryFilter {
     String? selectedItemId,
     bool clearCategory = false,
     bool clearSupplier = false,
+    bool clearSelection = false,
   }) {
     return InventoryFilter(
       query: query ?? this.query,
       categoryId: clearCategory ? null : categoryId ?? this.categoryId,
       supplierId: clearSupplier ? null : supplierId ?? this.supplierId,
       lowStockOnly: lowStockOnly ?? this.lowStockOnly,
-      selectedItemId: selectedItemId ?? this.selectedItemId,
+      selectedItemId:
+          clearSelection ? null : selectedItemId ?? this.selectedItemId,
     );
   }
 }
@@ -91,6 +93,10 @@ class InventoryFilterNotifier extends Notifier<InventoryFilter> {
       state = state.copyWith(lowStockOnly: !state.lowStockOnly);
 
   void select(String itemId) => state = state.copyWith(selectedItemId: itemId);
+
+  /// Closes the detail pane. The filters are left exactly as they were — the
+  /// user shut one product, they did not ask to see the whole catalogue again.
+  void clearSelection() => state = state.copyWith(clearSelection: true);
 
   void clear() => state = InventoryFilter(selectedItemId: state.selectedItemId);
 }
@@ -150,8 +156,15 @@ class InventoryListPage extends ConsumerWidget {
           ];
           final selected = _resolveSelection(visible, filter, canSplit);
 
-          if (!canSplit) return _ListPane(storeId: storeId, rows: visible);
+          if (!canSplit || selected == null) {
+            return _ListPane(storeId: storeId, rows: visible);
+          }
 
+          // The detail pane exists only once a product has been chosen, and
+          // the grid keeps the whole width until then. A permanently reserved
+          // half-screen holding "Sélectionnez un produit" spends the most
+          // valuable space on the page saying nothing, and shrinks the grid
+          // that is the point of the screen.
           return Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -162,12 +175,13 @@ class InventoryListPage extends ConsumerWidget {
               const SizedBox(width: AppSpacing.xl),
               Expanded(
                 flex: 4,
-                child: selected == null
-                    ? _NoSelection(l10n: l10n)
-                    : ItemDetailView(
-                        itemId: selected.item.id,
-                        storeId: storeId,
-                      ),
+                child: ItemDetailView(
+                  itemId: selected.item.id,
+                  storeId: storeId,
+                  onClose: () => afterFrame(
+                    ref.read(inventoryFilterProvider.notifier).clearSelection,
+                  ),
+                ),
               ),
             ],
           );
@@ -176,21 +190,28 @@ class InventoryListPage extends ConsumerWidget {
     );
   }
 
-  /// Keeps the detail pane populated rather than blank on first load — a split
-  /// view whose right half is empty looks broken.
+  /// The product whose detail is open, or null for none.
+  ///
+  /// Nothing is selected until somebody selects something. This used to open
+  /// on the first row so the pane was never blank, which meant the screen
+  /// arrived having already made a choice on the user's behalf and put one
+  /// arbitrary product's detail — and its delete button — in front of them.
+  ///
+  /// A selection filtered out of the list closes the pane rather than sliding
+  /// to a neighbour: the product the user was reading is not on screen any
+  /// more, and quietly swapping in a different one is how somebody edits the
+  /// wrong thing.
   ItemRowView? _resolveSelection(
     List<ItemRowView> rows,
     InventoryFilter filter,
     bool canSplit,
   ) {
-    if (!canSplit || rows.isEmpty) return null;
-    if (filter.selectedItemId == null) return rows.first;
+    if (!canSplit || filter.selectedItemId == null) return null;
 
     for (final row in rows) {
       if (row.item.id == filter.selectedItemId) return row;
     }
-    // The selected item was filtered out; fall back rather than showing nothing.
-    return rows.first;
+    return null;
   }
 }
 
@@ -285,22 +306,57 @@ class _ListPane extends ConsumerWidget {
                   storeHasItems: filter.hasActiveFilters,
                   onClearFilters: notifier.clear,
                 )
-              : ListView.separated(
-                  itemCount: rows.length,
-                  separatorBuilder: (_, _) =>
-                      const SizedBox(height: AppSpacing.sm),
-                  itemBuilder: (context, index) {
-                    final row = rows[index];
-                    final item = row.item;
-                    return ItemRow(
-                      view: row,
-                      selected: canSplit && filter.selectedItemId == item.id,
-                      onTap: () {
-                        if (canSplit) {
-                          notifier.select(item.id);
-                        } else {
-                          context.pushScreen(Routes.toItem(storeId, item.id));
-                        }
+              // A grid rather than a list, because the photo is what makes a
+              // catalogue scannable without reading it. The column count comes
+              // from the available width rather than from a breakpoint: this
+              // pane is half the screen with a product open and all of it
+              // without, and a fixed count would leave cards stretched across
+              // one and crushed in the other.
+              : LayoutBuilder(
+                  builder: (context, constraints) {
+                    final columns = _columnsFor(constraints.maxWidth);
+
+                    // The tile's height is stated, not derived from a ratio.
+                    //
+                    // `childAspectRatio` sets the height from the width, which
+                    // means the space left for the card's text varies with the
+                    // column count — and on a narrow pane it went negative,
+                    // collapsing the picture to nothing. Here the picture is
+                    // square, the text block is a known height, and the tile
+                    // is exactly the two added up, so neither can squeeze the
+                    // other however the grid is sized.
+                    final spacing = AppSpacing.md * (columns - 1);
+                    final cellWidth =
+                        (constraints.maxWidth - spacing) / columns;
+
+                    return GridView.builder(
+                      padding: EdgeInsets.zero,
+                      gridDelegate:
+                          SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: columns,
+                            mainAxisSpacing: AppSpacing.md,
+                            crossAxisSpacing: AppSpacing.md,
+                            mainAxisExtent: cellWidth + itemCardTextHeight,
+                          ),
+                      itemCount: rows.length,
+                      itemBuilder: (context, index) {
+                        final row = rows[index];
+                        final item = row.item;
+                        return ItemCard(
+                          view: row,
+                          imageHeight: cellWidth,
+                          selected:
+                              canSplit && filter.selectedItemId == item.id,
+                          onTap: () {
+                            if (canSplit) {
+                              notifier.select(item.id);
+                            } else {
+                              context.pushScreen(
+                                Routes.toItem(storeId, item.id),
+                              );
+                            }
+                          },
+                        );
                       },
                     );
                   },
@@ -309,6 +365,26 @@ class _ListPane extends ConsumerWidget {
       ],
     );
   }
+}
+
+/// Closes the detail pane one frame after the tap that asked for it.
+///
+/// The close button removes *itself* from the tree: shutting the pane disposes
+/// the `MouseRegion` the pointer is inside while the mouse tracker is still
+/// dispatching that very click. Deferring by a frame keeps the removal out of
+/// the tracker's own update, and costs the user nothing they can perceive.
+void afterFrame(VoidCallback change) =>
+    WidgetsBinding.instance.addPostFrameCallback((_) => change());
+
+/// How many cards fit, given the width the grid actually has.
+///
+/// Around 190 logical pixels per card: narrower and the French product names
+/// ellipsize into uselessness, wider and a full-width grid on a large tablet
+/// draws four enormous photographs. Never fewer than two, so a narrow phone
+/// still reads as a catalogue rather than as a column of posters.
+int _columnsFor(double width) {
+  final columns = (width / 190).floor();
+  return columns < 2 ? 2 : columns;
 }
 
 /// Distinguishes "this store has nothing yet" from "your filters matched
@@ -343,23 +419,6 @@ class _EmptyList extends StatelessWidget {
       actionLabel: l10n.actionAddItem,
       actionIcon: LucideIcons.plus,
       onAction: () => context.pushScreen(Routes.toAddItem(storeId)),
-    );
-  }
-}
-
-class _NoSelection extends StatelessWidget {
-  const _NoSelection({required this.l10n});
-
-  final AppLocalizations l10n;
-
-  @override
-  Widget build(BuildContext context) {
-    return AppCard(
-      child: EmptyState(
-        icon: LucideIcons.mousePointerClick,
-        title: l10n.inventorySelectPrompt,
-        message: l10n.inventorySelectPromptBody,
-      ),
     );
   }
 }

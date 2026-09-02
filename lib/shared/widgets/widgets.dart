@@ -32,6 +32,7 @@ export 'offline_banner.dart';
 export 'paginator.dart';
 export 'payment_status_badge.dart';
 export 'primary_button.dart';
+export 'product_image.dart';
 export 'quantity_stepper.dart';
 export 'search_field.dart';
 export 'searchable_dropdown.dart';

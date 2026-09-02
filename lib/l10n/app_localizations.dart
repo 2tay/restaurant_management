@@ -706,6 +706,54 @@ abstract class AppLocalizations {
   /// **'Seuil d\'alerte'**
   String get itemThresholdLabel;
 
+  /// Label of the product photo field on the product form.
+  ///
+  /// In fr, this message translates to:
+  /// **'Photo du produit'**
+  String get itemImageLabel;
+
+  /// Helper under the product photo field. Says the photo is optional and what it is for, since most of a catalogue will never have one.
+  ///
+  /// In fr, this message translates to:
+  /// **'Facultative. Elle aide à repérer un produit d\'un coup d\'œil dans la liste.'**
+  String get itemImageHelp;
+
+  /// Button opening the file picker when the product has no photo yet.
+  ///
+  /// In fr, this message translates to:
+  /// **'Choisir une photo'**
+  String get itemImageChoose;
+
+  /// Button opening the file picker when the product already has a photo.
+  ///
+  /// In fr, this message translates to:
+  /// **'Remplacer la photo'**
+  String get itemImageReplace;
+
+  /// Clears the product photo. The file is only deleted once the form is saved.
+  ///
+  /// In fr, this message translates to:
+  /// **'Retirer'**
+  String get itemImageRemove;
+
+  /// Shown when copying the chosen image into the app folder failed — a permission problem or a full disk. The product itself is unaffected.
+  ///
+  /// In fr, this message translates to:
+  /// **'La photo n\'a pas pu être enregistrée.'**
+  String get itemImageFailed;
+
+  /// Label of the default supplier picker on the product form. This is a preference — which supplier is pre-selected when receiving — and not a price.
+  ///
+  /// In fr, this message translates to:
+  /// **'Fournisseur par défaut'**
+  String get itemDefaultSupplierLabel;
+
+  /// Placeholder in the default supplier picker when no supplier is preferred. Masculine, agreeing with fournisseur.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun'**
+  String get itemDefaultSupplierNone;
+
   /// Label for an item's category.
   ///
   /// In fr, this message translates to:

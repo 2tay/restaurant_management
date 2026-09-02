@@ -107,7 +107,13 @@ for path in dart_files('lib/features'):
     # the confirmation.
     if re.search(r'final VoidCallback\?? (onRemove|onDelete);', src):
         continue
-    if 'DestructiveButton(' in src and 'ConfirmDialog' not in src:
+    # A shared `confirmSomething(...)` helper counts. The confirmation for a
+    # product is written once and called from both the detail page and the
+    # detail pane; requiring the literal `ConfirmDialog` in every caller would
+    # be an argument for copying a delete dialog per screen, which is the one
+    # thing that lets two of them drift out of step about what they destroy.
+    guarded = 'ConfirmDialog' in src or re.search(r'\bconfirm[A-Z]\w*\(', src)
+    if 'DestructiveButton(' in src and not guarded:
         missing_confirm.append(path)
 record(
     'destructive actions without confirm',

@@ -12,6 +12,7 @@ import '../../../../l10n/app_localizations.dart';
 import '../../../../data/providers.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
+import '../widgets/item_image_field.dart';
 import '../../../catalog/presentation/widgets/create_sheets.dart';
 
 /// Create or edit an item.
@@ -48,19 +49,29 @@ class AddEditItemPage extends ConsumerWidget {
         ? const AsyncValue<Item?>.data(null)
         : ref.watch(itemProvider(itemId!));
 
-    final data = asyncAll3(
+    final data = asyncAll4(
       existing,
       ref.watch(categoriesProvider(storeId)),
       ref.watch(unitsProvider(storeId)),
-      (item, categories, units) => (
+      // Waited on for the same reason as the other two: an article whose
+      // default supplier is already set would hand the dropdown a value its
+      // options did not contain yet, and that throws.
+      ref.watch(suppliersProvider(storeId)),
+      (item, categories, units, suppliers) => (
         item: item,
         categories: categories,
         units: units,
+        suppliers: suppliers,
       ),
     );
 
     return AsyncContent<
-      ({Item? item, List<Category> categories, List<UnitOfMeasure> units})
+      ({
+        Item? item,
+        List<Category> categories,
+        List<UnitOfMeasure> units,
+        List<Supplier> suppliers,
+      })
     >(
       value: data,
       skeleton: FormScaffold(
@@ -77,6 +88,7 @@ class AddEditItemPage extends ConsumerWidget {
         if (itemId != null) ref.invalidate(itemProvider(itemId!));
         ref.invalidate(categoriesProvider(storeId));
         ref.invalidate(unitsProvider(storeId));
+        ref.invalidate(suppliersProvider(storeId));
       },
       builder: (context, data) => _ItemForm(
         // Keyed on the article so opening a different one through the same
@@ -87,6 +99,7 @@ class AddEditItemPage extends ConsumerWidget {
         existing: data.item,
         categories: data.categories,
         units: data.units,
+        suppliers: data.suppliers,
       ),
     );
   }
@@ -98,6 +111,7 @@ class _ItemForm extends ConsumerStatefulWidget {
     required this.existing,
     required this.categories,
     required this.units,
+    required this.suppliers,
     super.key,
   });
 
@@ -113,6 +127,9 @@ class _ItemForm extends ConsumerStatefulWidget {
   /// inline row rebuilds the page above and hands this a longer list.
   final List<Category> categories;
   final List<UnitOfMeasure> units;
+
+  /// Every supplier of the establishment, for the default-supplier picker.
+  final List<Supplier> suppliers;
 
   @override
   ConsumerState<_ItemForm> createState() => _ItemFormState();
@@ -135,6 +152,18 @@ class _ItemFormState extends ConsumerState<_ItemForm> {
 
   String? _categoryId;
   String? _unitId;
+  /// The picker's stand-in for "no preference".
+  ///
+  /// A dropdown cannot carry null as a selectable option — null is what it
+  /// shows the hint for — so clearing needs a value of its own, translated
+  /// back to null on the way into the state.
+  static const String _noSupplier = '__no_supplier__';
+
+  String? _defaultSupplierId;
+
+  /// The photo as it stands: the stored name on an edit, the name of a freshly
+  /// copied file once one is picked, null when there is none.
+  String? _imagePath;
 
   /// The quantity on hand. Displayed on edit, never edited here — see the
   /// note at its call site. On create it is simply zero: this form describes
@@ -151,6 +180,8 @@ class _ItemFormState extends ConsumerState<_ItemForm> {
   String _initialBarcode = '';
   String? _initialCategoryId;
   String? _initialUnitId;
+  String? _initialDefaultSupplierId;
+  String? _initialImagePath;
   double _initialThreshold = 0;
   double _initialMaxStock = 0;
 
@@ -171,6 +202,8 @@ class _ItemFormState extends ConsumerState<_ItemForm> {
       _quantity = existing.quantity;
       _threshold = existing.lowStockThreshold;
       _maxStock = existing.maxStock;
+      _defaultSupplierId = existing.defaultSupplierId;
+      _imagePath = existing.imagePath;
     }
 
     _initialName = _nameController.text.trim();
@@ -180,6 +213,8 @@ class _ItemFormState extends ConsumerState<_ItemForm> {
     _initialUnitId = _unitId;
     _initialThreshold = _threshold;
     _initialMaxStock = _maxStock;
+    _initialDefaultSupplierId = _defaultSupplierId;
+    _initialImagePath = _imagePath;
   }
 
   @override
@@ -203,7 +238,9 @@ class _ItemFormState extends ConsumerState<_ItemForm> {
       _categoryId != _initialCategoryId ||
       _unitId != _initialUnitId ||
       _threshold != _initialThreshold ||
-      _maxStock != _initialMaxStock;
+      _maxStock != _initialMaxStock ||
+      _defaultSupplierId != _initialDefaultSupplierId ||
+      _imagePath != _initialImagePath;
 
   @override
   Widget build(BuildContext context) {
@@ -252,6 +289,15 @@ class _ItemFormState extends ConsumerState<_ItemForm> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                // First, because it is the only field somebody can answer
+                // without reading a label, and because the product grid is now
+                // mostly photographs — a form that buried this under six text
+                // fields would keep producing products that look empty there.
+                ItemImageField(
+                  imagePath: _imagePath,
+                  onChanged: (value) => setState(() => _imagePath = value),
+                ),
+                const SizedBox(height: AppSpacing.lg),
                 AppTextField(
                   label: l10n.itemFormName,
                   controller: _nameController,
@@ -289,6 +335,46 @@ class _ItemFormState extends ConsumerState<_ItemForm> {
                   ],
                 ),
                 const SizedBox(height: AppSpacing.lg),
+
+                // A preference, not a price. Which supplier is pre-selected
+                // when a delivery is received; what any of them charges is an
+                // item–supplier link and lives on its own screen, which is
+                // what the notice at the bottom of this form explains.
+                //
+                // **Editing only.** A product being created has no supplier
+                // links yet — they are made on the "associer un fournisseur"
+                // screen, which needs the product to exist first — so at
+                // creation this could only ever offer a preference between
+                // suppliers that do not sell the product. It stayed at "Aucun"
+                // because "Aucun" was the only honest answer available.
+                //
+                // "Aucun" remains a real answer on an edit, and picking it
+                // clears the preference: that is what the empty option in the
+                // list is for.
+                if (_isEditing) ...[
+                  AppDropdown<String>(
+                    label: l10n.itemDefaultSupplierLabel,
+                    value: _defaultSupplierId,
+                    options: [
+                      DropdownOption(
+                        value: _noSupplier,
+                        label: l10n.itemDefaultSupplierNone,
+                      ),
+                      for (final supplier in widget.suppliers)
+                        DropdownOption(
+                          value: supplier.id,
+                          label: supplier.name,
+                        ),
+                    ],
+                    hint: l10n.itemDefaultSupplierNone,
+                    onChanged: (value) => setState(
+                      () => _defaultSupplierId = value == _noSupplier
+                          ? null
+                          : value,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                ],
 
                 // Optional, and the label says so. Most restaurant stock —
                 // produce, meat, fish, bread — arrives loose with nothing to
@@ -505,6 +591,10 @@ class _ItemFormState extends ConsumerState<_ItemForm> {
         clearBarcode: barcode.isEmpty,
         note: note,
         clearNote: note.isEmpty,
+        defaultSupplierId: _defaultSupplierId,
+        clearDefaultSupplier: _defaultSupplierId == null,
+        imagePath: _imagePath,
+        clearImage: _imagePath == null,
       );
     } else {
       final created = await items.create(
@@ -520,6 +610,9 @@ class _ItemFormState extends ConsumerState<_ItemForm> {
         maxStock: _maxStock,
         barcode: barcode.isEmpty ? null : barcode,
         note: note.isEmpty ? null : note,
+        // No default supplier: the field is edit-only, because a product being
+        // created has no supplier links for a preference to be about.
+        imagePath: _imagePath,
       );
       if (created == null) return;
     }

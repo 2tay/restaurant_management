@@ -1856,6 +1856,17 @@ class $ItemsTable extends Items with TableInfo<$ItemsTable, ItemRow> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _imagePathMeta = const VerificationMeta(
+    'imagePath',
+  );
+  @override
+  late final GeneratedColumn<String> imagePath = GeneratedColumn<String>(
+    'image_path',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -1871,6 +1882,7 @@ class $ItemsTable extends Items with TableInfo<$ItemsTable, ItemRow> {
     defaultSupplierId,
     barcode,
     note,
+    imagePath,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1984,6 +1996,12 @@ class $ItemsTable extends Items with TableInfo<$ItemsTable, ItemRow> {
         note.isAcceptableOrUnknown(data['note']!, _noteMeta),
       );
     }
+    if (data.containsKey('image_path')) {
+      context.handle(
+        _imagePathMeta,
+        imagePath.isAcceptableOrUnknown(data['image_path']!, _imagePathMeta),
+      );
+    }
     return context;
   }
 
@@ -2044,6 +2062,10 @@ class $ItemsTable extends Items with TableInfo<$ItemsTable, ItemRow> {
       note: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}note'],
+      ),
+      imagePath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}image_path'],
       ),
     );
   }
@@ -2108,6 +2130,18 @@ class ItemRow extends DataClass implements Insertable<ItemRow> {
   /// stored as null rather than '', so "no barcode" is one value and not two.
   final String? barcode;
   final String? note;
+
+  /// The product photo, as a **file name** inside the app's own image
+  /// directory — never an absolute path.
+  ///
+  /// An absolute path would break the moment the app is reinstalled, the OS
+  /// moves its container, or the database is opened on another machine, and it
+  /// would record where the user happened to have the file rather than what
+  /// the app is holding. `data/images/product_images.dart` owns the directory
+  /// and does the resolving.
+  ///
+  /// Null means no photo, which is the normal state for most of a catalogue.
+  final String? imagePath;
   const ItemRow({
     required this.id,
     required this.storeId,
@@ -2122,6 +2156,7 @@ class ItemRow extends DataClass implements Insertable<ItemRow> {
     this.defaultSupplierId,
     this.barcode,
     this.note,
+    this.imagePath,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -2147,6 +2182,9 @@ class ItemRow extends DataClass implements Insertable<ItemRow> {
     if (!nullToAbsent || note != null) {
       map['note'] = Variable<String>(note);
     }
+    if (!nullToAbsent || imagePath != null) {
+      map['image_path'] = Variable<String>(imagePath);
+    }
     return map;
   }
 
@@ -2171,6 +2209,9 @@ class ItemRow extends DataClass implements Insertable<ItemRow> {
           ? const Value.absent()
           : Value(barcode),
       note: note == null && nullToAbsent ? const Value.absent() : Value(note),
+      imagePath: imagePath == null && nullToAbsent
+          ? const Value.absent()
+          : Value(imagePath),
     );
   }
 
@@ -2195,6 +2236,7 @@ class ItemRow extends DataClass implements Insertable<ItemRow> {
       ),
       barcode: serializer.fromJson<String?>(json['barcode']),
       note: serializer.fromJson<String?>(json['note']),
+      imagePath: serializer.fromJson<String?>(json['imagePath']),
     );
   }
   @override
@@ -2214,6 +2256,7 @@ class ItemRow extends DataClass implements Insertable<ItemRow> {
       'defaultSupplierId': serializer.toJson<String?>(defaultSupplierId),
       'barcode': serializer.toJson<String?>(barcode),
       'note': serializer.toJson<String?>(note),
+      'imagePath': serializer.toJson<String?>(imagePath),
     };
   }
 
@@ -2231,6 +2274,7 @@ class ItemRow extends DataClass implements Insertable<ItemRow> {
     Value<String?> defaultSupplierId = const Value.absent(),
     Value<String?> barcode = const Value.absent(),
     Value<String?> note = const Value.absent(),
+    Value<String?> imagePath = const Value.absent(),
   }) => ItemRow(
     id: id ?? this.id,
     storeId: storeId ?? this.storeId,
@@ -2247,6 +2291,7 @@ class ItemRow extends DataClass implements Insertable<ItemRow> {
         : this.defaultSupplierId,
     barcode: barcode.present ? barcode.value : this.barcode,
     note: note.present ? note.value : this.note,
+    imagePath: imagePath.present ? imagePath.value : this.imagePath,
   );
   ItemRow copyWithCompanion(ItemsCompanion data) {
     return ItemRow(
@@ -2271,6 +2316,7 @@ class ItemRow extends DataClass implements Insertable<ItemRow> {
           : this.defaultSupplierId,
       barcode: data.barcode.present ? data.barcode.value : this.barcode,
       note: data.note.present ? data.note.value : this.note,
+      imagePath: data.imagePath.present ? data.imagePath.value : this.imagePath,
     );
   }
 
@@ -2289,7 +2335,8 @@ class ItemRow extends DataClass implements Insertable<ItemRow> {
           ..write('averageCost: $averageCost, ')
           ..write('defaultSupplierId: $defaultSupplierId, ')
           ..write('barcode: $barcode, ')
-          ..write('note: $note')
+          ..write('note: $note, ')
+          ..write('imagePath: $imagePath')
           ..write(')'))
         .toString();
   }
@@ -2309,6 +2356,7 @@ class ItemRow extends DataClass implements Insertable<ItemRow> {
     defaultSupplierId,
     barcode,
     note,
+    imagePath,
   );
   @override
   bool operator ==(Object other) =>
@@ -2326,7 +2374,8 @@ class ItemRow extends DataClass implements Insertable<ItemRow> {
           other.averageCost == this.averageCost &&
           other.defaultSupplierId == this.defaultSupplierId &&
           other.barcode == this.barcode &&
-          other.note == this.note);
+          other.note == this.note &&
+          other.imagePath == this.imagePath);
 }
 
 class ItemsCompanion extends UpdateCompanion<ItemRow> {
@@ -2343,6 +2392,7 @@ class ItemsCompanion extends UpdateCompanion<ItemRow> {
   final Value<String?> defaultSupplierId;
   final Value<String?> barcode;
   final Value<String?> note;
+  final Value<String?> imagePath;
   final Value<int> rowid;
   const ItemsCompanion({
     this.id = const Value.absent(),
@@ -2358,6 +2408,7 @@ class ItemsCompanion extends UpdateCompanion<ItemRow> {
     this.defaultSupplierId = const Value.absent(),
     this.barcode = const Value.absent(),
     this.note = const Value.absent(),
+    this.imagePath = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   ItemsCompanion.insert({
@@ -2374,6 +2425,7 @@ class ItemsCompanion extends UpdateCompanion<ItemRow> {
     this.defaultSupplierId = const Value.absent(),
     this.barcode = const Value.absent(),
     this.note = const Value.absent(),
+    this.imagePath = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        storeId = Value(storeId),
@@ -2397,6 +2449,7 @@ class ItemsCompanion extends UpdateCompanion<ItemRow> {
     Expression<String>? defaultSupplierId,
     Expression<String>? barcode,
     Expression<String>? note,
+    Expression<String>? imagePath,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -2413,6 +2466,7 @@ class ItemsCompanion extends UpdateCompanion<ItemRow> {
       if (defaultSupplierId != null) 'default_supplier_id': defaultSupplierId,
       if (barcode != null) 'barcode': barcode,
       if (note != null) 'note': note,
+      if (imagePath != null) 'image_path': imagePath,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -2431,6 +2485,7 @@ class ItemsCompanion extends UpdateCompanion<ItemRow> {
     Value<String?>? defaultSupplierId,
     Value<String?>? barcode,
     Value<String?>? note,
+    Value<String?>? imagePath,
     Value<int>? rowid,
   }) {
     return ItemsCompanion(
@@ -2447,6 +2502,7 @@ class ItemsCompanion extends UpdateCompanion<ItemRow> {
       defaultSupplierId: defaultSupplierId ?? this.defaultSupplierId,
       barcode: barcode ?? this.barcode,
       note: note ?? this.note,
+      imagePath: imagePath ?? this.imagePath,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -2493,6 +2549,9 @@ class ItemsCompanion extends UpdateCompanion<ItemRow> {
     if (note.present) {
       map['note'] = Variable<String>(note.value);
     }
+    if (imagePath.present) {
+      map['image_path'] = Variable<String>(imagePath.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -2515,6 +2574,7 @@ class ItemsCompanion extends UpdateCompanion<ItemRow> {
           ..write('defaultSupplierId: $defaultSupplierId, ')
           ..write('barcode: $barcode, ')
           ..write('note: $note, ')
+          ..write('imagePath: $imagePath, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();

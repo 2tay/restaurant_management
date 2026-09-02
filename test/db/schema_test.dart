@@ -197,8 +197,8 @@ void main() {
       ]);
     });
 
-    test('at schema version 3', () {
-      expect(db.schemaVersion, 3);
+    test('at schema version 4', () {
+      expect(db.schemaVersion, 4);
     });
 
     test('with foreign keys switched on', () async {

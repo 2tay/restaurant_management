@@ -368,6 +368,31 @@ class AppLocalizationsFr extends AppLocalizations {
   String get itemThresholdLabel => 'Seuil d\'alerte';
 
   @override
+  String get itemImageLabel => 'Photo du produit';
+
+  @override
+  String get itemImageHelp =>
+      'Facultative. Elle aide à repérer un produit d\'un coup d\'œil dans la liste.';
+
+  @override
+  String get itemImageChoose => 'Choisir une photo';
+
+  @override
+  String get itemImageReplace => 'Remplacer la photo';
+
+  @override
+  String get itemImageRemove => 'Retirer';
+
+  @override
+  String get itemImageFailed => 'La photo n\'a pas pu être enregistrée.';
+
+  @override
+  String get itemDefaultSupplierLabel => 'Fournisseur par défaut';
+
+  @override
+  String get itemDefaultSupplierNone => 'Aucun';
+
+  @override
   String get itemCategoryLabel => 'Catégorie';
 
   @override

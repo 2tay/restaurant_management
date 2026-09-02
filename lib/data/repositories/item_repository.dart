@@ -5,6 +5,7 @@ import '../database/app_database.dart';
 import '../mappers/mappers.dart';
 import '../view_models/item_row_view.dart';
 import '../view_models/low_stock_alert_view.dart';
+import '../images/product_images.dart';
 import 'movement_repository.dart';
 import 'new_id.dart';
 import 'order_repository.dart';
@@ -332,6 +333,7 @@ class ItemRepository {
     String? barcode,
     String? note,
     String? defaultSupplierId,
+    String? imagePath,
     String? userName,
   }) async {
     final trimmedName = name.trim();
@@ -358,6 +360,7 @@ class ItemRepository {
         defaultSupplierId: defaultSupplierId,
         barcode: cleanBarcode,
         note: _clean(note),
+        imagePath: imagePath,
       );
 
       await _db.into(_db.items).insert(itemToRow(draft));
@@ -397,8 +400,11 @@ class ItemRepository {
     String? barcode,
     String? note,
     String? defaultSupplierId,
+    String? imagePath,
     bool clearBarcode = false,
     bool clearNote = false,
+    bool clearDefaultSupplier = false,
+    bool clearImage = false,
   }) async {
     final trimmedName = name?.trim();
     if (trimmedName != null && trimmedName.isEmpty) return null;
@@ -430,14 +436,25 @@ class ItemRepository {
           maxStock: Value(maxStock ?? existing.maxStock),
           updatedAt: Value(DateTime.now()),
           defaultSupplierId: Value(
-            defaultSupplierId ?? existing.defaultSupplierId,
+            clearDefaultSupplier
+                ? null
+                : defaultSupplierId ?? existing.defaultSupplierId,
           ),
           barcode: Value(
             clearBarcode ? null : cleanBarcode ?? existing.barcode,
           ),
           note: Value(clearNote ? null : _clean(note) ?? existing.note),
+          imagePath: Value(
+            clearImage ? null : imagePath ?? existing.imagePath,
+          ),
         ),
       );
+
+      // The old photo goes only once the row that named it is written. The
+      // other way round, a failed write would leave a product pointing at a
+      // file that had already been deleted.
+      final replaced = clearImage || (imagePath != null && imagePath != existing.imagePath);
+      if (replaced) await ProductImages.delete(existing.imagePath);
 
       return item(id);
     });
@@ -471,15 +488,25 @@ class ItemRepository {
   /// cannot go half-done and cannot be forgotten by a future caller. What it
   /// deliberately does **not** reach is the lines of closed commandes and
   /// receipts, which keep naming the article — see the note on those columns.
-  Future<bool> delete(String id) {
-    return _db.transaction(() async {
+  /// The photo goes too. An image directory that only ever grows is a disk
+  /// leak nobody notices until it matters, and there is nothing left to
+  /// display it.
+  Future<bool> delete(String id) async {
+    final existing = await item(id);
+
+    final removed = await _db.transaction(() async {
       if (await deleteBlockedBy(id) != null) return false;
 
-      final removed = await (_db.delete(
+      final rows = await (_db.delete(
         _db.items,
       )..where((i) => i.id.equals(id))).go();
-      return removed > 0;
+      return rows > 0;
     });
+
+    // Outside the transaction, and only once it has committed: a rolled-back
+    // delete must not take the photo of an article that still exists.
+    if (removed) await ProductImages.delete(existing?.imagePath);
+    return removed;
   }
 
   /// Empty input stores as null rather than as an empty string, so "no barcode"

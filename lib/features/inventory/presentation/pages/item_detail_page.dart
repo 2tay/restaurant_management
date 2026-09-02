@@ -8,8 +8,8 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/stock_status.dart';
 import '../../../../data/providers.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
+import '../widgets/delete_item.dart';
 import '../widgets/item_detail_view.dart';
 
 /// Full-page item detail.
@@ -81,7 +81,12 @@ class ItemDetailPage extends ConsumerWidget {
           label: l10n.actionDelete,
           icon: LucideIcons.trash2,
           filled: false,
-          onPressed: () => _confirmDelete(context, ref, item),
+          onPressed: () async {
+            if (await confirmDeleteItem(context, ref, storeId, item) &&
+                context.mounted) {
+              context.goSection(Routes.toInventory(storeId));
+            }
+          },
         ),
       ],
       child: ItemDetailView(
@@ -90,58 +95,6 @@ class ItemDetailPage extends ConsumerWidget {
         showTitle: false,
       ),
     );
-  }
-
-  Future<void> _confirmDelete(
-    BuildContext context,
-    WidgetRef ref,
-    Item item,
-  ) async {
-    final l10n = AppLocalizations.of(context);
-    final items = ref.read(itemRepositoryProvider);
-
-    // An article on a commande a supplier is still holding cannot go: the
-    // document would be left referring to nothing. Explained before asking,
-    // rather than confirmed and then quietly refused. The repository refuses it
-    // too — this is the sentence, not the safeguard.
-    final orders = ref.read(orderRepositoryProvider);
-    final openOrders = await orders.openOrdersForItem(storeId, item.id);
-    if (!context.mounted) return;
-
-    if (openOrders.isNotEmpty) {
-      await ConfirmDialog.blocked(
-        context,
-        title: l10n.itemDeleteBlockedTitle(item.name),
-        message: l10n.itemDeleteBlockedBody(openOrders.length),
-      );
-      return;
-    }
-
-    // Deleting cascades to movements and supplier links, so the dialog states
-    // exactly what disappears. A confirmation that does not name its blast
-    // radius is a formality, not a safeguard.
-    final movements = await ref
-        .read(movementRepositoryProvider)
-        .movementsForItem(item.id);
-    final suppliers = await ref
-        .read(supplierRepositoryProvider)
-        .pricesForItem(item.id);
-    if (!context.mounted) return;
-
-    final confirmed = await ConfirmDialog.confirmDelete(
-      context,
-      name: item.name,
-      extraWarning: movements.isEmpty && suppliers.isEmpty
-          ? null
-          : l10n.itemDeleteCascadeWarning(movements.length, suppliers.length),
-    );
-    if (!confirmed || !context.mounted) return;
-
-    await items.delete(item.id);
-
-    if (!context.mounted) return;
-    AppSnackBar.success(context, l10n.itemDeleted);
-    context.goSection(Routes.toInventory(storeId));
   }
 }
 

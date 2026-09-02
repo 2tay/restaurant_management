@@ -28,6 +28,7 @@ class Item {
     this.defaultSupplierId,
     this.barcode,
     this.note,
+    this.imagePath,
   });
 
   final String id;
@@ -100,6 +101,13 @@ class Item {
 
   final String? note;
 
+  /// The product photo's file name inside the app's image directory, or null.
+  ///
+  /// A name rather than a path on purpose — see the column note in
+  /// `data/database/tables/items.dart`. Resolve it with
+  /// `ProductImages.fileFor` before handing it to `Image.file`.
+  final String? imagePath;
+
   /// Rebuilt rather than mutated, so the in-memory layer can replace the
   /// element in the mock list when a receipt moves stock.
   ///
@@ -120,6 +128,7 @@ class Item {
     String? defaultSupplierId,
     String? barcode,
     String? note,
+    String? imagePath,
   }) {
     return Item(
       id: id,
@@ -135,6 +144,7 @@ class Item {
       defaultSupplierId: defaultSupplierId ?? this.defaultSupplierId,
       barcode: barcode ?? this.barcode,
       note: note ?? this.note,
+      imagePath: imagePath ?? this.imagePath,
     );
   }
 }

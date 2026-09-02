@@ -63,6 +63,17 @@ dependencies:
   # counter, which collides across restarts the moment data persists.
   uuid: ^4.6.0
 
+  # Choosing a product photo. Only the picker is a package: the file it returns
+  # is copied into the app own support directory by
+  # `data/images/product_images.dart`, so a photo survives the original being
+  # moved or deleted and the database keeps a filename rather than bytes.
+  file_picker: ^10.3.0
+
+  # Where that copy goes. drift_flutter already depends on this transitively;
+  # it is named here because this app calls it directly.
+  path_provider: ^2.1.5
+  path: ^1.9.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

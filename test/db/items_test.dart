@@ -12,13 +12,17 @@
 // Those port in stages 5 and 6; the item writes arrived in stage 4 and are
 // covered here rather than shipping untested for a stage.
 
+import 'dart:io';
+
 import 'package:drift/drift.dart' hide isNotNull, isNull;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:path/path.dart' as p;
 import 'package:stock_inventory/core/utils/stock_status.dart';
+import 'package:stock_inventory/data/images/product_images.dart';
 import 'package:stock_inventory/data/database/app_database.dart';
 import 'package:stock_inventory/data/repositories/repositories.dart';
 import 'package:stock_inventory/data/seed/dataset/dataset.dart'
-    show CategoryIds, ItemIds, StoreIds, UnitIds;
+    show CategoryIds, ItemIds, StoreIds, SupplierIds, UnitIds;
 import 'package:stock_inventory/models/models.dart';
 
 import '../support/db_fixture.dart';
@@ -29,12 +33,33 @@ void main() {
   late MovementRepository movements;
   late SupplierRepository suppliers;
 
+  late Directory imageRoot;
+
   setUp(() async {
     db = await openSeededDatabase();
     items = ItemRepository(db);
     movements = MovementRepository(db);
     suppliers = SupplierRepository(db);
+
+    // The repository deletes photo files as products are edited and removed.
+    // Pointed at a temp folder: these tests have no platform channels and no
+    // business writing into the real application-support directory.
+    imageRoot = Directory.systemTemp.createTempSync('items_test_images');
+    ProductImages.directoryOverride = imageRoot;
   });
+
+  tearDown(() {
+    ProductImages.directoryOverride = null;
+    if (imageRoot.existsSync()) imageRoot.deleteSync(recursive: true);
+  });
+
+  /// A stored photo, and the file behind it.
+  Future<(String, File)> storedPhoto() async {
+    final picked = File(p.join(imageRoot.path, 'picked.jpg'))
+      ..writeAsStringSync('photo-bytes');
+    final name = (await ProductImages.save(picked))!;
+    return (name, (await ProductImages.fileFor(name))!);
+  }
 
   /// Quantity as reconstructed from the log alone.
   ///
@@ -110,6 +135,31 @@ void main() {
       final created = (await chicons())!;
 
       expect(created.maxStock, 0);
+    });
+
+    test('a photo and a default supplier are stored and read back', () async {
+      final (name, _) = await storedPhoto();
+
+      final created = (await items.create(
+        storeId: StoreIds.sablon,
+        name: 'Chicons',
+        categoryId: CategoryIds.legumes,
+        unitId: UnitIds.kg,
+        lowStockThreshold: 4,
+        defaultSupplierId: SupplierIds.maraicher,
+        imagePath: name,
+      ))!;
+
+      final read = (await items.item(created.id))!;
+      expect(read.imagePath, name);
+      expect(read.defaultSupplierId, SupplierIds.maraicher);
+    });
+
+    test('neither is required', () async {
+      final created = (await chicons())!;
+
+      expect(created.imagePath, isNull);
+      expect(created.defaultSupplierId, isNull);
     });
 
     test('the maximum is stored and read back', () async {
@@ -189,6 +239,83 @@ void main() {
   });
 
   group('editing an article', () {
+    test('the default supplier can be set, changed and cleared', () async {
+      final created = (await chicons())!;
+
+      expect(
+        (await items.update(
+          created.id,
+          defaultSupplierId: SupplierIds.maraicher,
+        ))!.defaultSupplierId,
+        SupplierIds.maraicher,
+      );
+
+      // Clearing needs its own flag: a null `defaultSupplierId` means "not
+      // mentioned in this edit", which is what leaves every other untouched
+      // field alone.
+      expect(
+        (await items.update(created.id, clearDefaultSupplier: true))!
+            .defaultSupplierId,
+        isNull,
+      );
+    });
+
+    test('replacing a photo deletes the one it replaced', () async {
+      final (first, firstFile) = await storedPhoto();
+      final created = (await items.create(
+        storeId: StoreIds.sablon,
+        name: 'Chicons',
+        categoryId: CategoryIds.legumes,
+        unitId: UnitIds.kg,
+        lowStockThreshold: 4,
+        imagePath: first,
+      ))!;
+
+      final (second, secondFile) = await storedPhoto();
+      final updated = (await items.update(created.id, imagePath: second))!;
+
+      expect(updated.imagePath, second);
+      expect(secondFile.existsSync(), isTrue);
+      expect(
+        firstFile.existsSync(),
+        isFalse,
+        reason: 'the replaced photo is nothing but disk now',
+      );
+    });
+
+    test('clearing a photo deletes the file', () async {
+      final (name, file) = await storedPhoto();
+      final created = (await items.create(
+        storeId: StoreIds.sablon,
+        name: 'Chicons',
+        categoryId: CategoryIds.legumes,
+        unitId: UnitIds.kg,
+        lowStockThreshold: 4,
+        imagePath: name,
+      ))!;
+
+      expect((await items.update(created.id, clearImage: true))!.imagePath,
+          isNull);
+      expect(file.existsSync(), isFalse);
+    });
+
+    test('an edit that says nothing about the photo keeps it', () async {
+      final (name, file) = await storedPhoto();
+      final created = (await items.create(
+        storeId: StoreIds.sablon,
+        name: 'Chicons',
+        categoryId: CategoryIds.legumes,
+        unitId: UnitIds.kg,
+        lowStockThreshold: 4,
+        imagePath: name,
+      ))!;
+
+      final updated = (await items.update(created.id, name: 'Chicons belges'))!;
+
+      expect(updated.imagePath, name);
+      expect(file.existsSync(), isTrue);
+    });
+
     test('the maximum can be changed, and survives an edit that ignores it',
         () async {
       final created = (await items.create(

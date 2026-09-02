@@ -77,6 +77,18 @@ class Items extends Table {
 
   TextColumn get note => text().nullable()();
 
+  /// The product photo, as a **file name** inside the app's own image
+  /// directory — never an absolute path.
+  ///
+  /// An absolute path would break the moment the app is reinstalled, the OS
+  /// moves its container, or the database is opened on another machine, and it
+  /// would record where the user happened to have the file rather than what
+  /// the app is holding. `data/images/product_images.dart` owns the directory
+  /// and does the resolving.
+  ///
+  /// Null means no photo, which is the normal state for most of a catalogue.
+  TextColumn get imagePath => text().nullable()();
+
   @override
   Set<Column<Object>> get primaryKey => {id};
 }

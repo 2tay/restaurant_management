@@ -84,7 +84,7 @@ class AppDatabase extends _$AppDatabase {
   static const String databaseName = 'stock_inventory';
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -136,6 +136,13 @@ class AppDatabase extends _$AppDatabase {
       // somebody sets a maximum.
       if (from < 3) {
         await m.addColumn(items, items.maxStock);
+      }
+
+      // v3 → v4: `items.imagePath`, the product photo. Nullable with no
+      // default, so every existing article simply has no photo — which is
+      // true, and needs no backfill.
+      if (from < 4) {
+        await m.addColumn(items, items.imagePath);
       }
     },
 

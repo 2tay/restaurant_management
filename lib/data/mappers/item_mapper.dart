@@ -17,6 +17,7 @@ Item itemFromRow(ItemRow row) => Item(
   defaultSupplierId: row.defaultSupplierId,
   barcode: row.barcode,
   note: row.note,
+  imagePath: row.imagePath,
 );
 
 /// Writes every column, [Item.quantity] and [Item.averageCost] included.
@@ -40,4 +41,5 @@ ItemsCompanion itemToRow(Item item) => ItemsCompanion.insert(
   defaultSupplierId: Value(item.defaultSupplierId),
   barcode: Value(item.barcode),
   note: Value(item.note),
+  imagePath: Value(item.imagePath),
 );
