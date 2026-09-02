@@ -459,8 +459,12 @@ class OrderRepository {
       );
 
       await _db.into(_db.purchaseOrders).insert(orderToRow(order));
-      await _writeLines(order.id, order.lines);
-      return order;
+
+      // The lines come back from the write because that is where their ids are
+      // decided. Returning the ones handed in would hand the caller a commande
+      // whose lines disagree with the table.
+      final written = await _writeLines(order.id, order.lines);
+      return order.copyWith(lines: written);
     });
   }
 
@@ -828,12 +832,47 @@ class OrderRepository {
     );
   }
 
-  Future<void> _writeLines(String orderId, List<PurchaseOrderLine> lines) async {
+  /// Writes a commande's lines, minting the id for each one.
+  ///
+  /// The id is assigned **here** rather than taken from the caller, mirroring
+  /// what `confirmReceipt` does with receipt lines. `PurchaseOrderLine` carries
+  /// an id because a line that has been persisted has one; a line on its way
+  /// *in* has not, and whatever id it arrives with is the form's own business.
+  /// The create screen numbers its lines from a counter that restarts with the
+  /// form, so every commande's first line arrived as `draft-line-1` and the
+  /// second commande ever created failed on the primary key.
+  ///
+  /// Re-minting on every write, rather than only for the lines that look new,
+  /// is safe because both callers write the whole set: `createDraft` for a
+  /// commande that has no rows yet, `updateDraft` after deleting the rows it
+  /// had. Nothing outside the commande holds a line id — only a draft is
+  /// editable, and a draft has no receipts — so there is no id here worth
+  /// preserving, and no question of which ones were already real.
+  ///
+  /// Returns the lines as written, so the caller's copy agrees with the table.
+  Future<List<PurchaseOrderLine>> _writeLines(
+    String orderId,
+    List<PurchaseOrderLine> lines,
+  ) async {
+    final written = <PurchaseOrderLine>[];
+
     for (final (index, line) in lines.indexed) {
+      final stored = PurchaseOrderLine(
+        id: newId(),
+        itemId: line.itemId,
+        quantityOrdered: line.quantityOrdered,
+        unitPrice: line.unitPrice,
+        quantityReceived: line.quantityReceived,
+        closedShort: line.closedShort,
+      );
+
       await _db
           .into(_db.purchaseOrderLines)
-          .insert(orderLineToRow(line, orderId: orderId, position: index));
+          .insert(orderLineToRow(stored, orderId: orderId, position: index));
+      written.add(stored);
     }
+
+    return written;
   }
 
   /// The next human-readable commande number.

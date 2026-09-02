@@ -175,6 +175,100 @@ void main() {
       expect(created.reference, endsWith((highest + 1).toString()));
     });
 
+    // The create form numbers its lines from a counter that restarts with the
+    // form, so every commande's first line arrives as `draft-line-1`. The line
+    // id is a primary key, so the second commande ever created used to fail on
+    // it. `_writeLines` mints the ids now; what the caller sends is the form's
+    // own bookkeeping and is not persisted.
+    test('two drafts built from the same line ids both survive', () async {
+      const lines = [
+        PurchaseOrderLine(
+          id: 'draft-line-1',
+          itemId: ItemIds.tomates,
+          quantityOrdered: 50,
+          unitPrice: 3.20,
+        ),
+        PurchaseOrderLine(
+          id: 'draft-line-2',
+          itemId: ItemIds.poulet,
+          quantityOrdered: 10,
+          unitPrice: 8.50,
+        ),
+      ];
+
+      final first = await orders.createDraft(
+        storeId: StoreIds.sablon,
+        supplierId: SupplierIds.maraicher,
+        lines: lines,
+      );
+      final second = await orders.createDraft(
+        storeId: StoreIds.sablon,
+        supplierId: SupplierIds.maraicher,
+        lines: lines,
+      );
+
+      final stored = [
+        ...(await orderOf(first.id)).lines,
+        ...(await orderOf(second.id)).lines,
+      ];
+
+      expect(stored, hasLength(4));
+      expect(stored.map((l) => l.id).toSet(), hasLength(4));
+      expect(stored.map((l) => l.id), isNot(contains('draft-line-1')));
+
+      // The returned commande has to agree with the table, or the caller is
+      // holding ids that address nothing.
+      expect(
+        first.lines.map((l) => l.id),
+        (await orderOf(first.id)).lines.map((l) => l.id),
+      );
+
+      // Only the ids changed: the contents and their order are untouched.
+      expect(
+        (await orderOf(second.id)).lines.map((l) => l.itemId),
+        [ItemIds.tomates, ItemIds.poulet],
+      );
+    });
+
+    test('a line added while editing a draft gets an id of its own', () async {
+      final created = await orders.createDraft(
+        storeId: StoreIds.sablon,
+        supplierId: SupplierIds.maraicher,
+        lines: const [
+          PurchaseOrderLine(
+            id: 'draft-line-1',
+            itemId: ItemIds.tomates,
+            quantityOrdered: 50,
+            unitPrice: 3.20,
+          ),
+        ],
+      );
+
+      // What the edit form hands back: the line already on the commande with
+      // its stored id, and a new one numbered from the counter that just
+      // restarted with the form.
+      final updated = await orders.updateDraft(
+        created.id,
+        lines: [
+          created.lines.single,
+          const PurchaseOrderLine(
+            id: 'draft-line-2',
+            itemId: ItemIds.poulet,
+            quantityOrdered: 10,
+            unitPrice: 8.50,
+          ),
+        ],
+      );
+
+      expect(updated!.lines, hasLength(2));
+      expect(updated.lines.map((l) => l.id).toSet(), hasLength(2));
+      expect(updated.lines.map((l) => l.id), isNot(contains('draft-line-2')));
+      expect(updated.lines.map((l) => l.itemId), [
+        ItemIds.tomates,
+        ItemIds.poulet,
+      ]);
+    });
+
     test('sending a commande leaves quantities alone', () async {
       final before = await quantityOf(ItemIds.tomates);
       final movementsBefore = await movementCount();
