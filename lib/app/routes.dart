@@ -121,7 +121,18 @@ abstract final class Routes {
 
   static String toUnits(String storeId) => '/store/$storeId/catalog/units';
 
-  static String toMovements(String storeId) => '/store/$storeId/movements';
+  /// The movement log, optionally opened on one product.
+  ///
+  /// [itemId] preselects the product filter, so "voir tout" from a product
+  /// lands on that product's movements rather than on the whole store's. It is
+  /// a query parameter rather than a path segment because it is a filter the
+  /// user can clear on arrival, not a different screen.
+  static String toMovements(String storeId, {String? itemId}) {
+    final path = '/store/$storeId/movements';
+    return itemId == null
+        ? path
+        : '$path?item=${Uri.encodeQueryComponent(itemId)}';
+  }
 
   static String toStockIn(String storeId) => '/store/$storeId/movements/in';
 

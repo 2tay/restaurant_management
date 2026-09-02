@@ -276,7 +276,10 @@ final GoRouter appRouter = GoRouter(
           path: Routes.movements,
           pageBuilder: (context, state) => appPage(
             key: state.pageKey,
-            child: StockHistoryPage(storeId: _storeId(state)),
+            child: StockHistoryPage(
+              storeId: _storeId(state),
+              initialItemId: state.uri.queryParameters['item'],
+            ),
           ),
         ),
         GoRoute(

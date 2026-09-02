@@ -31,9 +31,19 @@ enum HistoryPeriod {
 /// asked of a stock log: "what came in this week", "who logged that", "what
 /// happened to the chicken", "how much did we throw away".
 class StockHistoryPage extends ConsumerStatefulWidget {
-  const StockHistoryPage({required this.storeId, super.key});
+  const StockHistoryPage({
+    required this.storeId,
+    this.initialItemId,
+    super.key,
+  });
 
   final String storeId;
+
+  /// The product to open the log on, from `?item=` — see [Routes.toMovements].
+  ///
+  /// A starting point rather than a lock: the filter menu is exactly where it
+  /// always is, and clearing it shows the whole store again.
+  final String? initialItemId;
 
   @override
   ConsumerState<StockHistoryPage> createState() => _StockHistoryPageState();
@@ -44,6 +54,44 @@ class _StockHistoryPageState extends ConsumerState<StockHistoryPage> {
   HistoryPeriod _period = HistoryPeriod.last30;
   String? _itemId;
   String? _userName;
+
+  @override
+  void initState() {
+    super.initState();
+    _applyRoute();
+  }
+
+  /// Re-reads the route when it changes underneath a page that is still alive.
+  ///
+  /// The shell keeps a section page mounted while it is the current one, so
+  /// `initState` runs once and going from a product's log to the sidebar's
+  /// "Mouvements" would otherwise leave the product filter on — the sidebar
+  /// destination showing a filtered list nobody asked it for, with no
+  /// indication that it was inherited from the screen before.
+  ///
+  /// Guarded on the route actually having changed, so a filter the user picked
+  /// by hand survives an ordinary rebuild.
+  @override
+  void didUpdateWidget(StockHistoryPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialItemId != oldWidget.initialItemId) {
+      setState(_applyRoute);
+    }
+  }
+
+  /// The filters the route asks for.
+  ///
+  /// Arriving on one product widens the period to everything. The product page
+  /// lists its last movements with no date limit at all, so "voir tout" under
+  /// a delivery from two months ago would otherwise land on an empty screen —
+  /// the filter the user did not choose silently hiding the rows they clicked
+  /// to see. Thirty days is the right default for the whole store, where the
+  /// list is long; it is the wrong one for a single product, where it is
+  /// short.
+  void _applyRoute() {
+    _itemId = widget.initialItemId;
+    _period = _itemId == null ? HistoryPeriod.last30 : HistoryPeriod.all;
+  }
 
   @override
   Widget build(BuildContext context) {

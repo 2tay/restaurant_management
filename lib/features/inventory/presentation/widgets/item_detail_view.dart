@@ -299,7 +299,9 @@ class ItemDetailView extends ConsumerWidget {
         SectionHeader(
           title: l10n.itemMovementsTitle,
           trailing: TextButton(
-            onPressed: () => context.goSection(Routes.toMovements(storeId)),
+            onPressed: () => context.goSection(
+              Routes.toMovements(storeId, itemId: itemId),
+            ),
             child: Text(l10n.actionViewAll),
           ),
         ),
