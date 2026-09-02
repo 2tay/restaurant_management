@@ -597,8 +597,10 @@ ligne = `notClockedIn` (jamais stocké).
   dès qu'un verrou est expiré. Aucun contournement owner/gérant : un employé
   verrouillé attend les 5 min. La vérification est côté UI (cohérent avec « auth
   reste fake ») — les writes de `attendance_repository.dart` gardent leur unique
-  écrivain. *Note : le CIN est affiché sur la carte du kiosque — c'est une
-  confirmation d'intention, pas un secret.*
+  écrivain. La carte du kiosque **n'affiche plus le CIN** (elle montre le rôle à
+  la place) : sur un écran partagé près de la porte, il ne doit pas se lire par
+  dessus l'épaule. Le CIN reste visible sur les écrans admin (liste employés,
+  historique) qui sont derrière la connexion.
 - **Journée verrouillée = immuable.** Le helper privé `_mutate`
   (`attendance_repository.dart:337`) ouvre la transaction, lit la ligne, et refuse
   (`null`) si elle est absente **ou** si `payrollPeriodId != null`. `startPause` /
