@@ -36,6 +36,21 @@ class Attendances extends Table {
   DateTimeColumn get clockInAt => dateTime().nullable()();
   DateTimeColumn get clockOutAt => dateTime().nullable()();
 
+  /// The evaluation context this day was worked in, frozen when the row is
+  /// created (schema v3): the resolved start / end of day and the break
+  /// allowance that `en retard`, `heures supp.` and `pause dépassée` are
+  /// measured against. Without it, changing the store hours or an employee's
+  /// schedule silently rewrote every past day's figures — a day that was on
+  /// time became late, real overtime vanished.
+  ///
+  /// Null on rows created before v3 (the migration backfills them with what
+  /// they resolved to at upgrade time) and, defensively, whenever the reader
+  /// cannot resolve one — [attendance_status.dart]'s `evaluationContext` falls
+  /// back to the live resolved schedule in that case.
+  IntColumn get scheduledStartMinutes => integer().nullable()();
+  IntColumn get scheduledEndMinutes => integer().nullable()();
+  IntColumn get maxBreakMinutes => integer().nullable()();
+
   /// Set when a [PayrollPeriods] row locks this day. While set the row is
   /// immutable — every attendance write refuses it — and the model's
   /// `paymentStatus` reads `paid`. `RESTRICT`: a paid period cannot be deleted

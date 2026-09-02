@@ -2296,7 +2296,7 @@ abstract class AppLocalizations {
   /// **'Pour la démonstration : affiche la bannière hors ligne dans toute l\'application.'**
   String get syncDemoToggleBody;
 
-  /// No description provided for @syncLocalOnlyNote.
+  /// Honest note that sync between devices is not implemented yet.
   ///
   /// In fr, this message translates to:
   /// **'Les données sont enregistrées sur cet appareil. La synchronisation entre appareils sera ajoutée en phase 3.'**
@@ -4948,6 +4948,24 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Document généré le {date} — ne constitue pas une facture.'**
   String receiptDocFooter(String date);
+
+  /// Title of the dialog shown before saving pointage / payroll settings while unpaid finished days exist.
+  ///
+  /// In fr, this message translates to:
+  /// **'Des journées ne sont pas encore payées'**
+  String get storeSettingsRetroWarningTitle;
+
+  /// Body of the dialog warning that changing pointage / payroll settings retroactively affects unpaid days.
+  ///
+  /// In fr, this message translates to:
+  /// **'{days, plural, =1{1 journée terminée n\'\'a pas encore été payée} other{{days} journées terminées n\'\'ont pas encore été payées}}. Changer les horaires ou les coefficients modifiera le retard, les heures supplémentaires et le montant estimé de ces journées. Payez-les d\'\'abord pour figer leurs chiffres.'**
+  String storeSettingsRetroWarningBody(int days);
+
+  /// Confirm button on the retroactive-settings warning dialog.
+  ///
+  /// In fr, this message translates to:
+  /// **'Changer quand même'**
+  String get storeSettingsRetroWarningConfirm;
 }
 
 class _AppLocalizationsDelegate

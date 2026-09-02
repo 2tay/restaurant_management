@@ -32,6 +32,9 @@ Attendance attendanceFromRows(
     clockInAt: row.clockInAt,
     clockOutAt: row.clockOutAt,
     payrollPeriodId: row.payrollPeriodId,
+    scheduledStartMinutes: row.scheduledStartMinutes,
+    scheduledEndMinutes: row.scheduledEndMinutes,
+    maxBreakMinutes: row.maxBreakMinutes,
   );
 }
 
@@ -48,6 +51,9 @@ AttendancesCompanion attendanceToRow(Attendance attendance) =>
       clockInAt: Value(attendance.clockInAt),
       clockOutAt: Value(attendance.clockOutAt),
       payrollPeriodId: Value(attendance.payrollPeriodId),
+      scheduledStartMinutes: Value(attendance.scheduledStartMinutes),
+      scheduledEndMinutes: Value(attendance.scheduledEndMinutes),
+      maxBreakMinutes: Value(attendance.maxBreakMinutes),
     );
 
 AttendancePause pauseFromRow(AttendancePauseRow row) =>

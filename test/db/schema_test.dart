@@ -197,8 +197,8 @@ void main() {
       ]);
     });
 
-    test('at schema version 2', () {
-      expect(db.schemaVersion, 2);
+    test('at schema version 3', () {
+      expect(db.schemaVersion, 3);
     });
 
     test('with foreign keys switched on', () async {
@@ -432,6 +432,18 @@ void main() {
         reason: 'attendances.payrollPeriodId is RESTRICT — a locked day keeps '
             'its lock',
       );
+    });
+
+    test('an attendance row can be written without an evaluation context', () async {
+      await seedMinimalStore();
+      await insertEmployee();
+      // The three v3 columns are nullable — a row from before the backfill,
+      // and the fallback path in `evaluationContext`, both rely on it.
+      await insertAttendance(id: 'att-1');
+      final row = await db.select(db.attendances).getSingle();
+      expect(row.scheduledStartMinutes, null);
+      expect(row.scheduledEndMinutes, null);
+      expect(row.maxBreakMinutes, null);
     });
 
     test('the pointage / paie settings default to the core constants', () async {

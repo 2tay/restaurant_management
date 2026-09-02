@@ -34,6 +34,13 @@ double hourlyRate(Employee employee, StoreSettings settings) {
 
 double _hours(Duration d) => d.inMinutes / 60;
 
+/// The end of day one [day] is measured against for overtime: the value frozen
+/// on its row, or — for a row from before schema v3 — the live resolved
+/// [scheduleEndMinutes]. Keeps a settings change from moving the overtime on a
+/// day already worked.
+int _endMinutesFor(Attendance day, int scheduleEndMinutes) =>
+    day.scheduledEndMinutes ?? scheduleEndMinutes;
+
 /// What one finished day is worth: every worked hour at the normal rate, plus
 /// an extra premium on the overtime hours. Zero for a day that is not
 /// `done` — nothing to pay until the day is closed.
@@ -75,7 +82,9 @@ double dayAmount(
     if (day.status != AttendanceStatus.done) continue;
     count++;
     worked += workedDuration(day) ?? Duration.zero;
-    overtime += overtimeBy(day, schedule.endMinutes) ?? Duration.zero;
+    overtime +=
+        overtimeBy(day, _endMinutesFor(day, schedule.endMinutes)) ??
+        Duration.zero;
   }
 
   return (
@@ -103,7 +112,7 @@ double periodAmount(
       day,
       employee,
       settings,
-      scheduledEndMinutes: schedule.endMinutes,
+      scheduledEndMinutes: _endMinutesFor(day, schedule.endMinutes),
     );
   }
   return total;

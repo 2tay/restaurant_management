@@ -877,7 +877,7 @@
   "syncDemoToggleBody": "Pour la démonstration : affiche la bannière hors ligne dans toute l'application.",
   "@syncDemoToggleBody": {"description": "Explains that the offline toggle is a demo aid, not a real setting."},
   "syncLocalOnlyNote": "Les données sont enregistrées sur cet appareil. La synchronisation entre appareils sera ajoutée en phase 3.",
-  "@syncPhase2Note": {"description": "Honest note that sync is not implemented in Phase 1."},
+  "@syncLocalOnlyNote": {"description": "Honest note that sync between devices is not implemented yet."},
 
   "searchTitle": "Recherche",
   "@searchTitle": {"description": "Global search screen heading."},
@@ -1811,5 +1811,12 @@
   "receiptDocSignatureDriver": "Signature livreur",
   "@receiptDocSignatureDriver": {"description": "Signature box for the driver. Present so the document can be signed on the spot when the delivery is disputed."},
   "receiptDocFooter": "Document généré le {date} — ne constitue pas une facture.",
-  "@receiptDocFooter": {"description": "PDF footer. Dates the generation separately from the delivery, and states what the document is not, so it cannot be mistaken for an invoice.", "placeholders": {"date": {"type": "String"}}}
+  "@receiptDocFooter": {"description": "PDF footer. Dates the generation separately from the delivery, and states what the document is not, so it cannot be mistaken for an invoice.", "placeholders": {"date": {"type": "String"}}},
+
+  "storeSettingsRetroWarningTitle": "Des journées ne sont pas encore payées",
+  "@storeSettingsRetroWarningTitle": {"description": "Title of the dialog shown before saving pointage / payroll settings while unpaid finished days exist."},
+  "storeSettingsRetroWarningBody": "{days, plural, =1{1 journée terminée n''a pas encore été payée} other{{days} journées terminées n''ont pas encore été payées}}. Changer les horaires ou les coefficients modifiera le retard, les heures supplémentaires et le montant estimé de ces journées. Payez-les d''abord pour figer leurs chiffres.",
+  "@storeSettingsRetroWarningBody": {"description": "Body of the dialog warning that changing pointage / payroll settings retroactively affects unpaid days.", "placeholders": {"days": {"type": "int"}}},
+  "storeSettingsRetroWarningConfirm": "Changer quand même",
+  "@storeSettingsRetroWarningConfirm": {"description": "Confirm button on the retroactive-settings warning dialog."}
 }

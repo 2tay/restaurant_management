@@ -85,6 +85,25 @@ Duration? workedDuration(Attendance entry) {
   endMinutes: employee.scheduledEndMinutes ?? storeCloseMinutes,
 );
 
+/// The schedule and break allowance one [entry] is judged against — `en
+/// retard`, `heures supp.` and `pause dépassée` all measure against this.
+///
+/// Prefers the values frozen on the row when it was created — so a later
+/// change to the store hours or this employee's schedule cannot rewrite a
+/// past day's figures. Falls back to the caller-supplied live values for a row
+/// from before schema v3, or one the writer could not stamp: pass them from
+/// `resolvedSchedule(employee, ...)` and the store's `maxBreakMinutes`.
+({int startMinutes, int endMinutes, int maxBreakMinutes}) evaluationContext(
+  Attendance entry, {
+  required int fallbackStartMinutes,
+  required int fallbackEndMinutes,
+  required int fallbackMaxBreakMinutes,
+}) => (
+  startMinutes: entry.scheduledStartMinutes ?? fallbackStartMinutes,
+  endMinutes: entry.scheduledEndMinutes ?? fallbackEndMinutes,
+  maxBreakMinutes: entry.maxBreakMinutes ?? fallbackMaxBreakMinutes,
+);
+
 int _minutesOfDay(DateTime at) => at.hour * 60 + at.minute;
 
 /// How late the arrival was against [scheduledStartMinutes], past the grace

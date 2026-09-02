@@ -401,6 +401,44 @@ class _StoreSettingsFormState extends ConsumerState<_StoreSettingsForm> {
     final l10n = AppLocalizations.of(context);
     final stores = ref.read(storeRepositoryProvider);
 
+    // Parse the pointage / payroll fields up front. A change to any of them
+    // re-figures every unpaid finished day — its retard, heures supp. and
+    // montant estimé are measured against these — so warn before saving while
+    // such days exist. A day only stops moving once it is paid.
+    final openMinutes = Formatters.clockToMinutes(_openTime.text);
+    final closeMinutes = Formatters.clockToMinutes(_closeTime.text);
+    final maxBreak = int.tryParse(_maxBreak.text.trim());
+    final overtimeMultiplier = double.tryParse(
+      _overtimeMultiplier.text.replaceAll(',', '.').trim(),
+    );
+    final workingDays = int.tryParse(_workingDays.text.trim());
+
+    final current = widget.settings;
+    final pointagePayrollChanged =
+        (openMinutes != null && openMinutes != current.openMinutes) ||
+        (closeMinutes != null && closeMinutes != current.closeMinutes) ||
+        (maxBreak != null && maxBreak != current.maxBreakMinutes) ||
+        (overtimeMultiplier != null &&
+            overtimeMultiplier != current.overtimeMultiplier) ||
+        (workingDays != null && workingDays != current.workingDaysPerMonth);
+
+    if (pointagePayrollChanged) {
+      final unpaid = await ref
+          .read(payrollRepositoryProvider)
+          .unpaidFinishedDayCount(widget.store.id);
+      if (unpaid > 0) {
+        if (!mounted) return;
+        final ok = await ConfirmDialog.show(
+          context,
+          title: l10n.storeSettingsRetroWarningTitle,
+          message: l10n.storeSettingsRetroWarningBody(unpaid),
+          confirmLabel: l10n.storeSettingsRetroWarningConfirm,
+          isDestructive: false,
+        );
+        if (!ok || !mounted) return;
+      }
+    }
+
     await stores.updateStore(
       widget.store.id,
       name: _name.text,
@@ -427,13 +465,11 @@ class _StoreSettingsFormState extends ConsumerState<_StoreSettingsForm> {
     // here rather than refused, so a half-typed field does not block the rest.
     final updated = await stores.updateStoreSettings(
       widget.store.id,
-      openMinutes: Formatters.clockToMinutes(_openTime.text),
-      closeMinutes: Formatters.clockToMinutes(_closeTime.text),
-      maxBreakMinutes: int.tryParse(_maxBreak.text.trim()),
-      overtimeMultiplier: double.tryParse(
-        _overtimeMultiplier.text.replaceAll(',', '.').trim(),
-      ),
-      workingDaysPerMonth: int.tryParse(_workingDays.text.trim()),
+      openMinutes: openMinutes,
+      closeMinutes: closeMinutes,
+      maxBreakMinutes: maxBreak,
+      overtimeMultiplier: overtimeMultiplier,
+      workingDaysPerMonth: workingDays,
     );
 
     // Reflect what actually stuck.

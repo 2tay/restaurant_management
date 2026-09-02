@@ -10207,6 +10207,37 @@ class $AttendancesTable extends Attendances
     type: DriftSqlType.dateTime,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _scheduledStartMinutesMeta =
+      const VerificationMeta('scheduledStartMinutes');
+  @override
+  late final GeneratedColumn<int> scheduledStartMinutes = GeneratedColumn<int>(
+    'scheduled_start_minutes',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _scheduledEndMinutesMeta =
+      const VerificationMeta('scheduledEndMinutes');
+  @override
+  late final GeneratedColumn<int> scheduledEndMinutes = GeneratedColumn<int>(
+    'scheduled_end_minutes',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _maxBreakMinutesMeta = const VerificationMeta(
+    'maxBreakMinutes',
+  );
+  @override
+  late final GeneratedColumn<int> maxBreakMinutes = GeneratedColumn<int>(
+    'max_break_minutes',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _payrollPeriodIdMeta = const VerificationMeta(
     'payrollPeriodId',
   );
@@ -10230,6 +10261,9 @@ class $AttendancesTable extends Attendances
     status,
     clockInAt,
     clockOutAt,
+    scheduledStartMinutes,
+    scheduledEndMinutes,
+    maxBreakMinutes,
     payrollPeriodId,
   ];
   @override
@@ -10288,6 +10322,33 @@ class $AttendancesTable extends Attendances
         ),
       );
     }
+    if (data.containsKey('scheduled_start_minutes')) {
+      context.handle(
+        _scheduledStartMinutesMeta,
+        scheduledStartMinutes.isAcceptableOrUnknown(
+          data['scheduled_start_minutes']!,
+          _scheduledStartMinutesMeta,
+        ),
+      );
+    }
+    if (data.containsKey('scheduled_end_minutes')) {
+      context.handle(
+        _scheduledEndMinutesMeta,
+        scheduledEndMinutes.isAcceptableOrUnknown(
+          data['scheduled_end_minutes']!,
+          _scheduledEndMinutesMeta,
+        ),
+      );
+    }
+    if (data.containsKey('max_break_minutes')) {
+      context.handle(
+        _maxBreakMinutesMeta,
+        maxBreakMinutes.isAcceptableOrUnknown(
+          data['max_break_minutes']!,
+          _maxBreakMinutesMeta,
+        ),
+      );
+    }
     if (data.containsKey('payroll_period_id')) {
       context.handle(
         _payrollPeriodIdMeta,
@@ -10336,6 +10397,18 @@ class $AttendancesTable extends Attendances
         DriftSqlType.dateTime,
         data['${effectivePrefix}clock_out_at'],
       ),
+      scheduledStartMinutes: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}scheduled_start_minutes'],
+      ),
+      scheduledEndMinutes: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}scheduled_end_minutes'],
+      ),
+      maxBreakMinutes: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}max_break_minutes'],
+      ),
       payrollPeriodId: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}payroll_period_id'],
@@ -10364,6 +10437,21 @@ class AttendanceRow extends DataClass implements Insertable<AttendanceRow> {
   final DateTime? clockInAt;
   final DateTime? clockOutAt;
 
+  /// The evaluation context this day was worked in, frozen when the row is
+  /// created (schema v3): the resolved start / end of day and the break
+  /// allowance that `en retard`, `heures supp.` and `pause dépassée` are
+  /// measured against. Without it, changing the store hours or an employee's
+  /// schedule silently rewrote every past day's figures — a day that was on
+  /// time became late, real overtime vanished.
+  ///
+  /// Null on rows created before v3 (the migration backfills them with what
+  /// they resolved to at upgrade time) and, defensively, whenever the reader
+  /// cannot resolve one — [attendance_status.dart]'s `evaluationContext` falls
+  /// back to the live resolved schedule in that case.
+  final int? scheduledStartMinutes;
+  final int? scheduledEndMinutes;
+  final int? maxBreakMinutes;
+
   /// Set when a [PayrollPeriods] row locks this day. While set the row is
   /// immutable — every attendance write refuses it — and the model's
   /// `paymentStatus` reads `paid`. `RESTRICT`: a paid period cannot be deleted
@@ -10377,6 +10465,9 @@ class AttendanceRow extends DataClass implements Insertable<AttendanceRow> {
     required this.status,
     this.clockInAt,
     this.clockOutAt,
+    this.scheduledStartMinutes,
+    this.scheduledEndMinutes,
+    this.maxBreakMinutes,
     this.payrollPeriodId,
   });
   @override
@@ -10397,6 +10488,15 @@ class AttendanceRow extends DataClass implements Insertable<AttendanceRow> {
     if (!nullToAbsent || clockOutAt != null) {
       map['clock_out_at'] = Variable<DateTime>(clockOutAt);
     }
+    if (!nullToAbsent || scheduledStartMinutes != null) {
+      map['scheduled_start_minutes'] = Variable<int>(scheduledStartMinutes);
+    }
+    if (!nullToAbsent || scheduledEndMinutes != null) {
+      map['scheduled_end_minutes'] = Variable<int>(scheduledEndMinutes);
+    }
+    if (!nullToAbsent || maxBreakMinutes != null) {
+      map['max_break_minutes'] = Variable<int>(maxBreakMinutes);
+    }
     if (!nullToAbsent || payrollPeriodId != null) {
       map['payroll_period_id'] = Variable<String>(payrollPeriodId);
     }
@@ -10416,6 +10516,15 @@ class AttendanceRow extends DataClass implements Insertable<AttendanceRow> {
       clockOutAt: clockOutAt == null && nullToAbsent
           ? const Value.absent()
           : Value(clockOutAt),
+      scheduledStartMinutes: scheduledStartMinutes == null && nullToAbsent
+          ? const Value.absent()
+          : Value(scheduledStartMinutes),
+      scheduledEndMinutes: scheduledEndMinutes == null && nullToAbsent
+          ? const Value.absent()
+          : Value(scheduledEndMinutes),
+      maxBreakMinutes: maxBreakMinutes == null && nullToAbsent
+          ? const Value.absent()
+          : Value(maxBreakMinutes),
       payrollPeriodId: payrollPeriodId == null && nullToAbsent
           ? const Value.absent()
           : Value(payrollPeriodId),
@@ -10437,6 +10546,13 @@ class AttendanceRow extends DataClass implements Insertable<AttendanceRow> {
       ),
       clockInAt: serializer.fromJson<DateTime?>(json['clockInAt']),
       clockOutAt: serializer.fromJson<DateTime?>(json['clockOutAt']),
+      scheduledStartMinutes: serializer.fromJson<int?>(
+        json['scheduledStartMinutes'],
+      ),
+      scheduledEndMinutes: serializer.fromJson<int?>(
+        json['scheduledEndMinutes'],
+      ),
+      maxBreakMinutes: serializer.fromJson<int?>(json['maxBreakMinutes']),
       payrollPeriodId: serializer.fromJson<String?>(json['payrollPeriodId']),
     );
   }
@@ -10453,6 +10569,9 @@ class AttendanceRow extends DataClass implements Insertable<AttendanceRow> {
       ),
       'clockInAt': serializer.toJson<DateTime?>(clockInAt),
       'clockOutAt': serializer.toJson<DateTime?>(clockOutAt),
+      'scheduledStartMinutes': serializer.toJson<int?>(scheduledStartMinutes),
+      'scheduledEndMinutes': serializer.toJson<int?>(scheduledEndMinutes),
+      'maxBreakMinutes': serializer.toJson<int?>(maxBreakMinutes),
       'payrollPeriodId': serializer.toJson<String?>(payrollPeriodId),
     };
   }
@@ -10465,6 +10584,9 @@ class AttendanceRow extends DataClass implements Insertable<AttendanceRow> {
     AttendanceStatus? status,
     Value<DateTime?> clockInAt = const Value.absent(),
     Value<DateTime?> clockOutAt = const Value.absent(),
+    Value<int?> scheduledStartMinutes = const Value.absent(),
+    Value<int?> scheduledEndMinutes = const Value.absent(),
+    Value<int?> maxBreakMinutes = const Value.absent(),
     Value<String?> payrollPeriodId = const Value.absent(),
   }) => AttendanceRow(
     id: id ?? this.id,
@@ -10474,6 +10596,15 @@ class AttendanceRow extends DataClass implements Insertable<AttendanceRow> {
     status: status ?? this.status,
     clockInAt: clockInAt.present ? clockInAt.value : this.clockInAt,
     clockOutAt: clockOutAt.present ? clockOutAt.value : this.clockOutAt,
+    scheduledStartMinutes: scheduledStartMinutes.present
+        ? scheduledStartMinutes.value
+        : this.scheduledStartMinutes,
+    scheduledEndMinutes: scheduledEndMinutes.present
+        ? scheduledEndMinutes.value
+        : this.scheduledEndMinutes,
+    maxBreakMinutes: maxBreakMinutes.present
+        ? maxBreakMinutes.value
+        : this.maxBreakMinutes,
     payrollPeriodId: payrollPeriodId.present
         ? payrollPeriodId.value
         : this.payrollPeriodId,
@@ -10491,6 +10622,15 @@ class AttendanceRow extends DataClass implements Insertable<AttendanceRow> {
       clockOutAt: data.clockOutAt.present
           ? data.clockOutAt.value
           : this.clockOutAt,
+      scheduledStartMinutes: data.scheduledStartMinutes.present
+          ? data.scheduledStartMinutes.value
+          : this.scheduledStartMinutes,
+      scheduledEndMinutes: data.scheduledEndMinutes.present
+          ? data.scheduledEndMinutes.value
+          : this.scheduledEndMinutes,
+      maxBreakMinutes: data.maxBreakMinutes.present
+          ? data.maxBreakMinutes.value
+          : this.maxBreakMinutes,
       payrollPeriodId: data.payrollPeriodId.present
           ? data.payrollPeriodId.value
           : this.payrollPeriodId,
@@ -10507,6 +10647,9 @@ class AttendanceRow extends DataClass implements Insertable<AttendanceRow> {
           ..write('status: $status, ')
           ..write('clockInAt: $clockInAt, ')
           ..write('clockOutAt: $clockOutAt, ')
+          ..write('scheduledStartMinutes: $scheduledStartMinutes, ')
+          ..write('scheduledEndMinutes: $scheduledEndMinutes, ')
+          ..write('maxBreakMinutes: $maxBreakMinutes, ')
           ..write('payrollPeriodId: $payrollPeriodId')
           ..write(')'))
         .toString();
@@ -10521,6 +10664,9 @@ class AttendanceRow extends DataClass implements Insertable<AttendanceRow> {
     status,
     clockInAt,
     clockOutAt,
+    scheduledStartMinutes,
+    scheduledEndMinutes,
+    maxBreakMinutes,
     payrollPeriodId,
   );
   @override
@@ -10534,6 +10680,9 @@ class AttendanceRow extends DataClass implements Insertable<AttendanceRow> {
           other.status == this.status &&
           other.clockInAt == this.clockInAt &&
           other.clockOutAt == this.clockOutAt &&
+          other.scheduledStartMinutes == this.scheduledStartMinutes &&
+          other.scheduledEndMinutes == this.scheduledEndMinutes &&
+          other.maxBreakMinutes == this.maxBreakMinutes &&
           other.payrollPeriodId == this.payrollPeriodId);
 }
 
@@ -10545,6 +10694,9 @@ class AttendancesCompanion extends UpdateCompanion<AttendanceRow> {
   final Value<AttendanceStatus> status;
   final Value<DateTime?> clockInAt;
   final Value<DateTime?> clockOutAt;
+  final Value<int?> scheduledStartMinutes;
+  final Value<int?> scheduledEndMinutes;
+  final Value<int?> maxBreakMinutes;
   final Value<String?> payrollPeriodId;
   final Value<int> rowid;
   const AttendancesCompanion({
@@ -10555,6 +10707,9 @@ class AttendancesCompanion extends UpdateCompanion<AttendanceRow> {
     this.status = const Value.absent(),
     this.clockInAt = const Value.absent(),
     this.clockOutAt = const Value.absent(),
+    this.scheduledStartMinutes = const Value.absent(),
+    this.scheduledEndMinutes = const Value.absent(),
+    this.maxBreakMinutes = const Value.absent(),
     this.payrollPeriodId = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -10566,6 +10721,9 @@ class AttendancesCompanion extends UpdateCompanion<AttendanceRow> {
     required AttendanceStatus status,
     this.clockInAt = const Value.absent(),
     this.clockOutAt = const Value.absent(),
+    this.scheduledStartMinutes = const Value.absent(),
+    this.scheduledEndMinutes = const Value.absent(),
+    this.maxBreakMinutes = const Value.absent(),
     this.payrollPeriodId = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
@@ -10581,6 +10739,9 @@ class AttendancesCompanion extends UpdateCompanion<AttendanceRow> {
     Expression<String>? status,
     Expression<DateTime>? clockInAt,
     Expression<DateTime>? clockOutAt,
+    Expression<int>? scheduledStartMinutes,
+    Expression<int>? scheduledEndMinutes,
+    Expression<int>? maxBreakMinutes,
     Expression<String>? payrollPeriodId,
     Expression<int>? rowid,
   }) {
@@ -10592,6 +10753,11 @@ class AttendancesCompanion extends UpdateCompanion<AttendanceRow> {
       if (status != null) 'status': status,
       if (clockInAt != null) 'clock_in_at': clockInAt,
       if (clockOutAt != null) 'clock_out_at': clockOutAt,
+      if (scheduledStartMinutes != null)
+        'scheduled_start_minutes': scheduledStartMinutes,
+      if (scheduledEndMinutes != null)
+        'scheduled_end_minutes': scheduledEndMinutes,
+      if (maxBreakMinutes != null) 'max_break_minutes': maxBreakMinutes,
       if (payrollPeriodId != null) 'payroll_period_id': payrollPeriodId,
       if (rowid != null) 'rowid': rowid,
     });
@@ -10605,6 +10771,9 @@ class AttendancesCompanion extends UpdateCompanion<AttendanceRow> {
     Value<AttendanceStatus>? status,
     Value<DateTime?>? clockInAt,
     Value<DateTime?>? clockOutAt,
+    Value<int?>? scheduledStartMinutes,
+    Value<int?>? scheduledEndMinutes,
+    Value<int?>? maxBreakMinutes,
     Value<String?>? payrollPeriodId,
     Value<int>? rowid,
   }) {
@@ -10616,6 +10785,10 @@ class AttendancesCompanion extends UpdateCompanion<AttendanceRow> {
       status: status ?? this.status,
       clockInAt: clockInAt ?? this.clockInAt,
       clockOutAt: clockOutAt ?? this.clockOutAt,
+      scheduledStartMinutes:
+          scheduledStartMinutes ?? this.scheduledStartMinutes,
+      scheduledEndMinutes: scheduledEndMinutes ?? this.scheduledEndMinutes,
+      maxBreakMinutes: maxBreakMinutes ?? this.maxBreakMinutes,
       payrollPeriodId: payrollPeriodId ?? this.payrollPeriodId,
       rowid: rowid ?? this.rowid,
     );
@@ -10647,6 +10820,17 @@ class AttendancesCompanion extends UpdateCompanion<AttendanceRow> {
     if (clockOutAt.present) {
       map['clock_out_at'] = Variable<DateTime>(clockOutAt.value);
     }
+    if (scheduledStartMinutes.present) {
+      map['scheduled_start_minutes'] = Variable<int>(
+        scheduledStartMinutes.value,
+      );
+    }
+    if (scheduledEndMinutes.present) {
+      map['scheduled_end_minutes'] = Variable<int>(scheduledEndMinutes.value);
+    }
+    if (maxBreakMinutes.present) {
+      map['max_break_minutes'] = Variable<int>(maxBreakMinutes.value);
+    }
     if (payrollPeriodId.present) {
       map['payroll_period_id'] = Variable<String>(payrollPeriodId.value);
     }
@@ -10666,6 +10850,9 @@ class AttendancesCompanion extends UpdateCompanion<AttendanceRow> {
           ..write('status: $status, ')
           ..write('clockInAt: $clockInAt, ')
           ..write('clockOutAt: $clockOutAt, ')
+          ..write('scheduledStartMinutes: $scheduledStartMinutes, ')
+          ..write('scheduledEndMinutes: $scheduledEndMinutes, ')
+          ..write('maxBreakMinutes: $maxBreakMinutes, ')
           ..write('payrollPeriodId: $payrollPeriodId, ')
           ..write('rowid: $rowid')
           ..write(')'))

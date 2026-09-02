@@ -264,6 +264,86 @@ void main() {
     });
   });
 
+  group('the evaluation context is frozen at clock-in', () {
+    DateTime todayAt(int hour) => DateTime(
+          seedInstant.year,
+          seedInstant.month,
+          seedInstant.day,
+          hour,
+        );
+
+    test('clockIn stamps the resolved schedule and break allowance', () async {
+      final day = (await repo().clockIn(_fresh, StoreIds.sablon))!;
+      // Noah has no personal schedule → the store's 08:00–17:00, 45-min break.
+      expect(day.scheduledStartMinutes, 8 * 60);
+      expect(day.scheduledEndMinutes, 17 * 60);
+      expect(day.maxBreakMinutes, 45);
+    });
+
+    test('a later store-hours change does not rewrite a past day', () async {
+      final day = (await repo().clockIn(_fresh, StoreIds.sablon))!;
+      await repo().clockOut(day.id, now: todayAt(18));
+
+      final before = await repo().stats(
+        StoreIds.sablon,
+        from: seedInstant,
+        to: seedInstant,
+        employeeId: _fresh,
+      );
+      expect(before.overtime, const Duration(hours: 1));
+
+      await StoreRepository(db).updateStoreSettings(
+        StoreIds.sablon,
+        closeMinutes: 22 * 60,
+      );
+
+      final after = await repo().stats(
+        StoreIds.sablon,
+        from: seedInstant,
+        to: seedInstant,
+        employeeId: _fresh,
+      );
+      expect(
+        after.overtime,
+        const Duration(hours: 1),
+        reason: 'measured against the 17:00 close frozen on the row, not the '
+            'new 22:00 one',
+      );
+    });
+
+    test('a row with no frozen context falls back to the live schedule',
+        () async {
+      final day = (await repo().clockIn(_fresh, StoreIds.sablon))!;
+      await repo().clockOut(day.id, now: todayAt(18));
+
+      // A row from before schema v3, before the backfill ran.
+      await (db.update(db.attendances)..where((a) => a.id.equals(day.id))).write(
+        const AttendancesCompanion(
+          scheduledStartMinutes: Value(null),
+          scheduledEndMinutes: Value(null),
+          maxBreakMinutes: Value(null),
+        ),
+      );
+
+      await StoreRepository(db).updateStoreSettings(
+        StoreIds.sablon,
+        closeMinutes: 22 * 60,
+      );
+
+      final after = await repo().stats(
+        StoreIds.sablon,
+        from: seedInstant,
+        to: seedInstant,
+        employeeId: _fresh,
+      );
+      expect(
+        after.overtime,
+        Duration.zero,
+        reason: 'no snapshot → judged against the current 22:00 close',
+      );
+    });
+  });
+
   group('a payroll-locked day', () {
     test('refuses every write', () async {
       final paid = await (db.select(db.attendances)

@@ -2998,4 +2998,22 @@ class AppLocalizationsFr extends AppLocalizations {
   String receiptDocFooter(String date) {
     return 'Document généré le $date — ne constitue pas une facture.';
   }
+
+  @override
+  String get storeSettingsRetroWarningTitle =>
+      'Des journées ne sont pas encore payées';
+
+  @override
+  String storeSettingsRetroWarningBody(int days) {
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other: '$days journées terminées n\'\'ont pas encore été payées',
+      one: '1 journée terminée n\'\'a pas encore été payée',
+    );
+    return '$_temp0. Changer les horaires ou les coefficients modifiera le retard, les heures supplémentaires et le montant estimé de ces journées. Payez-les d\'\'abord pour figer leurs chiffres.';
+  }
+
+  @override
+  String get storeSettingsRetroWarningConfirm => 'Changer quand même';
 }

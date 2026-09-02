@@ -193,9 +193,11 @@ class PayrollRepository {
 
       matched.add(entry);
       worked += workedDuration(entry) ?? Duration.zero;
-      overtime +=
-          overtimeBy(entry, schedules[entry.employeeId]!.endMinutes) ??
-          Duration.zero;
+      final endMinutes =
+          entry.scheduledEndMinutes ??
+          schedules[entry.employeeId]?.endMinutes ??
+          settings.closeMinutes;
+      overtime += overtimeBy(entry, endMinutes) ?? Duration.zero;
     }
 
     matched.sort((a, b) {
@@ -250,6 +252,21 @@ class PayrollRepository {
       page: safePage,
       pageCount: pageCount,
     );
+  }
+
+  /// How many finished (`done`) days at [storeId] are not yet locked to a
+  /// payroll run. The store-settings screen warns with this before a change
+  /// that would retroactively re-figure those days — see `evaluationContext`.
+  Future<int> unpaidFinishedDayCount(String storeId) async {
+    final count = _db.attendances.id.count();
+    final query = _db.selectOnly(_db.attendances)
+      ..addColumns([count])
+      ..where(
+        _db.attendances.storeId.equals(storeId) &
+            _db.attendances.status.equalsValue(AttendanceStatus.done) &
+            _db.attendances.payrollPeriodId.isNull(),
+      );
+    return (await query.getSingle()).read(count) ?? 0;
   }
 
   // ---------------------------------------------------------------------------
