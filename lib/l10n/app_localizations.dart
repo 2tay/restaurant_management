@@ -4979,53 +4979,53 @@ abstract class AppLocalizations {
   /// **'Changer quand même'**
   String get storeSettingsRetroWarningConfirm;
 
-  /// Title of the dialog that asks for a PIN before an action goes through.
+  /// Title of the dialog that asks for a CIN before an action goes through.
   ///
   /// In fr, this message translates to:
-  /// **'Confirmation par code PIN'**
-  String get pinPromptTitle;
+  /// **'Confirmation d\'identité'**
+  String get identityPromptTitle;
 
-  /// Label of the PIN input in the confirmation dialog.
+  /// Label of the CIN input in the identity confirmation dialog.
   ///
   /// In fr, this message translates to:
-  /// **'Code PIN'**
-  String get pinPromptField;
+  /// **'Numéro CIN'**
+  String get identityPromptField;
 
-  /// Confirm button of the PIN dialog.
+  /// Confirm button of the identity dialog.
   ///
   /// In fr, this message translates to:
   /// **'Valider'**
-  String get pinPromptValidate;
+  String get identityPromptValidate;
 
-  /// Shown in the PIN dialog after a wrong PIN, with the number of attempts left before the lockout.
+  /// Shown in the identity dialog after a wrong CIN, with the number of attempts left before the lockout.
   ///
   /// In fr, this message translates to:
-  /// **'Code incorrect. {count, plural, =0{Compte verrouillé.} =1{1 tentative restante.} other{{count} tentatives restantes.}}'**
-  String pinPromptWrong(int count);
+  /// **'Numéro incorrect. {count, plural, =0{Verrouillé.} =1{1 tentative restante.} other{{count} tentatives restantes.}}'**
+  String identityPromptWrong(int count);
 
-  /// Shown in the PIN dialog while the credential is locked, with a mm:ss countdown.
+  /// Shown in the identity dialog while the credential is locked, with a mm:ss countdown.
   ///
   /// In fr, this message translates to:
   /// **'Trop de tentatives. Réessayez dans {time}.'**
-  String pinPromptLocked(String time);
+  String identityPromptLocked(String time);
 
-  /// Shown in the PIN dialog when the employee has no credential on file.
+  /// Shown in the identity dialog when the employee has no credential row.
   ///
   /// In fr, this message translates to:
-  /// **'Aucun code PIN n\'est défini pour cette personne.'**
-  String get pinPromptNoPin;
+  /// **'Aucun identifiant n\'est configuré pour cette personne.'**
+  String get identityPromptNoCredential;
 
-  /// Subtitle of the PIN dialog on the pointage board — the action being confirmed and whose card it is.
+  /// Subtitle of the identity dialog on the pointage board — the action being confirmed and whose CIN is required.
   ///
   /// In fr, this message translates to:
-  /// **'{action} · {name}'**
-  String pinPromptPointageSubtitle(String action, String name);
+  /// **'{action} · saisissez le numéro CIN de {name}'**
+  String identityPromptPointageSubtitle(String action, String name);
 
-  /// Subtitle of the PIN dialog before settling an employee's payroll days.
+  /// Subtitle of the identity dialog before settling an employee's payroll days — the signed-in user confirms with their own CIN.
   ///
   /// In fr, this message translates to:
-  /// **'Valider le paiement de {name}'**
-  String pinPromptPayrollSubtitle(String name);
+  /// **'Saisissez votre numéro CIN pour valider le paiement de {name}'**
+  String identityPromptPayrollSubtitle(String name);
 }
 
 class _AppLocalizationsDelegate

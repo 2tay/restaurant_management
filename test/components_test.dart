@@ -379,16 +379,16 @@ void main() {
     });
   });
 
-  group('PinPromptDialog', () {
+  group('IdentityPromptDialog', () {
     Future<void> open(
       WidgetTester tester,
-      Future<PinVerification> Function(String pin) verify,
+      Future<CinVerification> Function(String cin) verify,
     ) async {
       await tester.pumpWidget(
         _host(
           Builder(
             builder: (context) => ElevatedButton(
-              onPressed: () => PinPromptDialog.show(
+              onPressed: () => IdentityPromptDialog.show(
                 context,
                 title: 'Confirmation',
                 subtitle: 'Pointer · Karim',
@@ -403,35 +403,35 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    Future<void> submit(WidgetTester tester, String pin) async {
-      await tester.enterText(find.byType(TextField), pin);
+    Future<void> submit(WidgetTester tester, String cin) async {
+      await tester.enterText(find.byType(TextField), cin);
       await tester.pumpAndSettle();
       await tester.tap(find.widgetWithText(FilledButton, 'Valider'));
       await tester.pumpAndSettle();
     }
 
-    testWidgets('a wrong PIN keeps the dialog open with the count left', (
+    testWidgets('a wrong CIN keeps the dialog open with the count left', (
       tester,
     ) async {
       await open(
         tester,
         (_) async =>
-            const PinVerification(PinCheckResult.wrongPin, attemptsRemaining: 2),
+            const CinVerification(CinCheckResult.wrongCin, attemptsRemaining: 2),
       );
-      await submit(tester, '9999');
+      await submit(tester, '99.99.99-999.99');
 
-      expect(find.byType(PinPromptDialog), findsOneWidget);
+      expect(find.byType(IdentityPromptDialog), findsOneWidget);
       expect(find.textContaining('2 tentatives restantes'), findsOneWidget);
     });
 
-    testWidgets('the right PIN closes the dialog', (tester) async {
+    testWidgets('the right CIN closes the dialog', (tester) async {
       await open(
         tester,
-        (_) async => const PinVerification(PinCheckResult.ok),
+        (_) async => const CinVerification(CinCheckResult.ok),
       );
-      await submit(tester, '1234');
+      await submit(tester, '78.02.14-153.24');
 
-      expect(find.byType(PinPromptDialog), findsNothing);
+      expect(find.byType(IdentityPromptDialog), findsNothing);
     });
 
     testWidgets('a locked result disables Valider and shows a countdown', (
@@ -441,9 +441,9 @@ void main() {
       await open(
         tester,
         (_) async =>
-            PinVerification(PinCheckResult.locked, lockedUntil: until),
+            CinVerification(CinCheckResult.locked, lockedUntil: until),
       );
-      await tester.enterText(find.byType(TextField), '9999');
+      await tester.enterText(find.byType(TextField), '99.99.99-999.99');
       await tester.pump();
       await tester.tap(find.widgetWithText(FilledButton, 'Valider'));
       await tester.pump();

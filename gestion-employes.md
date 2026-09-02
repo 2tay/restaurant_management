@@ -584,16 +584,21 @@ ligne = `notClockedIn` (jamais stocké).
 
 - **Pas de limite de pauses** : le bouton propose `Pause` de nouveau après chaque
   `Reprendre`.
-- **PIN à chaque action.** Chaque bouton du kiosque (`Pointer`, `Pause`,
-  `Reprendre`, `Fin de journée`) ouvre d'abord `PinPromptDialog`, qui vérifie le
-  PIN **de l'employé concerné** via `CredentialRepository.verifyPin`. L'écriture
-  de pointage ne part que sur un PIN confirmé. `verifyPin` rejoue la machine à
-  états de `authenticate` (3 essais → `lockedUntil = now + 5 min`) sans le
-  lookup CIN ni le gate de rôle, et **repart sur 3 essais** dès qu'un verrou est
-  expiré (au lieu de re-verrouiller au 1ᵉ faux coup). Aucun contournement
-  owner/gérant pour l'instant : un employé verrouillé attend les 5 min. La
-  vérification est côté UI (cohérent avec « auth reste fake ») — les writes de
-  `attendance_repository.dart` gardent leur unique écrivain.
+- **CIN à chaque action.** Chaque bouton du kiosque (`Pointer`, `Pause`,
+  `Reprendre`, `Fin de journée`) ouvre d'abord `IdentityPromptDialog`, qui
+  demande le **numéro CIN** (identifiant unique) de l'employé de la carte et le
+  vérifie via `CredentialRepository.verifyCin(cin, employee.id)`. **Pas de
+  PIN** ici : la demande client est une confirmation par CIN. L'écriture de
+  pointage ne part que sur un CIN confirmé. `verifyCin` est **strict** — le CIN
+  saisi doit résoudre exactement à l'employé de la carte ; tout autre CIN,
+  valide ou non, compte comme faux. Il rejoue la machine à états de
+  `authenticate` (3 essais → `lockedUntil = now + 5 min`, verrou porté sur la
+  ligne `employee_credentials` de l'employé attendu) et **repart sur 3 essais**
+  dès qu'un verrou est expiré. Aucun contournement owner/gérant : un employé
+  verrouillé attend les 5 min. La vérification est côté UI (cohérent avec « auth
+  reste fake ») — les writes de `attendance_repository.dart` gardent leur unique
+  écrivain. *Note : le CIN est affiché sur la carte du kiosque — c'est une
+  confirmation d'intention, pas un secret.*
 - **Journée verrouillée = immuable.** Le helper privé `_mutate`
   (`attendance_repository.dart:337`) ouvre la transaction, lit la ligne, et refuse
   (`null`) si elle est absente **ou** si `payrollPeriodId != null`. `startPause` /
@@ -652,10 +657,11 @@ seule définition.
 
 **Écran (cible) :** `lib/features/employees/presentation/pages/payroll_history_page.dart`
 — `watchDays(...)` pour le tableau, puis le flux « Payer » :
-`preview` (future) → `ConfirmDialog` → **`PinPromptDialog`** → `pay` → snackbar.
-`paidByEmployeeId` = l'id de `currentEmployeeProvider` ; c'est aussi ce PIN-là
-que `PinPromptDialog` vérifie (`verifyPin`, même verrou 3 essais / 5 min que le
-kiosque) — le règlement ne part que sur PIN confirmé.
+`preview` (future) → `ConfirmDialog` → **`IdentityPromptDialog`** → `pay` →
+snackbar. `paidByEmployeeId` = l'id de `currentEmployeeProvider` ; c'est ce
+CIN-là que `IdentityPromptDialog` vérifie (`verifyCin(cin, actorId)`, même
+verrou 3 essais / 5 min que le kiosque) — le règlement ne part que sur CIN
+confirmé, et le CIN doit être celui de l'utilisateur connecté.
 
 **Arithmétique** — `lib/core/utils/payroll_math.dart` (pure, inchangée) :
 
@@ -852,11 +858,11 @@ des secrets.
 | Mappers | `lib/data/mappers/{employee,credential,attendance,payroll,store}_mapper.dart` |
 | Repositories | `lib/data/repositories/{employee,credential,attendance,payroll,session,store}_repository.dart` |
 | Photo employé (fichiers) | `lib/data/employee_photo_store.dart`, `employeePhotoImage()` dans `lib/shared/widgets/employee_avatar.dart` |
-| Dialog PIN (kiosque + paie) | `lib/shared/widgets/pin_prompt_dialog.dart` ; `CredentialRepository.verifyPin` |
+| Dialog CIN (kiosque + paie) | `lib/shared/widgets/identity_prompt_dialog.dart` ; `CredentialRepository.verifyCin` |
 | Session (Notifier) | `lib/data/current_employee.dart` |
 | Providers | `lib/data/providers.dart` |
 | Seed de démo | `lib/data/seed/demo_seed.dart` |
 | Garde `unique writer` | `tool/ux_audit.py` (`SINGLE_WRITER_COMPANIONS`) |
-| Tests | `test/db/{schema,migration,employee_seed,employee_queries,employees,auth,attendance,payroll,store_settings}_test.dart`, `test/employee_photo_store_test.dart`, `test/components_test.dart` (PinPromptDialog), `test/payroll_history_page_test.dart` |
+| Tests | `test/db/{schema,migration,employee_seed,employee_queries,employees,auth,attendance,payroll,store_settings}_test.dart`, `test/employee_photo_store_test.dart`, `test/components_test.dart` (IdentityPromptDialog), `test/payroll_history_page_test.dart` |
 | Écrans (cible Stage 9) | `lib/features/employees/presentation/pages/`, `lib/features/auth/presentation/pages/login_page.dart`, `lib/features/settings/presentation/pages/store_settings_page.dart`, `lib/app/router.dart` (`_guard`) |
 | Plan de migration + journaux « As built » | `phase2-employee.md` |

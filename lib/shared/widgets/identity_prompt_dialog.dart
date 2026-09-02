@@ -1,27 +1,26 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
-import '../../core/utils/credential_status.dart';
 import '../../data/repositories/credential_repository.dart';
 import '../../l10n/app_localizations.dart';
 import 'app_text_field.dart';
 
-/// Asks for a PIN and checks it before letting an action through.
+/// Confirms who is at a shared screen before an action goes through, by asking
+/// for that person's **CIN** — the unique national-ID number that is also the
+/// login identifier. Used by every button on the pointage kiosk (the card's
+/// employee) and by "Payer" on the payroll page (the signed-in user).
 ///
-/// Used wherever an action has to be attributed to the right person at a shared
-/// screen: every button on the pointage kiosk, and "Payer" on the payroll page.
-/// The dialog owns the retry loop — it stays open through wrong attempts and a
-/// lockout countdown, and only resolves `true` once the PIN is right (or `false`
-/// if the user backs out).
+/// The dialog owns the retry loop: it stays open through wrong entries and a
+/// lockout countdown, and only resolves `true` once the CIN is right (or
+/// `false` if the user backs out).
 ///
 /// [verify] is the check itself, normally
-/// `ref.read(credentialRepositoryProvider).verifyPin(employeeId, pin)`.
-class PinPromptDialog extends StatefulWidget {
-  const PinPromptDialog({
+/// `ref.read(credentialRepositoryProvider).verifyCin(cin, expectedEmployeeId)`.
+class IdentityPromptDialog extends StatefulWidget {
+  const IdentityPromptDialog({
     required this.title,
     required this.subtitle,
     required this.verify,
@@ -30,30 +29,33 @@ class PinPromptDialog extends StatefulWidget {
 
   final String title;
   final String subtitle;
-  final Future<PinVerification> Function(String pin) verify;
+  final Future<CinVerification> Function(String cin) verify;
 
-  /// Shows the dialog and resolves to whether the PIN was accepted. A dismissal
+  /// Shows the dialog and resolves to whether the CIN was accepted. A dismissal
   /// (Annuler, or Échap) resolves `false`.
   static Future<bool> show(
     BuildContext context, {
     required String title,
     required String subtitle,
-    required Future<PinVerification> Function(String pin) verify,
+    required Future<CinVerification> Function(String cin) verify,
   }) async {
     final ok = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
-      builder: (_) =>
-          PinPromptDialog(title: title, subtitle: subtitle, verify: verify),
+      builder: (_) => IdentityPromptDialog(
+        title: title,
+        subtitle: subtitle,
+        verify: verify,
+      ),
     );
     return ok ?? false;
   }
 
   @override
-  State<PinPromptDialog> createState() => _PinPromptDialogState();
+  State<IdentityPromptDialog> createState() => _IdentityPromptDialogState();
 }
 
-class _PinPromptDialogState extends State<PinPromptDialog> {
+class _IdentityPromptDialogState extends State<IdentityPromptDialog> {
   final _controller = TextEditingController();
   String? _message;
   bool _busy = false;
@@ -65,7 +67,7 @@ class _PinPromptDialogState extends State<PinPromptDialog> {
       _lockedUntil != null && DateTime.now().isBefore(_lockedUntil!);
 
   bool get _canSubmit =>
-      !_busy && !_locked && _controller.text.trim().length == AuthRules.pinLength;
+      !_busy && !_locked && _controller.text.trim().isNotEmpty;
 
   @override
   void dispose() {
@@ -97,18 +99,18 @@ class _PinPromptDialogState extends State<PinPromptDialog> {
     if (!mounted) return;
 
     switch (result.result) {
-      case PinCheckResult.ok:
+      case CinCheckResult.ok:
         Navigator.of(context).pop(true);
         return;
-      case PinCheckResult.wrongPin:
+      case CinCheckResult.wrongCin:
         setState(() {
           _busy = false;
           _controller.clear();
           _message = AppLocalizations.of(
             context,
-          ).pinPromptWrong(result.attemptsRemaining);
+          ).identityPromptWrong(result.attemptsRemaining);
         });
-      case PinCheckResult.locked:
+      case CinCheckResult.locked:
         setState(() {
           _busy = false;
           _controller.clear();
@@ -116,10 +118,10 @@ class _PinPromptDialogState extends State<PinPromptDialog> {
           _message = null;
         });
         _startCountdown();
-      case PinCheckResult.noPin:
+      case CinCheckResult.noCredential:
         setState(() {
           _busy = false;
-          _message = AppLocalizations.of(context).pinPromptNoPin;
+          _message = AppLocalizations.of(context).identityPromptNoCredential;
         });
     }
   }
@@ -153,23 +155,18 @@ class _PinPromptDialogState extends State<PinPromptDialog> {
             ),
             const SizedBox(height: AppSpacing.lg),
             AppTextField(
-              label: l10n.pinPromptField,
+              label: l10n.identityPromptField,
               controller: _controller,
-              obscureText: true,
+              hint: l10n.loginCinHint,
               enabled: !_locked && !_busy,
               autofocus: true,
-              keyboardType: TextInputType.number,
-              inputFormatters: [
-                FilteringTextInputFormatter.digitsOnly,
-                LengthLimitingTextInputFormatter(AuthRules.pinLength),
-              ],
               onChanged: (_) => setState(() {}),
               onSubmitted: (_) => _submit(),
             ),
             if (_locked) ...[
               const SizedBox(height: AppSpacing.md),
               Text(
-                l10n.pinPromptLocked(_countdown()),
+                l10n.identityPromptLocked(_countdown()),
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: AppColors.error,
                 ),
@@ -200,7 +197,7 @@ class _PinPromptDialogState extends State<PinPromptDialog> {
         const SizedBox(width: AppSpacing.sm),
         FilledButton(
           onPressed: _canSubmit ? _submit : null,
-          child: Text(l10n.pinPromptValidate),
+          child: Text(l10n.identityPromptValidate),
         ),
       ],
     );

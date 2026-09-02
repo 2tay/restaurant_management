@@ -37,42 +37,45 @@ class LoginAttempt {
   final Employee? employee;
 }
 
-/// How a [CredentialRepository.verifyPin] check turned out — the re-auth the
-/// pointage board asks for on every action, and the payroll screen asks for
-/// before settling days. Unlike [LoginOutcome] there is no CIN and no role
-/// gate: the caller already knows which employee it is asking about.
-enum PinCheckResult {
-  /// The PIN matched. Counters were reset.
+/// How a [CredentialRepository.verifyCin] check turned out — the identity
+/// confirmation the pointage board asks for on every action, and the payroll
+/// screen asks for before settling days. It re-uses [LoginOutcome]'s
+/// wrong-attempt / lockout state machine, but the secret is the **CIN**
+/// (unique, the login identifier), never the PIN, and the caller already knows
+/// which employee the entered CIN has to match.
+enum CinCheckResult {
+  /// The CIN is the expected employee's. Counters were reset.
   ok,
 
-  /// Wrong PIN. The failed-attempt counter has been bumped —
-  /// [PinVerification.attemptsRemaining] says how many are left.
-  wrongPin,
+  /// The CIN does not belong to the expected employee (wrong number, or
+  /// somebody else's). The failed-attempt counter has been bumped —
+  /// [CinVerification.attemptsRemaining] says how many are left.
+  wrongCin,
 
-  /// Locked out — refused even with the right PIN until
-  /// [PinVerification.lockedUntil] passes.
+  /// Locked out — refused even with the right CIN until
+  /// [CinVerification.lockedUntil] passes.
   locked,
 
-  /// No PIN on file for this employee. Nothing was counted.
-  noPin,
+  /// The expected employee has no credential row to hold the lockout state.
+  /// Nothing was counted.
+  noCredential,
 }
 
-/// The outcome of one [CredentialRepository.verifyPin] call, with the extra
-/// figures the PIN dialog shows ("2 tentatives restantes", a lockout
-/// countdown).
-class PinVerification {
-  const PinVerification(
+/// The outcome of one [CredentialRepository.verifyCin] call, with the extra
+/// figures the dialog shows ("2 tentatives restantes", a lockout countdown).
+class CinVerification {
+  const CinVerification(
     this.result, {
     this.lockedUntil,
     this.attemptsRemaining = 0,
   });
 
-  final PinCheckResult result;
+  final CinCheckResult result;
 
-  /// Set when [result] is [PinCheckResult.locked].
+  /// Set when [result] is [CinCheckResult.locked].
   final DateTime? lockedUntil;
 
-  /// Set when [result] is [PinCheckResult.wrongPin] — how many attempts are
+  /// Set when [result] is [CinCheckResult.wrongCin] — how many attempts are
   /// left before the lockout.
   final int attemptsRemaining;
 }
@@ -236,59 +239,68 @@ class CredentialRepository {
     return LoginAttempt(LoginOutcome.success, employee);
   }
 
-  /// Re-authenticates one known employee by PIN — the check the pointage board
-  /// runs before every action and the payroll screen runs before "Payer".
+  /// Confirms that whoever is at the screen is [expectedEmployeeId], by asking
+  /// for that person's CIN — the check the pointage board runs before every
+  /// action and the payroll screen runs before "Payer". Strict: the CIN must
+  /// resolve to exactly [expectedEmployeeId] (the card, or the signed-in user);
+  /// any other CIN, valid or not, counts as wrong.
   ///
-  /// Same lockout state machine as [authenticate] (three wrong PINs → locked
-  /// for [AuthRules.lockoutDuration]), with one difference the kiosk needs: once
-  /// a lockout has **elapsed**, the counter is wiped so the next try starts a
-  /// fresh set of three, rather than the stale count re-locking on the first
-  /// mistake. A success does not stamp `lastLoginAt` — this is not a login.
-  Future<PinVerification> verifyPin(
-    String employeeId,
-    String pin, {
+  /// Same lockout as [authenticate] (three misses → locked for
+  /// [AuthRules.lockoutDuration]) held on [expectedEmployeeId]'s credential row,
+  /// with one difference the kiosk needs: once a lockout has **elapsed** the
+  /// counter is wiped, so the next try starts a fresh set of three rather than
+  /// the stale count re-locking on the first mistake. Nothing stamps
+  /// `lastLoginAt` — this is not a login.
+  Future<CinVerification> verifyCin(
+    String cin,
+    String expectedEmployeeId, {
     DateTime? now,
   }) {
     return _db.transaction(() async {
       final at = now ?? DateTime.now();
-      var row = await _rowFor(employeeId);
-      if (row == null) return const PinVerification(PinCheckResult.noPin);
+      var row = await _rowFor(expectedEmployeeId);
+      if (row == null) {
+        return const CinVerification(CinCheckResult.noCredential);
+      }
 
       // A lockout whose moment has passed: clear it so the employee gets the
       // full three attempts again.
       final until = row.lockedUntil;
       if (until != null && !at.isBefore(until)) {
-        await _resetCounters(employeeId);
-        row = await _rowFor(employeeId);
-        if (row == null) return const PinVerification(PinCheckResult.noPin);
+        await _resetCounters(expectedEmployeeId);
+        row = await _rowFor(expectedEmployeeId);
+        if (row == null) {
+          return const CinVerification(CinCheckResult.noCredential);
+        }
       }
 
       final credential = credentialFromRow(row);
       if (isLocked(credential, now: at)) {
-        return PinVerification(
-          PinCheckResult.locked,
+        return CinVerification(
+          CinCheckResult.locked,
           lockedUntil: credential.lockedUntil,
         );
       }
 
-      if (!pinMatches(credential, pin)) {
-        final locked = await recordFailedAttempt(employeeId, now: at);
+      final match = await EmployeeRepository(_db).employeeByCin(cin);
+      if (match == null || match.id != expectedEmployeeId) {
+        final locked = await recordFailedAttempt(expectedEmployeeId, now: at);
         if (locked) {
-          final after = await _rowFor(employeeId);
-          return PinVerification(
-            PinCheckResult.locked,
+          final after = await _rowFor(expectedEmployeeId);
+          return CinVerification(
+            CinCheckResult.locked,
             lockedUntil: after?.lockedUntil,
           );
         }
-        return PinVerification(
-          PinCheckResult.wrongPin,
+        return CinVerification(
+          CinCheckResult.wrongCin,
           attemptsRemaining:
               AuthRules.maxFailedAttempts - (credential.failedAttempts + 1),
         );
       }
 
-      await _resetCounters(employeeId);
-      return const PinVerification(PinCheckResult.ok);
+      await _resetCounters(expectedEmployeeId);
+      return const CinVerification(CinCheckResult.ok);
     });
   }
 

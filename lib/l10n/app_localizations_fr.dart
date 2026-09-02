@@ -3024,42 +3024,42 @@ class AppLocalizationsFr extends AppLocalizations {
   String get storeSettingsRetroWarningConfirm => 'Changer quand même';
 
   @override
-  String get pinPromptTitle => 'Confirmation par code PIN';
+  String get identityPromptTitle => 'Confirmation d\'identité';
 
   @override
-  String get pinPromptField => 'Code PIN';
+  String get identityPromptField => 'Numéro CIN';
 
   @override
-  String get pinPromptValidate => 'Valider';
+  String get identityPromptValidate => 'Valider';
 
   @override
-  String pinPromptWrong(int count) {
+  String identityPromptWrong(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
       other: '$count tentatives restantes.',
       one: '1 tentative restante.',
-      zero: 'Compte verrouillé.',
+      zero: 'Verrouillé.',
     );
-    return 'Code incorrect. $_temp0';
+    return 'Numéro incorrect. $_temp0';
   }
 
   @override
-  String pinPromptLocked(String time) {
+  String identityPromptLocked(String time) {
     return 'Trop de tentatives. Réessayez dans $time.';
   }
 
   @override
-  String get pinPromptNoPin =>
-      'Aucun code PIN n\'est défini pour cette personne.';
+  String get identityPromptNoCredential =>
+      'Aucun identifiant n\'est configuré pour cette personne.';
 
   @override
-  String pinPromptPointageSubtitle(String action, String name) {
-    return '$action · $name';
+  String identityPromptPointageSubtitle(String action, String name) {
+    return '$action · saisissez le numéro CIN de $name';
   }
 
   @override
-  String pinPromptPayrollSubtitle(String name) {
-    return 'Valider le paiement de $name';
+  String identityPromptPayrollSubtitle(String name) {
+    return 'Saisissez votre numéro CIN pour valider le paiement de $name';
   }
 }

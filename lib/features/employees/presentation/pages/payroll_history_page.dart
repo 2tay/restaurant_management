@@ -395,16 +395,16 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
     final actorId = ref.read(currentEmployeeProvider)?.id;
     if (actorId == null) return;
 
-    // The person settling the days confirms with their own PIN — same
+    // The person settling the days confirms with their own CIN — same
     // wrong-attempt / 5-minute lockout as the pointage board.
-    final pinOk = await PinPromptDialog.show(
+    final identityOk = await IdentityPromptDialog.show(
       context,
-      title: l10n.pinPromptTitle,
-      subtitle: l10n.pinPromptPayrollSubtitle(employeeDisplayName(employee)),
-      verify: (pin) =>
-          ref.read(credentialRepositoryProvider).verifyPin(actorId, pin),
+      title: l10n.identityPromptTitle,
+      subtitle: l10n.identityPromptPayrollSubtitle(employeeDisplayName(employee)),
+      verify: (cin) =>
+          ref.read(credentialRepositoryProvider).verifyCin(cin, actorId),
     );
-    if (!pinOk || !mounted) return;
+    if (!identityOk || !mounted) return;
 
     final period = await payroll.pay(
       employee.id,

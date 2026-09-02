@@ -29,15 +29,17 @@ Future<AppDatabase> _openPayroll(
   return db;
 }
 
-/// Answers the PIN dialog that guards "Payer". Marc (the signed-in owner)
-/// carries the seeded PIN `1234`.
-Future<void> _enterPin(WidgetTester tester, String pin) async {
+/// Answers the identity dialog that guards "Payer" with the given CIN. Marc
+/// (the signed-in owner) carries the seeded CIN `78.02.14-153.24`.
+const _marcCin = '78.02.14-153.24';
+
+Future<void> _enterCin(WidgetTester tester, String cin) async {
   await tester.enterText(
     find.descendant(
       of: find.byType(AlertDialog),
       matching: find.byType(TextField),
     ),
-    pin,
+    cin,
   );
   await tester.pumpAndSettle();
   await tester.tap(
@@ -121,7 +123,7 @@ void main() {
     }
   });
 
-  testApp('"Payer" confirms, asks for the PIN, then flips the days to paid',
+  testApp('"Payer" confirms, asks for the CIN, then flips the days to paid',
       (tester) async {
     final db = await _openPayroll(tester);
     await _pickKarim(tester);
@@ -134,9 +136,9 @@ void main() {
 
     await _confirmPay(tester);
 
-    // The PIN dialog stands between the confirmation and the write.
-    expect(find.text('Code PIN'), findsOneWidget);
-    await _enterPin(tester, '1234');
+    // The identity dialog stands between the confirmation and the write.
+    expect(find.text('Numéro CIN'), findsOneWidget);
+    await _enterCin(tester, _marcCin);
 
     expect(find.text('Paiement enregistré'), findsOneWidget);
     expect(
@@ -145,12 +147,12 @@ void main() {
     );
   });
 
-  testApp('a wrong PIN leaves the days unpaid', (tester) async {
+  testApp('a wrong CIN leaves the days unpaid', (tester) async {
     final db = await _openPayroll(tester);
     await _pickKarim(tester);
 
     await _confirmPay(tester);
-    await _enterPin(tester, '0000');
+    await _enterCin(tester, '00.00.00-000.00');
 
     // Dialog stays open, days untouched.
     expect(find.textContaining('tentative'), findsOneWidget);
