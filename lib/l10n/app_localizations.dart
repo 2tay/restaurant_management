@@ -4066,6 +4066,30 @@ abstract class AppLocalizations {
   /// **'Pause dépassée'**
   String get attendanceBreakOverrun;
 
+  /// Alert on a past day left open — clocked in, never clocked out.
+  ///
+  /// In fr, this message translates to:
+  /// **'Oubli de pointage'**
+  String get attendanceAnomalyMissingPunch;
+
+  /// Detail line for the retard anomaly in the attendance drawer.
+  ///
+  /// In fr, this message translates to:
+  /// **'Retard de {duration}'**
+  String attendanceAnomalyRetardDetail(String duration);
+
+  /// Detail line for the pause-dépassée anomaly.
+  ///
+  /// In fr, this message translates to:
+  /// **'Pause dépassée de {duration}'**
+  String attendanceAnomalyBreakDetail(String duration);
+
+  /// Detail line for the missing-punch anomaly.
+  ///
+  /// In fr, this message translates to:
+  /// **'Journée non clôturée — la sortie n\'a jamais été pointée.'**
+  String get attendanceAnomalyMissingPunchDetail;
+
   /// Heading of the pointage kiosk board.
   ///
   /// In fr, this message translates to:
@@ -4389,6 +4413,48 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'{count, plural, =0{Aucune pause} =1{1 pause} other{{count} pauses}}'**
   String attendanceDetailBreaks(int count);
+
+  /// History table column — arrival → departure, grouped.
+  ///
+  /// In fr, this message translates to:
+  /// **'Horaires'**
+  String get attendanceColumnSchedule;
+
+  /// Button in the filter bar that clears every filter.
+  ///
+  /// In fr, this message translates to:
+  /// **'Réinitialiser'**
+  String get attendanceFilterReset;
+
+  /// Secondary line under the Horaires cell — break count and total.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =1{1 pause · {duration}} other{{count} pauses · {duration}}}'**
+  String attendanceBreakSummary(int count, String duration);
+
+  /// Drawer row — total break time.
+  ///
+  /// In fr, this message translates to:
+  /// **'Total pauses'**
+  String get attendanceDetailBreakTotal;
+
+  /// Drawer section header for worked hours and overtime.
+  ///
+  /// In fr, this message translates to:
+  /// **'Temps de travail'**
+  String get attendanceDetailWorkTime;
+
+  /// Overtime value in the drawer, marked as informational — never an alert.
+  ///
+  /// In fr, this message translates to:
+  /// **'{duration} (informatif)'**
+  String attendanceDetailOvertimeInfo(String duration);
+
+  /// Drawer section header for the event timeline.
+  ///
+  /// In fr, this message translates to:
+  /// **'Chronologie'**
+  String get attendanceDetailTimeline;
 
   /// Store settings section header for payroll coefficients.
   ///

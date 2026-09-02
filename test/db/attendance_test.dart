@@ -156,6 +156,70 @@ void main() {
     });
   });
 
+  group('derived anomalies', () {
+    List<AttendanceAnomaly> anomalies(Attendance a, {DateTime? now}) =>
+        attendanceAnomalies(
+          a,
+          startMinutes: 8 * 60,
+          maxBreakMinutes: 30,
+          now: now,
+        );
+
+    test('a clean finished day has none', () {
+      final clean = _finished(clockIn: const (8, 0), clockOut: const (17, 0));
+      expect(anomalies(clean), isEmpty);
+    });
+
+    test('overtime is never an anomaly', () {
+      final over = _finished(clockIn: const (8, 0), clockOut: const (20, 0));
+      expect(anomalies(over), isEmpty);
+    });
+
+    test('a late arrival is retard', () {
+      final late = _finished(clockIn: const (8, 40), clockOut: const (17, 0));
+      expect(anomalies(late), [AttendanceAnomaly.retard]);
+    });
+
+    test('a break past the allowance is pauseDepassee', () {
+      final longBreak = _withPauses([(const (12, 0), const (13, 0))]);
+      expect(anomalies(longBreak), contains(AttendanceAnomaly.pauseDepassee));
+    });
+
+    test('a past day still open is oubliDePointage', () {
+      final open = Attendance(
+        id: 't',
+        storeId: StoreIds.sablon,
+        employeeId: _fresh,
+        date: DateTime(2026, 1, 5),
+        status: AttendanceStatus.working,
+        clockInAt: DateTime(2026, 1, 5, 8),
+        pauses: const [],
+        paymentStatus: PaymentStatus.unpaid,
+      );
+      expect(
+        anomalies(open, now: DateTime(2026, 1, 7)),
+        contains(AttendanceAnomaly.oubliDePointage),
+      );
+    });
+
+    test('today\'s still-open day is not oubliDePointage', () {
+      final today = Attendance(
+        id: 't',
+        storeId: StoreIds.sablon,
+        employeeId: _fresh,
+        date: DateTime(2026, 1, 5),
+        status: AttendanceStatus.working,
+        clockInAt: DateTime(2026, 1, 5, 8),
+        pauses: const [],
+        paymentStatus: PaymentStatus.unpaid,
+      );
+      expect(
+        anomalies(today, now: DateTime(2026, 1, 5, 14)),
+        isNot(contains(AttendanceAnomaly.oubliDePointage)),
+      );
+    });
+  });
+
   group('the store log (Historique)', () {
     test('a from bound excludes an older day and keeps a recent one', () async {
       final since3 = await repo().page(

@@ -2463,6 +2463,23 @@ class AppLocalizationsFr extends AppLocalizations {
   String get attendanceBreakOverrun => 'Pause dépassée';
 
   @override
+  String get attendanceAnomalyMissingPunch => 'Oubli de pointage';
+
+  @override
+  String attendanceAnomalyRetardDetail(String duration) {
+    return 'Retard de $duration';
+  }
+
+  @override
+  String attendanceAnomalyBreakDetail(String duration) {
+    return 'Pause dépassée de $duration';
+  }
+
+  @override
+  String get attendanceAnomalyMissingPunchDetail =>
+      'Journée non clôturée — la sortie n\'a jamais été pointée.';
+
+  @override
   String get timeclockBoardTitle => 'Tableau de pointage';
 
   @override
@@ -2664,6 +2681,37 @@ class AppLocalizationsFr extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get attendanceColumnSchedule => 'Horaires';
+
+  @override
+  String get attendanceFilterReset => 'Réinitialiser';
+
+  @override
+  String attendanceBreakSummary(int count, String duration) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count pauses · $duration',
+      one: '1 pause · $duration',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get attendanceDetailBreakTotal => 'Total pauses';
+
+  @override
+  String get attendanceDetailWorkTime => 'Temps de travail';
+
+  @override
+  String attendanceDetailOvertimeInfo(String duration) {
+    return '$duration (informatif)';
+  }
+
+  @override
+  String get attendanceDetailTimeline => 'Chronologie';
 
   @override
   String get storeSettingsPayroll => 'Paie';
