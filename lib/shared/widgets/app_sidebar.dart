@@ -857,127 +857,160 @@ class _SidebarProfile extends ConsumerWidget {
   final bool collapsed;
   final AppLocalizations l10n;
 
+  /// 60% of the sidebar's width, per the design.
+  static const double _menuWidth = AppSizing.sidebarWidthExpanded * 0.6;
+
+  /// Opens the user menu — a steel panel [_menuWidth] wide, centred on the
+  /// sidebar and opening upward from the profile row, with a drop shadow.
+  Future<void> _open(BuildContext context, WidgetRef ref, Employee? user) async {
+    final box = context.findRenderObject() as RenderBox?;
+    final overlay =
+        Overlay.of(context).context.findRenderObject() as RenderBox?;
+    if (box == null || overlay == null) return;
+
+    final topLeft = box.localToGlobal(Offset.zero, ancestor: overlay);
+    final left = topLeft.dx + (box.size.width - _menuWidth) / 2;
+    final anchor = Rect.fromLTWH(
+      left,
+      topLeft.dy,
+      _menuWidth,
+      box.size.height,
+    );
+
+    final selected = await showMenu<String>(
+      context: context,
+      color: AppColors.steel800,
+      // A real drop shadow, not an M3 surface tint (which does nothing on this
+      // custom steel colour).
+      elevation: 12,
+      shadowColor: AppColors.neutral950,
+      surfaceTintColor: Colors.transparent,
+      constraints: const BoxConstraints.tightFor(width: _menuWidth),
+      shape: const RoundedRectangleBorder(borderRadius: AppRadius.mdAll),
+      position: RelativeRect.fromRect(anchor, Offset.zero & overlay.size),
+      items: [
+        if (user != null) ...[
+          PopupMenuItem<String>(
+            enabled: false,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  employeeDisplayName(user),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: AppColors.white,
+                  ),
+                ),
+                Text(
+                  user.email,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppColors.neutral400,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const PopupMenuDivider(color: AppColors.steel700),
+        ],
+        PopupMenuItem<String>(
+          value: 'stores',
+          child: _MenuRow(
+            icon: LucideIcons.building2,
+            label: l10n.sidebarMyStores,
+          ),
+        ),
+        PopupMenuItem<String>(
+          value: 'settings',
+          child: _MenuRow(icon: LucideIcons.settings, label: l10n.navSettings),
+        ),
+        PopupMenuItem<String>(
+          value: 'logout',
+          child: _MenuRow(
+            icon: LucideIcons.logOut,
+            label: l10n.actionLogout,
+            destructive: true,
+          ),
+        ),
+      ],
+    );
+
+    if (selected == null || !context.mounted) return;
+    switch (selected) {
+      case 'stores':
+        context.goSection(Routes.stores);
+      case 'settings':
+        context.goSection(Routes.toStoreSettings(storeId));
+      case 'logout':
+        await ref.read(currentEmployeeProvider.notifier).signOut();
+        if (context.mounted) context.goSection(Routes.login);
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final user = ref.watch(currentEmployeeProvider);
 
-    Future<void> onSelected(String value) async {
-      switch (value) {
-        case 'stores':
-          context.goSection(Routes.stores);
-        case 'settings':
-          context.goSection(Routes.toStoreSettings(storeId));
-        case 'logout':
-          await ref.read(currentEmployeeProvider.notifier).signOut();
-          if (context.mounted) context.goSection(Routes.login);
-      }
-    }
-
-    final menuItems = <PopupMenuEntry<String>>[
-      if (user != null) ...[
-        PopupMenuItem<String>(
-          enabled: false,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                employeeDisplayName(user),
-                style: theme.textTheme.bodyLarge?.copyWith(
-                  color: AppColors.white,
-                ),
-              ),
-              Text(
-                user.email,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: AppColors.neutral400,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const PopupMenuDivider(color: AppColors.steel700),
-      ],
-      PopupMenuItem<String>(
-        value: 'stores',
-        child: _MenuRow(
-          icon: LucideIcons.building2,
-          label: l10n.sidebarMyStores,
-        ),
-      ),
-      PopupMenuItem<String>(
-        value: 'settings',
-        child: _MenuRow(icon: LucideIcons.settings, label: l10n.navSettings),
-      ),
-      PopupMenuItem<String>(
-        value: 'logout',
-        child: _MenuRow(icon: LucideIcons.logOut, label: l10n.actionLogout),
-      ),
-    ];
-
     final avatar = user == null
         ? const _InitialsAvatar(initials: '')
         : EmployeeAvatar(employee: user, size: 32);
 
-    return PopupMenuButton<String>(
-      tooltip: l10n.topBarAccount,
-      // Anchored at the tap, not `under`: this sits at the bottom of the
-      // sidebar, so the menu has to open upward and Flutter places `over`
-      // within the screen for us. Same steel ground and 280dp width as the
-      // sidebar, so the menu reads as an extension of it.
-      color: AppColors.steel800,
-      constraints: const BoxConstraints.tightFor(
-        width: AppSizing.sidebarWidthExpanded,
-      ),
-      shape: const RoundedRectangleBorder(borderRadius: AppRadius.mdAll),
-      onSelected: onSelected,
-      itemBuilder: (context) => menuItems,
-      child: Container(
-        padding: EdgeInsets.symmetric(
-          horizontal: collapsed ? AppSpacing.sm : AppSpacing.lg,
-          vertical: AppSpacing.md,
-        ),
-        child: Row(
-          mainAxisAlignment: collapsed
-              ? MainAxisAlignment.center
-              : MainAxisAlignment.start,
-          children: [
-            avatar,
-            if (!collapsed) ...[
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      user == null ? '—' : employeeDisplayName(user),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.labelLarge?.copyWith(
-                        color: AppColors.white,
-                      ),
-                    ),
-                    if (user != null)
+    return Tooltip(
+      message: l10n.topBarAccount,
+      child: InkWell(
+        onTap: () => _open(context, ref, user),
+        hoverColor: AppColors.steel700,
+        child: Container(
+          padding: EdgeInsets.symmetric(
+            horizontal: collapsed ? AppSpacing.sm : AppSpacing.lg,
+            vertical: AppSpacing.md,
+          ),
+          child: Row(
+            mainAxisAlignment: collapsed
+                ? MainAxisAlignment.center
+                : MainAxisAlignment.start,
+            children: [
+              avatar,
+              if (!collapsed) ...[
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
                       Text(
-                        employeeRoleLabel(l10n, user.role),
+                        user == null ? '—' : employeeDisplayName(user),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: AppColors.neutral400,
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          color: AppColors.white,
                         ),
                       ),
-                  ],
+                      if (user != null)
+                        Text(
+                          employeeRoleLabel(l10n, user.role),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: AppColors.neutral400,
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
-              ),
-              const Icon(
-                LucideIcons.chevronsUpDown,
-                size: AppSizing.iconSm,
-                color: AppColors.neutral300,
-              ),
+                const Icon(
+                  LucideIcons.chevronsUpDown,
+                  size: AppSizing.iconSm,
+                  color: AppColors.neutral300,
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );
@@ -985,26 +1018,42 @@ class _SidebarProfile extends ConsumerWidget {
 }
 
 /// One row of the user menu — light on the steel ground it shares with the
-/// sidebar.
+/// sidebar; [destructive] paints "Se déconnecter" red.
 class _MenuRow extends StatelessWidget {
-  const _MenuRow({required this.icon, required this.label});
+  const _MenuRow({
+    required this.icon,
+    required this.label,
+    this.destructive = false,
+  });
 
   final IconData icon;
   final String label;
+  final bool destructive;
 
   @override
-  Widget build(BuildContext context) => Row(
-    children: [
-      Icon(icon, size: AppSizing.iconMd, color: AppColors.neutral300),
-      const SizedBox(width: AppSpacing.md),
-      Text(
-        label,
-        style: Theme.of(
-          context,
-        ).textTheme.bodyLarge?.copyWith(color: AppColors.neutral100),
-      ),
-    ],
-  );
+  Widget build(BuildContext context) {
+    final color = destructive ? AppColors.errorOnChrome : AppColors.neutral100;
+    return Row(
+      children: [
+        Icon(
+          icon,
+          size: AppSizing.iconMd,
+          color: destructive ? AppColors.errorOnChrome : AppColors.neutral300,
+        ),
+        const SizedBox(width: AppSpacing.md),
+        Expanded(
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: color),
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 /// The disc with initials, for the frame before the current user resolves —

@@ -101,6 +101,10 @@ abstract final class AppColors {
   static const Color errorContainer = Color(0xFFFADEDE);
   static const Color onErrorContainer = Color(0xFF8E1B1B);
 
+  /// Danger, readable on the dark steel chrome — [error] is too deep to carry
+  /// contrast there. Used for "Se déconnecter" in the sidebar user menu.
+  static const Color errorOnChrome = Color(0xFFF08A8A);
+
   /// The offline banner. Intentionally informational rather than alarming —
   /// offline is the normal state for this app, not a failure.
   static const Color offline = Color(0xFF4C6072);
