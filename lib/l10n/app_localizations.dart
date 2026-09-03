@@ -682,6 +682,72 @@ abstract class AppLocalizations {
   /// **'Effacer les filtres'**
   String get inventoryClearFilters;
 
+  /// Label in front of the sort dropdown above the product grid.
+  ///
+  /// In fr, this message translates to:
+  /// **'Trier par'**
+  String get inventorySortLabel;
+
+  /// Default sort option. Keeps the order the query returns — worst stock status first, then alphabetical — which is what makes the screen usable during service.
+  ///
+  /// In fr, this message translates to:
+  /// **'Stock prioritaire'**
+  String get inventorySortStatus;
+
+  /// Sort option ordering products by when they last changed, newest first.
+  ///
+  /// In fr, this message translates to:
+  /// **'Plus récent'**
+  String get inventorySortRecent;
+
+  /// Sort option ordering products alphabetically.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nom A → Z'**
+  String get inventorySortNameAsc;
+
+  /// Sort option ordering products reverse-alphabetically.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nom Z → A'**
+  String get inventorySortNameDesc;
+
+  /// Sort option ordering products by quantity on hand, lowest first.
+  ///
+  /// In fr, this message translates to:
+  /// **'Stock croissant'**
+  String get inventorySortStockAsc;
+
+  /// Sort option ordering products by quantity on hand, highest first.
+  ///
+  /// In fr, this message translates to:
+  /// **'Stock décroissant'**
+  String get inventorySortStockDesc;
+
+  /// Tooltip on the button switching the product list to cards.
+  ///
+  /// In fr, this message translates to:
+  /// **'Vue grille'**
+  String get inventoryViewGrid;
+
+  /// Tooltip on the button switching the product list to compact rows.
+  ///
+  /// In fr, this message translates to:
+  /// **'Vue liste'**
+  String get inventoryViewList;
+
+  /// Caption above the quantity on a product card. Says the figure is what is on the shelf now, not an order or a threshold.
+  ///
+  /// In fr, this message translates to:
+  /// **'Stock actuel'**
+  String get inventoryStockCurrent;
+
+  /// Tooltip on the arrow button of a product card. It does the same thing as tapping the card.
+  ///
+  /// In fr, this message translates to:
+  /// **'Voir le produit'**
+  String get inventoryOpenItem;
+
   /// Placeholder in the detail pane of the inventory split view.
   ///
   /// In fr, this message translates to:

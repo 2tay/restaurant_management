@@ -355,6 +355,39 @@ class AppLocalizationsFr extends AppLocalizations {
   String get inventoryClearFilters => 'Effacer les filtres';
 
   @override
+  String get inventorySortLabel => 'Trier par';
+
+  @override
+  String get inventorySortStatus => 'Stock prioritaire';
+
+  @override
+  String get inventorySortRecent => 'Plus récent';
+
+  @override
+  String get inventorySortNameAsc => 'Nom A → Z';
+
+  @override
+  String get inventorySortNameDesc => 'Nom Z → A';
+
+  @override
+  String get inventorySortStockAsc => 'Stock croissant';
+
+  @override
+  String get inventorySortStockDesc => 'Stock décroissant';
+
+  @override
+  String get inventoryViewGrid => 'Vue grille';
+
+  @override
+  String get inventoryViewList => 'Vue liste';
+
+  @override
+  String get inventoryStockCurrent => 'Stock actuel';
+
+  @override
+  String get inventoryOpenItem => 'Voir le produit';
+
+  @override
   String get inventorySelectPrompt => 'Sélectionnez un produit';
 
   @override
