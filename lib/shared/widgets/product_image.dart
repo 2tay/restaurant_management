@@ -37,6 +37,11 @@ class ProductImage extends StatefulWidget {
   /// Drawn on the placeholder. The form passes a camera to say "add one".
   final IconData icon;
 
+  /// The side assumed when neither [size] nor the incoming constraints give a
+  /// finite one. Nothing in the app lays a product image out unbounded today;
+  /// this keeps a future caller that does from crashing the page it is on.
+  static const double _unboundedSide = 48;
+
   @override
   State<ProductImage> createState() => _ProductImageState();
 }
@@ -89,12 +94,29 @@ class _ProductImageState extends State<ProductImage> {
 
   Widget _placeholder(BuildContext context) => ColoredBox(
     color: AppColors.surfaceVariant,
-    child: Center(
-      child: Icon(
-        widget.icon,
-        size: widget.size * 0.32,
-        color: AppColors.textSecondary,
-      ),
+    child: LayoutBuilder(
+      builder: (context, constraints) {
+        // [size] is `double.infinity` wherever the caller means "fill whatever
+        // you are given" — the picture band across the top of a grid card. The
+        // `SizedBox` above copes with that because its parent constrains it,
+        // but an icon needs a real number, and `infinity * 0.32` is what threw
+        // `fontSize.isFinite` on every product without a photo. So measure the
+        // box that was actually laid out rather than trusting the declared side.
+        final side = constraints.biggest.shortestSide;
+        final resolved = side.isFinite
+            ? side
+            : (widget.size.isFinite
+                  ? widget.size
+                  : ProductImage._unboundedSide);
+
+        return Center(
+          child: Icon(
+            widget.icon,
+            size: resolved * 0.32,
+            color: AppColors.textSecondary,
+          ),
+        );
+      },
     ),
   );
 }

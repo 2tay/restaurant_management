@@ -325,6 +325,12 @@ class _ListPane extends ConsumerWidget {
                     // square, the text block is a known height, and the tile
                     // is exactly the two added up, so neither can squeeze the
                     // other however the grid is sized.
+                    //
+                    // The tile is the card's *outer* height, so it carries the
+                    // border too. `AppCard` draws one inside its own box and
+                    // lays the card out in what is left, which is two pixels
+                    // less than the tile — the amount every card in this grid
+                    // was overflowing by before the allowance was added.
                     final spacing = AppSpacing.md * (columns - 1);
                     final cellWidth =
                         (constraints.maxWidth - spacing) / columns;
@@ -336,7 +342,10 @@ class _ListPane extends ConsumerWidget {
                             crossAxisCount: columns,
                             mainAxisSpacing: AppSpacing.md,
                             crossAxisSpacing: AppSpacing.md,
-                            mainAxisExtent: cellWidth + itemCardTextHeight,
+                            mainAxisExtent:
+                                cellWidth +
+                                itemCardTextHeight +
+                                AppCard.verticalBorderAllowance,
                           ),
                       itemCount: rows.length,
                       itemBuilder: (context, index) {
