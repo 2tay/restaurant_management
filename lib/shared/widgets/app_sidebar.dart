@@ -884,13 +884,20 @@ class _SidebarProfile extends ConsumerWidget {
             children: [
               Text(
                 employeeDisplayName(user),
-                style: theme.textTheme.bodyLarge,
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  color: AppColors.white,
+                ),
               ),
-              Text(user.email, style: theme.textTheme.bodySmall),
+              Text(
+                user.email,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: AppColors.neutral400,
+                ),
+              ),
             ],
           ),
         ),
-        const PopupMenuDivider(),
+        const PopupMenuDivider(color: AppColors.steel700),
       ],
       PopupMenuItem<String>(
         value: 'stores',
@@ -917,7 +924,12 @@ class _SidebarProfile extends ConsumerWidget {
       tooltip: l10n.topBarAccount,
       // Anchored at the tap, not `under`: this sits at the bottom of the
       // sidebar, so the menu has to open upward and Flutter places `over`
-      // within the screen for us.
+      // within the screen for us. Same steel ground and 280dp width as the
+      // sidebar, so the menu reads as an extension of it.
+      color: AppColors.steel800,
+      constraints: const BoxConstraints.tightFor(
+        width: AppSizing.sidebarWidthExpanded,
+      ),
       shape: const RoundedRectangleBorder(borderRadius: AppRadius.mdAll),
       onSelected: onSelected,
       itemBuilder: (context) => menuItems,
@@ -972,6 +984,8 @@ class _SidebarProfile extends ConsumerWidget {
   }
 }
 
+/// One row of the user menu — light on the steel ground it shares with the
+/// sidebar.
 class _MenuRow extends StatelessWidget {
   const _MenuRow({required this.icon, required this.label});
 
@@ -981,9 +995,14 @@ class _MenuRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Row(
     children: [
-      Icon(icon, size: AppSizing.iconMd),
+      Icon(icon, size: AppSizing.iconMd, color: AppColors.neutral300),
       const SizedBox(width: AppSpacing.md),
-      Text(label),
+      Text(
+        label,
+        style: Theme.of(
+          context,
+        ).textTheme.bodyLarge?.copyWith(color: AppColors.neutral100),
+      ),
     ],
   );
 }
