@@ -149,9 +149,9 @@
   "@topBarAccount": {
     "description": "Tooltip on the sidebar user menu."
   },
-  "sidebarProfile": "Mon profil",
-  "@sidebarProfile": {
-    "description": "Sidebar user menu — opens the account settings screen."
+  "sidebarMyStores": "Mes établissements",
+  "@sidebarMyStores": {
+    "description": "Sidebar user menu — opens the establishments list / selector."
   },
   "actionLogout": "Se déconnecter",
   "@actionLogout": {

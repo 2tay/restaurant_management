@@ -310,11 +310,11 @@ abstract class AppLocalizations {
   /// **'Mon compte'**
   String get topBarAccount;
 
-  /// Sidebar user menu — opens the account settings screen.
+  /// Sidebar user menu — opens the establishments list / selector.
   ///
   /// In fr, this message translates to:
-  /// **'Mon profil'**
-  String get sidebarProfile;
+  /// **'Mes établissements'**
+  String get sidebarMyStores;
 
   /// Account menu entry returning to the login screen.
   ///

@@ -499,12 +499,8 @@ const List<_Destination> _destinations = [
       ),
     ],
   ),
-  _Destination(
-    icon: LucideIcons.settings,
-    label: _labelSettings,
-    pathBuilder: Routes.toStoreSettings,
-    matchSegment: 'settings',
-  ),
+  // "Paramètres" is not a rail destination — it lives in the user menu at the
+  // bottom of the sidebar, alongside "Mes établissements" and "Se déconnecter".
 ];
 
 String _labelDashboard(AppLocalizations l) => l.navDashboard;
@@ -521,7 +517,6 @@ String _labelTimeclock(AppLocalizations l) => l.employeesNavTimeclock;
 String _labelAttendanceHistory(AppLocalizations l) =>
     l.employeesNavAttendanceHistory;
 String _labelPayroll(AppLocalizations l) => l.employeesNavPayroll;
-String _labelSettings(AppLocalizations l) => l.navSettings;
 
 class _NavList extends StatelessWidget {
   const _NavList({
@@ -869,8 +864,8 @@ class _SidebarProfile extends ConsumerWidget {
 
     Future<void> onSelected(String value) async {
       switch (value) {
-        case 'profile':
-          context.goSection(Routes.toAccountSettings(storeId));
+        case 'stores':
+          context.goSection(Routes.stores);
         case 'settings':
           context.goSection(Routes.toStoreSettings(storeId));
         case 'logout':
@@ -898,8 +893,11 @@ class _SidebarProfile extends ConsumerWidget {
         const PopupMenuDivider(),
       ],
       PopupMenuItem<String>(
-        value: 'profile',
-        child: _MenuRow(icon: LucideIcons.user, label: l10n.sidebarProfile),
+        value: 'stores',
+        child: _MenuRow(
+          icon: LucideIcons.building2,
+          label: l10n.sidebarMyStores,
+        ),
       ),
       PopupMenuItem<String>(
         value: 'settings',

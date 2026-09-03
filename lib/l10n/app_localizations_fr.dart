@@ -117,7 +117,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get topBarAccount => 'Mon compte';
 
   @override
-  String get sidebarProfile => 'Mon profil';
+  String get sidebarMyStores => 'Mes établissements';
 
   @override
   String get actionLogout => 'Se déconnecter';
