@@ -861,14 +861,14 @@ class _SidebarProfile extends ConsumerWidget {
   /// without truncation, narrow enough to still read as a floating panel.
   static const double _menuWidth = AppSizing.sidebarWidthExpanded - AppSpacing.xl;
 
-  /// Roughly the menu's rendered height (header + divider + three rows +
-  /// padding). Only used to lift it clear of the profile row — an overestimate
-  /// just means a slightly larger gap, so this errs high.
-  static const double _menuLift = 264;
+  /// Roughly the menu's rendered height — three 48dp rows plus its own 8dp
+  /// vertical padding. Only used to lift the menu clear of the profile row;
+  /// being a few pixels off just nudges the gap.
+  static const double _menuLift = 3 * AppSizing.minTapTarget + AppSpacing.lg;
 
   /// Opens the user menu — a steel panel [_menuWidth] wide, centred on the
   /// sidebar and floating just above the profile row, with a drop shadow.
-  Future<void> _open(BuildContext context, WidgetRef ref, Employee? user) async {
+  Future<void> _open(BuildContext context, WidgetRef ref) async {
     final box = context.findRenderObject() as RenderBox?;
     final overlay =
         Overlay.of(context).context.findRenderObject() as RenderBox?;
@@ -876,9 +876,9 @@ class _SidebarProfile extends ConsumerWidget {
 
     final topLeft = box.localToGlobal(Offset.zero, ancestor: overlay);
     final left = topLeft.dx + (box.size.width - _menuWidth) / 2;
-    // Anchor a zero-height box well above the row so the menu grows downward
-    // from there and its bottom lands a small gap above the row.
-    final anchorTop = (topLeft.dy - AppSpacing.sm - _menuLift)
+    // Anchor a zero-height box just above the row so the menu grows downward
+    // from there and its bottom lands a hair above the row.
+    final anchorTop = (topLeft.dy - AppSpacing.xs - _menuLift)
         .clamp(AppSpacing.sm, overlay.size.height);
     final anchor = Rect.fromLTWH(left, anchorTop, _menuWidth, 0);
 
@@ -894,34 +894,6 @@ class _SidebarProfile extends ConsumerWidget {
       shape: const RoundedRectangleBorder(borderRadius: AppRadius.mdAll),
       position: RelativeRect.fromRect(anchor, Offset.zero & overlay.size),
       items: [
-        if (user != null) ...[
-          PopupMenuItem<String>(
-            enabled: false,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  employeeDisplayName(user),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: AppColors.white,
-                  ),
-                ),
-                Text(
-                  user.email,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.neutral400,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const PopupMenuDivider(color: AppColors.steel700),
-        ],
         PopupMenuItem<String>(
           value: 'stores',
           child: _MenuRow(
@@ -968,7 +940,7 @@ class _SidebarProfile extends ConsumerWidget {
     return Tooltip(
       message: l10n.topBarAccount,
       child: InkWell(
-        onTap: () => _open(context, ref, user),
+        onTap: () => _open(context, ref),
         hoverColor: AppColors.steel700,
         child: Container(
           padding: EdgeInsets.symmetric(
