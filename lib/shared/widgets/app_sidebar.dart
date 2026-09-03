@@ -22,8 +22,8 @@ import 'employee_role_badge.dart';
 ///
 /// 280dp on a 10" tablet in landscape: wide enough that no French destination
 /// label is ever truncated (the rebuild brief). It carries, top to bottom, the
-/// logo with the search and notification shortcuts, the store selector, the
-/// navigation itself, and the signed-in user's menu.
+/// active store's icon and name with the notification shortcut, the navigation
+/// itself, and the signed-in user's menu.
 ///
 /// Below [AppBreakpoints.sidebarCollapse] it drops to an 88dp icon strip — a
 /// 7" tablet, a 10" in portrait, or a narrow landscape tablet. The Gestion
@@ -64,20 +64,15 @@ class _AppSidebarState extends ConsumerState<AppSidebar> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _SidebarHeader(storeId: _storeId, collapsed: collapsed),
+          _SidebarHeader(store: widget.store, collapsed: collapsed),
           const _SidebarDivider(),
-          Padding(
-            padding: EdgeInsets.symmetric(
-              horizontal: collapsed ? AppSpacing.sm : AppSpacing.md,
-              vertical: AppSpacing.md,
-            ),
-            child: _StoreSelector(store: widget.store, collapsed: collapsed),
-          ),
           Expanded(
             child: SingleChildScrollView(
-              padding: EdgeInsets.symmetric(
-                horizontal: collapsed ? AppSpacing.sm : AppSpacing.md,
-                vertical: AppSpacing.sm,
+              padding: EdgeInsets.fromLTRB(
+                collapsed ? AppSpacing.sm : AppSpacing.md,
+                AppSpacing.md,
+                collapsed ? AppSpacing.sm : AppSpacing.md,
+                AppSpacing.sm,
               ),
               child: _NavList(
                 storeId: _storeId,
@@ -111,37 +106,32 @@ class _SidebarDivider extends StatelessWidget {
 }
 
 // -----------------------------------------------------------------------------
-// Header — logo, and the search / notification shortcuts.
+// Header — the active store's icon and name, and the notification shortcut.
 // -----------------------------------------------------------------------------
 
 class _SidebarHeader extends ConsumerWidget {
-  const _SidebarHeader({required this.storeId, required this.collapsed});
+  const _SidebarHeader({required this.store, required this.collapsed});
 
-  final String storeId;
+  final Store store;
   final bool collapsed;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    final unread = ref.watch(unreadCountProvider(storeId)).value ?? 0;
+    final theme = Theme.of(context);
+    final unread = ref.watch(unreadCountProvider(store.id)).value ?? 0;
 
-    final logo = Icon(
-      LucideIcons.chefHat,
+    final storeIcon = Icon(
+      LucideIcons.store,
       color: AppColors.white,
       size: collapsed ? AppSizing.iconMd : AppSizing.iconLg,
-    );
-
-    final search = _HeaderIconButton(
-      icon: LucideIcons.search,
-      tooltip: l10n.actionSearch,
-      onPressed: () => context.pushScreen(Routes.toSearch(storeId)),
     );
 
     final notifications = _HeaderIconButton(
       icon: LucideIcons.bell,
       tooltip: l10n.topBarNotifications,
       badgeCount: unread,
-      onPressed: () => context.goSection(Routes.toNotifications(storeId)),
+      onPressed: () => context.goSection(Routes.toNotifications(store.id)),
     );
 
     if (collapsed) {
@@ -149,9 +139,8 @@ class _SidebarHeader extends ConsumerWidget {
         padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
         child: Column(
           children: [
-            logo,
+            Tooltip(message: store.name, child: storeIcon),
             const SizedBox(height: AppSpacing.sm),
-            search,
             notifications,
           ],
         ),
@@ -167,9 +156,19 @@ class _SidebarHeader extends ConsumerWidget {
       ),
       child: Row(
         children: [
-          logo,
-          const Spacer(),
-          search,
+          storeIcon,
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Text(
+              store.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.titleSmall?.copyWith(
+                color: AppColors.white,
+              ),
+            ),
+          ),
+          const SizedBox(width: AppSpacing.sm),
           notifications,
         ],
       ),
@@ -227,133 +226,6 @@ class _HeaderIconButton extends StatelessWidget {
             ),
           ),
       ],
-    );
-  }
-}
-
-// -----------------------------------------------------------------------------
-// Store selector.
-// -----------------------------------------------------------------------------
-
-/// The store selector, in the sidebar's steel chrome.
-///
-/// Only the owner spans stores, so only the owner gets a menu — a manager or
-/// staff member sees their store's name and nothing to tap.
-class _StoreSelector extends ConsumerWidget {
-  const _StoreSelector({required this.store, required this.collapsed});
-
-  final Store store;
-  final bool collapsed;
-
-  static const String _allStoresValue = '__all__';
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-    final employee = ref.watch(currentEmployeeProvider);
-    final canSwitch =
-        employee != null && can(employee.role, Capability.spanAllStores);
-
-    final face = Container(
-      height: AppSizing.minTapTarget,
-      padding: EdgeInsets.symmetric(
-        horizontal: collapsed ? 0 : AppSpacing.md,
-      ),
-      decoration: const BoxDecoration(
-        color: AppColors.steel700,
-        borderRadius: AppRadius.mdAll,
-      ),
-      child: Row(
-        mainAxisAlignment: collapsed
-            ? MainAxisAlignment.center
-            : MainAxisAlignment.start,
-        children: [
-          const Icon(
-            LucideIcons.store,
-            size: AppSizing.iconMd,
-            color: AppColors.neutral300,
-          ),
-          if (!collapsed) ...[
-            const SizedBox(width: AppSpacing.sm),
-            Expanded(
-              child: Text(
-                store.name,
-                style: theme.textTheme.titleSmall?.copyWith(
-                  color: AppColors.white,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            if (canSwitch)
-              const Icon(
-                LucideIcons.chevronsUpDown,
-                size: AppSizing.iconSm,
-                color: AppColors.neutral300,
-              ),
-          ],
-        ],
-      ),
-    );
-
-    if (!canSwitch) {
-      return collapsed ? Tooltip(message: store.name, child: face) : face;
-    }
-
-    final stores = ref.watch(storesProvider).value ?? [store];
-
-    return PopupMenuButton<String>(
-      tooltip: l10n.storeSwitcherChange,
-      position: PopupMenuPosition.under,
-      shape: const RoundedRectangleBorder(borderRadius: AppRadius.mdAll),
-      onSelected: (value) {
-        if (value == _allStoresValue) {
-          context.goSection(Routes.stores);
-        } else {
-          context.goSection(Routes.toDashboard(value));
-        }
-      },
-      itemBuilder: (context) => [
-        for (final s in stores)
-          PopupMenuItem<String>(
-            value: s.id,
-            child: Row(
-              children: [
-                Icon(
-                  s.id == store.id
-                      ? LucideIcons.circleCheck
-                      : LucideIcons.store,
-                  size: AppSizing.iconMd,
-                  color: s.id == store.id
-                      ? AppColors.primary600
-                      : AppColors.textSecondary,
-                ),
-                const SizedBox(width: AppSpacing.md),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(s.name, style: theme.textTheme.bodyLarge),
-                    Text(s.city, style: theme.textTheme.bodySmall),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        const PopupMenuDivider(),
-        PopupMenuItem<String>(
-          value: _allStoresValue,
-          child: Row(
-            children: [
-              const Icon(LucideIcons.layoutGrid, size: AppSizing.iconMd),
-              const SizedBox(width: AppSpacing.md),
-              Text(l10n.storeSwitcherChange),
-            ],
-          ),
-        ),
-      ],
-      child: collapsed ? Tooltip(message: store.name, child: face) : face,
     );
   }
 }

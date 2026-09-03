@@ -341,20 +341,19 @@ class _TitleRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final titleText = Text(title, style: theme.textTheme.headlineMedium);
-    final subtitleText = subtitle == null
-        ? null
-        : Padding(
-            padding: const EdgeInsets.only(top: AppSpacing.xs),
-            child: Text(subtitle!, style: theme.textTheme.bodyMedium),
-          );
+    final titleBlock = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(title, style: theme.textTheme.headlineMedium),
+        if (subtitle != null) ...[
+          const SizedBox(height: AppSpacing.xs),
+          Text(subtitle!, style: theme.textTheme.bodyMedium),
+        ],
+      ],
+    );
 
-    if (actions.isEmpty) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [titleText, ?subtitleText],
-      );
-    }
+    if (actions.isEmpty) return titleBlock;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -366,36 +365,34 @@ class _TitleRow extends StatelessWidget {
           children: actions,
         );
 
-        // Two long French action labels plus a title do not fit across a
-        // 1024dp tablet. Below this the actions take their own row rather than
-        // squeezing the title.
+        // Narrow tablet: the actions cannot share the title's line. They take
+        // their own row underneath.
         if (constraints.maxWidth < 820) {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Align(alignment: Alignment.centerLeft, child: titleText),
-              if (subtitleText != null)
-                Align(alignment: Alignment.centerLeft, child: subtitleText),
+              titleBlock,
               const SizedBox(height: AppSpacing.lg),
               actionRow,
             ],
           );
         }
 
-        // The actions sit on the title's line — vertically centred on it, hard
-        // against the right edge — and the description runs under both.
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        // Wide: the title takes the slack on the left, the actions keep their
+        // natural width and sit hard against the right edge — one row, however
+        // many there are (they only wrap if they somehow need more than 60% of
+        // the header). Vertically centred on the title.
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Expanded(flex: 3, child: titleText),
-                const SizedBox(width: AppSpacing.xl),
-                Flexible(flex: 2, child: actionRow),
-              ],
+            Expanded(child: titleBlock),
+            const SizedBox(width: AppSpacing.xl),
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: constraints.maxWidth * 0.6,
+              ),
+              child: actionRow,
             ),
-            ?subtitleText,
           ],
         );
       },
