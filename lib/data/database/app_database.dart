@@ -84,7 +84,7 @@ class AppDatabase extends _$AppDatabase {
   static const String databaseName = 'stock_inventory';
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -138,10 +138,44 @@ class AppDatabase extends _$AppDatabase {
         await m.addColumn(items, items.maxStock);
       }
 
-      // v3 → v4: `items.imagePath`, the product photo. Nullable with no
+      // v3 → v4: `attendances` gains the three columns that freeze the
+      // schedule / break allowance a day was judged against, so a later
+      // change to the store hours or an employee's schedule cannot rewrite a
+      // past day's retard / heures supp. / pause dépassée. Guarded `from >= 2`
+      // because the `from < 2` branch above already creates `attendances` at
+      // the current shape — a v1 → v4 upgrade must not then re-add these.
+      if (from >= 2 && from < 4) {
+        for (final column in [
+          attendances.scheduledStartMinutes,
+          attendances.scheduledEndMinutes,
+          attendances.maxBreakMinutes,
+        ]) {
+          await m.addColumn(attendances, column);
+        }
+        // Backfill each existing day with what it resolves to right now — the
+        // employee's own schedule if set, else the store's — so an upgrade
+        // freezes today's behaviour rather than changing it.
+        await customStatement('''
+          UPDATE attendances SET
+            scheduled_start_minutes = coalesce(
+              (SELECT e.scheduled_start_minutes FROM employees e
+                 WHERE e.id = attendances.employee_id),
+              (SELECT s.open_minutes FROM stores s
+                 WHERE s.id = attendances.store_id)),
+            scheduled_end_minutes = coalesce(
+              (SELECT e.scheduled_end_minutes FROM employees e
+                 WHERE e.id = attendances.employee_id),
+              (SELECT s.close_minutes FROM stores s
+                 WHERE s.id = attendances.store_id)),
+            max_break_minutes = (SELECT s.max_break_minutes FROM stores s
+                 WHERE s.id = attendances.store_id)
+        ''');
+      }
+
+      // v4 → v5: `items.imagePath`, the product photo. Nullable with no
       // default, so every existing article simply has no photo — which is
       // true, and needs no backfill.
-      if (from < 4) {
+      if (from < 5) {
         await m.addColumn(items, items.imagePath);
       }
     },

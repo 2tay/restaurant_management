@@ -50,6 +50,9 @@ class Attendance {
     this.clockInAt,
     this.clockOutAt,
     this.payrollPeriodId,
+    this.scheduledStartMinutes,
+    this.scheduledEndMinutes,
+    this.maxBreakMinutes,
   });
 
   final String id;
@@ -73,4 +76,18 @@ class Attendance {
   /// Set when a `PayrollPeriod` locks this day (Phase 5). While set, the day
   /// is immutable — `AttendanceMutations` refuses every write against it.
   final String? payrollPeriodId;
+
+  /// The schedule and break allowance this day is judged against, frozen when
+  /// the row was created so a later change to the store hours or this
+  /// employee's schedule never rewrites what "en retard" / "heures supp." /
+  /// "pause dépassée" meant for it. All in minutes since midnight, except
+  /// [maxBreakMinutes] which is a duration.
+  ///
+  /// Null on rows from before schema v3 that predate the backfill, and
+  /// whenever the writer could not resolve one — see
+  /// `evaluationContext` in `core/utils/attendance_status.dart`, which falls
+  /// back to the live resolved schedule.
+  final int? scheduledStartMinutes;
+  final int? scheduledEndMinutes;
+  final int? maxBreakMinutes;
 }

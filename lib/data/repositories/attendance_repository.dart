@@ -207,11 +207,18 @@ class AttendanceRepository {
 
     for (final entry in entries) {
       final schedule = schedules[entry.employeeId];
-      if (schedule == null) continue;
+      // Each day is judged against the context frozen on its row; the live
+      // resolved schedule is only the fallback for a pre-v3 row.
+      final ctx = evaluationContext(
+        entry,
+        fallbackStartMinutes: schedule?.startMinutes ?? settings.openMinutes,
+        fallbackEndMinutes: schedule?.endMinutes ?? settings.closeMinutes,
+        fallbackMaxBreakMinutes: settings.maxBreakMinutes,
+      );
       worked += workedDuration(entry) ?? Duration.zero;
-      overtime += overtimeBy(entry, schedule.endMinutes) ?? Duration.zero;
-      if (isLate(entry, schedule.startMinutes)) lateArrivals++;
-      if (hasLateBreak(entry, settings.maxBreakMinutes)) lateBreaks++;
+      overtime += overtimeBy(entry, ctx.endMinutes) ?? Duration.zero;
+      if (isLate(entry, ctx.startMinutes)) lateArrivals++;
+      if (hasLateBreak(entry, ctx.maxBreakMinutes)) lateBreaks++;
     }
 
     return (
@@ -245,6 +252,25 @@ class AttendanceRepository {
           .getSingleOrNull();
       if (existing != null) return null;
 
+      // Freeze the evaluation context now — the schedule and break allowance
+      // this day will be judged against — so a later change to the store hours
+      // or this employee's schedule never rewrites its retard / heures supp. /
+      // pause dépassée.
+      final settings = await StoreRepository(_db).settings(storeId);
+      final employeeRow = await (_db.select(
+        _db.employees,
+      )..where((e) => e.id.equals(employeeId))).getSingleOrNull();
+      final schedule = employeeRow == null
+          ? (
+              startMinutes: settings.openMinutes,
+              endMinutes: settings.closeMinutes,
+            )
+          : resolvedSchedule(
+              employeeFromRow(employeeRow),
+              storeOpenMinutes: settings.openMinutes,
+              storeCloseMinutes: settings.closeMinutes,
+            );
+
       final entry = Attendance(
         id: newId(),
         storeId: storeId,
@@ -254,6 +280,9 @@ class AttendanceRepository {
         clockInAt: at,
         pauses: const [],
         paymentStatus: PaymentStatus.unpaid,
+        scheduledStartMinutes: schedule.startMinutes,
+        scheduledEndMinutes: schedule.endMinutes,
+        maxBreakMinutes: settings.maxBreakMinutes,
       );
       await _db.into(_db.attendances).insert(attendanceToRow(entry));
       return entry;

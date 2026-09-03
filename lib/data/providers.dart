@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/models.dart';
 import 'database/app_database.dart';
+import 'employee_photo_store.dart';
 import 'repositories/repositories.dart';
 import 'view_models/view_models.dart';
 
@@ -97,6 +98,11 @@ final Provider<PayrollRepository> payrollRepositoryProvider =
     Provider<PayrollRepository>(
       (ref) => PayrollRepository(ref.watch(databaseProvider)),
     );
+
+/// Where a chosen employee photo file is copied and looked up. Holds no state;
+/// the default reaches the OS app-support directory, a test overrides it.
+final Provider<EmployeePhotoStore> employeePhotoStoreProvider =
+    Provider<EmployeePhotoStore>((ref) => EmployeePhotoStore());
 
 // =============================================================================
 // Screen-level queries

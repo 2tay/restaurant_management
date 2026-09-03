@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 
 import '../../core/utils/employee_status.dart';
+import '../../models/models.dart';
 import 'dataset/dataset.dart';
 import '../database/app_database.dart';
 import '../database/meta_keys.dart';
@@ -145,6 +146,14 @@ Future<void> seedDemoData(AppDatabase db, {DateTime? at}) async {
           date: Value(movedDay(attendance.clockInAt ?? attendance.date)),
           clockInAt: movedByDaysValue(attendance.clockInAt),
           clockOutAt: movedByDaysValue(attendance.clockOutAt),
+          // Freeze the evaluation context the same way `clockIn` does, so demo
+          // rows exercise the real path and a settings change in-session does
+          // not rewrite the seeded history.
+          scheduledStartMinutes: Value(_seedScheduledStart(attendance)),
+          scheduledEndMinutes: Value(_seedScheduledEnd(attendance)),
+          maxBreakMinutes: Value(
+            storeSettingsOrDefault(attendance.storeId).maxBreakMinutes,
+          ),
         ),
     ]);
     batch.insertAll(db.attendancePauses, [
@@ -185,6 +194,25 @@ Future<void> seedDemoData(AppDatabase db, {DateTime? at}) async {
       ),
     ]);
   });
+}
+
+/// The resolved start / end of day a seeded attendance row is judged against —
+/// the employee's own schedule if set, else the store's opening hours. Mirrors
+/// `resolvedSchedule` without importing the whole helper.
+int _seedScheduledStart(Attendance attendance) {
+  final employee = mockEmployees.firstWhere(
+    (e) => e.id == attendance.employeeId,
+  );
+  return employee.scheduledStartMinutes ??
+      storeSettingsOrDefault(attendance.storeId).openMinutes;
+}
+
+int _seedScheduledEnd(Attendance attendance) {
+  final employee = mockEmployees.firstWhere(
+    (e) => e.id == attendance.employeeId,
+  );
+  return employee.scheduledEndMinutes ??
+      storeSettingsOrDefault(attendance.storeId).closeMinutes;
 }
 
 /// Empties every table, in reverse foreign-key order.

@@ -60,8 +60,14 @@ abstract final class AppSizing {
   /// the single most-tapped control in the app.
   static const double stepperButton = 64;
 
-  static const double railWidthExpanded = 232;
-  static const double railWidthCollapsed = 88;
+  /// The navigation sidebar. Wide enough that no French destination label is
+  /// ever truncated (the rebuild brief), and it carries the store selector and
+  /// the user menu now that there is no top bar.
+  static const double sidebarWidthExpanded = 280;
+
+  /// Icons only — a 7" tablet, or a 10" held in portrait.
+  static const double sidebarWidthCollapsed = 88;
+
   static const double topBarHeight = 72;
 
   /// Data table rows. Material's 48dp default is too tight to scan quickly.
@@ -79,9 +85,14 @@ abstract final class AppSizing {
 /// functions that consume these land in `core/utils/responsive.dart` in
 /// Stage 3, alongside the navigation shell that first needs them.
 abstract final class AppBreakpoints {
-  /// Below this, the navigation rail collapses to icons only. Chosen for 7"
+  /// Below this, card grids drop from three columns to two. Chosen for 7"
   /// tablets and for portrait orientation on a 10".
   static const double railCollapse = 900;
+
+  /// Below this, the navigation sidebar collapses to an icon strip. Higher than
+  /// [railCollapse]: a 280dp sidebar on a sub-1100dp landscape tablet leaves
+  /// too little for this app's dense tables and forms.
+  static const double sidebarCollapse = 1100;
 
   /// Below this, master–detail splits collapse to full-page navigation.
   static const double splitView = 1100;

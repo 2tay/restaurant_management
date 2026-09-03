@@ -34,6 +34,42 @@ double hourlyRate(Employee employee, StoreSettings settings) {
 
 double _hours(Duration d) => d.inMinutes / 60;
 
+/// The end of day one [day] is measured against for overtime: the value frozen
+/// on its row, or — for a row from before schema v3 — the live resolved
+/// [scheduleEndMinutes]. Keeps a settings change from moving the overtime on a
+/// day already worked.
+int _endMinutesFor(Attendance day, int scheduleEndMinutes) =>
+    day.scheduledEndMinutes ?? scheduleEndMinutes;
+
+/// The pieces behind one finished day's amount, so a payslip detail view can
+/// show the arithmetic instead of re-deriving it: the hourly [rate] used, the
+/// [base] (every worked hour at that rate), the overtime [premium] (the extra
+/// on top of the overtime hours, above what [base] already pays them), and the
+/// [total] the two sum to. All zero for a day that is not `done`.
+typedef DayAmount = ({double rate, double base, double premium, double total});
+
+/// The [DayAmount] breakdown for one finished day. [dayAmount] is this,
+/// projected to its [DayAmount.total].
+DayAmount dayAmountBreakdown(
+  Attendance day,
+  Employee employee,
+  StoreSettings settings, {
+  required int scheduledEndMinutes,
+}) {
+  const zero = (rate: 0.0, base: 0.0, premium: 0.0, total: 0.0);
+  if (day.status != AttendanceStatus.done) return zero;
+
+  final worked = workedDuration(day);
+  if (worked == null) return zero;
+
+  final overtime = overtimeBy(day, scheduledEndMinutes) ?? Duration.zero;
+  final rate = hourlyRate(employee, settings);
+  final base = rate * _hours(worked);
+  final premium = (settings.overtimeMultiplier - 1) * rate * _hours(overtime);
+
+  return (rate: rate, base: base, premium: premium, total: base + premium);
+}
+
 /// What one finished day is worth: every worked hour at the normal rate, plus
 /// an extra premium on the overtime hours. Zero for a day that is not
 /// `done` — nothing to pay until the day is closed.
@@ -42,18 +78,12 @@ double dayAmount(
   Employee employee,
   StoreSettings settings, {
   required int scheduledEndMinutes,
-}) {
-  if (day.status != AttendanceStatus.done) return 0;
-
-  final worked = workedDuration(day);
-  if (worked == null) return 0;
-
-  final overtime = overtimeBy(day, scheduledEndMinutes) ?? Duration.zero;
-  final rate = hourlyRate(employee, settings);
-  final premium = (settings.overtimeMultiplier - 1) * rate * _hours(overtime);
-
-  return rate * _hours(worked) + premium;
-}
+}) => dayAmountBreakdown(
+  day,
+  employee,
+  settings,
+  scheduledEndMinutes: scheduledEndMinutes,
+).total;
 
 /// Totals over a set of finished days.
 ({int days, double workedHours, double overtimeHours}) periodTotals(
@@ -75,7 +105,9 @@ double dayAmount(
     if (day.status != AttendanceStatus.done) continue;
     count++;
     worked += workedDuration(day) ?? Duration.zero;
-    overtime += overtimeBy(day, schedule.endMinutes) ?? Duration.zero;
+    overtime +=
+        overtimeBy(day, _endMinutesFor(day, schedule.endMinutes)) ??
+        Duration.zero;
   }
 
   return (
@@ -103,7 +135,7 @@ double periodAmount(
       day,
       employee,
       settings,
-      scheduledEndMinutes: schedule.endMinutes,
+      scheduledEndMinutes: _endMinutesFor(day, schedule.endMinutes),
     );
   }
   return total;

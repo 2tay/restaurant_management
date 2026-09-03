@@ -173,6 +173,12 @@ void main() {
   });
 
   group('the sidebar tracks where the user is', () {
+    /// The label of the sidebar nav row currently highlighted.
+    String activeNav(WidgetTester tester) => tester
+        .widgetList<SidebarNavTile>(find.byType(SidebarNavTile))
+        .firstWhere((tile) => tile.active)
+        .label;
+
     testApp('highlights the section a nested screen belongs to', (
       tester,
     ) async {
@@ -180,11 +186,9 @@ void main() {
       unawaited(appRouter.push(Routes.toItem(_store, mockItems.first.id)));
       await tester.pumpAndSettle();
 
-      final rail = tester.widget<NavigationRail>(find.byType(NavigationRail));
-      // Inventaire is the second destination.
       expect(
-        rail.selectedIndex,
-        1,
+        activeNav(tester),
+        'Inventaire',
         reason: 'an item detail is still inside Inventaire',
       );
     });
@@ -200,9 +204,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final rail = tester.widget<NavigationRail>(find.byType(NavigationRail));
-      // Dashboard, Inventaire, Mouvements, Commandes, Fournisseurs.
-      expect(rail.selectedIndex, 4);
+      expect(activeNav(tester), 'Fournisseurs');
     });
 
     testApp('highlights Gestion Employée from a nested employee screen', (
@@ -214,10 +216,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final rail = tester.widget<NavigationRail>(find.byType(NavigationRail));
-      // Dashboard, Inventaire, Mouvements, Commandes, Fournisseurs, Catégories
-      // et unités, Alertes, Rapports, Gestion Employée.
-      expect(rail.selectedIndex, 8);
+      expect(activeNav(tester), 'Gestion Employée');
     });
   });
 

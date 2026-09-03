@@ -156,6 +156,70 @@ void main() {
     });
   });
 
+  group('derived anomalies', () {
+    List<AttendanceAnomaly> anomalies(Attendance a, {DateTime? now}) =>
+        attendanceAnomalies(
+          a,
+          startMinutes: 8 * 60,
+          maxBreakMinutes: 30,
+          now: now,
+        );
+
+    test('a clean finished day has none', () {
+      final clean = _finished(clockIn: const (8, 0), clockOut: const (17, 0));
+      expect(anomalies(clean), isEmpty);
+    });
+
+    test('overtime is never an anomaly', () {
+      final over = _finished(clockIn: const (8, 0), clockOut: const (20, 0));
+      expect(anomalies(over), isEmpty);
+    });
+
+    test('a late arrival is retard', () {
+      final late = _finished(clockIn: const (8, 40), clockOut: const (17, 0));
+      expect(anomalies(late), [AttendanceAnomaly.retard]);
+    });
+
+    test('a break past the allowance is pauseDepassee', () {
+      final longBreak = _withPauses([(const (12, 0), const (13, 0))]);
+      expect(anomalies(longBreak), contains(AttendanceAnomaly.pauseDepassee));
+    });
+
+    test('a past day still open is oubliDePointage', () {
+      final open = Attendance(
+        id: 't',
+        storeId: StoreIds.sablon,
+        employeeId: _fresh,
+        date: DateTime(2026, 1, 5),
+        status: AttendanceStatus.working,
+        clockInAt: DateTime(2026, 1, 5, 8),
+        pauses: const [],
+        paymentStatus: PaymentStatus.unpaid,
+      );
+      expect(
+        anomalies(open, now: DateTime(2026, 1, 7)),
+        contains(AttendanceAnomaly.oubliDePointage),
+      );
+    });
+
+    test('today\'s still-open day is not oubliDePointage', () {
+      final today = Attendance(
+        id: 't',
+        storeId: StoreIds.sablon,
+        employeeId: _fresh,
+        date: DateTime(2026, 1, 5),
+        status: AttendanceStatus.working,
+        clockInAt: DateTime(2026, 1, 5, 8),
+        pauses: const [],
+        paymentStatus: PaymentStatus.unpaid,
+      );
+      expect(
+        anomalies(today, now: DateTime(2026, 1, 5, 14)),
+        isNot(contains(AttendanceAnomaly.oubliDePointage)),
+      );
+    });
+  });
+
   group('the store log (Historique)', () {
     test('a from bound excludes an older day and keeps a recent one', () async {
       final since3 = await repo().page(
@@ -261,6 +325,86 @@ void main() {
       expect(stats.worked, greaterThan(Duration.zero));
       expect(stats.lateArrivals, greaterThanOrEqualTo(0));
       expect(stats.overtime, greaterThanOrEqualTo(Duration.zero));
+    });
+  });
+
+  group('the evaluation context is frozen at clock-in', () {
+    DateTime todayAt(int hour) => DateTime(
+          seedInstant.year,
+          seedInstant.month,
+          seedInstant.day,
+          hour,
+        );
+
+    test('clockIn stamps the resolved schedule and break allowance', () async {
+      final day = (await repo().clockIn(_fresh, StoreIds.sablon))!;
+      // Noah has no personal schedule → the store's 08:00–17:00, 45-min break.
+      expect(day.scheduledStartMinutes, 8 * 60);
+      expect(day.scheduledEndMinutes, 17 * 60);
+      expect(day.maxBreakMinutes, 45);
+    });
+
+    test('a later store-hours change does not rewrite a past day', () async {
+      final day = (await repo().clockIn(_fresh, StoreIds.sablon))!;
+      await repo().clockOut(day.id, now: todayAt(18));
+
+      final before = await repo().stats(
+        StoreIds.sablon,
+        from: seedInstant,
+        to: seedInstant,
+        employeeId: _fresh,
+      );
+      expect(before.overtime, const Duration(hours: 1));
+
+      await StoreRepository(db).updateStoreSettings(
+        StoreIds.sablon,
+        closeMinutes: 22 * 60,
+      );
+
+      final after = await repo().stats(
+        StoreIds.sablon,
+        from: seedInstant,
+        to: seedInstant,
+        employeeId: _fresh,
+      );
+      expect(
+        after.overtime,
+        const Duration(hours: 1),
+        reason: 'measured against the 17:00 close frozen on the row, not the '
+            'new 22:00 one',
+      );
+    });
+
+    test('a row with no frozen context falls back to the live schedule',
+        () async {
+      final day = (await repo().clockIn(_fresh, StoreIds.sablon))!;
+      await repo().clockOut(day.id, now: todayAt(18));
+
+      // A row from before schema v3, before the backfill ran.
+      await (db.update(db.attendances)..where((a) => a.id.equals(day.id))).write(
+        const AttendancesCompanion(
+          scheduledStartMinutes: Value(null),
+          scheduledEndMinutes: Value(null),
+          maxBreakMinutes: Value(null),
+        ),
+      );
+
+      await StoreRepository(db).updateStoreSettings(
+        StoreIds.sablon,
+        closeMinutes: 22 * 60,
+      );
+
+      final after = await repo().stats(
+        StoreIds.sablon,
+        from: seedInstant,
+        to: seedInstant,
+        employeeId: _fresh,
+      );
+      expect(
+        after.overtime,
+        Duration.zero,
+        reason: 'no snapshot → judged against the current 22:00 close',
+      );
     });
   });
 

@@ -85,6 +85,25 @@ Duration? workedDuration(Attendance entry) {
   endMinutes: employee.scheduledEndMinutes ?? storeCloseMinutes,
 );
 
+/// The schedule and break allowance one [entry] is judged against — `en
+/// retard`, `heures supp.` and `pause dépassée` all measure against this.
+///
+/// Prefers the values frozen on the row when it was created — so a later
+/// change to the store hours or this employee's schedule cannot rewrite a
+/// past day's figures. Falls back to the caller-supplied live values for a row
+/// from before schema v3, or one the writer could not stamp: pass them from
+/// `resolvedSchedule(employee, ...)` and the store's `maxBreakMinutes`.
+({int startMinutes, int endMinutes, int maxBreakMinutes}) evaluationContext(
+  Attendance entry, {
+  required int fallbackStartMinutes,
+  required int fallbackEndMinutes,
+  required int fallbackMaxBreakMinutes,
+}) => (
+  startMinutes: entry.scheduledStartMinutes ?? fallbackStartMinutes,
+  endMinutes: entry.scheduledEndMinutes ?? fallbackEndMinutes,
+  maxBreakMinutes: entry.maxBreakMinutes ?? fallbackMaxBreakMinutes,
+);
+
 int _minutesOfDay(DateTime at) => at.hour * 60 + at.minute;
 
 /// How late the arrival was against [scheduledStartMinutes], past the grace
@@ -112,4 +131,45 @@ Duration? overtimeBy(Attendance entry, int scheduledEndMinutes) {
   final overMinutes = _minutesOfDay(clockOut) - scheduledEndMinutes;
   final over = Duration(minutes: overMinutes);
   return over.isNegative ? Duration.zero : over;
+}
+
+/// A real attendance anomaly — something a manager should look at. **Never
+/// overtime**: working past the scheduled end is a payroll fact, not a problem.
+enum AttendanceAnomaly {
+  /// Clocked in late, past the grace window.
+  retard,
+
+  /// One break ran past the store's allowance.
+  pauseDepassee,
+
+  /// A day in the past is still open — clocked in and never clocked out.
+  oubliDePointage,
+}
+
+DateTime _dayOnly(DateTime v) => DateTime(v.year, v.month, v.day);
+
+/// The anomalies of one day, in display order. Purely derived from the existing
+/// rules ([isLate], [hasLateBreak], the clock timestamps) — no new state, no
+/// "absent" concept. Overtime is deliberately absent from the list.
+///
+/// [now] defaults to the wall clock; a test pins it. A day that is still today
+/// and legitimately open (someone is working) is not [oubliDePointage].
+List<AttendanceAnomaly> attendanceAnomalies(
+  Attendance entry, {
+  required int startMinutes,
+  required int maxBreakMinutes,
+  DateTime? now,
+}) {
+  final result = <AttendanceAnomaly>[];
+  if (isLate(entry, startMinutes)) result.add(AttendanceAnomaly.retard);
+  if (hasLateBreak(entry, maxBreakMinutes)) {
+    result.add(AttendanceAnomaly.pauseDepassee);
+  }
+  final today = _dayOnly(now ?? DateTime.now());
+  if (entry.clockInAt != null &&
+      entry.clockOutAt == null &&
+      _dayOnly(entry.date).isBefore(today)) {
+    result.add(AttendanceAnomaly.oubliDePointage);
+  }
+  return result;
 }

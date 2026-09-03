@@ -31,7 +31,8 @@ class TimeclockBoardPage extends ConsumerStatefulWidget {
 }
 
 class _TimeclockBoardPageState extends ConsumerState<TimeclockBoardPage> {
-  String _query = '';
+  /// Filters the board to one card when set. Cleared (null) shows everyone.
+  Employee? _selected;
 
   // `ref` is unsafe to touch inside `dispose()` — captured on every build
   // instead. Reading a notifier is cheap and does not trigger a rebuild.
@@ -106,32 +107,35 @@ class _TimeclockBoardPageState extends ConsumerState<TimeclockBoardPage> {
       );
     }
 
-    final query = _query.trim().toLowerCase();
-    final shown = query.isEmpty
-        ? all
-        : all
-              .where(
-                (e) =>
-                    employeeDisplayName(e).toLowerCase().contains(query) ||
-                    e.cin.toLowerCase().contains(query),
-              )
-              .toList();
+    // The selector still resolves against the live roster — an employee
+    // archived while their card was pinned falls back to the whole board.
+    final pinned = _selected == null
+        ? null
+        : all.where((e) => e.id == _selected!.id).firstOrNull;
+    final shown = pinned == null ? all : [pinned];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SearchField(
-          hint: l10n.employeesSearchHint,
-          initialValue: _query,
-          onChanged: (value) => setState(() => _query = value),
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 420),
+          child: EmployeeSelector(
+            employees: all,
+            value: pinned,
+            onChanged: (e) => setState(() => _selected = e),
+          ),
         ),
-        const SizedBox(height: AppSpacing.md),
-        if (shown.isEmpty)
-          ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: 320),
-            child: EmptyState.noResults(
-              l10n,
-              onClearFilters: () => setState(() => _query = ''),
+        const SizedBox(height: AppSpacing.lg),
+        if (pinned != null)
+          // One card pinned — a lone card in a four-up grid reads as an error.
+          SizedBox(
+            width: 360,
+            height: 372,
+            child: _EmployeeCard(
+              employee: pinned,
+              entry: board[pinned.id],
+              settings: settings,
+              storeId: widget.storeId,
             ),
           )
         else
@@ -142,7 +146,7 @@ class _TimeclockBoardPageState extends ConsumerState<TimeclockBoardPage> {
               crossAxisCount: context.gridColumns(max: 4),
               crossAxisSpacing: AppSpacing.lg,
               mainAxisSpacing: AppSpacing.lg,
-              mainAxisExtent: 320,
+              mainAxisExtent: 372,
             ),
             itemCount: shown.length,
             itemBuilder: (context, index) => _EmployeeCard(
@@ -256,38 +260,30 @@ class _EmployeeCard extends StatelessWidget {
 
     return AppCard(
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              EmployeeAvatar(employee: employee),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      employeeDisplayName(employee),
-                      style: theme.textTheme.titleSmall,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    Text(
-                      l10n.employeeCinLabel(employee.cin),
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+          EmployeeAvatar(employee: employee, size: 56),
           const SizedBox(height: AppSpacing.sm),
+          Text(
+            employeeDisplayName(employee),
+            style: theme.textTheme.titleSmall,
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          Text(
+            employeeRoleLabel(l10n, employee.role),
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: AppColors.textSecondary,
+            ),
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: AppSpacing.md),
           Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               AttendanceStatusBadge(status: status),
               if (lateBreak) ...[
@@ -303,13 +299,15 @@ class _EmployeeCard extends StatelessWidget {
               ],
             ],
           ),
-          const SizedBox(height: AppSpacing.sm),
-          if (entry != null)
+          if (entry != null) ...[
+            const SizedBox(height: AppSpacing.md),
             _TimestampLog(
               entry: entry!,
               maxBreakMinutes: settings.maxBreakMinutes,
             ),
+          ],
           const Spacer(),
+          const SizedBox(height: AppSpacing.md),
           _ActionArea(
             entry: entry,
             employee: employee,
@@ -345,7 +343,7 @@ class _TimestampLog extends StatelessWidget {
       add(entry.clockInAt!, l10n.timeclockLogArrival, AppColors.inStock.solid);
     }
     for (final pause in entry.pauses) {
-      add(pause.startAt, l10n.timeclockLogBreak, AppColors.lowStock.solid);
+      add(pause.startAt, l10n.timeclockLogBreak, AppColors.onBreak.solid);
       if (pause.endAt != null) {
         final over = breakOverrun(pause, maxBreakMinutes) > Duration.zero;
         add(
@@ -366,6 +364,7 @@ class _TimestampLog extends StatelessWidget {
     return Wrap(
       spacing: AppSpacing.sm,
       runSpacing: AppSpacing.xs,
+      alignment: WrapAlignment.center,
       children: chips,
     );
   }
@@ -424,11 +423,29 @@ class _ActionArea extends ConsumerWidget {
   final StoreSettings settings;
   final String storeId;
 
+  /// Every board action is attributed to a person, so each one asks for that
+  /// employee's CIN first — the dialog owns the wrong-attempt / lockout loop.
+  /// Only on a confirmed CIN does the pointage write run.
   Future<void> _run(
     BuildContext context,
+    WidgetRef ref,
+    String actionLabel,
     Future<Attendance?> Function() action,
     String Function(String name) message,
   ) async {
+    final l10n = AppLocalizations.of(context);
+    final ok = await IdentityPromptDialog.show(
+      context,
+      title: l10n.identityPromptTitle,
+      subtitle: l10n.identityPromptPointageSubtitle(
+        actionLabel,
+        employeeDisplayName(employee),
+      ),
+      verify: (cin) =>
+          ref.read(credentialRepositoryProvider).verifyCin(cin, employee.id),
+    );
+    if (!ok || !context.mounted) return;
+
     final result = await action();
     if (!context.mounted || result == null) return;
     AppSnackBar.success(context, message(employeeDisplayName(employee)));
@@ -444,9 +461,11 @@ class _ActionArea extends ConsumerWidget {
       return _BigButton(
         label: l10n.timeclockClockIn,
         icon: LucideIcons.circle,
-        color: AppColors.inStock.solid,
+        outlined: true,
         onPressed: () => _run(
           context,
+          ref,
+          l10n.timeclockClockIn,
           () => repo.clockIn(employee.id, storeId),
           l10n.timeclockClockInDone,
         ),
@@ -463,22 +482,28 @@ class _ActionArea extends ConsumerWidget {
             _BigButton(
               label: l10n.timeclockStartPause,
               icon: LucideIcons.pause,
-              color: AppColors.lowStock.solid,
+              color: AppColors.primary600,
               onPressed: () => _run(
                 context,
+                ref,
+                l10n.timeclockStartPause,
                 () => repo.startPause(current.id),
                 l10n.timeclockPauseStartDone,
               ),
             ),
             const SizedBox(height: AppSpacing.xs),
-            TextButton.icon(
+            _BigButton(
+              label: l10n.timeclockClockOut,
+              icon: LucideIcons.circleCheck,
+              color: AppColors.surfaceVariant,
+              foreground: AppColors.textPrimary,
               onPressed: () => _run(
                 context,
+                ref,
+                l10n.timeclockClockOut,
                 () => repo.clockOut(current.id),
                 l10n.timeclockClockOutDone,
               ),
-              icon: const Icon(LucideIcons.circleCheck, size: AppSizing.iconSm),
-              label: Text(l10n.timeclockClockOut),
             ),
           ],
         );
@@ -487,9 +512,11 @@ class _ActionArea extends ConsumerWidget {
         return _BigButton(
           label: l10n.timeclockEndPause,
           icon: LucideIcons.play,
-          color: AppColors.inStock.solid,
+          color: AppColors.primary600,
           onPressed: () => _run(
             context,
+            ref,
+            l10n.timeclockEndPause,
             () => repo.endPause(current.id),
             l10n.timeclockPauseEndDone,
           ),
@@ -505,31 +532,71 @@ class _ActionArea extends ConsumerWidget {
   }
 }
 
+/// A full-width pointage action. Three shapes:
+///
+/// - **filled** (default) — a coloured call to action. The board's one accent
+///   per card: `Pause` / `Reprendre` in the primary teal.
+/// - **neutral** (`color` = a surface tint, [foreground] set) — `Fin de
+///   journée`, and the disabled `Terminé` summary; the same grey the
+///   completed-work area uses.
+/// - **outlined** — `Pointer`: an action with no colour weight, so the first
+///   thing a not-yet-clocked-in card asks does not shout.
 class _BigButton extends StatelessWidget {
   const _BigButton({
     required this.label,
     required this.icon,
-    required this.color,
     required this.onPressed,
+    this.color,
+    this.foreground,
+    this.outlined = false,
   });
 
   final String label;
   final IconData icon;
-  final Color color;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
+
+  /// Fill colour when not [outlined]. Null → the neutral surface tint.
+  final Color? color;
+
+  /// Text / icon colour. Null → white on a fill, primary text otherwise.
+  final Color? foreground;
+
+  final bool outlined;
 
   @override
   Widget build(BuildContext context) {
+    final child = Text(label.toUpperCase());
+    final iconWidget = Icon(icon, size: AppSizing.iconSm);
+
+    if (outlined) {
+      return SizedBox(
+        width: double.infinity,
+        child: OutlinedButton.icon(
+          style: OutlinedButton.styleFrom(
+            foregroundColor: foreground ?? AppColors.textPrimary,
+            side: const BorderSide(color: AppColors.borderStrong),
+          ),
+          onPressed: onPressed,
+          icon: iconWidget,
+          label: child,
+        ),
+      );
+    }
+
+    final fill = color ?? AppColors.surfaceVariant;
+    final fg = foreground ?? (color == null ? AppColors.textSecondary : AppColors.white);
     return SizedBox(
       width: double.infinity,
       child: FilledButton.icon(
         style: FilledButton.styleFrom(
-          backgroundColor: color,
-          foregroundColor: AppColors.white,
+          backgroundColor: fill,
+          foregroundColor: fg,
+          disabledBackgroundColor: fill,
+          disabledForegroundColor: fg,
         ),
         onPressed: onPressed,
-        icon: Icon(icon, size: AppSizing.iconSm),
-        label: Text(label.toUpperCase()),
+        icon: iconWidget,
+        label: child,
       ),
     );
   }
@@ -561,7 +628,7 @@ class _DoneSummary extends StatelessWidget {
     final lateBreak = hasLateBreak(entry, settings.maxBreakMinutes);
 
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
       mainAxisSize: MainAxisSize.min,
       children: [
         if (worked != null)
@@ -575,6 +642,7 @@ class _DoneSummary extends StatelessWidget {
           const SizedBox(height: 2),
           Row(
             mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               if (late) ...[
                 Icon(
@@ -608,22 +676,15 @@ class _DoneSummary extends StatelessWidget {
             style: theme.textTheme.bodySmall?.copyWith(
               color: AppColors.lowStock.foreground,
             ),
+            textAlign: TextAlign.center,
           ),
         ],
         const SizedBox(height: AppSpacing.xs),
-        SizedBox(
-          width: double.infinity,
-          child: FilledButton.icon(
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.surfaceVariant,
-              foregroundColor: AppColors.textSecondary,
-              disabledBackgroundColor: AppColors.surfaceVariant,
-              disabledForegroundColor: AppColors.textSecondary,
-            ),
-            onPressed: null,
-            icon: const Icon(LucideIcons.circleCheck, size: AppSizing.iconSm),
-            label: Text(l10n.attendanceStatusDone.toUpperCase()),
-          ),
+        _BigButton(
+          label: l10n.attendanceStatusDone,
+          icon: LucideIcons.circleCheck,
+          color: AppColors.surfaceVariant,
+          onPressed: null,
         ),
       ],
     );

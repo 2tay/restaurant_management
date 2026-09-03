@@ -40,6 +40,9 @@ void main() {
     required (int, int) clockIn,
     required (int, int) clockOut,
     String? payrollPeriodId,
+    int? scheduledStartMinutes,
+    int? scheduledEndMinutes,
+    int? maxBreakMinutes,
   }) async {
     final d = daysAgo(n);
     final day = DateTime(d.year, d.month, d.day);
@@ -72,6 +75,9 @@ void main() {
                   ? PaymentStatus.unpaid
                   : PaymentStatus.paid,
               payrollPeriodId: payrollPeriodId,
+              scheduledStartMinutes: scheduledStartMinutes,
+              scheduledEndMinutes: scheduledEndMinutes,
+              maxBreakMinutes: maxBreakMinutes,
             ),
           ),
         );
@@ -189,6 +195,29 @@ void main() {
       expect(
         (await payroll.preview(EmployeeIds.julien, StoreIds.sablon)).days,
         isEmpty,
+      );
+    });
+
+    test('a later store-hours change does not move overtime already worked',
+        () async {
+      // Marc has no other payable days. A day that ran two hours past the
+      // 17:00 close it was worked under.
+      await seedDoneDay(3, employeeId: EmployeeIds.marc, clockIn: (8, 0),
+          clockOut: (19, 0), scheduledEndMinutes: 17 * 60);
+
+      final before = await payroll.preview(EmployeeIds.marc, StoreIds.sablon);
+      expect(before.overtimeHours, 2);
+
+      await StoreRepository(db).updateStoreSettings(
+        StoreIds.sablon,
+        closeMinutes: 22 * 60,
+      );
+
+      final after = await payroll.preview(EmployeeIds.marc, StoreIds.sablon);
+      expect(
+        after.overtimeHours,
+        2,
+        reason: 'measured against the end-of-day frozen on the row',
       );
     });
   });
@@ -455,6 +484,24 @@ void main() {
         pageSize: 500,
       );
       expect(data.worked, greaterThanOrEqualTo(const Duration(hours: 8)));
+    });
+  });
+
+  group('unpaidFinishedDayCount', () {
+    test('counts only finished, not-yet-locked days at the store', () async {
+      final base = await payroll.unpaidFinishedDayCount(StoreIds.sablon);
+
+      await seedDoneDay(3, employeeId: EmployeeIds.marc, clockIn: (8, 0),
+          clockOut: (17, 0));
+      expect(await payroll.unpaidFinishedDayCount(StoreIds.sablon), base + 1);
+
+      // A paid day does not count.
+      await seedDoneDay(4, employeeId: EmployeeIds.marc, clockIn: (8, 0),
+          clockOut: (17, 0), payrollPeriodId: PayrollPeriodIds.karimSeed);
+      expect(await payroll.unpaidFinishedDayCount(StoreIds.sablon), base + 1);
+
+      // Another store is unaffected.
+      expect(await payroll.unpaidFinishedDayCount(StoreIds.liege), 0);
     });
   });
 

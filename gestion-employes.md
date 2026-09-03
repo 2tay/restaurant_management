@@ -110,6 +110,9 @@ erDiagram
         datetime clockInAt "nullable"
         datetime clockOutAt "nullable"
         text     payrollPeriodId FK "RESTRICT, nullable — null = impayé"
+        int      scheduledStartMinutes "nullable — contexte figé au pointage (v3)"
+        int      scheduledEndMinutes "nullable — idem"
+        int      maxBreakMinutes "nullable — idem"
     }
 
     ATTENDANCE_PAUSES {
@@ -179,16 +182,35 @@ erDiagram
   sont recalculées à chaque fois à partir de `clockInAt` / `clockOutAt` / pauses.
   Une durée stockée serait une deuxième vérité qui dérive dès qu'un horodatage est
   corrigé.
+- **Le *contexte d'évaluation* d'une journée est figé, lui** (schéma v3).
+  `attendances` porte `scheduledStartMinutes`, `scheduledEndMinutes`,
+  `maxBreakMinutes` — l'horaire résolu (employé ?? magasin) et la tolérance de
+  pause **au moment du pointage**. Sans ça, changer les horaires du magasin ou
+  l'horaire d'un employé réécrivait rétroactivement le retard, les heures supp. et
+  les pauses dépassées de **toutes** les journées passées non payées : une journée
+  à l'heure devenait en retard, des heures supp. réelles disparaissaient. Les
+  durées restent dérivées ; c'est le *barème* contre lequel on les juge qui est
+  gelé. Colonnes `nullable` : une ligne d'avant la v3 (avant le backfill de
+  migration) ou que l'écrivain n'a pas pu horodater retombe sur les réglages
+  courants — `evaluationContext` (`core/utils/attendance_status.dart`).
+  Les coefficients de paie (`overtimeMultiplier`, `workingDaysPerMonth`) ne sont
+  **pas** figés sur la journée : ils n'entrent en jeu qu'au paiement, où `pay()`
+  fige déjà `computedAmount`. L'écran Réglages avertit avant d'enregistrer un
+  changement d'horaires/coefficients tant qu'il reste des journées terminées non
+  payées (`PayrollRepository.unpaidFinishedDayCount`).
 - **Les heures « de la journée » sont des `int` (minutes depuis minuit).**
   `scheduledStartMinutes`, `openMinutes`… Un `DateTime` mentirait — ce sont des
   heures d'horloge, pas des instants.
 - **Ids en UUID v4** (`new_id.dart`) pour les enregistrements créés par l'app ;
   les enregistrements de démo gardent leurs slugs lisibles (`employee-marc`,
   `att-karim-1`, `payroll-seed-karim`).
-- **`schemaVersion = 2`.** Les tables et colonnes arrivent par une vraie
-  migration `onUpgrade` v1 → v2 (`app_database.dart:99`), pas par une édition de
-  v1 : le schéma v1 est déjà livré. Snapshots dans
-  `lib/data/database/migrations/drift_schema_v{1,2}.json`.
+- **`schemaVersion = 3`.** v1 → v2 : le module Gestion Employée rejoint la base.
+  v2 → v3 : les 3 colonnes de contexte d'évaluation sur `attendances`, ajoutées
+  par `onUpgrade` (`addColumn` + un `UPDATE` de backfill qui gèle sur chaque
+  ligne existante ce qu'elle résout au moment de la mise à niveau). Tout arrive
+  par migration, jamais par édition d'un schéma déjà livré. Snapshots dans
+  `lib/data/database/migrations/drift_schema_v{1,2,3}.json` ; tests dans
+  `migration_test.dart` (v1→v3, v2→v3, et le backfill vérifié ligne par ligne).
 
 ---
 
@@ -204,7 +226,7 @@ erDiagram
 | `cin` | TEXT | non | Numéro de carte d'identité nationale. **Identifiant de connexion** (Phase 6) et **unique au niveau du compte**. Comparé normalisé (trim + minuscules, sans repli d'accents) : `" 78.02.14-153.24 "` résout quand même. |
 | `phone` | TEXT | non | Téléphone. |
 | `email` | TEXT | non | **Unique au niveau du compte.** |
-| `photoAsset` | TEXT | oui | Chemin d'asset photo. Mocké (pas de sélecteur derrière) comme `stores.imageAsset` ; `null` → tuile d'initiales. |
+| `photoAsset` | TEXT | oui | Photo de l'employé. `null` → tuile d'initiales. Le formulaire ouvre le sélecteur de fichiers de l'OS (`file_picker`) ; l'image choisie est **copiée** dans `<support>/employee_photos/<id>-<µs>.<ext>` par `EmployeePhotoStore` et c'est ce chemin absolu qui est stocké. `employeePhotoImage()` (`employee_avatar.dart`) distingue un chemin de fichier d'un chemin d'asset ; un fichier disparu retombe sur les initiales. |
 | `hireDate` | DATETIME | non | Date d'embauche. **Plancher de paie** : aucune journée antérieure à cette date n'est jamais payable, quoi que dise le filtre de période. |
 | `role` | TEXT (enum) | non | `owner` \| `manager` \| `staff`. Voir §permissions. |
 | `contractType` | TEXT (enum) | non | `fixed` (salarié, `pay` mensuel) \| `extra` (`pay` horaire). Décide comment `pay` est lu. |
@@ -237,6 +259,9 @@ erDiagram
 | `clockInAt` | DATETIME | oui | Instant de pointage d'entrée. |
 | `clockOutAt` | DATETIME | oui | Instant de `Fin de journée`. `null` tant que la journée n'est pas terminée. |
 | `payrollPeriodId` | TEXT | oui | FK → `payroll_periods.id`, **RESTRICT**. `null` = journée impayée. Posé quand une période de paie verrouille la journée ; tant qu'il est posé la ligne est **immuable** (toute écriture de pointage la refuse) et le modèle lit `paymentStatus = paid`. |
+| `scheduledStartMinutes` | INTEGER | oui | Minutes depuis minuit. Heure de début résolue (`employee.scheduledStartMinutes ?? store.openMinutes`) **gelée au `clockIn`**. C'est contre elle que `isLate` / `lateBy` mesurent, plus jamais contre les réglages courants. `null` → repli sur l'horaire résolu vivant (`evaluationContext`). |
+| `scheduledEndMinutes` | INTEGER | oui | Idem pour la fin de journée — base de `overtimeBy` et du calcul du montant. |
+| `maxBreakMinutes` | INTEGER | oui | Tolérance de pause du magasin gelée au `clockIn` — base de `breakOverrun` / `hasLateBreak`. |
 
 ### Table `attendance_pauses` (`attendance.dart:64`)
 
@@ -336,8 +361,8 @@ l'enregistrement.
 |---|---|---|---|
 | **Modèles** | `lib/models/employee.dart`, `attendance.dart`, `employee_credential.dart`, `payroll_period.dart`, `store_settings.dart` | Classes Dart **immuables**, sans logique, sans annotation drift. | drift génère ses propres `*Row` ; les mappers convertent. Un modèle est « données pures » que le stockage persiste sans y toucher. |
 | **Fonctions pures** | `lib/core/utils/` | Toute l'arithmétique métier : `workedDuration`, `overtimeBy`, `isLate`, `hourlyRate`, `dayAmount`, `periodTotals`, `pinMatches`, `isLocked`, `can`, `canAccessStore`. | Opèrent sur des objets déjà chargés. **Ne deviennent jamais des appels repository.** Une seule définition de chaque règle. |
-| **Tables** | `lib/data/database/tables/` | Définitions drift (`@DataClassName`, `@TableIndex`, `references(... onDelete:)`). | Times en `int`, aucune durée stockée, `paymentStatus` non colonne. |
-| **Base** | `lib/data/database/app_database.dart` | `@DriftDatabase`, `schemaVersion = 2`, `MigrationStrategy` (`onCreate` / `onUpgrade` v1→v2 / `beforeOpen` PRAGMA). | `AppDatabase()` = fichier ; `AppDatabase.memory()` = tests. |
+| **Tables** | `lib/data/database/tables/` | Définitions drift (`@DataClassName`, `@TableIndex`, `references(... onDelete:)`). | Times en `int`, aucune durée stockée, `paymentStatus` non colonne, contexte d'évaluation figé sur `attendances`. |
+| **Base** | `lib/data/database/app_database.dart` | `@DriftDatabase`, `schemaVersion = 3`, `MigrationStrategy` (`onCreate` / `onUpgrade` v1→v2 puis v2→v3 / `beforeOpen` PRAGMA). | `AppDatabase()` = fichier ; `AppDatabase.memory()` = tests. |
 | **Mappers** | `lib/data/mappers/` | `xFromRow(Row) → Model` et `xToRow(Model) → Companion`, un fichier par agrégat. `attendanceFromRows(row, pauseRows)` reconstruit la liste de pauses triée par `position`. | Purs. Autorisés à écrire un `Companion` (c'est là qu'un enregistrement devient une ligne). |
 | **Repositories** | `lib/data/repositories/` | **Le seul endroit qui écrit.** Lectures (`Stream<List<T>>` via `.watch()`, `Future<T?>` pour les formulaires), écritures transactionnelles, validations, refus des états incorrects, horloge injectable pour le pointage. | Discipline *un seul écrivain par table*, imposée mécaniquement par `tool/ux_audit.py` (`SINGLE_WRITER_COMPANIONS`). |
 | **Providers** | `lib/data/providers.dart`, `lib/data/current_employee.dart` | `Provider<XRepository>` (un par repo), `sessionRepositoryProvider`, `currentEmployeeProvider` (`Notifier<Employee?>`). | `databaseProvider` n'a pas de défaut : `main()` l'override avec le fichier, chaque test avec `AppDatabase.memory()`. |
@@ -504,6 +529,13 @@ une transaction ; **`archivedAt` n'est PAS un paramètre** — l'archivage est s
 propre transition (`archive` / `restore`, `:257`), qui refuse le no-op (archiver
 un archivé, restaurer un actif). Aucun hard delete.
 
+**Photo.** Le formulaire garde en état la source fraîchement choisie
+(`_pickedPhotoPath`) et un drapeau `_photoCleared` ; rien n'est écrit avant le
+submit. Une fois l'`id` connu (après `create` / `update`), `EmployeePhotoStore`
+copie le fichier dans le dossier de l'app et `EmployeeRepository.update` écrit le
+chemin sur la ligne — une écriture séparée des détails, comme le PIN. Une
+suppression appelle `deleteFor(id)` puis `update(clearPhoto: true)`.
+
 **Premier pointage.** L'employé apparaît dans le kiosque
 (`timeclock_board_page.dart`, `watchActiveEmployees`). Un `owner`/`manager` tape
 `Pointer` sur sa carte :
@@ -517,6 +549,9 @@ clockIn:
   day = DateTime(at.year, at.month, at.day)     # minuit
   _db.transaction:
     - une ligne existe déjà pour (employeeId, day) ? ⇒ null   (+ index unique en filet)
+    - résout le contexte d'évaluation MAINTENANT :
+        settings = StoreRepository.settings(storeId)
+        schedule = resolvedSchedule(employee, settings.open, settings.close)
     - INSERT attendances :
         id = newId()
         date = day
@@ -524,6 +559,9 @@ clockIn:
         clockInAt = at
         pauses = []            (aucune ligne attendance_pauses)
         payrollPeriodId = null → paymentStatus dérivé = unpaid
+        scheduledStartMinutes = schedule.startMinutes   ← gelé
+        scheduledEndMinutes   = schedule.endMinutes     ← gelé
+        maxBreakMinutes       = settings.maxBreakMinutes ← gelé
     - retourne l'Attendance
 ```
 
@@ -546,6 +584,31 @@ ligne = `notClockedIn` (jamais stocké).
 
 - **Pas de limite de pauses** : le bouton propose `Pause` de nouveau après chaque
   `Reprendre`.
+- **CIN à chaque action.** Chaque bouton du kiosque (`Pointer`, `Pause`,
+  `Reprendre`, `Fin de journée`) ouvre d'abord `IdentityPromptDialog`, qui
+  demande le **numéro CIN** (identifiant unique) de l'employé de la carte et le
+  vérifie via `CredentialRepository.verifyCin(cin, employee.id)`. **Pas de
+  PIN** ici : la demande client est une confirmation par CIN. L'écriture de
+  pointage ne part que sur un CIN confirmé. `verifyCin` est **strict** — le CIN
+  saisi doit résoudre exactement à l'employé de la carte ; tout autre CIN,
+  valide ou non, compte comme faux. Il rejoue la machine à états de
+  `authenticate` (3 essais → `lockedUntil = now + 5 min`, verrou porté sur la
+  ligne `employee_credentials` de l'employé attendu) et **repart sur 3 essais**
+  dès qu'un verrou est expiré. Aucun contournement owner/gérant : un employé
+  verrouillé attend les 5 min. La vérification est côté UI (cohérent avec « auth
+  reste fake ») — les writes de `attendance_repository.dart` gardent leur unique
+  écrivain. La carte du kiosque **n'affiche plus le CIN** (elle montre le rôle à
+  la place) : sur un écran partagé près de la porte, il ne doit pas se lire par
+  dessus l'épaule. Le CIN reste visible sur les écrans admin (liste employés,
+  historique) qui sont derrière la connexion.
+- **Cartes centrées + sélecteur.** Refonte UI : chaque carte est centrée
+  (avatar, nom, rôle, statut), les actions collées en bas ; `Pointer` est un
+  bouton **outline neutre** (pas d'accent), `Pause` / `Reprendre` portent le
+  **teal primary** (une action par carte), `Fin de journée` et `Terminé` le
+  fond neutre. Le champ de recherche est remplacé par `EmployeeSelector`
+  (`shared/widgets/employee_selector.dart`) : combobox nom/CIN partagé avec les
+  deux historiques ; sur le kiosque `showCin: false`. Le statut « en pause »
+  passe de l'ambre au teal (`AppColors.onBreak`).
 - **Journée verrouillée = immuable.** Le helper privé `_mutate`
   (`attendance_repository.dart:337`) ouvre la transaction, lit la ligne, et refuse
   (`null`) si elle est absente **ou** si `payrollPeriodId != null`. `startPause` /
@@ -562,7 +625,11 @@ ligne = `notClockedIn` (jamais stocké).
 
 #### Dérivations (`lib/core/utils/attendance_status.dart` — pures, non stockées)
 
-Toutes recalculées à partir des horodatages :
+Toutes recalculées à partir des horodatages. Le **barème** (heures de début/fin,
+tolérance de pause) vient de `evaluationContext(entry, fallback…)` : les colonnes
+gelées de la ligne, ou l'horaire résolu vivant si elles sont `null` (ligne
+d'avant la v3). `stats()`, l'historique et l'aperçu de paie passent tous par là —
+un changement de réglages ne bouge plus une journée déjà pointée.
 
 | Fonction | Règle |
 |---|---|
@@ -600,8 +667,11 @@ seule définition.
 
 **Écran (cible) :** `lib/features/employees/presentation/pages/payroll_history_page.dart`
 — `watchDays(...)` pour le tableau, puis le flux « Payer » :
-`preview` (future) → `ConfirmDialog` → `pay` → snackbar. `paidByEmployeeId` =
-l'id de `currentEmployeeProvider`.
+`preview` (future) → `ConfirmDialog` → **`IdentityPromptDialog`** → `pay` →
+snackbar. `paidByEmployeeId` = l'id de `currentEmployeeProvider` ; c'est ce
+CIN-là que `IdentityPromptDialog` vérifie (`verifyCin(cin, actorId)`, même
+verrou 3 essais / 5 min que le kiosque) — le règlement ne part que sur CIN
+confirmé, et le CIN doit être celui de l'utilisateur connecté.
 
 **Arithmétique** — `lib/core/utils/payroll_math.dart` (pure, inchangée) :
 
@@ -712,6 +782,13 @@ maxBreakMinutes, overtimeMultiplier, workingDaysPerMonth})` —
   (`setStalePartialOrderDays`), qui *refuse* un nombre non positif.
 - `settings(storeId)` synthétise un enregistrement par défaut (constantes
   `core/utils/`) si la ligne n'existe pas.
+- **Avertissement rétroactivité.** Avant d'enregistrer un changement d'horaires
+  ou de coefficients, `store_settings_page._save` appelle
+  `PayrollRepository.unpaidFinishedDayCount(storeId)` ; s'il reste des journées
+  terminées non payées, un `ConfirmDialog` prévient que leur retard / heures
+  supp. / montant estimé vont changer (l'horaire figé les protège déjà pour le
+  retard et les heures supp. ; les coefficients, eux, ne sont figés qu'au
+  paiement). L'utilisateur peut « Changer quand même » ou aller payer d'abord.
 
 ---
 
@@ -785,15 +862,18 @@ des secrets.
 |---|---|
 | Schéma, migration v1→v2, `PRAGMA foreign_keys` | `lib/data/database/app_database.dart` |
 | Définitions de tables | `lib/data/database/tables/{employees,attendance,payroll,stores}.dart` |
-| Snapshots de schéma | `lib/data/database/migrations/drift_schema_v{1,2}.json` |
+| Snapshots de schéma | `lib/data/database/migrations/drift_schema_v{1,2,3}.json` |
 | Modèles | `lib/models/{employee,attendance,employee_credential,payroll_period,store_settings}.dart` |
 | Règles pures | `lib/core/utils/{employee_status,attendance_status,payroll_math,credential_status,permissions}.dart` |
 | Mappers | `lib/data/mappers/{employee,credential,attendance,payroll,store}_mapper.dart` |
 | Repositories | `lib/data/repositories/{employee,credential,attendance,payroll,session,store}_repository.dart` |
+| Photo employé (fichiers) | `lib/data/employee_photo_store.dart`, `employeePhotoImage()` dans `lib/shared/widgets/employee_avatar.dart` |
+| Dialog CIN (kiosque + paie) | `lib/shared/widgets/identity_prompt_dialog.dart` ; `CredentialRepository.verifyCin` |
+| Sélecteur d'employé (combobox) | `lib/shared/widgets/employee_selector.dart` — kiosque + historiques |
 | Session (Notifier) | `lib/data/current_employee.dart` |
 | Providers | `lib/data/providers.dart` |
 | Seed de démo | `lib/data/seed/demo_seed.dart` |
 | Garde `unique writer` | `tool/ux_audit.py` (`SINGLE_WRITER_COMPANIONS`) |
-| Tests | `test/db/{schema,migration,employee_seed,employee_queries,employees,auth,attendance,payroll,store_settings}_test.dart` |
+| Tests | `test/db/{schema,migration,employee_seed,employee_queries,employees,auth,attendance,payroll,store_settings}_test.dart`, `test/employee_photo_store_test.dart`, `test/components_test.dart` (IdentityPromptDialog), `test/payroll_history_page_test.dart` |
 | Écrans (cible Stage 9) | `lib/features/employees/presentation/pages/`, `lib/features/auth/presentation/pages/login_page.dart`, `lib/features/settings/presentation/pages/store_settings_page.dart`, `lib/app/router.dart` (`_guard`) |
 | Plan de migration + journaux « As built » | `phase2-employee.md` |

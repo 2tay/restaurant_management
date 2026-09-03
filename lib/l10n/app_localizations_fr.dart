@@ -78,6 +78,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get actionClose => 'Fermer';
 
   @override
+  String get actionClear => 'Effacer';
+
+  @override
   String get actionConfirm => 'Confirmer';
 
   @override
@@ -112,6 +115,9 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get topBarAccount => 'Mon compte';
+
+  @override
+  String get sidebarMyStores => 'Mes établissements';
 
   @override
   String get actionLogout => 'Se déconnecter';
@@ -2345,6 +2351,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get employeesSearchHint => 'Rechercher (nom, CIN)';
 
   @override
+  String get employeeSelectorHint => 'Rechercher ou sélectionner un employé…';
+
+  @override
   String get employeesShowArchived => 'Afficher les personnels retirés';
 
   @override
@@ -2386,8 +2395,14 @@ class AppLocalizationsFr extends AppLocalizations {
   String get employeeFormPhotoAction => 'Choisir une photo';
 
   @override
-  String get employeeFormPhotoMockNotice =>
-      'Le choix de photo n\'est pas encore disponible dans cette version.';
+  String get employeeFormPhotoReplace => 'Remplacer la photo';
+
+  @override
+  String get employeeFormPhotoRemove => 'Supprimer';
+
+  @override
+  String get employeeFormPhotoReadError =>
+      'Impossible de lire ce fichier image.';
 
   @override
   String get employeeFormFirstName => 'Prénom';
@@ -2511,6 +2526,23 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get attendanceBreakOverrun => 'Pause dépassée';
+
+  @override
+  String get attendanceAnomalyMissingPunch => 'Oubli de pointage';
+
+  @override
+  String attendanceAnomalyRetardDetail(String duration) {
+    return 'Retard de $duration';
+  }
+
+  @override
+  String attendanceAnomalyBreakDetail(String duration) {
+    return 'Pause dépassée de $duration';
+  }
+
+  @override
+  String get attendanceAnomalyMissingPunchDetail =>
+      'Journée non clôturée — la sortie n\'a jamais été pointée.';
 
   @override
   String get timeclockBoardTitle => 'Tableau de pointage';
@@ -2716,6 +2748,37 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String get attendanceColumnSchedule => 'Horaires';
+
+  @override
+  String get attendanceFilterReset => 'Réinitialiser';
+
+  @override
+  String attendanceBreakSummary(int count, String duration) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count pauses · $duration',
+      one: '1 pause · $duration',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get attendanceDetailBreakTotal => 'Total pauses';
+
+  @override
+  String get attendanceDetailWorkTime => 'Temps de travail';
+
+  @override
+  String attendanceDetailOvertimeInfo(String duration) {
+    return '$duration (informatif)';
+  }
+
+  @override
+  String get attendanceDetailTimeline => 'Chronologie';
+
+  @override
   String get storeSettingsPayroll => 'Paie';
 
   @override
@@ -2838,6 +2901,58 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get payrollPaid => 'Paiement enregistré';
+
+  @override
+  String get payrollColumnHours => 'Horaires';
+
+  @override
+  String get payrollColumnDetail => 'Détail';
+
+  @override
+  String payrollBreakSummary(int count, String duration) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count pauses · $duration',
+      one: '1 pause · $duration',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get payrollFilterReset => 'Réinitialiser';
+
+  @override
+  String get payrollViewDetail => 'Voir le détail';
+
+  @override
+  String get payrollDetailTitle => 'Détail du paiement';
+
+  @override
+  String get payrollDetailBreakTotal => 'Total pauses';
+
+  @override
+  String get payrollDetailWorkSection => 'Temps de travail';
+
+  @override
+  String get payrollDetailWorked => 'Temps travaillé';
+
+  @override
+  String payrollDetailOvertimeInfo(String duration) {
+    return '$duration (informatif)';
+  }
+
+  @override
+  String get payrollDetailRate => 'Taux horaire';
+
+  @override
+  String get payrollDetailBase => 'Montant de base';
+
+  @override
+  String get payrollDetailPremium => 'Prime heures sup.';
+
+  @override
+  String get payrollDetailTotal => 'Total';
 
   @override
   String get paymentStatusPaid => 'Payé';
@@ -3049,5 +3164,63 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String receiptDocFooter(String date) {
     return 'Document généré le $date — ne constitue pas une facture.';
+  }
+
+  @override
+  String get storeSettingsRetroWarningTitle =>
+      'Des journées ne sont pas encore payées';
+
+  @override
+  String storeSettingsRetroWarningBody(int days) {
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other: '$days journées terminées n\'\'ont pas encore été payées',
+      one: '1 journée terminée n\'\'a pas encore été payée',
+    );
+    return '$_temp0. Changer les horaires ou les coefficients modifiera le retard, les heures supplémentaires et le montant estimé de ces journées. Payez-les d\'\'abord pour figer leurs chiffres.';
+  }
+
+  @override
+  String get storeSettingsRetroWarningConfirm => 'Changer quand même';
+
+  @override
+  String get identityPromptTitle => 'Confirmation d\'identité';
+
+  @override
+  String get identityPromptField => 'Numéro CIN';
+
+  @override
+  String get identityPromptValidate => 'Valider';
+
+  @override
+  String identityPromptWrong(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count tentatives restantes.',
+      one: '1 tentative restante.',
+      zero: 'Verrouillé.',
+    );
+    return 'Numéro incorrect. $_temp0';
+  }
+
+  @override
+  String identityPromptLocked(String time) {
+    return 'Trop de tentatives. Réessayez dans $time.';
+  }
+
+  @override
+  String get identityPromptNoCredential =>
+      'Aucun identifiant n\'est configuré pour cette personne.';
+
+  @override
+  String identityPromptPointageSubtitle(String action, String name) {
+    return '$action · saisissez le numéro CIN de $name';
+  }
+
+  @override
+  String identityPromptPayrollSubtitle(String name) {
+    return 'Saisissez votre numéro CIN pour valider le paiement de $name';
   }
 }

@@ -451,6 +451,14 @@ class Items extends Table with TableInfo {
     requiredDuringInsert: false,
     $customConstraints: 'NULL',
   );
+  late final GeneratedColumn<String> imagePath = GeneratedColumn<String>(
+    'image_path',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: 'NULL',
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -466,6 +474,7 @@ class Items extends Table with TableInfo {
     defaultSupplierId,
     barcode,
     note,
+    imagePath,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -2141,8 +2150,8 @@ class AttendancePauses extends Table with TableInfo {
   bool get dontWriteConstraints => true;
 }
 
-class DatabaseAtV4 extends GeneratedDatabase {
-  DatabaseAtV4(QueryExecutor e) : super(e);
+class DatabaseAtV5 extends GeneratedDatabase {
+  DatabaseAtV5(QueryExecutor e) : super(e);
   late final Stores stores = Stores(this);
   late final Meta meta = Meta(this);
   late final Categories categories = Categories(this);
@@ -2497,7 +2506,7 @@ class DatabaseAtV4 extends GeneratedDatabase {
     ),
   ]);
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
   @override
   DriftDatabaseOptions get options =>
       const DriftDatabaseOptions(storeDateTimeAsText: true);

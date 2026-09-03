@@ -232,6 +232,12 @@ abstract class AppLocalizations {
   /// **'Fermer'**
   String get actionClose;
 
+  /// Clears a selection, e.g. the chosen employee in a selector.
+  ///
+  /// In fr, this message translates to:
+  /// **'Effacer'**
+  String get actionClear;
+
   /// Generic confirm button in a non-destructive dialog.
   ///
   /// In fr, this message translates to:
@@ -298,11 +304,17 @@ abstract class AppLocalizations {
   /// **'Notifications'**
   String get topBarNotifications;
 
-  /// Tooltip on the top bar avatar.
+  /// Tooltip on the sidebar user menu.
   ///
   /// In fr, this message translates to:
   /// **'Mon compte'**
   String get topBarAccount;
+
+  /// Sidebar user menu — opens the establishments list / selector.
+  ///
+  /// In fr, this message translates to:
+  /// **'Mes établissements'**
+  String get sidebarMyStores;
 
   /// Account menu entry returning to the login screen.
   ///
@@ -2422,7 +2434,7 @@ abstract class AppLocalizations {
   /// **'Pour la démonstration : affiche la bannière hors ligne dans toute l\'application.'**
   String get syncDemoToggleBody;
 
-  /// No description provided for @syncLocalOnlyNote.
+  /// Honest note that sync between devices is not implemented yet.
   ///
   /// In fr, this message translates to:
   /// **'Les données sont enregistrées sur cet appareil. La synchronisation entre appareils sera ajoutée en phase 3.'**
@@ -3856,6 +3868,12 @@ abstract class AppLocalizations {
   /// **'Rechercher (nom, CIN)'**
   String get employeesSearchHint;
 
+  /// Placeholder shown in the closed EmployeeSelector combobox when nothing is picked.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rechercher ou sélectionner un employé…'**
+  String get employeeSelectorHint;
+
   /// Toggle on the roster. Off by default, matching items and suppliers defaulting to what is currently usable.
   ///
   /// In fr, this message translates to:
@@ -3922,17 +3940,29 @@ abstract class AppLocalizations {
   /// **'Photo'**
   String get employeeFormPhoto;
 
-  /// Button under the employee photo tile. Mocked — see employeeFormPhotoMockNotice.
+  /// Button under the employee photo tile when no photo is set yet.
   ///
   /// In fr, this message translates to:
   /// **'Choisir une photo'**
   String get employeeFormPhotoAction;
 
-  /// Warning snackbar shown when tapping the mocked photo picker.
+  /// Button under the employee photo tile when a photo is already set.
   ///
   /// In fr, this message translates to:
-  /// **'Le choix de photo n\'est pas encore disponible dans cette version.'**
-  String get employeeFormPhotoMockNotice;
+  /// **'Remplacer la photo'**
+  String get employeeFormPhotoReplace;
+
+  /// Button that clears the chosen / existing employee photo.
+  ///
+  /// In fr, this message translates to:
+  /// **'Supprimer'**
+  String get employeeFormPhotoRemove;
+
+  /// Snackbar shown when the picked image file cannot be read.
+  ///
+  /// In fr, this message translates to:
+  /// **'Impossible de lire ce fichier image.'**
+  String get employeeFormPhotoReadError;
 
   /// Employee first name field label.
   ///
@@ -4161,6 +4191,30 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Pause dépassée'**
   String get attendanceBreakOverrun;
+
+  /// Alert on a past day left open — clocked in, never clocked out.
+  ///
+  /// In fr, this message translates to:
+  /// **'Oubli de pointage'**
+  String get attendanceAnomalyMissingPunch;
+
+  /// Detail line for the retard anomaly in the attendance drawer.
+  ///
+  /// In fr, this message translates to:
+  /// **'Retard de {duration}'**
+  String attendanceAnomalyRetardDetail(String duration);
+
+  /// Detail line for the pause-dépassée anomaly.
+  ///
+  /// In fr, this message translates to:
+  /// **'Pause dépassée de {duration}'**
+  String attendanceAnomalyBreakDetail(String duration);
+
+  /// Detail line for the missing-punch anomaly.
+  ///
+  /// In fr, this message translates to:
+  /// **'Journée non clôturée — la sortie n\'a jamais été pointée.'**
+  String get attendanceAnomalyMissingPunchDetail;
 
   /// Heading of the pointage kiosk board.
   ///
@@ -4486,6 +4540,48 @@ abstract class AppLocalizations {
   /// **'{count, plural, =0{Aucune pause} =1{1 pause} other{{count} pauses}}'**
   String attendanceDetailBreaks(int count);
 
+  /// History table column — arrival → departure, grouped.
+  ///
+  /// In fr, this message translates to:
+  /// **'Horaires'**
+  String get attendanceColumnSchedule;
+
+  /// Button in the filter bar that clears every filter.
+  ///
+  /// In fr, this message translates to:
+  /// **'Réinitialiser'**
+  String get attendanceFilterReset;
+
+  /// Secondary line under the Horaires cell — break count and total.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =1{1 pause · {duration}} other{{count} pauses · {duration}}}'**
+  String attendanceBreakSummary(int count, String duration);
+
+  /// Drawer row — total break time.
+  ///
+  /// In fr, this message translates to:
+  /// **'Total pauses'**
+  String get attendanceDetailBreakTotal;
+
+  /// Drawer section header for worked hours and overtime.
+  ///
+  /// In fr, this message translates to:
+  /// **'Temps de travail'**
+  String get attendanceDetailWorkTime;
+
+  /// Overtime value in the drawer, marked as informational — never an alert.
+  ///
+  /// In fr, this message translates to:
+  /// **'{duration} (informatif)'**
+  String attendanceDetailOvertimeInfo(String duration);
+
+  /// Drawer section header for the event timeline.
+  ///
+  /// In fr, this message translates to:
+  /// **'Chronologie'**
+  String get attendanceDetailTimeline;
+
   /// Store settings section header for payroll coefficients.
   ///
   /// In fr, this message translates to:
@@ -4689,6 +4785,90 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Paiement enregistré'**
   String get payrollPaid;
+
+  /// Payroll table column — arrival → departure, grouped.
+  ///
+  /// In fr, this message translates to:
+  /// **'Horaires'**
+  String get payrollColumnHours;
+
+  /// Payroll table column — the row detail button.
+  ///
+  /// In fr, this message translates to:
+  /// **'Détail'**
+  String get payrollColumnDetail;
+
+  /// Secondary line under the Horaires cell — break count and total.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =1{1 pause · {duration}} other{{count} pauses · {duration}}}'**
+  String payrollBreakSummary(int count, String duration);
+
+  /// Button in the payroll filter bar that clears every filter.
+  ///
+  /// In fr, this message translates to:
+  /// **'Réinitialiser'**
+  String get payrollFilterReset;
+
+  /// Tooltip on the payroll row detail button.
+  ///
+  /// In fr, this message translates to:
+  /// **'Voir le détail'**
+  String get payrollViewDetail;
+
+  /// Heading of the payroll detail side panel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Détail du paiement'**
+  String get payrollDetailTitle;
+
+  /// Payroll drawer row — total break time.
+  ///
+  /// In fr, this message translates to:
+  /// **'Total pauses'**
+  String get payrollDetailBreakTotal;
+
+  /// Payroll drawer section header for worked hours and overtime.
+  ///
+  /// In fr, this message translates to:
+  /// **'Temps de travail'**
+  String get payrollDetailWorkSection;
+
+  /// Payroll drawer row — worked duration.
+  ///
+  /// In fr, this message translates to:
+  /// **'Temps travaillé'**
+  String get payrollDetailWorked;
+
+  /// Overtime value in the payroll drawer, marked informational — never an alert.
+  ///
+  /// In fr, this message translates to:
+  /// **'{duration} (informatif)'**
+  String payrollDetailOvertimeInfo(String duration);
+
+  /// Payroll drawer row — the employee's effective hourly rate.
+  ///
+  /// In fr, this message translates to:
+  /// **'Taux horaire'**
+  String get payrollDetailRate;
+
+  /// Payroll drawer row — worked hours at the normal rate, before any overtime premium.
+  ///
+  /// In fr, this message translates to:
+  /// **'Montant de base'**
+  String get payrollDetailBase;
+
+  /// Payroll drawer row — the extra paid on the overtime hours, above the base.
+  ///
+  /// In fr, this message translates to:
+  /// **'Prime heures sup.'**
+  String get payrollDetailPremium;
+
+  /// Payroll drawer row — the day's total amount.
+  ///
+  /// In fr, this message translates to:
+  /// **'Total'**
+  String get payrollDetailTotal;
 
   /// Payment status badge — the day has been settled.
   ///
@@ -5050,6 +5230,72 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Document généré le {date} — ne constitue pas une facture.'**
   String receiptDocFooter(String date);
+
+  /// Title of the dialog shown before saving pointage / payroll settings while unpaid finished days exist.
+  ///
+  /// In fr, this message translates to:
+  /// **'Des journées ne sont pas encore payées'**
+  String get storeSettingsRetroWarningTitle;
+
+  /// Body of the dialog warning that changing pointage / payroll settings retroactively affects unpaid days.
+  ///
+  /// In fr, this message translates to:
+  /// **'{days, plural, =1{1 journée terminée n\'\'a pas encore été payée} other{{days} journées terminées n\'\'ont pas encore été payées}}. Changer les horaires ou les coefficients modifiera le retard, les heures supplémentaires et le montant estimé de ces journées. Payez-les d\'\'abord pour figer leurs chiffres.'**
+  String storeSettingsRetroWarningBody(int days);
+
+  /// Confirm button on the retroactive-settings warning dialog.
+  ///
+  /// In fr, this message translates to:
+  /// **'Changer quand même'**
+  String get storeSettingsRetroWarningConfirm;
+
+  /// Title of the dialog that asks for a CIN before an action goes through.
+  ///
+  /// In fr, this message translates to:
+  /// **'Confirmation d\'identité'**
+  String get identityPromptTitle;
+
+  /// Label of the CIN input in the identity confirmation dialog.
+  ///
+  /// In fr, this message translates to:
+  /// **'Numéro CIN'**
+  String get identityPromptField;
+
+  /// Confirm button of the identity dialog.
+  ///
+  /// In fr, this message translates to:
+  /// **'Valider'**
+  String get identityPromptValidate;
+
+  /// Shown in the identity dialog after a wrong CIN, with the number of attempts left before the lockout.
+  ///
+  /// In fr, this message translates to:
+  /// **'Numéro incorrect. {count, plural, =0{Verrouillé.} =1{1 tentative restante.} other{{count} tentatives restantes.}}'**
+  String identityPromptWrong(int count);
+
+  /// Shown in the identity dialog while the credential is locked, with a mm:ss countdown.
+  ///
+  /// In fr, this message translates to:
+  /// **'Trop de tentatives. Réessayez dans {time}.'**
+  String identityPromptLocked(String time);
+
+  /// Shown in the identity dialog when the employee has no credential row.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun identifiant n\'est configuré pour cette personne.'**
+  String get identityPromptNoCredential;
+
+  /// Subtitle of the identity dialog on the pointage board — the action being confirmed and whose CIN is required.
+  ///
+  /// In fr, this message translates to:
+  /// **'{action} · saisissez le numéro CIN de {name}'**
+  String identityPromptPointageSubtitle(String action, String name);
+
+  /// Subtitle of the identity dialog before settling an employee's payroll days — the signed-in user confirms with their own CIN.
+  ///
+  /// In fr, this message translates to:
+  /// **'Saisissez votre numéro CIN pour valider le paiement de {name}'**
+  String identityPromptPayrollSubtitle(String name);
 }
 
 class _AppLocalizationsDelegate

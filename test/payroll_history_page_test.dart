@@ -4,6 +4,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:stock_inventory/app/router.dart';
 import 'package:stock_inventory/app/routes.dart';
 import 'package:stock_inventory/data/database/app_database.dart';
@@ -29,16 +30,55 @@ Future<AppDatabase> _openPayroll(
   return db;
 }
 
-Future<void> _pickKarim(WidgetTester tester) async {
-  // The employee picker is a searchable dropdown: open it, filter to Karim,
-  // then tap the single remaining menu entry (scoped to the menu so the table
-  // cell of the same name below the fold is not matched instead).
-  await tester.tap(find.byType(DropdownMenu<String>));
-  await tester.pumpAndSettle();
-  await tester.enterText(find.byType(DropdownMenu<String>), 'Karim');
+/// Answers the identity dialog that guards "Payer" with the given CIN. Marc
+/// (the signed-in owner) carries the seeded CIN `78.02.14-153.24`.
+const _marcCin = '78.02.14-153.24';
+
+Future<void> _enterCin(WidgetTester tester, String cin) async {
+  await tester.enterText(
+    find.descendant(
+      of: find.byType(AlertDialog),
+      matching: find.byType(TextField),
+    ),
+    cin,
+  );
   await tester.pumpAndSettle();
   await tester.tap(
-    find.widgetWithText(MenuItemButton, 'Karim Haddouch').last,
+    find.descendant(
+      of: find.byType(AlertDialog),
+      matching: find.widgetWithText(FilledButton, 'Valider'),
+    ),
+  );
+  await tester.pumpAndSettle();
+}
+
+Future<void> _confirmPay(WidgetTester tester) async {
+  final payButton = find.widgetWithText(PrimaryButton, 'Payer');
+  await tester.ensureVisible(payButton);
+  await tester.pumpAndSettle();
+  await tester.tap(payButton);
+  await tester.pumpAndSettle();
+
+  // Confirmation dialog names the employee.
+  expect(find.textContaining('Payer Karim Haddouch'), findsOneWidget);
+  await tester.tap(
+    find.descendant(
+      of: find.byType(AlertDialog),
+      matching: find.widgetWithText(FilledButton, 'Payer'),
+    ),
+  );
+  await tester.pumpAndSettle();
+}
+
+Future<void> _pickKarim(WidgetTester tester) async {
+  // The employee picker is the shared EmployeeSelector combobox: open it,
+  // filter to Karim, then tap his keyed option row.
+  await tester.tap(find.byType(EmployeeSelector));
+  await tester.pumpAndSettle();
+  await tester.enterText(find.byType(TextField).last, 'Karim');
+  await tester.pumpAndSettle();
+  await tester.tap(
+    find.byKey(const ValueKey('employee-option-${EmployeeIds.karim}')),
   );
   await tester.pumpAndSettle();
 }
@@ -56,6 +96,28 @@ void main() {
     expect(find.byType(PaymentStatusBadge), findsWidgets);
     // Paying is per employee — no button while showing everyone.
     expect(find.widgetWithText(PrimaryButton, 'Payer'), findsNothing);
+  });
+
+  testApp('a day row opens the payment detail drawer', (tester) async {
+    await _openPayroll(tester, size: const Size(1440, 900));
+    await _pickKarim(tester);
+
+    final detailButton =
+        find.widgetWithIcon(IconButton, LucideIcons.eye).first;
+    await tester.ensureVisible(detailButton);
+    await tester.tap(detailButton);
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.byType(DetailDrawer), findsOneWidget);
+    expect(find.text('Détail du paiement'), findsOneWidget);
+    // The amount breakdown the drawer exists to show.
+    expect(find.text('Taux horaire'), findsOneWidget);
+    expect(find.text('Total'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Fermer'));
+    await tester.pumpAndSettle();
+    expect(find.byType(DetailDrawer), findsNothing);
   });
 
   testApp('picking an employee narrows the view and reveals "Payer"',
@@ -83,7 +145,7 @@ void main() {
     }
   });
 
-  testApp('"Payer" confirms, then flips the unpaid days to paid',
+  testApp('"Payer" confirms, asks for the CIN, then flips the days to paid',
       (tester) async {
     final db = await _openPayroll(tester);
     await _pickKarim(tester);
@@ -94,26 +156,32 @@ void main() {
       PaymentStatus.unpaid,
     );
 
-    final payButton = find.widgetWithText(PrimaryButton, 'Payer');
-    await tester.ensureVisible(payButton);
-    await tester.pumpAndSettle();
-    await tester.tap(payButton);
-    await tester.pumpAndSettle();
+    await _confirmPay(tester);
 
-    // Confirmation dialog names the employee.
-    expect(find.textContaining('Payer Karim Haddouch'), findsOneWidget);
-    await tester.tap(
-      find.descendant(
-        of: find.byType(AlertDialog),
-        matching: find.widgetWithText(FilledButton, 'Payer'),
-      ),
-    );
-    await tester.pumpAndSettle();
+    // The identity dialog stands between the confirmation and the write.
+    expect(find.text('Numéro CIN'), findsOneWidget);
+    await _enterCin(tester, _marcCin);
 
     expect(find.text('Paiement enregistré'), findsOneWidget);
     expect(
       (await attendance.attendance(AttendanceIds.karim1))!.paymentStatus,
       PaymentStatus.paid,
+    );
+  });
+
+  testApp('a wrong CIN leaves the days unpaid', (tester) async {
+    final db = await _openPayroll(tester);
+    await _pickKarim(tester);
+
+    await _confirmPay(tester);
+    await _enterCin(tester, '00.00.00-000.00');
+
+    // Dialog stays open, days untouched.
+    expect(find.textContaining('tentative'), findsOneWidget);
+    expect(
+      (await AttendanceRepository(db).attendance(AttendanceIds.karim1))!
+          .paymentStatus,
+      PaymentStatus.unpaid,
     );
   });
 }
