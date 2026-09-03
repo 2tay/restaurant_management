@@ -51,10 +51,10 @@ void main() {
     await db.close();
   });
 
-  test('a version 2 install upgrades to version 3 cleanly', () async {
+  test('a version 2 install upgrades to version 5 cleanly', () async {
     final connection = await verifier.startAt(2);
     final db = AppDatabase.withExecutor(connection);
-    await verifier.migrateAndValidate(db, 3);
+    await verifier.migrateAndValidate(db, 5);
     await db.close();
   });
 
@@ -77,13 +77,13 @@ void main() {
     await db.close();
   });
 
-  test('a version 3 install upgrades to version 4 cleanly', () async {
+  test('a version 3 install upgrades to version 5 cleanly', () async {
     final connection = await verifier.startAt(3);
     final db = AppDatabase.withExecutor(connection);
 
-    // Runs AppDatabase.migration.onUpgrade(3 -> 4) and then checks every table,
-    // column, default and index against drift_schema_v4.json.
-    await verifier.migrateAndValidate(db, 4);
+    // Runs AppDatabase.migration.onUpgrade(3 -> 5) and then checks every table,
+    // column, default and index against drift_schema_v5.json.
+    await verifier.migrateAndValidate(db, 5);
     await db.close();
   });
 
@@ -136,7 +136,7 @@ void main() {
       await old.close();
 
       final db = AppDatabase.withExecutor(schema.newConnection());
-      await verifier.migrateAndValidate(db, 4);
+      await verifier.migrateAndValidate(db, 5);
 
       final rows = await db
           .customSelect(

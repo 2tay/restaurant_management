@@ -47,16 +47,15 @@ class _ItemImageFieldState extends State<ItemImageField> {
     setState(() => _busy = true);
 
     try {
-      final result = await FilePicker.platform.pickFiles(
+      final picked = await FilePicker.pickFiles(
         type: FileType.image,
         // The picker's own image filter is not enough on every platform, and a
         // .bmp that Flutter cannot decode would save fine and render as a
         // placeholder with no explanation.
         allowedExtensions: null,
-        withData: false,
       );
 
-      final path = result?.files.single.path;
+      final path = picked.singleOrNull?.path;
       if (path == null) return;
 
       final saved = await ProductImages.save(File(path));
