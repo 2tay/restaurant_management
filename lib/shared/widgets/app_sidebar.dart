@@ -857,11 +857,17 @@ class _SidebarProfile extends ConsumerWidget {
   final bool collapsed;
   final AppLocalizations l10n;
 
-  /// 60% of the sidebar's width, per the design.
-  static const double _menuWidth = AppSizing.sidebarWidthExpanded * 0.6;
+  /// A touch under the sidebar's width — wide enough for "Mes établissements"
+  /// without truncation, narrow enough to still read as a floating panel.
+  static const double _menuWidth = AppSizing.sidebarWidthExpanded - AppSpacing.xl;
+
+  /// Roughly the menu's rendered height (header + divider + three rows +
+  /// padding). Only used to lift it clear of the profile row — an overestimate
+  /// just means a slightly larger gap, so this errs high.
+  static const double _menuLift = 264;
 
   /// Opens the user menu — a steel panel [_menuWidth] wide, centred on the
-  /// sidebar and opening upward from the profile row, with a drop shadow.
+  /// sidebar and floating just above the profile row, with a drop shadow.
   Future<void> _open(BuildContext context, WidgetRef ref, Employee? user) async {
     final box = context.findRenderObject() as RenderBox?;
     final overlay =
@@ -870,12 +876,11 @@ class _SidebarProfile extends ConsumerWidget {
 
     final topLeft = box.localToGlobal(Offset.zero, ancestor: overlay);
     final left = topLeft.dx + (box.size.width - _menuWidth) / 2;
-    final anchor = Rect.fromLTWH(
-      left,
-      topLeft.dy,
-      _menuWidth,
-      box.size.height,
-    );
+    // Anchor a zero-height box well above the row so the menu grows downward
+    // from there and its bottom lands a small gap above the row.
+    final anchorTop = (topLeft.dy - AppSpacing.sm - _menuLift)
+        .clamp(AppSpacing.sm, overlay.size.height);
+    final anchor = Rect.fromLTWH(left, anchorTop, _menuWidth, 0);
 
     final selected = await showMenu<String>(
       context: context,
