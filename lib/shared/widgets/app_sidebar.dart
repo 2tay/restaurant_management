@@ -861,10 +861,12 @@ class _SidebarProfile extends ConsumerWidget {
   /// without truncation, narrow enough to still read as a floating panel.
   static const double _menuWidth = AppSizing.sidebarWidthExpanded - AppSpacing.xl;
 
-  /// Roughly the menu's rendered height — three 48dp rows plus its own 8dp
-  /// vertical padding. Only used to lift the menu clear of the profile row;
-  /// being a few pixels off just nudges the gap.
-  static const double _menuLift = 3 * AppSizing.minTapTarget + AppSpacing.lg;
+  /// Roughly the menu's rendered height — three 48dp rows, the divider above
+  /// "Se déconnecter", and the menu's own vertical padding. Only used to lift
+  /// the menu clear of the profile row; being a few pixels off just nudges the
+  /// gap.
+  static const double _menuLift =
+      3 * AppSizing.minTapTarget + AppSpacing.xxl;
 
   /// Opens the user menu — a steel panel [_menuWidth] wide, centred on the
   /// sidebar and floating just above the profile row, with a drop shadow.
@@ -896,6 +898,7 @@ class _SidebarProfile extends ConsumerWidget {
       items: [
         PopupMenuItem<String>(
           value: 'stores',
+          padding: EdgeInsets.zero,
           child: _MenuRow(
             icon: LucideIcons.building2,
             label: l10n.sidebarMyStores,
@@ -903,10 +906,13 @@ class _SidebarProfile extends ConsumerWidget {
         ),
         PopupMenuItem<String>(
           value: 'settings',
+          padding: EdgeInsets.zero,
           child: _MenuRow(icon: LucideIcons.settings, label: l10n.navSettings),
         ),
+        const PopupMenuDivider(color: AppColors.steel600),
         PopupMenuItem<String>(
           value: 'logout',
+          padding: EdgeInsets.zero,
           child: _MenuRow(
             icon: LucideIcons.logOut,
             label: l10n.actionLogout,
@@ -995,8 +1001,10 @@ class _SidebarProfile extends ConsumerWidget {
 }
 
 /// One row of the user menu — light on the steel ground it shares with the
-/// sidebar; [destructive] paints "Se déconnecter" red.
-class _MenuRow extends StatelessWidget {
+/// sidebar. On hover it fills with the same teal the active navigation entry
+/// uses. [destructive] paints "Se déconnecter" red, until it too goes white on
+/// the teal.
+class _MenuRow extends StatefulWidget {
   const _MenuRow({
     required this.icon,
     required this.label,
@@ -1008,27 +1016,53 @@ class _MenuRow extends StatelessWidget {
   final bool destructive;
 
   @override
+  State<_MenuRow> createState() => _MenuRowState();
+}
+
+class _MenuRowState extends State<_MenuRow> {
+  bool _hovered = false;
+
+  @override
   Widget build(BuildContext context) {
-    final color = destructive ? AppColors.errorOnChrome : AppColors.neutral100;
-    return Row(
-      children: [
-        Icon(
-          icon,
-          size: AppSizing.iconMd,
-          color: destructive ? AppColors.errorOnChrome : AppColors.neutral300,
+    final Color foreground;
+    if (_hovered) {
+      foreground = AppColors.white;
+    } else if (widget.destructive) {
+      foreground = AppColors.errorOnChrome;
+    } else {
+      foreground = AppColors.neutral100;
+    }
+    final Color iconColor = _hovered
+        ? AppColors.white
+        : widget.destructive
+        ? AppColors.errorOnChrome
+        : AppColors.neutral300;
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: Container(
+        constraints: const BoxConstraints(minHeight: AppSizing.minTapTarget),
+        alignment: Alignment.centerLeft,
+        color: _hovered ? AppColors.primary600 : Colors.transparent,
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+        child: Row(
+          children: [
+            Icon(widget.icon, size: AppSizing.iconMd, color: iconColor),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Text(
+                widget.label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(color: foreground),
+              ),
+            ),
+          ],
         ),
-        const SizedBox(width: AppSpacing.md),
-        Expanded(
-          child: Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(
-              context,
-            ).textTheme.bodyMedium?.copyWith(color: color),
-          ),
-        ),
-      ],
+      ),
     );
   }
 }

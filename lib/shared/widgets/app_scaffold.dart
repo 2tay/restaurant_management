@@ -341,18 +341,20 @@ class _TitleRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final titleBlock = Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(title, style: theme.textTheme.headlineMedium),
-        if (subtitle != null) ...[
-          const SizedBox(height: AppSpacing.xs),
-          Text(subtitle!, style: theme.textTheme.bodyMedium),
-        ],
-      ],
-    );
+    final titleText = Text(title, style: theme.textTheme.headlineMedium);
+    final subtitleText = subtitle == null
+        ? null
+        : Padding(
+            padding: const EdgeInsets.only(top: AppSpacing.xs),
+            child: Text(subtitle!, style: theme.textTheme.bodyMedium),
+          );
 
-    if (actions.isEmpty) return titleBlock;
+    if (actions.isEmpty) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [titleText, ?subtitleText],
+      );
+    }
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -371,19 +373,29 @@ class _TitleRow extends StatelessWidget {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              titleBlock,
+              Align(alignment: Alignment.centerLeft, child: titleText),
+              if (subtitleText != null)
+                Align(alignment: Alignment.centerLeft, child: subtitleText),
               const SizedBox(height: AppSpacing.lg),
               actionRow,
             ],
           );
         }
 
-        return Row(
+        // The actions sit on the title's line — vertically centred on it, hard
+        // against the right edge — and the description runs under both.
+        return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(flex: 3, child: titleBlock),
-            const SizedBox(width: AppSpacing.xl),
-            Flexible(flex: 2, child: actionRow),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(flex: 3, child: titleText),
+                const SizedBox(width: AppSpacing.xl),
+                Flexible(flex: 2, child: actionRow),
+              ],
+            ),
+            ?subtitleText,
           ],
         );
       },
