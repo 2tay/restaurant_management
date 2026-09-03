@@ -4660,6 +4660,90 @@ abstract class AppLocalizations {
   /// **'Paiement enregistré'**
   String get payrollPaid;
 
+  /// Payroll table column — arrival → departure, grouped.
+  ///
+  /// In fr, this message translates to:
+  /// **'Horaires'**
+  String get payrollColumnHours;
+
+  /// Payroll table column — the row detail button.
+  ///
+  /// In fr, this message translates to:
+  /// **'Détail'**
+  String get payrollColumnDetail;
+
+  /// Secondary line under the Horaires cell — break count and total.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =1{1 pause · {duration}} other{{count} pauses · {duration}}}'**
+  String payrollBreakSummary(int count, String duration);
+
+  /// Button in the payroll filter bar that clears every filter.
+  ///
+  /// In fr, this message translates to:
+  /// **'Réinitialiser'**
+  String get payrollFilterReset;
+
+  /// Tooltip on the payroll row detail button.
+  ///
+  /// In fr, this message translates to:
+  /// **'Voir le détail'**
+  String get payrollViewDetail;
+
+  /// Heading of the payroll detail side panel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Détail du paiement'**
+  String get payrollDetailTitle;
+
+  /// Payroll drawer row — total break time.
+  ///
+  /// In fr, this message translates to:
+  /// **'Total pauses'**
+  String get payrollDetailBreakTotal;
+
+  /// Payroll drawer section header for worked hours and overtime.
+  ///
+  /// In fr, this message translates to:
+  /// **'Temps de travail'**
+  String get payrollDetailWorkSection;
+
+  /// Payroll drawer row — worked duration.
+  ///
+  /// In fr, this message translates to:
+  /// **'Temps travaillé'**
+  String get payrollDetailWorked;
+
+  /// Overtime value in the payroll drawer, marked informational — never an alert.
+  ///
+  /// In fr, this message translates to:
+  /// **'{duration} (informatif)'**
+  String payrollDetailOvertimeInfo(String duration);
+
+  /// Payroll drawer row — the employee's effective hourly rate.
+  ///
+  /// In fr, this message translates to:
+  /// **'Taux horaire'**
+  String get payrollDetailRate;
+
+  /// Payroll drawer row — worked hours at the normal rate, before any overtime premium.
+  ///
+  /// In fr, this message translates to:
+  /// **'Montant de base'**
+  String get payrollDetailBase;
+
+  /// Payroll drawer row — the extra paid on the overtime hours, above the base.
+  ///
+  /// In fr, this message translates to:
+  /// **'Prime heures sup.'**
+  String get payrollDetailPremium;
+
+  /// Payroll drawer row — the day's total amount.
+  ///
+  /// In fr, this message translates to:
+  /// **'Total'**
+  String get payrollDetailTotal;
+
   /// Payment status badge — the day has been settled.
   ///
   /// In fr, this message translates to:

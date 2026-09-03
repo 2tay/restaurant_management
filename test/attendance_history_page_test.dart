@@ -33,10 +33,12 @@ void main() {
     await _open(tester);
 
     // The row's detail button → drawer.
-    expect(find.byTooltip('Voir le détail'), findsWidgets);
-    await tester.tap(find.byTooltip('Voir le détail').first);
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
+    final detailButton =
+        find.widgetWithIcon(IconButton, LucideIcons.eye).first;
+    expect(detailButton, findsOneWidget);
+    await tester.ensureVisible(detailButton);
+    await tester.tap(detailButton);
+    await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
 
     expect(find.byType(DetailDrawer), findsOneWidget);

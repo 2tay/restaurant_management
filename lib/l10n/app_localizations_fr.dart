@@ -2838,6 +2838,58 @@ class AppLocalizationsFr extends AppLocalizations {
   String get payrollPaid => 'Paiement enregistré';
 
   @override
+  String get payrollColumnHours => 'Horaires';
+
+  @override
+  String get payrollColumnDetail => 'Détail';
+
+  @override
+  String payrollBreakSummary(int count, String duration) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count pauses · $duration',
+      one: '1 pause · $duration',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get payrollFilterReset => 'Réinitialiser';
+
+  @override
+  String get payrollViewDetail => 'Voir le détail';
+
+  @override
+  String get payrollDetailTitle => 'Détail du paiement';
+
+  @override
+  String get payrollDetailBreakTotal => 'Total pauses';
+
+  @override
+  String get payrollDetailWorkSection => 'Temps de travail';
+
+  @override
+  String get payrollDetailWorked => 'Temps travaillé';
+
+  @override
+  String payrollDetailOvertimeInfo(String duration) {
+    return '$duration (informatif)';
+  }
+
+  @override
+  String get payrollDetailRate => 'Taux horaire';
+
+  @override
+  String get payrollDetailBase => 'Montant de base';
+
+  @override
+  String get payrollDetailPremium => 'Prime heures sup.';
+
+  @override
+  String get payrollDetailTotal => 'Total';
+
+  @override
   String get paymentStatusPaid => 'Payé';
 
   @override

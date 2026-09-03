@@ -4,6 +4,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:stock_inventory/app/router.dart';
 import 'package:stock_inventory/app/routes.dart';
 import 'package:stock_inventory/data/database/app_database.dart';
@@ -70,15 +71,14 @@ Future<void> _confirmPay(WidgetTester tester) async {
 }
 
 Future<void> _pickKarim(WidgetTester tester) async {
-  // The employee picker is a searchable dropdown: open it, filter to Karim,
-  // then tap the single remaining menu entry (scoped to the menu so the table
-  // cell of the same name below the fold is not matched instead).
-  await tester.tap(find.byType(DropdownMenu<String>));
+  // The employee picker is the shared EmployeeSelector combobox: open it,
+  // filter to Karim, then tap his keyed option row.
+  await tester.tap(find.byType(EmployeeSelector));
   await tester.pumpAndSettle();
-  await tester.enterText(find.byType(DropdownMenu<String>), 'Karim');
+  await tester.enterText(find.byType(TextField).last, 'Karim');
   await tester.pumpAndSettle();
   await tester.tap(
-    find.widgetWithText(MenuItemButton, 'Karim Haddouch').last,
+    find.byKey(const ValueKey('employee-option-${EmployeeIds.karim}')),
   );
   await tester.pumpAndSettle();
 }
@@ -96,6 +96,28 @@ void main() {
     expect(find.byType(PaymentStatusBadge), findsWidgets);
     // Paying is per employee — no button while showing everyone.
     expect(find.widgetWithText(PrimaryButton, 'Payer'), findsNothing);
+  });
+
+  testApp('a day row opens the payment detail drawer', (tester) async {
+    await _openPayroll(tester, size: const Size(1440, 900));
+    await _pickKarim(tester);
+
+    final detailButton =
+        find.widgetWithIcon(IconButton, LucideIcons.eye).first;
+    await tester.ensureVisible(detailButton);
+    await tester.tap(detailButton);
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.byType(DetailDrawer), findsOneWidget);
+    expect(find.text('Détail du paiement'), findsOneWidget);
+    // The amount breakdown the drawer exists to show.
+    expect(find.text('Taux horaire'), findsOneWidget);
+    expect(find.text('Total'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Fermer'));
+    await tester.pumpAndSettle();
+    expect(find.byType(DetailDrawer), findsNothing);
   });
 
   testApp('picking an employee narrows the view and reveals "Payer"',

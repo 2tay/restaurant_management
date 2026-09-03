@@ -476,7 +476,7 @@ class _Filters extends StatelessWidget {
       runSpacing: AppSpacing.md,
       crossAxisAlignment: WrapCrossAlignment.end,
       children: [
-        _Labelled(
+        LabeledField(
           label: l10n.attendanceFilterEmployee,
           child: SizedBox(
             width: 260,
@@ -489,7 +489,7 @@ class _Filters extends StatelessWidget {
             ),
           ),
         ),
-        _Labelled(
+        LabeledField(
           label: l10n.attendanceFilterFrom,
           child: SizedBox(
             width: 165,
@@ -502,7 +502,7 @@ class _Filters extends StatelessWidget {
             ),
           ),
         ),
-        _Labelled(
+        LabeledField(
           label: l10n.attendanceFilterTo,
           child: SizedBox(
             width: 165,
@@ -515,7 +515,7 @@ class _Filters extends StatelessWidget {
             ),
           ),
         ),
-        _Labelled(
+        LabeledField(
           label: l10n.ordersFilterStatus,
           child: FilterMenu<AttendanceStatus?>(
             label: l10n.ordersFilterStatus,
@@ -535,35 +535,13 @@ class _Filters extends StatelessWidget {
           ),
         ),
         if (canReset)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 2),
-            child: TextButton.icon(
-              onPressed: onReset,
-              icon: const Icon(LucideIcons.rotateCcw, size: AppSizing.iconSm),
-              label: Text(l10n.attendanceFilterReset),
-            ),
+          FilterResetButton(
+            label: l10n.attendanceFilterReset,
+            onPressed: onReset,
           ),
       ],
     );
   }
-}
-
-class _Labelled extends StatelessWidget {
-  const _Labelled({required this.label, required this.child});
-
-  final String label;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    mainAxisSize: MainAxisSize.min,
-    children: [
-      Text(label, style: Theme.of(context).textTheme.labelMedium),
-      const SizedBox(height: AppSpacing.sm),
-      child,
-    ],
-  );
 }
 
 class _ActiveFilters extends StatelessWidget {
@@ -595,41 +573,22 @@ class _ActiveFilters extends StatelessWidget {
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
         if (employeeName != null)
-          _Chip(label: employeeName!, onRemove: onRemoveEmployee),
+          RemovableFilterChip(
+            label: employeeName!,
+            onRemove: onRemoveEmployee,
+          ),
         if (dateRange != null)
-          _Chip(label: dateRange!, onRemove: onRemoveDateRange),
+          RemovableFilterChip(
+            label: dateRange!,
+            onRemove: onRemoveDateRange,
+          ),
         if (status != null)
-          _Chip(
+          RemovableFilterChip(
             label: attendanceStatusLabel(l10n, status!),
             onRemove: onRemoveStatus,
           ),
         TextButton(onPressed: onClear, child: Text(l10n.inventoryClearFilters)),
       ],
-    );
-  }
-}
-
-class _Chip extends StatelessWidget {
-  const _Chip({required this.label, required this.onRemove});
-
-  final String label;
-  final VoidCallback onRemove;
-
-  @override
-  Widget build(BuildContext context) {
-    return InputChip(
-      label: Text(label),
-      onDeleted: onRemove,
-      deleteIcon: const Icon(LucideIcons.x, size: AppSizing.iconSm),
-      backgroundColor: AppColors.primaryContainer,
-      labelStyle: Theme.of(
-        context,
-      ).textTheme.labelMedium?.copyWith(color: AppColors.onPrimaryContainer),
-      shape: const RoundedRectangleBorder(
-        borderRadius: AppRadius.pillAll,
-        side: BorderSide(color: AppColors.primary600),
-      ),
-      side: BorderSide.none,
     );
   }
 }
