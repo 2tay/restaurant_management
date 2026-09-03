@@ -153,29 +153,9 @@ abstract final class AppTheme {
         shape: const Border(bottom: BorderSide(color: AppColors.border)),
       ),
 
-      // ---------------------------------------------------------------------
-      // Navigation rail — the app chrome, in steel.
-      // ---------------------------------------------------------------------
-      navigationRailTheme: NavigationRailThemeData(
-        backgroundColor: AppColors.steel800,
-        indicatorColor: AppColors.primary600,
-        selectedIconTheme: const IconThemeData(
-          color: AppColors.white,
-          size: AppSizing.iconLg,
-        ),
-        unselectedIconTheme: const IconThemeData(
-          color: AppColors.neutral300,
-          size: AppSizing.iconLg,
-        ),
-        selectedLabelTextStyle: textTheme.labelMedium?.copyWith(
-          color: AppColors.white,
-        ),
-        unselectedLabelTextStyle: textTheme.labelMedium?.copyWith(
-          color: AppColors.neutral300,
-        ),
-        minWidth: AppSizing.railWidthCollapsed,
-        minExtendedWidth: AppSizing.railWidthExpanded,
-      ),
+      // The navigation sidebar draws its own steel chrome — see
+      // `app_sidebar.dart`. It is a plain widget, not a `NavigationRail`, so
+      // there is no rail theme to set here.
 
       // ---------------------------------------------------------------------
       // Feedback

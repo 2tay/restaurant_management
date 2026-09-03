@@ -17,9 +17,11 @@ extension ResponsiveContext on BuildContext {
   /// overflow, but no phone-specific design work is expected.
   bool get isCompact => screenWidth < AppBreakpoints.compact;
 
-  /// The navigation rail shows icons only. True on 7" tablets and on a 10" in
-  /// portrait.
-  bool get isRailCollapsed => screenWidth < AppBreakpoints.railCollapse;
+  /// The navigation sidebar shows icons only. True below the design baseline —
+  /// a 7" tablet, a 10" in portrait, or a 10" landscape narrower than ~1100dp,
+  /// where a 280dp sidebar would leave the dense content area too cramped.
+  bool get isSidebarCollapsed =>
+      screenWidth < AppBreakpoints.sidebarCollapse;
 
   /// There is room for a list and a detail pane side by side. Below this,
   /// tapping a row pushes a full page instead.

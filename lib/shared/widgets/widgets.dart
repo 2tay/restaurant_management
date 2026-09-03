@@ -12,7 +12,6 @@ export 'app_scaffold.dart';
 export 'app_sidebar.dart';
 export 'app_snackbar.dart';
 export 'app_text_field.dart';
-export 'app_top_bar.dart';
 export 'async_content.dart';
 export 'attendance_alerts.dart';
 export 'attendance_row.dart';
@@ -45,4 +44,5 @@ export 'section_header.dart';
 export 'section_tabs.dart';
 export 'stat_tile.dart';
 export 'stock_status_badge.dart';
-export 'store_switcher.dart';
+// store_switcher.dart removed with the top bar — the sidebar owns store
+// selection now (see app_sidebar.dart).

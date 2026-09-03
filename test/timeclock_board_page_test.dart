@@ -55,10 +55,15 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text(_name(EmployeeIds.marc)), findsNothing);
+    // Scoped to the cards: Marc's name still shows in the sidebar user menu.
+    Finder marcCard() => find.descendant(
+      of: find.byType(AppCard),
+      matching: find.text(_name(EmployeeIds.marc)),
+    );
+    expect(marcCard(), findsNothing);
 
     await tester.tap(find.byTooltip('Effacer'));
     await tester.pumpAndSettle();
-    expect(find.text(_name(EmployeeIds.marc)), findsWidgets);
+    expect(marcCard(), findsWidgets);
   });
 }

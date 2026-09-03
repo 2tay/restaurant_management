@@ -14,6 +14,7 @@ import 'package:stock_inventory/app/routes.dart';
 import 'package:stock_inventory/core/theme/app_spacing.dart';
 import 'package:stock_inventory/data/seed/dataset/dataset.dart';
 import 'package:stock_inventory/shared/widgets/app_scaffold.dart';
+import 'package:stock_inventory/shared/widgets/app_sidebar.dart';
 
 import 'support/app_harness.dart';
 
@@ -265,12 +266,12 @@ void main() {
   });
 
   group('the shell holds together across tablet sizes', () {
-    // The rail is pinned to a fixed width on purpose — left to size itself it
-    // grew to fit the longest French label and stole 148dp from the content
-    // area, overflowing the top bar. These guard that fix, and would catch the
-    // same thing happening again when Dutch is added.
+    // The sidebar is pinned to a fixed width on purpose — 280dp so no French
+    // destination label is ever truncated, and it must not grow past that when
+    // Dutch is added. Below ~1100dp it drops to an icon strip so the dense
+    // content area keeps its room.
 
-    testApp('rail is extended and pinned at the 1280x800 baseline', (
+    testApp('sidebar is expanded and 280dp wide at the 1280x800 baseline', (
       tester,
     ) async {
       await _pumpAt(tester, _tabletLandscape);
@@ -279,47 +280,37 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
-
-      final rail = tester.widget<NavigationRail>(find.byType(NavigationRail));
-      expect(rail.extended, isTrue);
       expect(
-        tester.getSize(find.byType(NavigationRail)).width,
-        AppSizing.railWidthExpanded,
-        reason: 'the rail must not grow to fit its labels',
+        tester.getSize(find.byType(AppSidebar)).width,
+        AppSizing.sidebarWidthExpanded,
+        reason: 'the sidebar must not grow to fit its labels',
       );
     });
 
-    testApp('nothing overflows at 1024x600 with the rail still extended', (
-      tester,
-    ) async {
+    testApp('sidebar collapses to an icon strip at 1024x600', (tester) async {
       await _pumpAt(tester, _smallTablet);
 
       appRouter.go(Routes.toInventory(StoreIds.sablon));
       await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
-
-      final rail = tester.widget<NavigationRail>(find.byType(NavigationRail));
       expect(
-        rail.extended,
-        isTrue,
-        reason: '1024 is above the 900dp collapse breakpoint',
+        tester.getSize(find.byType(AppSidebar)).width,
+        AppSizing.sidebarWidthCollapsed,
+        reason: '1024 is below the ~1100dp sidebar breakpoint',
       );
     });
 
-    testApp('rail collapses to icons on a narrow tablet', (tester) async {
+    testApp('sidebar collapses to icons on a narrow tablet', (tester) async {
       await _pumpAt(tester, _narrowTablet);
 
       appRouter.go(Routes.toInventory(StoreIds.sablon));
       await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
-
-      final rail = tester.widget<NavigationRail>(find.byType(NavigationRail));
-      expect(rail.extended, isFalse);
       expect(
-        tester.getSize(find.byType(NavigationRail)).width,
-        AppSizing.railWidthCollapsed,
+        tester.getSize(find.byType(AppSidebar)).width,
+        AppSizing.sidebarWidthCollapsed,
       );
     });
   });

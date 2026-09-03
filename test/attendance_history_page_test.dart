@@ -64,11 +64,22 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // Every visible employee cell is Karim now.
+    // Every employee cell in the table is Karim now. Scoped to the table:
+    // Marc, the signed-in user, still shows in the sidebar menu.
     final marc = mockEmployees.firstWhere((e) => e.id == EmployeeIds.marc);
-    expect(find.text('${marc.firstName} ${marc.lastName}'), findsNothing);
+    final table = find.byType(DataTableWrapper);
     expect(
-      find.text('${karim.firstName} ${karim.lastName}'),
+      find.descendant(
+        of: table,
+        matching: find.text('${marc.firstName} ${marc.lastName}'),
+      ),
+      findsNothing,
+    );
+    expect(
+      find.descendant(
+        of: table,
+        matching: find.text('${karim.firstName} ${karim.lastName}'),
+      ),
       findsWidgets,
     );
   });

@@ -157,7 +157,17 @@ class _OptionRow extends StatelessWidget {
         ),
         if (option.secondaryLabel != null) ...[
           const SizedBox(width: AppSpacing.sm),
-          Text(option.secondaryLabel!, style: theme.textTheme.bodySmall),
+          // Flexible, not a bare Text: in a menu narrower than the label plus
+          // this hint (a dropdown in a tight column), the fixed Text used to
+          // push the row past its width. It ellipsizes now instead.
+          Flexible(
+            child: Text(
+              option.secondaryLabel!,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.bodySmall,
+            ),
+          ),
         ],
       ],
     );

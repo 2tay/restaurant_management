@@ -304,11 +304,17 @@ abstract class AppLocalizations {
   /// **'Notifications'**
   String get topBarNotifications;
 
-  /// Tooltip on the top bar avatar.
+  /// Tooltip on the sidebar user menu.
   ///
   /// In fr, this message translates to:
   /// **'Mon compte'**
   String get topBarAccount;
+
+  /// Sidebar user menu — opens the account settings screen.
+  ///
+  /// In fr, this message translates to:
+  /// **'Mon profil'**
+  String get sidebarProfile;
 
   /// Account menu entry returning to the login screen.
   ///

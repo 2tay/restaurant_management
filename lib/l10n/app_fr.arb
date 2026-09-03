@@ -147,7 +147,11 @@
   },
   "topBarAccount": "Mon compte",
   "@topBarAccount": {
-    "description": "Tooltip on the top bar avatar."
+    "description": "Tooltip on the sidebar user menu."
+  },
+  "sidebarProfile": "Mon profil",
+  "@sidebarProfile": {
+    "description": "Sidebar user menu — opens the account settings screen."
   },
   "actionLogout": "Se déconnecter",
   "@actionLogout": {
