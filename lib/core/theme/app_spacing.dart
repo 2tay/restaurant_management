@@ -83,6 +83,14 @@ abstract final class AppSizing {
   static const double iconMd = 22;
   static const double iconLg = 28;
 
+  /// A search box is capped rather than stretched.
+  ///
+  /// It spanned the whole content area, which on a 1600dp desktop is a 1272dp
+  /// input for a six-letter query — an enormous target that drags the eye
+  /// across the screen and pushes the filters beside it to the far edge. A
+  /// search box only ever holds a few words.
+  static const double searchFieldMaxWidth = 420;
+
   /// The employee picker in a filter bar. Wide enough for "Van der Meulen
   /// Jean-Baptiste" plus the CIN line under it.
   static const double filterFieldWidth = 260;

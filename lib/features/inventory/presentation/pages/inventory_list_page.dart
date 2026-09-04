@@ -789,22 +789,34 @@ void afterFrame(VoidCallback change) =>
 /// which is not enough for any of them; one full-width card per row is.
 int inventoryGridColumns(double width) {
   if (width < _singleColumn) return 1;
-  final columns = (width / 260).floor();
-  return columns.clamp(2, 4);
+  final columns = (width / _columnTarget).floor();
+  return columns.clamp(2, 5);
 }
+
+/// Roughly how wide a card wants to be.
+///
+/// 230dp rather than the 260 it started at, and the ceiling is five columns
+/// rather than four. Both spend the same currency: a 1280dp window drew three
+/// cards across at 309dp each, which is a large photograph of a bag of flour
+/// and six products on screen. At 230 it draws four, and a 1600dp desktop five.
+const double _columnTarget = 230;
 
 /// Below this width the grid drops to a single column.
 const double _singleColumn = 440;
 
 /// How tall the picture on a card is, for a column this wide.
 ///
-/// Three quarters of the column's width, which leaves the picture the 55–60%
-/// of the card the design asks for once [itemCardTextHeight] is added under
-/// it. Bounded at both ends: a single-column phone layout would otherwise draw
-/// a poster, and a four-column pane on a small tablet a postage stamp — and
-/// the floor is what keeps the picture the larger half of a narrow card.
+/// Three fifths of the column's width, which keeps the picture a little over
+/// half the card once [itemCardTextHeight] is added under it. Bounded at both
+/// ends: a single-column phone layout would otherwise draw a poster, and a
+/// five-column pane on a small tablet a postage stamp.
+///
+/// The ratio was three quarters and the ceiling 240, which is where most of a
+/// 376dp card came from. A product photograph is there to be recognised at a
+/// glance, not studied — 190dp is plenty for that, and the difference is a
+/// phone showing three cards instead of one.
 double inventoryImageHeight(double cellWidth) =>
-    (cellWidth * 0.75).clamp(180, 240);
+    (cellWidth * 0.6).clamp(110, 190);
 
 /// Distinguishes "this store has nothing yet" from "your filters matched
 /// nothing". They need different words and a different button.

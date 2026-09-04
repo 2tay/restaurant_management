@@ -17,12 +17,16 @@ import '../../../../shared/widgets/widgets.dart';
 /// each tile — see [ItemCard]. It covers the name, the category, the rule under
 /// them, and the stock line sharing a row with the arrow.
 ///
-/// It scales with the user's type size. 140dp holds four short lines at the
-/// default scale and clips the last of them at 150%, which is where this grid
-/// overflowed for anyone who had turned the text up. Capped at 2x so an extreme
-/// accessibility setting makes the tiles tall rather than making them a page
-/// each.
-const double itemCardTextHeight = 140;
+/// 126dp, not the 140 it started at. Those four lines need about 120 including
+/// the padding, so the rest was slack — and slack multiplied by every tile is
+/// what made a card 376dp tall and left a phone showing one and a half
+/// products.
+///
+/// It scales with the user's type size: 126 clips the last line at 150%, which
+/// is where this grid overflowed for anyone who had turned the text up. Capped
+/// at 2x so an extreme accessibility setting makes the tiles tall rather than
+/// making them a page each.
+const double itemCardTextHeight = 126;
 
 /// [itemCardTextHeight] grown for the user's current type size.
 double itemCardTextHeightFor(BuildContext context) {

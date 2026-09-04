@@ -119,28 +119,44 @@ void main() {
   // can see past. These two functions are the whole of the grid's responsive
   // behaviour, and they are what the phone case is actually about.
   group('the grid sizes itself', () {
-    test('one column on a phone, two on a tablet, four on a desktop', () {
+    test('one column on a phone, more as the window grows', () {
       expect(inventoryGridColumns(390), 1);
       expect(inventoryGridColumns(430), 1);
       expect(inventoryGridColumns(640), 2);
       expect(inventoryGridColumns(800), 3);
       expect(inventoryGridColumns(1100), 4);
-      // Never a fifth column, however wide the window.
-      expect(inventoryGridColumns(2400), 4);
+      // Never a sixth column, however wide the window. Five is already a lot
+      // of photographs across a desktop.
+      expect(inventoryGridColumns(2400), 5);
     });
 
-    test('the picture keeps roughly 55-60% of the card', () {
-      for (final cellWidth in [440.0, 300.0, 260.0, 220.0]) {
+    test('the picture stays about half the card at every column width', () {
+      // Not a fixed share: the image is a ratio of the column width and the
+      // text block under it is a fixed height, so a narrow column gives the
+      // picture proportionally less. The band is what keeps a card from
+      // becoming either a poster or a caption with a thumbnail.
+      for (final cellWidth in [440.0, 300.0, 260.0, 220.0, 160.0]) {
         final image = inventoryImageHeight(cellWidth);
         final share = image / (image + itemCardTextHeight);
-        expect(share, greaterThan(0.55), reason: 'at a $cellWidth column');
-        expect(share, lessThan(0.65), reason: 'at a $cellWidth column');
+        expect(share, greaterThan(0.45), reason: 'at a $cellWidth column');
+        expect(share, lessThan(0.62), reason: 'at a $cellWidth column');
       }
     });
 
     test('and is bounded at both ends', () {
-      expect(inventoryImageHeight(120), 180);
-      expect(inventoryImageHeight(900), 240);
+      expect(inventoryImageHeight(120), 110);
+      expect(inventoryImageHeight(900), 190);
+    });
+
+    test('a card is not taller than it needs to be', () {
+      // The regression this guards: the picture was three quarters of the
+      // column width with a 240dp ceiling and the text block was 140dp, which
+      // made a card 376dp tall — one and a half products on a phone, six on
+      // the 1280dp design baseline.
+      for (final cellWidth in [440.0, 300.0, 230.0]) {
+        final tile = inventoryImageHeight(cellWidth) + itemCardTextHeight;
+        expect(tile, lessThan(320), reason: 'at a $cellWidth column');
+      }
     });
   });
 
