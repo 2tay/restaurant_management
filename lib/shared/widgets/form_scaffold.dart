@@ -31,6 +31,7 @@ class FormScaffold extends StatelessWidget {
     required this.onSubmit,
     required this.child,
     this.subtitle,
+    this.keepSubtitle = false,
     this.crumbs = const [],
     this.submitIcon,
     this.isDirty = false,
@@ -42,6 +43,10 @@ class FormScaffold extends StatelessWidget {
 
   final String title;
   final String? subtitle;
+
+  /// Keeps [subtitle] on a phone — see [ShellPage.keepSubtitle]. True on the
+  /// forms whose subtitle names the record being edited.
+  final bool keepSubtitle;
 
   /// Where Cancel and back lead.
   final BackDestination back;
@@ -89,6 +94,7 @@ class FormScaffold extends StatelessWidget {
       child: ShellPage(
         title: title,
         subtitle: subtitle,
+        keepSubtitle: keepSubtitle,
         back: back,
         crumbs: crumbs,
         onBack: () => _leave(context),

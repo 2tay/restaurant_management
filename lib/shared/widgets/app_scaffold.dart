@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -320,6 +322,7 @@ class ShellPage extends StatelessWidget {
     required this.title,
     required this.child,
     this.subtitle,
+    this.keepSubtitle = false,
     this.actions = const [],
     this.scrollable = true,
     this.padding,
@@ -334,6 +337,14 @@ class ShellPage extends StatelessWidget {
 
   final String title;
   final String? subtitle;
+
+  /// Keeps [subtitle] on a phone, where it is otherwise dropped.
+  ///
+  /// For the handful of screens whose subtitle is information rather than
+  /// description — an unread count, whose price history this is, who is signed
+  /// in. Everywhere else the subtitle explains a screen the title has already
+  /// named, and three lines of that is a poor trade for the content underneath.
+  final bool keepSubtitle;
 
   /// Buttons on the title row. The primary action goes last, nearest the
   /// right-hand edge.
@@ -390,6 +401,7 @@ class ShellPage extends StatelessWidget {
           _TitleRow(
             title: title,
             subtitle: subtitle,
+            keepSubtitle: keepSubtitle,
             actions: actions,
             theme: theme,
           ),
@@ -442,23 +454,37 @@ class _TitleRow extends StatelessWidget {
   const _TitleRow({
     required this.title,
     required this.subtitle,
+    required this.keepSubtitle,
     required this.actions,
     required this.theme,
   });
 
   final String title;
   final String? subtitle;
+  final bool keepSubtitle;
   final List<Widget> actions;
   final ThemeData theme;
 
   @override
   Widget build(BuildContext context) {
+    // The subtitle is commentary, not information — "Historique de toutes les
+    // entrées, sorties et corrections." under a title that already says
+    // Mouvements de stock. On a phone it costs three lines before any stock
+    // appears, so it goes. A button's label has to be *moved* when it will not
+    // fit, because it is the action; a sentence explaining the screen can
+    // simply be dropped.
+    //
+    // The four screens whose subtitle is real information — an unread count,
+    // which product's price history this is — opt out with [keepSubtitle].
+    final showSubtitle =
+        subtitle != null && (keepSubtitle || !context.isPhone);
+
     final titleBlock = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(title, style: theme.textTheme.headlineMedium),
-        if (subtitle != null) ...[
+        if (showSubtitle) ...[
           const SizedBox(height: AppSpacing.xs),
           Text(subtitle!, style: theme.textTheme.bodyMedium),
         ],
@@ -484,45 +510,48 @@ class _TitleRow extends StatelessWidget {
           ),
         );
 
-        // Narrow: the actions cannot share the title's line, so they take
-        // their own row underneath. What they look like on that row is the
-        // density's business — shorter labels on a tablet, icons on a phone —
-        // which is what keeps it to one row rather than the stack of
-        // full-width buttons this used to draw.
-        if (constraints.maxWidth < _stackActionsBelow) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+        // One `Wrap` rather than a width threshold deciding between a row and a
+        // column. A threshold cannot know how much the actions need: at 700dp
+        // it pushed Produits' single "Ajouter" onto its own line with half the
+        // header sitting empty beside the title, while Mouvements de stock's
+        // three genuinely did need the second line.
+        //
+        // Letting them wrap answers that per page instead of guessing. When
+        // both fit, `spaceBetween` holds the title left and the actions hard
+        // right — the layout the wide branch used to build by hand. When they
+        // do not, the actions take the next line, at its left edge: on a phone
+        // that is where the thumb and the eye already are.
+        //
+        // Stretched to the header's full width, because a `Wrap` otherwise
+        // sizes itself to its children and the header's Column hands it loose
+        // constraints — leaving `spaceBetween` no free space to distribute and
+        // the action tucked against the title instead of out at the right edge.
+        return SizedBox(
+          width: constraints.maxWidth.isFinite ? constraints.maxWidth : null,
+          child: Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: AppSpacing.xl,
+            runSpacing: AppSpacing.lg,
             children: [
-              titleBlock,
-              const SizedBox(height: AppSpacing.lg),
+              ConstrainedBox(
+                // Keeps a long subtitle from eating the whole line and forcing
+                // a wrap on its own — it wraps to a second line instead, which
+                // is cheaper than pushing the actions down. The floor stops the
+                // rule squeezing the *title* on a narrow header, where 60% is
+                // not enough for "Mouvements de stock" on one line.
+                constraints: BoxConstraints(
+                  maxWidth: math.max(constraints.maxWidth * 0.6, 320),
+                ),
+                child: titleBlock,
+              ),
               actionRow,
             ],
-          );
-        }
-
-        // Wide: the title takes the slack on the left, the actions keep their
-        // natural width and sit hard against the right edge — one row, however
-        // many there are (they only wrap if they somehow need more than 60% of
-        // the header). Vertically centred on the title.
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Expanded(child: titleBlock),
-            const SizedBox(width: AppSpacing.xl),
-            ConstrainedBox(
-              constraints: BoxConstraints(
-                maxWidth: constraints.maxWidth * 0.6,
-              ),
-              child: actionRow,
-            ),
-          ],
+          ),
         );
       },
     );
   }
-
-  /// Header width below which the actions move under the title.
-  static const double _stackActionsBelow = 820;
 
   /// Header width below which the actions shorten, and then collapse.
   ///
@@ -534,7 +563,7 @@ class _TitleRow extends StatelessWidget {
   /// button is the only thing the screen offers, and collapsing it to a glyph
   /// leaves the user with nothing to read.
   ActionDensity _densityFor(double width) {
-    if (width >= _stackActionsBelow) return ActionDensity.full;
+    if (width >= 820) return ActionDensity.full;
     if (width >= AppBreakpoints.compact || actions.length == 1) {
       return ActionDensity.short;
     }

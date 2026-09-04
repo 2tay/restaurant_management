@@ -138,6 +138,8 @@ class StoreDashboardPage extends ConsumerWidget {
     return ShellPage(
       title: l10n.dashboardTitle,
       subtitle: l10n.dashboardGreeting(userName ?? ''),
+      // Information, not description — kept on a phone.
+      keepSubtitle: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [

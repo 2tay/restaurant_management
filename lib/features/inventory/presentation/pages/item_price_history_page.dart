@@ -127,6 +127,8 @@ class ItemPriceHistoryPage extends ConsumerWidget {
       ],
       title: l10n.priceHistoryTitle,
       subtitle: l10n.priceHistoryFor(item.name, supplierName),
+      // Information, not description — kept on a phone.
+      keepSubtitle: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [

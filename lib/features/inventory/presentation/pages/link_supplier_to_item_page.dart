@@ -100,6 +100,8 @@ class _LinkSupplierToItemPageState
     return FormScaffold(
       title: l10n.linkSupplierTitle,
       subtitle: l10n.linkSupplierFor(item.name),
+      // Information, not description — kept on a phone.
+      keepSubtitle: true,
       back: BackDestination(
         label: item.name,
         path: Routes.toItem(widget.storeId, item.id),

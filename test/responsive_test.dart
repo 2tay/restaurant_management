@@ -19,7 +19,9 @@ import 'package:stock_inventory/app/router.dart';
 import 'package:stock_inventory/app/routes.dart';
 import 'package:stock_inventory/core/theme/app_spacing.dart';
 import 'package:stock_inventory/data/seed/dataset/dataset.dart';
+import 'package:stock_inventory/shared/widgets/app_scaffold.dart';
 import 'package:stock_inventory/shared/widgets/app_sidebar.dart';
+import 'package:stock_inventory/shared/widgets/primary_button.dart';
 
 import 'support/app_harness.dart';
 import 'support/route_walk.dart';
@@ -147,6 +149,112 @@ void main() {
       );
 
       expect(find.text('Ajouter'), findsOneWidget);
+    });
+
+    testApp('a lone action stays beside the title when it fits', (
+      tester,
+    ) async {
+      // The rule is "does it fit", not "how wide is the screen". Produits'
+      // single Ajouter has room to the right of the title even at 700dp, and
+      // pushing it onto its own line there wasted a whole row of a short
+      // window for nothing.
+      await _renderAt(
+        tester,
+        const Size(700, 900),
+        Routes.toInventory(StoreIds.sablon),
+      );
+
+      // The button rather than its text, so the assertion is about the layout
+      // and not about which density the header landed on.
+      final title = tester.getRect(find.text('Produits'));
+      final action = tester.getRect(find.byType(PrimaryButton));
+
+      expect(
+        action.left,
+        greaterThan(title.right),
+        reason: 'the action sits to the right of the title',
+      );
+      expect(
+        action.top,
+        lessThan(title.bottom),
+        reason: 'and on the same line, not under it',
+      );
+
+      // Out at the right edge, not tucked against the title. A `Wrap` that has
+      // shrink-wrapped to its children leaves `spaceBetween` nothing to
+      // distribute and puts the button right beside the word "Produits" with
+      // the rest of the header empty — which is what this catches.
+      final header = tester.getRect(find.byType(ShellPage));
+      expect(
+        header.right - action.right,
+        lessThan(AppSpacing.pagePadding + 1),
+        reason: 'flush with the content edge',
+      );
+    });
+
+    testApp('three actions do take their own line when they must', (
+      tester,
+    ) async {
+      await _renderAt(
+        tester,
+        const Size(700, 900),
+        Routes.toMovements(StoreIds.sablon),
+      );
+
+      final title = tester.getRect(find.text('Mouvements de stock'));
+      final action = tester.getRect(find.byType(PrimaryButton));
+
+      expect(
+        action.top,
+        greaterThan(title.bottom),
+        reason: 'three of them genuinely do not fit beside the title',
+      );
+    });
+  });
+
+  group('page subtitles', () {
+    // A subtitle is commentary — the title above it has already named the
+    // screen. On a phone it costs three lines before any content appears.
+
+    testApp('a descriptive subtitle is dropped on a phone', (tester) async {
+      await _renderAt(
+        tester,
+        const Size(360, 780),
+        Routes.toMovements(StoreIds.sablon),
+      );
+
+      expect(
+        find.text('Historique de toutes les entrées, sorties et corrections.'),
+        findsNothing,
+      );
+      expect(find.text('Mouvements de stock'), findsOneWidget);
+    });
+
+    testApp('and kept on a tablet', (tester) async {
+      await _renderAt(
+        tester,
+        const Size(1280, 800),
+        Routes.toMovements(StoreIds.sablon),
+      );
+
+      expect(
+        find.text('Historique de toutes les entrées, sorties et corrections.'),
+        findsOneWidget,
+      );
+    });
+
+    testApp('a subtitle carrying information survives the phone', (
+      tester,
+    ) async {
+      // "3 non lues" is not a description of the notifications screen, it is
+      // the answer the user came for.
+      await _renderAt(
+        tester,
+        const Size(360, 780),
+        Routes.toNotifications(StoreIds.sablon),
+      );
+
+      expect(find.textContaining('non lue'), findsWidgets);
     });
   });
 
