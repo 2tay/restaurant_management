@@ -382,8 +382,15 @@ class ShellPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
+    // The gap between the header and the content it introduces. 24dp is right
+    // when there is room; on a short window it is a fifth of what is left after
+    // the header itself, and the content is what the screen is for.
     final header = Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.xl),
+      padding: EdgeInsets.only(
+        bottom: context.isShort || context.isPhone
+            ? AppSpacing.lg
+            : AppSpacing.xl,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

@@ -68,10 +68,25 @@ extension ResponsiveContext on BuildContext {
   /// labels stop fitting on a tablet.
   bool get isLargeText => MediaQuery.textScalerOf(this).scale(14) > 18;
 
-  /// Outer padding for a content page. Tighter on a phone, where 24dp on each
-  /// side is a tenth of the screen.
-  EdgeInsets get pageInsets => EdgeInsets.all(
-    isPhone ? AppSpacing.lg : AppSpacing.pagePadding,
+  double get screenHeight => MediaQuery.sizeOf(this).height;
+
+  /// A window with little vertical room — a 1024x600 tablet in landscape, or a
+  /// phone with the keyboard up.
+  ///
+  /// Width breakpoints cannot see this. 1024x600 is a *wide* window by every
+  /// horizontal measure and still one of the worst screens in the app, because
+  /// the page chrome above a list is a fixed height and 600dp is not much to
+  /// take it out of. Anything that trims vertically keys off this.
+  bool get isShort => screenHeight < 700;
+
+  /// Outer padding for a content page.
+  ///
+  /// Tighter on a phone, where 24dp a side is a tenth of the screen, and
+  /// tighter top and bottom on a short window, where the vertical is what the
+  /// content is short of.
+  EdgeInsets get pageInsets => EdgeInsets.symmetric(
+    horizontal: isPhone ? AppSpacing.lg : AppSpacing.pagePadding,
+    vertical: isPhone || isShort ? AppSpacing.lg : AppSpacing.pagePadding,
   );
 
   /// Margin between a dialog and the edge of the window.

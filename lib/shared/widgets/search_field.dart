@@ -31,6 +31,12 @@ class SearchField extends StatefulWidget {
   final bool autofocus;
 
   /// Widest the input is drawn, however much room it is given.
+  ///
+  /// This is a cap on a box that still *fills* what it is handed — which is
+  /// what a caller wants inside an `Expanded`, and the opposite of what one
+  /// wants inside a `Wrap`, where filling the line pushes every control beside
+  /// it onto the next one. A `Wrap` call site should hand it a `SizedBox` of
+  /// the width it wants instead.
   final double maxWidth;
 
   @override
