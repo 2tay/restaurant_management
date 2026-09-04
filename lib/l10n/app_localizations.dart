@@ -244,6 +244,30 @@ abstract class AppLocalizations {
   /// **'Tout lire'**
   String get shortMarkAllRead;
 
+  /// The button that opens the filter sheet on a narrow screen, and that sheet's own title.
+  ///
+  /// In fr, this message translates to:
+  /// **'Filtres'**
+  String get filtersTitle;
+
+  /// The same button once filters are applied, so the count is visible without opening it.
+  ///
+  /// In fr, this message translates to:
+  /// **'Filtres · {count}'**
+  String filtersTitleWithCount(int count);
+
+  /// Clears every filter, from inside the filter sheet.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tout effacer'**
+  String get filtersClearAll;
+
+  /// Closes the filter sheet. Names what closing it gets you rather than saying 'Fermer'.
+  ///
+  /// In fr, this message translates to:
+  /// **'Voir les résultats'**
+  String get filtersDone;
+
   /// Primary action on the inventory list and its empty state.
   ///
   /// In fr, this message translates to:

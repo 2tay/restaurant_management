@@ -84,6 +84,20 @@ class AppLocalizationsFr extends AppLocalizations {
   String get shortMarkAllRead => 'Tout lire';
 
   @override
+  String get filtersTitle => 'Filtres';
+
+  @override
+  String filtersTitleWithCount(int count) {
+    return 'Filtres · $count';
+  }
+
+  @override
+  String get filtersClearAll => 'Tout effacer';
+
+  @override
+  String get filtersDone => 'Voir les résultats';
+
+  @override
   String get actionAddItem => 'Ajouter un produit';
 
   @override

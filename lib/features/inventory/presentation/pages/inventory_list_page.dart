@@ -92,11 +92,17 @@ class InventoryFilter {
   /// also undo the ordering the user chose to read them in.
   final ItemSort sort;
 
-  bool get hasActiveFilters =>
-      query.isNotEmpty ||
-      categoryId != null ||
-      supplierId != null ||
-      lowStockOnly;
+  bool get hasActiveFilters => activeFilterCount > 0;
+
+  /// How many filters are narrowing the list, for the button that stands in
+  /// for them on a phone. The search box is one of them: it is on screen
+  /// beside the button, but it is still a reason the list is shorter than the
+  /// store, and a count that ignored it would be lying by omission.
+  int get activeFilterCount =>
+      (query.isNotEmpty ? 1 : 0) +
+      (categoryId != null ? 1 : 0) +
+      (supplierId != null ? 1 : 0) +
+      (lowStockOnly ? 1 : 0);
 
   /// The part of this the database can answer.
   ///
@@ -400,9 +406,149 @@ class _ListControls extends StatelessWidget {
   /// line — it is sharing now, and a product name is a short query.
   static const double _searchWidth = 300;
 
+  /// The phone layout: two rows instead of six.
+  ///
+  /// Row one is the search box and the button the filters have moved behind.
+  /// Row two is the result count with the display controls at the right — the
+  /// answer on the left, how it is shown on the right.
+  ///
+  /// The filters are not gone, they are one tap away and the button says how
+  /// many are applied. What is gone is 240dp of stacked pills above a 320dp
+  /// card, which is what made this screen show two thirds of one product.
+  Widget _phoneBar(BuildContext context, AppLocalizations l10n) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: SearchField(
+                hint: l10n.inventorySearchHint,
+                initialValue: filter.query,
+                onChanged: notifier.setQuery,
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            FilterSheetButton(
+              activeCount: filter.activeFilterCount,
+              onPressed: () => FilterSheet.show(
+                context,
+                onClear: filter.hasActiveFilters ? notifier.clear : null,
+                // Rebuilt from the provider rather than captured, so the pills
+                // inside the sheet follow the taps made on them. Without this
+                // the sheet would show the filter state as it was when it
+                // opened and never move.
+                builder: (context) => Consumer(
+                  builder: (context, ref, _) {
+                    final live = ref.watch(inventoryFilterProvider);
+                    return _ListControls(
+                      filter: live,
+                      notifier: notifier,
+                      count: count,
+                      categories: categories,
+                      suppliers: suppliers,
+                      viewMode: viewMode,
+                      onViewMode: onViewMode,
+                    )._sheetContents(context, l10n);
+                  },
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        // A `Wrap`, not a `Row`. The sort pill takes its natural width when
+        // nothing bounds it, and "24 produits" plus "Stock prioritaire" plus
+        // the view toggle is 48dp more than a 328dp phone has — a Row
+        // overflows there rather than giving way.
+        Wrap(
+          alignment: WrapAlignment.spaceBetween,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: AppSpacing.sm,
+          runSpacing: AppSpacing.sm,
+          children: [
+            Text(
+              l10n.inventoryCount(count),
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Flexible so the sort pill gives way rather than overflowing.
+                // The view toggle beside it is two 48dp squares that cannot
+                // shrink, so the sort label is the only thing left that can —
+                // and `FilterPill` ellipsizes once something bounds it.
+                Flexible(
+                  child: _SortMenu(
+                    sort: filter.sort,
+                    onSelected: notifier.setSort,
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                _ViewModeToggle(mode: viewMode, onSelected: onViewMode),
+              ],
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  /// The filters, stacked full width for the sheet.
+  Widget _sheetContents(BuildContext context, AppLocalizations l10n) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      for (final (i, control) in _filterControls(context, l10n).indexed) ...[
+        if (i > 0) const SizedBox(height: AppSpacing.md),
+        Align(alignment: Alignment.centerLeft, child: control),
+      ],
+    ],
+  );
+
+  /// The three filter controls, as the wide bar and the phone sheet both draw
+  /// them. One definition, so the sheet cannot drift from the bar.
+  List<Widget> _filterControls(BuildContext context, AppLocalizations l10n) => [
+    _FilterMenu(
+      label: l10n.inventoryFilterCategory,
+      allLabel: l10n.inventoryFilterAll,
+      selectedId: filter.categoryId,
+      options: categories,
+      onSelected: notifier.setCategory,
+    ),
+    _FilterMenu(
+      label: l10n.inventoryFilterSupplier,
+      allLabel: l10n.inventoryFilterAllSuppliers,
+      selectedId: filter.supplierId,
+      options: suppliers,
+      onSelected: notifier.setSupplier,
+    ),
+    // A pill rather than a Material `FilterChip`: the chip drew itself 385dp
+    // wide for a three-word label, next to two 180dp pills saying the same
+    // kind of thing. Same control, same shape as its neighbours, half the
+    // width — and the roster's "afficher les retirés" toggle is built exactly
+    // this way, so the two now match.
+    Material(
+      color: Colors.transparent,
+      borderRadius: AppRadius.pillAll,
+      child: InkWell(
+        onTap: notifier.toggleLowStockOnly,
+        borderRadius: AppRadius.pillAll,
+        child: FilterPill(
+          label: l10n.inventoryFilterLowOnly,
+          selectedLabel: filter.lowStockOnly
+              ? l10n.inventoryFilterLowOnly
+              : null,
+          icon: LucideIcons.triangleAlert,
+        ),
+      ),
+    ),
+  ];
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+
+    if (context.isPhone) return _phoneBar(context, l10n);
 
     // Filters wrap rather than scroll: a hidden filter is a filter nobody
     // uses, and French category names are long.
@@ -423,40 +569,7 @@ class _ListControls extends StatelessWidget {
             onChanged: notifier.setQuery,
           ),
         ),
-        _FilterMenu(
-          label: l10n.inventoryFilterCategory,
-          allLabel: l10n.inventoryFilterAll,
-          selectedId: filter.categoryId,
-          options: categories,
-          onSelected: notifier.setCategory,
-        ),
-        _FilterMenu(
-          label: l10n.inventoryFilterSupplier,
-          allLabel: l10n.inventoryFilterAllSuppliers,
-          selectedId: filter.supplierId,
-          options: suppliers,
-          onSelected: notifier.setSupplier,
-        ),
-        // A pill rather than a Material `FilterChip`: the chip drew itself
-        // 385dp wide for a three-word label, next to two 180dp pills saying
-        // the same kind of thing. Same control, same shape as its neighbours,
-        // half the width — and the roster's "afficher les retirés" toggle is
-        // built exactly this way, so the two now match.
-        Material(
-          color: Colors.transparent,
-          borderRadius: AppRadius.pillAll,
-          child: InkWell(
-            onTap: notifier.toggleLowStockOnly,
-            borderRadius: AppRadius.pillAll,
-            child: FilterPill(
-              label: l10n.inventoryFilterLowOnly,
-              selectedLabel: filter.lowStockOnly
-                  ? l10n.inventoryFilterLowOnly
-                  : null,
-              icon: LucideIcons.triangleAlert,
-            ),
-          ),
-        ),
+        ..._filterControls(context, l10n),
         if (filter.hasActiveFilters)
           TextButton.icon(
             onPressed: notifier.clear,

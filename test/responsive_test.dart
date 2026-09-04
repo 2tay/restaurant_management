@@ -21,6 +21,7 @@ import 'package:stock_inventory/core/theme/app_spacing.dart';
 import 'package:stock_inventory/data/seed/dataset/dataset.dart';
 import 'package:stock_inventory/shared/widgets/app_scaffold.dart';
 import 'package:stock_inventory/shared/widgets/app_sidebar.dart';
+import 'package:stock_inventory/shared/widgets/filter_sheet.dart';
 import 'package:stock_inventory/shared/widgets/primary_button.dart';
 
 import 'support/app_harness.dart';
@@ -255,6 +256,84 @@ void main() {
       );
 
       expect(find.textContaining('non lue'), findsWidgets);
+    });
+  });
+
+  group('a phone list moves its filters behind a button', () {
+    // The controls of a list screen come to about 1500dp of natural width. A
+    // 360dp phone has 328, so they stacked into six rows of chrome above a
+    // 320dp card and the screen showed two thirds of one product.
+
+    testApp('the filters are one tap away, and still work from there', (
+      tester,
+    ) async {
+      await _renderAt(
+        tester,
+        const Size(360, 780),
+        Routes.toInventory(StoreIds.sablon),
+      );
+
+      // Not on screen...
+      expect(find.text('Catégorie'), findsNothing);
+
+      // ...but one tap away, and the button says so.
+      await tester.tap(find.byType(FilterSheetButton));
+      await tester.pumpAndSettle();
+      expect(find.text('Catégorie'), findsOneWidget);
+
+      // The controls in the sheet are the same ones the wide bar uses, and
+      // they drive the same providers — so picking one filters the list
+      // behind it rather than only the sheet in front of it.
+      await tester.tap(find.text('Catégorie'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(mockCategories.first.name).last);
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(
+        find.text(mockCategories.first.name),
+        findsWidgets,
+        reason: 'the chosen category is now the pill label',
+      );
+    });
+
+    testApp('the button counts what is applied, so nothing is hidden', (
+      tester,
+    ) async {
+      await _renderAt(
+        tester,
+        const Size(360, 780),
+        Routes.toInventory(StoreIds.sablon),
+      );
+
+      expect(
+        tester.widget<FilterSheetButton>(find.byType(FilterSheetButton))
+            .activeCount,
+        0,
+      );
+
+      await tester.enterText(find.byType(TextField).first, 'beurre');
+      await tester.pumpAndSettle();
+
+      expect(
+        tester.widget<FilterSheetButton>(find.byType(FilterSheetButton))
+            .activeCount,
+        1,
+        reason: 'the search box narrows the list too, so it counts',
+      );
+    });
+
+    testApp('a tablet keeps its filters on screen', (tester) async {
+      // The rule the inventory page was built on — a hidden filter is a filter
+      // nobody uses — still holds at a width that has room for them.
+      await _renderAt(
+        tester,
+        const Size(1280, 800),
+        Routes.toInventory(StoreIds.sablon),
+      );
+
+      expect(find.byType(FilterSheetButton), findsNothing);
+      expect(find.text('Catégorie'), findsOneWidget);
     });
   });
 

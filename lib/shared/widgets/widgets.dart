@@ -32,6 +32,7 @@ export 'error_state.dart';
 export 'filter_bar.dart';
 export 'filter_menu.dart';
 export 'filter_pill.dart';
+export 'filter_sheet.dart';
 export 'form_scaffold.dart';
 export 'identity_prompt_dialog.dart';
 export 'loading_state.dart';
