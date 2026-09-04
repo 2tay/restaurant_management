@@ -80,28 +80,35 @@ class AttendanceAlerts extends StatelessWidget {
           for (final a in anomalies)
             Padding(
               padding: const EdgeInsets.only(bottom: AppSpacing.xs),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(
-                    LucideIcons.triangleAlert,
-                    size: AppSizing.iconSm,
-                    color: AppColors.lowStock.foreground,
-                  ),
-                  const SizedBox(width: AppSpacing.xs),
-                  Expanded(
-                    child: Text(
-                      attendanceAnomalyDetail(
-                        l10n,
-                        a,
-                        entry,
-                        startMinutes: startMinutes,
-                        maxBreakMinutes: maxBreakMinutes,
-                      ),
-                      style: theme.textTheme.bodyMedium,
+              child: Container(
+                padding: const EdgeInsets.all(AppSpacing.sm),
+                decoration: BoxDecoration(
+                  color: AppColors.lowStock.foreground.withValues(alpha: 0.1),
+                  borderRadius: AppRadius.mdAll,
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      LucideIcons.triangleAlert,
+                      size: AppSizing.iconSm,
+                      color: AppColors.lowStock.foreground,
                     ),
-                  ),
-                ],
+                    const SizedBox(width: AppSpacing.xs),
+                    Expanded(
+                      child: Text(
+                        attendanceAnomalyDetail(
+                          l10n,
+                          a,
+                          entry,
+                          startMinutes: startMinutes,
+                          maxBreakMinutes: maxBreakMinutes,
+                        ),
+                        style: theme.textTheme.bodyMedium,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
         ],

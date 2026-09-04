@@ -91,10 +91,12 @@ abstract final class Formatters {
   // Durations
   // ---------------------------------------------------------------------------
 
-  /// `7 h 48` — worked time, break length, overtime.
+  /// `7 h 48` — worked time, break length, overtime. Under an hour, the
+  /// leading `0 h` is noise — `15 min` reads faster than `0 h 15`.
   static String duration(Duration value) {
     final hours = value.inHours;
     final minutes = value.inMinutes.remainder(60);
+    if (hours == 0) return '$minutes min';
     return '$hours h ${minutes.toString().padLeft(2, '0')}';
   }
 
@@ -106,6 +108,8 @@ abstract final class Formatters {
   static final DateFormat _longDate = DateFormat('d MMMM yyyy', locale);
   static final DateFormat _dayMonth = DateFormat('d MMM', locale);
   static final DateFormat _time = DateFormat('HH:mm', locale);
+  static final DateFormat _weekday = DateFormat('EEEE', locale);
+  static final DateFormat _dateNoPad = DateFormat('d/M/yyyy', locale);
 
   /// `22/08/2026`
   static String date(DateTime value) => _shortDate.format(value);
@@ -115,6 +119,15 @@ abstract final class Formatters {
 
   /// `22 août` — chart axes and compact rows.
   static String dayMonth(DateTime value) => _dayMonth.format(value);
+
+  /// `Lundi : 8/10/2026`
+  static String dateWithWeekday(DateTime value) {
+    final weekday = _weekday.format(value);
+    final capitalized = weekday.isEmpty
+        ? weekday
+        : weekday[0].toUpperCase() + weekday.substring(1);
+    return '$capitalized : ${_dateNoPad.format(value)}';
+  }
 
   /// `14:32` — Belgium uses a 24-hour clock.
   static String time(DateTime value) => _time.format(value);

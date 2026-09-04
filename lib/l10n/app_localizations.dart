@@ -4582,6 +4582,18 @@ abstract class AppLocalizations {
   /// **'Chronologie'**
   String get attendanceDetailTimeline;
 
+  /// Drawer summary row label — break count, paired with the total break duration as its value.
+  ///
+  /// In fr, this message translates to:
+  /// **'Pause({count})'**
+  String attendanceDetailPauseCount(int count);
+
+  /// Drawer summary row label — how late the arrival was, paired with the duration as its value.
+  ///
+  /// In fr, this message translates to:
+  /// **'Retard'**
+  String get attendanceDetailLate;
+
   /// Store settings section header for payroll coefficients.
   ///
   /// In fr, this message translates to:

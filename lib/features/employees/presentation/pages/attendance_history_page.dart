@@ -260,11 +260,29 @@ class _AttendanceHistoryPageState extends ConsumerState<AttendanceHistoryPage> {
     );
     final worked = workedDuration(a);
     final overtime = overtimeBy(a, ctx.endMinutes) ?? Duration.zero;
+    final late = lateBy(a, ctx.startMinutes) ?? Duration.zero;
 
     return DetailDrawer.show(
       context,
       title: l10n.attendanceDetailTitle,
       children: [
+        Row(
+          children: [
+            const Icon(
+              LucideIcons.calendar,
+              size: AppSizing.iconSm,
+              color: AppColors.textSecondary,
+            ),
+            const SizedBox(width: AppSpacing.xs),
+            Text(
+              Formatters.dateWithWeekday(a.date),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.xl),
         if (employee != null) ...[
           Row(
             children: [
@@ -287,51 +305,37 @@ class _AttendanceHistoryPageState extends ConsumerState<AttendanceHistoryPage> {
                   ],
                 ),
               ),
+              const SizedBox(width: AppSpacing.md),
+              AttendanceStatusBadge(status: a.status),
             ],
           ),
-          const SizedBox(height: AppSpacing.lg),
-        ],
-        DrawerRow(
-          label: l10n.attendanceColumnDate,
-          value: Formatters.date(a.date),
-        ),
-        DrawerRow(
-          label: l10n.attendanceColumnStatus,
-          valueWidget: Align(
-            alignment: Alignment.centerLeft,
+        ] else ...[
+          Align(
+            alignment: Alignment.centerRight,
             child: AttendanceStatusBadge(status: a.status),
           ),
-        ),
+        ],
+        const SizedBox(height: AppSpacing.xxxl),
+        _drawerSectionTitle(LucideIcons.triangleAlert, l10n.attendanceColumnFlags),
         const SizedBox(height: AppSpacing.md),
-        SectionHeader(title: l10n.attendanceColumnSchedule),
-        DrawerRow(
-          label: l10n.attendanceColumnArrival,
-          value: a.clockInAt == null ? '—' : Formatters.time(a.clockInAt!),
+        AttendanceAlerts(
+          entry: a,
+          startMinutes: ctx.startMinutes,
+          maxBreakMinutes: ctx.maxBreakMinutes,
+          detailed: true,
         ),
-        DrawerRow(
-          label: l10n.attendanceColumnDeparture,
-          value: a.clockOutAt == null ? '—' : Formatters.time(a.clockOutAt!),
-        ),
+        const SizedBox(height: AppSpacing.xxxl),
+        _drawerSectionTitle(LucideIcons.clock, l10n.attendanceDetailTimeline),
         const SizedBox(height: AppSpacing.md),
-        SectionHeader(
-          title: l10n.attendanceDetailBreaks(a.pauses.length),
-        ),
-        for (final pause in a.pauses)
-          _BreakLine(
-            pause: pause,
-            over:
-                breakOverrun(pause, ctx.maxBreakMinutes) > Duration.zero,
-          ),
-        DrawerRow(
-          label: l10n.attendanceDetailBreakTotal,
-          value: Formatters.duration(totalBreak(a)),
-        ),
-        const SizedBox(height: AppSpacing.md),
-        SectionHeader(title: l10n.attendanceDetailWorkTime),
+        AttendanceTimeline(entry: a, maxBreakMinutes: ctx.maxBreakMinutes),
+        const SizedBox(height: AppSpacing.xxxl),
+        Divider(height: 1, color: AppColors.border.withValues(alpha: 0.5)),
+        const SizedBox(height: AppSpacing.lg),
         DrawerRow(
           label: l10n.attendanceColumnWorked,
           value: worked == null ? '—' : Formatters.duration(worked),
         ),
+        const SizedBox(height: AppSpacing.xs),
         DrawerRow(
           label: l10n.attendanceColumnOvertime,
           value: overtime == Duration.zero
@@ -340,20 +344,34 @@ class _AttendanceHistoryPageState extends ConsumerState<AttendanceHistoryPage> {
                   Formatters.duration(overtime),
                 ),
         ),
-        const SizedBox(height: AppSpacing.md),
-        SectionHeader(title: l10n.attendanceColumnFlags),
-        AttendanceAlerts(
-          entry: a,
-          startMinutes: ctx.startMinutes,
-          maxBreakMinutes: ctx.maxBreakMinutes,
-          detailed: true,
+        const SizedBox(height: AppSpacing.xs),
+        DrawerRow(
+          label: l10n.attendanceDetailPauseCount(a.pauses.length),
+          value: Formatters.duration(totalBreak(a)),
         ),
-        const SizedBox(height: AppSpacing.lg),
-        SectionHeader(title: l10n.attendanceDetailTimeline),
-        AttendanceTimeline(entry: a, maxBreakMinutes: ctx.maxBreakMinutes),
+        const SizedBox(height: AppSpacing.xs),
+        DrawerRow(
+          label: l10n.attendanceDetailLate,
+          valueWidget: Text(
+            late == Duration.zero ? '—' : Formatters.duration(late),
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: late == Duration.zero ? null : AppColors.lowStock.foreground,
+            ),
+          ),
+        ),
       ],
     );
   }
+
+  /// A drawer section title matching the drawer header's own text style —
+  /// bigger than the shared [SectionHeader], with a leading icon.
+  Widget _drawerSectionTitle(IconData icon, String title) => Row(
+    children: [
+      Icon(icon, size: AppSizing.iconSm, color: AppColors.textSecondary),
+      const SizedBox(width: AppSpacing.xs),
+      Text(title, style: Theme.of(context).textTheme.titleMedium),
+    ],
+  );
 
   bool get _dateRangeIsDefault => _from == _defaultFrom && _to == _defaultTo;
 
@@ -708,43 +726,3 @@ class _HistoryTable extends StatelessWidget {
   }
 }
 
-/// One break line in the detail drawer — start – end (duration), amber when it
-/// ran past the allowance.
-class _BreakLine extends StatelessWidget {
-  const _BreakLine({required this.pause, required this.over});
-
-  final AttendancePause pause;
-  final bool over;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final end = pause.endAt;
-    final label = end == null
-        ? '${Formatters.time(pause.startAt)} – …'
-        : '${Formatters.time(pause.startAt)} – ${Formatters.time(end)}'
-              ' (${Formatters.duration(end.difference(pause.startAt))})';
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.xs),
-      child: Row(
-        children: [
-          Icon(
-            over ? LucideIcons.triangleAlert : LucideIcons.coffee,
-            size: AppSizing.iconSm,
-            color: over
-                ? AppColors.lowStock.foreground
-                : AppColors.textSecondary,
-          ),
-          const SizedBox(width: AppSpacing.xs),
-          Text(
-            label,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: over ? AppColors.lowStock.foreground : null,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}

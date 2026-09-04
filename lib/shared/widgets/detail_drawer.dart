@@ -79,7 +79,7 @@ class DetailDrawer extends StatelessWidget {
                     ],
                   ),
                 ),
-                const Divider(height: 1),
+                Divider(height: 1, color: AppColors.border.withValues(alpha: 0.5)),
                 Expanded(
                   child: ListView(
                     padding: const EdgeInsets.all(AppSpacing.xl),

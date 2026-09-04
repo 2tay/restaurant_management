@@ -1690,6 +1690,10 @@
   "@attendanceDetailOvertimeInfo": {"description": "Overtime value in the drawer, marked as informational — never an alert.", "placeholders": {"duration": {"type": "String"}}},
   "attendanceDetailTimeline": "Chronologie",
   "@attendanceDetailTimeline": {"description": "Drawer section header for the event timeline."},
+  "attendanceDetailPauseCount": "Pause({count})",
+  "@attendanceDetailPauseCount": {"description": "Drawer summary row label — break count, paired with the total break duration as its value.", "placeholders": {"count": {"type": "int"}}},
+  "attendanceDetailLate": "Retard",
+  "@attendanceDetailLate": {"description": "Drawer summary row label — how late the arrival was, paired with the duration as its value."},
 
   "storeSettingsPayroll": "Paie",
   "@storeSettingsPayroll": {"description": "Store settings section header for payroll coefficients."},

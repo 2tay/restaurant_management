@@ -2779,6 +2779,14 @@ class AppLocalizationsFr extends AppLocalizations {
   String get attendanceDetailTimeline => 'Chronologie';
 
   @override
+  String attendanceDetailPauseCount(int count) {
+    return 'Pause($count)';
+  }
+
+  @override
+  String get attendanceDetailLate => 'Retard';
+
+  @override
   String get storeSettingsPayroll => 'Paie';
 
   @override
