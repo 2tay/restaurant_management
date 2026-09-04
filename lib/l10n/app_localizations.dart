@@ -109,7 +109,7 @@ abstract class AppLocalizations {
   /// Sidebar label for the inventory list.
   ///
   /// In fr, this message translates to:
-  /// **'Inventaire'**
+  /// **'Produits'**
   String get navInventory;
 
   /// Sidebar label for stock in/out/adjustment history. One of the longest rail labels — size the NavigationRail against this string.
@@ -142,11 +142,11 @@ abstract class AppLocalizations {
   /// **'Rapports'**
   String get navReports;
 
-  /// Sidebar label for team members and roles.
+  /// Sidebar label for the Gestion Employée section — a dropdown expanding into Personnel, Tableau de bord, Historique pointage and Historique de paiement.
   ///
   /// In fr, this message translates to:
-  /// **'Équipe'**
-  String get navTeam;
+  /// **'Gestion Employée'**
+  String get navEmployees;
 
   /// Sidebar label for settings.
   ///
@@ -175,7 +175,7 @@ abstract class AppLocalizations {
   /// Primary action on the inventory list and its empty state.
   ///
   /// In fr, this message translates to:
-  /// **'Ajouter un article'**
+  /// **'Ajouter un produit'**
   String get actionAddItem;
 
   /// Quick action on the dashboard — opens the Stock In screen. Deliberately plain language, not 'create stock ingress record'.
@@ -232,6 +232,12 @@ abstract class AppLocalizations {
   /// **'Fermer'**
   String get actionClose;
 
+  /// Clears a selection, e.g. the chosen employee in a selector.
+  ///
+  /// In fr, this message translates to:
+  /// **'Effacer'**
+  String get actionClear;
+
   /// Generic confirm button in a non-destructive dialog.
   ///
   /// In fr, this message translates to:
@@ -280,17 +286,35 @@ abstract class AppLocalizations {
   /// **'Tout afficher'**
   String get actionViewAll;
 
+  /// Tooltip on a page's full-screen toggle button, shown when the page is not currently full-screen.
+  ///
+  /// In fr, this message translates to:
+  /// **'Plein écran'**
+  String get actionFullScreen;
+
+  /// Tooltip on a page's full-screen toggle button, shown while the page is currently full-screen.
+  ///
+  /// In fr, this message translates to:
+  /// **'Quitter le plein écran'**
+  String get actionExitFullScreen;
+
   /// Tooltip on the top bar notification bell.
   ///
   /// In fr, this message translates to:
   /// **'Notifications'**
   String get topBarNotifications;
 
-  /// Tooltip on the top bar avatar.
+  /// Tooltip on the sidebar user menu.
   ///
   /// In fr, this message translates to:
   /// **'Mon compte'**
   String get topBarAccount;
+
+  /// Sidebar user menu — opens the establishments list / selector.
+  ///
+  /// In fr, this message translates to:
+  /// **'Mes établissements'**
+  String get sidebarMyStores;
 
   /// Account menu entry returning to the login screen.
   ///
@@ -325,13 +349,13 @@ abstract class AppLocalizations {
   /// Empty state on the inventory list for a brand-new store.
   ///
   /// In fr, this message translates to:
-  /// **'Aucun article pour le moment'**
+  /// **'Aucun produit pour le moment'**
   String get emptyStateNoItemsTitle;
 
   /// Supporting line under the inventory empty state.
   ///
   /// In fr, this message translates to:
-  /// **'Ajoutez votre premier article pour commencer à suivre votre stock.'**
+  /// **'Ajoutez votre premier produit pour commencer à suivre votre stock.'**
   String get emptyStateNoItemsBody;
 
   /// Shown when a search or filter matches nothing.
@@ -351,6 +375,18 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Chargement…'**
   String get loadingLabel;
+
+  /// Titre affiché dans la coquille quand la base ne contient aucun établissement.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun établissement'**
+  String get shellNoStoreTitle;
+
+  /// Corps du message affiché dans la coquille quand la base ne contient aucun établissement.
+  ///
+  /// In fr, this message translates to:
+  /// **'La base locale ne contient aucun établissement. Réinitialisez la démonstration ou créez un établissement pour commencer.'**
+  String get shellNoStoreBody;
 
   /// Generic error state headline.
   ///
@@ -511,7 +547,7 @@ abstract class AppLocalizations {
   /// Body for the alerts onboarding bullet.
   ///
   /// In fr, this message translates to:
-  /// **'Recevez une alerte dès qu\'un article passe sous son seuil.'**
+  /// **'Recevez une alerte dès qu\'un produit passe sous son seuil.'**
   String get onboardingFeatureAlertsBody;
 
   /// Store selector heading.
@@ -535,7 +571,7 @@ abstract class AppLocalizations {
   /// Item count on a store card.
   ///
   /// In fr, this message translates to:
-  /// **'{count, plural, =0{Aucun article} =1{1 article} other{{count} articles}}'**
+  /// **'{count, plural, =0{Aucun produit} =1{1 produit} other{{count} produits}}'**
   String storesItemCount(int count);
 
   /// Low-stock alert count badge on a store card.
@@ -607,13 +643,13 @@ abstract class AppLocalizations {
   /// Inventory list heading.
   ///
   /// In fr, this message translates to:
-  /// **'Inventaire'**
+  /// **'Produits'**
   String get inventoryTitle;
 
   /// Placeholder in the inventory search field. Mentions barcodes so staff know pasting or scanning one into the box works — an unadvertised capability is one nobody uses.
   ///
   /// In fr, this message translates to:
-  /// **'Rechercher un article ou un code-barres…'**
+  /// **'Rechercher un produit ou un code-barres…'**
   String get inventorySearchHint;
 
   /// Category filter label on the inventory list.
@@ -649,7 +685,7 @@ abstract class AppLocalizations {
   /// Result count under the inventory search.
   ///
   /// In fr, this message translates to:
-  /// **'{count, plural, =0{Aucun article} =1{1 article} other{{count} articles}}'**
+  /// **'{count, plural, =0{Aucun produit} =1{1 produit} other{{count} produits}}'**
   String inventoryCount(int count);
 
   /// Clears all active inventory filters.
@@ -658,16 +694,82 @@ abstract class AppLocalizations {
   /// **'Effacer les filtres'**
   String get inventoryClearFilters;
 
+  /// Label in front of the sort dropdown above the product grid.
+  ///
+  /// In fr, this message translates to:
+  /// **'Trier par'**
+  String get inventorySortLabel;
+
+  /// Default sort option. Keeps the order the query returns — worst stock status first, then alphabetical — which is what makes the screen usable during service.
+  ///
+  /// In fr, this message translates to:
+  /// **'Stock prioritaire'**
+  String get inventorySortStatus;
+
+  /// Sort option ordering products by when they last changed, newest first.
+  ///
+  /// In fr, this message translates to:
+  /// **'Plus récent'**
+  String get inventorySortRecent;
+
+  /// Sort option ordering products alphabetically.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nom A → Z'**
+  String get inventorySortNameAsc;
+
+  /// Sort option ordering products reverse-alphabetically.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nom Z → A'**
+  String get inventorySortNameDesc;
+
+  /// Sort option ordering products by quantity on hand, lowest first.
+  ///
+  /// In fr, this message translates to:
+  /// **'Stock croissant'**
+  String get inventorySortStockAsc;
+
+  /// Sort option ordering products by quantity on hand, highest first.
+  ///
+  /// In fr, this message translates to:
+  /// **'Stock décroissant'**
+  String get inventorySortStockDesc;
+
+  /// Tooltip on the button switching the product list to cards.
+  ///
+  /// In fr, this message translates to:
+  /// **'Vue grille'**
+  String get inventoryViewGrid;
+
+  /// Tooltip on the button switching the product list to compact rows.
+  ///
+  /// In fr, this message translates to:
+  /// **'Vue liste'**
+  String get inventoryViewList;
+
+  /// Caption above the quantity on a product card. Says the figure is what is on the shelf now, not an order or a threshold.
+  ///
+  /// In fr, this message translates to:
+  /// **'Stock actuel'**
+  String get inventoryStockCurrent;
+
+  /// Tooltip on the arrow button of a product card. It does the same thing as tapping the card.
+  ///
+  /// In fr, this message translates to:
+  /// **'Voir le produit'**
+  String get inventoryOpenItem;
+
   /// Placeholder in the detail pane of the inventory split view.
   ///
   /// In fr, this message translates to:
-  /// **'Sélectionnez un article'**
+  /// **'Sélectionnez un produit'**
   String get inventorySelectPrompt;
 
   /// Supporting line in the empty detail pane.
   ///
   /// In fr, this message translates to:
-  /// **'Choisissez un article dans la liste pour voir son détail, ses fournisseurs et ses prix.'**
+  /// **'Choisissez un produit dans la liste pour voir son détail, ses fournisseurs et ses prix.'**
   String get inventorySelectPromptBody;
 
   /// Label above an item's current quantity.
@@ -681,6 +783,54 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Seuil d\'alerte'**
   String get itemThresholdLabel;
+
+  /// Label of the product photo field on the product form.
+  ///
+  /// In fr, this message translates to:
+  /// **'Photo du produit'**
+  String get itemImageLabel;
+
+  /// Helper under the product photo field. Says the photo is optional and what it is for, since most of a catalogue will never have one.
+  ///
+  /// In fr, this message translates to:
+  /// **'Facultative. Elle aide à repérer un produit d\'un coup d\'œil dans la liste.'**
+  String get itemImageHelp;
+
+  /// Button opening the file picker when the product has no photo yet.
+  ///
+  /// In fr, this message translates to:
+  /// **'Choisir une photo'**
+  String get itemImageChoose;
+
+  /// Button opening the file picker when the product already has a photo.
+  ///
+  /// In fr, this message translates to:
+  /// **'Remplacer la photo'**
+  String get itemImageReplace;
+
+  /// Clears the product photo. The file is only deleted once the form is saved.
+  ///
+  /// In fr, this message translates to:
+  /// **'Retirer'**
+  String get itemImageRemove;
+
+  /// Shown when copying the chosen image into the app folder failed — a permission problem or a full disk. The product itself is unaffected.
+  ///
+  /// In fr, this message translates to:
+  /// **'La photo n\'a pas pu être enregistrée.'**
+  String get itemImageFailed;
+
+  /// Label of the default supplier picker on the product form. This is a preference — which supplier is pre-selected when receiving — and not a price.
+  ///
+  /// In fr, this message translates to:
+  /// **'Fournisseur par défaut'**
+  String get itemDefaultSupplierLabel;
+
+  /// Placeholder in the default supplier picker when no supplier is preferred. Masculine, agreeing with fournisseur.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun'**
+  String get itemDefaultSupplierNone;
 
   /// Label for an item's category.
   ///
@@ -781,7 +931,7 @@ abstract class AppLocalizations {
   /// Snackbar confirming an item was deleted.
   ///
   /// In fr, this message translates to:
-  /// **'Article supprimé'**
+  /// **'Produit supprimé'**
   String get itemDeleted;
 
   /// Snackbar confirming a supplier link was removed from an item.
@@ -799,19 +949,19 @@ abstract class AppLocalizations {
   /// Add-item form heading.
   ///
   /// In fr, this message translates to:
-  /// **'Ajouter un article'**
+  /// **'Ajouter un produit'**
   String get addItemTitle;
 
   /// Edit-item form heading.
   ///
   /// In fr, this message translates to:
-  /// **'Modifier l\'article'**
+  /// **'Modifier le produit'**
   String get editItemTitle;
 
   /// Item name field label.
   ///
   /// In fr, this message translates to:
-  /// **'Nom de l\'article'**
+  /// **'Nom du produit'**
   String get itemFormName;
 
   /// Placeholder for the item name field.
@@ -820,17 +970,29 @@ abstract class AppLocalizations {
   /// **'Ex. : Blanc de poulet'**
   String get itemFormNameHint;
 
-  /// Opening stock quantity on the add-item form.
-  ///
-  /// In fr, this message translates to:
-  /// **'Quantité de départ'**
-  String get itemFormStartingQuantity;
-
   /// Helper text explaining the low-stock threshold.
   ///
   /// In fr, this message translates to:
   /// **'Vous serez alerté lorsque le stock atteindra ce niveau ou passera en dessous.'**
   String get itemFormThresholdHelp;
+
+  /// Label for the quantity a full shelf of this product holds. Sits directly under the alert threshold on the product form, and is the figure a commande tops up to.
+  ///
+  /// In fr, this message translates to:
+  /// **'Stock maximum'**
+  String get itemMaxStockLabel;
+
+  /// Helper under the max stock stepper. States both what the figure does on the ordering screen and what zero means, because a stepper has no other way to say "not set".
+  ///
+  /// In fr, this message translates to:
+  /// **'La quantité visée quand le stock est complet. Une commande propose de remonter à ce niveau. Laissez à 0 si ce produit n\'a pas de maximum.'**
+  String get itemFormMaxStockHelp;
+
+  /// Replaces the max stock helper when the entered maximum is at or below the alert threshold. Shown in the error colour at save time rather than on every keystroke.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le stock maximum doit être supérieur au seuil d\'alerte.'**
+  String get itemFormMaxStockInvalid;
 
   /// Heading of the note explaining why the item form has no cost field.
   ///
@@ -841,19 +1003,19 @@ abstract class AppLocalizations {
   /// Explains that price lives on the item-supplier link. Without this the missing cost field reads as an oversight.
   ///
   /// In fr, this message translates to:
-  /// **'Le prix dépend du fournisseur. Associez un ou plusieurs fournisseurs à cet article pour enregistrer leurs prix respectifs.'**
+  /// **'Le prix dépend du fournisseur. Associez un ou plusieurs fournisseurs à ce produit pour enregistrer leurs prix respectifs.'**
   String get itemFormNoCostBody;
 
   /// Snackbar confirming item creation.
   ///
   /// In fr, this message translates to:
-  /// **'Article créé'**
+  /// **'Produit créé'**
   String get itemCreated;
 
   /// Snackbar confirming item edit.
   ///
   /// In fr, this message translates to:
-  /// **'Article modifié'**
+  /// **'Produit modifié'**
   String get itemUpdated;
 
   /// Inline create option in the category dropdown.
@@ -961,7 +1123,7 @@ abstract class AppLocalizations {
   /// Helper text under the price field.
   ///
   /// In fr, this message translates to:
-  /// **'Le prix de ce fournisseur pour cet article. Chaque modification sera enregistrée dans l\'historique.'**
+  /// **'Le prix de ce fournisseur pour ce produit. Chaque modification sera enregistrée dans l\'historique.'**
   String get linkSupplierPriceHelp;
 
   /// Toggle marking this supplier as the default for the item.
@@ -1051,7 +1213,7 @@ abstract class AppLocalizations {
   /// Supporting line on the categories screen.
   ///
   /// In fr, this message translates to:
-  /// **'Les catégories servent à classer et filtrer vos articles.'**
+  /// **'Les catégories servent à classer et filtrer vos produits.'**
   String get categoriesSubtitle;
 
   /// Primary action on the categories screen.
@@ -1069,19 +1231,19 @@ abstract class AppLocalizations {
   /// Supporting line for the categories empty state.
   ///
   /// In fr, this message translates to:
-  /// **'Créez une première catégorie pour organiser vos articles.'**
+  /// **'Créez une première catégorie pour organiser vos produits.'**
   String get categoriesEmptyBody;
 
   /// How many items use a category.
   ///
   /// In fr, this message translates to:
-  /// **'{count, plural, =0{Aucun article} =1{1 article} other{{count} articles}}'**
+  /// **'{count, plural, =0{Aucun produit} =1{1 produit} other{{count} produits}}'**
   String categoriesItemCount(int count);
 
   /// Extra warning when deleting a category that items still reference.
   ///
   /// In fr, this message translates to:
-  /// **'{count, plural, =1{1 article utilise cette catégorie et devra être reclassé.} other{{count} articles utilisent cette catégorie et devront être reclassés.}}'**
+  /// **'{count, plural, =1{1 produit utilise cette catégorie et devra être reclassé.} other{{count} produits utilisent cette catégorie et devront être reclassés.}}'**
   String categoriesInUseWarning(int count);
 
   /// Snackbar confirming category deletion.
@@ -1123,13 +1285,13 @@ abstract class AppLocalizations {
   /// Supporting line for the units empty state.
   ///
   /// In fr, this message translates to:
-  /// **'Créez une première unité pour pouvoir ajouter des articles.'**
+  /// **'Créez une première unité pour pouvoir ajouter des produits.'**
   String get unitsEmptyBody;
 
   /// Extra warning when deleting a unit that items still reference.
   ///
   /// In fr, this message translates to:
-  /// **'{count, plural, =1{1 article utilise cette unité.} other{{count} articles utilisent cette unité.}}'**
+  /// **'{count, plural, =1{1 produit utilise cette unité.} other{{count} produits utilisent cette unité.}}'**
   String unitsInUseWarning(int count);
 
   /// Snackbar confirming unit deletion.
@@ -1279,13 +1441,13 @@ abstract class AppLocalizations {
   /// Supporting line on the stock-in screen.
   ///
   /// In fr, this message translates to:
-  /// **'Ajoutez au stock les articles que vous venez de recevoir.'**
+  /// **'Ajoutez au stock les produits que vous venez de recevoir.'**
   String get stockInSubtitle;
 
   /// Item picker label on the stock-in form.
   ///
   /// In fr, this message translates to:
-  /// **'Article'**
+  /// **'Produit'**
   String get stockInItem;
 
   /// Supplier picker on the stock-in form. Selecting one auto-fills its current price.
@@ -1345,7 +1507,7 @@ abstract class AppLocalizations {
   /// Shown when the selected item has no supplier links yet.
   ///
   /// In fr, this message translates to:
-  /// **'Cet article n\'a pas encore de fournisseur associé.'**
+  /// **'Ce produit n\'a pas encore de fournisseur associé.'**
   String get stockInNoSupplier;
 
   /// Stock-out screen heading.
@@ -1681,7 +1843,7 @@ abstract class AppLocalizations {
   /// Summary tile: how many items are tracked.
   ///
   /// In fr, this message translates to:
-  /// **'Articles suivis'**
+  /// **'Produits suivis'**
   String get dashboardTileItems;
 
   /// Summary tile: items at or below threshold.
@@ -1723,7 +1885,7 @@ abstract class AppLocalizations {
   /// Dashboard section listing items needing attention.
   ///
   /// In fr, this message translates to:
-  /// **'Articles à surveiller'**
+  /// **'Produits à surveiller'**
   String get dashboardAlertsTitle;
 
   /// Shown when nothing is below threshold.
@@ -1735,7 +1897,7 @@ abstract class AppLocalizations {
   /// Supporting line when there are no alerts.
   ///
   /// In fr, this message translates to:
-  /// **'Aucun article sous son seuil d\'alerte.'**
+  /// **'Aucun produit sous son seuil d\'alerte.'**
   String get dashboardAllGoodBody;
 
   /// Dashboard empty state for a brand-new store.
@@ -1747,7 +1909,7 @@ abstract class AppLocalizations {
   /// Supporting line for the empty-store dashboard.
   ///
   /// In fr, this message translates to:
-  /// **'Commencez par ajouter vos articles pour suivre votre stock.'**
+  /// **'Commencez par ajouter vos produits pour suivre votre stock.'**
   String get dashboardEmptyStoreBody;
 
   /// Low stock alerts screen heading.
@@ -1759,7 +1921,7 @@ abstract class AppLocalizations {
   /// Supporting line on the alerts screen.
   ///
   /// In fr, this message translates to:
-  /// **'Articles à réapprovisionner, les plus urgents en premier.'**
+  /// **'Produits à réapprovisionner, les plus urgents en premier.'**
   String get alertsSubtitle;
 
   /// Empty state when nothing is below threshold.
@@ -1771,7 +1933,7 @@ abstract class AppLocalizations {
   /// Supporting line for the no-alerts state.
   ///
   /// In fr, this message translates to:
-  /// **'Tous vos articles sont au-dessus de leur seuil d\'alerte.'**
+  /// **'Tous vos produits sont au-dessus de leur seuil d\'alerte.'**
   String get alertsEmptyBody;
 
   /// How far below its threshold an item is.
@@ -1855,7 +2017,7 @@ abstract class AppLocalizations {
   /// Describes the valuation report.
   ///
   /// In fr, this message translates to:
-  /// **'Combien vaut ce que vous avez en réserve, par catégorie et par article.'**
+  /// **'Combien vaut ce que vous avez en réserve, par catégorie et par produit.'**
   String get reportsValuationBody;
 
   /// Price comparison report name.
@@ -1891,7 +2053,7 @@ abstract class AppLocalizations {
   /// Explains how the potential saving is estimated.
   ///
   /// In fr, this message translates to:
-  /// **'Estimation annuelle si chaque article était commandé au meilleur prix disponible.'**
+  /// **'Estimation annuelle si chaque produit était commandé au meilleur prix disponible.'**
   String get reportsPotentialSavingBody;
 
   /// Tile: value consumed in the last 30 days.
@@ -1963,13 +2125,13 @@ abstract class AppLocalizations {
   /// Section heading for the highest-value items.
   ///
   /// In fr, this message translates to:
-  /// **'Articles les plus valorisés'**
+  /// **'Produits les plus valorisés'**
   String get valuationByItem;
 
   /// States how the valuation is computed. Necessary because an item has several supplier prices.
   ///
   /// In fr, this message translates to:
-  /// **'Valorisé au prix du fournisseur par défaut de chaque article.'**
+  /// **'Valorisé au prix du fournisseur par défaut de chaque produit.'**
   String get valuationBasis;
 
   /// Category column header.
@@ -1981,7 +2143,7 @@ abstract class AppLocalizations {
   /// Item-count column header.
   ///
   /// In fr, this message translates to:
-  /// **'Articles'**
+  /// **'Produits'**
   String get valuationColumnItems;
 
   /// Value column header.
@@ -2005,13 +2167,13 @@ abstract class AppLocalizations {
   /// Supporting line on the comparison report.
   ///
   /// In fr, this message translates to:
-  /// **'Sélectionnez un article pour comparer les prix de tous ses fournisseurs.'**
+  /// **'Sélectionnez un produit pour comparer les prix de tous ses fournisseurs.'**
   String get comparisonSubtitle;
 
   /// Item picker on the comparison report.
   ///
   /// In fr, this message translates to:
-  /// **'Article à comparer'**
+  /// **'Produit à comparer'**
   String get comparisonPickItem;
 
   /// Supplier column header.
@@ -2041,7 +2203,7 @@ abstract class AppLocalizations {
   /// Shown when there is nothing to compare.
   ///
   /// In fr, this message translates to:
-  /// **'Un seul fournisseur pour cet article'**
+  /// **'Un seul fournisseur pour ce produit'**
   String get comparisonSingleSupplier;
 
   /// Supporting line when an item has only one supplier.
@@ -2080,203 +2242,17 @@ abstract class AppLocalizations {
   /// **'Valeur des pertes'**
   String get usageWasteValue;
 
-  /// Team list heading.
+  /// Add-employee form heading.
   ///
   /// In fr, this message translates to:
-  /// **'Équipe'**
-  String get teamTitle;
+  /// **'Ajouter un employé'**
+  String get addEmployeeTitle;
 
-  /// Supporting line on the team list.
+  /// Edit-employee form heading.
   ///
   /// In fr, this message translates to:
-  /// **'Qui a accès à cet établissement, et avec quels droits.'**
-  String get teamSubtitle;
-
-  /// Primary action on the team list.
-  ///
-  /// In fr, this message translates to:
-  /// **'Inviter un membre'**
-  String get teamInvite;
-
-  /// Empty state on the team list.
-  ///
-  /// In fr, this message translates to:
-  /// **'Aucun membre'**
-  String get teamEmpty;
-
-  /// Supporting line for the empty team list.
-  ///
-  /// In fr, this message translates to:
-  /// **'Invitez vos collaborateurs pour qu\'ils puissent enregistrer les mouvements de stock.'**
-  String get teamEmptyBody;
-
-  /// Badge on a member who has not accepted their invitation.
-  ///
-  /// In fr, this message translates to:
-  /// **'Invitation en attente'**
-  String get teamPending;
-
-  /// When a member was last active, using a relative phrase.
-  ///
-  /// In fr, this message translates to:
-  /// **'Actif {when}'**
-  String teamLastActive(String when);
-
-  /// How many stores a member can access.
-  ///
-  /// In fr, this message translates to:
-  /// **'{count, plural, =1{1 établissement} other{{count} établissements}}'**
-  String teamStoreAccess(int count);
-
-  /// Team role: full access to everything including billing.
-  ///
-  /// In fr, this message translates to:
-  /// **'Propriétaire'**
-  String get roleOwner;
-
-  /// Team role: full access to assigned stores.
-  ///
-  /// In fr, this message translates to:
-  /// **'Gérant'**
-  String get roleManager;
-
-  /// Team role: can record movements and read inventory.
-  ///
-  /// In fr, this message translates to:
-  /// **'Employé'**
-  String get roleStaff;
-
-  /// Describes the owner role.
-  ///
-  /// In fr, this message translates to:
-  /// **'Accès complet à tous les établissements, à la facturation et à l\'équipe.'**
-  String get roleOwnerBody;
-
-  /// Describes the manager role.
-  ///
-  /// In fr, this message translates to:
-  /// **'Accès complet aux établissements assignés, sauf les paramètres du compte.'**
-  String get roleManagerBody;
-
-  /// Describes the staff role.
-  ///
-  /// In fr, this message translates to:
-  /// **'Peut enregistrer les livraisons et les sorties, et consulter l\'inventaire.'**
-  String get roleStaffBody;
-
-  /// Invite form heading.
-  ///
-  /// In fr, this message translates to:
-  /// **'Inviter un membre'**
-  String get inviteTitle;
-
-  /// Edit member form heading.
-  ///
-  /// In fr, this message translates to:
-  /// **'Modifier le membre'**
-  String get editMemberTitle;
-
-  /// Member name field label.
-  ///
-  /// In fr, this message translates to:
-  /// **'Nom complet'**
-  String get memberFormName;
-
-  /// Member email field label.
-  ///
-  /// In fr, this message translates to:
-  /// **'Adresse e-mail'**
-  String get memberFormEmail;
-
-  /// Role picker label.
-  ///
-  /// In fr, this message translates to:
-  /// **'Rôle'**
-  String get memberFormRole;
-
-  /// Store access section label on the member form.
-  ///
-  /// In fr, this message translates to:
-  /// **'Établissements accessibles'**
-  String get memberFormStores;
-
-  /// Snackbar confirming an invitation was sent.
-  ///
-  /// In fr, this message translates to:
-  /// **'Invitation envoyée'**
-  String get memberInvited;
-
-  /// Snackbar confirming a member was edited.
-  ///
-  /// In fr, this message translates to:
-  /// **'Membre modifié'**
-  String get memberUpdated;
-
-  /// Snackbar confirming a member was removed.
-  ///
-  /// In fr, this message translates to:
-  /// **'Membre retiré'**
-  String get memberRemoved;
-
-  /// Extra warning when removing a team member.
-  ///
-  /// In fr, this message translates to:
-  /// **'Cette personne perdra immédiatement l\'accès à l\'application.'**
-  String get memberRemoveWarning;
-
-  /// Roles matrix screen heading.
-  ///
-  /// In fr, this message translates to:
-  /// **'Rôles et permissions'**
-  String get rolesTitle;
-
-  /// Supporting line on the roles screen.
-  ///
-  /// In fr, this message translates to:
-  /// **'Ce que chaque rôle peut faire.'**
-  String get rolesSubtitle;
-
-  /// Permission row: read the item list.
-  ///
-  /// In fr, this message translates to:
-  /// **'Consulter l\'inventaire'**
-  String get permissionViewInventory;
-
-  /// Permission row: log deliveries and stock-outs.
-  ///
-  /// In fr, this message translates to:
-  /// **'Enregistrer les mouvements'**
-  String get permissionRecordMovements;
-
-  /// Permission row: manage the item catalogue.
-  ///
-  /// In fr, this message translates to:
-  /// **'Créer et modifier les articles'**
-  String get permissionEditItems;
-
-  /// Permission row: manage suppliers and their prices.
-  ///
-  /// In fr, this message translates to:
-  /// **'Gérer les fournisseurs et les prix'**
-  String get permissionManageSuppliers;
-
-  /// Permission row: open the reports section.
-  ///
-  /// In fr, this message translates to:
-  /// **'Consulter les rapports'**
-  String get permissionViewReports;
-
-  /// Permission row: invite and remove members.
-  ///
-  /// In fr, this message translates to:
-  /// **'Gérer l\'équipe'**
-  String get permissionManageTeam;
-
-  /// Permission row: account settings and creating stores.
-  ///
-  /// In fr, this message translates to:
-  /// **'Gérer le compte et les établissements'**
-  String get permissionManageAccount;
+  /// **'Modifier l\'employé'**
+  String get editEmployeeTitle;
 
   /// Store settings heading.
   ///
@@ -2359,7 +2335,7 @@ abstract class AppLocalizations {
   /// Describes the low stock notification toggle.
   ///
   /// In fr, this message translates to:
-  /// **'Recevez une alerte dès qu\'un article passe sous son seuil.'**
+  /// **'Recevez une alerte dès qu\'un produit passe sous son seuil.'**
   String get notificationPrefLowStockBody;
 
   /// Toggle: notify when a supplier price changes.
@@ -2458,11 +2434,11 @@ abstract class AppLocalizations {
   /// **'Pour la démonstration : affiche la bannière hors ligne dans toute l\'application.'**
   String get syncDemoToggleBody;
 
-  /// Honest note that sync is not implemented in Phase 1.
+  /// Honest note that sync between devices is not implemented yet.
   ///
   /// In fr, this message translates to:
-  /// **'La synchronisation réelle sera ajoutée en phase 2. Les valeurs ci-dessus sont fictives.'**
-  String get syncPhase2Note;
+  /// **'Les données sont enregistrées sur cet appareil. La synchronisation entre appareils sera ajoutée en phase 3.'**
+  String get syncLocalOnlyNote;
 
   /// Global search screen heading.
   ///
@@ -2473,7 +2449,7 @@ abstract class AppLocalizations {
   /// Placeholder in the global search field. Names barcode explicitly so the capability is discoverable.
   ///
   /// In fr, this message translates to:
-  /// **'Article, code-barres, fournisseur…'**
+  /// **'Produit, code-barres, fournisseur…'**
   String get searchHint;
 
   /// Prompt shown before anything is typed.
@@ -2485,13 +2461,13 @@ abstract class AppLocalizations {
   /// Supporting line under the search prompt.
   ///
   /// In fr, this message translates to:
-  /// **'Recherchez parmi vos articles, fournisseurs et catégories.'**
+  /// **'Recherchez parmi vos produits, fournisseurs et catégories.'**
   String get searchPromptBody;
 
   /// Search results section: items.
   ///
   /// In fr, this message translates to:
-  /// **'Articles'**
+  /// **'Produits'**
   String get searchSectionItems;
 
   /// Search results section: suppliers.
@@ -2541,18 +2517,6 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Augmenter'**
   String get a11yIncrease;
-
-  /// Screen-reader label for a granted permission in the roles matrix, since the tick icon alone conveys nothing to a screen reader.
-  ///
-  /// In fr, this message translates to:
-  /// **'Autorisé'**
-  String get a11yPermissionGranted;
-
-  /// Screen-reader label for a permission a role does not have.
-  ///
-  /// In fr, this message translates to:
-  /// **'Non autorisé'**
-  String get a11yPermissionDenied;
 
   /// Live comparison while a new supplier price is being typed, when it beats the current cheapest.
   ///
@@ -2659,7 +2623,7 @@ abstract class AppLocalizations {
   /// Accessible label on the inventory skeleton loader.
   ///
   /// In fr, this message translates to:
-  /// **'Chargement de l\'inventaire…'**
+  /// **'Chargement des produits…'**
   String get loadingItems;
 
   /// Label of the barcode field on the add/edit item form. The parenthesis matters: most restaurant stock has no barcode and the form must not read as if one is expected.
@@ -2887,7 +2851,7 @@ abstract class AppLocalizations {
   /// Order lines table column.
   ///
   /// In fr, this message translates to:
-  /// **'Article'**
+  /// **'Produit'**
   String get orderColumnItem;
 
   /// Order lines table column: quantity ordered.
@@ -3121,7 +3085,7 @@ abstract class AppLocalizations {
   /// Second step of creating an order: the line builder.
   ///
   /// In fr, this message translates to:
-  /// **'Articles'**
+  /// **'Produits'**
   String get orderStepLines;
 
   /// Prompt shown before a supplier is chosen on the create order screen.
@@ -3133,7 +3097,7 @@ abstract class AppLocalizations {
   /// Explains why the supplier comes first.
   ///
   /// In fr, this message translates to:
-  /// **'Une commande part chez un seul fournisseur. Ce choix filtre les articles proposés et remplit automatiquement les prix.'**
+  /// **'Une commande part chez un seul fournisseur. Ce choix filtre les produits proposés et remplit automatiquement les prix.'**
   String get orderSupplierPromptBody;
 
   /// Placeholder in the supplier picker search field.
@@ -3157,7 +3121,7 @@ abstract class AppLocalizations {
   /// Body of the change-supplier confirmation.
   ///
   /// In fr, this message translates to:
-  /// **'{count, plural, =1{La ligne déjà saisie sera supprimée.} other{Les {count} lignes déjà saisies seront supprimées.}} Les articles et les prix dépendent du fournisseur choisi.'**
+  /// **'{count, plural, =1{La ligne déjà saisie sera supprimée.} other{Les {count} lignes déjà saisies seront supprimées.}} Les produits et les prix dépendent du fournisseur choisi.'**
   String orderChangeSupplierBody(int count);
 
   /// Confirms changing supplier and clearing the lines. Says what will happen rather than just 'Continuer'.
@@ -3169,13 +3133,13 @@ abstract class AppLocalizations {
   /// Adds a line to the order being built.
   ///
   /// In fr, this message translates to:
-  /// **'Ajouter un article'**
+  /// **'Ajouter un produit'**
   String get orderAddLine;
 
   /// Label of the item picker on an order line. The picker only offers items the chosen supplier actually supplies.
   ///
   /// In fr, this message translates to:
-  /// **'Article'**
+  /// **'Produit'**
   String get orderLinePickerLabel;
 
   /// Quantity field on an order line.
@@ -3211,13 +3175,13 @@ abstract class AppLocalizations {
   /// Empty state in the order line builder.
   ///
   /// In fr, this message translates to:
-  /// **'Aucun article'**
+  /// **'Aucun produit'**
   String get orderLinesEmptyTitle;
 
   /// Body of the order line builder empty state.
   ///
   /// In fr, this message translates to:
-  /// **'Ajoutez les articles à commander chez {supplier}.'**
+  /// **'Ajoutez les produits à commander chez {supplier}.'**
   String orderLinesEmptyBody(String supplier);
 
   /// Note under an auto-filled order line price.
@@ -3235,7 +3199,7 @@ abstract class AppLocalizations {
   /// Subtitle of the suggested items panel.
   ///
   /// In fr, this message translates to:
-  /// **'Articles de ce fournisseur à réapprovisionner.'**
+  /// **'Produits de ce fournisseur à réapprovisionner.'**
   String get orderSuggestedSubtitle;
 
   /// Adds every suggested item to the order in one tap.
@@ -3253,13 +3217,13 @@ abstract class AppLocalizations {
   /// Snackbar after adding suggested items.
   ///
   /// In fr, this message translates to:
-  /// **'{count, plural, =1{1 article ajouté.} other{{count} articles ajoutés.}}'**
+  /// **'{count, plural, =1{1 produit ajouté.} other{{count} produits ajoutés.}}'**
   String orderSuggestedAdded(int count);
 
   /// Shown in place of the suggestions panel when nothing this supplier provides is low.
   ///
   /// In fr, this message translates to:
-  /// **'Aucun article de ce fournisseur n\'est en stock faible.'**
+  /// **'Aucun produit de ce fournisseur n\'est en stock faible.'**
   String get orderSuggestedEmpty;
 
   /// How much a suggested item is below its threshold.
@@ -3301,7 +3265,7 @@ abstract class AppLocalizations {
   /// Shown when an item is on no open order.
   ///
   /// In fr, this message translates to:
-  /// **'Aucune commande en cours pour cet article.'**
+  /// **'Aucune commande en cours pour ce produit.'**
   String get itemNoOpenOrders;
 
   /// Title of the receiving screen.
@@ -3379,13 +3343,13 @@ abstract class AppLocalizations {
   /// Adds a line at receipt time for something that was not ordered.
   ///
   /// In fr, this message translates to:
-  /// **'Ajouter un article non commandé'**
+  /// **'Ajouter un produit non commandé'**
   String get receiveAddUnordered;
 
   /// Snackbar after adding an unordered line.
   ///
   /// In fr, this message translates to:
-  /// **'Article non commandé ajouté à la réception.'**
+  /// **'Produit non commandé ajouté à la réception.'**
   String get receiveUnorderedAdded;
 
   /// Snackbar after removing an unordered line from the receipt being built.
@@ -3616,12 +3580,6 @@ abstract class AppLocalizations {
   /// **'Une commande partiellement reçue est signalée sur le tableau de bord passé ce délai. Par défaut : 7 jours.'**
   String get storeSettingsStaleDaysHelp;
 
-  /// Manager-level permission. Receiving affects both stock and money, so it is not a general staff action.
-  ///
-  /// In fr, this message translates to:
-  /// **'Réceptionner les livraisons'**
-  String get permissionReceiveDeliveries;
-
   /// Section and action that puts the prototype's data back to how it shipped. Present because a client demo gets walked several times in one sitting and the second run should not start from the first one's leftovers.
   ///
   /// In fr, this message translates to:
@@ -3631,14 +3589,8 @@ abstract class AppLocalizations {
   /// Explains what the reset action does and, implicitly, that nothing persists anyway.
   ///
   /// In fr, this message translates to:
-  /// **'Remet les articles, les stocks, les commandes et les prix dans leur état d\'origine. Les modifications faites pendant la démonstration ne sont conservées que le temps de la session.'**
+  /// **'Remet les produits, les stocks, les commandes et les prix dans leur état d\'origine. Les modifications faites pendant la démonstration ne sont conservées que le temps de la session.'**
   String get demoResetBody;
-
-  /// Shown in place of the reset action when nothing has been changed yet.
-  ///
-  /// In fr, this message translates to:
-  /// **'Aucune modification à annuler.'**
-  String get demoResetNothing;
 
   /// Confirmation before resetting.
   ///
@@ -3709,7 +3661,7 @@ abstract class AppLocalizations {
   /// Explains why a category cannot be deleted and what to do about it. Naming the number and the fix is what makes it actionable.
   ///
   /// In fr, this message translates to:
-  /// **'{count, plural, =1{1 article est classé dans cette catégorie.} other{{count} articles sont classés dans cette catégorie.}} Reclassez-les avant de la supprimer.'**
+  /// **'{count, plural, =1{1 produit est classé dans cette catégorie.} other{{count} produits sont classés dans cette catégorie.}} Reclassez-les avant de la supprimer.'**
   String categoryDeleteBlockedBody(int count);
 
   /// Title of the dialog shown when a unit cannot be deleted because items are measured in it.
@@ -3721,14 +3673,8 @@ abstract class AppLocalizations {
   /// Explains why a unit cannot be deleted and what to do about it.
   ///
   /// In fr, this message translates to:
-  /// **'{count, plural, =1{1 article est mesuré dans cette unité.} other{{count} articles sont mesurés dans cette unité.}} Changez leur unité avant de la supprimer.'**
+  /// **'{count, plural, =1{1 produit est mesuré dans cette unité.} other{{count} produits sont mesurés dans cette unité.}} Changez leur unité avant de la supprimer.'**
   String unitDeleteBlockedBody(int count);
-
-  /// Explains that a new item's starting quantity is recorded as an opening-balance movement rather than simply set.
-  ///
-  /// In fr, this message translates to:
-  /// **'Enregistré comme un ajustement d\'inventaire, pour que l\'historique des mouvements soit complet dès le départ.'**
-  String get itemFormOpeningBalanceHelp;
 
   /// Link from the edit item form to the stock adjustment screen. Quantity is read-only when editing: changing it here would be an untraceable stock change hidden inside a routine form.
   ///
@@ -3751,7 +3697,7 @@ abstract class AppLocalizations {
   /// Explains why an item cannot be deleted. The open order is a document a supplier is holding, so removing the article would leave it referring to nothing.
   ///
   /// In fr, this message translates to:
-  /// **'{count, plural, =1{Cet article figure sur 1 commande en cours.} other{Cet article figure sur {count} commandes en cours.}} Réceptionnez ou clôturez-la avant de le supprimer.'**
+  /// **'{count, plural, =1{Ce produit figure sur 1 commande en cours.} other{Ce produit figure sur {count} commandes en cours.}} Réceptionnez ou clôturez-la avant de le supprimer.'**
   String itemDeleteBlockedBody(int count);
 
   /// States exactly what disappears alongside a deleted item. Naming the counts is what makes the confirmation honest rather than a formality.
@@ -3790,24 +3736,6 @@ abstract class AppLocalizations {
   /// **'{supplier} devient le fournisseur par défaut.'**
   String supplierPromotedToDefault(String supplier);
 
-  /// Inline error when inviting somebody whose email is already on the team.
-  ///
-  /// In fr, this message translates to:
-  /// **'Cette adresse est déjà utilisée par un membre.'**
-  String get memberEmailTaken;
-
-  /// Title of the dialog shown when removing the last owner is refused.
-  ///
-  /// In fr, this message translates to:
-  /// **'Impossible de retirer « {name} »'**
-  String memberRemoveBlockedTitle(String name);
-
-  /// Explains why the last owner cannot be removed: an account nobody can administer has no recovery path from inside the app.
-  ///
-  /// In fr, this message translates to:
-  /// **'C\'est le dernier propriétaire du compte. Nommez un autre propriétaire avant de retirer celui-ci.'**
-  String get memberRemoveBlockedBody;
-
   /// Snackbar after marking notifications read.
   ///
   /// In fr, this message translates to:
@@ -3820,23 +3748,1229 @@ abstract class AppLocalizations {
   /// **'Établissement créé.'**
   String get storeCreated;
 
-  /// Label of the optional field on the create-item form for what the starting stock was bought at. Sets the item's average cost, which the stock valuation is built on.
+  /// Gestion Employée dropdown item — the staff roster.
   ///
   /// In fr, this message translates to:
-  /// **'Coût d\'achat unitaire'**
-  String get itemFormOpeningCost;
+  /// **'Personnel'**
+  String get employeesNavPersonnel;
 
-  /// Placeholder for the opening cost field, showing the Belgian comma decimal separator.
+  /// Gestion Employée dropdown item — the pointage kiosk board. Not 'Tableau de bord', which is the dashboard.
   ///
   /// In fr, this message translates to:
-  /// **'Ex. : 8,50'**
-  String get itemFormOpeningCostHint;
+  /// **'Tableau de pointage'**
+  String get employeesNavTimeclock;
 
-  /// Helper under the opening cost field. States the consequence of leaving it empty rather than pressing for a number the user may not have: an unknown cost contributes nothing to the valuation instead of an invented figure.
+  /// Gestion Employée dropdown item — the attendance log.
   ///
   /// In fr, this message translates to:
-  /// **'Facultatif. Sans ce montant, l\'article ne sera pas valorisé tant qu\'une livraison n\'aura pas été réceptionnée.'**
-  String get itemFormOpeningCostHelp;
+  /// **'Historique pointage'**
+  String get employeesNavAttendanceHistory;
+
+  /// Gestion Employée dropdown item — the payroll history.
+  ///
+  /// In fr, this message translates to:
+  /// **'Historique de paiement'**
+  String get employeesNavPayroll;
+
+  /// Heading of the placeholder screen for a Gestion Employée section not yet built.
+  ///
+  /// In fr, this message translates to:
+  /// **'Bientôt disponible'**
+  String get employeeSectionComingSoonTitle;
+
+  /// Placeholder body for the pointage board.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le tableau de pointage arrive dans une prochaine étape.'**
+  String get employeeSectionComingSoonTimeclock;
+
+  /// Placeholder body for the attendance history.
+  ///
+  /// In fr, this message translates to:
+  /// **'L\'historique de pointage arrive dans une prochaine étape.'**
+  String get employeeSectionComingSoonAttendanceHistory;
+
+  /// Placeholder body for the payroll history.
+  ///
+  /// In fr, this message translates to:
+  /// **'L\'historique de paiement arrive dans une prochaine étape.'**
+  String get employeeSectionComingSoonPayroll;
+
+  /// Employee role: full access to every store, payroll and staff management.
+  ///
+  /// In fr, this message translates to:
+  /// **'Propriétaire'**
+  String get employeeRoleOwner;
+
+  /// Employee role: runs the store day to day, no payroll or staff management.
+  ///
+  /// In fr, this message translates to:
+  /// **'Gérant'**
+  String get employeeRoleManager;
+
+  /// Employee role: no active app access; pointage done for them at the kiosk.
+  ///
+  /// In fr, this message translates to:
+  /// **'Employé'**
+  String get employeeRoleStaff;
+
+  /// Describes the owner role on the role picker.
+  ///
+  /// In fr, this message translates to:
+  /// **'Accès complet à tous les établissements, à la paie et à la gestion du personnel.'**
+  String get employeeRoleOwnerBody;
+
+  /// Describes the manager role on the role picker.
+  ///
+  /// In fr, this message translates to:
+  /// **'Gère l\'établissement au quotidien : pointage, historique, absences. Pas la paie.'**
+  String get employeeRoleManagerBody;
+
+  /// Describes the staff role on the role picker.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun accès à l\'application. Son pointage est fait au tableau de bord partagé.'**
+  String get employeeRoleStaffBody;
+
+  /// Contract type: a monthly salary.
+  ///
+  /// In fr, this message translates to:
+  /// **'Salarié fixe'**
+  String get contractTypeFixed;
+
+  /// Contract type: an hourly rate, paid only for hours worked.
+  ///
+  /// In fr, this message translates to:
+  /// **'Extra'**
+  String get contractTypeExtra;
+
+  /// Staff roster page heading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Personnel'**
+  String get employeesTitle;
+
+  /// Supporting line on the roster page.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le personnel de cet établissement — coordonnées, contrat et rôle.'**
+  String get employeesSubtitle;
+
+  /// Primary action on the roster page.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ajouter un employé'**
+  String get employeesAdd;
+
+  /// Placeholder in the roster search field.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rechercher (nom, CIN)'**
+  String get employeesSearchHint;
+
+  /// Placeholder shown in the closed EmployeeSelector combobox when nothing is picked.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rechercher ou sélectionner un employé…'**
+  String get employeeSelectorHint;
+
+  /// Toggle on the roster. Off by default, matching items and suppliers defaulting to what is currently usable.
+  ///
+  /// In fr, this message translates to:
+  /// **'Afficher les personnels retirés'**
+  String get employeesShowArchived;
+
+  /// Badge on an archived employee's row.
+  ///
+  /// In fr, this message translates to:
+  /// **'Retiré'**
+  String get employeesArchivedPill;
+
+  /// Empty state on the roster when the store has none.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun employé'**
+  String get employeesEmpty;
+
+  /// Supporting line for the fully-empty roster.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ajoutez les membres de votre personnel pour suivre leur pointage et leur paie.'**
+  String get employeesEmptyBody;
+
+  /// Compact CIN label shown under an employee's name.
+  ///
+  /// In fr, this message translates to:
+  /// **'CIN {cin}'**
+  String employeeCinLabel(String cin);
+
+  /// Roster KPI: count of active employees.
+  ///
+  /// In fr, this message translates to:
+  /// **'Personnel actif'**
+  String get employeesKpiActive;
+
+  /// Roster KPI label: split between fixed and extra contracts.
+  ///
+  /// In fr, this message translates to:
+  /// **'Fixes / Extras'**
+  String get employeesKpiContractSplit;
+
+  /// Roster KPI value: the fixed/extra split.
+  ///
+  /// In fr, this message translates to:
+  /// **'{fixed} fixes · {extra} extras'**
+  String employeesKpiContractSplitValue(int fixed, int extra);
+
+  /// Roster KPI: count of owners and managers.
+  ///
+  /// In fr, this message translates to:
+  /// **'Gérants'**
+  String get employeesKpiManagers;
+
+  /// Roster KPI: employees hired this calendar month.
+  ///
+  /// In fr, this message translates to:
+  /// **'Embauches ce mois'**
+  String get employeesKpiHiredThisMonth;
+
+  /// Photo section label on the employee form.
+  ///
+  /// In fr, this message translates to:
+  /// **'Photo'**
+  String get employeeFormPhoto;
+
+  /// Button under the employee photo tile when no photo is set yet.
+  ///
+  /// In fr, this message translates to:
+  /// **'Choisir une photo'**
+  String get employeeFormPhotoAction;
+
+  /// Button under the employee photo tile when a photo is already set.
+  ///
+  /// In fr, this message translates to:
+  /// **'Remplacer la photo'**
+  String get employeeFormPhotoReplace;
+
+  /// Button that clears the chosen / existing employee photo.
+  ///
+  /// In fr, this message translates to:
+  /// **'Supprimer'**
+  String get employeeFormPhotoRemove;
+
+  /// Snackbar shown when the picked image file cannot be read.
+  ///
+  /// In fr, this message translates to:
+  /// **'Impossible de lire ce fichier image.'**
+  String get employeeFormPhotoReadError;
+
+  /// Employee first name field label.
+  ///
+  /// In fr, this message translates to:
+  /// **'Prénom'**
+  String get employeeFormFirstName;
+
+  /// Employee last name field label.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nom'**
+  String get employeeFormLastName;
+
+  /// Employee national identity card number field label.
+  ///
+  /// In fr, this message translates to:
+  /// **'N° de carte d\'identité'**
+  String get employeeFormCin;
+
+  /// Employee phone field label.
+  ///
+  /// In fr, this message translates to:
+  /// **'Téléphone'**
+  String get employeeFormPhone;
+
+  /// Employee email field label.
+  ///
+  /// In fr, this message translates to:
+  /// **'Adresse e-mail'**
+  String get employeeFormEmail;
+
+  /// Inline error when the CIN already belongs to another employee.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ce numéro de carte d\'identité est déjà utilisé.'**
+  String get employeeCinTaken;
+
+  /// Inline error when the email already belongs to another employee.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cette adresse e-mail est déjà utilisée.'**
+  String get employeeEmailTaken;
+
+  /// Role section header on the employee form.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rôle et accès'**
+  String get employeeFormRole;
+
+  /// Employment section header on the employee form and detail page.
+  ///
+  /// In fr, this message translates to:
+  /// **'Contrat et rémunération'**
+  String get employeeFormEmployment;
+
+  /// Contract type dropdown label.
+  ///
+  /// In fr, this message translates to:
+  /// **'Type de contrat'**
+  String get employeeFormContractType;
+
+  /// Pay field label when the contract is fixed.
+  ///
+  /// In fr, this message translates to:
+  /// **'Salaire mensuel (€)'**
+  String get employeeFormPayMonthly;
+
+  /// Pay field label when the contract is extra.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tarif horaire (€/h)'**
+  String get employeeFormPayHourly;
+
+  /// Schedule section header on the employee form and detail page.
+  ///
+  /// In fr, this message translates to:
+  /// **'Horaires'**
+  String get employeeFormSchedule;
+
+  /// Scheduled start-of-day field label.
+  ///
+  /// In fr, this message translates to:
+  /// **'Heure d\'arrivée'**
+  String get employeeFormScheduleStart;
+
+  /// Scheduled end-of-day field label.
+  ///
+  /// In fr, this message translates to:
+  /// **'Heure de départ'**
+  String get employeeFormScheduleEnd;
+
+  /// Inline error when a schedule time does not parse.
+  ///
+  /// In fr, this message translates to:
+  /// **'Format attendu : HH:MM'**
+  String get employeeFormScheduleInvalid;
+
+  /// Helper text under the schedule fields.
+  ///
+  /// In fr, this message translates to:
+  /// **'Laissez vide pour utiliser les horaires de l\'établissement.'**
+  String get employeeFormScheduleHelp;
+
+  /// Snackbar confirming a new employee was created.
+  ///
+  /// In fr, this message translates to:
+  /// **'Employé ajouté'**
+  String get employeeCreated;
+
+  /// Snackbar confirming an employee was edited.
+  ///
+  /// In fr, this message translates to:
+  /// **'Employé modifié'**
+  String get employeeUpdated;
+
+  /// Hire date line on the employee detail header.
+  ///
+  /// In fr, this message translates to:
+  /// **'Embauché le {date}'**
+  String employeeHiredOn(String date);
+
+  /// Section heading on the employee detail page for contact fields.
+  ///
+  /// In fr, this message translates to:
+  /// **'Coordonnées'**
+  String get employeeDetailContact;
+
+  /// Shown for the schedule when the employee has no custom start/end.
+  ///
+  /// In fr, this message translates to:
+  /// **'Horaires de l\'établissement'**
+  String get employeeScheduleStoreHours;
+
+  /// Section heading for one employee's attendance history.
+  ///
+  /// In fr, this message translates to:
+  /// **'Historique de pointage'**
+  String get employeeHistoryTitle;
+
+  /// Section heading for one employee's payroll history.
+  ///
+  /// In fr, this message translates to:
+  /// **'Historique de paiement'**
+  String get employeePayrollTitle;
+
+  /// Destructive confirmation dialog title for archiving an employee. Regular space before the question mark, matching the rest of the file.
+  ///
+  /// In fr, this message translates to:
+  /// **'Retirer {name} ?'**
+  String employeeArchiveTitle(String name);
+
+  /// Body of the archive-employee confirmation dialog.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cette personne n\'apparaîtra plus dans le personnel actif. Son historique de pointage et de paie reste conservé.'**
+  String get employeeArchiveBody;
+
+  /// Confirms archiving an employee. Deliberately not 'Supprimer' — this is a soft removal.
+  ///
+  /// In fr, this message translates to:
+  /// **'Retirer'**
+  String get employeeArchiveConfirm;
+
+  /// Snackbar confirming an employee was archived.
+  ///
+  /// In fr, this message translates to:
+  /// **'Employé retiré'**
+  String get employeeArchived;
+
+  /// Action on an archived employee's detail page bringing them back to active.
+  ///
+  /// In fr, this message translates to:
+  /// **'Restaurer'**
+  String get employeeRestore;
+
+  /// Snackbar confirming an archived employee was restored.
+  ///
+  /// In fr, this message translates to:
+  /// **'Employé restauré'**
+  String get employeeRestored;
+
+  /// Status line on an archived employee's detail page.
+  ///
+  /// In fr, this message translates to:
+  /// **'Retiré le {date}'**
+  String employeeDetailArchivedOn(String date);
+
+  /// Shown in the attendance history section when the employee has no rows yet.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun pointage enregistré.'**
+  String get employeeHistoryEmpty;
+
+  /// Attendance status — no row for the day yet.
+  ///
+  /// In fr, this message translates to:
+  /// **'Non pointé'**
+  String get attendanceStatusNotClockedIn;
+
+  /// Attendance status — clocked in, not on a break.
+  ///
+  /// In fr, this message translates to:
+  /// **'En service'**
+  String get attendanceStatusWorking;
+
+  /// Attendance status — mid-break.
+  ///
+  /// In fr, this message translates to:
+  /// **'En pause'**
+  String get attendanceStatusOnBreak;
+
+  /// Attendance status — the day is finished.
+  ///
+  /// In fr, this message translates to:
+  /// **'Terminé'**
+  String get attendanceStatusDone;
+
+  /// Marker on a day where the arrival was past the scheduled start.
+  ///
+  /// In fr, this message translates to:
+  /// **'En retard'**
+  String get attendanceLate;
+
+  /// Marker on a day where a single break ran longer than the store's allowance.
+  ///
+  /// In fr, this message translates to:
+  /// **'Pause dépassée'**
+  String get attendanceBreakOverrun;
+
+  /// Alert on a past day left open — clocked in, never clocked out.
+  ///
+  /// In fr, this message translates to:
+  /// **'Oubli de pointage'**
+  String get attendanceAnomalyMissingPunch;
+
+  /// Detail line for the retard anomaly in the attendance drawer.
+  ///
+  /// In fr, this message translates to:
+  /// **'Retard de {duration}'**
+  String attendanceAnomalyRetardDetail(String duration);
+
+  /// Detail line for the pause-dépassée anomaly.
+  ///
+  /// In fr, this message translates to:
+  /// **'Pause dépassée de {duration}'**
+  String attendanceAnomalyBreakDetail(String duration);
+
+  /// Detail line for the missing-punch anomaly.
+  ///
+  /// In fr, this message translates to:
+  /// **'Journée non clôturée — la sortie n\'a jamais été pointée.'**
+  String get attendanceAnomalyMissingPunchDetail;
+
+  /// Heading of the pointage kiosk board.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tableau de pointage'**
+  String get timeclockBoardTitle;
+
+  /// Supporting line on the pointage board.
+  ///
+  /// In fr, this message translates to:
+  /// **'Pointage du jour — arrivées, pauses et départs.'**
+  String get timeclockBoardSubtitle;
+
+  /// Empty state on the board when the store has no active employee.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun personnel actif'**
+  String get timeclockBoardEmpty;
+
+  /// Supporting line for the empty board.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ajoutez du personnel pour commencer à pointer.'**
+  String get timeclockBoardEmptyBody;
+
+  /// Button — clock an employee in for the day.
+  ///
+  /// In fr, this message translates to:
+  /// **'Pointer'**
+  String get timeclockClockIn;
+
+  /// Button — start a break.
+  ///
+  /// In fr, this message translates to:
+  /// **'Pause'**
+  String get timeclockStartPause;
+
+  /// Button — end a break.
+  ///
+  /// In fr, this message translates to:
+  /// **'Reprendre'**
+  String get timeclockEndPause;
+
+  /// Button — clock an employee out for the day.
+  ///
+  /// In fr, this message translates to:
+  /// **'Fin de journée'**
+  String get timeclockClockOut;
+
+  /// Snackbar after clocking an employee in.
+  ///
+  /// In fr, this message translates to:
+  /// **'Pointage enregistré pour {name}.'**
+  String timeclockClockInDone(String name);
+
+  /// Snackbar after starting a break.
+  ///
+  /// In fr, this message translates to:
+  /// **'Pause démarrée pour {name}.'**
+  String timeclockPauseStartDone(String name);
+
+  /// Snackbar after ending a break.
+  ///
+  /// In fr, this message translates to:
+  /// **'Reprise enregistrée pour {name}.'**
+  String timeclockPauseEndDone(String name);
+
+  /// Snackbar after clocking an employee out.
+  ///
+  /// In fr, this message translates to:
+  /// **'Fin de journée enregistrée pour {name}.'**
+  String timeclockClockOutDone(String name);
+
+  /// Timestamp log label — clock-in.
+  ///
+  /// In fr, this message translates to:
+  /// **'Arrivée'**
+  String get timeclockLogArrival;
+
+  /// Timestamp log label — break start.
+  ///
+  /// In fr, this message translates to:
+  /// **'Pause'**
+  String get timeclockLogBreak;
+
+  /// Timestamp log label — break end.
+  ///
+  /// In fr, this message translates to:
+  /// **'Reprise'**
+  String get timeclockLogResume;
+
+  /// Timestamp log label — clock-out.
+  ///
+  /// In fr, this message translates to:
+  /// **'Départ'**
+  String get timeclockLogDeparture;
+
+  /// Worked-duration line on a finished card.
+  ///
+  /// In fr, this message translates to:
+  /// **'Travaillé : {duration}'**
+  String timeclockWorked(String duration);
+
+  /// Overtime marker on a finished card.
+  ///
+  /// In fr, this message translates to:
+  /// **'+{duration} sup.'**
+  String timeclockOvertimeMark(String duration);
+
+  /// Store settings section header for opening hours.
+  ///
+  /// In fr, this message translates to:
+  /// **'Horaires de l\'établissement'**
+  String get storeSettingsHours;
+
+  /// Store opening time field label.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ouverture'**
+  String get storeSettingsOpenTime;
+
+  /// Store closing time field label.
+  ///
+  /// In fr, this message translates to:
+  /// **'Fermeture'**
+  String get storeSettingsCloseTime;
+
+  /// Store setting — the longest a single break may run before it is flagged.
+  ///
+  /// In fr, this message translates to:
+  /// **'Pause max (minutes)'**
+  String get storeSettingsMaxBreak;
+
+  /// Helper text under the store hours / break fields.
+  ///
+  /// In fr, this message translates to:
+  /// **'Les horaires servent de base au calcul du retard et des heures supplémentaires (pour un employé sans horaire personnel). Une pause plus longue que le maximum est signalée « Pause dépassée ».'**
+  String get storeSettingsHoursHelp;
+
+  /// Which slice of a paged list is shown.
+  ///
+  /// In fr, this message translates to:
+  /// **'{first}–{last} sur {total}'**
+  String paginatorRange(int first, int last, int total);
+
+  /// Current page number out of the total.
+  ///
+  /// In fr, this message translates to:
+  /// **'{page} / {count}'**
+  String paginatorPage(int page, int count);
+
+  /// Tooltip on the previous-page button.
+  ///
+  /// In fr, this message translates to:
+  /// **'Page précédente'**
+  String get paginatorPrevious;
+
+  /// Tooltip on the next-page button.
+  ///
+  /// In fr, this message translates to:
+  /// **'Page suivante'**
+  String get paginatorNext;
+
+  /// Heading of the attendance history page.
+  ///
+  /// In fr, this message translates to:
+  /// **'Historique de pointage'**
+  String get attendanceHistoryTitle;
+
+  /// Supporting line on the attendance history page.
+  ///
+  /// In fr, this message translates to:
+  /// **'Consultez et filtrez les pointages de tout le personnel, jour par jour.'**
+  String get attendanceHistorySubtitle;
+
+  /// Count of rows matching the current filters.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =0{Aucun résultat} =1{1 résultat} other{{count} résultats}}'**
+  String attendanceHistoryCount(int count);
+
+  /// Empty state when the store has no attendance rows at all.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun historique de pointage'**
+  String get attendanceHistoryEmpty;
+
+  /// Supporting line for the fully-empty history.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun pointage n\'a encore été enregistré dans cet établissement.'**
+  String get attendanceHistoryEmptyBody;
+
+  /// Label of the employee dropdown on the attendance history page.
+  ///
+  /// In fr, this message translates to:
+  /// **'Employé'**
+  String get attendanceFilterEmployee;
+
+  /// Employee dropdown option that shows every employee at once.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tous les employés'**
+  String get attendanceFilterAllEmployees;
+
+  /// Label of the period start-date field on the attendance history page.
+  ///
+  /// In fr, this message translates to:
+  /// **'Du'**
+  String get attendanceFilterFrom;
+
+  /// Label of the period end-date field on the attendance history page.
+  ///
+  /// In fr, this message translates to:
+  /// **'Au'**
+  String get attendanceFilterTo;
+
+  /// Active-filter chip showing the selected date range.
+  ///
+  /// In fr, this message translates to:
+  /// **'{from} – {to}'**
+  String attendanceFilterDateRange(String from, String to);
+
+  /// History KPI — number of attendance rows in the period.
+  ///
+  /// In fr, this message translates to:
+  /// **'Jours pointés'**
+  String get attendanceStatDays;
+
+  /// History KPI — total worked time in the period.
+  ///
+  /// In fr, this message translates to:
+  /// **'Heures travaillées'**
+  String get attendanceStatWorked;
+
+  /// History KPI — number of late arrivals in the period.
+  ///
+  /// In fr, this message translates to:
+  /// **'Retards'**
+  String get attendanceStatLate;
+
+  /// History KPI — total overtime in the period.
+  ///
+  /// In fr, this message translates to:
+  /// **'Heures supplémentaires'**
+  String get attendanceStatOvertime;
+
+  /// History table column — the work day.
+  ///
+  /// In fr, this message translates to:
+  /// **'Date'**
+  String get attendanceColumnDate;
+
+  /// History table column — the employee name.
+  ///
+  /// In fr, this message translates to:
+  /// **'Employé'**
+  String get attendanceColumnEmployee;
+
+  /// History table column — clock-in time.
+  ///
+  /// In fr, this message translates to:
+  /// **'Arrivée'**
+  String get attendanceColumnArrival;
+
+  /// History table column — clock-out time.
+  ///
+  /// In fr, this message translates to:
+  /// **'Départ'**
+  String get attendanceColumnDeparture;
+
+  /// History table column — number of breaks.
+  ///
+  /// In fr, this message translates to:
+  /// **'Pauses'**
+  String get attendanceColumnBreaks;
+
+  /// History table column — worked duration.
+  ///
+  /// In fr, this message translates to:
+  /// **'Durée travail'**
+  String get attendanceColumnWorked;
+
+  /// History table column — overtime.
+  ///
+  /// In fr, this message translates to:
+  /// **'Heures sup'**
+  String get attendanceColumnOvertime;
+
+  /// History table column — the day's status.
+  ///
+  /// In fr, this message translates to:
+  /// **'Statut'**
+  String get attendanceColumnStatus;
+
+  /// History table column — late / break-overrun icons.
+  ///
+  /// In fr, this message translates to:
+  /// **'Alertes'**
+  String get attendanceColumnFlags;
+
+  /// History table column — the row detail button.
+  ///
+  /// In fr, this message translates to:
+  /// **'Détail'**
+  String get attendanceColumnActions;
+
+  /// Tooltip on the row detail button.
+  ///
+  /// In fr, this message translates to:
+  /// **'Voir le détail'**
+  String get attendanceViewDetail;
+
+  /// Heading of the attendance detail side panel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Détail du pointage'**
+  String get attendanceDetailTitle;
+
+  /// Break count heading in the detail panel.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =0{Aucune pause} =1{1 pause} other{{count} pauses}}'**
+  String attendanceDetailBreaks(int count);
+
+  /// History table column — arrival → departure, grouped.
+  ///
+  /// In fr, this message translates to:
+  /// **'Horaires'**
+  String get attendanceColumnSchedule;
+
+  /// Button in the filter bar that clears every filter.
+  ///
+  /// In fr, this message translates to:
+  /// **'Réinitialiser'**
+  String get attendanceFilterReset;
+
+  /// Secondary line under the Horaires cell — break count and total.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =1{1 pause · {duration}} other{{count} pauses · {duration}}}'**
+  String attendanceBreakSummary(int count, String duration);
+
+  /// Drawer row — total break time.
+  ///
+  /// In fr, this message translates to:
+  /// **'Total pauses'**
+  String get attendanceDetailBreakTotal;
+
+  /// Drawer section header for worked hours and overtime.
+  ///
+  /// In fr, this message translates to:
+  /// **'Temps de travail'**
+  String get attendanceDetailWorkTime;
+
+  /// Overtime value in the drawer, marked as informational — never an alert.
+  ///
+  /// In fr, this message translates to:
+  /// **'{duration} (informatif)'**
+  String attendanceDetailOvertimeInfo(String duration);
+
+  /// Drawer section header for the event timeline.
+  ///
+  /// In fr, this message translates to:
+  /// **'Chronologie'**
+  String get attendanceDetailTimeline;
+
+  /// Store settings section header for payroll coefficients.
+  ///
+  /// In fr, this message translates to:
+  /// **'Paie'**
+  String get storeSettingsPayroll;
+
+  /// Overtime multiplier field label (e.g. 1,25).
+  ///
+  /// In fr, this message translates to:
+  /// **'Majoration heures sup.'**
+  String get storeSettingsOvertimeMultiplier;
+
+  /// Working-days-per-month field label (turns a monthly salary into a daily rate).
+  ///
+  /// In fr, this message translates to:
+  /// **'Jours ouvrés / mois'**
+  String get storeSettingsWorkingDays;
+
+  /// Helper text under the payroll fields.
+  ///
+  /// In fr, this message translates to:
+  /// **'Un salarié fixe est payé son taux journalier (salaire ÷ jours ouvrés) par jour travaillé ; les heures supplémentaires sont payées à ce taux fois la majoration.'**
+  String get storeSettingsPayrollHelp;
+
+  /// Heading of the payroll history page.
+  ///
+  /// In fr, this message translates to:
+  /// **'Historique de paiement'**
+  String get payrollHistoryTitle;
+
+  /// Supporting line on the payroll history page.
+  ///
+  /// In fr, this message translates to:
+  /// **'L\'historique de paiement d\'un employé, jour par jour.'**
+  String get payrollHistorySubtitle;
+
+  /// Label of the employee dropdown on the payroll history page.
+  ///
+  /// In fr, this message translates to:
+  /// **'Employé'**
+  String get payrollFilterEmployee;
+
+  /// Employee dropdown option that shows every active employee at once.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tous les employés'**
+  String get payrollFilterAllEmployees;
+
+  /// Label of the period start-date field on the payroll history page.
+  ///
+  /// In fr, this message translates to:
+  /// **'Du'**
+  String get payrollFilterFrom;
+
+  /// Label of the period end-date field on the payroll history page.
+  ///
+  /// In fr, this message translates to:
+  /// **'Au'**
+  String get payrollFilterTo;
+
+  /// Label of the payment-status filter.
+  ///
+  /// In fr, this message translates to:
+  /// **'Statut de paiement'**
+  String get payrollFilterStatus;
+
+  /// Payment-status filter option — no filter.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tous'**
+  String get payrollStatusAll;
+
+  /// Payment-status filter option — paid days.
+  ///
+  /// In fr, this message translates to:
+  /// **'Payé'**
+  String get payrollStatusPaid;
+
+  /// Payment-status filter option — unpaid days.
+  ///
+  /// In fr, this message translates to:
+  /// **'Non payé'**
+  String get payrollStatusUnpaid;
+
+  /// Count of day rows matching the filters.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =0{Aucune journée} =1{1 journée} other{{count} journées}}'**
+  String payrollHistoryCount(int count);
+
+  /// Empty state when the chosen employee has no finished days in the window.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucune journée payable'**
+  String get payrollHistoryEmpty;
+
+  /// Supporting line for the no-payable-days empty state.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cet employé n\'a aucune journée terminée sur la période choisie.'**
+  String get payrollHistoryEmptyBody;
+
+  /// Payroll KPI — finished days already settled in the window.
+  ///
+  /// In fr, this message translates to:
+  /// **'Jours payés'**
+  String get payrollStatPaidDays;
+
+  /// Payroll KPI — finished days still owed in the window.
+  ///
+  /// In fr, this message translates to:
+  /// **'Jours non payés'**
+  String get payrollStatUnpaidDays;
+
+  /// Payroll KPI — total worked hours in the window.
+  ///
+  /// In fr, this message translates to:
+  /// **'Heures travaillées'**
+  String get payrollStatWorkedHours;
+
+  /// Payroll KPI — total overtime hours in the window.
+  ///
+  /// In fr, this message translates to:
+  /// **'Heures supplémentaires'**
+  String get payrollStatOvertimeHours;
+
+  /// Payroll table column — the employee (shown when every employee is listed).
+  ///
+  /// In fr, this message translates to:
+  /// **'Employé'**
+  String get payrollColumnEmployee;
+
+  /// Payroll table column — the work day.
+  ///
+  /// In fr, this message translates to:
+  /// **'Date'**
+  String get payrollColumnDate;
+
+  /// Payroll table column — clock-in time.
+  ///
+  /// In fr, this message translates to:
+  /// **'Arrivée'**
+  String get payrollColumnClockIn;
+
+  /// Payroll table column — clock-out time.
+  ///
+  /// In fr, this message translates to:
+  /// **'Départ'**
+  String get payrollColumnClockOut;
+
+  /// Payroll table column — worked duration.
+  ///
+  /// In fr, this message translates to:
+  /// **'Durée travaillée'**
+  String get payrollColumnWorked;
+
+  /// Payroll table column — overtime hours.
+  ///
+  /// In fr, this message translates to:
+  /// **'Heures sup'**
+  String get payrollColumnOvertime;
+
+  /// Payroll table column — the amount for the day.
+  ///
+  /// In fr, this message translates to:
+  /// **'Montant'**
+  String get payrollColumnAmount;
+
+  /// Payroll table column — payment status badge.
+  ///
+  /// In fr, this message translates to:
+  /// **'Statut'**
+  String get payrollColumnStatus;
+
+  /// Payroll table column — the payment date.
+  ///
+  /// In fr, this message translates to:
+  /// **'Payé le'**
+  String get payrollColumnPaidAt;
+
+  /// The button under the table that settles the unpaid days.
+  ///
+  /// In fr, this message translates to:
+  /// **'Payer'**
+  String get payrollPayAction;
+
+  /// Confirmation dialog title. Regular space before the question mark.
+  ///
+  /// In fr, this message translates to:
+  /// **'Payer {name} ?'**
+  String payrollPayConfirmTitle(String name);
+
+  /// Confirmation dialog body — the span, the day count and the amount owed.
+  ///
+  /// In fr, this message translates to:
+  /// **'{period} · {days, plural, =1{1 jour} other{{days} jours}} · {amount}. Les jours concernés seront verrouillés et ne pourront plus être modifiés.'**
+  String payrollPayConfirmBody(String period, int days, String amount);
+
+  /// Snackbar after a successful payment.
+  ///
+  /// In fr, this message translates to:
+  /// **'Paiement enregistré'**
+  String get payrollPaid;
+
+  /// Payroll table column — arrival → departure, grouped.
+  ///
+  /// In fr, this message translates to:
+  /// **'Horaires'**
+  String get payrollColumnHours;
+
+  /// Payroll table column — the row detail button.
+  ///
+  /// In fr, this message translates to:
+  /// **'Détail'**
+  String get payrollColumnDetail;
+
+  /// Secondary line under the Horaires cell — break count and total.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =1{1 pause · {duration}} other{{count} pauses · {duration}}}'**
+  String payrollBreakSummary(int count, String duration);
+
+  /// Button in the payroll filter bar that clears every filter.
+  ///
+  /// In fr, this message translates to:
+  /// **'Réinitialiser'**
+  String get payrollFilterReset;
+
+  /// Tooltip on the payroll row detail button.
+  ///
+  /// In fr, this message translates to:
+  /// **'Voir le détail'**
+  String get payrollViewDetail;
+
+  /// Heading of the payroll detail side panel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Détail du paiement'**
+  String get payrollDetailTitle;
+
+  /// Payroll drawer row — total break time.
+  ///
+  /// In fr, this message translates to:
+  /// **'Total pauses'**
+  String get payrollDetailBreakTotal;
+
+  /// Payroll drawer section header for worked hours and overtime.
+  ///
+  /// In fr, this message translates to:
+  /// **'Temps de travail'**
+  String get payrollDetailWorkSection;
+
+  /// Payroll drawer row — worked duration.
+  ///
+  /// In fr, this message translates to:
+  /// **'Temps travaillé'**
+  String get payrollDetailWorked;
+
+  /// Overtime value in the payroll drawer, marked informational — never an alert.
+  ///
+  /// In fr, this message translates to:
+  /// **'{duration} (informatif)'**
+  String payrollDetailOvertimeInfo(String duration);
+
+  /// Payroll drawer row — the employee's effective hourly rate.
+  ///
+  /// In fr, this message translates to:
+  /// **'Taux horaire'**
+  String get payrollDetailRate;
+
+  /// Payroll drawer row — worked hours at the normal rate, before any overtime premium.
+  ///
+  /// In fr, this message translates to:
+  /// **'Montant de base'**
+  String get payrollDetailBase;
+
+  /// Payroll drawer row — the extra paid on the overtime hours, above the base.
+  ///
+  /// In fr, this message translates to:
+  /// **'Prime heures sup.'**
+  String get payrollDetailPremium;
+
+  /// Payroll drawer row — the day's total amount.
+  ///
+  /// In fr, this message translates to:
+  /// **'Total'**
+  String get payrollDetailTotal;
+
+  /// Payment status badge — the day has been settled.
+  ///
+  /// In fr, this message translates to:
+  /// **'Payé'**
+  String get paymentStatusPaid;
+
+  /// Payment status badge — the day is still owed.
+  ///
+  /// In fr, this message translates to:
+  /// **'Non payé'**
+  String get paymentStatusUnpaid;
+
+  /// Login form: the national ID field, which is the login identifier (Phase 6).
+  ///
+  /// In fr, this message translates to:
+  /// **'Numéro CIN'**
+  String get loginCin;
+
+  /// Placeholder showing the shape of a CIN on the login form.
+  ///
+  /// In fr, this message translates to:
+  /// **'AB.12.34-567.89'**
+  String get loginCinHint;
+
+  /// Login form: the 4-digit PIN field.
+  ///
+  /// In fr, this message translates to:
+  /// **'Code PIN'**
+  String get loginPin;
+
+  /// Placeholder on the login PIN field.
+  ///
+  /// In fr, this message translates to:
+  /// **'4 chiffres'**
+  String get loginPinHint;
+
+  /// Link to the reset screen from the login form. Narrow no-break space before the question mark.
+  ///
+  /// In fr, this message translates to:
+  /// **'Code oublié ?'**
+  String get loginForgotPin;
+
+  /// Login error shown for an unknown CIN or a wrong PIN — deliberately not saying which.
+  ///
+  /// In fr, this message translates to:
+  /// **'CIN ou code PIN incorrect.'**
+  String get loginErrorBadCredentials;
+
+  /// Login error when the credential is locked out after too many failed attempts.
+  ///
+  /// In fr, this message translates to:
+  /// **'Compte verrouillé après plusieurs tentatives. Réessayez dans quelques minutes.'**
+  String get loginErrorLocked;
+
+  /// Login error when a staff account, which has no active app access, tries to sign in.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ce compte n\'a pas accès à l\'application. Le pointage se fait au tableau de bord partagé.'**
+  String get loginErrorNoAccess;
+
+  /// Section heading on the employee form for the login PIN.
+  ///
+  /// In fr, this message translates to:
+  /// **'Identifiants'**
+  String get employeeFormCredentials;
+
+  /// Employee form: the 4-digit login PIN field.
+  ///
+  /// In fr, this message translates to:
+  /// **'Code PIN'**
+  String get employeeFormPin;
+
+  /// Employee form: re-enter the PIN to catch a typo.
+  ///
+  /// In fr, this message translates to:
+  /// **'Confirmer le code'**
+  String get employeeFormPinConfirm;
+
+  /// Helper under the PIN fields when creating an employee.
+  ///
+  /// In fr, this message translates to:
+  /// **'4 chiffres. La personne se connecte avec son numéro CIN et ce code.'**
+  String get employeeFormPinHelp;
+
+  /// Helper under the PIN fields when editing an employee.
+  ///
+  /// In fr, this message translates to:
+  /// **'Laisser vide pour conserver le code actuel.'**
+  String get employeeFormPinEditHelp;
+
+  /// Error under the confirm-PIN field when the two entries differ.
+  ///
+  /// In fr, this message translates to:
+  /// **'Les deux codes ne correspondent pas.'**
+  String get employeeFormPinMismatch;
+
+  /// Shown to a manager on the store settings page — visible but read-only (Phase 6).
+  ///
+  /// In fr, this message translates to:
+  /// **'Seul le propriétaire peut modifier les paramètres de l\'établissement.'**
+  String get storeSettingsReadOnlyNotice;
 
   /// Label for an item's weighted average cost per unit. Distinct from a supplier price: this is what the stock on hand was paid for, not what the next order will cost.
   ///
@@ -3961,7 +5095,7 @@ abstract class AppLocalizations {
   /// PDF table column.
   ///
   /// In fr, this message translates to:
-  /// **'Article'**
+  /// **'Produit'**
   String get receiptDocColumnItem;
 
   /// PDF table column: what was still outstanding when the van arrived.
@@ -4096,6 +5230,72 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Document généré le {date} — ne constitue pas une facture.'**
   String receiptDocFooter(String date);
+
+  /// Title of the dialog shown before saving pointage / payroll settings while unpaid finished days exist.
+  ///
+  /// In fr, this message translates to:
+  /// **'Des journées ne sont pas encore payées'**
+  String get storeSettingsRetroWarningTitle;
+
+  /// Body of the dialog warning that changing pointage / payroll settings retroactively affects unpaid days.
+  ///
+  /// In fr, this message translates to:
+  /// **'{days, plural, =1{1 journée terminée n\'\'a pas encore été payée} other{{days} journées terminées n\'\'ont pas encore été payées}}. Changer les horaires ou les coefficients modifiera le retard, les heures supplémentaires et le montant estimé de ces journées. Payez-les d\'\'abord pour figer leurs chiffres.'**
+  String storeSettingsRetroWarningBody(int days);
+
+  /// Confirm button on the retroactive-settings warning dialog.
+  ///
+  /// In fr, this message translates to:
+  /// **'Changer quand même'**
+  String get storeSettingsRetroWarningConfirm;
+
+  /// Title of the dialog that asks for a CIN before an action goes through.
+  ///
+  /// In fr, this message translates to:
+  /// **'Confirmation d\'identité'**
+  String get identityPromptTitle;
+
+  /// Label of the CIN input in the identity confirmation dialog.
+  ///
+  /// In fr, this message translates to:
+  /// **'Numéro CIN'**
+  String get identityPromptField;
+
+  /// Confirm button of the identity dialog.
+  ///
+  /// In fr, this message translates to:
+  /// **'Valider'**
+  String get identityPromptValidate;
+
+  /// Shown in the identity dialog after a wrong CIN, with the number of attempts left before the lockout.
+  ///
+  /// In fr, this message translates to:
+  /// **'Numéro incorrect. {count, plural, =0{Verrouillé.} =1{1 tentative restante.} other{{count} tentatives restantes.}}'**
+  String identityPromptWrong(int count);
+
+  /// Shown in the identity dialog while the credential is locked, with a mm:ss countdown.
+  ///
+  /// In fr, this message translates to:
+  /// **'Trop de tentatives. Réessayez dans {time}.'**
+  String identityPromptLocked(String time);
+
+  /// Shown in the identity dialog when the employee has no credential row.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun identifiant n\'est configuré pour cette personne.'**
+  String get identityPromptNoCredential;
+
+  /// Subtitle of the identity dialog on the pointage board — the action being confirmed and whose CIN is required.
+  ///
+  /// In fr, this message translates to:
+  /// **'{action} · saisissez le numéro CIN de {name}'**
+  String identityPromptPointageSubtitle(String action, String name);
+
+  /// Subtitle of the identity dialog before settling an employee's payroll days — the signed-in user confirms with their own CIN.
+  ///
+  /// In fr, this message translates to:
+  /// **'Saisissez votre numéro CIN pour valider le paiement de {name}'**
+  String identityPromptPayrollSubtitle(String name);
 }
 
 class _AppLocalizationsDelegate

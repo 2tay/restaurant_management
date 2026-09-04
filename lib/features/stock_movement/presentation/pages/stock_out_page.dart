@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../app/routes.dart';
@@ -7,7 +8,9 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../../mock_data/mock_data.dart';
+import '../../../../data/providers.dart';
+import '../../../../data/repositories/repositories.dart';
+import '../../../../data/view_models/view_models.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 import '../widgets/movement_labels.dart';
@@ -17,28 +20,35 @@ import '../widgets/movement_labels.dart';
 /// The reason is a row of large chips rather than a dropdown. This is the
 /// screen used most often mid-service, the options never change, and one tap
 /// beats open-scroll-select every time.
-class StockOutPage extends StatefulWidget {
+class StockOutPage extends ConsumerStatefulWidget {
   const StockOutPage({required this.storeId, super.key});
 
   final String storeId;
 
   @override
-  State<StockOutPage> createState() => _StockOutPageState();
+  ConsumerState<StockOutPage> createState() => _StockOutPageState();
 }
 
-class _StockOutPageState extends State<StockOutPage> {
+class _StockOutPageState extends ConsumerState<StockOutPage> {
   String? _itemId;
   double _quantity = 1;
   StockOutReason _reason = StockOutReason.sale;
 
-  Item? get _item => _itemId == null ? null : MockQueries.itemById(_itemId!);
+  /// The picked article, from the list the dropdown is already showing.
+  ///
+  /// Not a query of its own: the row carries the quantity and the unit, which
+  /// is everything this screen asks about it.
+  ItemRowView? _selected(List<ItemRowView> rows) {
+    for (final row in rows) {
+      if (row.item.id == _itemId) return row;
+    }
+    return null;
+  }
 
   bool get _canSubmit => _itemId != null && _quantity > 0;
 
-  bool get _exceedsStock {
-    final item = _item;
-    return item != null && _quantity > item.quantity;
-  }
+  bool _exceedsStock(ItemRowView? row) =>
+      row != null && _quantity > row.item.quantity;
 
   bool get _isDirty => _itemId != null;
 
@@ -47,23 +57,30 @@ class _StockOutPageState extends State<StockOutPage> {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
 
-    final item = _item;
-    final unit = item == null
-        ? ''
-        : MockQueries.unitAbbreviationOf(item.unitId);
+    // Alphabetical, not worst-first: this is a picker, and somebody looking for
+    // "Tomates" wants it where the alphabet says it is.
+    final rows =
+        ref.watch(itemRowsProvider((
+              storeId: widget.storeId,
+              filter: ItemFilter.none,
+            ))).value ??
+        const <ItemRowView>[];
 
-    final items = MockQueries.itemsForStore(widget.storeId)
-        .map(
-          (i) => DropdownOption(
-            value: i.id,
-            label: i.name,
-            secondaryLabel: Formatters.quantityWithUnit(
-              i.quantity,
-              MockQueries.unitAbbreviationOf(i.unitId),
-            ),
+    final row = _selected(rows);
+    final item = row?.item;
+    final unit = row?.unitAbbreviation ?? '';
+
+    final items = [
+      for (final row in rows)
+        DropdownOption(
+          value: row.item.id,
+          label: row.item.name,
+          secondaryLabel: Formatters.quantityWithUnit(
+            row.item.quantity,
+            row.unitAbbreviation,
           ),
-        )
-        .toList();
+        ),
+    ];
 
     return FormScaffold(
       title: l10n.stockOutTitle,
@@ -121,7 +138,7 @@ class _StockOutPageState extends State<StockOutPage> {
                   unitAbbreviation: unit,
                   onChanged: (value) => setState(() => _quantity = value),
                 ),
-                if (_exceedsStock) ...[
+                if (_exceedsStock(row)) ...[
                   const SizedBox(height: AppSpacing.md),
                   // A warning rather than a hard block: stock counts drift,
                   // and refusing to record something that actually left the
@@ -183,20 +200,23 @@ class _StockOutPageState extends State<StockOutPage> {
     );
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     final l10n = AppLocalizations.of(context);
 
     // Recorded as entered even when it takes the item below zero. The warning
     // above is the whole intervention: refusing would make staff either lie to
     // the app or stop using it, and negative stock is itself a useful signal
     // that a delivery went unrecorded.
-    MovementMutations.recordStockOut(
-      storeId: widget.storeId,
-      itemId: _itemId!,
-      quantity: _quantity,
-      reason: _reason,
-    );
+    await ref
+        .read(movementRepositoryProvider)
+        .recordStockOut(
+          storeId: widget.storeId,
+          itemId: _itemId!,
+          quantity: _quantity,
+          reason: _reason,
+        );
 
+    if (!mounted) return;
     AppSnackBar.success(context, l10n.stockOutRecorded);
     context.goSection(Routes.toMovements(widget.storeId));
   }

@@ -37,6 +37,23 @@ class AppCard extends StatefulWidget {
   /// the surface colour, which has to stay neutral.
   final Color? accentColor;
 
+  /// The hairline a resting card is drawn with.
+  static const double borderWidth = 1;
+
+  /// The outline a selected card is drawn with instead.
+  static const double selectedBorderWidth = 2;
+
+  /// What the border costs the child vertically, at its thickest.
+  ///
+  /// A [BoxDecoration] border insets what it wraps, so the child is laid out
+  /// in the card's height *less* this. A grid sizing a tile to its contents
+  /// has to add it back — the product grid did not, and every card in it was
+  /// striped "BOTTOM OVERFLOWED BY 2.0 PIXELS", or 4 where one was selected.
+  ///
+  /// It is the selected width whether or not the card is selected: a tile that
+  /// changed height when it was picked would shuffle the row around it.
+  static const double verticalBorderAllowance = selectedBorderWidth * 2;
+
   @override
   State<AppCard> createState() => _AppCardState();
 }
@@ -67,8 +84,14 @@ class _AppCardState extends State<AppCard> {
           color: AppColors.surface,
           borderRadius: AppRadius.lgAll,
           border: widget.selected
-              ? Border.all(color: AppColors.primary600, width: 2)
-              : Border.all(color: AppColors.hairline),
+              ? Border.all(
+                  color: AppColors.primary600,
+                  width: AppCard.selectedBorderWidth,
+                )
+              : Border.all(
+                  color: AppColors.hairline,
+                  width: AppCard.borderWidth,
+                ),
           // Pressed drops back to resting so the card appears to sink under
           // the finger rather than staying lifted.
           boxShadow: _pressed

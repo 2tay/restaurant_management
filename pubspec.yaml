@@ -36,9 +36,10 @@ dependencies:
   cupertino_icons: ^1.0.8
   go_router: ^17.5.0
   flutter_riverpod: ^3.3.2
-  # Pinned exactly: flutter_localizations from the SDK requires intl 0.20.2.
-  # Do not widen this constraint without re-checking `flutter pub get`.
-  intl: 0.20.2
+  # flutter_localizations from the SDK exact-pins intl (0.20.2 on Flutter 3.44,
+  # 0.20.3 on newer SDKs). The caret range lets pub match whichever the local
+  # SDK requires; do not widen it past ^0.20 or narrow it to an exact pin.
+  intl: ^0.20.2
   fl_chart: ^1.2.0
   lucide_icons_flutter: ^3.1.17
   flutter_localizations:
@@ -46,9 +47,47 @@ dependencies:
   pdf: ^3.12.0
   printing: ^5.14.3
 
+  # Phase 2: local-first storage. drift is the query layer over SQLite;
+  # drift_flutter picks the right implementation per platform and puts the
+  # database file where the OS wants it. It pulls sqlite3_flutter_libs, which
+  # bundles the native library into the app — no direct dependency needed here.
+  #
+  # Held on the 2.31 line on purpose. drift_dev above 2.31 wants analyzer >= 10,
+  # analyzer >= 10 wants meta ^1.18, and the Flutter SDK pins meta 1.17.0 —
+  # so a newer drift is not installable until Flutter itself moves. Raise these
+  # two together with the SDK, never on their own.
+  drift: ^2.31.0
+  drift_flutter: ^0.2.8
+
+  # Ids for records created after the seed. Phase 1 used a process-local
+  # counter, which collides across restarts the moment data persists.
+  uuid: ^4.6.0
+
+  # Choosing a product or employee photo. `file_picker` opens the OS file
+  # dialog to choose an image; the file it returns is copied into the app's
+  # own support directory by `data/images/product_images.dart` (products) and
+  # `lib/data/employee_photo_store.dart` (employees), so a photo survives the
+  # original being moved or deleted and the database keeps a filename rather
+  # than bytes. `path_provider` (already transitive via drift_flutter,
+  # promoted to a direct dependency) gives that app-support directory.
+  file_picker: ^12.1.3
+  path_provider: ^2.1.6
+  path: ^1.9.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
+
+  # drift's code generator and its runner. Regenerate with
+  # `dart run build_runner build --delete-conflicting-outputs`.
+  # See the note on `drift` above before raising drift_dev.
+  drift_dev: ^2.31.0
+  build_runner: ^2.4.0
+
+  # `flutter test` runs on the Dart VM, where the Flutter plugin that ships the
+  # native SQLite is not loaded. Tests point drift at a library themselves —
+  # see test/support/sqlite.dart.
+  sqlite3: ^2.9.4
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is

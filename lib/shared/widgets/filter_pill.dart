@@ -28,6 +28,11 @@ class FilterPill extends StatelessWidget {
 
   final IconData? icon;
 
+  /// How much room the label takes before it ellipsizes, where there is room
+  /// to spare. Supplier and item names run long, and a filter row that reflows
+  /// on every selection is disorienting.
+  static const double _maxLabelWidth = 200;
+
   @override
   Widget build(BuildContext context) {
     final active = selectedLabel != null;
@@ -45,17 +50,17 @@ class FilterPill extends StatelessWidget {
           color: active ? AppColors.primary600 : AppColors.border,
         ),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (icon != null) ...[
-            Icon(icon, size: AppSizing.iconSm, color: foreground),
-            const SizedBox(width: AppSpacing.xs),
-          ],
-          // Constrained rather than free: supplier and item names run long, and
-          // a filter row that reflows on every selection is disorienting.
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 200),
+      // The label is capped where there is room and *flexible* where there is
+      // not. A pill sits in a Wrap on a control bar, and on a narrow one the
+      // bar is thinner than the pill's natural width — where a plain
+      // ConstrainedBox simply overflowed. Flexible only works against a
+      // bounded width, hence the LayoutBuilder: laid out unbounded (an
+      // intrinsic pass, a Row that has not been given a width) the cap alone
+      // still applies.
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final text = ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: _maxLabelWidth),
             child: Text(
               selectedLabel ?? label,
               maxLines: 1,
@@ -64,14 +69,28 @@ class FilterPill extends StatelessWidget {
                 context,
               ).textTheme.labelMedium?.copyWith(color: foreground),
             ),
-          ),
-          const SizedBox(width: AppSpacing.xs),
-          Icon(
-            LucideIcons.chevronDown,
-            size: AppSizing.iconSm,
-            color: foreground,
-          ),
-        ],
+          );
+
+          return Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (icon != null) ...[
+                Icon(icon, size: AppSizing.iconSm, color: foreground),
+                const SizedBox(width: AppSpacing.xs),
+              ],
+              if (constraints.maxWidth.isFinite)
+                Flexible(child: text)
+              else
+                text,
+              const SizedBox(width: AppSpacing.xs),
+              Icon(
+                LucideIcons.chevronDown,
+                size: AppSizing.iconSm,
+                color: foreground,
+              ),
+            ],
+          );
+        },
       ),
     );
   }

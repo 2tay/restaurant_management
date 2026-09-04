@@ -9,7 +9,7 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/utils/responsive.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../../mock_data/mock_data.dart';
+import '../../../../data/providers.dart';
 import '../../../../shared/widgets/widgets.dart';
 import '../../../dashboard/presentation/widgets/summary_tile.dart';
 
@@ -25,20 +25,27 @@ class ReportsDashboardPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // The headline figures are derived from live stock.
-    ref.watch(mockDataRevisionProvider);
-
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
 
     // Consumption and waste over the last month, valued at what the stock
-    // actually cost. These were fixed constants until movements started
-    // carrying a cost — which meant recording waste and then opening this
-    // screen showed the figure unmoved, and a number that ignores what you just
-    // told it is worse than no number.
-    final from = DateTime.now().subtract(const Duration(days: 30));
-    final consumed = MockQueries.consumptionValue(storeId, from: from);
-    final wasted = MockQueries.wasteValue(storeId, from: from);
+    // actually cost. Every figure here is a query over the movement log, so
+    // recording waste and then opening this screen shows it — a number that
+    // ignores what you just told it is worse than no number.
+    const window = 30;
+    final consumed =
+        ref.watch(
+          consumptionValueProvider((storeId: storeId, days: window)),
+        ).value ??
+        0;
+    final wasted =
+        ref.watch(
+          wasteValueProvider((storeId: storeId, days: window)),
+        ).value ??
+        0;
+    final saving =
+        ref.watch(potentialAnnualSavingProvider(storeId)).value ?? 0;
+    final valuation = ref.watch(stockValuationProvider(storeId)).value ?? 0;
     final wasteShare = consumed == 0 ? 0.0 : wasted / consumed;
 
     return ShellPage(
@@ -80,7 +87,7 @@ class ReportsDashboardPage extends ConsumerWidget {
                         fit: BoxFit.scaleDown,
                         alignment: Alignment.centerLeft,
                         child: Text(
-                          Formatters.priceCompact(mockPotentialAnnualSaving),
+                          Formatters.priceCompact(saving),
                           style: theme.textTheme.displaySmall?.copyWith(
                             color: AppColors.inStock.foreground,
                           ),
@@ -114,7 +121,7 @@ class ReportsDashboardPage extends ConsumerWidget {
             children: [
               SummaryTile(
                 label: l10n.dashboardTileStockValue,
-                value: Formatters.priceCompact(MockQueries.stockValuation(storeId)),
+                value: Formatters.priceCompact(valuation),
                 icon: LucideIcons.wallet,
                 onTap: () =>
                     context.pushScreen(Routes.toValuationReport(storeId)),

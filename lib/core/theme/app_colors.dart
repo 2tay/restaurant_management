@@ -80,6 +80,17 @@ abstract final class AppColors {
     container: Color(0xFFFADEDE),
   );
 
+  /// The pointage "en pause" colour. Deliberately in the teal family rather
+  /// than amber: on the kiosk board a break is a normal, benign state, not a
+  /// warning, and the redesign asks for the primary accent here. It is a tinted
+  /// badge (container + dark teal text), never a filled teal surface, so it
+  /// does not compete with the one teal *action* per card.
+  static const StockStatusColors onBreak = StockStatusColors(
+    solid: primary600,
+    foreground: onPrimaryContainer,
+    container: primaryContainer,
+  );
+
   // ---------------------------------------------------------------------------
   // Feedback — snackbars, banners, form validation.
   // ---------------------------------------------------------------------------
@@ -89,6 +100,10 @@ abstract final class AppColors {
   static const Color error = Color(0xFFC62828);
   static const Color errorContainer = Color(0xFFFADEDE);
   static const Color onErrorContainer = Color(0xFF8E1B1B);
+
+  /// Danger, readable on the dark steel chrome — [error] is too deep to carry
+  /// contrast there. Used for "Se déconnecter" in the sidebar user menu.
+  static const Color errorOnChrome = Color(0xFFF08A8A);
 
   /// The offline banner. Intentionally informational rather than alarming —
   /// offline is the normal state for this app, not a failure.

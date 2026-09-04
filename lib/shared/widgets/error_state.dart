@@ -11,8 +11,10 @@ import 'primary_button.dart';
 /// Always offers a way forward. An error screen that is only an apology leaves
 /// a user mid-service with nothing to do but restart the app.
 ///
-/// Phase 1 cannot actually fail — there is no network and no database — so this
-/// exists to be designed rather than to be reached. Phase 2 will reach it.
+/// Phase 1 could not actually fail — there was no network and no database — so
+/// this was designed before it could be reached. It is reachable now: a query
+/// that throws lands here, and so does an establishment that cannot be
+/// resolved.
 class ErrorState extends StatelessWidget {
   const ErrorState({this.title, this.message, this.onRetry, super.key});
 

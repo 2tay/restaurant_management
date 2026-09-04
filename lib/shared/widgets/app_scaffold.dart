@@ -1,22 +1,62 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/navigation.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../core/utils/responsive.dart';
+import '../../l10n/app_localizations.dart';
 import '../../models/models.dart';
 import 'app_breadcrumbs.dart';
 import 'app_sidebar.dart';
-import 'app_top_bar.dart';
 import 'back_control.dart';
+import 'error_state.dart';
+import 'loading_state.dart';
 import 'offline_banner.dart';
 
-/// The application shell: navigation rail on the left, top bar above, content
-/// in the remaining area.
+/// Whether the shell's navigation sidebar is hidden so the current page's
+/// content fills the whole window.
 ///
-/// Used by the go_router `ShellRoute`, so the rail and top bar persist across
-/// navigations instead of rebuilding — the store switcher keeps its place and
+/// Local UI state — see `offline_banner.dart`'s `OfflineMode` for the same
+/// reasoning: this is the only thing Riverpod is permitted to hold in Phase
+/// 1, and a `Notifier<bool>` rather than a page's own `State` because the
+/// toggle lives on a page (the pointage kiosk board) while the thing it
+/// controls, [AppScaffold], is that page's ancestor.
+///
+/// Off by default. A page offering the toggle owns turning it back off in its
+/// `dispose`, so full screen never leaks into an unrelated screen reached by
+/// navigating away.
+///
+/// The pointage kiosk board toggles this — a tablet by the door wants the
+/// whole screen for the attendance grid.
+class FullScreenMode extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  void toggle() => state = !state;
+
+  // `ref.mounted` guards the call a page's `dispose` defers to a microtask —
+  // by the time it runs, a fast enough sequence of navigations (or a test
+  // tearing its `ProviderScope` down) may have already disposed this provider,
+  // and writing to a disposed provider throws.
+  // ignore: use_setters_to_change_properties
+  void set(bool value) {
+    if (ref.mounted) state = value;
+  }
+}
+
+final isFullScreenProvider = NotifierProvider<FullScreenMode, bool>(
+  FullScreenMode.new,
+);
+
+/// The application shell: navigation sidebar on the left, content in the
+/// remaining area. There is no top bar — the store selector and the user menu
+/// live in the sidebar (see `app_sidebar.dart`).
+///
+/// Used by the go_router `ShellRoute`, so the sidebar persists across
+/// navigations instead of rebuilding — the store selector keeps its place and
 /// there is no flash of chrome between screens.
-class AppScaffold extends StatelessWidget {
+class AppScaffold extends ConsumerWidget {
   const AppScaffold({required this.store, required this.child, super.key});
 
   final Store store;
@@ -25,23 +65,130 @@ class AppScaffold extends StatelessWidget {
   final Widget child;
 
   @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isFullScreen = ref.watch(isFullScreenProvider);
+
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: SafeArea(
+        child: isFullScreen
+            ? child
+            : Row(
+                children: [
+                  AppSidebar(store: store),
+                  Expanded(
+                    child: Column(
+                      children: [
+                        const OfflineBanner(),
+                        Expanded(child: child),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+      ),
+    );
+  }
+}
+
+/// The shell before the establishment has resolved.
+///
+/// The sidebar is drawn as a steel placeholder rather than left blank, so
+/// switching establishments does not flash empty chrome and then paint it back
+/// — the page changes underneath a frame that stays where it is.
+///
+/// The placeholder is deliberately not the real [AppSidebar]: it needs a store
+/// to navigate to, and a sidebar that can be tapped before the destination
+/// exists is one that navigates nowhere.
+class AppScaffoldSkeleton extends StatelessWidget {
+  const AppScaffoldSkeleton({super.key});
+
+  @override
   Widget build(BuildContext context) {
+    final double sidebarWidth = context.isSidebarCollapsed
+        ? AppSizing.sidebarWidthCollapsed
+        : AppSizing.sidebarWidthExpanded;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
         child: Row(
           children: [
-            AppSidebar(storeId: store.id),
-            Expanded(
-              child: Column(
+            Container(
+              width: sidebarWidth,
+              decoration: const BoxDecoration(
+                color: AppColors.steel800,
+                border: Border(right: BorderSide(color: AppColors.steel700)),
+              ),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.lg,
+                vertical: AppSpacing.xl,
+              ),
+              child: const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  AppTopBar(store: store),
-                  const OfflineBanner(),
-                  Expanded(child: child),
+                  _SidebarSkeletonBlock(height: 20),
+                  SizedBox(height: AppSpacing.xxl),
+                  _SidebarSkeletonBlock(height: 14),
+                  SizedBox(height: AppSpacing.lg),
+                  _SidebarSkeletonBlock(height: 14),
+                  SizedBox(height: AppSpacing.lg),
+                  _SidebarSkeletonBlock(height: 14),
+                  SizedBox(height: AppSpacing.lg),
+                  _SidebarSkeletonBlock(height: 14),
                 ],
               ),
             ),
+            const Expanded(
+              child: Padding(
+                padding: AppSpacing.pageInsets,
+                child: SkeletonList(),
+              ),
+            ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A muted bar on the steel sidebar ground — [SkeletonBlock] is tuned for
+/// light surfaces and washes out here.
+class _SidebarSkeletonBlock extends StatelessWidget {
+  const _SidebarSkeletonBlock({required this.height});
+
+  final double height;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    height: height,
+    decoration: const BoxDecoration(
+      color: AppColors.steel700,
+      borderRadius: AppRadius.smAll,
+    ),
+  );
+}
+
+/// The shell when the database holds no establishments at all.
+///
+/// Phase 1 could not reach this: `storeByIdOrFirst` read a list that was
+/// compiled in and always had three. A database can genuinely be empty — a
+/// failed seed, or a Phase 3 account whose first establishment has not been
+/// created yet — and showing the chrome around a blank page would leave
+/// somebody tapping a rail that leads nowhere.
+class AppScaffoldNoStore extends StatelessWidget {
+  const AppScaffoldNoStore({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: SafeArea(
+        child: ErrorState(
+          title: l10n.shellNoStoreTitle,
+          message: l10n.shellNoStoreBody,
         ),
       ),
     );
@@ -196,6 +343,7 @@ class _TitleRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final titleBlock = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
         Text(title, style: theme.textTheme.headlineMedium),
         if (subtitle != null) ...[
@@ -217,9 +365,8 @@ class _TitleRow extends StatelessWidget {
           children: actions,
         );
 
-        // Two long French action labels plus a title do not fit across a
-        // 1024dp tablet. Below this the actions take their own row rather than
-        // squeezing the title.
+        // Narrow tablet: the actions cannot share the title's line. They take
+        // their own row underneath.
         if (constraints.maxWidth < 820) {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -231,12 +378,21 @@ class _TitleRow extends StatelessWidget {
           );
         }
 
+        // Wide: the title takes the slack on the left, the actions keep their
+        // natural width and sit hard against the right edge — one row, however
+        // many there are (they only wrap if they somehow need more than 60% of
+        // the header). Vertically centred on the title.
         return Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Expanded(flex: 3, child: titleBlock),
+            Expanded(child: titleBlock),
             const SizedBox(width: AppSpacing.xl),
-            Flexible(flex: 2, child: actionRow),
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: constraints.maxWidth * 0.6,
+              ),
+              child: actionRow,
+            ),
           ],
         );
       },

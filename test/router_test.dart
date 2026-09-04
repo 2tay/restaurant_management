@@ -8,14 +8,15 @@
 // Rendered at 1280x800, the design baseline (a 10" tablet in landscape).
 
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:stock_inventory/app/app.dart';
 import 'package:stock_inventory/app/router.dart';
 import 'package:stock_inventory/app/routes.dart';
 import 'package:stock_inventory/core/theme/app_spacing.dart';
-import 'package:stock_inventory/mock_data/mock_data.dart';
+import 'package:stock_inventory/data/seed/dataset/dataset.dart';
 import 'package:stock_inventory/shared/widgets/app_scaffold.dart';
+import 'package:stock_inventory/shared/widgets/app_sidebar.dart';
+
+import 'support/app_harness.dart';
 
 /// The design baseline — a 10" tablet in landscape.
 const Size _tabletLandscape = Size(1280, 800);
@@ -37,7 +38,10 @@ List<({String label, String path, bool inShell})> _allRoutes() {
   const store = StoreIds.sablon;
   final item = mockItems.first.id;
   final supplier = mockSuppliers.first.id;
-  final member = mockTeam.first.id;
+  final employee = mockEmployees.first.id;
+  final archivedEmployee = mockEmployees
+      .firstWhere((e) => e.archivedAt != null)
+      .id;
 
   // A draft and a partially received order, because the detail screen renders
   // a different action row for each status and only one of them can be wrong
@@ -144,12 +148,28 @@ List<({String label, String path, bool inShell})> _allRoutes() {
     ),
     (label: 'usage report', path: Routes.toUsageReport(store), inShell: true),
 
-    (label: 'team', path: Routes.toTeam(store), inShell: true),
-    (label: 'add member', path: Routes.toAddTeamMember(store), inShell: true),
-    (label: 'roles', path: Routes.toRoles(store), inShell: true),
+    (label: 'employees', path: Routes.toEmployees(store), inShell: true),
+    (label: 'add employee', path: Routes.toAddEmployee(store), inShell: true),
+    (label: 'timeclock', path: Routes.toTimeclock(store), inShell: true),
     (
-      label: 'edit member',
-      path: Routes.toEditTeamMember(store, member),
+      label: 'attendance history',
+      path: Routes.toAttendanceHistory(store),
+      inShell: true,
+    ),
+    (label: 'payroll', path: Routes.toPayroll(store), inShell: true),
+    (
+      label: 'employee detail',
+      path: Routes.toEmployee(store, employee),
+      inShell: true,
+    ),
+    (
+      label: 'archived employee detail',
+      path: Routes.toEmployee(store, archivedEmployee),
+      inShell: true,
+    ),
+    (
+      label: 'edit employee',
+      path: Routes.toEditEmployee(store, employee),
       inShell: true,
     ),
 
@@ -174,19 +194,13 @@ List<({String label, String path, bool inShell})> _allRoutes() {
   ];
 }
 
-Future<void> _pumpAt(WidgetTester tester, Size size) async {
-  tester.view.physicalSize = size;
-  tester.view.devicePixelRatio = 1.0;
-  addTearDown(tester.view.reset);
-
-  await tester.pumpWidget(const ProviderScope(child: StockInventoryApp()));
-  await tester.pumpAndSettle();
-}
+Future<void> _pumpAt(WidgetTester tester, Size size) =>
+    pumpApp(tester, size: size);
 
 void main() {
   group('every route renders at tablet size', () {
     for (final route in _allRoutes()) {
-      testWidgets(route.label, (tester) async {
+      testApp(route.label, (tester) async {
         await _pumpAt(tester, _tabletLandscape);
 
         appRouter.go(route.path);
@@ -216,7 +230,7 @@ void main() {
   // something the client finds during the demo.
   group('every route survives the narrow breakpoint', () {
     for (final route in _allRoutes()) {
-      testWidgets('${route.label} at 1024x600', (tester) async {
+      testApp('${route.label} at 1024x600', (tester) async {
         await _pumpAt(tester, _smallTablet);
 
         appRouter.go(route.path);
@@ -236,7 +250,7 @@ void main() {
   // and every screen has to survive it.
   group('every route survives portrait', () {
     for (final route in _allRoutes()) {
-      testWidgets('${route.label} at 800x1280', (tester) async {
+      testApp('${route.label} at 800x1280', (tester) async {
         await _pumpAt(tester, _portraitTablet);
 
         appRouter.go(route.path);
@@ -252,12 +266,12 @@ void main() {
   });
 
   group('the shell holds together across tablet sizes', () {
-    // The rail is pinned to a fixed width on purpose — left to size itself it
-    // grew to fit the longest French label and stole 148dp from the content
-    // area, overflowing the top bar. These guard that fix, and would catch the
-    // same thing happening again when Dutch is added.
+    // The sidebar is pinned to a fixed width on purpose — 280dp so no French
+    // destination label is ever truncated, and it must not grow past that when
+    // Dutch is added. Below ~1100dp it drops to an icon strip so the dense
+    // content area keeps its room.
 
-    testWidgets('rail is extended and pinned at the 1280x800 baseline', (
+    testApp('sidebar is expanded and 280dp wide at the 1280x800 baseline', (
       tester,
     ) async {
       await _pumpAt(tester, _tabletLandscape);
@@ -266,53 +280,43 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
-
-      final rail = tester.widget<NavigationRail>(find.byType(NavigationRail));
-      expect(rail.extended, isTrue);
       expect(
-        tester.getSize(find.byType(NavigationRail)).width,
-        AppSizing.railWidthExpanded,
-        reason: 'the rail must not grow to fit its labels',
+        tester.getSize(find.byType(AppSidebar)).width,
+        AppSizing.sidebarWidthExpanded,
+        reason: 'the sidebar must not grow to fit its labels',
       );
     });
 
-    testWidgets('nothing overflows at 1024x600 with the rail still extended', (
-      tester,
-    ) async {
+    testApp('sidebar collapses to an icon strip at 1024x600', (tester) async {
       await _pumpAt(tester, _smallTablet);
 
       appRouter.go(Routes.toInventory(StoreIds.sablon));
       await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
-
-      final rail = tester.widget<NavigationRail>(find.byType(NavigationRail));
       expect(
-        rail.extended,
-        isTrue,
-        reason: '1024 is above the 900dp collapse breakpoint',
+        tester.getSize(find.byType(AppSidebar)).width,
+        AppSizing.sidebarWidthCollapsed,
+        reason: '1024 is below the ~1100dp sidebar breakpoint',
       );
     });
 
-    testWidgets('rail collapses to icons on a narrow tablet', (tester) async {
+    testApp('sidebar collapses to icons on a narrow tablet', (tester) async {
       await _pumpAt(tester, _narrowTablet);
 
       appRouter.go(Routes.toInventory(StoreIds.sablon));
       await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
-
-      final rail = tester.widget<NavigationRail>(find.byType(NavigationRail));
-      expect(rail.extended, isFalse);
       expect(
-        tester.getSize(find.byType(NavigationRail)).width,
-        AppSizing.railWidthCollapsed,
+        tester.getSize(find.byType(AppSidebar)).width,
+        AppSizing.sidebarWidthCollapsed,
       );
     });
   });
 
   group('store scoping', () {
-    testWidgets('the shell resolves the store from the path', (tester) async {
+    testApp('the shell resolves the store from the path', (tester) async {
       await _pumpAt(tester, _tabletLandscape);
 
       appRouter.go(Routes.toDashboard(StoreIds.liege));
@@ -323,7 +327,7 @@ void main() {
       expect(find.text('Le Comptoir de Liège'), findsWidgets);
     });
 
-    testWidgets('an unknown store id falls back instead of crashing', (
+    testApp('an unknown store id falls back instead of crashing', (
       tester,
     ) async {
       await _pumpAt(tester, _tabletLandscape);

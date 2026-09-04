@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../app/navigation.dart';
@@ -7,8 +8,11 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/formatters.dart';
+import '../../../../core/utils/stock_status.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../../mock_data/mock_data.dart';
+import '../../../../data/providers.dart';
+import '../../../../data/repositories/repositories.dart';
+import '../../../../data/view_models/view_models.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 import '../widgets/order_line_editor.dart';
@@ -48,7 +52,10 @@ class CreateOrderPage extends StatelessWidget {
 }
 
 /// The order form, used for both creating and editing a draft.
-class OrderFormPage extends StatefulWidget {
+///
+/// Split into a gate and a form, like the article and supplier forms: the
+/// fields are filled from the draft being edited, and that draft is a query.
+class OrderFormPage extends ConsumerWidget {
   const OrderFormPage({
     required this.storeId,
     this.orderId,
@@ -67,10 +74,64 @@ class OrderFormPage extends StatefulWidget {
   final bool prefillSuggested;
 
   @override
-  State<OrderFormPage> createState() => _OrderFormPageState();
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (orderId == null) {
+      return _OrderForm(
+        storeId: storeId,
+        existing: null,
+        initialSupplierId: initialSupplierId,
+        prefillSuggested: prefillSuggested,
+      );
+    }
+
+    final l10n = AppLocalizations.of(context);
+    final asyncOrder = ref.watch(orderProvider(orderId!));
+    final existing = asyncOrder.value;
+
+    if (existing == null) {
+      return ShellPage(
+        title: l10n.ordersTitle,
+        child: asyncOrder.isLoading
+            ? const SkeletonList(rows: 3, rowHeight: 100)
+            : ErrorState(
+                message: l10n.errorStateBody,
+                onRetry: () => context.goSection(Routes.toOrders(storeId)),
+              ),
+      );
+    }
+
+    return _OrderForm(
+      key: ValueKey(orderId),
+      storeId: storeId,
+      existing: existing,
+      initialSupplierId: initialSupplierId,
+      prefillSuggested: prefillSuggested,
+    );
+  }
 }
 
-class _OrderFormPageState extends State<OrderFormPage> {
+class _OrderForm extends ConsumerStatefulWidget {
+  const _OrderForm({
+    required this.storeId,
+    required this.existing,
+    required this.initialSupplierId,
+    required this.prefillSuggested,
+    super.key,
+  });
+
+  final String storeId;
+
+  /// The draft being edited, or null when creating.
+  final PurchaseOrder? existing;
+
+  final String? initialSupplierId;
+  final bool prefillSuggested;
+
+  @override
+  ConsumerState<_OrderForm> createState() => _OrderFormPageState();
+}
+
+class _OrderFormPageState extends ConsumerState<_OrderForm> {
   final _noteController = TextEditingController();
   final List<OrderLineDraft> _lines = [];
 
@@ -92,16 +153,30 @@ class _OrderFormPageState extends State<OrderFormPage> {
   String? _initialSupplierId;
   String _initialLines = '';
 
-  bool get _isEditing => widget.orderId != null;
+  bool get _isEditing => widget.existing != null;
 
-  PurchaseOrder? get _order =>
-      widget.orderId == null ? null : MockQueries.orderById(widget.orderId!);
+  /// The rows the item picker offers, and the prices behind them.
+  ///
+  /// Refreshed at the top of every build from the chosen supplier's offers, so
+  /// the handlers below — which run between builds — always see the same list
+  /// the user was looking at when they tapped.
+  List<SupplierProductView> _offers = const [];
+
+  /// The articles behind those rows, by id.
+  ///
+  /// Refreshed alongside [_offers] and for the same reason. `SupplierProductView`
+  /// answers "what does this supplier charge"; the top-up figure needs "how much
+  /// is on the shelf and how much fits", which is a fact about the article.
+  Map<String, Item> _stockById = const {};
+
+  /// Set once, when the suggestion list first arrives for a prefilled order.
+  bool _prefilled = false;
 
   @override
   void initState() {
     super.initState();
 
-    final existing = _order;
+    final existing = widget.existing;
     if (existing != null) {
       _supplierId = existing.supplierId;
       _noteController.text = existing.note ?? '';
@@ -116,12 +191,10 @@ class _OrderFormPageState extends State<OrderFormPage> {
         );
       }
     } else if (widget.initialSupplierId != null) {
+      // Arriving from the low-stock alerts screen. The lines themselves are
+      // filled in during the first build that has the suggestions in hand —
+      // they are a query now, and `initState` cannot wait for one.
       _supplierId = widget.initialSupplierId;
-      if (widget.prefillSuggested) {
-        _addItems(
-          MockQueries.suggestedItemsForSupplier(widget.storeId, _supplierId!),
-        );
-      }
     }
 
     _snapshot();
@@ -175,8 +248,16 @@ class _OrderFormPageState extends State<OrderFormPage> {
   }
 
   /// The price this supplier charges for an item, or zero if there is no link.
-  double _priceFor(String itemId) =>
-      MockQueries.priceFor(itemId, _supplierId!)?.pricePerUnit ?? 0;
+  ///
+  /// From the offers already on screen rather than from a query of its own: the
+  /// picker only lists articles this supplier sells, so the answer is always in
+  /// the list the user just chose from.
+  double _priceFor(String itemId) {
+    for (final offer in _offers) {
+      if (offer.price.itemId == itemId) return offer.price.pricePerUnit;
+    }
+    return 0;
+  }
 
   void _addItems(List<Item> items) {
     for (final item in items) {
@@ -185,47 +266,53 @@ class _OrderFormPageState extends State<OrderFormPage> {
         OrderLineDraft(
           id: _nextLineId(),
           itemId: item.id,
-          // Enough to get back above the threshold, rounded up to something a
-          // person would actually order. Guessing a quantity beats leaving a
-          // zero the user has to notice and fix on every line.
-          quantity: _suggestedQuantity(item),
+          // Guessing a quantity beats leaving a zero the user has to notice
+          // and fix on every line.
+          quantity: topUpQuantity(item),
           unitPrice: _priceFor(item.id),
         ),
       );
     }
   }
 
-  double _suggestedQuantity(Item item) {
-    final shortfall = item.lowStockThreshold - item.quantity;
-    final target = shortfall > 0 ? shortfall : item.lowStockThreshold;
-    return target <= 0 ? 1 : target.ceilToDouble();
+  /// [topUpQuantity] for an article the page knows only by id.
+  ///
+  /// One for an article that is not in the catalogue this build is holding —
+  /// the picker cannot offer one, so this is the empty-line placeholder rather
+  /// than a real answer.
+  double _suggestedQuantityFor(String itemId) {
+    final item = _stockById[itemId];
+    return item == null ? 1 : topUpQuantity(item);
   }
 
   void _addEmptyLine() {
     final available = _availableItems();
     setState(() {
+      final itemId = available.isEmpty ? '' : available.first.price.itemId;
       _lines.add(
         OrderLineDraft(
           id: _nextLineId(),
-          itemId: available.isEmpty ? '' : available.first.id,
-          quantity: 1,
-          unitPrice: available.isEmpty ? 0 : _priceFor(available.first.id),
+          itemId: itemId,
+          // Pre-filled to the top-up for whichever article the picker landed
+          // on, so a hand-added line starts where a suggested one would.
+          quantity: _suggestedQuantityFor(itemId),
+          unitPrice: available.isEmpty ? 0 : available.first.price.pricePerUnit,
         ),
       );
     });
   }
 
-  /// Items this supplier supplies that are not already on the order.
-  List<Item> _availableItems({String? including}) {
+  /// Articles this supplier supplies that are not already on the order.
+  List<SupplierProductView> _availableItems({String? including}) {
     final chosen = _lines
         .map((line) => line.itemId)
         .where((id) => id != including)
         .toSet();
 
-    return MockQueries.itemsSuppliedBy(
-      widget.storeId,
-      _supplierId!,
-    ).where((item) => !chosen.contains(item.id)).toList();
+    return [
+      for (final offer in _offers)
+        if (!chosen.contains(offer.price.itemId)) offer,
+    ];
   }
 
   void _removeLine(OrderLineDraft line) {
@@ -309,7 +396,47 @@ class _OrderFormPageState extends State<OrderFormPage> {
   }
 
   Widget _linesStep(BuildContext context, AppLocalizations l10n) {
-    final supplierName = MockQueries.supplierNameOf(_supplierId);
+    final supplierId = _supplierId!;
+
+    // Everything this supplier sells, with prices and names already resolved.
+    // One query serves the picker, the auto-filled prices and the line labels.
+    _offers =
+        ref.watch(supplierProductsProvider(supplierId)).value ??
+        const <SupplierProductView>[];
+
+    _stockById = {
+      for (final item
+          in ref
+                  .watch(
+                    itemsProvider((
+                      storeId: widget.storeId,
+                      filter: ItemFilter(supplierId: supplierId),
+                    )),
+                  )
+                  .value ??
+              const <Item>[])
+        item.id: item,
+    };
+
+    final suggestions =
+        ref.watch(
+          itemRowsProvider((
+            storeId: widget.storeId,
+            filter: ItemFilter(supplierId: supplierId, lowStockOnly: true),
+          )),
+        ).value ??
+        const <ItemRowView>[];
+
+    // The alerts screen sends people here with "fill it in for me". Done on
+    // the first build that has the suggestions, since `initState` could not
+    // wait for the query.
+    if (!_prefilled && widget.prefillSuggested && suggestions.isNotEmpty) {
+      _prefilled = true;
+      _addItems([for (final row in suggestions) row.item]);
+      _snapshot();
+    }
+
+    final supplierName = _supplierName(supplierId);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -322,7 +449,9 @@ class _OrderFormPageState extends State<OrderFormPage> {
 
         SuggestedItemsPanel(
           storeId: widget.storeId,
-          supplierId: _supplierId!,
+          supplierId: supplierId,
+          suggestions: suggestions,
+          supplierName: supplierName,
           chosenItemIds: _lines.map((line) => line.itemId).toSet(),
           onAdd: (item) {
             setState(() => _addItems([item]));
@@ -367,15 +496,14 @@ class _OrderFormPageState extends State<OrderFormPage> {
                 key: ValueKey(line.id),
                 draft: line,
                 storeId: widget.storeId,
-                supplierId: _supplierId!,
+                supplierId: supplierId,
+                unitAbbreviation: _unitOf(line.itemId),
                 itemOptions: [
-                  for (final item in _availableItems(including: line.itemId))
+                  for (final offer in _availableItems(including: line.itemId))
                     DropdownOption(
-                      value: item.id,
-                      label: item.name,
-                      secondaryLabel: MockQueries.categoryNameOf(
-                        item.categoryId,
-                      ),
+                      value: offer.price.itemId,
+                      label: offer.itemName,
+                      secondaryLabel: offer.categoryName,
                     ),
                 ],
                 onItemChanged: (value) {
@@ -383,6 +511,10 @@ class _OrderFormPageState extends State<OrderFormPage> {
                   setState(() {
                     line.itemId = value;
                     line.setPrice(_priceFor(value));
+                    // The quantity belonged to the article that was on this
+                    // line a moment ago. Keeping it would carry 12 kg of
+                    // potatoes over onto the saffron.
+                    line.quantity = _suggestedQuantityFor(value);
                   });
                 },
                 onQuantityChanged: (value) =>
@@ -435,28 +567,33 @@ class _OrderFormPageState extends State<OrderFormPage> {
     return text.isEmpty ? null : text;
   }
 
-  void _saveDraft() {
+  Future<void> _saveDraft() async {
     final l10n = AppLocalizations.of(context);
+    final orders = ref.read(orderRepositoryProvider);
 
     if (_isEditing) {
-      OrderMutations.updateDraft(
-        widget.orderId!,
+      await orders.updateDraft(
+        widget.existing!.id,
         supplierId: _supplierId,
         lines: _toLines(),
         note: _note,
       );
+
+      if (!mounted) return;
       _snapshot();
       AppSnackBar.success(context, l10n.orderDraftUpdated);
       context.backTo(Routes.toOrders(widget.storeId));
       return;
     }
 
-    final order = OrderMutations.createDraft(
+    final order = await orders.createDraft(
       storeId: widget.storeId,
       supplierId: _supplierId!,
       lines: _toLines(),
       note: _note,
     );
+
+    if (!mounted) return;
     _snapshot();
     AppSnackBar.success(context, l10n.orderDraftSaved);
     context.replaceScreen(Routes.toOrder(widget.storeId, order.id));
@@ -464,7 +601,8 @@ class _OrderFormPageState extends State<OrderFormPage> {
 
   Future<void> _send() async {
     final l10n = AppLocalizations.of(context);
-    final supplierName = MockQueries.supplierNameOf(_supplierId);
+    final orders = ref.read(orderRepositoryProvider);
+    final supplierName = _supplierName(_supplierId!);
 
     // Sending is irreversible in the sense that matters: the supplier now has
     // the document, and the order locks.
@@ -473,34 +611,54 @@ class _OrderFormPageState extends State<OrderFormPage> {
       title: l10n.orderSendConfirmTitle(supplierName),
       message: l10n.orderSendConfirmBody,
       confirmLabel: l10n.orderSendConfirmAction,
-      isDestructive: false,
     );
     if (!confirmed || !mounted) return;
 
-    final orderId = _isEditing
-        ? widget.orderId!
-        : OrderMutations.createDraft(
-            storeId: widget.storeId,
-            supplierId: _supplierId!,
-            lines: _toLines(),
-            note: _note,
-          ).id;
-
+    final String orderId;
     if (_isEditing) {
-      OrderMutations.updateDraft(
+      orderId = widget.existing!.id;
+      await orders.updateDraft(
         orderId,
         supplierId: _supplierId,
         lines: _toLines(),
         note: _note,
       );
+    } else {
+      final created = await orders.createDraft(
+        storeId: widget.storeId,
+        supplierId: _supplierId!,
+        lines: _toLines(),
+        note: _note,
+      );
+      orderId = created.id;
     }
 
-    OrderMutations.send(orderId);
-    _snapshot();
-
+    await orders.send(orderId);
     if (!mounted) return;
+
+    _snapshot();
     AppSnackBar.success(context, l10n.orderSent(supplierName));
     context.replaceScreen(Routes.toOrder(widget.storeId, orderId));
+  }
+
+  /// The chosen supplier's name, from the offers already on screen.
+  ///
+  /// Falls back to the picker's own list on the first frame after choosing,
+  /// before the offers for the new supplier have arrived.
+  String _supplierName(String supplierId) {
+    final suppliers = ref.read(suppliersProvider(widget.storeId)).value;
+    for (final supplier in suppliers ?? const []) {
+      if (supplier.id == supplierId) return supplier.name;
+    }
+    return '—';
+  }
+
+  /// The unit one line's article is measured in, from the offers on screen.
+  String _unitOf(String itemId) {
+    for (final offer in _offers) {
+      if (offer.price.itemId == itemId) return offer.unitAbbreviation;
+    }
+    return '';
   }
 }
 
@@ -509,17 +667,17 @@ class _OrderFormPageState extends State<OrderFormPage> {
 /// A full step rather than a field halfway down the form, because everything
 /// after it depends on the answer — the item picker is filtered by supplier and
 /// every price is auto-filled from them.
-class _SupplierStep extends StatefulWidget {
+class _SupplierStep extends ConsumerStatefulWidget {
   const _SupplierStep({required this.storeId, required this.onChosen});
 
   final String storeId;
   final ValueChanged<String> onChosen;
 
   @override
-  State<_SupplierStep> createState() => _SupplierStepState();
+  ConsumerState<_SupplierStep> createState() => _SupplierStepState();
 }
 
-class _SupplierStepState extends State<_SupplierStep> {
+class _SupplierStepState extends ConsumerState<_SupplierStep> {
   String _query = '';
 
   @override
@@ -528,14 +686,17 @@ class _SupplierStepState extends State<_SupplierStep> {
     final theme = Theme.of(context);
     final query = _query.trim().toLowerCase();
 
-    final suppliers = MockQueries.suppliersForStore(widget.storeId)
-        .where(
-          (supplier) =>
-              query.isEmpty ||
-              supplier.name.toLowerCase().contains(query) ||
-              supplier.city.toLowerCase().contains(query),
-        )
-        .toList();
+    final rows =
+        ref.watch(supplierRowsProvider(widget.storeId)).value ??
+        const <SupplierRowView>[];
+
+    final suppliers = [
+      for (final row in rows)
+        if (query.isEmpty ||
+            row.supplier.name.toLowerCase().contains(query) ||
+            row.supplier.city.toLowerCase().contains(query))
+          row,
+    ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -557,11 +718,11 @@ class _SupplierStepState extends State<_SupplierStep> {
         if (suppliers.isEmpty)
           EmptyState.noResults(l10n)
         else
-          for (final supplier in suppliers)
+          for (final row in suppliers)
             Padding(
               padding: const EdgeInsets.only(bottom: AppSpacing.sm),
               child: AppCard(
-                onTap: () => widget.onChosen(supplier.id),
+                onTap: () => widget.onChosen(row.supplier.id),
                 padding: const EdgeInsets.symmetric(
                   horizontal: AppSpacing.lg,
                   vertical: AppSpacing.md,
@@ -579,13 +740,13 @@ class _SupplierStepState extends State<_SupplierStep> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            supplier.name,
+                            row.supplier.name,
                             style: theme.textTheme.titleSmall,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
                           Text(
-                            '${supplier.contactName} · ${supplier.city}',
+                            '${row.supplier.contactName} · ${row.supplier.city}',
                             style: theme.textTheme.bodySmall,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -595,9 +756,7 @@ class _SupplierStepState extends State<_SupplierStep> {
                     ),
                     const SizedBox(width: AppSpacing.md),
                     Text(
-                      l10n.suppliersProductCount(
-                        MockQueries.itemCountForSupplier(supplier.id),
-                      ),
+                      l10n.suppliersProductCount(row.productCount),
                       style: theme.textTheme.bodySmall,
                     ),
                     const SizedBox(width: AppSpacing.sm),

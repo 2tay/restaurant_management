@@ -7,7 +7,7 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/utils/order_status.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../../mock_data/mock_data.dart';
+import '../../../../data/repositories/repositories.dart';
 import '../../../../shared/widgets/widgets.dart';
 
 /// One line of a delivery as it is being checked in.
@@ -103,12 +103,21 @@ class ReceiveLineDraft {
 class ReceiveLineRow extends StatelessWidget {
   const ReceiveLineRow({
     required this.draft,
+    required this.itemName,
+    required this.unitAbbreviation,
     required this.onChanged,
     this.onRemove,
     super.key,
   });
 
   final ReceiveLineDraft draft;
+
+  /// The article's name, or a dash when it has been deleted since the commande
+  /// was sent — the line is still received, because the delivery happened.
+  final String itemName;
+
+  final String unitAbbreviation;
+
   final VoidCallback onChanged;
 
   /// Only unordered lines can be taken back off the receipt — an ordered line
@@ -120,10 +129,7 @@ class ReceiveLineRow extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
 
-    final item = MockQueries.itemById(draft.itemId);
-    final unit = item == null
-        ? ''
-        : MockQueries.unitAbbreviationOf(item.unitId);
+    final unit = unitAbbreviation;
 
     return AppCard(
       child: Column(
@@ -138,7 +144,7 @@ class ReceiveLineRow extends StatelessWidget {
                   runSpacing: AppSpacing.sm,
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    Text(item?.name ?? '—', style: theme.textTheme.titleSmall),
+                    Text(itemName, style: theme.textTheme.titleSmall),
                     if (draft.wasUnordered)
                       _Flag(
                         label: l10n.receiveUnorderedBadge,

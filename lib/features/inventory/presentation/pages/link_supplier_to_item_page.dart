@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../app/routes.dart';
@@ -7,7 +8,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../../mock_data/mock_data.dart';
+import '../../../../data/providers.dart';
 import '../../../../shared/widgets/widgets.dart';
 
 /// Attach a supplier to an item, with that supplier's price.
@@ -16,7 +17,7 @@ import '../../../../shared/widgets/widgets.dart';
 /// place a price is ever entered for an item. Suppliers already linked are
 /// excluded from the picker — linking the same supplier twice would produce two
 /// competing prices for the same pair.
-class LinkSupplierToItemPage extends StatefulWidget {
+class LinkSupplierToItemPage extends ConsumerStatefulWidget {
   const LinkSupplierToItemPage({
     required this.storeId,
     required this.itemId,
@@ -27,10 +28,12 @@ class LinkSupplierToItemPage extends StatefulWidget {
   final String itemId;
 
   @override
-  State<LinkSupplierToItemPage> createState() => _LinkSupplierToItemPageState();
+  ConsumerState<LinkSupplierToItemPage> createState() =>
+      _LinkSupplierToItemPageState();
 }
 
-class _LinkSupplierToItemPageState extends State<LinkSupplierToItemPage> {
+class _LinkSupplierToItemPageState
+    extends ConsumerState<LinkSupplierToItemPage> {
   final _priceController = TextEditingController();
   String? _supplierId;
   bool _setAsDefault = false;
@@ -50,36 +53,49 @@ class _LinkSupplierToItemPageState extends State<LinkSupplierToItemPage> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final item = MockQueries.itemById(widget.itemId);
+    final row = ref.watch(itemRowProvider(widget.itemId)).value;
+    final pricing = ref.watch(itemPricingProvider(widget.itemId)).value;
 
-    if (item == null) {
+    if (row == null || pricing == null) {
+      final loading =
+          ref.watch(itemRowProvider(widget.itemId)).isLoading ||
+          ref.watch(itemPricingProvider(widget.itemId)).isLoading;
+
       return ShellPage(
         title: l10n.linkSupplierTitle,
         back: BackDestination(
           label: l10n.inventoryTitle,
           path: Routes.toInventory(widget.storeId),
         ),
-        child: ErrorState(
-          onRetry: () => context.goSection(Routes.toInventory(widget.storeId)),
-        ),
+        child: loading
+            ? const SkeletonList(rows: 3, rowHeight: 90)
+            : ErrorState(
+                onRetry: () =>
+                    context.goSection(Routes.toInventory(widget.storeId)),
+              ),
       );
     }
 
-    final unit = MockQueries.unitAbbreviationOf(item.unitId);
-    final alreadyLinked = MockQueries.pricesForItem(
-      item.id,
-    ).map((price) => price.supplierId).toSet();
+    final item = row.item;
+    final unit = row.unitAbbreviation;
 
-    final available = MockQueries.suppliersForStore(widget.storeId)
-        .where((supplier) => !alreadyLinked.contains(supplier.id))
-        .map(
-          (supplier) => DropdownOption(
+    // Suppliers this article is already linked to are left out of the menu
+    // rather than offered and then refused — linking the same pair twice is
+    // the one thing the write below cannot do.
+    final alreadyLinked = {
+      for (final entry in pricing.prices) entry.price.supplierId,
+    };
+
+    final available = <DropdownOption<String>>[
+      for (final supplier
+          in ref.watch(suppliersProvider(widget.storeId)).value ?? const [])
+        if (!alreadyLinked.contains(supplier.id))
+          DropdownOption(
             value: supplier.id,
             label: supplier.name,
             secondaryLabel: supplier.city,
           ),
-        )
-        .toList();
+    ];
 
     return FormScaffold(
       title: l10n.linkSupplierTitle,
@@ -174,21 +190,24 @@ class _LinkSupplierToItemPageState extends State<LinkSupplierToItemPage> {
   double? get _parsedPrice =>
       double.tryParse(_priceController.text.replaceAll(',', '.').trim());
 
-  void _submit(String itemId) {
+  Future<void> _submit(String itemId) async {
     final l10n = AppLocalizations.of(context);
 
-    SupplierMutations.linkItem(
-      itemId: itemId,
-      supplierId: _supplierId!,
-      pricePerUnit: _parsedPrice ?? 0,
-    );
+    await ref
+        .read(supplierRepositoryProvider)
+        .linkItem(
+          itemId: itemId,
+          supplierId: _supplierId!,
+          pricePerUnit: _parsedPrice ?? 0,
+        );
 
+    if (!mounted) return;
     AppSnackBar.success(context, l10n.supplierLinked);
     context.pushScreen(Routes.toItem(widget.storeId, itemId));
   }
 }
 
-class _PriceComparisonHint extends StatelessWidget {
+class _PriceComparisonHint extends ConsumerWidget {
   const _PriceComparisonHint({
     required this.itemId,
     required this.unit,
@@ -200,14 +219,16 @@ class _PriceComparisonHint extends StatelessWidget {
   final double? enteredPrice;
 
   @override
-  Widget build(BuildContext context) {
-    final cheapest = MockQueries.cheapestPriceForItem(itemId);
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Silent until the pricing is in hand. A hint that cannot compare has
+    // nothing to say, and saying it late is better than saying it wrong.
+    final cheapest = ref.watch(itemPricingProvider(itemId)).value?.cheapest;
     final price = enteredPrice;
     if (cheapest == null || price == null) return const SizedBox.shrink();
 
-    final difference = price - cheapest.pricePerUnit;
+    final difference = price - cheapest.price.pricePerUnit;
     final isBetter = difference < 0;
-    final supplierName = MockQueries.supplierNameOf(cheapest.supplierId);
+    final supplierName = cheapest.supplierName;
 
     final l10n = AppLocalizations.of(context);
     final colors = isBetter ? AppColors.inStock : AppColors.lowStock;

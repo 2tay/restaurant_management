@@ -6,7 +6,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:stock_inventory/core/theme/app_colors.dart';
 import 'package:stock_inventory/core/theme/app_theme.dart';
+import 'package:stock_inventory/data/repositories/repositories.dart';
 import 'package:stock_inventory/l10n/app_localizations.dart';
 import 'package:stock_inventory/models/models.dart';
 import 'package:stock_inventory/shared/widgets/widgets.dart';
@@ -86,6 +88,64 @@ void main() {
 
       final tooltip = tester.widget<Tooltip>(find.byType(Tooltip));
       expect(tooltip.message, 'Stock faible');
+    });
+  });
+
+  group('PaymentStatusBadge', () {
+    testWidgets('never communicates status by colour alone', (tester) async {
+      for (final status in PaymentStatus.values) {
+        await tester.pumpWidget(_host(PaymentStatusBadge(status: status)));
+        await tester.pumpAndSettle();
+
+        expect(find.byType(Icon), findsOneWidget, reason: '$status icon');
+        expect(find.byType(Text), findsOneWidget, reason: '$status label');
+      }
+    });
+
+    testWidgets('each status gets a distinct icon, not just a colour', (
+      tester,
+    ) async {
+      final icons =
+          PaymentStatus.values.map(PaymentStatusBadge.iconFor).toSet();
+
+      expect(
+        icons.length,
+        PaymentStatus.values.length,
+        reason: 'statuses must be distinguishable by shape',
+      );
+    });
+
+    testWidgets('shows the right French label per status', (tester) async {
+      await tester.pumpWidget(
+        _host(
+          const Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              PaymentStatusBadge(status: PaymentStatus.paid),
+              PaymentStatusBadge(status: PaymentStatus.unpaid),
+            ],
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Payé'), findsOneWidget);
+      expect(find.text('Non payé'), findsOneWidget);
+    });
+  });
+
+  group('AttendanceStatusBadge', () {
+    testWidgets('en pause is the teal onBreak palette, never amber', (
+      tester,
+    ) async {
+      expect(
+        AttendanceStatusBadge.colorsFor(AttendanceStatus.onBreak),
+        same(AppColors.onBreak),
+      );
+      expect(
+        AttendanceStatusBadge.colorsFor(AttendanceStatus.onBreak),
+        isNot(same(AppColors.lowStock)),
+      );
     });
   });
 
@@ -332,6 +392,182 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(tapped, isTrue);
+    });
+  });
+
+  group('IdentityPromptDialog', () {
+    Future<void> open(
+      WidgetTester tester,
+      Future<CinVerification> Function(String cin) verify,
+    ) async {
+      await tester.pumpWidget(
+        _host(
+          Builder(
+            builder: (context) => ElevatedButton(
+              onPressed: () => IdentityPromptDialog.show(
+                context,
+                title: 'Confirmation',
+                subtitle: 'Pointer · Karim',
+                verify: verify,
+              ),
+              child: const Text('open'),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> submit(WidgetTester tester, String cin) async {
+      await tester.enterText(find.byType(TextField), cin);
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, 'Valider'));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('a wrong CIN keeps the dialog open with the count left', (
+      tester,
+    ) async {
+      await open(
+        tester,
+        (_) async =>
+            const CinVerification(CinCheckResult.wrongCin, attemptsRemaining: 2),
+      );
+      await submit(tester, '99.99.99-999.99');
+
+      expect(find.byType(IdentityPromptDialog), findsOneWidget);
+      expect(find.textContaining('2 tentatives restantes'), findsOneWidget);
+    });
+
+    testWidgets('the right CIN closes the dialog', (tester) async {
+      await open(
+        tester,
+        (_) async => const CinVerification(CinCheckResult.ok),
+      );
+      await submit(tester, '78.02.14-153.24');
+
+      expect(find.byType(IdentityPromptDialog), findsNothing);
+    });
+
+    testWidgets('a locked result disables Valider and shows a countdown', (
+      tester,
+    ) async {
+      final until = DateTime.now().add(const Duration(minutes: 5));
+      await open(
+        tester,
+        (_) async =>
+            CinVerification(CinCheckResult.locked, lockedUntil: until),
+      );
+      await tester.enterText(find.byType(TextField), '99.99.99-999.99');
+      await tester.pump();
+      await tester.tap(find.widgetWithText(FilledButton, 'Valider'));
+      await tester.pump();
+
+      expect(find.textContaining('Réessayez dans'), findsOneWidget);
+      final valider = tester.widget<FilledButton>(
+        find.widgetWithText(FilledButton, 'Valider'),
+      );
+      expect(valider.onPressed, isNull);
+
+      // Close it so the countdown Timer is disposed before the test ends.
+      await tester.tap(find.widgetWithText(TextButton, 'Annuler'));
+      await tester.pumpAndSettle();
+    });
+  });
+
+  group('EmployeeSelector', () {
+    Employee emp(String first, String last, String cin) => Employee(
+      id: cin,
+      storeId: 's1',
+      firstName: first,
+      lastName: last,
+      cin: cin,
+      phone: '0',
+      email: '$first@x.c',
+      hireDate: DateTime(2026),
+      role: EmployeeRole.staff,
+      contractType: ContractType.fixed,
+      pay: 2000,
+      createdAt: DateTime(2026),
+    );
+
+    final roster = [
+      emp('Amélie', 'Vandenberghe', '89.07.30-201.44'),
+      emp('Karim', 'Haddouch', '01.02.03-004.05'),
+    ];
+
+    Future<Employee?> pumpSelector(
+      WidgetTester tester, {
+      bool showCin = false,
+    }) async {
+      Employee? picked;
+      await tester.pumpWidget(
+        _host(
+          StatefulBuilder(
+            builder: (context, setState) => SizedBox(
+              width: 360,
+              child: EmployeeSelector(
+                employees: roster,
+                value: picked,
+                showCin: showCin,
+                onChanged: (e) => setState(() => picked = e),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      return picked;
+    }
+
+    testWidgets('opens, filters by name, and selects', (tester) async {
+      await pumpSelector(tester);
+      await tester.tap(find.byType(EmployeeSelector));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField).last, 'karim');
+      await tester.pumpAndSettle();
+      expect(find.text('Amélie Vandenberghe'), findsNothing);
+
+      await tester.tap(find.text('Karim Haddouch'));
+      await tester.pumpAndSettle();
+      // Closed field now shows the pick.
+      expect(find.text('Karim Haddouch'), findsOneWidget);
+    });
+
+    testWidgets('filters by CIN even when the CIN is not shown', (tester) async {
+      await pumpSelector(tester);
+      await tester.tap(find.byType(EmployeeSelector));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField).last, '89.07.30');
+      await tester.pumpAndSettle();
+      expect(find.text('Amélie Vandenberghe'), findsOneWidget);
+      expect(find.text('Karim Haddouch'), findsNothing);
+      // showCin is false → the number itself is not rendered in the row.
+      expect(find.textContaining('CIN 89.07.30-201.44'), findsNothing);
+    });
+
+    testWidgets('showCin renders the CIN under each name', (tester) async {
+      await pumpSelector(tester, showCin: true);
+      await tester.tap(find.byType(EmployeeSelector));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('89.07.30-201.44'), findsOneWidget);
+    });
+
+    testWidgets('the clear button resets the selection', (tester) async {
+      await pumpSelector(tester);
+      await tester.tap(find.byType(EmployeeSelector));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Amélie Vandenberghe'));
+      await tester.pumpAndSettle();
+      expect(find.text('Amélie Vandenberghe'), findsOneWidget);
+
+      await tester.tap(find.byTooltip('Effacer'));
+      await tester.pumpAndSettle();
+      expect(find.text('Amélie Vandenberghe'), findsNothing);
+      expect(find.text('Rechercher ou sélectionner un employé…'), findsOneWidget);
     });
   });
 }

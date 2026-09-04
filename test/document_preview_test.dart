@@ -14,24 +14,24 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:stock_inventory/core/documents/document_fonts.dart';
 import 'package:stock_inventory/core/documents/receipt_document_pdf.dart';
 import 'package:stock_inventory/core/utils/formatters.dart';
+import 'package:stock_inventory/data/repositories/repositories.dart';
 import 'package:stock_inventory/features/orders/documents/receipt_export.dart';
 import 'package:stock_inventory/l10n/app_localizations_fr.dart';
-import 'package:stock_inventory/mock_data/mock_data.dart';
+import 'package:stock_inventory/data/seed/dataset/dataset.dart'
+    show ItemIds, OrderIds;
 
-
-import 'support/mock_reset.dart';
+import 'support/db_fixture.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  setUp(restoreMockData);
-
   test('writes a sample bon de réception to build/', () async {
     await initializeDateFormatting(Formatters.locale);
     final l10n = AppLocalizationsFr();
+    final orders = OrderRepository(await openSeededDatabase());
 
-    OrderMutations.send(OrderIds.sentGrossiste);
-    final receipt = OrderMutations.confirmReceipt(
+    await orders.send(OrderIds.sentGrossiste);
+    final receipt = await orders.confirmReceipt(
       orderId: OrderIds.sentGrossiste,
       lines: const [
         // Short, dearer than agreed, and closed: the argument for the feature.
@@ -66,7 +66,8 @@ void main() {
       note: 'Livraison reçue à 14h32, chauffeur pressé — contrôle fait à deux.',
     );
 
-    final document = ReceiptExport.buildDocument(l10n, receipt)!;
+    final sources = await orders.receiptDocumentSources(receipt!);
+    final document = ReceiptExport.buildDocument(l10n, receipt, sources!);
     final bytes = await buildReceiptDocumentPdf(
       document,
       await DocumentFonts.load(),

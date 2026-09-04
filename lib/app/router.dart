@@ -1,10 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../data/providers.dart';
 import '../dev/theme_gallery_page.dart';
 import '../features/alerts/presentation/pages/low_stock_alerts_page.dart';
 import '../features/alerts/presentation/pages/notifications_page.dart';
 import '../features/dashboard/presentation/pages/store_dashboard_page.dart';
+import '../features/employees/presentation/pages/add_edit_employee_page.dart';
+import '../features/employees/presentation/pages/attendance_history_page.dart';
+import '../features/employees/presentation/pages/employee_detail_page.dart';
+import '../features/employees/presentation/pages/employees_list_page.dart';
+import '../features/employees/presentation/pages/payroll_history_page.dart';
+import '../features/employees/presentation/pages/timeclock_board_page.dart';
 import '../features/reports/presentation/pages/price_comparison_report_page.dart';
 import '../features/reports/presentation/pages/reports_dashboard_page.dart';
 import '../features/reports/presentation/pages/stock_valuation_report_page.dart';
@@ -14,9 +22,6 @@ import '../features/settings/presentation/pages/account_settings_page.dart';
 import '../features/settings/presentation/pages/notification_preferences_page.dart';
 import '../features/settings/presentation/pages/store_settings_page.dart';
 import '../features/settings/presentation/pages/sync_status_page.dart';
-import '../features/team/presentation/pages/add_edit_member_page.dart';
-import '../features/team/presentation/pages/roles_permissions_page.dart';
-import '../features/team/presentation/pages/team_list_page.dart';
 import '../features/auth/presentation/pages/forgot_password_page.dart';
 import '../features/auth/presentation/pages/login_page.dart';
 import '../features/auth/presentation/pages/onboarding_page.dart';
@@ -43,7 +48,9 @@ import '../features/suppliers/presentation/pages/add_edit_supplier_page.dart';
 import '../features/suppliers/presentation/pages/supplier_detail_page.dart';
 import '../features/suppliers/presentation/pages/supplier_pricing_page.dart';
 import '../features/suppliers/presentation/pages/suppliers_list_page.dart';
-import '../mock_data/mock_data.dart';
+import '../core/utils/permissions.dart';
+import '../data/current_employee.dart';
+import '../models/models.dart';
 import '../shared/widgets/app_scaffold.dart';
 import 'page_transitions.dart';
 import 'routes.dart';
@@ -66,12 +73,84 @@ import 'routes.dart';
 /// go_router cannot match it without the parameter present.
 String _storeId(GoRouterState state) => state.pathParameters['storeId']!;
 
+/// The screens reachable without a session.
+const Set<String> _authRoutes = {
+  Routes.login,
+  Routes.forgotPassword,
+  Routes.onboarding,
+};
+
+/// The capability a location requires, or null when it is open to any
+/// signed-in non-staff user. Store settings is deliberately absent — its route
+/// stays open and only the "Enregistrer" button is gated, so a manager is not
+/// bounced out of the settings section.
+Capability? _capabilityFor(String location) {
+  if (location == Routes.addStore) return Capability.createStore;
+  if (location.contains('/employees/timeclock')) {
+    return Capability.viewTimeclock;
+  }
+  if (location.contains('/employees/attendance-history')) {
+    return Capability.viewAttendanceHistory;
+  }
+  if (location.contains('/employees/payroll')) {
+    return Capability.managePayroll;
+  }
+  if (location.contains('/employees')) return Capability.manageEmployees;
+  return null;
+}
+
+/// The auth + permission guard (Phase 6).
+///
+/// - no session → every route but [_authRoutes] redirects to the login
+/// - a `staff` session (which the app never actually issues) → back to login
+/// - a session on an auth screen → home (the grid for the owner, their store
+///   dashboard for a manager)
+/// - a store the user does not belong to, or a section the role cannot hold
+///   → home
+String? _guard(BuildContext context, GoRouterState state) {
+  final location = state.matchedLocation;
+
+  // Read synchronously — `currentEmployeeSnapshot` is resolved before the first
+  // frame (`main()` awaits `hydrate()`; the widget-test fixtures seed it) and
+  // kept in step with `currentEmployeeProvider` by its notifier.
+  final employee = currentEmployeeSnapshot;
+
+  if (employee == null) {
+    return _authRoutes.contains(location) ? null : Routes.login;
+  }
+
+  // Staff have no active app access — they should never hold a session.
+  if (employee.role == EmployeeRole.staff) {
+    return location == Routes.login ? null : Routes.login;
+  }
+
+  final spansStores = can(employee.role, Capability.spanAllStores);
+
+  // Where a signed-in user lands when they have no valid store target: the
+  // owner picks from the grid, everyone else goes straight to their store.
+  final home = spansStores
+      ? Routes.stores
+      : Routes.toDashboard(employee.storeId);
+
+  // On an auth screen, or on the store grid without the right to span stores.
+  if (_authRoutes.contains(location)) return home;
+  if (location == Routes.stores && !spansStores) return home;
+
+  // A store-scoped route for a store this user does not belong to.
+  final storeId = state.pathParameters['storeId'];
+  if (storeId != null && !canAccessStore(employee, storeId)) return home;
+
+  // A section the role cannot hold.
+  final needed = _capabilityFor(location);
+  if (needed != null && !can(employee.role, needed)) return home;
+
+  return null;
+}
+
 final GoRouter appRouter = GoRouter(
-  // Phase 1 has no authentication, so the app opens on the login screen and
-  // every button simply navigates onward. There is no redirect guard here on
-  // purpose — adding one would be the start of the auth logic the brief defers.
   initialLocation: Routes.login,
   debugLogDiagnostics: false,
+  redirect: _guard,
   routes: [
     // -------------------------------------------------------------------------
     // Auth and store selection — no shell
@@ -105,14 +184,8 @@ final GoRouter appRouter = GoRouter(
     // Store-scoped — inside the shell
     // -------------------------------------------------------------------------
     ShellRoute(
-      builder: (context, state, child) {
-        // Falls back to the first store rather than throwing, so a stale link
-        // or a hot reload mid-navigation shows the app instead of a red screen.
-        final store = MockQueries.storeByIdOrFirst(
-          state.pathParameters['storeId'],
-        );
-        return AppScaffold(store: store, child: child);
-      },
+      builder: (context, state, child) =>
+          _StoreShell(storeId: state.pathParameters['storeId'], child: child),
       routes: [
         GoRoute(
           path: Routes.dashboard,
@@ -203,7 +276,10 @@ final GoRouter appRouter = GoRouter(
           path: Routes.movements,
           pageBuilder: (context, state) => appPage(
             key: state.pageKey,
-            child: StockHistoryPage(storeId: _storeId(state)),
+            child: StockHistoryPage(
+              storeId: _storeId(state),
+              initialItemId: state.uri.queryParameters['item'],
+            ),
           ),
         ),
         GoRoute(
@@ -387,38 +463,65 @@ final GoRouter appRouter = GoRouter(
           ),
         ),
 
-        // --- Team ------------------------------------------------------------
+        // --- Gestion Employée -----------------------------------------------
         //
-        // `new` and `roles` precede `:memberId` for the same ordering reason as
-        // the inventory routes.
+        // `new` and the section literals (`timeclock`, `attendance-history`,
+        // `payroll`) precede `:employeeId` for the same ordering reason as the
+        // inventory routes. The pointage, attendance-history and payroll
+        // screens are placeholders until Phases 3–5 — see
+        // `.claude/phase_gestion_employee.md`.
         GoRoute(
-          path: Routes.team,
+          path: Routes.employees,
           pageBuilder: (context, state) => appPage(
             key: state.pageKey,
-            child: TeamListPage(storeId: _storeId(state)),
+            child: EmployeesListPage(storeId: _storeId(state)),
           ),
         ),
         GoRoute(
-          path: Routes.addTeamMember,
+          path: Routes.addEmployee,
           pageBuilder: (context, state) => appPage(
             key: state.pageKey,
-            child: AddEditMemberPage(storeId: _storeId(state)),
+            child: AddEditEmployeePage(storeId: _storeId(state)),
           ),
         ),
         GoRoute(
-          path: Routes.roles,
+          path: Routes.timeclock,
           pageBuilder: (context, state) => appPage(
             key: state.pageKey,
-            child: RolesPermissionsPage(storeId: _storeId(state)),
+            child: TimeclockBoardPage(storeId: _storeId(state)),
           ),
         ),
         GoRoute(
-          path: Routes.editTeamMember,
+          path: Routes.attendanceHistory,
           pageBuilder: (context, state) => appPage(
             key: state.pageKey,
-            child: AddEditMemberPage(
+            child: AttendanceHistoryPage(storeId: _storeId(state)),
+          ),
+        ),
+        GoRoute(
+          path: Routes.payroll,
+          pageBuilder: (context, state) => appPage(
+            key: state.pageKey,
+            child: PayrollHistoryPage(storeId: _storeId(state)),
+          ),
+        ),
+        GoRoute(
+          path: Routes.employeeDetail,
+          pageBuilder: (context, state) => appPage(
+            key: state.pageKey,
+            child: EmployeeDetailPage(
               storeId: _storeId(state),
-              memberId: state.pathParameters['memberId'],
+              employeeId: state.pathParameters['employeeId']!,
+            ),
+          ),
+        ),
+        GoRoute(
+          path: Routes.editEmployee,
+          pageBuilder: (context, state) => appPage(
+            key: state.pageKey,
+            child: AddEditEmployeePage(
+              storeId: _storeId(state),
+              employeeId: state.pathParameters['employeeId'],
             ),
           ),
         ),
@@ -488,3 +591,40 @@ final GoRouter appRouter = GoRouter(
     ),
   ),
 );
+
+/// Resolves the establishment the shell is showing, and holds the chrome
+/// steady while it does.
+///
+/// Phase 1 read the store synchronously from a compiled-in list, which is why
+/// the `ShellRoute` builder could return [AppScaffold] directly. A query takes
+/// a frame, so this is the one place in the app where a loading state gates
+/// every store-scoped screen at once — and the reason [AppScaffoldSkeleton]
+/// draws the rail and top bar rather than nothing.
+///
+/// Falls back to the first establishment for an id that does not resolve, so a
+/// stale bookmark or a hot reload mid-navigation shows the app rather than a
+/// red screen. That was true in Phase 1 too; what is new is that "no
+/// establishment at all" is now a real answer, handled by [AppScaffoldNoStore].
+class _StoreShell extends ConsumerWidget {
+  const _StoreShell({required this.storeId, required this.child});
+
+  final String? storeId;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return ref
+        .watch(currentStoreProvider(storeId))
+        .when(
+          skipLoadingOnReload: true,
+          data: (store) => store == null
+              ? const AppScaffoldNoStore()
+              : AppScaffold(store: store, child: child),
+          loading: () => const AppScaffoldSkeleton(),
+          // The chrome cannot render without an establishment, so a failed
+          // query lands here rather than on the page inside it. No retry: the
+          // stream is still live, and it will deliver if the database recovers.
+          error: (error, stackTrace) => const AppScaffoldNoStore(),
+        );
+  }
+}

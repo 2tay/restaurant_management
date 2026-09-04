@@ -29,11 +29,16 @@ final offlineModeProvider = NotifierProvider<OfflineMode, bool>(
   OfflineMode.new,
 );
 
-/// Number of local changes waiting to sync. Static in Phase 1 — Phase 2 reads
-/// it from the real outbound queue.
+/// Number of local changes waiting to sync.
+///
+/// **Zero, and honestly so.** Phase 1 hardcoded three to make the banner look
+/// alive in a demo. Phase 2 stores everything locally and syncs nothing, so
+/// there is no outbound queue and nothing is waiting — a number above zero
+/// would now be a claim about work the app is not doing. The provider stays
+/// because Phase 3 fills it from the real outbox; only the lie goes.
 class PendingChanges extends Notifier<int> {
   @override
-  int build() => 3;
+  int build() => 0;
 }
 
 final pendingChangesProvider = NotifierProvider<PendingChanges, int>(

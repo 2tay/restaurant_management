@@ -6,9 +6,12 @@ import '../../../../app/routes.dart';
 import '../../../../app/navigation.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/utils/permissions.dart';
 import '../../../../core/utils/responsive.dart';
+import '../../../../data/current_employee.dart';
+import '../../../../data/providers.dart';
+import '../../../../data/view_models/view_models.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../../mock_data/mock_data.dart';
 import '../../../../shared/widgets/widgets.dart';
 import '../widgets/store_card.dart';
 
@@ -21,11 +24,19 @@ class StoreSelectorPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Each card carries that store's item and alert counts.
-    ref.watch(mockDataRevisionProvider);
+    // Each card carries that store's article and alert counts, counted in the
+    // same query that fetches the establishments.
+    final cards = ref.watch(storeCardsProvider);
 
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+
+    // Only the owner spans stores and can open one. A manager or staff member
+    // never actually reaches this screen — the guard sends them home — so this
+    // is just the belt to that pair of braces.
+    final employee = ref.watch(currentEmployeeProvider);
+    final canCreateStore =
+        employee != null && can(employee.role, Capability.createStore);
 
     return Scaffold(
       body: SafeArea(
@@ -58,40 +69,62 @@ class StoreSelectorPage extends ConsumerWidget {
                           ],
                         ),
                       ),
-                      const SizedBox(width: AppSpacing.lg),
-                      PrimaryButton(
-                        label: l10n.storesAdd,
-                        icon: LucideIcons.plus,
-                        onPressed: () => context.goSection(Routes.addStore),
-                      ),
+                      // Opening a store is an owner action (Phase 6). A manager
+                      // sees the grid but not the button — and the route is
+                      // guarded too.
+                      if (canCreateStore) ...[
+                        const SizedBox(width: AppSpacing.lg),
+                        PrimaryButton(
+                          label: l10n.storesAdd,
+                          icon: LucideIcons.plus,
+                          onPressed: () => context.goSection(Routes.addStore),
+                        ),
+                      ],
                     ],
                   ),
                   const SizedBox(height: AppSpacing.xxl),
-                  GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: context.gridColumns(max: 3),
-                      crossAxisSpacing: AppSpacing.xl,
-                      mainAxisSpacing: AppSpacing.xl,
-                      // Tall enough for the address to wrap without the
-                      // card clipping.
-                      mainAxisExtent: 320,
+                  AsyncContent<List<StoreCardView>>(
+                    value: cards,
+                    onRetry: () => ref.invalidate(storeCardsProvider),
+                    // A grid, so the placeholder is a grid: the cards land
+                    // where their outlines already were.
+                    skeleton: SkeletonGrid(
+                      columns: context.gridColumns(max: 3),
+                      itemHeight: 320,
+                      count: context.gridColumns(max: 3),
                     ),
-                    itemCount: mockStores.length,
-                    itemBuilder: (context, index) {
-                      final store = mockStores[index];
-                      return StoreCard(
-                        store: store,
-                        onTap: () =>
-                            context.goSection(Routes.toDashboard(store.id)),
-                      );
-                    },
+                    builder: (context, cards) => GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: context.gridColumns(max: 3),
+                        crossAxisSpacing: AppSpacing.xl,
+                        mainAxisSpacing: AppSpacing.xl,
+                        // Tall enough for the address to wrap without the
+                        // card clipping.
+                        mainAxisExtent: 320,
+                      ),
+                      itemCount: cards.length,
+                      itemBuilder: (context, index) {
+                        final card = cards[index];
+                        return StoreCard(
+                          view: card,
+                          onTap: () => context.goSection(
+                            Routes.toDashboard(card.store.id),
+                          ),
+                        );
+                      },
+                    ),
                   ),
                   const SizedBox(height: AppSpacing.xxl),
                   Center(
                     child: TextButton.icon(
-                      onPressed: () => context.goSection(Routes.login),
+                      onPressed: () async {
+                        await ref
+                            .read(currentEmployeeProvider.notifier)
+                            .signOut();
+                        if (context.mounted) context.goSection(Routes.login);
+                      },
                       icon: const Icon(LucideIcons.logOut),
                       label: Text(l10n.actionLogout),
                     ),

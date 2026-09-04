@@ -67,10 +67,19 @@ abstract final class Routes {
   static const String comparisonReport = '$reports/comparison';
   static const String usageReport = '$reports/usage';
 
-  static const String team = '$storeBase/team';
-  static const String addTeamMember = '$team/new';
-  static const String roles = '$team/roles';
-  static const String editTeamMember = '$team/:memberId/edit';
+  // Gestion Employée. Literal segments (`new`, `timeclock`, …) precede
+  // `:employeeId` in the router for the same reason `orders` declares `new`
+  // before `:orderId` — otherwise the literal is read as an id. The pointage,
+  // attendance-history and payroll screens land in Phases 3–5; until then
+  // their routes resolve to a "bientôt disponible" placeholder so the sidebar
+  // entry can carry all four items from the start.
+  static const String employees = '$storeBase/employees';
+  static const String addEmployee = '$employees/new';
+  static const String timeclock = '$employees/timeclock';
+  static const String attendanceHistory = '$employees/attendance-history';
+  static const String payroll = '$employees/payroll';
+  static const String employeeDetail = '$employees/:employeeId';
+  static const String editEmployee = '$employeeDetail/edit';
 
   static const String storeSettings = '$storeBase/settings/store';
   static const String accountSettings = '$storeBase/settings/account';
@@ -112,7 +121,18 @@ abstract final class Routes {
 
   static String toUnits(String storeId) => '/store/$storeId/catalog/units';
 
-  static String toMovements(String storeId) => '/store/$storeId/movements';
+  /// The movement log, optionally opened on one product.
+  ///
+  /// [itemId] preselects the product filter, so "voir tout" from a product
+  /// lands on that product's movements rather than on the whole store's. It is
+  /// a query parameter rather than a path segment because it is a filter the
+  /// user can clear on arrival, not a different screen.
+  static String toMovements(String storeId, {String? itemId}) {
+    final path = '/store/$storeId/movements';
+    return itemId == null
+        ? path
+        : '$path?item=${Uri.encodeQueryComponent(itemId)}';
+  }
 
   static String toStockIn(String storeId) => '/store/$storeId/movements/in';
 
@@ -167,14 +187,25 @@ abstract final class Routes {
   static String toUsageReport(String storeId) =>
       '/store/$storeId/reports/usage';
 
-  static String toTeam(String storeId) => '/store/$storeId/team';
+  static String toEmployees(String storeId) => '/store/$storeId/employees';
 
-  static String toAddTeamMember(String storeId) => '/store/$storeId/team/new';
+  static String toAddEmployee(String storeId) =>
+      '/store/$storeId/employees/new';
 
-  static String toEditTeamMember(String storeId, String memberId) =>
-      '/store/$storeId/team/$memberId/edit';
+  static String toEmployee(String storeId, String employeeId) =>
+      '/store/$storeId/employees/$employeeId';
 
-  static String toRoles(String storeId) => '/store/$storeId/team/roles';
+  static String toEditEmployee(String storeId, String employeeId) =>
+      '/store/$storeId/employees/$employeeId/edit';
+
+  static String toTimeclock(String storeId) =>
+      '/store/$storeId/employees/timeclock';
+
+  static String toAttendanceHistory(String storeId) =>
+      '/store/$storeId/employees/attendance-history';
+
+  static String toPayroll(String storeId) =>
+      '/store/$storeId/employees/payroll';
 
   static String toStoreSettings(String storeId) =>
       '/store/$storeId/settings/store';

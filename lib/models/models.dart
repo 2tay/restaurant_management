@@ -4,18 +4,22 @@
 /// four or five models at once.
 library;
 
+export 'attendance.dart';
 export 'category.dart';
+export 'employee.dart';
+export 'employee_credential.dart';
 export 'goods_receipt.dart';
 export 'goods_receipt_line.dart';
 export 'item.dart';
 export 'notification_item.dart';
+export 'payroll_period.dart';
 export 'price_history_entry.dart';
 export 'purchase_order.dart';
 export 'purchase_order_line.dart';
 export 'report_figures.dart';
 export 'stock_movement.dart';
 export 'store.dart';
+export 'store_settings.dart';
 export 'supplier.dart';
 export 'supplier_price.dart';
-export 'team_member.dart';
 export 'unit_of_measure.dart';

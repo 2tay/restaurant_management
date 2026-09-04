@@ -5,7 +5,9 @@
 /// writing the business logic Phase 1 is supposed to defer. Hardcoding the
 /// results keeps the aggregation out of the UI entirely.
 ///
-/// Phase 2 replaces these with real query results. The screens should not need
+/// These are query results now — `report_repository.dart` builds them. The
+/// shapes did not change when the source did, which is what the comment below
+/// was hoping for. The screens should not need
 /// to change shape when it does.
 library;
 

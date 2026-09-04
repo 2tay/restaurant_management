@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../app/routes.dart';
@@ -8,8 +9,10 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../../mock_data/mock_data.dart';
+import '../../../../data/providers.dart';
+import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
+import '../widgets/item_image_field.dart';
 import '../../../catalog/presentation/widgets/create_sheets.dart';
 
 /// Create or edit an item.
@@ -21,7 +24,7 @@ import '../../../catalog/presentation/widgets/create_sheets.dart';
 ///
 /// Its absence is explained on screen rather than left as a puzzle — a
 /// restaurant owner who has used any other inventory app will look for it.
-class AddEditItemPage extends StatefulWidget {
+class AddEditItemPage extends ConsumerWidget {
   const AddEditItemPage({required this.storeId, this.itemId, super.key});
 
   final String storeId;
@@ -30,28 +33,144 @@ class AddEditItemPage extends StatefulWidget {
   final String? itemId;
 
   @override
-  State<AddEditItemPage> createState() => _AddEditItemPageState();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+
+    // Three things, and the form cannot be drawn without any of them.
+    //
+    // The article is obvious: `initState` fills the fields from it. The
+    // categories and units are less so, and skipping them is a real bug rather
+    // than a slow frame — a dropdown asked to show a selected value that is not
+    // among its options throws, so an edit form drawn before its categories
+    // arrive crashes on the article's own category. Creating waits for the same
+    // two, since a form whose only two required fields have empty menus has
+    // nothing to offer anyway.
+    final existing = itemId == null
+        ? const AsyncValue<Item?>.data(null)
+        : ref.watch(itemProvider(itemId!));
+
+    final data = asyncAll4(
+      existing,
+      ref.watch(categoriesProvider(storeId)),
+      ref.watch(unitsProvider(storeId)),
+      // Waited on for the same reason as the other two: an article whose
+      // default supplier is already set would hand the dropdown a value its
+      // options did not contain yet, and that throws.
+      ref.watch(suppliersProvider(storeId)),
+      (item, categories, units, suppliers) => (
+        item: item,
+        categories: categories,
+        units: units,
+        suppliers: suppliers,
+      ),
+    );
+
+    return AsyncContent<
+      ({
+        Item? item,
+        List<Category> categories,
+        List<UnitOfMeasure> units,
+        List<Supplier> suppliers,
+      })
+    >(
+      value: data,
+      skeleton: FormScaffold(
+        title: itemId == null ? l10n.addItemTitle : l10n.editItemTitle,
+        back: BackDestination(
+          label: l10n.inventoryTitle,
+          path: Routes.toInventory(storeId),
+        ),
+        submitLabel: l10n.actionSave,
+        onSubmit: null,
+        child: const SkeletonList(rows: 4, rowHeight: 80),
+      ),
+      onRetry: () {
+        if (itemId != null) ref.invalidate(itemProvider(itemId!));
+        ref.invalidate(categoriesProvider(storeId));
+        ref.invalidate(unitsProvider(storeId));
+        ref.invalidate(suppliersProvider(storeId));
+      },
+      builder: (context, data) => _ItemForm(
+        // Keyed on the article so opening a different one through the same
+        // route rebuilds the state instead of keeping the last one's name in
+        // the field.
+        key: ValueKey(itemId),
+        storeId: storeId,
+        existing: data.item,
+        categories: data.categories,
+        units: data.units,
+        suppliers: data.suppliers,
+      ),
+    );
+  }
 }
 
-class _AddEditItemPageState extends State<AddEditItemPage> {
+class _ItemForm extends ConsumerStatefulWidget {
+  const _ItemForm({
+    required this.storeId,
+    required this.existing,
+    required this.categories,
+    required this.units,
+    required this.suppliers,
+    super.key,
+  });
+
+  final String storeId;
+
+  /// Null when creating, and null too when the article being edited has been
+  /// deleted from another screen — the form treats that as a create, which is
+  /// the only thing left that it can usefully do.
+  final Item? existing;
+
+  /// Passed in rather than watched here, so the two menus are never empty while
+  /// a value is selected. They still arrive live: creating a category from the
+  /// inline row rebuilds the page above and hands this a longer list.
+  final List<Category> categories;
+  final List<UnitOfMeasure> units;
+
+  /// Every supplier of the establishment, for the default-supplier picker.
+  final List<Supplier> suppliers;
+
+  @override
+  ConsumerState<_ItemForm> createState() => _ItemFormState();
+}
+
+class _ItemFormState extends ConsumerState<_ItemForm> {
   final _nameController = TextEditingController();
   final _noteController = TextEditingController();
   final _barcodeController = TextEditingController();
-
-  /// What the starting stock was bought at. Create-only, like the quantity it
-  /// belongs to, and for the same reason: it is a fact about the opening
-  /// balance, not a field that stays editable afterwards.
-  final _openingCostController = TextEditingController();
 
   /// Set when the entered barcode already belongs to another item. Validated at
   /// save time rather than on every keystroke — flagging a duplicate while
   /// somebody is still halfway through typing one is noise.
   String? _barcodeConflictName;
 
+  /// Set when the maximum is at or below the alert threshold. Same timing as
+  /// the barcode conflict, and for the same reason: a form that complains
+  /// while the number is still being typed complains about every number.
+  bool _maxBelowThreshold = false;
+
   String? _categoryId;
   String? _unitId;
+  /// The picker's stand-in for "no preference".
+  ///
+  /// A dropdown cannot carry null as a selectable option — null is what it
+  /// shows the hint for — so clearing needs a value of its own, translated
+  /// back to null on the way into the state.
+  static const String _noSupplier = '__no_supplier__';
+
+  String? _defaultSupplierId;
+
+  /// The photo as it stands: the stored name on an edit, the name of a freshly
+  /// copied file once one is picked, null when there is none.
+  String? _imagePath;
+
+  /// The quantity on hand. Displayed on edit, never edited here — see the
+  /// note at its call site. On create it is simply zero: this form describes
+  /// the product, and stock arrives through a receipt or an adjustment.
   double _quantity = 0;
   double _threshold = 0;
+  double _maxStock = 0;
 
   // Snapshot taken in initState. The dirty check compares against these rather
   // than tracking a flag, so undoing an edit back to its original value
@@ -61,18 +180,18 @@ class _AddEditItemPageState extends State<AddEditItemPage> {
   String _initialBarcode = '';
   String? _initialCategoryId;
   String? _initialUnitId;
-  double _initialQuantity = 0;
+  String? _initialDefaultSupplierId;
+  String? _initialImagePath;
   double _initialThreshold = 0;
+  double _initialMaxStock = 0;
 
-  bool get _isEditing => widget.itemId != null;
+  bool get _isEditing => widget.existing != null;
 
   @override
   void initState() {
     super.initState();
 
-    final existing = widget.itemId == null
-        ? null
-        : MockQueries.itemById(widget.itemId!);
+    final existing = widget.existing;
 
     if (existing != null) {
       _nameController.text = existing.name;
@@ -82,6 +201,9 @@ class _AddEditItemPageState extends State<AddEditItemPage> {
       _unitId = existing.unitId;
       _quantity = existing.quantity;
       _threshold = existing.lowStockThreshold;
+      _maxStock = existing.maxStock;
+      _defaultSupplierId = existing.defaultSupplierId;
+      _imagePath = existing.imagePath;
     }
 
     _initialName = _nameController.text.trim();
@@ -89,8 +211,10 @@ class _AddEditItemPageState extends State<AddEditItemPage> {
     _initialBarcode = _barcodeController.text.trim();
     _initialCategoryId = _categoryId;
     _initialUnitId = _unitId;
-    _initialQuantity = _quantity;
     _initialThreshold = _threshold;
+    _initialMaxStock = _maxStock;
+    _initialDefaultSupplierId = _defaultSupplierId;
+    _initialImagePath = _imagePath;
   }
 
   @override
@@ -98,7 +222,6 @@ class _AddEditItemPageState extends State<AddEditItemPage> {
     _nameController.dispose();
     _noteController.dispose();
     _barcodeController.dispose();
-    _openingCostController.dispose();
     super.dispose();
   }
 
@@ -112,11 +235,12 @@ class _AddEditItemPageState extends State<AddEditItemPage> {
       _nameController.text.trim() != _initialName ||
       _noteController.text.trim() != _initialNote ||
       _barcodeController.text.trim() != _initialBarcode ||
-      _openingCostController.text.trim().isNotEmpty ||
       _categoryId != _initialCategoryId ||
       _unitId != _initialUnitId ||
-      _quantity != _initialQuantity ||
-      _threshold != _initialThreshold;
+      _threshold != _initialThreshold ||
+      _maxStock != _initialMaxStock ||
+      _defaultSupplierId != _initialDefaultSupplierId ||
+      _imagePath != _initialImagePath;
 
   @override
   Widget build(BuildContext context) {
@@ -126,12 +250,12 @@ class _AddEditItemPageState extends State<AddEditItemPage> {
     // the inline "+ Créer" row now creates the real record, so there is no
     // second kind of category to keep track of.
     final categories = [
-      for (final c in MockQueries.categoriesForStore(widget.storeId))
+      for (final c in widget.categories)
         DropdownOption(value: c.id, label: c.name),
     ];
 
     final units = [
-      for (final u in MockQueries.unitsForStore(widget.storeId))
+      for (final u in widget.units)
         DropdownOption(
           value: u.id,
           label: u.name,
@@ -139,9 +263,10 @@ class _AddEditItemPageState extends State<AddEditItemPage> {
         ),
     ];
 
-    final unitAbbreviation = _unitId == null
-        ? ''
-        : MockQueries.unitAbbreviationOf(_unitId!);
+    var unitAbbreviation = '';
+    for (final unit in widget.units) {
+      if (unit.id == _unitId) unitAbbreviation = unit.abbreviation;
+    }
 
     return FormScaffold(
       title: _isEditing ? l10n.editItemTitle : l10n.addItemTitle,
@@ -164,6 +289,15 @@ class _AddEditItemPageState extends State<AddEditItemPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                // First, because it is the only field somebody can answer
+                // without reading a label, and because the product grid is now
+                // mostly photographs — a form that buried this under six text
+                // fields would keep producing products that look empty there.
+                ItemImageField(
+                  imagePath: _imagePath,
+                  onChanged: (value) => setState(() => _imagePath = value),
+                ),
+                const SizedBox(height: AppSpacing.lg),
                 AppTextField(
                   label: l10n.itemFormName,
                   controller: _nameController,
@@ -201,6 +335,46 @@ class _AddEditItemPageState extends State<AddEditItemPage> {
                   ],
                 ),
                 const SizedBox(height: AppSpacing.lg),
+
+                // A preference, not a price. Which supplier is pre-selected
+                // when a delivery is received; what any of them charges is an
+                // item–supplier link and lives on its own screen, which is
+                // what the notice at the bottom of this form explains.
+                //
+                // **Editing only.** A product being created has no supplier
+                // links yet — they are made on the "associer un fournisseur"
+                // screen, which needs the product to exist first — so at
+                // creation this could only ever offer a preference between
+                // suppliers that do not sell the product. It stayed at "Aucun"
+                // because "Aucun" was the only honest answer available.
+                //
+                // "Aucun" remains a real answer on an edit, and picking it
+                // clears the preference: that is what the empty option in the
+                // list is for.
+                if (_isEditing) ...[
+                  AppDropdown<String>(
+                    label: l10n.itemDefaultSupplierLabel,
+                    value: _defaultSupplierId,
+                    options: [
+                      DropdownOption(
+                        value: _noSupplier,
+                        label: l10n.itemDefaultSupplierNone,
+                      ),
+                      for (final supplier in widget.suppliers)
+                        DropdownOption(
+                          value: supplier.id,
+                          label: supplier.name,
+                        ),
+                    ],
+                    hint: l10n.itemDefaultSupplierNone,
+                    onChanged: (value) => setState(
+                      () => _defaultSupplierId = value == _noSupplier
+                          ? null
+                          : value,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                ],
 
                 // Optional, and the label says so. Most restaurant stock —
                 // produce, meat, fish, bread — arrives loose with nothing to
@@ -245,22 +419,27 @@ class _AddEditItemPageState extends State<AddEditItemPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  _isEditing
-                      ? l10n.itemOnHandLabel
-                      : l10n.itemFormStartingQuantity,
-                  style: Theme.of(context).textTheme.labelMedium,
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                // Editable on create — the starting quantity is recorded as an
-                // opening-balance movement — and read-only afterwards.
+                // The quantity appears here on an edit and nowhere on a create,
+                // because this form describes the product rather than its
+                // stock.
                 //
                 // Dragging a stepper from 40 to 35 on a routine edit form would
                 // be an untraceable stock change: the most consequential thing
                 // in the app, done by accident, with nothing in the movement
                 // log to explain it. Adjusting stock has its own screen, and it
                 // asks for the counted figure and leaves a record.
-                if (_isEditing)
+                //
+                // A new product therefore starts at zero and reads as "Rupture
+                // de stock" until a receipt or an adjustment says otherwise.
+                // That is the truth — you have none of it yet — and it is
+                // preferred over a friendlier-looking state that would have to
+                // be invented.
+                if (_isEditing) ...[
+                  Text(
+                    l10n.itemOnHandLabel,
+                    style: Theme.of(context).textTheme.labelMedium,
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
                   _QuantityFact(
                     value: Formatters.quantityWithUnit(
                       _quantity,
@@ -268,42 +447,9 @@ class _AddEditItemPageState extends State<AddEditItemPage> {
                     ),
                     onAdjust: () =>
                         context.pushScreen(Routes.toAdjustment(widget.storeId)),
-                  )
-                else
-                  QuantityStepper(
-                    value: _quantity,
-                    unitAbbreviation: unitAbbreviation,
-                    onChanged: (value) => setState(() => _quantity = value),
-                  ),
-                if (!_isEditing) ...[
-                  const SizedBox(height: AppSpacing.sm),
-                  Text(
-                    l10n.itemFormOpeningBalanceHelp,
-                    style: Theme.of(context).textTheme.bodySmall,
                   ),
                   const SizedBox(height: AppSpacing.xl),
-                  // What that starting stock was bought at.
-                  //
-                  // Optional, and never blocks saving. Left empty the article
-                  // simply has no known cost and is left out of the valuation
-                  // until a delivery arrives — which is honest, and better than
-                  // demanding a number the person adding the article may not
-                  // have to hand.
-                  AppTextField(
-                    label: l10n.itemFormOpeningCost,
-                    controller: _openingCostController,
-                    hint: l10n.itemFormOpeningCostHint,
-                    helperText: l10n.itemFormOpeningCostHelp,
-                    suffixText: unitAbbreviation.isEmpty
-                        ? Formatters.currencySymbol
-                        : '${Formatters.currencySymbol} / $unitAbbreviation',
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    onChanged: (_) => setState(() {}),
-                  ),
                 ],
-                const SizedBox(height: AppSpacing.xl),
                 Text(
                   l10n.itemThresholdLabel,
                   style: Theme.of(context).textTheme.labelMedium,
@@ -312,12 +458,46 @@ class _AddEditItemPageState extends State<AddEditItemPage> {
                 QuantityStepper(
                   value: _threshold,
                   unitAbbreviation: unitAbbreviation,
-                  onChanged: (value) => setState(() => _threshold = value),
+                  onChanged: (value) => setState(() {
+                    _threshold = value;
+                    _maxBelowThreshold = false;
+                  }),
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 Text(
                   l10n.itemFormThresholdHelp,
                   style: Theme.of(context).textTheme.bodySmall,
+                ),
+
+                // The ceiling, immediately under the floor it has to clear.
+                // Ordering only the shortfall below the threshold refills a
+                // product to exactly its alert line, where the next portion
+                // sold makes it low again. The maximum is what a commande tops
+                // up *to* instead.
+                const SizedBox(height: AppSpacing.xl),
+                Text(
+                  l10n.itemMaxStockLabel,
+                  style: Theme.of(context).textTheme.labelMedium,
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                QuantityStepper(
+                  value: _maxStock,
+                  unitAbbreviation: unitAbbreviation,
+                  onChanged: (value) => setState(() {
+                    _maxStock = value;
+                    _maxBelowThreshold = false;
+                  }),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                Text(
+                  _maxBelowThreshold
+                      ? l10n.itemFormMaxStockInvalid
+                      : l10n.itemFormMaxStockHelp,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: _maxBelowThreshold
+                        ? Theme.of(context).colorScheme.error
+                        : null,
+                  ),
                 ),
               ],
             ),
@@ -364,22 +544,33 @@ class _AddEditItemPageState extends State<AddEditItemPage> {
     AppSnackBar.success(context, AppLocalizations.of(context).unitCreated);
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     final l10n = AppLocalizations.of(context);
+    final items = ref.read(itemRepositoryProvider);
+
+    // A maximum at or below the alert line is not a ceiling, it is a
+    // contradiction: the ordering screen would suggest zero or a negative
+    // top-up for a product that is already flagged as low. Zero is the
+    // exception and means no maximum has been set at all.
+    if (_maxStock > 0 && _maxStock <= _threshold) {
+      setState(() => _maxBelowThreshold = true);
+      return;
+    }
 
     // Uniqueness is checked here rather than on every keystroke, and against
     // the other items of *this store* only — two shops can stock the same
     // product, and a barcode collision across them is not a collision.
     final barcode = _barcodeController.text.trim();
     if (barcode.isNotEmpty) {
-      final conflict = MockQueries.barcodeConflict(
+      final conflict = await items.barcodeConflict(
         widget.storeId,
         barcode,
         // Excluding the item being edited is what lets somebody save an item
         // with its own barcode unchanged. Without it every edit would fail
         // against itself.
-        excludingItemId: widget.itemId,
+        excludingItemId: widget.existing?.id,
       );
+      if (!mounted) return;
       if (conflict != null) {
         setState(() => _barcodeConflictName = conflict.name);
         return;
@@ -389,39 +580,44 @@ class _AddEditItemPageState extends State<AddEditItemPage> {
     final note = _noteController.text.trim();
 
     if (_isEditing) {
-      ItemMutations.update(
-        widget.itemId!,
+      await items.update(
+        widget.existing!.id,
         name: _nameController.text.trim(),
         categoryId: _categoryId,
         unitId: _unitId,
         lowStockThreshold: _threshold,
+        maxStock: _maxStock,
         barcode: barcode,
         clearBarcode: barcode.isEmpty,
         note: note,
         clearNote: note.isEmpty,
+        defaultSupplierId: _defaultSupplierId,
+        clearDefaultSupplier: _defaultSupplierId == null,
+        imagePath: _imagePath,
+        clearImage: _imagePath == null,
       );
     } else {
-      final created = ItemMutations.create(
+      final created = await items.create(
         storeId: widget.storeId,
         name: _nameController.text.trim(),
         categoryId: _categoryId!,
         unitId: _unitId!,
-        // Recorded as an opening-balance movement rather than written onto the
-        // item, so the quantity and the movement log agree from day one.
-        quantity: _quantity,
-        // Blank, or something that is not a number yet, leaves the cost
-        // unknown. Never blocks the save: an article is worth having in the
-        // catalogue even when nobody remembers what it cost.
-        openingUnitCost: Formatters.parseDecimal(
-          _openingCostController.text,
-        ),
+        // No quantity and no opening cost: this form describes the product.
+        // The article is created empty and with an unknown cost, and both are
+        // answered by the first receipt or adjustment — the screens that leave
+        // a movement behind saying where the stock came from and what it cost.
         lowStockThreshold: _threshold,
+        maxStock: _maxStock,
         barcode: barcode.isEmpty ? null : barcode,
         note: note.isEmpty ? null : note,
+        // No default supplier: the field is edit-only, because a product being
+        // created has no supplier links for a preference to be about.
+        imagePath: _imagePath,
       );
       if (created == null) return;
     }
 
+    if (!mounted) return;
     AppSnackBar.success(
       context,
       _isEditing ? l10n.itemUpdated : l10n.itemCreated,
@@ -431,7 +627,7 @@ class _AddEditItemPageState extends State<AddEditItemPage> {
 
   void _leave() {
     if (_isEditing) {
-      context.pushScreen(Routes.toItem(widget.storeId, widget.itemId!));
+      context.pushScreen(Routes.toItem(widget.storeId, widget.existing!.id));
     } else {
       context.goSection(Routes.toInventory(widget.storeId));
     }

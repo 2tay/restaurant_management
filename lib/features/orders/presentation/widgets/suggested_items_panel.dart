@@ -6,7 +6,7 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../../mock_data/mock_data.dart';
+import '../../../../data/view_models/view_models.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 import 'already_on_order_badge.dart';
@@ -25,6 +25,8 @@ class SuggestedItemsPanel extends StatelessWidget {
   const SuggestedItemsPanel({
     required this.storeId,
     required this.supplierId,
+    required this.suggestions,
+    required this.supplierName,
     required this.chosenItemIds,
     required this.onAdd,
     required this.onAddAll,
@@ -33,6 +35,16 @@ class SuggestedItemsPanel extends StatelessWidget {
 
   final String storeId;
   final String supplierId;
+
+  /// This supplier's articles that are running low, already resolved.
+  ///
+  /// Passed in rather than queried here: the screen around this panel is
+  /// already watching the same supplier and the same establishment, and a panel
+  /// that fetched its own copy would be a second subscription to the same rows.
+  final List<ItemRowView> suggestions;
+
+  /// The supplier's name, from the same list the screen picked them from.
+  final String supplierName;
 
   /// Items already on the order, so the panel can mark them.
   final Set<String> chosenItemIds;
@@ -45,13 +57,8 @@ class SuggestedItemsPanel extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
 
-    final suggestions = MockQueries.suggestedItemsForSupplier(
-      storeId,
-      supplierId,
-    );
-    final supplierName = MockQueries.supplierNameOf(supplierId);
     final remaining = suggestions
-        .where((item) => !chosenItemIds.contains(item.id))
+        .where((row) => !chosenItemIds.contains(row.item.id))
         .toList();
 
     if (suggestions.isEmpty) {
@@ -89,20 +96,22 @@ class SuggestedItemsPanel extends StatelessWidget {
             icon: LucideIcons.listChecks,
             // Disabled rather than hidden once everything is on the order —
             // a control that vanishes leaves the user hunting for it.
-            onPressed: remaining.isEmpty ? null : () => onAddAll(remaining),
+            onPressed: remaining.isEmpty
+                ? null
+                : () => onAddAll([for (final row in remaining) row.item]),
           ),
         ),
         AppCard(
           padding: EdgeInsets.zero,
           child: Column(
             children: [
-              for (final item in suggestions)
+              for (final row in suggestions)
                 _SuggestionRow(
-                  item: item,
+                  view: row,
                   storeId: storeId,
-                  alreadyChosen: chosenItemIds.contains(item.id),
-                  onAdd: () => onAdd(item),
-                  isLast: item.id == suggestions.last.id,
+                  alreadyChosen: chosenItemIds.contains(row.item.id),
+                  onAdd: () => onAdd(row.item),
+                  isLast: row.item.id == suggestions.last.item.id,
                 ),
             ],
           ),
@@ -114,14 +123,14 @@ class SuggestedItemsPanel extends StatelessWidget {
 
 class _SuggestionRow extends StatelessWidget {
   const _SuggestionRow({
-    required this.item,
+    required this.view,
     required this.storeId,
     required this.alreadyChosen,
     required this.onAdd,
     required this.isLast,
   });
 
-  final Item item;
+  final ItemRowView view;
   final String storeId;
   final bool alreadyChosen;
   final VoidCallback onAdd;
@@ -132,9 +141,9 @@ class _SuggestionRow extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
 
-    final unit = MockQueries.unitAbbreviationOf(item.unitId);
+    final item = view.item;
+    final unit = view.unitAbbreviation;
     final shortfall = item.lowStockThreshold - item.quantity;
-    final onOrder = MockQueries.onOrderQuantity(storeId, item.id);
 
     return Container(
       padding: const EdgeInsets.symmetric(
@@ -190,17 +199,17 @@ class _SuggestionRow extends StatelessWidget {
           ),
           const SizedBox(width: AppSpacing.md),
 
-          if (onOrder > 0) ...[
-            Flexible(
-              flex: 3,
-              child: AlreadyOnOrderBadge(
-                storeId: storeId,
-                itemId: item.id,
-                unitAbbreviation: unit,
-              ),
+          // The badge decides for itself whether it has anything to say —
+          // it renders nothing when nothing is on its way.
+          Flexible(
+            flex: 3,
+            child: AlreadyOnOrderBadge(
+              storeId: storeId,
+              itemId: item.id,
+              unitAbbreviation: unit,
             ),
-            const SizedBox(width: AppSpacing.md),
-          ],
+          ),
+          const SizedBox(width: AppSpacing.md),
 
           if (alreadyChosen)
             Icon(

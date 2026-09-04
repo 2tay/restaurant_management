@@ -7,25 +7,18 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:stock_inventory/app/app.dart';
 import 'package:stock_inventory/app/router.dart';
 import 'package:stock_inventory/app/routes.dart';
-import 'package:stock_inventory/mock_data/mock_data.dart';
+import 'package:stock_inventory/data/seed/dataset/dataset.dart';
 import 'package:stock_inventory/shared/widgets/widgets.dart';
+
+import 'support/app_harness.dart';
 
 const Size _tablet = Size(1280, 800);
 const String _store = StoreIds.sablon;
 
-Future<void> _pump(WidgetTester tester) async {
-  tester.view.physicalSize = _tablet;
-  tester.view.devicePixelRatio = 1.0;
-  addTearDown(tester.view.reset);
-
-  await tester.pumpWidget(const ProviderScope(child: StockInventoryApp()));
-  await tester.pumpAndSettle();
-}
+Future<void> _pump(WidgetTester tester) => pumpApp(tester, size: _tablet);
 
 /// Root sections show no back control — the sidebar is their navigation, and a
 /// back control there would be lying about the stack.
@@ -40,7 +33,10 @@ final _rootScreens = <String, String>{
   'alerts': Routes.toAlerts(_store),
   'notifications': Routes.toNotifications(_store),
   'reports': Routes.toReports(_store),
-  'team': Routes.toTeam(_store),
+  'employees': Routes.toEmployees(_store),
+  'timeclock': Routes.toTimeclock(_store),
+  'attendance history': Routes.toAttendanceHistory(_store),
+  'payroll': Routes.toPayroll(_store),
   'store settings': Routes.toStoreSettings(_store),
   'account settings': Routes.toAccountSettings(_store),
   'notification settings': Routes.toNotificationSettings(_store),
@@ -51,7 +47,7 @@ final _rootScreens = <String, String>{
 Map<String, String> _pushedScreens() {
   final item = mockItems.first.id;
   final supplier = mockSuppliers.first.id;
-  final member = mockTeam.first.id;
+  final employee = mockEmployees.first.id;
 
   return {
     'item detail': Routes.toItem(_store, item),
@@ -74,9 +70,9 @@ Map<String, String> _pushedScreens() {
     'valuation report': Routes.toValuationReport(_store),
     'comparison report': Routes.toComparisonReport(_store),
     'usage report': Routes.toUsageReport(_store),
-    'add member': Routes.toAddTeamMember(_store),
-    'edit member': Routes.toEditTeamMember(_store, member),
-    'roles': Routes.toRoles(_store),
+    'add employee': Routes.toAddEmployee(_store),
+    'employee detail': Routes.toEmployee(_store, employee),
+    'edit employee': Routes.toEditEmployee(_store, employee),
     'search': Routes.toSearch(_store),
   };
 }
@@ -84,7 +80,7 @@ Map<String, String> _pushedScreens() {
 void main() {
   group('back control appears exactly where it should', () {
     for (final entry in _rootScreens.entries) {
-      testWidgets('${entry.key} (root) shows no back control', (tester) async {
+      testApp('${entry.key} (root) shows no back control', (tester) async {
         await _pump(tester);
         appRouter.go(entry.value);
         await tester.pumpAndSettle();
@@ -98,7 +94,7 @@ void main() {
     }
 
     for (final entry in _pushedScreens().entries) {
-      testWidgets('${entry.key} (pushed) offers a back control', (
+      testApp('${entry.key} (pushed) offers a back control', (
         tester,
       ) async {
         await _pump(tester);
@@ -115,7 +111,7 @@ void main() {
   });
 
   group('the stack behaves', () {
-    testWidgets('pushing then popping returns to where you were', (
+    testApp('pushing then popping returns to where you were', (
       tester,
     ) async {
       await _pump(tester);
@@ -137,7 +133,7 @@ void main() {
       );
     });
 
-    testWidgets('repeated push and pop never corrupts the stack', (
+    testApp('repeated push and pop never corrupts the stack', (
       tester,
     ) async {
       // The failure this guards against is a screen that pushes instead of
@@ -158,7 +154,7 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('switching section clears anything pushed on top', (
+    testApp('switching section clears anything pushed on top', (
       tester,
     ) async {
       await _pump(tester);
@@ -177,23 +173,27 @@ void main() {
   });
 
   group('the sidebar tracks where the user is', () {
-    testWidgets('highlights the section a nested screen belongs to', (
+    /// The label of the sidebar nav row currently highlighted.
+    String activeNav(WidgetTester tester) => tester
+        .widgetList<SidebarNavTile>(find.byType(SidebarNavTile))
+        .firstWhere((tile) => tile.active)
+        .label;
+
+    testApp('highlights the section a nested screen belongs to', (
       tester,
     ) async {
       await _pump(tester);
       unawaited(appRouter.push(Routes.toItem(_store, mockItems.first.id)));
       await tester.pumpAndSettle();
 
-      final rail = tester.widget<NavigationRail>(find.byType(NavigationRail));
-      // Inventaire is the second destination.
       expect(
-        rail.selectedIndex,
-        1,
+        activeNav(tester),
+        'Inventaire',
         reason: 'an item detail is still inside Inventaire',
       );
     });
 
-    testWidgets('highlights Fournisseurs on a supplier pricing screen', (
+    testApp('highlights Fournisseurs on a supplier pricing screen', (
       tester,
     ) async {
       await _pump(tester);
@@ -204,14 +204,61 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final rail = tester.widget<NavigationRail>(find.byType(NavigationRail));
-      // Dashboard, Inventaire, Mouvements, Commandes, Fournisseurs.
-      expect(rail.selectedIndex, 4);
+      expect(activeNav(tester), 'Fournisseurs');
+    });
+
+    testApp('highlights Gestion Employée from a nested employee screen', (
+      tester,
+    ) async {
+      await _pump(tester);
+      unawaited(
+        appRouter.push(Routes.toEmployee(_store, mockEmployees.first.id)),
+      );
+      await tester.pumpAndSettle();
+
+      expect(activeNav(tester), 'Gestion Employée');
+    });
+  });
+
+  group('the Gestion Employée dropdown', () {
+    testApp('expands to reveal all four sections, and each navigates', (
+      tester,
+    ) async {
+      await _pump(tester);
+      appRouter.go(Routes.toDashboard(_store));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Gestion Employée'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Personnel'), findsOneWidget);
+      expect(find.text('Tableau de pointage'), findsOneWidget);
+      expect(find.text('Historique pointage'), findsOneWidget);
+      expect(find.text('Historique de paiement'), findsOneWidget);
+
+      await tester.tap(find.text('Personnel'));
+      await tester.pumpAndSettle();
+      expect(appRouter.state.uri.path, Routes.toEmployees(_store));
+    });
+
+    testApp('the Tableau de bord item reaches the pointage board', (
+      tester,
+    ) async {
+      await _pump(tester);
+      appRouter.go(Routes.toDashboard(_store));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Gestion Employée'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Tableau de pointage'));
+      await tester.pumpAndSettle();
+
+      expect(appRouter.state.uri.path, Routes.toTimeclock(_store));
     });
   });
 
   group('forms protect unsaved input', () {
-    testWidgets('a clean form leaves without asking', (tester) async {
+    testApp('a clean form leaves without asking', (tester) async {
       await _pump(tester);
       appRouter.go(Routes.toInventory(_store));
       await tester.pumpAndSettle();
@@ -225,7 +272,7 @@ void main() {
       expect(appRouter.state.uri.path, Routes.toInventory(_store));
     });
 
-    testWidgets('a dirty form confirms before discarding', (tester) async {
+    testApp('a dirty form confirms before discarding', (tester) async {
       await _pump(tester);
       appRouter.go(Routes.toInventory(_store));
       await tester.pumpAndSettle();
@@ -259,7 +306,7 @@ void main() {
   });
 
   group('dialogs follow the button convention', () {
-    testWidgets('dismissive action sits left of the confirming action', (
+    testApp('dismissive action sits left of the confirming action', (
       tester,
     ) async {
       await _pump(tester);

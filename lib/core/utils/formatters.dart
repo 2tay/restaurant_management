@@ -88,6 +88,17 @@ abstract final class Formatters {
       '${_quantity.format(fraction * 100)} %';
 
   // ---------------------------------------------------------------------------
+  // Durations
+  // ---------------------------------------------------------------------------
+
+  /// `7 h 48` — worked time, break length, overtime.
+  static String duration(Duration value) {
+    final hours = value.inHours;
+    final minutes = value.inMinutes.remainder(60);
+    return '$hours h ${minutes.toString().padLeft(2, '0')}';
+  }
+
+  // ---------------------------------------------------------------------------
   // Dates
   // ---------------------------------------------------------------------------
 
@@ -107,6 +118,27 @@ abstract final class Formatters {
 
   /// `14:32` — Belgium uses a 24-hour clock.
   static String time(DateTime value) => _time.format(value);
+
+  /// Minutes since midnight → `08:30`. For a stored schedule time that is a
+  /// plain int rather than a `DateTime` (see `Employee.scheduledStartMinutes`).
+  static String minutesToClock(int minutes) {
+    final h = (minutes ~/ 60).toString().padLeft(2, '0');
+    final m = (minutes % 60).toString().padLeft(2, '0');
+    return '$h:$m';
+  }
+
+  /// `08:30` / `8h30` / `8:30` → minutes since midnight, or null if it does
+  /// not parse to a valid time of day.
+  static int? clockToMinutes(String value) {
+    final match = RegExp(
+      r'^\s*(\d{1,2})\s*[:hH]\s*(\d{2})\s*$',
+    ).firstMatch(value);
+    if (match == null) return null;
+    final h = int.parse(match.group(1)!);
+    final m = int.parse(match.group(2)!);
+    if (h > 23 || m > 59) return null;
+    return h * 60 + m;
+  }
 
   /// `22/08/2026 à 14:32`
   static String dateTime(DateTime value) => '${date(value)} à ${time(value)}';

@@ -6,8 +6,8 @@ import '../../../core/documents/receipt_document.dart';
 import '../../../core/documents/receipt_document_pdf.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/utils/order_status.dart';
+import '../../../data/view_models/receipt_document_sources.dart';
 import '../../../l10n/app_localizations.dart';
-import '../../../mock_data/mock_data.dart';
 import '../../../models/models.dart';
 
 /// Turns a stored [GoodsReceipt] into a bon de réception and hands it to the
@@ -16,30 +16,34 @@ import '../../../models/models.dart';
 /// The seam between the app and the document: everything above it works in ids
 /// and models, everything below it works in resolved strings. Keeping the
 /// assembly here rather than in the renderer is what lets the renderer be
-/// tested without the mock data, and what will let Phase 2 swap the queries out
-/// without the document noticing.
+/// tested without a data layer at all.
+///
+/// It takes its lookups as [ReceiptDocumentSources] rather than making them.
+/// Phase 1 called `MockQueries` from inside here, which was the one thing
+/// stopping this file from being the seam it claimed to be: a synchronous
+/// global read cannot be swapped for a database query without rewriting every
+/// caller. Gathering them one layer up made the assembly a pure function, which
+/// is why it can now be tested against either.
 abstract final class ReceiptExport {
-  /// Builds the document. Returns null when the receipt's store or supplier has
-  /// gone missing — a state the app cannot reach, but one worth failing
-  /// visibly rather than printing a header with blanks in it.
-  static ReceiptDocument? buildDocument(
+  /// Builds the document.
+  static ReceiptDocument buildDocument(
     AppLocalizations l10n,
-    GoodsReceipt receipt, {
+    GoodsReceipt receipt,
+    ReceiptDocumentSources sources, {
     DateTime? generatedAt,
   }) {
-    final order = MockQueries.orderById(receipt.orderId);
-    final store = MockQueries.storeById(receipt.storeId);
-    if (order == null || store == null) return null;
-
-    final supplier = MockQueries.supplierById(order.supplierId);
-    if (supplier == null) return null;
+    final order = sources.order;
+    final store = sources.store;
+    final supplier = sources.supplier;
 
     final now = generatedAt ?? DateTime.now();
-    final lines = [for (final line in receipt.lines) _line(order, line)];
+    final lines = [
+      for (final line in receipt.lines) _line(order, line, sources.items),
+    ];
 
     return ReceiptDocument(
       labels: _labels(l10n, store, now),
-      reference: MockQueries.receiptReferenceOf(receipt),
+      reference: sources.reference,
       issuer: ReceiptParty(
         name: store.name,
         addressLine: store.addressLine,
@@ -85,10 +89,15 @@ abstract final class ReceiptExport {
   static Future<bool> share(
     BuildContext context,
     GoodsReceipt receipt,
+    ReceiptDocumentSources? sources,
   ) async {
-    final document = buildDocument(AppLocalizations.of(context), receipt);
-    if (document == null) return false;
+    if (sources == null) return false;
 
+    final document = buildDocument(
+      AppLocalizations.of(context),
+      receipt,
+      sources,
+    );
     final bytes = await buildReceiptDocumentPdf(
       document,
       await DocumentFonts.load(),
@@ -101,12 +110,16 @@ abstract final class ReceiptExport {
   // Lines
   // ---------------------------------------------------------------------------
 
-  static ReceiptDocumentLine _line(PurchaseOrder order, GoodsReceiptLine line) {
-    final item = MockQueries.itemById(line.itemId);
+  static ReceiptDocumentLine _line(
+    PurchaseOrder order,
+    GoodsReceiptLine line,
+    Map<String, ReceiptDocumentItem> items,
+  ) {
+    final item = items[line.itemId];
 
     return ReceiptDocumentLine(
       itemName: item?.name ?? '—',
-      unit: item == null ? '' : MockQueries.unitAbbreviationOf(item.unitId),
+      unit: item?.unit ?? '',
       quantityOrdered: line.quantityOrdered,
       quantityReceived: line.quantityReceived,
       // The receipt records what was charged but not what was agreed, so the

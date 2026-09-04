@@ -1,47 +1,164 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../app/routes.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/utils/formatters.dart';
+import '../../../../core/utils/order_status.dart';
+import '../../../../core/utils/permissions.dart';
+import '../../../../data/current_employee.dart';
+import '../../../../data/providers.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../../mock_data/mock_data.dart';
+import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 
-/// Store name, address and preferences.
-class StoreSettingsPage extends StatefulWidget {
+/// The four settings tabs, built the same way on all four screens.
+List<SectionTab> settingsTabs(AppLocalizations l10n, String storeId) => [
+  SectionTab(
+    label: l10n.settingsTabStore,
+    path: Routes.toStoreSettings(storeId),
+  ),
+  SectionTab(
+    label: l10n.settingsTabAccount,
+    path: Routes.toAccountSettings(storeId),
+  ),
+  SectionTab(
+    label: l10n.settingsTabNotifications,
+    path: Routes.toNotificationSettings(storeId),
+  ),
+  SectionTab(label: l10n.settingsTabSync, path: Routes.toSyncStatus(storeId)),
+];
+
+/// Store name, address and preferences, plus the pointage hours and payroll
+/// coefficients.
+///
+/// Split in two: this resolves the establishment, its units and its settings
+/// row, and [_StoreSettingsForm] owns the controllers. A form whose fields are
+/// filled from a query cannot be one widget, because `initState` runs before
+/// the answer arrives — and filling controllers during `build` would write to
+/// them while their fields are being laid out.
+class StoreSettingsPage extends ConsumerWidget {
   const StoreSettingsPage({required this.storeId, super.key});
 
   final String storeId;
 
   @override
-  State<StoreSettingsPage> createState() => _StoreSettingsPageState();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final data = asyncAll3(
+      ref.watch(storeProvider(storeId)),
+      ref.watch(unitsProvider(storeId)),
+      ref.watch(storeSettingsProvider(storeId)),
+      (store, units, settings) => (
+        store: store,
+        units: units,
+        settings: settings,
+      ),
+    );
+
+    return AsyncContent<
+      ({Store? store, List<UnitOfMeasure> units, StoreSettings settings})
+    >(
+      value: data,
+      onRetry: () {
+        ref.invalidate(storeProvider(storeId));
+        ref.invalidate(unitsProvider(storeId));
+        ref.invalidate(storeSettingsProvider(storeId));
+      },
+      // The chrome is drawn either way, so the tabs and the title do not
+      // arrive a frame after the page they belong to.
+      skeleton: ShellPage(
+        tabs: SectionTabs(
+          currentPath: Routes.toStoreSettings(storeId),
+          tabs: settingsTabs(l10n, storeId),
+        ),
+        title: l10n.storeSettingsTitle,
+        child: const SkeletonList(rows: 3, rowHeight: 180),
+      ),
+      builder: (context, data) {
+        final store = data.store;
+        if (store == null) {
+          return ShellPage(
+            tabs: SectionTabs(
+              currentPath: Routes.toStoreSettings(storeId),
+              tabs: settingsTabs(l10n, storeId),
+            ),
+            title: l10n.storeSettingsTitle,
+            child: ErrorState(
+              title: l10n.shellNoStoreTitle,
+              message: l10n.shellNoStoreBody,
+            ),
+          );
+        }
+
+        return _StoreSettingsForm(
+          // Keyed on the establishment so switching store rebuilds the state
+          // rather than leaving the previous shop's address in the fields.
+          key: ValueKey(store.id),
+          store: store,
+          units: data.units,
+          settings: data.settings,
+        );
+      },
+    );
+  }
 }
 
-class _StoreSettingsPageState extends State<StoreSettingsPage> {
-  final _name = TextEditingController();
-  final _address = TextEditingController();
-  final _postalCode = TextEditingController();
-  final _city = TextEditingController();
-  final _phone = TextEditingController();
-  final _staleDays = TextEditingController();
-  String? _defaultUnitId;
+class _StoreSettingsForm extends ConsumerStatefulWidget {
+  const _StoreSettingsForm({
+    required this.store,
+    required this.units,
+    required this.settings,
+    super.key,
+  });
+
+  final Store store;
+  final List<UnitOfMeasure> units;
+  final StoreSettings settings;
 
   @override
-  void initState() {
-    super.initState();
-    final store = MockQueries.storeById(widget.storeId);
-    if (store != null) {
-      _name.text = store.name;
-      _address.text = store.addressLine;
-      _postalCode.text = store.postalCode;
-      _city.text = store.city;
-      _phone.text = store.phone;
-    }
-    final units = MockQueries.unitsForStore(widget.storeId);
-    _defaultUnitId = units.isEmpty ? null : units.first.id;
-    _staleDays.text = '${MockSettings.stalePartialOrderDays}';
-  }
+  ConsumerState<_StoreSettingsForm> createState() => _StoreSettingsFormState();
+}
+
+class _StoreSettingsFormState extends ConsumerState<_StoreSettingsForm> {
+  late final _name = TextEditingController(text: widget.store.name);
+  late final _address = TextEditingController(text: widget.store.addressLine);
+  late final _postalCode = TextEditingController(text: widget.store.postalCode);
+  late final _city = TextEditingController(text: widget.store.city);
+  late final _phone = TextEditingController(text: widget.store.phone);
+  late final _staleDays = TextEditingController(
+    text: '${widget.settings.stalePartialOrderDays}',
+  );
+  late final _openTime = TextEditingController(
+    text: Formatters.minutesToClock(widget.settings.openMinutes),
+  );
+  late final _closeTime = TextEditingController(
+    text: Formatters.minutesToClock(widget.settings.closeMinutes),
+  );
+  late final _maxBreak = TextEditingController(
+    text: '${widget.settings.maxBreakMinutes}',
+  );
+  late final _overtimeMultiplier = TextEditingController(
+    text: _formatMultiplier(widget.settings.overtimeMultiplier),
+  );
+  late final _workingDays = TextEditingController(
+    text: '${widget.settings.workingDaysPerMonth}',
+  );
+
+  /// Which unit a new article starts with. Local to this screen: there is no
+  /// column behind it, because "the unit the form pre-selects" is a convenience
+  /// rather than a fact about the establishment.
+  late String? _defaultUnitId = widget.units.isEmpty
+      ? null
+      : widget.units.first.id;
+
+  static String _formatMultiplier(double value) =>
+      value == value.roundToDouble()
+      ? value.toStringAsFixed(0)
+      : value.toString().replaceAll('.', ',');
 
   @override
   void dispose() {
@@ -52,45 +169,43 @@ class _StoreSettingsPageState extends State<StoreSettingsPage> {
       _city,
       _phone,
       _staleDays,
+      _openTime,
+      _closeTime,
+      _maxBreak,
+      _overtimeMultiplier,
+      _workingDays,
     ]) {
       controller.dispose();
     }
     super.dispose();
   }
 
+  /// Phase 6: only an owner may change store settings. A manager still sees the
+  /// page (the route is not guarded, so the settings section has no dead end),
+  /// but the fields and the save button are read-only.
+  bool get _canEdit {
+    final employee = ref.watch(currentEmployeeProvider);
+    return employee != null &&
+        can(employee.role, Capability.editStoreSettings);
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final units = MockQueries.unitsForStore(widget.storeId);
+    final storeId = widget.store.id;
+    final canEdit = _canEdit;
 
     return ShellPage(
       tabs: SectionTabs(
-        currentPath: Routes.toStoreSettings(widget.storeId),
-        tabs: [
-          SectionTab(
-            label: l10n.settingsTabStore,
-            path: Routes.toStoreSettings(widget.storeId),
-          ),
-          SectionTab(
-            label: l10n.settingsTabAccount,
-            path: Routes.toAccountSettings(widget.storeId),
-          ),
-          SectionTab(
-            label: l10n.settingsTabNotifications,
-            path: Routes.toNotificationSettings(widget.storeId),
-          ),
-          SectionTab(
-            label: l10n.settingsTabSync,
-            path: Routes.toSyncStatus(widget.storeId),
-          ),
-        ],
+        currentPath: Routes.toStoreSettings(storeId),
+        tabs: settingsTabs(l10n, storeId),
       ),
       title: l10n.storeSettingsTitle,
       actions: [
         PrimaryButton(
           label: l10n.actionSave,
           icon: LucideIcons.check,
-          onPressed: _save,
+          onPressed: canEdit ? _save : null,
         ),
       ],
       child: ConstrainedBox(
@@ -98,6 +213,10 @@ class _StoreSettingsPageState extends State<StoreSettingsPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            if (!canEdit) ...[
+              _ReadOnlyNotice(message: l10n.storeSettingsReadOnlyNotice),
+              const SizedBox(height: AppSpacing.xl),
+            ],
             SectionHeader(title: l10n.storeSettingsGeneral),
             AppCard(
               child: Column(
@@ -148,7 +267,7 @@ class _StoreSettingsPageState extends State<StoreSettingsPage> {
                 label: l10n.storeSettingsDefaultUnit,
                 value: _defaultUnitId,
                 options: [
-                  for (final unit in units)
+                  for (final unit in widget.units)
                     DropdownOption(
                       value: unit.id,
                       label: unit.name,
@@ -174,26 +293,228 @@ class _StoreSettingsPageState extends State<StoreSettingsPage> {
                 ),
               ),
             ),
+            const SizedBox(height: AppSpacing.xl),
+
+            SectionHeader(title: l10n.storeSettingsHours),
+            AppCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: AppTextField(
+                          label: l10n.storeSettingsOpenTime,
+                          controller: _openTime,
+                          hint: '08:00',
+                          prefixIcon: LucideIcons.sunrise,
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.lg),
+                      Expanded(
+                        child: AppTextField(
+                          label: l10n.storeSettingsCloseTime,
+                          controller: _closeTime,
+                          hint: '17:00',
+                          prefixIcon: LucideIcons.sunset,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                  SizedBox(
+                    width: 260,
+                    child: AppTextField(
+                      label: l10n.storeSettingsMaxBreak,
+                      controller: _maxBreak,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                      ],
+                      prefixIcon: LucideIcons.coffee,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  Text(
+                    l10n.storeSettingsHoursHelp,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppSpacing.xl),
+
+            SectionHeader(title: l10n.storeSettingsPayroll),
+            AppCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: AppTextField(
+                          label: l10n.storeSettingsOvertimeMultiplier,
+                          controller: _overtimeMultiplier,
+                          hint: '1,25',
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                          prefixIcon: LucideIcons.trendingUp,
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.lg),
+                      Expanded(
+                        child: AppTextField(
+                          label: l10n.storeSettingsWorkingDays,
+                          controller: _workingDays,
+                          hint: '26',
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                          ],
+                          prefixIcon: LucideIcons.calendarDays,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  Text(
+                    l10n.storeSettingsPayrollHelp,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  /// Nothing else on this screen persists in this phase, but the stale-order
-  /// threshold does — within the session — because the dashboard warning it
-  /// drives is only demonstrable if changing the number changes the warning.
-  void _save() {
+  /// Saves the establishment, the stale-order threshold and the pointage /
+  /// payroll settings. Each survives closing the app now — which is the only
+  /// way the dashboard warning, the pointage lateness mark and the payroll
+  /// arithmetic they drive can be demonstrated properly.
+  Future<void> _save() async {
     final l10n = AppLocalizations.of(context);
+    final stores = ref.read(storeRepositoryProvider);
+
+    // Parse the pointage / payroll fields up front. A change to any of them
+    // re-figures every unpaid finished day — its retard, heures supp. and
+    // montant estimé are measured against these — so warn before saving while
+    // such days exist. A day only stops moving once it is paid.
+    final openMinutes = Formatters.clockToMinutes(_openTime.text);
+    final closeMinutes = Formatters.clockToMinutes(_closeTime.text);
+    final maxBreak = int.tryParse(_maxBreak.text.trim());
+    final overtimeMultiplier = double.tryParse(
+      _overtimeMultiplier.text.replaceAll(',', '.').trim(),
+    );
+    final workingDays = int.tryParse(_workingDays.text.trim());
+
+    final current = widget.settings;
+    final pointagePayrollChanged =
+        (openMinutes != null && openMinutes != current.openMinutes) ||
+        (closeMinutes != null && closeMinutes != current.closeMinutes) ||
+        (maxBreak != null && maxBreak != current.maxBreakMinutes) ||
+        (overtimeMultiplier != null &&
+            overtimeMultiplier != current.overtimeMultiplier) ||
+        (workingDays != null && workingDays != current.workingDaysPerMonth);
+
+    if (pointagePayrollChanged) {
+      final unpaid = await ref
+          .read(payrollRepositoryProvider)
+          .unpaidFinishedDayCount(widget.store.id);
+      if (unpaid > 0) {
+        if (!mounted) return;
+        final ok = await ConfirmDialog.show(
+          context,
+          title: l10n.storeSettingsRetroWarningTitle,
+          message: l10n.storeSettingsRetroWarningBody(unpaid),
+          confirmLabel: l10n.storeSettingsRetroWarningConfirm,
+          isDestructive: false,
+        );
+        if (!ok || !mounted) return;
+      }
+    }
+
+    await stores.updateStore(
+      widget.store.id,
+      name: _name.text,
+      addressLine: _address.text,
+      postalCode: _postalCode.text,
+      city: _city.text,
+      phone: _phone.text,
+    );
+
     final days = int.tryParse(_staleDays.text.trim());
     if (days != null && days > 0) {
-      MockSettings.stalePartialOrderDays = days;
+      await stores.setStalePartialOrderDays(widget.store.id, days);
     } else {
       // Falling back rather than refusing: an empty or nonsense value should
       // restore the default, not leave the dashboard with no threshold at all.
-      MockSettings.reset();
-      _staleDays.text = '${MockSettings.stalePartialOrderDays}';
+      await stores.setStalePartialOrderDays(
+        widget.store.id,
+        OrderRules.defaultStalePartialDays,
+      );
+      _staleDays.text = '${OrderRules.defaultStalePartialDays}';
     }
+
+    // The pointage hours and payroll coefficients. A nonsense value is ignored
+    // here rather than refused, so a half-typed field does not block the rest.
+    final updated = await stores.updateStoreSettings(
+      widget.store.id,
+      openMinutes: openMinutes,
+      closeMinutes: closeMinutes,
+      maxBreakMinutes: maxBreak,
+      overtimeMultiplier: overtimeMultiplier,
+      workingDaysPerMonth: workingDays,
+    );
+
+    // Reflect what actually stuck.
+    _openTime.text = Formatters.minutesToClock(updated.openMinutes);
+    _closeTime.text = Formatters.minutesToClock(updated.closeMinutes);
+    _maxBreak.text = '${updated.maxBreakMinutes}';
+    _overtimeMultiplier.text = _formatMultiplier(updated.overtimeMultiplier);
+    _workingDays.text = '${updated.workingDaysPerMonth}';
+
+    if (!mounted) return;
     AppSnackBar.success(context, l10n.storeSettingsSaved);
+  }
+}
+
+/// Shown to a manager: the store settings are visible but not theirs to change.
+class _ReadOnlyNotice extends StatelessWidget {
+  const _ReadOnlyNotice({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceVariant,
+        borderRadius: AppRadius.mdAll,
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            LucideIcons.lock,
+            size: AppSizing.iconMd,
+            color: AppColors.textSecondary,
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Text(
+              message,
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

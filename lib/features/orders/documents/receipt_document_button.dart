@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../../data/providers.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../models/models.dart';
 import '../../../shared/widgets/widgets.dart';
@@ -10,12 +12,11 @@ import 'receipt_export.dart';
 
 /// Generates the bon de réception for one delivery and opens the share sheet.
 ///
-/// Owns the busy state itself so both call sites get it for free. Generating a
-/// PDF is the first genuinely asynchronous thing in the app — everything else
-/// is an in-memory list write — so this is the first button that can actually
-/// be pressed twice before it finishes, and the guard is real rather than
-/// defensive decoration.
-class ReceiptDocumentButton extends StatefulWidget {
+/// Owns the busy state itself so both call sites get it for free. The guard is
+/// real rather than defensive decoration: gathering the document's sources is a
+/// query and rendering the PDF takes a moment, so this button can genuinely be
+/// pressed twice before it finishes.
+class ReceiptDocumentButton extends ConsumerStatefulWidget {
   const ReceiptDocumentButton({
     required this.receipt,
     this.compact = false,
@@ -28,10 +29,12 @@ class ReceiptDocumentButton extends StatefulWidget {
   final bool compact;
 
   @override
-  State<ReceiptDocumentButton> createState() => _ReceiptDocumentButtonState();
+  ConsumerState<ReceiptDocumentButton> createState() =>
+      _ReceiptDocumentButtonState();
 }
 
-class _ReceiptDocumentButtonState extends State<ReceiptDocumentButton> {
+class _ReceiptDocumentButtonState
+    extends ConsumerState<ReceiptDocumentButton> {
   bool _busy = false;
 
   @override
@@ -69,7 +72,16 @@ class _ReceiptDocumentButtonState extends State<ReceiptDocumentButton> {
     setState(() => _busy = true);
 
     try {
-      final shared = await ReceiptExport.share(context, widget.receipt);
+      final sources = await ref
+          .read(orderRepositoryProvider)
+          .receiptDocumentSources(widget.receipt);
+      if (!mounted) return;
+
+      final shared = await ReceiptExport.share(
+        context,
+        widget.receipt,
+        sources,
+      );
       if (!mounted) return;
       if (!shared) AppSnackBar.error(context, l10n.receiptDocFailed);
     } catch (_) {

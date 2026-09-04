@@ -9,8 +9,8 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../../mock_data/mock_data.dart';
-import '../../../../models/models.dart';
+import '../../../../data/providers.dart';
+import '../../../../data/view_models/view_models.dart';
 import '../../../../shared/widgets/widgets.dart';
 
 /// The editable price table for one supplier.
@@ -35,28 +35,35 @@ class SupplierPricingPage extends ConsumerStatefulWidget {
 }
 
 class _SupplierPricingPageState extends ConsumerState<SupplierPricingPage> {
-  /// Prices edited in this session, keyed by item id. Phase 1 persists nothing,
-  /// so the table reflects local edits only until the screen is left.
+  /// Prices being typed, keyed by article id.
+  ///
+  /// Only what is in the field right now. A committed price goes to the
+  /// database and comes back through the query, so this holds a keystroke
+  /// rather than a state of the world.
   final Map<String, double> _edited = {};
 
   @override
   Widget build(BuildContext context) {
-    // Receiving a delivery can change a price this screen is editing.
-    ref.watch(mockDataRevisionProvider);
-
     final l10n = AppLocalizations.of(context);
-    final supplier = MockQueries.supplierById(widget.supplierId);
+
+    // Receiving a delivery can change a price this screen is editing, and the
+    // row follows it: the query watches the table the delivery writes to.
+    final supplier = ref.watch(supplierProvider(widget.supplierId)).value;
+    final products =
+        ref.watch(supplierProductsProvider(widget.supplierId)).value ??
+        const <SupplierProductView>[];
 
     if (supplier == null) {
       return ShellPage(
         title: l10n.supplierPricingTitle,
-        child: ErrorState(
-          onRetry: () => context.goSection(Routes.toSuppliers(widget.storeId)),
-        ),
+        child: ref.watch(supplierProvider(widget.supplierId)).isLoading
+            ? const SkeletonList(rows: 4, rowHeight: 76)
+            : ErrorState(
+                onRetry: () =>
+                    context.goSection(Routes.toSuppliers(widget.storeId)),
+              ),
       );
     }
-
-    final prices = MockQueries.pricesForSupplier(widget.supplierId);
 
     return ShellPage(
       back: BackDestination(
@@ -73,7 +80,7 @@ class _SupplierPricingPageState extends ConsumerState<SupplierPricingPage> {
       ],
       title: l10n.supplierPricingTitle,
       subtitle: '${supplier.name} — ${l10n.supplierPricingSubtitle}',
-      child: prices.isEmpty
+      child: products.isEmpty
           ? AppCard(
               child: EmptyState(
                 icon: LucideIcons.scale,
@@ -84,20 +91,24 @@ class _SupplierPricingPageState extends ConsumerState<SupplierPricingPage> {
           : Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                for (final price in prices)
+                for (final product in products)
                   Padding(
                     padding: const EdgeInsets.only(bottom: AppSpacing.sm),
                     child: _PriceEditRow(
-                      price: price,
-                      supplierId: widget.supplierId,
-                      editedValue: _edited[price.itemId],
-                      onChanged: (value) =>
-                          setState(() => _edited[price.itemId] = value),
-                      onCommit: (value) => _commit(price, value),
+                      // Keyed on the offer so a price arriving from a delivery
+                      // rebuilds the field rather than leaving the old number
+                      // in it.
+                      key: ValueKey(product.price.id),
+                      product: product,
+                      editedValue: _edited[product.price.itemId],
+                      onChanged: (value) => setState(
+                        () => _edited[product.price.itemId] = value,
+                      ),
+                      onCommit: (value) => _commit(product, value),
                       onViewHistory: () => context.pushScreen(
                         Routes.toPriceHistory(
                           widget.storeId,
-                          price.itemId,
+                          product.price.itemId,
                           widget.supplierId,
                         ),
                       ),
@@ -108,14 +119,16 @@ class _SupplierPricingPageState extends ConsumerState<SupplierPricingPage> {
     );
   }
 
-  void _commit(SupplierPrice price, double value) {
+  Future<void> _commit(SupplierProductView product, double value) async {
+    final price = product.price;
     if ((value - price.pricePerUnit).abs() < 0.001) return;
 
     // Writes a price-history entry for this item-supplier pair as well as
     // moving the current price — the same path receiving a delivery takes, so
     // the history reads the same however the change arrived.
-    SupplierMutations.updatePrice(price.id, value);
+    await ref.read(supplierRepositoryProvider).updatePrice(price.id, value);
 
+    if (!mounted) return;
     AppSnackBar.success(context, AppLocalizations.of(context).priceUpdated);
   }
 }
@@ -123,16 +136,15 @@ class _SupplierPricingPageState extends ConsumerState<SupplierPricingPage> {
 /// One editable price line.
 class _PriceEditRow extends StatefulWidget {
   const _PriceEditRow({
-    required this.price,
-    required this.supplierId,
+    required this.product,
     required this.editedValue,
     required this.onChanged,
     required this.onCommit,
     required this.onViewHistory,
+    super.key,
   });
 
-  final SupplierPrice price;
-  final String supplierId;
+  final SupplierProductView product;
   final double? editedValue;
   final ValueChanged<double> onChanged;
   final ValueChanged<double> onCommit;
@@ -144,7 +156,9 @@ class _PriceEditRow extends StatefulWidget {
 
 class _PriceEditRowState extends State<_PriceEditRow> {
   late final TextEditingController _controller = TextEditingController(
-    text: Formatters.quantity(widget.editedValue ?? widget.price.pricePerUnit),
+    text: Formatters.quantity(
+      widget.editedValue ?? widget.product.price.pricePerUnit,
+    ),
   );
   final FocusNode _focusNode = FocusNode();
 
@@ -175,15 +189,14 @@ class _PriceEditRowState extends State<_PriceEditRow> {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
 
-    final item = MockQueries.itemById(widget.price.itemId);
-    final unit = item == null
-        ? ''
-        : MockQueries.unitAbbreviationOf(item.unitId);
+    final price = widget.product.price;
+    final unit = widget.product.unitAbbreviation;
 
-    final cheapest = MockQueries.cheapestPriceForItem(widget.price.itemId);
-    final isCheapest = cheapest?.supplierId == widget.supplierId;
-    final current = widget.editedValue ?? widget.price.pricePerUnit;
-    final gap = cheapest == null ? 0.0 : current - cheapest.pricePerUnit;
+    // Measured against what is typed rather than what is stored, so the "le
+    // moins cher" badge answers the number under the cursor.
+    final current = widget.editedValue ?? price.pricePerUnit;
+    final gap = current - widget.product.cheapestPricePerUnit;
+    final isCheapest = gap.abs() < 0.001 || gap < 0;
 
     return AppCard(
       padding: const EdgeInsets.symmetric(
@@ -198,15 +211,13 @@ class _PriceEditRowState extends State<_PriceEditRow> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  item?.name ?? '—',
+                  widget.product.itemName,
                   style: theme.textTheme.titleSmall,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 Text(
-                  l10n.itemPriceUpdated(
-                    Formatters.date(widget.price.effectiveDate),
-                  ),
+                  l10n.itemPriceUpdated(Formatters.date(price.effectiveDate)),
                   style: theme.textTheme.bodySmall,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,

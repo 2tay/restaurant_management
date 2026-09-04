@@ -9,8 +9,8 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/utils/order_status.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../../mock_data/mock_data.dart';
-import '../../../../models/models.dart';
+import '../../../../data/providers.dart';
+import '../../../../data/view_models/view_models.dart';
 import '../../../../shared/widgets/widgets.dart';
 import '../../documents/receipt_document_button.dart';
 import '../widgets/order_summary_card.dart';
@@ -38,24 +38,24 @@ class ReceiptDetailPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // The receipt itself is immutable, but the order it belongs to is not.
-    ref.watch(mockDataRevisionProvider);
-
     final l10n = AppLocalizations.of(context);
-    final receipt = MockQueries.receiptById(receiptId);
+    final detail = ref.watch(receiptDetailProvider(receiptId));
+    final view = detail.value;
 
-    if (receipt == null) {
+    if (view == null) {
       return ShellPage(
         title: l10n.ordersTitle,
-        child: ErrorState(
-          message: l10n.errorStateBody,
-          onRetry: () => context.goSection(Routes.toOrders(storeId)),
-        ),
+        child: detail.isLoading
+            ? const SkeletonList(rows: 3, rowHeight: 110)
+            : ErrorState(
+                message: l10n.errorStateBody,
+                onRetry: () => context.goSection(Routes.toOrders(storeId)),
+              ),
       );
     }
 
-    final order = MockQueries.orderById(receipt.orderId);
-    final reference = order?.reference ?? '—';
+    final receipt = view.receipt;
+    final reference = view.orderReference;
     final discrepancies = receipt.lines
         .where(
           (line) => isDiscrepancy(
@@ -82,7 +82,7 @@ class ReceiptDetailPage extends ConsumerWidget {
       // The document reference is on screen because the phone call that follows
       // an emailed bon de réception starts with the supplier quoting it back.
       subtitle:
-          '${MockQueries.receiptReferenceOf(receipt)} · '
+          '${view.reference} · '
           '${l10n.receiptReceivedBy(receipt.receivedByName)}',
       actions: [
         SecondaryButton(
@@ -148,7 +148,7 @@ class ReceiptDetailPage extends ConsumerWidget {
               DataColumn(label: Text(l10n.orderColumnUnitPrice), numeric: true),
               DataColumn(label: Text(l10n.receiptColumnNote)),
             ],
-            rows: [for (final line in receipt.lines) _row(context, l10n, line)],
+            rows: [for (final line in view.lines) _row(context, l10n, line)],
           ),
 
           if (receipt.note != null) ...[
@@ -169,12 +169,10 @@ class ReceiptDetailPage extends ConsumerWidget {
   DataRow _row(
     BuildContext context,
     AppLocalizations l10n,
-    GoodsReceiptLine line,
+    ReceiptLineView view,
   ) {
-    final item = MockQueries.itemById(line.itemId);
-    final unit = item == null
-        ? ''
-        : MockQueries.unitAbbreviationOf(item.unitId);
+    final line = view.line;
+    final unit = view.unitAbbreviation;
     final outcome = outcomeOf(
       ordered: line.quantityOrdered,
       received: line.quantityReceived,
@@ -186,7 +184,7 @@ class ReceiptDetailPage extends ConsumerWidget {
         DataCell(
           Row(
             children: [
-              Flexible(child: Text(item?.name ?? '—')),
+              Flexible(child: Text(view.itemName)),
               if (line.wasUnordered) ...[
                 const SizedBox(width: AppSpacing.sm),
                 _Flag(

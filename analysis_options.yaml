@@ -8,8 +8,21 @@ analyzer:
     unused_import: error
     unused_local_variable: error
   exclude:
+    # Generated code. `*.drift.dart` is drift's output; it is machine-written and
+    # does not follow the lint rules below (nor should it be edited to).
     - "**/*.g.dart"
+    - "**/*.drift.dart"
     - "**/generated_plugin_registrant.dart"
+    # drift's schema-history snapshots, written by `drift_dev schema generate`
+    # for the migration tests. Machine-written, versioned intentionally.
+    - "test/db/schema/**"
+    - build/**
+    - android/**
+    - ios/**
+    - web/**
+    - windows/**
+    - macos/**
+    - linux/**
 
 linter:
   rules:
