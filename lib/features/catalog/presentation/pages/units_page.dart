@@ -56,6 +56,7 @@ class UnitsPage extends ConsumerWidget {
       actions: [
         PrimaryButton(
           label: l10n.unitsAdd,
+          shortLabel: l10n.shortAddUnit,
           icon: LucideIcons.plus,
           onPressed: () => _create(context),
         ),

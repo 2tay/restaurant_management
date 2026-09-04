@@ -53,6 +53,7 @@ class CategoriesPage extends ConsumerWidget {
       actions: [
         PrimaryButton(
           label: l10n.categoriesAdd,
+          shortLabel: l10n.shortAddCategory,
           icon: LucideIcons.plus,
           onPressed: () => _create(context),
         ),

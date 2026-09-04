@@ -10,6 +10,7 @@ import '../../core/utils/responsive.dart';
 import '../../data/providers.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/models.dart';
+import 'action_density.dart';
 import 'app_breadcrumbs.dart';
 import 'app_sidebar.dart';
 import 'back_control.dart';
@@ -466,39 +467,29 @@ class _TitleRow extends StatelessWidget {
 
     if (actions.isEmpty) return titleBlock;
 
+    // Measured against the header's own width rather than the window's: this
+    // header is the full width of the page on most screens and half of it in
+    // the inventory split view, and the actions have to fit the space they are
+    // actually in.
     return LayoutBuilder(
       builder: (context, constraints) {
-        // Phone: the actions cannot sit side by side either. Each takes a full
-        // width line, primary last so it is nearest the content it acts on and
-        // nearest the thumb. Stretched from here rather than by asking every
-        // call site for `fullWidth: true` — the button family already expands
-        // to a bounded width, so this needs no change at the 19 pages that
-        // pass actions.
-        if (constraints.maxWidth < AppBreakpoints.compact) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              titleBlock,
-              const SizedBox(height: AppSpacing.lg),
-              for (var i = 0; i < actions.length; i++) ...[
-                if (i > 0) const SizedBox(height: AppSpacing.sm),
-                SizedBox(width: double.infinity, child: actions[i]),
-              ],
-            ],
-          );
-        }
-
-        final actionRow = Wrap(
-          spacing: AppSpacing.md,
-          runSpacing: AppSpacing.md,
-          alignment: WrapAlignment.end,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: actions,
+        final actionRow = ActionDensityScope(
+          density: _densityFor(constraints.maxWidth),
+          child: Wrap(
+            spacing: AppSpacing.md,
+            runSpacing: AppSpacing.md,
+            alignment: WrapAlignment.end,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: actions,
+          ),
         );
 
-        // Narrow tablet: the actions cannot share the title's line. They take
-        // their own row underneath.
-        if (constraints.maxWidth < 820) {
+        // Narrow: the actions cannot share the title's line, so they take
+        // their own row underneath. What they look like on that row is the
+        // density's business — shorter labels on a tablet, icons on a phone —
+        // which is what keeps it to one row rather than the stack of
+        // full-width buttons this used to draw.
+        if (constraints.maxWidth < _stackActionsBelow) {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -528,5 +519,25 @@ class _TitleRow extends StatelessWidget {
         );
       },
     );
+  }
+
+  /// Header width below which the actions move under the title.
+  static const double _stackActionsBelow = 820;
+
+  /// Header width below which the actions shorten, and then collapse.
+  ///
+  /// [ActionDensity.iconOnly] only ever reaches the supporting actions —
+  /// `PrimaryButton` refuses it — so the teal button keeps its words on a
+  /// phone while Modifier, Archiver and Exporter become icons beside it.
+  ///
+  /// The exception is a header with a single action. Whatever its type, that
+  /// button is the only thing the screen offers, and collapsing it to a glyph
+  /// leaves the user with nothing to read.
+  ActionDensity _densityFor(double width) {
+    if (width >= _stackActionsBelow) return ActionDensity.full;
+    if (width >= AppBreakpoints.compact || actions.length == 1) {
+      return ActionDensity.short;
+    }
+    return ActionDensity.iconOnly;
   }
 }

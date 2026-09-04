@@ -116,18 +116,21 @@ class _StockHistoryPageState extends ConsumerState<StockHistoryPage> {
       actions: [
         SecondaryButton(
           label: l10n.actionAdjustStock,
+          shortLabel: l10n.shortAdjustStock,
           icon: LucideIcons.clipboardCheck,
           onPressed: () =>
               context.pushScreen(Routes.toAdjustment(widget.storeId)),
         ),
         SecondaryButton(
           label: l10n.actionLogUsage,
+          shortLabel: l10n.shortLogUsage,
           icon: LucideIcons.arrowUpFromLine,
           onPressed: () =>
               context.pushScreen(Routes.toStockOut(widget.storeId)),
         ),
         PrimaryButton(
           label: l10n.actionAddDelivery,
+          shortLabel: l10n.shortAddDelivery,
           icon: LucideIcons.arrowDownToLine,
           onPressed: () => context.pushScreen(Routes.toStockIn(widget.storeId)),
         ),

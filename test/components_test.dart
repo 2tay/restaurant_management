@@ -151,6 +151,157 @@ void main() {
     });
   });
 
+  group('action density', () {
+    // A page header cannot reach inside the already-built buttons it is handed,
+    // so it publishes how much room it can spare and each button decides what
+    // that means for it.
+
+    Widget at(ActionDensity density, Widget button) =>
+        _host(ActionDensityScope(density: density, child: button));
+
+    testWidgets('full uses the long label', (tester) async {
+      await tester.pumpWidget(
+        at(
+          ActionDensity.full,
+          SecondaryButton(
+            label: 'Associer un fournisseur',
+            shortLabel: 'Associer',
+            icon: LucideIcons.link,
+            onPressed: () {},
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Associer un fournisseur'), findsOneWidget);
+    });
+
+    testWidgets('short swaps in the short label, keeping the icon', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        at(
+          ActionDensity.short,
+          SecondaryButton(
+            label: 'Associer un fournisseur',
+            shortLabel: 'Associer',
+            icon: LucideIcons.link,
+            onPressed: () {},
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Associer'), findsOneWidget);
+      expect(find.text('Associer un fournisseur'), findsNothing);
+      expect(find.byType(Icon), findsOneWidget);
+    });
+
+    testWidgets('iconOnly moves the label rather than dropping it', (
+      tester,
+    ) async {
+      final handle = tester.ensureSemantics();
+      await tester.pumpWidget(
+        at(
+          ActionDensity.iconOnly,
+          SecondaryButton(
+            label: 'Associer un fournisseur',
+            shortLabel: 'Associer',
+            icon: LucideIcons.link,
+            onPressed: () {},
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Associer'), findsNothing);
+      // Still reachable: as a tooltip for the eye, and as a name for a screen
+      // reader. A collapsed button must not become an anonymous glyph.
+      expect(
+        tester.widget<Tooltip>(find.byType(Tooltip)).message,
+        'Associer un fournisseur',
+      );
+      expect(
+        find.bySemanticsLabel('Associer un fournisseur'),
+        findsOneWidget,
+      );
+      handle.dispose();
+    });
+
+    testWidgets('iconOnly still presses', (tester) async {
+      var pressed = false;
+      await tester.pumpWidget(
+        at(
+          ActionDensity.iconOnly,
+          SecondaryButton(
+            label: 'Exporter',
+            icon: LucideIcons.download,
+            onPressed: () => pressed = true,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byType(OutlinedButton));
+      expect(pressed, isTrue, reason: 'naming it must not disable it');
+    });
+
+    testWidgets('the primary action keeps its words at every density', (
+      tester,
+    ) async {
+      // The teal button answers "what am I supposed to do on this screen?".
+      // A header of three anonymous glyphs makes that a guessing game.
+      await tester.pumpWidget(
+        at(
+          ActionDensity.iconOnly,
+          PrimaryButton(
+            label: 'Ajouter un produit',
+            shortLabel: 'Ajouter',
+            icon: LucideIcons.plus,
+            onPressed: () {},
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Ajouter'), findsOneWidget);
+    });
+
+    testWidgets('a button with no icon falls back to its short label', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        at(
+          ActionDensity.iconOnly,
+          SecondaryButton(
+            label: 'Tout afficher',
+            shortLabel: 'Tout',
+            onPressed: () {},
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Tout'), findsOneWidget);
+    });
+
+    testWidgets('a button outside a header is untouched', (tester) async {
+      await tester.pumpWidget(
+        _host(
+          SecondaryButton(
+            label: 'Associer un fournisseur',
+            shortLabel: 'Associer',
+            icon: LucideIcons.link,
+            onPressed: () {},
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Associer un fournisseur'), findsOneWidget);
+    });
+  });
+
   group('StatusPill', () {
     // The primitive the four status badges are now built from. The rules used
     // to be re-stated in each of them; they are enforced once, here.

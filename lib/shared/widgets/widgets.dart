@@ -5,6 +5,7 @@
 /// problem.
 library;
 
+export 'action_density.dart';
 export 'adaptive_row.dart';
 export 'app_breadcrumbs.dart';
 export 'app_card.dart';

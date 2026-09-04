@@ -93,6 +93,63 @@ void main() {
     }
   });
 
+  group('page header actions shrink rather than stack', () {
+    // The stock history header carries three actions — Ajuster le stock,
+    // Sortie de stock, Enregistrer une livraison. At full size that is far more
+    // than a 360dp window holds.
+
+    testApp('supporting actions collapse to icons on a phone', (tester) async {
+      final handle = tester.ensureSemantics();
+      await _renderAt(
+        tester,
+        const Size(360, 780),
+        Routes.toMovements(StoreIds.sablon),
+      );
+
+      expect(find.text('Ajuster le stock'), findsNothing);
+      expect(find.text('Ajuster'), findsNothing);
+      expect(
+        find.bySemanticsLabel('Ajuster le stock'),
+        findsOneWidget,
+        reason: 'the label is moved to the button name, never dropped',
+      );
+      handle.dispose();
+    });
+
+    testApp('they use the short label on a portrait tablet', (tester) async {
+      await _renderAt(
+        tester,
+        const Size(800, 1000),
+        Routes.toMovements(StoreIds.sablon),
+      );
+
+      expect(find.text('Ajuster'), findsOneWidget);
+      expect(find.text('Ajuster le stock'), findsNothing);
+    });
+
+    testApp('and the full label at the design baseline', (tester) async {
+      await _renderAt(
+        tester,
+        const Size(1280, 800),
+        Routes.toMovements(StoreIds.sablon),
+      );
+
+      expect(find.text('Ajuster le stock'), findsOneWidget);
+    });
+
+    testApp('a header with one action never collapses it', (tester) async {
+      // The suppliers list offers only "Ajouter un fournisseur". Reducing the
+      // one thing the screen can do to a glyph leaves nothing to read.
+      await _renderAt(
+        tester,
+        const Size(360, 780),
+        Routes.toSuppliers(StoreIds.sablon),
+      );
+
+      expect(find.text('Ajouter'), findsOneWidget);
+    });
+  });
+
   group('the shell moves the sidebar into a drawer on a phone', () {
     // The sidebar is 88dp even at its narrowest, which is a quarter of a 360dp
     // window. Below AppBreakpoints.compact it moves behind a hamburger instead.

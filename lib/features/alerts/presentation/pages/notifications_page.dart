@@ -64,6 +64,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
         if (unreadCount > 0)
           SecondaryButton(
             label: l10n.notificationsMarkAllRead,
+            shortLabel: l10n.shortMarkAllRead,
             icon: LucideIcons.checkCheck,
             onPressed: _markAllRead,
           ),

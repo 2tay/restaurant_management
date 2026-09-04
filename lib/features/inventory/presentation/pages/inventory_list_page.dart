@@ -198,6 +198,7 @@ class InventoryListPage extends ConsumerWidget {
       actions: [
         PrimaryButton(
           label: l10n.actionAddItem,
+          shortLabel: l10n.shortAddItem,
           icon: LucideIcons.plus,
           onPressed: () => context.pushScreen(Routes.toAddItem(storeId)),
         ),

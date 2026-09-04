@@ -116,6 +116,7 @@ class OrdersListPage extends ConsumerWidget {
       actions: [
         PrimaryButton(
           label: l10n.ordersNewAction,
+          shortLabel: l10n.shortNewOrder,
           icon: LucideIcons.plus,
           onPressed: () => context.pushScreen(Routes.toNewOrder(storeId)),
         ),

@@ -172,6 +172,78 @@ abstract class AppLocalizations {
   /// **'Rupture de stock'**
   String get stockStatusOutOfStock;
 
+  /// Short form of actionAddItem, for a page header too narrow for the full label. See ActionDensity.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ajouter'**
+  String get shortAddItem;
+
+  /// Short form of actionAddDelivery. See ActionDensity.
+  ///
+  /// In fr, this message translates to:
+  /// **'Livraison'**
+  String get shortAddDelivery;
+
+  /// Short form of actionLogUsage. See ActionDensity.
+  ///
+  /// In fr, this message translates to:
+  /// **'Sortie'**
+  String get shortLogUsage;
+
+  /// Short form of actionAdjustStock. See ActionDensity.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ajuster'**
+  String get shortAdjustStock;
+
+  /// Short form of suppliersAdd. See ActionDensity.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ajouter'**
+  String get shortAddSupplier;
+
+  /// Short form of employeesAdd. See ActionDensity.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ajouter'**
+  String get shortAddEmployee;
+
+  /// Short form of categoriesAdd. See ActionDensity.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ajouter'**
+  String get shortAddCategory;
+
+  /// Short form of unitsAdd. See ActionDensity.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ajouter'**
+  String get shortAddUnit;
+
+  /// Short form of ordersNewAction. See ActionDensity.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nouvelle'**
+  String get shortNewOrder;
+
+  /// Short form of alertsCreateOrders. See ActionDensity.
+  ///
+  /// In fr, this message translates to:
+  /// **'Commander'**
+  String get shortCreateOrders;
+
+  /// Short form of supplierEditPrices. See ActionDensity.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tarifs'**
+  String get shortEditPrices;
+
+  /// Short form of notificationsMarkAllRead. See ActionDensity.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tout lire'**
+  String get shortMarkAllRead;
+
   /// Primary action on the inventory list and its empty state.
   ///
   /// In fr, this message translates to:

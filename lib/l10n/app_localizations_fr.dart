@@ -48,6 +48,42 @@ class AppLocalizationsFr extends AppLocalizations {
   String get stockStatusOutOfStock => 'Rupture de stock';
 
   @override
+  String get shortAddItem => 'Ajouter';
+
+  @override
+  String get shortAddDelivery => 'Livraison';
+
+  @override
+  String get shortLogUsage => 'Sortie';
+
+  @override
+  String get shortAdjustStock => 'Ajuster';
+
+  @override
+  String get shortAddSupplier => 'Ajouter';
+
+  @override
+  String get shortAddEmployee => 'Ajouter';
+
+  @override
+  String get shortAddCategory => 'Ajouter';
+
+  @override
+  String get shortAddUnit => 'Ajouter';
+
+  @override
+  String get shortNewOrder => 'Nouvelle';
+
+  @override
+  String get shortCreateOrders => 'Commander';
+
+  @override
+  String get shortEditPrices => 'Tarifs';
+
+  @override
+  String get shortMarkAllRead => 'Tout lire';
+
+  @override
   String get actionAddItem => 'Ajouter un produit';
 
   @override

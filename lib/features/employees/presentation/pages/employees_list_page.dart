@@ -42,6 +42,7 @@ class _EmployeesListPageState extends ConsumerState<EmployeesListPage> {
       actions: [
         PrimaryButton(
           label: l10n.employeesAdd,
+          shortLabel: l10n.shortAddEmployee,
           icon: LucideIcons.userPlus,
           onPressed: () =>
               context.pushScreen(Routes.toAddEmployee(widget.storeId)),

@@ -55,11 +55,13 @@ class LowStockAlertsPage extends ConsumerWidget {
       actions: [
         SecondaryButton(
           label: l10n.actionAddDelivery,
+          shortLabel: l10n.shortAddDelivery,
           icon: LucideIcons.arrowDownToLine,
           onPressed: () => context.pushScreen(Routes.toStockIn(storeId)),
         ),
         PrimaryButton(
           label: l10n.alertsCreateOrders,
+          shortLabel: l10n.shortCreateOrders,
           icon: LucideIcons.clipboardList,
           onPressed: alerts.isEmpty
               ? null
