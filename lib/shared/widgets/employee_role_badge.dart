@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_colors.dart';
-import '../../core/theme/app_spacing.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/models.dart';
+import 'status_pill.dart';
 
 /// The Owner / Gérant / Employé chip.
 ///
@@ -20,25 +20,14 @@ class EmployeeRoleBadge extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final isOwner = role == EmployeeRole.owner;
 
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.xs,
-      ),
-      decoration: BoxDecoration(
-        color: isOwner ? AppColors.primaryContainer : AppColors.surfaceVariant,
-        borderRadius: AppRadius.pillAll,
-      ),
-      child: Text(
-        employeeRoleLabel(l10n, role),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: Theme.of(context).textTheme.labelMedium?.copyWith(
-          color: isOwner
-              ? AppColors.onPrimaryContainer
-              : AppColors.textSecondary,
-        ),
-      ),
+    return LabelChip(
+      label: employeeRoleLabel(l10n, role),
+      background: isOwner
+          ? AppColors.primaryContainer
+          : AppColors.surfaceVariant,
+      foreground: isOwner
+          ? AppColors.onPrimaryContainer
+          : AppColors.textSecondary,
     );
   }
 }

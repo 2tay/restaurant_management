@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../core/utils/responsive.dart';
 import '../../l10n/app_localizations.dart';
 
 /// Confirmation before something the user cannot undo.
@@ -102,9 +103,13 @@ class ConfirmDialog extends StatelessWidget {
     await showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
+        // Scrollable so the body survives 200% text on a short window rather
+        // than overflowing the dialog it cannot grow past.
+        scrollable: true,
+        insetPadding: context.dialogInsets,
         title: Text(title),
         content: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 460),
+          constraints: const BoxConstraints(maxWidth: AppSizing.dialogMaxWidth),
           child: Text(message),
         ),
         actionsPadding: const EdgeInsets.fromLTRB(
@@ -128,11 +133,13 @@ class ConfirmDialog extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
 
     return AlertDialog(
+      scrollable: true,
+      insetPadding: context.dialogInsets,
       title: Text(title),
       content: message == null
           ? null
           : ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 460),
+              constraints: const BoxConstraints(maxWidth: AppSizing.dialogMaxWidth),
               child: Text(message!),
             ),
       actionsPadding: const EdgeInsets.fromLTRB(

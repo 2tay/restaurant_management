@@ -13,10 +13,22 @@ import '../../../../shared/widgets/widgets.dart';
 
 /// The height of a card below its picture.
 ///
-/// Fixed, and the grid adds it to the image height to size each tile — see
-/// [ItemCard]. It covers the name, the category, the rule under them, and the
-/// stock line sharing a row with the arrow.
+/// Stated rather than derived, and the grid adds it to the image height to size
+/// each tile — see [ItemCard]. It covers the name, the category, the rule under
+/// them, and the stock line sharing a row with the arrow.
+///
+/// It scales with the user's type size. 140dp holds four short lines at the
+/// default scale and clips the last of them at 150%, which is where this grid
+/// overflowed for anyone who had turned the text up. Capped at 2x so an extreme
+/// accessibility setting makes the tiles tall rather than making them a page
+/// each.
 const double itemCardTextHeight = 140;
+
+/// [itemCardTextHeight] grown for the user's current type size.
+double itemCardTextHeightFor(BuildContext context) {
+  final scale = MediaQuery.textScalerOf(context).scale(14) / 14;
+  return itemCardTextHeight * scale.clamp(1.0, 2.0);
+}
 
 /// One product in the catalogue grid.
 ///
@@ -103,7 +115,7 @@ class ItemCard extends StatelessWidget {
           ),
 
           SizedBox(
-            height: itemCardTextHeight,
+            height: itemCardTextHeightFor(context),
             child: Padding(
               padding: const EdgeInsets.all(AppSpacing.md),
               child: Column(

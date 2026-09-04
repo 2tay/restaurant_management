@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../app/navigation.dart';
+import '../../app/routes.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/utils/responsive.dart';
+import '../../data/providers.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/models.dart';
 import 'app_breadcrumbs.dart';
@@ -50,12 +53,17 @@ final isFullScreenProvider = NotifierProvider<FullScreenMode, bool>(
 );
 
 /// The application shell: navigation sidebar on the left, content in the
-/// remaining area. There is no top bar — the store selector and the user menu
-/// live in the sidebar (see `app_sidebar.dart`).
+/// remaining area. There is no top bar on a tablet — the store selector and the
+/// user menu live in the sidebar (see `app_sidebar.dart`).
 ///
 /// Used by the go_router `ShellRoute`, so the sidebar persists across
 /// navigations instead of rebuilding — the store selector keeps its place and
 /// there is no flash of chrome between screens.
+///
+/// On a phone ([AppBreakpoints.compact] and below) the sidebar cannot stay on
+/// screen: even the 88dp icon strip is a quarter of a 360dp window. It moves
+/// into a drawer, and a slim bar appears to open it — the one place the app has
+/// a top bar, because without it navigation would have no affordance at all.
 class AppScaffold extends ConsumerWidget {
   const AppScaffold({required this.store, required this.child, super.key});
 
@@ -68,25 +76,101 @@ class AppScaffold extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final isFullScreen = ref.watch(isFullScreenProvider);
 
+    if (isFullScreen) {
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        body: SafeArea(child: child),
+      );
+    }
+
+    final content = Column(
+      children: [
+        const OfflineBanner(),
+        Expanded(child: child),
+      ],
+    );
+
+    if (context.isPhone) {
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: _PhoneAppBar(store: store),
+        drawer: Drawer(
+          width: AppSizing.sidebarWidthExpanded,
+          backgroundColor: AppColors.steel800,
+          child: AppSidebar(store: store, variant: SidebarVariant.drawer),
+        ),
+        body: SafeArea(top: false, child: content),
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: isFullScreen
-            ? child
-            : Row(
-                children: [
-                  AppSidebar(store: store),
-                  Expanded(
-                    child: Column(
-                      children: [
-                        const OfflineBanner(),
-                        Expanded(child: child),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+        child: Row(
+          children: [
+            AppSidebar(store: store),
+            Expanded(child: content),
+          ],
+        ),
       ),
+    );
+  }
+}
+
+/// The phone-only bar: open the drawer, see which establishment you are in,
+/// reach the notifications. Everything else stays in the drawer.
+class _PhoneAppBar extends ConsumerWidget implements PreferredSizeWidget {
+  const _PhoneAppBar({required this.store});
+
+  final Store store;
+
+  @override
+  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final unread = ref.watch(unreadCountProvider(store.id)).value ?? 0;
+
+    return AppBar(
+      backgroundColor: AppColors.steel800,
+      foregroundColor: AppColors.white,
+      elevation: 0,
+      titleSpacing: 0,
+      iconTheme: const IconThemeData(color: AppColors.neutral300),
+      title: Row(
+        children: [
+          const Icon(LucideIcons.store, size: AppSizing.iconMd),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Text(
+              store.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.titleSmall?.copyWith(
+                color: AppColors.white,
+              ),
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        IconButton(
+          onPressed: () => context.goSection(Routes.toNotifications(store.id)),
+          tooltip: l10n.topBarNotifications,
+          color: AppColors.neutral300,
+          icon: unread > 0
+              ? Badge.count(
+                  count: unread,
+                  backgroundColor: AppColors.error,
+                  textColor: AppColors.white,
+                  child: const Icon(LucideIcons.bell, size: AppSizing.iconMd),
+                )
+              : const Icon(LucideIcons.bell, size: AppSizing.iconMd),
+        ),
+        const SizedBox(width: AppSpacing.xs),
+      ],
     );
   }
 }
@@ -105,6 +189,31 @@ class AppScaffoldSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // On a phone the real shell has no sidebar on screen, so neither does its
+    // placeholder — a steel strip here would be chrome that vanishes the moment
+    // the establishment resolves.
+    if (context.isPhone) {
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppBar(
+          backgroundColor: AppColors.steel800,
+          elevation: 0,
+          automaticallyImplyLeading: false,
+          title: const SizedBox(
+            width: 140,
+            child: _SidebarSkeletonBlock(height: 16),
+          ),
+        ),
+        body: SafeArea(
+          top: false,
+          child: Padding(
+            padding: context.pageInsets,
+            child: const SkeletonList(),
+          ),
+        ),
+      );
+    }
+
     final double sidebarWidth = context.isSidebarCollapsed
         ? AppSizing.sidebarWidthCollapsed
         : AppSizing.sidebarWidthExpanded;
@@ -306,12 +415,14 @@ class ShellPage extends StatelessWidget {
       );
     }
 
+    // Page padding tightens on a phone: 24dp a side is a seventh of a 360dp
+    // window, and this is dense content that needs the room more than the
+    // margin needs the air.
+    final insets = padding ?? context.pageInsets;
+
     final content = scrollable
-        ? SingleChildScrollView(
-            padding: padding ?? AppSpacing.pageInsets,
-            child: body,
-          )
-        : Padding(padding: padding ?? AppSpacing.pageInsets, child: body);
+        ? SingleChildScrollView(padding: insets, child: body)
+        : Padding(padding: insets, child: body);
 
     if (footer == null) return content;
 
@@ -357,6 +468,26 @@ class _TitleRow extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
+        // Phone: the actions cannot sit side by side either. Each takes a full
+        // width line, primary last so it is nearest the content it acts on and
+        // nearest the thumb. Stretched from here rather than by asking every
+        // call site for `fullWidth: true` — the button family already expands
+        // to a bounded width, so this needs no change at the 19 pages that
+        // pass actions.
+        if (constraints.maxWidth < AppBreakpoints.compact) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              titleBlock,
+              const SizedBox(height: AppSpacing.lg),
+              for (var i = 0; i < actions.length; i++) ...[
+                if (i > 0) const SizedBox(height: AppSpacing.sm),
+                SizedBox(width: double.infinity, child: actions[i]),
+              ],
+            ],
+          );
+        }
+
         final actionRow = Wrap(
           spacing: AppSpacing.md,
           runSpacing: AppSpacing.md,

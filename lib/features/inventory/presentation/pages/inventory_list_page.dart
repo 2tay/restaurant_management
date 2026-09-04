@@ -530,7 +530,7 @@ class _ProductGrid extends StatelessWidget {
             crossAxisSpacing: AppSpacing.md,
             mainAxisExtent:
                 imageHeight +
-                itemCardTextHeight +
+                itemCardTextHeightFor(context) +
                 AppCard.verticalBorderAllowance,
           ),
           itemCount: rows.length,

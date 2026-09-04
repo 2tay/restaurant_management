@@ -284,40 +284,29 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
   }
 
   Widget _kpiRow(AppLocalizations l10n, PayrollDays data) {
-    return Row(
-      children: [
-        Expanded(
-          child: StatTile(
-            label: l10n.payrollStatPaidDays,
-            value: '${data.paidDays}',
-            icon: LucideIcons.circleCheck,
-          ),
+    return StatTileRow(
+      tiles: [
+        StatTile(
+          label: l10n.payrollStatPaidDays,
+          value: '${data.paidDays}',
+          icon: LucideIcons.circleCheck,
         ),
-        const SizedBox(width: AppSpacing.lg),
-        Expanded(
-          child: StatTile(
-            label: l10n.payrollStatUnpaidDays,
-            value: '${data.unpaidDays}',
-            icon: LucideIcons.hourglass,
-          ),
+        StatTile(
+          label: l10n.payrollStatUnpaidDays,
+          value: '${data.unpaidDays}',
+          icon: LucideIcons.hourglass,
         ),
-        const SizedBox(width: AppSpacing.lg),
-        Expanded(
-          child: StatTile(
-            label: l10n.payrollStatWorkedHours,
-            value: Formatters.duration(data.worked),
-            icon: LucideIcons.clock,
-          ),
+        StatTile(
+          label: l10n.payrollStatWorkedHours,
+          value: Formatters.duration(data.worked),
+          icon: LucideIcons.clock,
         ),
-        const SizedBox(width: AppSpacing.lg),
-        Expanded(
-          child: StatTile(
-            label: l10n.payrollStatOvertimeHours,
-            value: data.overtime == Duration.zero
-                ? '—'
-                : Formatters.duration(data.overtime),
-            icon: LucideIcons.timer,
-          ),
+        StatTile(
+          label: l10n.payrollStatOvertimeHours,
+          value: data.overtime == Duration.zero
+              ? '—'
+              : Formatters.duration(data.overtime),
+          icon: LucideIcons.timer,
         ),
       ],
     );
@@ -559,51 +548,45 @@ class _Filters extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final today = _dayOnly(DateTime.now());
 
-    return Wrap(
-      spacing: AppSpacing.lg,
-      runSpacing: AppSpacing.md,
-      crossAxisAlignment: WrapCrossAlignment.end,
-      children: [
-        LabeledField(
+    return FilterBar(
+      reset: canReset
+          ? FilterResetButton(
+              label: l10n.payrollFilterReset,
+              onPressed: onReset,
+            )
+          : null,
+      fields: [
+        FilterField(
           label: l10n.payrollFilterEmployee,
-          child: SizedBox(
-            width: 260,
-            child: EmployeeSelector(
-              employees: employees,
-              value: selectedEmployee,
-              showCin: true,
-              hint: l10n.payrollFilterAllEmployees,
-              onChanged: onEmployee,
-            ),
+          child: EmployeeSelector(
+            employees: employees,
+            value: selectedEmployee,
+            showCin: true,
+            hint: l10n.payrollFilterAllEmployees,
+            onChanged: onEmployee,
           ),
         ),
-        LabeledField(
+        FilterField.date(
           label: l10n.payrollFilterFrom,
-          child: SizedBox(
-            width: 165,
-            child: DateField(
-              value: from,
-              compact: true,
-              firstDate: floor,
-              lastDate: to,
-              onChanged: onFrom,
-            ),
+          child: DateField(
+            value: from,
+            compact: true,
+            firstDate: floor,
+            lastDate: to,
+            onChanged: onFrom,
           ),
         ),
-        LabeledField(
+        FilterField.date(
           label: l10n.payrollFilterTo,
-          child: SizedBox(
-            width: 165,
-            child: DateField(
-              value: to,
-              compact: true,
-              firstDate: from,
-              lastDate: today,
-              onChanged: onTo,
-            ),
+          child: DateField(
+            value: to,
+            compact: true,
+            firstDate: from,
+            lastDate: today,
+            onChanged: onTo,
           ),
         ),
-        LabeledField(
+        FilterField.auto(
           label: l10n.payrollFilterStatus,
           child: FilterMenu<PaymentStatus?>(
             label: l10n.payrollFilterStatus,
@@ -618,11 +601,6 @@ class _Filters extends StatelessWidget {
             onSelected: onStatus,
           ),
         ),
-        if (canReset)
-          FilterResetButton(
-            label: l10n.payrollFilterReset,
-            onPressed: onReset,
-          ),
       ],
     );
   }

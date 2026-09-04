@@ -45,8 +45,16 @@ class BackControl extends StatelessWidget {
           onTap: () => _handleBack(context),
           borderRadius: AppRadius.pillAll,
           child: Container(
-            height: AppSizing.minTapTarget,
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+            // A minimum, not a fixed height: 48dp is the tap-target floor the
+            // brief sets, and a control pinned to it clips its own label once
+            // the user turns the type up.
+            constraints: const BoxConstraints(
+              minHeight: AppSizing.minTapTarget,
+            ),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md,
+              vertical: AppSpacing.sm,
+            ),
             alignment: Alignment.center,
             child: Row(
               mainAxisSize: MainAxisSize.min,

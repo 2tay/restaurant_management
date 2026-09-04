@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../core/theme/app_colors.dart';
-import '../../core/theme/app_spacing.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/models.dart';
+import 'status_pill.dart';
 
 /// The in stock / low stock / out of stock indicator.
 ///
@@ -20,6 +20,9 @@ import '../../models/models.dart';
 ///    a triangle, a cross read differently in peripheral vision.
 /// 3. **The mapping lives here.** Nothing else in the app decides what colour
 ///    "stock faible" is.
+///
+/// The pill itself is [StatusPill], shared with the other three status badges
+/// so the shape can only be got right or wrong in one place.
 class StockStatusBadge extends StatelessWidget {
   const StockStatusBadge({
     required this.status,
@@ -41,43 +44,11 @@ class StockStatusBadge extends StatelessWidget {
     final icon = iconFor(status);
     final label = labelFor(AppLocalizations.of(context), status);
 
-    if (compact) {
-      return Tooltip(
-        message: label,
-        child: Container(
-          width: AppSizing.iconLg,
-          height: AppSizing.iconLg,
-          decoration: BoxDecoration(
-            color: colors.container,
-            shape: BoxShape.circle,
-          ),
-          child: Icon(icon, size: AppSizing.iconSm, color: colors.foreground),
-        ),
-      );
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.sm,
-      ),
-      decoration: BoxDecoration(
-        color: colors.container,
-        borderRadius: AppRadius.pillAll,
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: AppSizing.iconSm, color: colors.foreground),
-          const SizedBox(width: AppSpacing.xs),
-          Text(
-            label,
-            style: Theme.of(
-              context,
-            ).textTheme.labelMedium?.copyWith(color: colors.foreground),
-          ),
-        ],
-      ),
+    return StatusPill(
+      colors: colors,
+      icon: icon,
+      label: label,
+      compact: compact,
     );
   }
 

@@ -61,6 +61,7 @@ class AppCard extends StatefulWidget {
 class _AppCardState extends State<AppCard> {
   bool _hovered = false;
   bool _pressed = false;
+  bool _focused = false;
 
   bool get _isInteractive => widget.onTap != null;
 
@@ -71,7 +72,7 @@ class _AppCardState extends State<AppCard> {
       child: widget.child,
     );
 
-    final lifted = _isInteractive && (_hovered || widget.selected);
+    final lifted = _isInteractive && (_hovered || widget.selected || _focused);
 
     return MouseRegion(
       cursor: _isInteractive ? SystemMouseCursors.click : MouseCursor.defer,
@@ -83,7 +84,11 @@ class _AppCardState extends State<AppCard> {
         decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: AppRadius.lgAll,
-          border: widget.selected
+          // Keyboard focus is drawn the same way selection is, because it
+          // means the same thing to the person looking at it: this is the card
+          // you are about to act on. Without it, tabbing through a list on a
+          // desktop window moved an invisible cursor.
+          border: widget.selected || _focused
               ? Border.all(
                   color: AppColors.primary600,
                   width: AppCard.selectedBorderWidth,
@@ -106,6 +111,10 @@ class _AppCardState extends State<AppCard> {
             color: Colors.transparent,
             child: InkWell(
               onTap: widget.onTap,
+              canRequestFocus: _isInteractive,
+              onFocusChange: _isInteractive
+                  ? (value) => setState(() => _focused = value)
+                  : null,
               onTapDown: _isInteractive
                   ? (_) => setState(() => _pressed = true)
                   : null,

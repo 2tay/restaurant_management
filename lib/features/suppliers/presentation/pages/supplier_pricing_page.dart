@@ -203,9 +203,14 @@ class _PriceEditRowState extends State<_PriceEditRow> {
         horizontal: AppSpacing.lg,
         vertical: AppSpacing.md,
       ),
-      child: Row(
-        children: [
-          Expanded(
+      // Four columns of fixed and flex widths that only add up above about
+      // 700dp. Below that the name, the price field and the comparison each
+      // take their own line rather than squeezing the editable field to
+      // nothing.
+      child: AdaptiveRow(
+        breakpoint: 700,
+        cells: [
+          AdaptiveCell(
             flex: 4,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -225,10 +230,8 @@ class _PriceEditRowState extends State<_PriceEditRow> {
               ],
             ),
           ),
-          const SizedBox(width: AppSpacing.md),
-
-          SizedBox(
-            width: 180,
+          AdaptiveCell(
+            flex: 3,
             child: TextField(
               controller: _controller,
               focusNode: _focusNode,
@@ -251,10 +254,8 @@ class _PriceEditRowState extends State<_PriceEditRow> {
               ),
             ),
           ),
-          const SizedBox(width: AppSpacing.md),
-
-          SizedBox(
-            width: 150,
+          AdaptiveCell(
+            flex: 3,
             child: isCheapest
                 ? Row(
                     mainAxisAlignment: MainAxisAlignment.end,
@@ -287,10 +288,12 @@ class _PriceEditRowState extends State<_PriceEditRow> {
                     ),
                   ),
           ),
-          IconButton(
-            onPressed: widget.onViewHistory,
-            icon: const Icon(LucideIcons.chartLine),
-            tooltip: l10n.itemViewPriceHistory,
+          AdaptiveCell(
+            child: IconButton(
+              onPressed: widget.onViewHistory,
+              icon: const Icon(LucideIcons.chartLine),
+              tooltip: l10n.itemViewPriceHistory,
+            ),
           ),
         ],
       ),

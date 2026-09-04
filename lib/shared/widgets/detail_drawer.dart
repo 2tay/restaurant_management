@@ -4,6 +4,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../l10n/app_localizations.dart';
+import 'adaptive_row.dart';
 
 /// A panel that slides in from the right for a row's detail — the attendance
 /// and payment history both open one instead of navigating away or throwing a
@@ -27,14 +28,14 @@ class DetailDrawer extends StatelessWidget {
       barrierDismissible: true,
       barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
       barrierColor: Colors.black.withValues(alpha: 0.25),
-      transitionDuration: const Duration(milliseconds: 200),
+      transitionDuration: AppMotion.duration(context, AppMotion.page),
       pageBuilder: (context, _, _) =>
           DetailDrawer(title: title, children: children),
       transitionBuilder: (context, animation, _, child) => SlideTransition(
         position: Tween<Offset>(
           begin: const Offset(1, 0),
           end: Offset.zero,
-        ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic)),
+        ).animate(CurvedAnimation(parent: animation, curve: AppMotion.enter)),
         child: child,
       ),
     );
@@ -45,7 +46,9 @@ class DetailDrawer extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final screenWidth = MediaQuery.sizeOf(context).width;
-    final panelWidth = screenWidth < 600 ? screenWidth : 440.0;
+    final panelWidth = screenWidth < AppBreakpoints.compact
+        ? screenWidth
+        : 440.0;
 
     return Align(
       alignment: Alignment.centerRight,
@@ -107,13 +110,20 @@ class DrawerRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+
+    // The 140dp label gutter is right in a 440dp panel and wrong in the
+    // full-width one a phone gets, where it leaves a French label like
+    // "Heures supplémentaires" wrapping to three lines beside a one-word
+    // value. Below the threshold the label sits above the value instead.
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-      child: Row(
+      child: AdaptiveRow(
+        breakpoint: 320,
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 140,
+        runSpacing: AppSpacing.xxs,
+        cells: [
+          AdaptiveCell(
+            width: AppSizing.drawerLabelWidth,
             child: Text(
               label,
               style: theme.textTheme.bodyMedium?.copyWith(
@@ -121,8 +131,8 @@ class DrawerRow extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(width: AppSpacing.md),
-          Expanded(
+          AdaptiveCell(
+            flex: 1,
             child:
                 valueWidget ??
                 Text(value ?? '—', style: theme.textTheme.bodyMedium),

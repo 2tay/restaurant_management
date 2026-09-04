@@ -6,6 +6,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:stock_inventory/core/theme/app_colors.dart';
 import 'package:stock_inventory/core/theme/app_theme.dart';
 import 'package:stock_inventory/data/repositories/repositories.dart';
@@ -105,8 +106,9 @@ void main() {
     testWidgets('each status gets a distinct icon, not just a colour', (
       tester,
     ) async {
-      final icons =
-          PaymentStatus.values.map(PaymentStatusBadge.iconFor).toSet();
+      final icons = PaymentStatus.values
+          .map(PaymentStatusBadge.iconFor)
+          .toSet();
 
       expect(
         icons.length,
@@ -146,6 +148,169 @@ void main() {
         AttendanceStatusBadge.colorsFor(AttendanceStatus.onBreak),
         isNot(same(AppColors.lowStock)),
       );
+    });
+  });
+
+  group('StatusPill', () {
+    // The primitive the four status badges are now built from. The rules used
+    // to be re-stated in each of them; they are enforced once, here.
+
+    testWidgets('carries the icon and the label together', (tester) async {
+      await tester.pumpWidget(
+        _host(
+          const StatusPill(
+            colors: AppColors.lowStock,
+            icon: LucideIcons.triangleAlert,
+            label: 'Stock faible',
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(Icon), findsOneWidget);
+      expect(find.text('Stock faible'), findsOneWidget);
+    });
+
+    testWidgets('the icon is not read out as well as the label', (
+      tester,
+    ) async {
+      // Colour is never alone visually, but a screen reader that announced the
+      // icon *and* the label would say the status twice.
+      final handle = tester.ensureSemantics();
+      await tester.pumpWidget(
+        _host(
+          const StatusPill(
+            colors: AppColors.inStock,
+            icon: LucideIcons.circleCheck,
+            label: 'En stock',
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.bySemanticsLabel('En stock'), findsOneWidget);
+      handle.dispose();
+    });
+
+    testWidgets('compact keeps the label reachable as a tooltip', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _host(
+          const StatusPill(
+            colors: AppColors.outOfStock,
+            icon: LucideIcons.circleX,
+            label: 'Rupture',
+            compact: true,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(tester.widget<Tooltip>(find.byType(Tooltip)).message, 'Rupture');
+      expect(find.text('Rupture'), findsNothing);
+    });
+
+    testWidgets('a long label ellipsizes rather than overflowing its column', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _host(
+          const SizedBox(
+            width: 90,
+            child: StatusPill(
+              colors: AppColors.lowStock,
+              icon: LucideIcons.triangleAlert,
+              label: 'Réapprovisionnement urgent requis',
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+    });
+  });
+
+  group('LabelChip', () {
+    testWidgets('names something without needing an icon', (tester) async {
+      await tester.pumpWidget(_host(const LabelChip(label: 'Contrat fixe')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Contrat fixe'), findsOneWidget);
+      expect(find.byType(Icon), findsNothing);
+    });
+  });
+
+  group('StatTileRow', () {
+    testWidgets('drops to one column when four will not fit', (tester) async {
+      const tiles = [
+        StatTile(label: 'Actifs', value: '12', icon: LucideIcons.users),
+        StatTile(label: 'Gérants', value: '3', icon: LucideIcons.shieldCheck),
+        StatTile(
+          label: 'Contrats',
+          value: '9 / 3',
+          icon: LucideIcons.briefcase,
+        ),
+        StatTile(label: 'Embauches', value: '1', icon: LucideIcons.userPlus),
+      ];
+
+      // A phone's content width. Four tiles across would give each one 63dp,
+      // which is the icon medallion and nothing else.
+      await tester.pumpWidget(
+        _host(const SizedBox(width: 296, child: StatTileRow(tiles: tiles))),
+      );
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(
+        tester.getSize(find.byType(StatTile).first).width,
+        296,
+        reason: 'one tile per line at 296dp',
+      );
+
+      // The design baseline: all four share the line.
+      await tester.pumpWidget(
+        _host(const SizedBox(width: 1000, child: StatTileRow(tiles: tiles))),
+      );
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(
+        tester.getSize(find.byType(StatTile).first).width,
+        lessThan(280),
+        reason: 'four across at 1000dp',
+      );
+    });
+  });
+
+  group('AdaptiveRow', () {
+    testWidgets('is a row when there is width and a column when there is not', (
+      tester,
+    ) async {
+      Widget host(double width) => _host(
+        SizedBox(
+          width: width,
+          child: const AdaptiveRow(
+            breakpoint: 400,
+            cells: [
+              AdaptiveCell(flex: 1, child: Text('Nom')),
+              AdaptiveCell(child: Text('Statut')),
+            ],
+          ),
+        ),
+      );
+
+      await tester.pumpWidget(host(600));
+      await tester.pumpAndSettle();
+      final wide = tester.getTopLeft(find.text('Statut'));
+
+      await tester.pumpWidget(host(320));
+      await tester.pumpAndSettle();
+      final narrow = tester.getTopLeft(find.text('Statut'));
+
+      expect(narrow.dy, greaterThan(wide.dy), reason: 'stacked below');
+      expect(narrow.dx, lessThan(wide.dx), reason: 'and back at the left edge');
     });
   });
 
@@ -431,8 +596,10 @@ void main() {
     ) async {
       await open(
         tester,
-        (_) async =>
-            const CinVerification(CinCheckResult.wrongCin, attemptsRemaining: 2),
+        (_) async => const CinVerification(
+          CinCheckResult.wrongCin,
+          attemptsRemaining: 2,
+        ),
       );
       await submit(tester, '99.99.99-999.99');
 
@@ -441,10 +608,7 @@ void main() {
     });
 
     testWidgets('the right CIN closes the dialog', (tester) async {
-      await open(
-        tester,
-        (_) async => const CinVerification(CinCheckResult.ok),
-      );
+      await open(tester, (_) async => const CinVerification(CinCheckResult.ok));
       await submit(tester, '78.02.14-153.24');
 
       expect(find.byType(IdentityPromptDialog), findsNothing);
@@ -456,8 +620,7 @@ void main() {
       final until = DateTime.now().add(const Duration(minutes: 5));
       await open(
         tester,
-        (_) async =>
-            CinVerification(CinCheckResult.locked, lockedUntil: until),
+        (_) async => CinVerification(CinCheckResult.locked, lockedUntil: until),
       );
       await tester.enterText(find.byType(TextField), '99.99.99-999.99');
       await tester.pump();
@@ -536,7 +699,9 @@ void main() {
       expect(find.text('Karim Haddouch'), findsOneWidget);
     });
 
-    testWidgets('filters by CIN even when the CIN is not shown', (tester) async {
+    testWidgets('filters by CIN even when the CIN is not shown', (
+      tester,
+    ) async {
       await pumpSelector(tester);
       await tester.tap(find.byType(EmployeeSelector));
       await tester.pumpAndSettle();
@@ -567,7 +732,10 @@ void main() {
       await tester.tap(find.byTooltip('Effacer'));
       await tester.pumpAndSettle();
       expect(find.text('Amélie Vandenberghe'), findsNothing);
-      expect(find.text('Rechercher ou sélectionner un employé…'), findsOneWidget);
+      expect(
+        find.text('Rechercher ou sélectionner un employé…'),
+        findsOneWidget,
+      );
     });
   });
 }

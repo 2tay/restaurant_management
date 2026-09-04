@@ -55,7 +55,11 @@ class _EmployeesListPageState extends ConsumerState<EmployeesListPage> {
     );
   }
 
-  Widget _content(BuildContext context, AppLocalizations l10n, List<Employee> all) {
+  Widget _content(
+    BuildContext context,
+    AppLocalizations l10n,
+    List<Employee> all,
+  ) {
     final filtered = _filtered(all);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -63,52 +67,49 @@ class _EmployeesListPageState extends ConsumerState<EmployeesListPage> {
         _KpiRow(employees: all),
         const SizedBox(height: AppSpacing.lg),
         Row(
-            children: [
-              Expanded(
-                child: SearchField(
-                  hint: l10n.employeesSearchHint,
-                  onChanged: (value) => setState(() => _query = value),
-                ),
+          children: [
+            Expanded(
+              child: SearchField(
+                hint: l10n.employeesSearchHint,
+                onChanged: (value) => setState(() => _query = value),
               ),
-              const SizedBox(width: AppSpacing.md),
-              _ArchivedFilterPill(
-                active: _showArchived,
-                onTap: () => setState(() => _showArchived = !_showArchived),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.md),
-          if (filtered.isEmpty)
-            ConstrainedBox(
-              constraints: const BoxConstraints(minHeight: 360),
-              child: all.isEmpty
-                  ? EmptyState(
-                      icon: LucideIcons.idCard,
-                      title: l10n.employeesEmpty,
-                      message: l10n.employeesEmptyBody,
-                      actionLabel: l10n.employeesAdd,
-                      actionIcon: LucideIcons.userPlus,
-                      onAction: () => context.pushScreen(
-                        Routes.toAddEmployee(widget.storeId),
-                      ),
-                    )
-                  : EmptyState.noResults(
-                      l10n,
-                      onClearFilters: () => setState(() {
-                        _query = '';
-                        _showArchived = false;
-                      }),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            _ArchivedFilterPill(
+              active: _showArchived,
+              onTap: () => setState(() => _showArchived = !_showArchived),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.md),
+        if (filtered.isEmpty)
+          ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 360),
+            child: all.isEmpty
+                ? EmptyState(
+                    icon: LucideIcons.idCard,
+                    title: l10n.employeesEmpty,
+                    message: l10n.employeesEmptyBody,
+                    actionLabel: l10n.employeesAdd,
+                    actionIcon: LucideIcons.userPlus,
+                    onAction: () => context.pushScreen(
+                      Routes.toAddEmployee(widget.storeId),
                     ),
-            )
-          else
-            for (final employee in filtered)
-              Padding(
-                padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                child: _EmployeeRow(
-                  employee: employee,
-                  storeId: widget.storeId,
-                ),
-              ),
+                  )
+                : EmptyState.noResults(
+                    l10n,
+                    onClearFilters: () => setState(() {
+                      _query = '';
+                      _showArchived = false;
+                    }),
+                  ),
+          )
+        else
+          for (final employee in filtered)
+            Padding(
+              padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+              child: _EmployeeRow(employee: employee, storeId: widget.storeId),
+            ),
       ],
     );
   }
@@ -152,38 +153,27 @@ class _KpiRow extends StatelessWidget {
         )
         .length;
 
-    return Row(
-      children: [
-        Expanded(
-          child: StatTile(
-            label: l10n.employeesKpiActive,
-            value: '${active.length}',
-            icon: LucideIcons.users,
-          ),
+    return StatTileRow(
+      tiles: [
+        StatTile(
+          label: l10n.employeesKpiActive,
+          value: '${active.length}',
+          icon: LucideIcons.users,
         ),
-        const SizedBox(width: AppSpacing.lg),
-        Expanded(
-          child: StatTile(
-            label: l10n.employeesKpiContractSplit,
-            value: l10n.employeesKpiContractSplitValue(fixed, extra),
-            icon: LucideIcons.briefcase,
-          ),
+        StatTile(
+          label: l10n.employeesKpiContractSplit,
+          value: l10n.employeesKpiContractSplitValue(fixed, extra),
+          icon: LucideIcons.briefcase,
         ),
-        const SizedBox(width: AppSpacing.lg),
-        Expanded(
-          child: StatTile(
-            label: l10n.employeesKpiManagers,
-            value: '$managers',
-            icon: LucideIcons.shieldCheck,
-          ),
+        StatTile(
+          label: l10n.employeesKpiManagers,
+          value: '$managers',
+          icon: LucideIcons.shieldCheck,
         ),
-        const SizedBox(width: AppSpacing.lg),
-        Expanded(
-          child: StatTile(
-            label: l10n.employeesKpiHiredThisMonth,
-            value: '$hiredThisMonth',
-            icon: LucideIcons.userPlus,
-          ),
+        StatTile(
+          label: l10n.employeesKpiHiredThisMonth,
+          value: '$hiredThisMonth',
+          icon: LucideIcons.userPlus,
         ),
       ],
     );
@@ -233,109 +223,77 @@ class _EmployeeRow extends StatelessWidget {
 
     return AppCard(
       onTap: () => context.pushScreen(Routes.toEmployee(storeId, employee.id)),
-      child: Row(
-        children: [
-          EmployeeAvatar(employee: employee, dimmed: archived),
-          const SizedBox(width: AppSpacing.lg),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      // Avatar and identity stay together; the role and contract badges drop
+      // to their own line on a phone, where the name alone fills the row.
+      child: AdaptiveRow(
+        cells: [
+          AdaptiveCell(
+            flex: 1,
+            child: Row(
               children: [
-                Row(
-                  children: [
-                    Flexible(
-                      child: Text(
-                        employeeDisplayName(employee),
-                        style: theme.textTheme.titleSmall,
+                EmployeeAvatar(employee: employee, dimmed: archived),
+                const SizedBox(width: AppSpacing.lg),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              employeeDisplayName(employee),
+                              style: theme.textTheme.titleSmall,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          if (archived) ...[
+                            const SizedBox(width: AppSpacing.sm),
+                            LabelChip(
+                              label: l10n.employeesArchivedPill,
+                              dense: true,
+                            ),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        l10n.employeeCinLabel(employee.cin),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                    ),
-                    if (archived) ...[
-                      const SizedBox(width: AppSpacing.sm),
-                      _ArchivedPill(label: l10n.employeesArchivedPill),
                     ],
-                  ],
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  l10n.employeeCinLabel(employee.cin),
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: AppColors.textSecondary,
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
           ),
-          const SizedBox(width: AppSpacing.md),
-          EmployeeRoleBadge(role: employee.role),
-          const SizedBox(width: AppSpacing.sm),
-          _ContractChip(type: employee.contractType),
-          const SizedBox(width: AppSpacing.sm),
-          const Icon(
-            LucideIcons.chevronRight,
-            size: AppSizing.iconMd,
-            color: AppColors.textDisabled,
+          AdaptiveCell(
+            // A Wrap, not a Row: "Gérant" and "Contrat fixe" together are
+            // wider than a 360dp card even on their own line, so the two
+            // badges have to be able to stack as well as move.
+            child: Wrap(
+              spacing: AppSpacing.sm,
+              runSpacing: AppSpacing.xs,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                EmployeeRoleBadge(role: employee.role),
+                LabelChip(
+                  label: contractTypeLabel(l10n, employee.contractType),
+                ),
+                const Icon(
+                  LucideIcons.chevronRight,
+                  size: AppSizing.iconMd,
+                  color: AppColors.textDisabled,
+                ),
+              ],
+            ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _ContractChip extends StatelessWidget {
-  const _ContractChip({required this.type});
-
-  final ContractType type;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.xs,
-      ),
-      decoration: const BoxDecoration(
-        color: AppColors.surfaceVariant,
-        borderRadius: AppRadius.pillAll,
-      ),
-      child: Text(
-        contractTypeLabel(l10n, type),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: Theme.of(
-          context,
-        ).textTheme.labelMedium?.copyWith(color: AppColors.textSecondary),
-      ),
-    );
-  }
-}
-
-class _ArchivedPill extends StatelessWidget {
-  const _ArchivedPill({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.sm,
-        vertical: 2,
-      ),
-      decoration: const BoxDecoration(
-        color: AppColors.surfaceVariant,
-        borderRadius: AppRadius.pillAll,
-      ),
-      child: Text(
-        label,
-        style: Theme.of(
-          context,
-        ).textTheme.labelSmall?.copyWith(color: AppColors.textSecondary),
       ),
     );
   }

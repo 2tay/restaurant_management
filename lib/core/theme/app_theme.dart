@@ -198,8 +198,13 @@ abstract final class AppTheme {
       // ---------------------------------------------------------------------
       dataTableTheme: DataTableThemeData(
         headingRowHeight: AppSizing.tableHeaderHeight,
+        // 64dp is a floor, not a ceiling. Pinning both ends held every row to
+        // exactly 64 — which is right at the default type size and clips the
+        // cell at 150%, where the user who turned the text up sees the bottom
+        // of every figure sliced off. A row that grows is the whole point of a
+        // minimum.
         dataRowMinHeight: AppSizing.tableRowHeight,
-        dataRowMaxHeight: AppSizing.tableRowHeight,
+        dataRowMaxHeight: double.infinity,
         horizontalMargin: AppSpacing.lg,
         columnSpacing: AppSpacing.xl,
         headingTextStyle: textTheme.labelMedium?.copyWith(

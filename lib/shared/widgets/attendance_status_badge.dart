@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../core/theme/app_colors.dart';
-import '../../core/theme/app_spacing.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/models.dart';
+import 'status_pill.dart';
 
 /// The pointage status indicator — built the same way [StockStatusBadge] is,
 /// so the two rules that apply to every status badge in the app hold here too:
@@ -22,28 +22,10 @@ class AttendanceStatusBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = colorsFor(status);
 
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.sm,
-      ),
-      decoration: BoxDecoration(
-        color: colors.container,
-        borderRadius: AppRadius.pillAll,
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(iconFor(status), size: AppSizing.iconSm, color: colors.foreground),
-          const SizedBox(width: AppSpacing.xs),
-          Text(
-            attendanceStatusLabel(AppLocalizations.of(context), status),
-            style: Theme.of(
-              context,
-            ).textTheme.labelMedium?.copyWith(color: colors.foreground),
-          ),
-        ],
-      ),
+    return StatusPill(
+      colors: colors,
+      icon: iconFor(status),
+      label: attendanceStatusLabel(AppLocalizations.of(context), status),
     );
   }
 

@@ -91,9 +91,15 @@ class _Tab extends StatelessWidget {
       child: InkWell(
         onTap: selected ? null : onTap,
         borderRadius: AppRadius.smAll,
+        // A minimum rather than a fixed height. 48dp is the floor the brief
+        // sets for a tap target; at 150% text the label needs more than that
+        // and a fixed height would clip it instead of growing.
         child: Container(
-          height: AppSizing.minTapTarget,
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+          constraints: const BoxConstraints(minHeight: AppSizing.minTapTarget),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.lg,
+            vertical: AppSpacing.sm,
+          ),
           alignment: Alignment.center,
           child: Text(
             tab.label,

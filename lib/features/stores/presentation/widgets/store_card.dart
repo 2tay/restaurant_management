@@ -66,10 +66,11 @@ class StoreCard extends StatelessWidget {
                     ),
                     if (isNew) ...[
                       const SizedBox(width: AppSpacing.sm),
-                      _Pill(
+                      LabelChip(
                         label: l10n.storesNewBadge,
                         background: AppColors.primaryContainer,
                         foreground: AppColors.onPrimaryContainer,
+                        dense: true,
                       ),
                     ],
                   ],
@@ -96,18 +97,26 @@ class StoreCard extends StatelessWidget {
                 const SizedBox(height: AppSpacing.lg),
                 Row(
                   children: [
+                    // Bounded to one line. The grid gives every card the same
+                    // fixed height, so a count that wraps to two lines at a
+                    // narrow column width pushes the card past it — which is
+                    // how the selector overflowed at 600dp, where three
+                    // columns become two of 254dp each.
                     Expanded(
                       child: Text(
                         l10n.storesItemCount(itemCount),
                         style: theme.textTheme.bodyMedium,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     if (alertCount > 0)
-                      _Pill(
+                      LabelChip(
                         label: l10n.storesAlertCount(alertCount),
                         background: AppColors.lowStock.container,
                         foreground: AppColors.lowStock.foreground,
                         icon: LucideIcons.triangleAlert,
+                        dense: true,
                       ),
                   ],
                 ),
@@ -117,55 +126,10 @@ class StoreCard extends StatelessWidget {
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: AppColors.textDisabled,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _Pill extends StatelessWidget {
-  const _Pill({
-    required this.label,
-    required this.background,
-    required this.foreground,
-    this.icon,
-  });
-
-  final String label;
-  final Color background;
-  final Color foreground;
-  final IconData? icon;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.sm,
-        vertical: AppSpacing.xs,
-      ),
-      decoration: BoxDecoration(
-        color: background,
-        borderRadius: AppRadius.pillAll,
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (icon != null) ...[
-            Icon(icon, size: AppSizing.iconSm, color: foreground),
-            const SizedBox(width: AppSpacing.xs),
-          ],
-          Flexible(
-            child: Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(
-                context,
-              ).textTheme.labelSmall?.copyWith(color: foreground),
             ),
           ),
         ],

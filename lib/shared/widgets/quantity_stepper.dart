@@ -128,7 +128,7 @@ class _QuantityStepperState extends State<QuantityStepper> {
         ),
         const SizedBox(width: AppSpacing.sm),
         SizedBox(
-          width: 132,
+          width: AppSizing.stepperFieldWidth,
           child: TextField(
             controller: _controller,
             focusNode: _focusNode,
@@ -225,7 +225,9 @@ class _StepperButtonState extends State<_StepperButton> {
             borderRadius: AppRadius.mdAll,
             child: Container(
               width: AppSizing.stepperButton,
-              height: AppSizing.inputHeight,
+              constraints: const BoxConstraints(
+                minHeight: AppSizing.inputHeight,
+              ),
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 borderRadius: AppRadius.mdAll,

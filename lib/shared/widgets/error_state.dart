@@ -27,50 +27,56 @@ class ErrorState extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
 
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 420),
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.xxl),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 72,
-                height: 72,
-                decoration: const BoxDecoration(
-                  color: AppColors.errorContainer,
-                  shape: BoxShape.circle,
+    // Scrollable for the same reason as [EmptyState]: on a short window with
+    // the type turned up, the illustration and the retry button together are
+    // taller than the space left, and clipping the retry button strands the
+    // user on the error.
+    return SingleChildScrollView(
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 420),
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.xxl),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 72,
+                  height: 72,
+                  decoration: const BoxDecoration(
+                    color: AppColors.errorContainer,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    LucideIcons.circleAlert,
+                    size: 32,
+                    color: AppColors.onErrorContainer,
+                  ),
                 ),
-                child: const Icon(
-                  LucideIcons.circleAlert,
-                  size: 32,
-                  color: AppColors.onErrorContainer,
+                const SizedBox(height: AppSpacing.lg),
+                Text(
+                  title ?? l10n.errorStateTitle,
+                  style: theme.textTheme.titleLarge,
+                  textAlign: TextAlign.center,
                 ),
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              Text(
-                title ?? l10n.errorStateTitle,
-                style: theme.textTheme.titleLarge,
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              Text(
-                message ?? l10n.errorStateBody,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: AppColors.textSecondary,
+                const SizedBox(height: AppSpacing.sm),
+                Text(
+                  message ?? l10n.errorStateBody,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                  textAlign: TextAlign.center,
                 ),
-                textAlign: TextAlign.center,
-              ),
-              if (onRetry != null) ...[
-                const SizedBox(height: AppSpacing.xl),
-                PrimaryButton(
-                  label: l10n.actionRetry,
-                  icon: LucideIcons.refreshCw,
-                  onPressed: onRetry,
-                ),
+                if (onRetry != null) ...[
+                  const SizedBox(height: AppSpacing.xl),
+                  PrimaryButton(
+                    label: l10n.actionRetry,
+                    icon: LucideIcons.refreshCw,
+                    onPressed: onRetry,
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
         ),
       ),

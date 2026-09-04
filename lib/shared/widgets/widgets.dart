@@ -5,6 +5,7 @@
 /// problem.
 library;
 
+export 'adaptive_row.dart';
 export 'app_breadcrumbs.dart';
 export 'app_card.dart';
 export 'app_dropdown.dart';
@@ -33,6 +34,7 @@ export 'filter_pill.dart';
 export 'form_scaffold.dart';
 export 'identity_prompt_dialog.dart';
 export 'loading_state.dart';
+export 'notice_banner.dart';
 export 'offline_banner.dart';
 export 'paginator.dart';
 export 'payment_status_badge.dart';
@@ -44,6 +46,7 @@ export 'searchable_dropdown.dart';
 export 'section_header.dart';
 export 'section_tabs.dart';
 export 'stat_tile.dart';
+export 'status_pill.dart';
 export 'stock_status_badge.dart';
 // store_switcher.dart removed with the top bar — the sidebar owns store
 // selection now (see app_sidebar.dart).

@@ -60,6 +60,11 @@ abstract final class AppSizing {
   /// the single most-tapped control in the app.
   static const double stepperButton = 64;
 
+  /// The number field between them. Sized so the whole stepper — button, gap,
+  /// field, gap, button — is 276dp and still fits inside a 360dp phone with
+  /// page margins.
+  static const double stepperFieldWidth = 132;
+
   /// The navigation sidebar. Wide enough that no French destination label is
   /// ever truncated (the rebuild brief), and it carries the store selector and
   /// the user menu now that there is no top bar.
@@ -77,14 +82,49 @@ abstract final class AppSizing {
   static const double iconSm = 18;
   static const double iconMd = 22;
   static const double iconLg = 28;
+
+  /// The employee picker in a filter bar. Wide enough for "Van der Meulen
+  /// Jean-Baptiste" plus the CIN line under it.
+  static const double filterFieldWidth = 260;
+
+  /// A compact date field. Fits `31/12/2025` with the calendar affordance.
+  static const double filterDateWidth = 165;
+
+  /// The icon medallion on a KPI tile.
+  static const double statTileMedallion = 40;
+
+  /// The label gutter in [DetailDrawer]'s two-column rows.
+  static const double drawerLabelWidth = 140;
+
+  /// A snackbar is capped rather than stretched: on a 1280dp tablet a
+  /// full-width toast puts the text miles from where the user was looking.
+  static const double snackBarMaxWidth = 560;
+
+  /// Confirmation and prompt dialogs.
+  static const double dialogMaxWidth = 460;
 }
 
 /// Layout breakpoints, in logical pixels.
 ///
-/// The design baseline is a 10" tablet in landscape (~1280x800). Helper
-/// functions that consume these land in `core/utils/responsive.dart` in
-/// Stage 3, alongside the navigation shell that first needs them.
+/// The design baseline is still a 10" tablet in landscape (~1280x800) — that is
+/// what the app is *designed* for. But it must now also *work* down to a 360dp
+/// phone, so the ladder below is the full Material-3 shape rather than the two
+/// tablet-only thresholds Phase 1 needed. Helper functions that consume these
+/// live in `core/utils/responsive.dart`.
 abstract final class AppBreakpoints {
+  /// The narrowest width anything is expected to render at. A floor to design
+  /// and test against, not a threshold to branch on — nothing gets narrower, so
+  /// there is no "below phone" layout to switch to.
+  static const double phone = 360;
+
+  /// Phone territory. Below this the shell hides its sidebar behind a drawer
+  /// and multi-column rows stack.
+  static const double compact = 600;
+
+  /// A large phone in landscape, or a 7" tablet in portrait. Rows can share a
+  /// line again, but there is no room for a persistent sidebar.
+  static const double medium = 840;
+
   /// Below this, card grids drop from three columns to two. Chosen for 7"
   /// tablets and for portrait orientation on a 10".
   static const double railCollapse = 900;
@@ -97,9 +137,9 @@ abstract final class AppBreakpoints {
   /// Below this, master–detail splits collapse to full-page navigation.
   static const double splitView = 1100;
 
-  /// Phone territory. Not a Phase 1 target, but layouts should degrade rather
-  /// than overflow.
-  static const double compact = 600;
+  /// The design baseline and above — a 10" tablet in landscape, or a desktop
+  /// window. Everything the app was drawn for fits without compromise.
+  static const double expanded = 1200;
 }
 
 /// Elevation, as soft shadows rather than borders.

@@ -399,39 +399,28 @@ class _StatRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
 
-    return Row(
-      children: [
-        Expanded(
-          child: StatTile(
-            label: l10n.attendanceStatDays,
-            value: '${stats.days}',
-            icon: LucideIcons.clipboardList,
-          ),
+    return StatTileRow(
+      tiles: [
+        StatTile(
+          label: l10n.attendanceStatDays,
+          value: '${stats.days}',
+          icon: LucideIcons.clipboardList,
         ),
-        const SizedBox(width: AppSpacing.lg),
-        Expanded(
-          child: StatTile(
-            label: l10n.attendanceStatWorked,
-            value: Formatters.duration(stats.worked),
-            icon: LucideIcons.clock,
-          ),
+        StatTile(
+          label: l10n.attendanceStatWorked,
+          value: Formatters.duration(stats.worked),
+          icon: LucideIcons.clock,
         ),
-        const SizedBox(width: AppSpacing.lg),
-        Expanded(
-          child: StatTile(
-            label: l10n.attendanceStatLate,
-            value: '${stats.lateArrivals}',
-            icon: LucideIcons.triangleAlert,
-            accent: stats.lateArrivals == 0 ? null : AppColors.lowStock,
-          ),
+        StatTile(
+          label: l10n.attendanceStatLate,
+          value: '${stats.lateArrivals}',
+          icon: LucideIcons.triangleAlert,
+          accent: stats.lateArrivals == 0 ? null : AppColors.lowStock,
         ),
-        const SizedBox(width: AppSpacing.lg),
-        Expanded(
-          child: StatTile(
-            label: l10n.attendanceStatOvertime,
-            value: Formatters.duration(stats.overtime),
-            icon: LucideIcons.hourglass,
-          ),
+        StatTile(
+          label: l10n.attendanceStatOvertime,
+          value: Formatters.duration(stats.overtime),
+          icon: LucideIcons.hourglass,
         ),
       ],
     );
@@ -471,51 +460,45 @@ class _Filters extends StatelessWidget {
     final today = _dayOnly(DateTime.now());
     final floor = DateTime(2000);
 
-    return Wrap(
-      spacing: AppSpacing.lg,
-      runSpacing: AppSpacing.md,
-      crossAxisAlignment: WrapCrossAlignment.end,
-      children: [
-        LabeledField(
+    return FilterBar(
+      reset: canReset
+          ? FilterResetButton(
+              label: l10n.attendanceFilterReset,
+              onPressed: onReset,
+            )
+          : null,
+      fields: [
+        FilterField(
           label: l10n.attendanceFilterEmployee,
-          child: SizedBox(
-            width: 260,
-            child: EmployeeSelector(
-              employees: employees,
-              value: selectedEmployee,
-              showCin: true,
-              hint: l10n.attendanceFilterAllEmployees,
-              onChanged: onEmployee,
-            ),
+          child: EmployeeSelector(
+            employees: employees,
+            value: selectedEmployee,
+            showCin: true,
+            hint: l10n.attendanceFilterAllEmployees,
+            onChanged: onEmployee,
           ),
         ),
-        LabeledField(
+        FilterField.date(
           label: l10n.attendanceFilterFrom,
-          child: SizedBox(
-            width: 165,
-            child: DateField(
-              value: from,
-              compact: true,
-              firstDate: floor,
-              lastDate: to,
-              onChanged: onFrom,
-            ),
+          child: DateField(
+            value: from,
+            compact: true,
+            firstDate: floor,
+            lastDate: to,
+            onChanged: onFrom,
           ),
         ),
-        LabeledField(
+        FilterField.date(
           label: l10n.attendanceFilterTo,
-          child: SizedBox(
-            width: 165,
-            child: DateField(
-              value: to,
-              compact: true,
-              firstDate: from,
-              lastDate: today,
-              onChanged: onTo,
-            ),
+          child: DateField(
+            value: to,
+            compact: true,
+            firstDate: from,
+            lastDate: today,
+            onChanged: onTo,
           ),
         ),
-        LabeledField(
+        FilterField.auto(
           label: l10n.ordersFilterStatus,
           child: FilterMenu<AttendanceStatus?>(
             label: l10n.ordersFilterStatus,
@@ -534,11 +517,6 @@ class _Filters extends StatelessWidget {
             onSelected: onStatus,
           ),
         ),
-        if (canReset)
-          FilterResetButton(
-            label: l10n.attendanceFilterReset,
-            onPressed: onReset,
-          ),
       ],
     );
   }
