@@ -958,28 +958,20 @@ class _AttendanceCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: AppSpacing.md),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              AttendanceStatusBadge(status: attendance.status),
-              if (anomalies.isNotEmpty) ...[
-                const SizedBox(width: AppSpacing.sm),
-                // Flexible, not just trailing after a Spacer: on a narrow card
-                // the alerts' own `Wrap` needs a bounded width to wrap its
-                // chips onto a second line instead of overflowing the row.
-                Flexible(
-                  child: Align(
-                    alignment: Alignment.centerRight,
-                    child: AttendanceAlerts(
-                      entry: attendance,
-                      startMinutes: data.startMinutes,
-                      maxBreakMinutes: data.maxBreakMinutes,
-                    ),
-                  ),
-                ),
-              ],
-            ],
-          ),
+          AttendanceStatusBadge(status: attendance.status),
+          // Alerts get their own line rather than sharing the status badge's —
+          // squeezed next to it, two anomaly chips ("En retard" and "Oubli de
+          // pointage") have to fight the badge for width and end up
+          // ellipsized. Full card width lets the alerts' own `Wrap` arrange
+          // chips across as many lines as it needs instead.
+          if (anomalies.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.sm),
+            AttendanceAlerts(
+              entry: attendance,
+              startMinutes: data.startMinutes,
+              maxBreakMinutes: data.maxBreakMinutes,
+            ),
+          ],
         ],
       ),
     );

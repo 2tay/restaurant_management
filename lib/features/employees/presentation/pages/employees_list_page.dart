@@ -7,6 +7,7 @@ import '../../../../app/routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/employee_status.dart';
+import '../../../../core/utils/responsive.dart';
 import '../../../../data/providers.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../models/models.dart';
@@ -106,11 +107,7 @@ class _EmployeesListPageState extends ConsumerState<EmployeesListPage> {
                   ),
           )
         else
-          for (final employee in filtered)
-            Padding(
-              padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-              child: _EmployeeRow(employee: employee, storeId: widget.storeId),
-            ),
+          _EmployeeGrid(employees: filtered, storeId: widget.storeId),
       ],
     );
   }
@@ -206,6 +203,44 @@ class _ArchivedFilterPill extends StatelessWidget {
           icon: LucideIcons.archive,
         ),
       ),
+    );
+  }
+}
+
+/// The roster as a grid of cards — as many per line as the available width
+/// allows, rather than one full-width row per employee, which wastes most of
+/// a tablet or desktop screen on a two-line card. Uses the same
+/// [cardGridColumns] sizing as the pointage and payroll history cards, and
+/// [AdaptiveRow] inside each card stacks its own content at that width, so a
+/// card reads the same whether there is 1 column or 4.
+class _EmployeeGrid extends StatelessWidget {
+  const _EmployeeGrid({required this.employees, required this.storeId});
+
+  final List<Employee> employees;
+  final String storeId;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final columns = cardGridColumns(constraints.maxWidth);
+        const spacing = AppSpacing.lg;
+        final cardWidth = columns == 1
+            ? constraints.maxWidth
+            : (constraints.maxWidth - spacing * (columns - 1)) / columns;
+
+        return Wrap(
+          spacing: spacing,
+          runSpacing: spacing,
+          children: [
+            for (final employee in employees)
+              SizedBox(
+                width: cardWidth,
+                child: _EmployeeRow(employee: employee, storeId: storeId),
+              ),
+          ],
+        );
+      },
     );
   }
 }

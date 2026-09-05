@@ -138,10 +138,14 @@ class AttendanceAlerts extends StatelessWidget {
                   color: AppColors.lowStock.foreground,
                 ),
                 const SizedBox(width: AppSpacing.xxs),
-                Text(
-                  attendanceAnomalyLabel(l10n, a),
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: AppColors.lowStock.foreground,
+                Flexible(
+                  child: Text(
+                    attendanceAnomalyLabel(l10n, a),
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: AppColors.lowStock.foreground,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],

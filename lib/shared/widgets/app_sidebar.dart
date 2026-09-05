@@ -491,24 +491,32 @@ class _NavList extends StatelessWidget {
       final expanded = !collapsed && (employeesExpanded || onFamily);
 
       tiles.add(
-        SidebarNavTile(
-          icon: destination.icon,
-          label: destination.label(l10n),
-          active: onFamily,
-          collapsed: collapsed,
-          onTap: collapsed
-              ? () => _showFlyout(context, children)
-              : onToggleEmployees,
-          trailing: collapsed
-              ? null
-              : AnimatedRotation(
-                  duration: AppMotion.duration(context, AppMotion.fast),
-                  turns: expanded ? 0.5 : 0,
-                  child: const Icon(
-                    LucideIcons.chevronDown,
-                    size: AppSizing.iconSm,
+        // A Builder, not the outer context: `_showFlyout` positions the menu
+        // from `context.findRenderObject()`, and the outer context here is
+        // `_NavList` itself — the whole column of tiles, anchored at the top
+        // of the sidebar — not this specific tile. Without its own context
+        // the flyout opened at the sidebar's top edge regardless of which
+        // icon was tapped.
+        Builder(
+          builder: (tileContext) => SidebarNavTile(
+            icon: destination.icon,
+            label: destination.label(l10n),
+            active: onFamily,
+            collapsed: collapsed,
+            onTap: collapsed
+                ? () => _showFlyout(tileContext, children)
+                : onToggleEmployees,
+            trailing: collapsed
+                ? null
+                : AnimatedRotation(
+                    duration: AppMotion.duration(context, AppMotion.fast),
+                    turns: expanded ? 0.5 : 0,
+                    child: const Icon(
+                      LucideIcons.chevronDown,
+                      size: AppSizing.iconSm,
+                    ),
                   ),
-                ),
+          ),
         ),
       );
 
@@ -539,44 +547,88 @@ class _NavList extends StatelessWidget {
     );
   }
 
-  Future<void> _showFlyout(
-    BuildContext context,
-    List<_ChildDestination> items,
-  ) async {
+  void _showFlyout(BuildContext context, List<_ChildDestination> items) {
     final l10n = AppLocalizations.of(context);
     final button = context.findRenderObject() as RenderBox?;
-    final overlay =
-        Overlay.of(context).context.findRenderObject() as RenderBox?;
-    if (button == null || overlay == null) return;
+    final overlayState = Overlay.of(context);
+    final overlayBox = overlayState.context.findRenderObject() as RenderBox?;
+    if (button == null || overlayBox == null) return;
 
-    final topLeft = button.localToGlobal(Offset.zero, ancestor: overlay);
-    final bottomRight = button.localToGlobal(
-      button.size.bottomRight(Offset.zero),
-      ancestor: overlay,
-    );
+    // A manual overlay rather than `showMenu`: its items always stack in a
+    // column, and this is meant to read as a horizontal strip of icons —
+    // just this tile's own destinations, with a tooltip standing in for the
+    // label instead of spelling it out.
+    final topLeft = button.localToGlobal(Offset.zero, ancestor: overlayBox);
+    late final OverlayEntry entry;
+    void dismiss() => entry.remove();
 
-    final selected = await showMenu<String>(
-      context: context,
-      position: RelativeRect.fromRect(
-        Rect.fromPoints(topLeft, bottomRight),
-        Offset.zero & overlay.size,
-      ),
-      items: [
-        for (final item in items)
-          PopupMenuItem<String>(
-            value: item.pathBuilder(storeId),
-            child: Row(
-              children: [
-                Icon(item.icon, size: AppSizing.iconMd),
-                const SizedBox(width: AppSpacing.sm),
-                Text(item.label(l10n)),
-              ],
+    entry = OverlayEntry(
+      builder: (overlayContext) => Stack(
+        children: [
+          Positioned.fill(
+            child: GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onTap: dismiss,
             ),
           ),
-      ],
+          Positioned(
+            left: topLeft.dx + button.size.width + AppSpacing.sm,
+            top: topLeft.dy,
+            child: Material(
+              elevation: 8,
+              // Steel-800, the sidebar's own background — the flyout reads as
+              // an extension of the rail rather than a separate popup. Square
+              // on the left, where it meets the rail; a small radius only on
+              // the right, the edge that actually faces open space.
+              color: AppColors.steel800,
+              borderRadius: const BorderRadius.only(
+                topRight: Radius.circular(AppRadius.sm),
+                bottomRight: Radius.circular(AppRadius.sm),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(AppSpacing.xs),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    for (var i = 0; i < items.length; i++) ...[
+                      if (i > 0)
+                        // A plain `Container`, not `VerticalDivider`: inside
+                        // this `Row` — itself inside a `Positioned` with no
+                        // bounded height — a `VerticalDivider` has nothing to
+                        // stretch to and renders with zero height.
+                        Container(
+                          width: 1,
+                          height: AppSizing.iconMd + AppSpacing.sm * 2,
+                          color: AppColors.steel700,
+                        ),
+                      Tooltip(
+                        message: items[i].label(l10n),
+                        child: InkWell(
+                          onTap: () {
+                            dismiss();
+                            context.goSection(items[i].pathBuilder(storeId));
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.all(AppSpacing.sm),
+                            child: Icon(
+                              items[i].icon,
+                              size: AppSizing.iconMd,
+                              color: AppColors.neutral300,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
 
-    if (selected != null && context.mounted) context.goSection(selected);
+    overlayState.insert(entry);
   }
 }
 
