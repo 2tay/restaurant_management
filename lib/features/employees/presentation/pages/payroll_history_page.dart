@@ -639,51 +639,45 @@ class _Filters extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final today = _dayOnly(DateTime.now());
 
-    return Wrap(
-      spacing: AppSpacing.lg,
-      runSpacing: AppSpacing.md,
-      crossAxisAlignment: WrapCrossAlignment.end,
-      children: [
-        LabeledField(
+    return FilterBar(
+      reset: canReset
+          ? FilterResetButton(
+              label: l10n.payrollFilterReset,
+              onPressed: onReset,
+            )
+          : null,
+      fields: [
+        FilterField(
           label: l10n.payrollFilterEmployee,
-          child: SizedBox(
-            width: 260,
-            child: EmployeeSelector(
-              employees: employees,
-              value: selectedEmployee,
-              showCin: true,
-              hint: l10n.payrollFilterAllEmployees,
-              onChanged: onEmployee,
-            ),
+          child: EmployeeSelector(
+            employees: employees,
+            value: selectedEmployee,
+            showCin: true,
+            hint: l10n.payrollFilterAllEmployees,
+            onChanged: onEmployee,
           ),
         ),
-        LabeledField(
+        FilterField.date(
           label: l10n.payrollFilterFrom,
-          child: SizedBox(
-            width: 165,
-            child: DateField(
-              value: from,
-              compact: true,
-              firstDate: floor,
-              lastDate: to,
-              onChanged: onFrom,
-            ),
+          child: DateField(
+            value: from,
+            compact: true,
+            firstDate: floor,
+            lastDate: to,
+            onChanged: onFrom,
           ),
         ),
-        LabeledField(
+        FilterField.date(
           label: l10n.payrollFilterTo,
-          child: SizedBox(
-            width: 165,
-            child: DateField(
-              value: to,
-              compact: true,
-              firstDate: from,
-              lastDate: today,
-              onChanged: onTo,
-            ),
+          child: DateField(
+            value: to,
+            compact: true,
+            firstDate: from,
+            lastDate: today,
+            onChanged: onTo,
           ),
         ),
-        LabeledField(
+        FilterField.auto(
           label: l10n.payrollFilterStatus,
           child: FilterMenu<PaymentStatus?>(
             label: l10n.payrollFilterStatus,
@@ -698,11 +692,6 @@ class _Filters extends StatelessWidget {
             onSelected: onStatus,
           ),
         ),
-        if (canReset)
-          FilterResetButton(
-            label: l10n.payrollFilterReset,
-            onPressed: onReset,
-          ),
       ],
     );
   }

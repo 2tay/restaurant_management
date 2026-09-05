@@ -129,18 +129,25 @@ class EmployeeDetailPage extends ConsumerWidget {
             children: [
               EmployeeAvatar(employee: employee, size: 64, dimmed: archived),
               const SizedBox(width: AppSpacing.lg),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  EmployeeRoleBadge(role: employee.role),
-                  const SizedBox(height: AppSpacing.xs),
-                  Text(
-                    l10n.employeeHiredOn(Formatters.date(employee.hireDate)),
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppColors.textSecondary,
+              // Expanded, not a bare Column. A Row lays a non-flexible child
+              // out with unbounded width, so "Embauché le 12/03/2024" beside
+              // the role badge took its natural width whatever was left — and
+              // ran off the edge of a 360dp screen.
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    EmployeeRoleBadge(role: employee.role),
+                    const SizedBox(height: AppSpacing.xs),
+                    Text(
+                      l10n.employeeHiredOn(Formatters.date(employee.hireDate)),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ],
           ),
@@ -354,31 +361,9 @@ class _ArchivedBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
 
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.lg,
-        vertical: AppSpacing.md,
-      ),
-      decoration: const BoxDecoration(
-        color: AppColors.surfaceVariant,
-        borderRadius: AppRadius.mdAll,
-      ),
-      child: Row(
-        children: [
-          const Icon(
-            LucideIcons.userMinus,
-            size: AppSizing.iconMd,
-            color: AppColors.textSecondary,
-          ),
-          const SizedBox(width: AppSpacing.sm),
-          Text(
-            l10n.employeeDetailArchivedOn(Formatters.date(archivedAt)),
-            style: Theme.of(
-              context,
-            ).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
-          ),
-        ],
-      ),
+    return NoticeBanner(
+      icon: LucideIcons.userMinus,
+      title: l10n.employeeDetailArchivedOn(Formatters.date(archivedAt)),
     );
   }
 }

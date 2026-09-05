@@ -1,12 +1,18 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../app/navigation.dart';
+import '../../app/routes.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/utils/responsive.dart';
+import '../../data/providers.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/models.dart';
+import 'action_density.dart';
 import 'app_breadcrumbs.dart';
 import 'app_sidebar.dart';
 import 'back_control.dart';
@@ -50,12 +56,17 @@ final isFullScreenProvider = NotifierProvider<FullScreenMode, bool>(
 );
 
 /// The application shell: navigation sidebar on the left, content in the
-/// remaining area. There is no top bar — the store selector and the user menu
-/// live in the sidebar (see `app_sidebar.dart`).
+/// remaining area. There is no top bar on a tablet — the store selector and the
+/// user menu live in the sidebar (see `app_sidebar.dart`).
 ///
 /// Used by the go_router `ShellRoute`, so the sidebar persists across
 /// navigations instead of rebuilding — the store selector keeps its place and
 /// there is no flash of chrome between screens.
+///
+/// On a phone ([AppBreakpoints.compact] and below) the sidebar cannot stay on
+/// screen: even the 88dp icon strip is a quarter of a 360dp window. It moves
+/// into a drawer, and a slim bar appears to open it — the one place the app has
+/// a top bar, because without it navigation would have no affordance at all.
 class AppScaffold extends ConsumerWidget {
   const AppScaffold({required this.store, required this.child, super.key});
 
@@ -68,25 +79,101 @@ class AppScaffold extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final isFullScreen = ref.watch(isFullScreenProvider);
 
+    if (isFullScreen) {
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        body: SafeArea(child: child),
+      );
+    }
+
+    final content = Column(
+      children: [
+        const OfflineBanner(),
+        Expanded(child: child),
+      ],
+    );
+
+    if (context.isPhone) {
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: _PhoneAppBar(store: store),
+        drawer: Drawer(
+          width: AppSizing.sidebarWidthExpanded,
+          backgroundColor: AppColors.steel800,
+          child: AppSidebar(store: store, variant: SidebarVariant.drawer),
+        ),
+        body: SafeArea(top: false, child: content),
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: isFullScreen
-            ? child
-            : Row(
-                children: [
-                  AppSidebar(store: store),
-                  Expanded(
-                    child: Column(
-                      children: [
-                        const OfflineBanner(),
-                        Expanded(child: child),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+        child: Row(
+          children: [
+            AppSidebar(store: store),
+            Expanded(child: content),
+          ],
+        ),
       ),
+    );
+  }
+}
+
+/// The phone-only bar: open the drawer, see which establishment you are in,
+/// reach the notifications. Everything else stays in the drawer.
+class _PhoneAppBar extends ConsumerWidget implements PreferredSizeWidget {
+  const _PhoneAppBar({required this.store});
+
+  final Store store;
+
+  @override
+  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final unread = ref.watch(unreadCountProvider(store.id)).value ?? 0;
+
+    return AppBar(
+      backgroundColor: AppColors.steel800,
+      foregroundColor: AppColors.white,
+      elevation: 0,
+      titleSpacing: 0,
+      iconTheme: const IconThemeData(color: AppColors.neutral300),
+      title: Row(
+        children: [
+          const Icon(LucideIcons.store, size: AppSizing.iconMd),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Text(
+              store.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.titleSmall?.copyWith(
+                color: AppColors.white,
+              ),
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        IconButton(
+          onPressed: () => context.goSection(Routes.toNotifications(store.id)),
+          tooltip: l10n.topBarNotifications,
+          color: AppColors.neutral300,
+          icon: unread > 0
+              ? Badge.count(
+                  count: unread,
+                  backgroundColor: AppColors.error,
+                  textColor: AppColors.white,
+                  child: const Icon(LucideIcons.bell, size: AppSizing.iconMd),
+                )
+              : const Icon(LucideIcons.bell, size: AppSizing.iconMd),
+        ),
+        const SizedBox(width: AppSpacing.xs),
+      ],
     );
   }
 }
@@ -105,6 +192,31 @@ class AppScaffoldSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // On a phone the real shell has no sidebar on screen, so neither does its
+    // placeholder — a steel strip here would be chrome that vanishes the moment
+    // the establishment resolves.
+    if (context.isPhone) {
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppBar(
+          backgroundColor: AppColors.steel800,
+          elevation: 0,
+          automaticallyImplyLeading: false,
+          title: const SizedBox(
+            width: 140,
+            child: _SidebarSkeletonBlock(height: 16),
+          ),
+        ),
+        body: SafeArea(
+          top: false,
+          child: Padding(
+            padding: context.pageInsets,
+            child: const SkeletonList(),
+          ),
+        ),
+      );
+    }
+
     final double sidebarWidth = context.isSidebarCollapsed
         ? AppSizing.sidebarWidthCollapsed
         : AppSizing.sidebarWidthExpanded;
@@ -210,6 +322,7 @@ class ShellPage extends StatelessWidget {
     required this.title,
     required this.child,
     this.subtitle,
+    this.keepSubtitle = false,
     this.actions = const [],
     this.scrollable = true,
     this.padding,
@@ -224,6 +337,14 @@ class ShellPage extends StatelessWidget {
 
   final String title;
   final String? subtitle;
+
+  /// Keeps [subtitle] on a phone, where it is otherwise dropped.
+  ///
+  /// For the handful of screens whose subtitle is information rather than
+  /// description — an unread count, whose price history this is, who is signed
+  /// in. Everywhere else the subtitle explains a screen the title has already
+  /// named, and three lines of that is a poor trade for the content underneath.
+  final bool keepSubtitle;
 
   /// Buttons on the title row. The primary action goes last, nearest the
   /// right-hand edge.
@@ -261,8 +382,15 @@ class ShellPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
+    // The gap between the header and the content it introduces. 24dp is right
+    // when there is room; on a short window it is a fifth of what is left after
+    // the header itself, and the content is what the screen is for.
     final header = Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.xl),
+      padding: EdgeInsets.only(
+        bottom: context.isShort || context.isPhone
+            ? AppSpacing.lg
+            : AppSpacing.xl,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -280,6 +408,7 @@ class ShellPage extends StatelessWidget {
           _TitleRow(
             title: title,
             subtitle: subtitle,
+            keepSubtitle: keepSubtitle,
             actions: actions,
             theme: theme,
           ),
@@ -306,12 +435,14 @@ class ShellPage extends StatelessWidget {
       );
     }
 
+    // Page padding tightens on a phone: 24dp a side is a seventh of a 360dp
+    // window, and this is dense content that needs the room more than the
+    // margin needs the air.
+    final insets = padding ?? context.pageInsets;
+
     final content = scrollable
-        ? SingleChildScrollView(
-            padding: padding ?? AppSpacing.pageInsets,
-            child: body,
-          )
-        : Padding(padding: padding ?? AppSpacing.pageInsets, child: body);
+        ? SingleChildScrollView(padding: insets, child: body)
+        : Padding(padding: insets, child: body);
 
     if (footer == null) return content;
 
@@ -330,23 +461,37 @@ class _TitleRow extends StatelessWidget {
   const _TitleRow({
     required this.title,
     required this.subtitle,
+    required this.keepSubtitle,
     required this.actions,
     required this.theme,
   });
 
   final String title;
   final String? subtitle;
+  final bool keepSubtitle;
   final List<Widget> actions;
   final ThemeData theme;
 
   @override
   Widget build(BuildContext context) {
+    // The subtitle is commentary, not information — "Historique de toutes les
+    // entrées, sorties et corrections." under a title that already says
+    // Mouvements de stock. On a phone it costs three lines before any stock
+    // appears, so it goes. A button's label has to be *moved* when it will not
+    // fit, because it is the action; a sentence explaining the screen can
+    // simply be dropped.
+    //
+    // The four screens whose subtitle is real information — an unread count,
+    // which product's price history this is — opt out with [keepSubtitle].
+    final showSubtitle =
+        subtitle != null && (keepSubtitle || !context.isPhone);
+
     final titleBlock = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(title, style: theme.textTheme.headlineMedium),
-        if (subtitle != null) ...[
+        if (showSubtitle) ...[
           const SizedBox(height: AppSpacing.xs),
           Text(subtitle!, style: theme.textTheme.bodyMedium),
         ],
@@ -355,47 +500,80 @@ class _TitleRow extends StatelessWidget {
 
     if (actions.isEmpty) return titleBlock;
 
+    // Measured against the header's own width rather than the window's: this
+    // header is the full width of the page on most screens and half of it in
+    // the inventory split view, and the actions have to fit the space they are
+    // actually in.
     return LayoutBuilder(
       builder: (context, constraints) {
-        final actionRow = Wrap(
-          spacing: AppSpacing.md,
-          runSpacing: AppSpacing.md,
-          alignment: WrapAlignment.end,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: actions,
+        final actionRow = ActionDensityScope(
+          density: _densityFor(constraints.maxWidth),
+          child: Wrap(
+            spacing: AppSpacing.md,
+            runSpacing: AppSpacing.md,
+            alignment: WrapAlignment.end,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: actions,
+          ),
         );
 
-        // Narrow tablet: the actions cannot share the title's line. They take
-        // their own row underneath.
-        if (constraints.maxWidth < 820) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+        // One `Wrap` rather than a width threshold deciding between a row and a
+        // column. A threshold cannot know how much the actions need: at 700dp
+        // it pushed Produits' single "Ajouter" onto its own line with half the
+        // header sitting empty beside the title, while Mouvements de stock's
+        // three genuinely did need the second line.
+        //
+        // Letting them wrap answers that per page instead of guessing. When
+        // both fit, `spaceBetween` holds the title left and the actions hard
+        // right — the layout the wide branch used to build by hand. When they
+        // do not, the actions take the next line, at its left edge: on a phone
+        // that is where the thumb and the eye already are.
+        //
+        // Stretched to the header's full width, because a `Wrap` otherwise
+        // sizes itself to its children and the header's Column hands it loose
+        // constraints — leaving `spaceBetween` no free space to distribute and
+        // the action tucked against the title instead of out at the right edge.
+        return SizedBox(
+          width: constraints.maxWidth.isFinite ? constraints.maxWidth : null,
+          child: Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: AppSpacing.xl,
+            runSpacing: AppSpacing.lg,
             children: [
-              titleBlock,
-              const SizedBox(height: AppSpacing.lg),
+              ConstrainedBox(
+                // Keeps a long subtitle from eating the whole line and forcing
+                // a wrap on its own — it wraps to a second line instead, which
+                // is cheaper than pushing the actions down. The floor stops the
+                // rule squeezing the *title* on a narrow header, where 60% is
+                // not enough for "Mouvements de stock" on one line.
+                constraints: BoxConstraints(
+                  maxWidth: math.max(constraints.maxWidth * 0.6, 320),
+                ),
+                child: titleBlock,
+              ),
               actionRow,
             ],
-          );
-        }
-
-        // Wide: the title takes the slack on the left, the actions keep their
-        // natural width and sit hard against the right edge — one row, however
-        // many there are (they only wrap if they somehow need more than 60% of
-        // the header). Vertically centred on the title.
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Expanded(child: titleBlock),
-            const SizedBox(width: AppSpacing.xl),
-            ConstrainedBox(
-              constraints: BoxConstraints(
-                maxWidth: constraints.maxWidth * 0.6,
-              ),
-              child: actionRow,
-            ),
-          ],
+          ),
         );
       },
     );
+  }
+
+  /// Header width below which the actions shorten, and then collapse.
+  ///
+  /// [ActionDensity.iconOnly] only ever reaches the supporting actions —
+  /// `PrimaryButton` refuses it — so the teal button keeps its words on a
+  /// phone while Modifier, Archiver and Exporter become icons beside it.
+  ///
+  /// The exception is a header with a single action. Whatever its type, that
+  /// button is the only thing the screen offers, and collapsing it to a glyph
+  /// leaves the user with nothing to read.
+  ActionDensity _densityFor(double width) {
+    if (width >= 820) return ActionDensity.full;
+    if (width >= AppBreakpoints.compact || actions.length == 1) {
+      return ActionDensity.short;
+    }
+    return ActionDensity.iconOnly;
   }
 }

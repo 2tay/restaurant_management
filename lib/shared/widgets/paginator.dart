@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_spacing.dart';
 import '../../l10n/app_localizations.dart';
 
 /// Précédent / Suivant plus an "X–Y sur Z" range, for a table that caps its
@@ -35,15 +36,16 @@ class Paginator extends StatelessWidget {
     final first = page * pageSize + 1;
     final last = (first + pageSize - 1).clamp(first, totalCount);
 
-    return Row(
+    final range = Text(
+      l10n.paginatorRange(first, last, totalCount),
+      style: theme.textTheme.bodySmall?.copyWith(
+        color: AppColors.textSecondary,
+      ),
+    );
+
+    final controls = Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Text(
-          l10n.paginatorRange(first, last, totalCount),
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: AppColors.textSecondary,
-          ),
-        ),
-        const Spacer(),
         IconButton(
           onPressed: page > 0 ? () => onChanged(page - 1) : null,
           icon: const Icon(LucideIcons.chevronLeft),
@@ -59,6 +61,18 @@ class Paginator extends StatelessWidget {
           tooltip: l10n.paginatorNext,
         ),
       ],
+    );
+
+    // A `Wrap` rather than a `Row` with a `Spacer`: "1–25 sur 312" beside two
+    // arrows and "Page 1 / 13" is about 300dp of content, which does not fit a
+    // phone. Wrapping drops the range onto its own line instead of overflowing;
+    // `spaceBetween` keeps the desktop layout identical to what it was.
+    return Wrap(
+      alignment: WrapAlignment.spaceBetween,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: AppSpacing.md,
+      runSpacing: AppSpacing.xs,
+      children: [range, controls],
     );
   }
 }

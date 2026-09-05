@@ -6,6 +6,7 @@ import '../../../../app/navigation.dart';
 import '../../../../app/routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/utils/responsive.dart';
 import '../../../../core/utils/order_status.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../data/providers.dart';
@@ -36,8 +37,15 @@ class OrdersFilter {
   /// rather than living inside the status menu.
   final bool openOnly;
 
-  bool get hasActiveFilters =>
-      status != null || supplierId != null || range != null || openOnly;
+  bool get hasActiveFilters => activeFilterCount > 0;
+
+  /// How many filters are narrowing the list, for the button that stands in
+  /// for them on a phone.
+  int get activeFilterCount =>
+      (status != null ? 1 : 0) +
+      (supplierId != null ? 1 : 0) +
+      (range != null ? 1 : 0) +
+      (openOnly ? 1 : 0);
 
   OrdersFilter copyWith({
     PurchaseOrderStatus? status,
@@ -116,6 +124,7 @@ class OrdersListPage extends ConsumerWidget {
       actions: [
         PrimaryButton(
           label: l10n.ordersNewAction,
+          shortLabel: l10n.shortNewOrder,
           icon: LucideIcons.plus,
           onPressed: () => context.pushScreen(Routes.toNewOrder(storeId)),
         ),
@@ -126,51 +135,98 @@ class OrdersListPage extends ConsumerWidget {
         builder: (context, all) {
           final orders = _visible(all, filter);
 
+          final filters = <Widget>[
+            _StatusMenu(
+              selected: filter.status,
+              onSelected: notifier.setStatus,
+            ),
+            _SupplierMenu(
+              suppliers: suppliers,
+              selectedId: filter.supplierId,
+              onSelected: notifier.setSupplier,
+            ),
+            _RangeMenu(selected: filter.range, onSelected: notifier.setRange),
+            FilterChip(
+              label: Text(l10n.ordersOpenOnly),
+              avatar: Icon(
+                LucideIcons.truck,
+                size: AppSizing.iconSm,
+                color: filter.openOnly
+                    ? AppColors.steel800
+                    : AppColors.textSecondary,
+              ),
+              selected: filter.openOnly,
+              onSelected: (_) => notifier.toggleOpenOnly(),
+              selectedColor: AppColors.offlineContainer,
+              checkmarkColor: AppColors.steel800,
+            ),
+          ];
+
+          final count = Text(
+            l10n.ordersCount(orders.length),
+            style: Theme.of(context).textTheme.bodySmall,
+          );
+
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Wrap(
-                spacing: AppSpacing.sm,
-                runSpacing: AppSpacing.sm,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  _StatusMenu(
-                    selected: filter.status,
-                    onSelected: notifier.setStatus,
-                  ),
-                  _SupplierMenu(
-                    suppliers: suppliers,
-                    selectedId: filter.supplierId,
-                    onSelected: notifier.setSupplier,
-                  ),
-                  _RangeMenu(selected: filter.range, onSelected: notifier.setRange),
-                  FilterChip(
-                    label: Text(l10n.ordersOpenOnly),
-                    avatar: Icon(
-                      LucideIcons.truck,
-                      size: AppSizing.iconSm,
-                      color: filter.openOnly
-                          ? AppColors.steel800
-                          : AppColors.textSecondary,
+              // Four filters and a count stack into five rows on a phone. They
+              // move behind one button there and stay on screen on a tablet,
+              // the same bargain the inventory and movement lists make.
+              if (context.isPhone)
+                Row(
+                  children: [
+                    FilterSheetButton(
+                      activeCount: filter.activeFilterCount,
+                      onPressed: () => FilterSheet.show(
+                        context,
+                        onClear: filter.hasActiveFilters
+                            ? notifier.clear
+                            : null,
+                        builder: (context) => Consumer(
+                          builder: (context, ref, _) {
+                            // Watched, not captured: the pills inside the sheet
+                            // have to follow the taps made on them.
+                            ref.watch(ordersFilterProvider);
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                for (final (i, control) in filters.indexed) ...[
+                                  if (i > 0)
+                                    const SizedBox(height: AppSpacing.md),
+                                  Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: control,
+                                  ),
+                                ],
+                              ],
+                            );
+                          },
+                        ),
+                      ),
                     ),
-                    selected: filter.openOnly,
-                    onSelected: (_) => notifier.toggleOpenOnly(),
-                    selectedColor: AppColors.offlineContainer,
-                    checkmarkColor: AppColors.steel800,
-                  ),
-                  if (filter.hasActiveFilters)
-                    TextButton.icon(
-                      onPressed: notifier.clear,
-                      icon: const Icon(LucideIcons.x, size: AppSizing.iconSm),
-                      label: Text(l10n.inventoryClearFilters),
-                    ),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.md),
-              Text(
-                l10n.ordersCount(orders.length),
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
+                    const SizedBox(width: AppSpacing.md),
+                    Expanded(child: count),
+                  ],
+                )
+              else ...[
+                Wrap(
+                  spacing: AppSpacing.sm,
+                  runSpacing: AppSpacing.sm,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    ...filters,
+                    if (filter.hasActiveFilters)
+                      TextButton.icon(
+                        onPressed: notifier.clear,
+                        icon: const Icon(LucideIcons.x, size: AppSizing.iconSm),
+                        label: Text(l10n.inventoryClearFilters),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.md),
+                count,
+              ],
               const SizedBox(height: AppSpacing.md),
 
               Expanded(
@@ -338,9 +394,7 @@ class _SupplierMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final selected = selectedId == null
-        ? null
-        : _nameOf(selectedId!);
+    final selected = selectedId == null ? null : _nameOf(selectedId!);
 
     return PopupMenuButton<String>(
       tooltip: l10n.inventoryFilterSupplier,

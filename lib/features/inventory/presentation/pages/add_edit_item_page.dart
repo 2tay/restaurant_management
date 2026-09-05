@@ -647,16 +647,20 @@ class _QuantityFact extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
 
-    return Row(
-      children: [
-        Expanded(
+    // The figure and the button do not fit one line on a phone: "Ajuster le
+    // stock" with its icon is most of a 296dp content area on its own.
+    return AdaptiveRow(
+      cells: [
+        AdaptiveCell(
+          flex: 1,
           child: Text(value, style: AppTypography.numericMedium),
         ),
-        const SizedBox(width: AppSpacing.md),
-        SecondaryButton(
-          label: l10n.itemFormAdjustStock,
-          icon: LucideIcons.clipboardCheck,
-          onPressed: onAdjust,
+        AdaptiveCell(
+          child: SecondaryButton(
+            label: l10n.itemFormAdjustStock,
+            icon: LucideIcons.clipboardCheck,
+            onPressed: onAdjust,
+          ),
         ),
       ],
     );

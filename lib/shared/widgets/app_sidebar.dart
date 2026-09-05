@@ -29,13 +29,35 @@ import 'employee_role_badge.dart';
 /// 7" tablet, a 10" in portrait, or a narrow landscape tablet. The Gestion
 /// Employée accordion cannot draw an indented sub-row there, so it falls back
 /// to a popup.
+///
+/// Below [AppBreakpoints.compact] even 88dp is a quarter of the screen, so
+/// [AppScaffold] moves it into a drawer instead — see [SidebarVariant.drawer].
 class AppSidebar extends ConsumerStatefulWidget {
-  const AppSidebar({required this.store, super.key});
+  const AppSidebar({required this.store, this.variant, super.key});
 
   final Store store;
 
+  /// How to render. Null means "decide from the window width", which is what
+  /// every caller wanted before the phone layout existed; [AppScaffold] passes
+  /// an explicit variant because the drawer is not a width the sidebar can see
+  /// (it is laid out at its own width inside the drawer, not the screen's).
+  final SidebarVariant? variant;
+
   @override
   ConsumerState<AppSidebar> createState() => _AppSidebarState();
+}
+
+/// How [AppSidebar] presents itself.
+enum SidebarVariant {
+  /// 280dp, labels visible. The design baseline.
+  expanded,
+
+  /// An 88dp icon strip, labels as tooltips.
+  collapsed,
+
+  /// Full labelled content inside a [Drawer], for phone widths. Navigating
+  /// closes the drawer behind the user.
+  drawer,
 }
 
 class _AppSidebarState extends ConsumerState<AppSidebar> {
@@ -44,14 +66,33 @@ class _AppSidebarState extends ConsumerState<AppSidebar> {
   /// standing in — but it can still be opened manually from elsewhere.
   bool _employeesExpanded = false;
 
+  /// The route the sidebar was last built against, so the drawer variant can
+  /// tell that a tap actually navigated. Threading an `onNavigate` callback
+  /// down instead would mean touching all seven places in this file that call
+  /// `goSection` — including the profile menu — and missing one would leave the
+  /// drawer open over the page it had just opened.
+  String? _lastLocation;
+
   String get _storeId => widget.store.id;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final collapsed = context.isSidebarCollapsed;
+    final variant =
+        widget.variant ??
+        (context.isSidebarCollapsed
+            ? SidebarVariant.collapsed
+            : SidebarVariant.expanded);
+    final collapsed = variant == SidebarVariant.collapsed;
     final location = GoRouterState.of(context).uri.path;
     final role = ref.watch(currentEmployeeProvider)?.role ?? EmployeeRole.staff;
+
+    if (variant == SidebarVariant.drawer &&
+        _lastLocation != null &&
+        _lastLocation != location) {
+      _closeDrawerAfterFrame();
+    }
+    _lastLocation = location;
 
     return Container(
       width: collapsed
@@ -94,6 +135,17 @@ class _AppSidebarState extends ConsumerState<AppSidebar> {
         ],
       ),
     );
+  }
+
+  /// Dismisses the drawer once the frame that navigated has been laid out.
+  /// Popping during build is illegal, and popping before the new route is in
+  /// place shows a flash of the old page underneath.
+  void _closeDrawerAfterFrame() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final scaffold = Scaffold.maybeOf(context);
+      if (scaffold != null && scaffold.isDrawerOpen) scaffold.closeDrawer();
+    });
   }
 }
 
@@ -601,8 +653,22 @@ class SidebarNavTile extends StatelessWidget {
       ),
     );
 
-    // Only the icon shows when collapsed, so the label becomes a tooltip.
-    return collapsed ? Tooltip(message: label, child: tile) : tile;
+    // Only the icon shows when collapsed, so the label becomes a tooltip for
+    // the eye and an explicit semantics label for the screen reader — a
+    // tooltip alone leaves the row announced as an unnamed button.
+    if (!collapsed) return tile;
+
+    // MergeSemantics rather than a plain wrapper: the InkWell already publishes
+    // a button node with the tap action, and merging folds the name into it.
+    // Excluding it instead would name the row and take away the ability to
+    // activate it.
+    return MergeSemantics(
+      child: Semantics(
+        label: label,
+        selected: active,
+        child: Tooltip(message: label, child: tile),
+      ),
+    );
   }
 }
 

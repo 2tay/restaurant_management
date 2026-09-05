@@ -134,6 +134,7 @@ class _SupplierDetailPageState extends ConsumerState<SupplierDetailPage> {
         ),
         PrimaryButton(
           label: l10n.supplierEditPrices,
+          shortLabel: l10n.shortEditPrices,
           icon: LucideIcons.scale,
           onPressed: () =>
               context.pushScreen(Routes.toSupplierPricing(storeId, supplierId)),

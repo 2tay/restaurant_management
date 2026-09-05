@@ -92,11 +92,17 @@ class InventoryFilter {
   /// also undo the ordering the user chose to read them in.
   final ItemSort sort;
 
-  bool get hasActiveFilters =>
-      query.isNotEmpty ||
-      categoryId != null ||
-      supplierId != null ||
-      lowStockOnly;
+  bool get hasActiveFilters => activeFilterCount > 0;
+
+  /// How many filters are narrowing the list, for the button that stands in
+  /// for them on a phone. The search box is one of them: it is on screen
+  /// beside the button, but it is still a reason the list is shorter than the
+  /// store, and a count that ignored it would be lying by omission.
+  int get activeFilterCount =>
+      (query.isNotEmpty ? 1 : 0) +
+      (categoryId != null ? 1 : 0) +
+      (supplierId != null ? 1 : 0) +
+      (lowStockOnly ? 1 : 0);
 
   /// The part of this the database can answer.
   ///
@@ -198,6 +204,7 @@ class InventoryListPage extends ConsumerWidget {
       actions: [
         PrimaryButton(
           label: l10n.actionAddItem,
+          shortLabel: l10n.shortAddItem,
           icon: LucideIcons.plus,
           onPressed: () => context.pushScreen(Routes.toAddItem(storeId)),
         ),
@@ -284,7 +291,6 @@ class _ListPane extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context);
     final filter = ref.watch(inventoryFilterProvider);
     final notifier = ref.read(inventoryFilterProvider.notifier);
     final canSplit = context.canSplitView;
@@ -301,25 +307,14 @@ class _ListPane extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SearchField(
-          hint: l10n.inventorySearchHint,
-          initialValue: filter.query,
-          onChanged: notifier.setQuery,
-        ),
-        const SizedBox(height: AppSpacing.md),
-
-        // The count leads the controls rather than following them: it is the
-        // answer to whatever the user just typed or picked, and reading it
-        // under the filters means reading it after having stopped looking.
-        Text(
-          l10n.inventoryCount(rows.length),
-          style: Theme.of(context).textTheme.bodySmall,
-        ),
-        const SizedBox(height: AppSpacing.sm),
-
+        // Search, filters, the result count and the display controls are one
+        // bar rather than three stacked rows. As three, they cost 373dp on a
+        // 360dp phone and 260 on the 1280dp design baseline — before a single
+        // product. The screen is the products.
         _ListControls(
           filter: filter,
           notifier: notifier,
+          count: rows.length,
           categories: {for (final c in categories) c.id: c.name},
           suppliers: {for (final s in suppliers) s.id: s.name},
           viewMode: viewMode,
@@ -367,16 +362,23 @@ class _ListPane extends ConsumerWidget {
   }
 }
 
-/// The controls between the count and the products.
+/// Everything between the page header and the products: the search box, the
+/// filters, how many matched, and how the list is shown.
 ///
-/// Filters on the left, ordering and view mode on the right, until there is no
-/// longer room for two sides — below which the right-hand pair drops onto its
-/// own line and stays right-aligned, so it keeps reading as "how this list is
-/// shown" rather than joining the filters.
+/// One bar, not three rows. Search had its own line, the count had another and
+/// the filters a third, which on a phone stacked into 373dp of controls above a
+/// 320dp card — the screen showed two thirds of one product. They are all the
+/// same kind of thing (narrow the list down) and they belong on the same line
+/// wherever the line has room.
+///
+/// Ordering and view mode stay on the right, so they keep reading as "how this
+/// list is shown" rather than joining the filters — until the pane is too
+/// narrow for two sides, where they drop under and stay right-aligned.
 class _ListControls extends StatelessWidget {
   const _ListControls({
     required this.filter,
     required this.notifier,
+    required this.count,
     required this.categories,
     required this.suppliers,
     required this.viewMode,
@@ -385,6 +387,11 @@ class _ListControls extends StatelessWidget {
 
   final InventoryFilter filter;
   final InventoryFilterNotifier notifier;
+
+  /// How many products matched — the answer to whatever was just typed or
+  /// picked, so it sits with the controls that asked the question.
+  final int count;
+
   final Map<String, String> categories;
   final Map<String, String> suppliers;
   final InventoryViewMode viewMode;
@@ -395,9 +402,153 @@ class _ListControls extends StatelessWidget {
   /// product open and all of it without.
   static const double _twoSided = 860;
 
+  /// The search box inside the bar. Narrower than the 420dp it gets on its own
+  /// line — it is sharing now, and a product name is a short query.
+  static const double _searchWidth = 300;
+
+  /// The phone layout: two rows instead of six.
+  ///
+  /// Row one is the search box and the button the filters have moved behind.
+  /// Row two is the result count with the display controls at the right — the
+  /// answer on the left, how it is shown on the right.
+  ///
+  /// The filters are not gone, they are one tap away and the button says how
+  /// many are applied. What is gone is 240dp of stacked pills above a 320dp
+  /// card, which is what made this screen show two thirds of one product.
+  Widget _phoneBar(BuildContext context, AppLocalizations l10n) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: SearchField(
+                hint: l10n.inventorySearchHint,
+                initialValue: filter.query,
+                onChanged: notifier.setQuery,
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            FilterSheetButton(
+              activeCount: filter.activeFilterCount,
+              onPressed: () => FilterSheet.show(
+                context,
+                onClear: filter.hasActiveFilters ? notifier.clear : null,
+                // Rebuilt from the provider rather than captured, so the pills
+                // inside the sheet follow the taps made on them. Without this
+                // the sheet would show the filter state as it was when it
+                // opened and never move.
+                builder: (context) => Consumer(
+                  builder: (context, ref, _) {
+                    final live = ref.watch(inventoryFilterProvider);
+                    return _ListControls(
+                      filter: live,
+                      notifier: notifier,
+                      count: count,
+                      categories: categories,
+                      suppliers: suppliers,
+                      viewMode: viewMode,
+                      onViewMode: onViewMode,
+                    )._sheetContents(context, l10n);
+                  },
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        // A `Wrap`, not a `Row`. The sort pill takes its natural width when
+        // nothing bounds it, and "24 produits" plus "Stock prioritaire" plus
+        // the view toggle is 48dp more than a 328dp phone has — a Row
+        // overflows there rather than giving way.
+        Wrap(
+          alignment: WrapAlignment.spaceBetween,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: AppSpacing.sm,
+          runSpacing: AppSpacing.sm,
+          children: [
+            Text(
+              l10n.inventoryCount(count),
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Flexible so the sort pill gives way rather than overflowing.
+                // The view toggle beside it is two 48dp squares that cannot
+                // shrink, so the sort label is the only thing left that can —
+                // and `FilterPill` ellipsizes once something bounds it.
+                Flexible(
+                  child: _SortMenu(
+                    sort: filter.sort,
+                    onSelected: notifier.setSort,
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                _ViewModeToggle(mode: viewMode, onSelected: onViewMode),
+              ],
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  /// The filters, stacked full width for the sheet.
+  Widget _sheetContents(BuildContext context, AppLocalizations l10n) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      for (final (i, control) in _filterControls(context, l10n).indexed) ...[
+        if (i > 0) const SizedBox(height: AppSpacing.md),
+        Align(alignment: Alignment.centerLeft, child: control),
+      ],
+    ],
+  );
+
+  /// The three filter controls, as the wide bar and the phone sheet both draw
+  /// them. One definition, so the sheet cannot drift from the bar.
+  List<Widget> _filterControls(BuildContext context, AppLocalizations l10n) => [
+    _FilterMenu(
+      label: l10n.inventoryFilterCategory,
+      allLabel: l10n.inventoryFilterAll,
+      selectedId: filter.categoryId,
+      options: categories,
+      onSelected: notifier.setCategory,
+    ),
+    _FilterMenu(
+      label: l10n.inventoryFilterSupplier,
+      allLabel: l10n.inventoryFilterAllSuppliers,
+      selectedId: filter.supplierId,
+      options: suppliers,
+      onSelected: notifier.setSupplier,
+    ),
+    // A pill rather than a Material `FilterChip`: the chip drew itself 385dp
+    // wide for a three-word label, next to two 180dp pills saying the same
+    // kind of thing. Same control, same shape as its neighbours, half the
+    // width — and the roster's "afficher les retirés" toggle is built exactly
+    // this way, so the two now match.
+    Material(
+      color: Colors.transparent,
+      borderRadius: AppRadius.pillAll,
+      child: InkWell(
+        onTap: notifier.toggleLowStockOnly,
+        borderRadius: AppRadius.pillAll,
+        child: FilterPill(
+          label: l10n.inventoryFilterLowOnly,
+          selectedLabel: filter.lowStockOnly
+              ? l10n.inventoryFilterLowOnly
+              : null,
+          icon: LucideIcons.triangleAlert,
+        ),
+      ),
+    ),
+  ];
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+
+    if (context.isPhone) return _phoneBar(context, l10n);
 
     // Filters wrap rather than scroll: a hidden filter is a filter nobody
     // uses, and French category names are long.
@@ -406,40 +557,29 @@ class _ListControls extends StatelessWidget {
       runSpacing: AppSpacing.sm,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        _FilterMenu(
-          label: l10n.inventoryFilterCategory,
-          allLabel: l10n.inventoryFilterAll,
-          selectedId: filter.categoryId,
-          options: categories,
-          onSelected: notifier.setCategory,
-        ),
-        _FilterMenu(
-          label: l10n.inventoryFilterSupplier,
-          allLabel: l10n.inventoryFilterAllSuppliers,
-          selectedId: filter.supplierId,
-          options: suppliers,
-          onSelected: notifier.setSupplier,
-        ),
-        FilterChip(
-          label: Text(l10n.inventoryFilterLowOnly),
-          avatar: Icon(
-            LucideIcons.triangleAlert,
-            size: 16,
-            color: filter.lowStockOnly
-                ? AppColors.lowStock.foreground
-                : AppColors.textSecondary,
+        // A stated width, not a cap. `SearchField` fills whatever box it is
+        // given, and a `Wrap` gives its children the whole line to ask for —
+        // so an uncapped one took a run to itself and pushed all four filters
+        // onto lines of their own.
+        SizedBox(
+          width: _searchWidth,
+          child: SearchField(
+            hint: l10n.inventorySearchHint,
+            initialValue: filter.query,
+            onChanged: notifier.setQuery,
           ),
-          selected: filter.lowStockOnly,
-          onSelected: (_) => notifier.toggleLowStockOnly(),
-          selectedColor: AppColors.lowStock.container,
-          checkmarkColor: AppColors.lowStock.foreground,
         ),
+        ..._filterControls(context, l10n),
         if (filter.hasActiveFilters)
           TextButton.icon(
             onPressed: notifier.clear,
             icon: const Icon(LucideIcons.x, size: 16),
             label: Text(l10n.inventoryClearFilters),
           ),
+        Text(
+          l10n.inventoryCount(count),
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
       ],
     );
 
@@ -530,7 +670,7 @@ class _ProductGrid extends StatelessWidget {
             crossAxisSpacing: AppSpacing.md,
             mainAxisExtent:
                 imageHeight +
-                itemCardTextHeight +
+                itemCardTextHeightFor(context) +
                 AppCard.verticalBorderAllowance,
           ),
           itemCount: rows.length,
@@ -618,31 +758,17 @@ class _SortMenu extends StatelessWidget {
       ),
     );
 
-    // On a phone the control bar is narrower than "Trier par" plus a pill at
-    // its natural width, and a Row does not shrink — it overflows. So the
-    // caption drops out first, and the pill is left flexible so its label
-    // ellipsizes into whatever is actually there. [FilterPill] only shrinks
-    // against a bounded width, which is also what [Flexible] needs.
+    // No "Trier par" caption beside it. The pill carries the sort icon and the
+    // current ordering, which says the same thing in a third of the width —
+    // and the caption was 90dp of a control bar that had none to spare. It
+    // survives as the menu's tooltip.
     return LayoutBuilder(
       builder: (context, constraints) {
-        final bounded = constraints.maxWidth.isFinite;
-        final showCaption = !bounded || constraints.maxWidth >= 340;
-
-        return Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (showCaption) ...[
-              Text(
-                l10n.inventorySortLabel,
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-            ],
-            if (bounded) Flexible(child: menu) else menu,
-          ],
-        );
+        // [FilterPill] only shrinks against a bounded width, which is also
+        // what [Flexible] needs.
+        return constraints.maxWidth.isFinite
+            ? Row(mainAxisSize: MainAxisSize.min, children: [Flexible(child: menu)])
+            : menu;
       },
     );
   }
@@ -788,22 +914,34 @@ void afterFrame(VoidCallback change) =>
 /// which is not enough for any of them; one full-width card per row is.
 int inventoryGridColumns(double width) {
   if (width < _singleColumn) return 1;
-  final columns = (width / 260).floor();
-  return columns.clamp(2, 4);
+  final columns = (width / _columnTarget).floor();
+  return columns.clamp(2, 5);
 }
+
+/// Roughly how wide a card wants to be.
+///
+/// 230dp rather than the 260 it started at, and the ceiling is five columns
+/// rather than four. Both spend the same currency: a 1280dp window drew three
+/// cards across at 309dp each, which is a large photograph of a bag of flour
+/// and six products on screen. At 230 it draws four, and a 1600dp desktop five.
+const double _columnTarget = 230;
 
 /// Below this width the grid drops to a single column.
 const double _singleColumn = 440;
 
 /// How tall the picture on a card is, for a column this wide.
 ///
-/// Three quarters of the column's width, which leaves the picture the 55–60%
-/// of the card the design asks for once [itemCardTextHeight] is added under
-/// it. Bounded at both ends: a single-column phone layout would otherwise draw
-/// a poster, and a four-column pane on a small tablet a postage stamp — and
-/// the floor is what keeps the picture the larger half of a narrow card.
+/// Three fifths of the column's width, which keeps the picture a little over
+/// half the card once [itemCardTextHeight] is added under it. Bounded at both
+/// ends: a single-column phone layout would otherwise draw a poster, and a
+/// five-column pane on a small tablet a postage stamp.
+///
+/// The ratio was three quarters and the ceiling 240, which is where most of a
+/// 376dp card came from. A product photograph is there to be recognised at a
+/// glance, not studied — 190dp is plenty for that, and the difference is a
+/// phone showing three cards instead of one.
 double inventoryImageHeight(double cellWidth) =>
-    (cellWidth * 0.75).clamp(180, 240);
+    (cellWidth * 0.6).clamp(110, 190);
 
 /// Distinguishes "this store has nothing yet" from "your filters matched
 /// nothing". They need different words and a different button.

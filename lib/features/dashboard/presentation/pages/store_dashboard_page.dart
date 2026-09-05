@@ -138,6 +138,8 @@ class StoreDashboardPage extends ConsumerWidget {
     return ShellPage(
       title: l10n.dashboardTitle,
       subtitle: l10n.dashboardGreeting(userName ?? ''),
+      // Information, not description — kept on a phone.
+      keepSubtitle: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -281,7 +283,6 @@ class _StaleOrdersWarning extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
 
     // The establishment's own threshold, a column since this phase rather than
     // the mutable global it was in Phase 1. Falls back to the default while the
@@ -290,52 +291,20 @@ class _StaleOrdersWarning extends ConsumerWidget {
         ref.watch(stalePartialOrderDaysProvider(storeId)).value ??
         OrderRules.defaultStalePartialDays;
 
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      decoration: BoxDecoration(
-        color: AppColors.lowStock.container,
-        borderRadius: AppRadius.mdAll,
-      ),
-      child: Row(
-        children: [
-          Icon(
-            LucideIcons.clock,
-            size: AppSizing.iconLg,
-            color: AppColors.lowStock.foreground,
-          ),
-          const SizedBox(width: AppSpacing.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  l10n.dashboardStaleOrdersTitle(count, days),
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    color: AppColors.lowStock.foreground,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.xs),
-                Text(
-                  l10n.dashboardStaleOrdersBody,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: AppColors.lowStock.foreground,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: AppSpacing.md),
-          SecondaryButton(
-            label: l10n.dashboardStaleOrdersAction,
-            icon: LucideIcons.clipboardList,
-            onPressed: () {
-              // Land on the orders that need doing something about, not on
-              // ninety days of history the user then has to filter down.
-              ref.read(ordersFilterProvider.notifier).showOpenOnly();
-              context.goSection(Routes.toOrders(storeId));
-            },
-          ),
-        ],
+    return NoticeBanner(
+      icon: LucideIcons.clock,
+      colors: AppColors.lowStock,
+      title: l10n.dashboardStaleOrdersTitle(count, days),
+      message: l10n.dashboardStaleOrdersBody,
+      action: SecondaryButton(
+        label: l10n.dashboardStaleOrdersAction,
+        icon: LucideIcons.clipboardList,
+        onPressed: () {
+          // Land on the orders that need doing something about, not on ninety
+          // days of history the user then has to filter down.
+          ref.read(ordersFilterProvider.notifier).showOpenOnly();
+          context.goSection(Routes.toOrders(storeId));
+        },
       ),
     );
   }

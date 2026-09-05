@@ -56,6 +56,73 @@
     "description": "Stock status badge — quantity is zero."
   },
 
+  "shortAddItem": "Ajouter",
+  "@shortAddItem": {
+    "description": "Short form of actionAddItem, for a page header too narrow for the full label. See ActionDensity."
+  },
+  "shortAddDelivery": "Livraison",
+  "@shortAddDelivery": {
+    "description": "Short form of actionAddDelivery. See ActionDensity."
+  },
+  "shortLogUsage": "Sortie",
+  "@shortLogUsage": {
+    "description": "Short form of actionLogUsage. See ActionDensity."
+  },
+  "shortAdjustStock": "Ajuster",
+  "@shortAdjustStock": {
+    "description": "Short form of actionAdjustStock. See ActionDensity."
+  },
+  "shortAddSupplier": "Ajouter",
+  "@shortAddSupplier": {
+    "description": "Short form of suppliersAdd. See ActionDensity."
+  },
+  "shortAddEmployee": "Ajouter",
+  "@shortAddEmployee": {
+    "description": "Short form of employeesAdd. See ActionDensity."
+  },
+  "shortAddCategory": "Ajouter",
+  "@shortAddCategory": {
+    "description": "Short form of categoriesAdd. See ActionDensity."
+  },
+  "shortAddUnit": "Ajouter",
+  "@shortAddUnit": {
+    "description": "Short form of unitsAdd. See ActionDensity."
+  },
+  "shortNewOrder": "Nouvelle",
+  "@shortNewOrder": {
+    "description": "Short form of ordersNewAction. See ActionDensity."
+  },
+  "shortCreateOrders": "Commander",
+  "@shortCreateOrders": {
+    "description": "Short form of alertsCreateOrders. See ActionDensity."
+  },
+  "shortEditPrices": "Tarifs",
+  "@shortEditPrices": {
+    "description": "Short form of supplierEditPrices. See ActionDensity."
+  },
+  "shortMarkAllRead": "Tout lire",
+  "@shortMarkAllRead": {
+    "description": "Short form of notificationsMarkAllRead. See ActionDensity."
+  },
+
+  "filtersTitle": "Filtres",
+  "@filtersTitle": {
+    "description": "The button that opens the filter sheet on a narrow screen, and that sheet's own title."
+  },
+  "filtersTitleWithCount": "Filtres · {count}",
+  "@filtersTitleWithCount": {
+    "description": "The same button once filters are applied, so the count is visible without opening it.",
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "filtersClearAll": "Tout effacer",
+  "@filtersClearAll": {
+    "description": "Clears every filter, from inside the filter sheet."
+  },
+  "filtersDone": "Voir les résultats",
+  "@filtersDone": {
+    "description": "Closes the filter sheet. Names what closing it gets you rather than saying 'Fermer'."
+  },
+
   "actionAddItem": "Ajouter un produit",
   "@actionAddItem": {
     "description": "Primary action on the inventory list and its empty state."

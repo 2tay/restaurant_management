@@ -9,7 +9,7 @@ import '../../core/theme/app_spacing.dart';
 /// keeps the horizontal overflow *inside* the table — the page itself must
 /// never scroll sideways, which on a tablet is disorienting and easy to trigger
 /// by accident with a stray thumb.
-class DataTableWrapper extends StatelessWidget {
+class DataTableWrapper extends StatefulWidget {
   const DataTableWrapper({
     required this.columns,
     required this.rows,
@@ -29,7 +29,29 @@ class DataTableWrapper extends StatelessWidget {
   final bool sortAscending;
 
   @override
+  State<DataTableWrapper> createState() => _DataTableWrapperState();
+}
+
+class _DataTableWrapperState extends State<DataTableWrapper> {
+  /// Owned here rather than left implicit: a `Scrollbar` and the view it
+  /// controls must share one controller, and an inherited `PrimaryScrollController`
+  /// belongs to the page's vertical scroll, not this horizontal one.
+  final _controller = ScrollController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final columns = widget.columns;
+    final rows = widget.rows;
+    final minWidth = widget.minWidth;
+    final sortColumnIndex = widget.sortColumnIndex;
+    final sortAscending = widget.sortAscending;
+
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surface,
@@ -63,9 +85,19 @@ class DataTableWrapper extends StatelessWidget {
             ),
           );
 
-          return SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: table,
+          // A visible scrollbar rather than the platform default, which on
+          // desktop only fades in once the pointer moves. A table that scrolls
+          // sideways with no sign that it does reads as a table with missing
+          // columns — and on the pricing screens the columns off the right are
+          // the ones the user came for.
+          return Scrollbar(
+            controller: _controller,
+            thumbVisibility: constraints.maxWidth < floor,
+            child: SingleChildScrollView(
+              controller: _controller,
+              scrollDirection: Axis.horizontal,
+              child: table,
+            ),
           );
         },
       ),

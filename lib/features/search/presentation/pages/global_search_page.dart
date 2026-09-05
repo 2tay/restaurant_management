@@ -97,13 +97,14 @@ class _GlobalSearchPageState extends ConsumerState<GlobalSearchPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 640),
-            child: SearchField(
-              hint: l10n.searchHint,
-              autofocus: true,
-              onChanged: (value) => setState(() => _query = value),
-            ),
+          // Wider than the 420dp a search box gets on a list screen, where it
+          // shares a control bar with filters. Here the search *is* the
+          // screen, so it earns the room.
+          SearchField(
+            hint: l10n.searchHint,
+            autofocus: true,
+            maxWidth: 640,
+            onChanged: (value) => setState(() => _query = value),
           ),
           if (query.isNotEmpty) ...[
             const SizedBox(height: AppSpacing.md),

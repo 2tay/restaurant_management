@@ -787,44 +787,55 @@ class _ChosenSupplier extends StatelessWidget {
     final theme = Theme.of(context);
 
     return AppCard(
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: const BoxDecoration(
-              color: AppColors.primaryContainer,
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              LucideIcons.truck,
-              size: AppSizing.iconMd,
-              color: AppColors.onPrimaryContainer,
-            ),
-          ),
-          const SizedBox(width: AppSpacing.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      child: AdaptiveRow(
+        cells: [
+          AdaptiveCell(
+            flex: 1,
+            // The medallion and the name stay together whatever the width;
+            // only "Modifier" drops to its own line.
+            child: Row(
               children: [
-                Text(
-                  l10n.orderStepSupplier,
-                  style: theme.textTheme.labelMedium,
+                Container(
+                  width: AppSizing.statTileMedallion,
+                  height: AppSizing.statTileMedallion,
+                  decoration: const BoxDecoration(
+                    color: AppColors.primaryContainer,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    LucideIcons.truck,
+                    size: AppSizing.iconMd,
+                    color: AppColors.onPrimaryContainer,
+                  ),
                 ),
-                Text(
-                  name,
-                  style: theme.textTheme.titleMedium,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        l10n.orderStepSupplier,
+                        style: theme.textTheme.labelMedium,
+                      ),
+                      Text(
+                        name,
+                        style: theme.textTheme.titleMedium,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
           ),
-          const SizedBox(width: AppSpacing.md),
-          SecondaryButton(
-            label: l10n.orderSupplierChange,
-            icon: LucideIcons.pencil,
-            onPressed: onChange,
+          AdaptiveCell(
+            child: SecondaryButton(
+              label: l10n.orderSupplierChange,
+              icon: LucideIcons.pencil,
+              onPressed: onChange,
+            ),
           ),
         ],
       ),

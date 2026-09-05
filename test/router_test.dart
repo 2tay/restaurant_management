@@ -17,6 +17,7 @@ import 'package:stock_inventory/shared/widgets/app_scaffold.dart';
 import 'package:stock_inventory/shared/widgets/app_sidebar.dart';
 
 import 'support/app_harness.dart';
+import 'support/route_walk.dart';
 
 /// The design baseline — a 10" tablet in landscape.
 const Size _tabletLandscape = Size(1280, 800);
@@ -33,173 +34,13 @@ const Size _narrowTablet = Size(800, 1000);
 /// lock orientation, so every screen must degrade rather than break.
 const Size _portraitTablet = Size(800, 1280);
 
-/// Every navigable path, with real ids substituted for path parameters.
-List<({String label, String path, bool inShell})> _allRoutes() {
-  const store = StoreIds.sablon;
-  final item = mockItems.first.id;
-  final supplier = mockSuppliers.first.id;
-  final employee = mockEmployees.first.id;
-  final archivedEmployee = mockEmployees
-      .firstWhere((e) => e.archivedAt != null)
-      .id;
-
-  // A draft and a partially received order, because the detail screen renders
-  // a different action row for each status and only one of them can be wrong
-  // at a time.
-  const draftOrder = OrderIds.draftMaraicher;
-  const openOrder = OrderIds.partialBoucherie;
-  const receipt = ReceiptIds.cremerieFinal;
-
-  return [
-    (label: 'login', path: Routes.login, inShell: false),
-    (label: 'forgot password', path: Routes.forgotPassword, inShell: false),
-    (label: 'onboarding', path: Routes.onboarding, inShell: false),
-    (label: 'store selector', path: Routes.stores, inShell: false),
-    (label: 'add store', path: Routes.addStore, inShell: false),
-
-    (label: 'dashboard', path: Routes.toDashboard(store), inShell: true),
-
-    (label: 'inventory', path: Routes.toInventory(store), inShell: true),
-    (label: 'add item', path: Routes.toAddItem(store), inShell: true),
-    (label: 'item detail', path: Routes.toItem(store, item), inShell: true),
-    (label: 'edit item', path: Routes.toEditItem(store, item), inShell: true),
-    (
-      label: 'link supplier',
-      path: Routes.toLinkSupplier(store, item),
-      inShell: true,
-    ),
-    (
-      label: 'price history',
-      path: Routes.toPriceHistory(store, item, supplier),
-      inShell: true,
-    ),
-
-    (label: 'categories', path: Routes.toCategories(store), inShell: true),
-    (label: 'units', path: Routes.toUnits(store), inShell: true),
-
-    (label: 'movements', path: Routes.toMovements(store), inShell: true),
-    (label: 'stock in', path: Routes.toStockIn(store), inShell: true),
-    (label: 'stock out', path: Routes.toStockOut(store), inShell: true),
-    (label: 'adjustment', path: Routes.toAdjustment(store), inShell: true),
-
-    (label: 'alerts', path: Routes.toAlerts(store), inShell: true),
-    (
-      label: 'notifications',
-      path: Routes.toNotifications(store),
-      inShell: true,
-    ),
-
-    (label: 'orders', path: Routes.toOrders(store), inShell: true),
-    (label: 'new order', path: Routes.toNewOrder(store), inShell: true),
-    (
-      label: 'order detail (draft)',
-      path: Routes.toOrder(store, draftOrder),
-      inShell: true,
-    ),
-    (
-      label: 'order detail (partial)',
-      path: Routes.toOrder(store, openOrder),
-      inShell: true,
-    ),
-    (
-      label: 'edit order',
-      path: Routes.toEditOrder(store, draftOrder),
-      inShell: true,
-    ),
-    (
-      label: 'receive order',
-      path: Routes.toReceiveOrder(store, openOrder),
-      inShell: true,
-    ),
-    (
-      label: 'receipt detail',
-      path: Routes.toReceipt(store, receipt),
-      inShell: true,
-    ),
-
-    (label: 'suppliers', path: Routes.toSuppliers(store), inShell: true),
-    (label: 'add supplier', path: Routes.toAddSupplier(store), inShell: true),
-    (
-      label: 'supplier detail',
-      path: Routes.toSupplier(store, supplier),
-      inShell: true,
-    ),
-    (
-      label: 'edit supplier',
-      path: Routes.toEditSupplier(store, supplier),
-      inShell: true,
-    ),
-    (
-      label: 'supplier pricing',
-      path: Routes.toSupplierPricing(store, supplier),
-      inShell: true,
-    ),
-
-    (label: 'reports', path: Routes.toReports(store), inShell: true),
-    (
-      label: 'valuation report',
-      path: Routes.toValuationReport(store),
-      inShell: true,
-    ),
-    (
-      label: 'comparison report',
-      path: Routes.toComparisonReport(store),
-      inShell: true,
-    ),
-    (label: 'usage report', path: Routes.toUsageReport(store), inShell: true),
-
-    (label: 'employees', path: Routes.toEmployees(store), inShell: true),
-    (label: 'add employee', path: Routes.toAddEmployee(store), inShell: true),
-    (label: 'timeclock', path: Routes.toTimeclock(store), inShell: true),
-    (
-      label: 'attendance history',
-      path: Routes.toAttendanceHistory(store),
-      inShell: true,
-    ),
-    (label: 'payroll', path: Routes.toPayroll(store), inShell: true),
-    (
-      label: 'employee detail',
-      path: Routes.toEmployee(store, employee),
-      inShell: true,
-    ),
-    (
-      label: 'archived employee detail',
-      path: Routes.toEmployee(store, archivedEmployee),
-      inShell: true,
-    ),
-    (
-      label: 'edit employee',
-      path: Routes.toEditEmployee(store, employee),
-      inShell: true,
-    ),
-
-    (
-      label: 'store settings',
-      path: Routes.toStoreSettings(store),
-      inShell: true,
-    ),
-    (
-      label: 'account settings',
-      path: Routes.toAccountSettings(store),
-      inShell: true,
-    ),
-    (
-      label: 'notification settings',
-      path: Routes.toNotificationSettings(store),
-      inShell: true,
-    ),
-    (label: 'sync status', path: Routes.toSyncStatus(store), inShell: true),
-
-    (label: 'search', path: Routes.toSearch(store), inShell: true),
-  ];
-}
 
 Future<void> _pumpAt(WidgetTester tester, Size size) =>
     pumpApp(tester, size: size);
 
 void main() {
   group('every route renders at tablet size', () {
-    for (final route in _allRoutes()) {
+    for (final route in allRoutes()) {
       testApp(route.label, (tester) async {
         await _pumpAt(tester, _tabletLandscape);
 
@@ -229,7 +70,7 @@ void main() {
   // at the narrow breakpoint turns that into a failing test instead of
   // something the client finds during the demo.
   group('every route survives the narrow breakpoint', () {
-    for (final route in _allRoutes()) {
+    for (final route in allRoutes()) {
       testApp('${route.label} at 1024x600', (tester) async {
         await _pumpAt(tester, _smallTablet);
 
@@ -249,7 +90,7 @@ void main() {
   // Nothing in the app locks orientation, so a user can rotate at any moment
   // and every screen has to survive it.
   group('every route survives portrait', () {
-    for (final route in _allRoutes()) {
+    for (final route in allRoutes()) {
       testApp('${route.label} at 800x1280', (tester) async {
         await _pumpAt(tester, _portraitTablet);
 

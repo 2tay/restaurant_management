@@ -217,8 +217,11 @@ class _ClosedField extends StatelessWidget {
       onTap: onTap,
       borderRadius: AppRadius.mdAll,
       child: Container(
-        height: AppSizing.minTapTarget,
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+        constraints: const BoxConstraints(minHeight: AppSizing.minTapTarget),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md,
+          vertical: AppSpacing.sm,
+        ),
         decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: AppRadius.mdAll,

@@ -41,8 +41,11 @@ class FilterPill extends StatelessWidget {
         : AppColors.textSecondary;
 
     return Container(
-      height: AppSizing.minTapTarget,
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+      constraints: const BoxConstraints(minHeight: AppSizing.minTapTarget),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.sm,
+      ),
       decoration: BoxDecoration(
         color: active ? AppColors.primaryContainer : AppColors.surface,
         borderRadius: AppRadius.pillAll,

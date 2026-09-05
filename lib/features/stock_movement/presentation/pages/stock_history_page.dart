@@ -5,6 +5,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../app/routes.dart';
 import '../../../../app/navigation.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/utils/responsive.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../data/providers.dart';
 import '../../../../data/view_models/view_models.dart';
@@ -54,6 +55,21 @@ class _StockHistoryPageState extends ConsumerState<StockHistoryPage> {
   HistoryPeriod _period = HistoryPeriod.last30;
   String? _itemId;
   String? _userName;
+
+  /// How many filters are narrowing the log, for the button that stands in for
+  /// them on a phone.
+  ///
+  /// The period counts whenever it is not "tout", including the thirty days
+  /// the screen opens on. That reads as "Filtres · 1" on a page nobody has
+  /// touched, which is the truth: the log on screen is not the whole log. It
+  /// also matches what [_clearFilters] does, which is to widen the period back
+  /// out to everything — a count that ignored the period would leave the clear
+  /// button changing something the count said was not set.
+  int get _activeFilterCount =>
+      (_type != null ? 1 : 0) +
+      (_period != HistoryPeriod.all ? 1 : 0) +
+      (_itemId != null ? 1 : 0) +
+      (_userName != null ? 1 : 0);
 
   @override
   void initState() {
@@ -107,7 +123,8 @@ class _StockHistoryPageState extends ConsumerState<StockHistoryPage> {
 
     // Empty while its query is out. The menu shows only "tous les articles"
     // for that frame, which is the correct set of choices given what is known.
-    final items = ref.watch(itemsByNameProvider(widget.storeId)).value ?? const [];
+    final items =
+        ref.watch(itemsByNameProvider(widget.storeId)).value ?? const [];
 
     return ShellPage(
       title: l10n.movementsTitle,
@@ -116,85 +133,133 @@ class _StockHistoryPageState extends ConsumerState<StockHistoryPage> {
       actions: [
         SecondaryButton(
           label: l10n.actionAdjustStock,
+          shortLabel: l10n.shortAdjustStock,
           icon: LucideIcons.clipboardCheck,
           onPressed: () =>
               context.pushScreen(Routes.toAdjustment(widget.storeId)),
         ),
         SecondaryButton(
           label: l10n.actionLogUsage,
+          shortLabel: l10n.shortLogUsage,
           icon: LucideIcons.arrowUpFromLine,
           onPressed: () =>
               context.pushScreen(Routes.toStockOut(widget.storeId)),
         ),
         PrimaryButton(
           label: l10n.actionAddDelivery,
+          shortLabel: l10n.shortAddDelivery,
           icon: LucideIcons.arrowDownToLine,
           onPressed: () => context.pushScreen(Routes.toStockIn(widget.storeId)),
         ),
       ],
       child: AsyncContent<List<MovementRowView>>(
         value: rows,
-        onRetry: () => ref.invalidate(movementRowsForStoreProvider(widget.storeId)),
+        onRetry: () =>
+            ref.invalidate(movementRowsForStoreProvider(widget.storeId)),
         builder: (context, allMovements) {
           final movements = _filtered(allMovements);
           final users =
               allMovements.map((row) => row.movement.userName).toSet().toList()
                 ..sort();
 
+          final filters = <Widget>[
+            _Menu<StockMovementType?>(
+              label: l10n.movementsFilterType,
+              selectedLabel: _type == null
+                  ? null
+                  : movementTypeLabel(l10n, _type!),
+              entries: {
+                null: l10n.movementsFilterAllTypes,
+                for (final type in StockMovementType.values)
+                  type: movementTypeLabel(l10n, type),
+              },
+              onSelected: (value) => setState(() => _type = value),
+            ),
+            _Menu<HistoryPeriod>(
+              label: l10n.movementsFilterPeriod,
+              selectedLabel: _periodLabel(l10n, _period),
+              entries: {
+                for (final period in HistoryPeriod.values)
+                  period: _periodLabel(l10n, period),
+              },
+              onSelected: (value) => setState(() => _period = value),
+            ),
+            _Menu<String?>(
+              label: l10n.stockInItem,
+              selectedLabel: _itemName(items),
+              entries: {
+                null: l10n.inventoryFilterAllSuppliers,
+                for (final item in items) item.id: item.name,
+              },
+              onSelected: (value) => setState(() => _itemId = value),
+            ),
+            _Menu<String?>(
+              label: l10n.movementsFilterUser,
+              selectedLabel: _userName,
+              entries: {
+                null: l10n.movementsFilterAllUsers,
+                for (final user in users) user: user,
+              },
+              onSelected: (value) => setState(() => _userName = value),
+            ),
+          ];
+
+          final count = Text(
+            l10n.movementsCount(movements.length),
+            style: Theme.of(context).textTheme.bodySmall,
+          );
+
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Wrap(
-                spacing: AppSpacing.sm,
-                runSpacing: AppSpacing.sm,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  _Menu<StockMovementType?>(
-                    label: l10n.movementsFilterType,
-                    selectedLabel: _type == null
-                        ? null
-                        : movementTypeLabel(l10n, _type!),
-                    entries: {
-                      null: l10n.movementsFilterAllTypes,
-                      for (final type in StockMovementType.values)
-                        type: movementTypeLabel(l10n, type),
-                    },
-                    onSelected: (value) => setState(() => _type = value),
-                  ),
-                  _Menu<HistoryPeriod>(
-                    label: l10n.movementsFilterPeriod,
-                    selectedLabel: _periodLabel(l10n, _period),
-                    entries: {
-                      for (final period in HistoryPeriod.values)
-                        period: _periodLabel(l10n, period),
-                    },
-                    onSelected: (value) => setState(() => _period = value),
-                  ),
-                  _Menu<String?>(
-                    label: l10n.stockInItem,
-                    selectedLabel: _itemName(items),
-                    entries: {
-                      null: l10n.inventoryFilterAllSuppliers,
-                      for (final item in items) item.id: item.name,
-                    },
-                    onSelected: (value) => setState(() => _itemId = value),
-                  ),
-                  _Menu<String?>(
-                    label: l10n.movementsFilterUser,
-                    selectedLabel: _userName,
-                    entries: {
-                      null: l10n.movementsFilterAllUsers,
-                      for (final user in users) user: user,
-                    },
-                    onSelected: (value) => setState(() => _userName = value),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.md),
-              Text(
-                l10n.movementsCount(movements.length),
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
+              // Four filter menus stack into four rows on a 328dp phone, and
+              // with the count under them that was 559dp of chrome above the
+              // log — the screen showed two rows of it. On a phone they move
+              // behind one button; on a tablet they stay where they are, which
+              // is where a filter belongs when there is room for it.
+              if (context.isPhone)
+                Row(
+                  children: [
+                    FilterSheetButton(
+                      activeCount: _activeFilterCount,
+                      onPressed: () => FilterSheet.show(
+                        context,
+                        onClear: _activeFilterCount > 0 ? _clearFilters : null,
+                        // A `StatefulBuilder` so a tap inside the sheet
+                        // redraws the sheet as well as the page behind it:
+                        // this screen keeps its filters in `State`, not in a
+                        // provider the sheet could watch.
+                        builder: (context) => StatefulBuilder(
+                          builder: (context, _) => Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              for (final (i, control) in filters.indexed) ...[
+                                if (i > 0)
+                                  const SizedBox(height: AppSpacing.md),
+                                Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: control,
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.md),
+                    Expanded(child: count),
+                  ],
+                )
+              else ...[
+                Wrap(
+                  spacing: AppSpacing.sm,
+                  runSpacing: AppSpacing.sm,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: filters,
+                ),
+                const SizedBox(height: AppSpacing.md),
+                count,
+              ],
               const SizedBox(height: AppSpacing.md),
 
               Expanded(

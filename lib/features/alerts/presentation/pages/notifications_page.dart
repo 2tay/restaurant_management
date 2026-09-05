@@ -59,11 +59,14 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
       ),
       title: l10n.notificationsTitle,
       subtitle: l10n.notificationsUnread(unreadCount),
+      // Information, not description — kept on a phone.
+      keepSubtitle: true,
       scrollable: false,
       actions: [
         if (unreadCount > 0)
           SecondaryButton(
             label: l10n.notificationsMarkAllRead,
+            shortLabel: l10n.shortMarkAllRead,
             icon: LucideIcons.checkCheck,
             onPressed: _markAllRead,
           ),

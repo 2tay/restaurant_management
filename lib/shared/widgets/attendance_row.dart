@@ -7,6 +7,7 @@ import '../../core/utils/attendance_status.dart';
 import '../../core/utils/formatters.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/models.dart';
+import 'adaptive_row.dart';
 import 'app_card.dart';
 import 'attendance_status_badge.dart';
 
@@ -48,11 +49,49 @@ class AttendanceRow extends StatelessWidget {
     final lateBreak = hasLateBreak(attendance, maxBreakMinutes);
     final name = employeeName;
 
-    final content = Row(
+    final markers = Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        if (name != null) ...[
-          SizedBox(
-            width: 160,
+        if (late)
+          Tooltip(
+            message: l10n.attendanceLate,
+            child: Icon(
+              LucideIcons.triangleAlert,
+              size: AppSizing.iconSm,
+              color: AppColors.lowStock.foreground,
+            ),
+          ),
+        if (lateBreak) ...[
+          if (late) const SizedBox(width: AppSpacing.xs),
+          Tooltip(
+            message: l10n.attendanceBreakOverrun,
+            child: Icon(
+              LucideIcons.coffee,
+              size: AppSizing.iconSm,
+              color: AppColors.lowStock.foreground,
+            ),
+          ),
+        ],
+      ],
+    );
+
+    // Flex shares rather than fixed widths. This was five `SizedBox`es adding
+    // up to ~546dp plus gaps, which is correct at the 1280dp baseline and
+    // overflows below about 700 — and the whole row is inside a detail pane on
+    // the split view, which is narrower still. Proportions keep the columns
+    // lining up down the list without promising a width the window may not
+    // have; below [AdaptiveRow]'s breakpoint each part takes its own line.
+    //
+    // Six columns need more room than the default phone threshold to stay
+    // legible, so the breakpoint is raised to the width the fixed layout
+    // actually needed.
+    final content = AdaptiveRow(
+      breakpoint: 640,
+      spacing: AppSpacing.md,
+      cells: [
+        if (name != null)
+          AdaptiveCell(
+            flex: 4,
             child: Text(
               name,
               style: theme.textTheme.bodyLarge,
@@ -60,16 +99,17 @@ class AttendanceRow extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          const SizedBox(width: AppSpacing.md),
-        ],
-        SizedBox(
-          width: 100,
+        AdaptiveCell(
+          flex: 3,
           child: Text(
             Formatters.date(attendance.date),
             style: theme.textTheme.bodyLarge,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ),
-        Expanded(
+        AdaptiveCell(
+          flex: 5,
           child: Text(
             _timesLine(),
             style: theme.textTheme.bodySmall,
@@ -77,51 +117,24 @@ class AttendanceRow extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
           ),
         ),
-        SizedBox(
-          width: 80,
+        AdaptiveCell(
+          flex: 2,
           child: Text(
             worked == null ? '—' : Formatters.duration(worked),
             textAlign: TextAlign.right,
             style: theme.textTheme.bodyLarge,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ),
-        const SizedBox(width: AppSpacing.md),
-        SizedBox(
-          width: 150,
+        AdaptiveCell(
+          flex: 4,
           child: Align(
             alignment: Alignment.centerLeft,
             child: AttendanceStatusBadge(status: attendance.status),
           ),
         ),
-        const SizedBox(width: AppSpacing.sm),
-        SizedBox(
-          width: 56,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (late)
-                Tooltip(
-                  message: l10n.attendanceLate,
-                  child: Icon(
-                    LucideIcons.triangleAlert,
-                    size: AppSizing.iconSm,
-                    color: AppColors.lowStock.foreground,
-                  ),
-                ),
-              if (lateBreak) ...[
-                if (late) const SizedBox(width: AppSpacing.xs),
-                Tooltip(
-                  message: l10n.attendanceBreakOverrun,
-                  child: Icon(
-                    LucideIcons.coffee,
-                    size: AppSizing.iconSm,
-                    color: AppColors.lowStock.foreground,
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
+        AdaptiveCell(child: markers),
       ],
     );
 

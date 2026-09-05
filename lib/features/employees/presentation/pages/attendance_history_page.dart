@@ -496,51 +496,45 @@ class _Filters extends StatelessWidget {
     final today = _dayOnly(DateTime.now());
     final floor = DateTime(2000);
 
-    return Wrap(
-      spacing: AppSpacing.lg,
-      runSpacing: AppSpacing.md,
-      crossAxisAlignment: WrapCrossAlignment.end,
-      children: [
-        LabeledField(
+    return FilterBar(
+      reset: canReset
+          ? FilterResetButton(
+              label: l10n.attendanceFilterReset,
+              onPressed: onReset,
+            )
+          : null,
+      fields: [
+        FilterField(
           label: l10n.attendanceFilterEmployee,
-          child: SizedBox(
-            width: 260,
-            child: EmployeeSelector(
-              employees: employees,
-              value: selectedEmployee,
-              showCin: true,
-              hint: l10n.attendanceFilterAllEmployees,
-              onChanged: onEmployee,
-            ),
+          child: EmployeeSelector(
+            employees: employees,
+            value: selectedEmployee,
+            showCin: true,
+            hint: l10n.attendanceFilterAllEmployees,
+            onChanged: onEmployee,
           ),
         ),
-        LabeledField(
+        FilterField.date(
           label: l10n.attendanceFilterFrom,
-          child: SizedBox(
-            width: 165,
-            child: DateField(
-              value: from,
-              compact: true,
-              firstDate: floor,
-              lastDate: to,
-              onChanged: onFrom,
-            ),
+          child: DateField(
+            value: from,
+            compact: true,
+            firstDate: floor,
+            lastDate: to,
+            onChanged: onFrom,
           ),
         ),
-        LabeledField(
+        FilterField.date(
           label: l10n.attendanceFilterTo,
-          child: SizedBox(
-            width: 165,
-            child: DateField(
-              value: to,
-              compact: true,
-              firstDate: from,
-              lastDate: today,
-              onChanged: onTo,
-            ),
+          child: DateField(
+            value: to,
+            compact: true,
+            firstDate: from,
+            lastDate: today,
+            onChanged: onTo,
           ),
         ),
-        LabeledField(
+        FilterField.auto(
           label: l10n.ordersFilterStatus,
           child: FilterMenu<AttendanceStatus?>(
             label: l10n.ordersFilterStatus,
@@ -559,11 +553,6 @@ class _Filters extends StatelessWidget {
             onSelected: onStatus,
           ),
         ),
-        if (canReset)
-          FilterResetButton(
-            label: l10n.attendanceFilterReset,
-            onPressed: onReset,
-          ),
       ],
     );
   }
@@ -769,7 +758,7 @@ _AttendanceRowData _attendanceRowData(
 /// Fits as many columns as the available width allows — up to 3 on a wide
 /// tablet, dropping to 2 then 1 as the screen narrows — rather than always
 /// stacking a single column, which wastes tablet-width real estate. Uses the
-/// same [cardGridColumns] sizing as the employee roster grid, so the two
+/// same [cardGridColumns] sizing as the payroll history cards, so the two
 /// screens switch column counts at the same width.
 class _HistoryCards extends StatelessWidget {
   const _HistoryCards({

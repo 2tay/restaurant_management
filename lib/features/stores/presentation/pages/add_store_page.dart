@@ -90,13 +90,16 @@ class _AddStorePageState extends ConsumerState<AddStorePage> {
                           prefixIcon: LucideIcons.mapPin,
                         ),
                         const SizedBox(height: AppSpacing.lg),
-                        Row(
+                        AdaptiveRow(
                           crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
+                          spacing: AppSpacing.lg,
+                          runSpacing: AppSpacing.lg,
+                          cells: [
                             // Belgian postal codes are always four digits, so
                             // the field is sized for exactly that rather than
-                            // sharing the row evenly.
-                            SizedBox(
+                            // sharing the row evenly — until the row has to
+                            // stack, where both fields take the full width.
+                            AdaptiveCell(
                               width: 160,
                               child: AppTextField(
                                 label: l10n.addStorePostalCode,
@@ -105,8 +108,8 @@ class _AddStorePageState extends ConsumerState<AddStorePage> {
                                 keyboardType: TextInputType.number,
                               ),
                             ),
-                            const SizedBox(width: AppSpacing.lg),
-                            Expanded(
+                            AdaptiveCell(
+                              flex: 1,
                               child: AppTextField(
                                 label: l10n.addStoreCity,
                                 controller: _city,
@@ -142,14 +145,15 @@ class _AddStorePageState extends ConsumerState<AddStorePage> {
                   ),
 
                   const SizedBox(height: AppSpacing.xl),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
+                  Wrap(
+                    alignment: WrapAlignment.end,
+                    spacing: AppSpacing.md,
+                    runSpacing: AppSpacing.sm,
                     children: [
                       SecondaryButton(
                         label: l10n.actionCancel,
                         onPressed: () => context.goSection(Routes.stores),
                       ),
-                      const SizedBox(width: AppSpacing.md),
                       PrimaryButton(
                         label: l10n.addStoreSubmit,
                         icon: LucideIcons.check,

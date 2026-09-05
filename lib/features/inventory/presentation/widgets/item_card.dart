@@ -13,10 +13,26 @@ import '../../../../shared/widgets/widgets.dart';
 
 /// The height of a card below its picture.
 ///
-/// Fixed, and the grid adds it to the image height to size each tile — see
-/// [ItemCard]. It covers the name, the category, the rule under them, and the
-/// stock line sharing a row with the arrow.
-const double itemCardTextHeight = 140;
+/// Stated rather than derived, and the grid adds it to the image height to size
+/// each tile — see [ItemCard]. It covers the name, the category, the rule under
+/// them, and the stock line sharing a row with the arrow.
+///
+/// 126dp, not the 140 it started at. Those four lines need about 120 including
+/// the padding, so the rest was slack — and slack multiplied by every tile is
+/// what made a card 376dp tall and left a phone showing one and a half
+/// products.
+///
+/// It scales with the user's type size: 126 clips the last line at 150%, which
+/// is where this grid overflowed for anyone who had turned the text up. Capped
+/// at 2x so an extreme accessibility setting makes the tiles tall rather than
+/// making them a page each.
+const double itemCardTextHeight = 126;
+
+/// [itemCardTextHeight] grown for the user's current type size.
+double itemCardTextHeightFor(BuildContext context) {
+  final scale = MediaQuery.textScalerOf(context).scale(14) / 14;
+  return itemCardTextHeight * scale.clamp(1.0, 2.0);
+}
 
 /// One product in the catalogue grid.
 ///
@@ -103,7 +119,7 @@ class ItemCard extends StatelessWidget {
           ),
 
           SizedBox(
-            height: itemCardTextHeight,
+            height: itemCardTextHeightFor(context),
             child: Padding(
               padding: const EdgeInsets.all(AppSpacing.md),
               child: Column(

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../app/navigation.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../core/utils/responsive.dart';
 import '../../l10n/app_localizations.dart';
 import 'app_scaffold.dart';
 import 'confirm_dialog.dart';
@@ -30,6 +31,7 @@ class FormScaffold extends StatelessWidget {
     required this.onSubmit,
     required this.child,
     this.subtitle,
+    this.keepSubtitle = false,
     this.crumbs = const [],
     this.submitIcon,
     this.isDirty = false,
@@ -41,6 +43,10 @@ class FormScaffold extends StatelessWidget {
 
   final String title;
   final String? subtitle;
+
+  /// Keeps [subtitle] on a phone — see [ShellPage.keepSubtitle]. True on the
+  /// forms whose subtitle names the record being edited.
+  final bool keepSubtitle;
 
   /// Where Cancel and back lead.
   final BackDestination back;
@@ -88,38 +94,28 @@ class FormScaffold extends StatelessWidget {
       child: ShellPage(
         title: title,
         subtitle: subtitle,
+        keepSubtitle: keepSubtitle,
         back: back,
         crumbs: crumbs,
         onBack: () => _leave(context),
         maxContentWidth: maxWidth,
         footer: _ActionBar(
           maxWidth: maxWidth,
-          leading: Wrap(
-            spacing: AppSpacing.md,
-            runSpacing: AppSpacing.sm,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              SecondaryButton(
-                label: l10n.actionCancel,
-                onPressed: () => _leave(context),
-              ),
-              ?secondaryAction,
-            ],
-          ),
-          trailing: Wrap(
-            spacing: AppSpacing.md,
-            runSpacing: AppSpacing.sm,
-            alignment: WrapAlignment.end,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              ?submitSecondary,
-              PrimaryButton(
-                label: submitLabel,
-                icon: submitIcon,
-                onPressed: onSubmit,
-              ),
-            ],
-          ),
+          leading: [
+            SecondaryButton(
+              label: l10n.actionCancel,
+              onPressed: () => _leave(context),
+            ),
+            ?secondaryAction,
+          ],
+          trailing: [
+            ?submitSecondary,
+            PrimaryButton(
+              label: submitLabel,
+              icon: submitIcon,
+              onPressed: onSubmit,
+            ),
+          ],
         ),
         child: child,
       ),
@@ -155,8 +151,12 @@ class _ActionBar extends StatelessWidget {
     required this.maxWidth,
   });
 
-  final Widget leading;
-  final Widget trailing;
+  /// Dismissive actions, left to right. Cancel first.
+  final List<Widget> leading;
+
+  /// Constructive actions, with the most consequential last.
+  final List<Widget> trailing;
+
   final double maxWidth;
 
   @override
@@ -166,8 +166,8 @@ class _ActionBar extends StatelessWidget {
         color: AppColors.surface,
         border: Border(top: BorderSide(color: AppColors.border)),
       ),
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.xl,
+      padding: EdgeInsets.symmetric(
+        horizontal: context.isPhone ? AppSpacing.lg : AppSpacing.xl,
         vertical: AppSpacing.lg,
       ),
       child: Align(
@@ -176,6 +176,25 @@ class _ActionBar extends StatelessWidget {
           constraints: BoxConstraints(maxWidth: maxWidth),
           child: LayoutBuilder(
             builder: (context, constraints) {
+              // Phone: one action per line, full width, constructive on top.
+              // Half-width buttons side by side at 360dp leave French labels
+              // like "Enregistrer les modifications" nowhere to go, and the
+              // submit is the reason the user is on this screen.
+              if (constraints.maxWidth < AppBreakpoints.compact) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    for (final (i, action) in [
+                      ...trailing.reversed,
+                      ...leading,
+                    ].indexed) ...[
+                      if (i > 0) const SizedBox(height: AppSpacing.sm),
+                      action,
+                    ],
+                  ],
+                );
+              }
+
               // An edit form carries three controls — Cancel, Delete, Save —
               // and three French labels do not fit one bar on a narrow pane.
               // Stacking keeps the convention readable: the constructive
@@ -184,9 +203,12 @@ class _ActionBar extends StatelessWidget {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    trailing,
+                    _wrap(trailing, WrapAlignment.end),
                     const SizedBox(height: AppSpacing.md),
-                    Align(alignment: Alignment.centerLeft, child: leading),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: _wrap(leading, WrapAlignment.start),
+                    ),
                   ],
                 );
               }
@@ -197,9 +219,9 @@ class _ActionBar extends StatelessWidget {
               return Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Flexible(child: leading),
+                  Flexible(child: _wrap(leading, WrapAlignment.start)),
                   const SizedBox(width: AppSpacing.lg),
-                  Flexible(child: trailing),
+                  Flexible(child: _wrap(trailing, WrapAlignment.end)),
                 ],
               );
             },
@@ -208,4 +230,12 @@ class _ActionBar extends StatelessWidget {
       ),
     );
   }
+
+  static Widget _wrap(List<Widget> children, WrapAlignment alignment) => Wrap(
+    spacing: AppSpacing.md,
+    runSpacing: AppSpacing.sm,
+    alignment: alignment,
+    crossAxisAlignment: WrapCrossAlignment.center,
+    children: children,
+  );
 }

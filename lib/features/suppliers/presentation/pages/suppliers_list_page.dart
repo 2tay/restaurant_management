@@ -51,6 +51,7 @@ class _SuppliersListPageState extends ConsumerState<SuppliersListPage> {
       actions: [
         PrimaryButton(
           label: l10n.suppliersAdd,
+          shortLabel: l10n.shortAddSupplier,
           icon: LucideIcons.plus,
           onPressed: () =>
               context.pushScreen(Routes.toAddSupplier(widget.storeId)),
