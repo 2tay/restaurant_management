@@ -4594,6 +4594,18 @@ abstract class AppLocalizations {
   /// **'Retard'**
   String get attendanceDetailLate;
 
+  /// Compact break-duration label on the mobile/tablet attendance card.
+  ///
+  /// In fr, this message translates to:
+  /// **'Pause'**
+  String get attendanceCardBreakLabel;
+
+  /// Compact overtime-duration label on the mobile/tablet attendance card.
+  ///
+  /// In fr, this message translates to:
+  /// **'Heures supplémentaires'**
+  String get attendanceCardOvertimeLabel;
+
   /// Store settings section header for payroll coefficients.
   ///
   /// In fr, this message translates to:
@@ -4773,6 +4785,12 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Payé le'**
   String get payrollColumnPaidAt;
+
+  /// Button at the end of the payment detail drawer, shown only while the day is unpaid.
+  ///
+  /// In fr, this message translates to:
+  /// **'Payer maintenant'**
+  String get payrollDetailPayNow;
 
   /// The button under the table that settles the unpaid days.
   ///

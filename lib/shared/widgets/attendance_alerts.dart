@@ -129,11 +129,22 @@ class AttendanceAlerts extends StatelessWidget {
               color: AppColors.lowStock.container,
               borderRadius: AppRadius.pillAll,
             ),
-            child: Text(
-              attendanceAnomalyLabel(l10n, a),
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: AppColors.lowStock.foreground,
-              ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  LucideIcons.triangleAlert,
+                  size: AppSizing.iconSm,
+                  color: AppColors.lowStock.foreground,
+                ),
+                const SizedBox(width: AppSpacing.xxs),
+                Text(
+                  attendanceAnomalyLabel(l10n, a),
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: AppColors.lowStock.foreground,
+                  ),
+                ),
+              ],
             ),
           ),
       ],

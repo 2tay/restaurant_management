@@ -2787,6 +2787,12 @@ class AppLocalizationsFr extends AppLocalizations {
   String get attendanceDetailLate => 'Retard';
 
   @override
+  String get attendanceCardBreakLabel => 'Pause';
+
+  @override
+  String get attendanceCardOvertimeLabel => 'Heures supplémentaires';
+
+  @override
   String get storeSettingsPayroll => 'Paie';
 
   @override
@@ -2887,6 +2893,9 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get payrollColumnPaidAt => 'Payé le';
+
+  @override
+  String get payrollDetailPayNow => 'Payer maintenant';
 
   @override
   String get payrollPayAction => 'Payer';

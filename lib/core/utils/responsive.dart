@@ -36,3 +36,23 @@ extension ResponsiveContext on BuildContext {
     return max;
   }
 }
+
+/// Column count for a card grid, from the *available content width* rather
+/// than the screen width — a `LayoutBuilder` constraint inside the page body,
+/// which is narrower than the screen once the sidebar takes its share. Every
+/// card stays at least [minCardWidth] wide, so a grid never crowds cards to
+/// the point of clipping their content.
+///
+/// Shared by every card grid that used to size itself independently — the
+/// roster grid, the pointage history cards and the payroll history cards —
+/// so the same width reads as the same column count everywhere in the app.
+int cardGridColumns(
+  double width, {
+  double minCardWidth = 280,
+  double singleColumnBelow = 420,
+  int maxColumns = 4,
+}) {
+  if (width < singleColumnBelow) return 1;
+  final columns = (width / minCardWidth).floor();
+  return columns.clamp(2, maxColumns);
+}

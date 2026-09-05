@@ -79,3 +79,37 @@ class StatTile extends StatelessWidget {
     );
   }
 }
+
+/// A row of [StatTile]s that drops to fewer columns as the available width
+/// narrows, rather than squeezing every tile down to nothing — a `StatTile`
+/// carries a fixed 40dp icon plus its spacing, which overflows once a tile is
+/// squashed much below ~200dp. Used above the employees roster, the pointage
+/// history and the payroll history, so the same width reads as the same
+/// column count on all three.
+class StatTileRow extends StatelessWidget {
+  const StatTileRow({required this.tiles, super.key});
+
+  final List<StatTile> tiles;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final columns = constraints.maxWidth < 480
+            ? 1
+            : constraints.maxWidth < 800
+            ? 2
+            : tiles.length;
+        final spacing = AppSpacing.lg * (columns - 1);
+        final tileWidth = (constraints.maxWidth - spacing) / columns;
+        return Wrap(
+          spacing: AppSpacing.lg,
+          runSpacing: AppSpacing.lg,
+          children: [
+            for (final tile in tiles) SizedBox(width: tileWidth, child: tile),
+          ],
+        );
+      },
+    );
+  }
+}

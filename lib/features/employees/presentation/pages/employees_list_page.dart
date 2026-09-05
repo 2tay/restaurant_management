@@ -7,6 +7,7 @@ import '../../../../app/routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/employee_status.dart';
+import '../../../../core/utils/responsive.dart';
 import '../../../../data/providers.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../models/models.dart';
@@ -101,14 +102,27 @@ class _EmployeesListPageState extends ConsumerState<EmployeesListPage> {
                     ),
             )
           else
-            for (final employee in filtered)
-              Padding(
-                padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                child: _EmployeeRow(
-                  employee: employee,
-                  storeId: widget.storeId,
-                ),
-              ),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final columns = cardGridColumns(constraints.maxWidth);
+                return GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  padding: EdgeInsets.zero,
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: columns,
+                    mainAxisSpacing: AppSpacing.lg,
+                    crossAxisSpacing: AppSpacing.lg,
+                    mainAxisExtent: _employeeCardHeight,
+                  ),
+                  itemCount: filtered.length,
+                  itemBuilder: (context, index) => _EmployeeCard(
+                    employee: filtered[index],
+                    storeId: widget.storeId,
+                  ),
+                );
+              },
+            ),
       ],
     );
   }
@@ -152,41 +166,30 @@ class _KpiRow extends StatelessWidget {
         )
         .length;
 
-    return Row(
-      children: [
-        Expanded(
-          child: StatTile(
-            label: l10n.employeesKpiActive,
-            value: '${active.length}',
-            icon: LucideIcons.users,
-          ),
-        ),
-        const SizedBox(width: AppSpacing.lg),
-        Expanded(
-          child: StatTile(
-            label: l10n.employeesKpiContractSplit,
-            value: l10n.employeesKpiContractSplitValue(fixed, extra),
-            icon: LucideIcons.briefcase,
-          ),
-        ),
-        const SizedBox(width: AppSpacing.lg),
-        Expanded(
-          child: StatTile(
-            label: l10n.employeesKpiManagers,
-            value: '$managers',
-            icon: LucideIcons.shieldCheck,
-          ),
-        ),
-        const SizedBox(width: AppSpacing.lg),
-        Expanded(
-          child: StatTile(
-            label: l10n.employeesKpiHiredThisMonth,
-            value: '$hiredThisMonth',
-            icon: LucideIcons.userPlus,
-          ),
-        ),
-      ],
-    );
+    final tiles = [
+      StatTile(
+        label: l10n.employeesKpiActive,
+        value: '${active.length}',
+        icon: LucideIcons.users,
+      ),
+      StatTile(
+        label: l10n.employeesKpiContractSplit,
+        value: l10n.employeesKpiContractSplitValue(fixed, extra),
+        icon: LucideIcons.briefcase,
+      ),
+      StatTile(
+        label: l10n.employeesKpiManagers,
+        value: '$managers',
+        icon: LucideIcons.shieldCheck,
+      ),
+      StatTile(
+        label: l10n.employeesKpiHiredThisMonth,
+        value: '$hiredThisMonth',
+        icon: LucideIcons.userPlus,
+      ),
+    ];
+
+    return StatTileRow(tiles: tiles);
   }
 }
 
@@ -219,8 +222,13 @@ class _ArchivedFilterPill extends StatelessWidget {
   }
 }
 
-class _EmployeeRow extends StatelessWidget {
-  const _EmployeeRow({required this.employee, required this.storeId});
+/// The tile's fixed height — avatar row, the badge row, the card's own
+/// padding and [AppCard.verticalBorderAllowance] — so every card in the grid
+/// lines up regardless of how long a name or CIN is.
+const double _employeeCardHeight = 132;
+
+class _EmployeeCard extends StatelessWidget {
+  const _EmployeeCard({required this.employee, required this.storeId});
 
   final Employee employee;
   final String storeId;
@@ -233,51 +241,61 @@ class _EmployeeRow extends StatelessWidget {
 
     return AppCard(
       onTap: () => context.pushScreen(Routes.toEmployee(storeId, employee.id)),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          EmployeeAvatar(employee: employee, dimmed: archived),
-          const SizedBox(width: AppSpacing.lg),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+          Row(
+            children: [
+              EmployeeAvatar(employee: employee, dimmed: archived),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Flexible(
-                      child: Text(
-                        employeeDisplayName(employee),
-                        style: theme.textTheme.titleSmall,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            employeeDisplayName(employee),
+                            style: theme.textTheme.titleSmall,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (archived) ...[
+                          const SizedBox(width: AppSpacing.sm),
+                          _ArchivedPill(label: l10n.employeesArchivedPill),
+                        ],
+                      ],
                     ),
-                    if (archived) ...[
-                      const SizedBox(width: AppSpacing.sm),
-                      _ArchivedPill(label: l10n.employeesArchivedPill),
-                    ],
+                    const SizedBox(height: 2),
+                    Text(
+                      l10n.employeeCinLabel(employee.cin),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ],
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  l10n.employeeCinLabel(employee.cin),
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              const Icon(
+                LucideIcons.chevronRight,
+                size: AppSizing.iconMd,
+                color: AppColors.textDisabled,
+              ),
+            ],
           ),
-          const SizedBox(width: AppSpacing.md),
-          EmployeeRoleBadge(role: employee.role),
-          const SizedBox(width: AppSpacing.sm),
-          _ContractChip(type: employee.contractType),
-          const SizedBox(width: AppSpacing.sm),
-          const Icon(
-            LucideIcons.chevronRight,
-            size: AppSizing.iconMd,
-            color: AppColors.textDisabled,
+          const SizedBox(height: AppSpacing.md),
+          Row(
+            children: [
+              Flexible(child: EmployeeRoleBadge(role: employee.role)),
+              const SizedBox(width: AppSpacing.sm),
+              Flexible(child: _ContractChip(type: employee.contractType)),
+            ],
           ),
         ],
       ),

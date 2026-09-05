@@ -4,10 +4,12 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/attendance_status.dart';
 import '../../../../core/utils/employee_status.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/utils/payroll_math.dart';
+import '../../../../core/utils/responsive.dart';
 import '../../../../data/current_employee.dart';
 import '../../../../data/providers.dart';
 import '../../../../data/repositories/repositories.dart';
@@ -241,19 +243,34 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
                   ),
           )
         else ...[
-          _DaysTable(
-            rows: data.rows,
-            employeesById: data.employeesById,
-            paidAtByPeriod: data.paidAtByPeriod,
-            settings: settings,
-            showEmployee: _employeeId == null,
-            onOpen: (a) => _openDrawer(
-              l10n,
-              a,
-              data.employeesById[a.employeeId],
-              data.paidAtByPeriod,
-              settings,
-            ),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final showEmployee = _employeeId == null;
+              void onOpen(Attendance a) => _openDrawer(
+                l10n,
+                a,
+                data.employeesById[a.employeeId],
+                data.paidAtByPeriod,
+                settings,
+              );
+              return constraints.maxWidth >= (showEmployee ? 1080 : 940)
+                  ? _DaysTable(
+                      rows: data.rows,
+                      employeesById: data.employeesById,
+                      paidAtByPeriod: data.paidAtByPeriod,
+                      settings: settings,
+                      showEmployee: showEmployee,
+                      onOpen: onOpen,
+                    )
+                  : _DaysCards(
+                      rows: data.rows,
+                      employeesById: data.employeesById,
+                      paidAtByPeriod: data.paidAtByPeriod,
+                      settings: settings,
+                      showEmployee: showEmployee,
+                      onOpen: onOpen,
+                    );
+            },
           ),
           if (data.pageCount > 1) ...[
             const SizedBox(height: AppSpacing.sm),
@@ -284,40 +301,29 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
   }
 
   Widget _kpiRow(AppLocalizations l10n, PayrollDays data) {
-    return Row(
-      children: [
-        Expanded(
-          child: StatTile(
-            label: l10n.payrollStatPaidDays,
-            value: '${data.paidDays}',
-            icon: LucideIcons.circleCheck,
-          ),
+    return StatTileRow(
+      tiles: [
+        StatTile(
+          label: l10n.payrollStatPaidDays,
+          value: '${data.paidDays}',
+          icon: LucideIcons.circleCheck,
         ),
-        const SizedBox(width: AppSpacing.lg),
-        Expanded(
-          child: StatTile(
-            label: l10n.payrollStatUnpaidDays,
-            value: '${data.unpaidDays}',
-            icon: LucideIcons.hourglass,
-          ),
+        StatTile(
+          label: l10n.payrollStatUnpaidDays,
+          value: '${data.unpaidDays}',
+          icon: LucideIcons.hourglass,
         ),
-        const SizedBox(width: AppSpacing.lg),
-        Expanded(
-          child: StatTile(
-            label: l10n.payrollStatWorkedHours,
-            value: Formatters.duration(data.worked),
-            icon: LucideIcons.clock,
-          ),
+        StatTile(
+          label: l10n.payrollStatWorkedHours,
+          value: Formatters.duration(data.worked),
+          icon: LucideIcons.clock,
         ),
-        const SizedBox(width: AppSpacing.lg),
-        Expanded(
-          child: StatTile(
-            label: l10n.payrollStatOvertimeHours,
-            value: data.overtime == Duration.zero
-                ? '—'
-                : Formatters.duration(data.overtime),
-            icon: LucideIcons.timer,
-          ),
+        StatTile(
+          label: l10n.payrollStatOvertimeHours,
+          value: data.overtime == Duration.zero
+              ? '—'
+              : Formatters.duration(data.overtime),
+          icon: LucideIcons.timer,
         ),
       ],
     );
@@ -399,25 +405,68 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
               ),
             ],
           ),
-          const SizedBox(height: AppSpacing.lg),
-        ],
-        DrawerRow(
-          label: l10n.payrollColumnDate,
-          value: Formatters.date(a.date),
-        ),
-        DrawerRow(
-          label: l10n.payrollColumnStatus,
-          valueWidget: Align(
-            alignment: Alignment.centerLeft,
-            child: PaymentStatusBadge(status: a.paymentStatus),
+          const SizedBox(height: AppSpacing.sm),
+          Row(
+            children: [
+              // Indented past the avatar so this lines up with the name/CIN
+              // above rather than with the avatar's left edge.
+              const SizedBox(width: 48 + AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Wrap(
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      spacing: AppSpacing.sm,
+                      runSpacing: AppSpacing.xs,
+                      children: [
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              LucideIcons.calendar,
+                              size: AppSizing.iconSm,
+                              color: AppColors.textSecondary,
+                            ),
+                            const SizedBox(width: AppSpacing.xs),
+                            Text(
+                              Formatters.date(a.date),
+                              style: Theme.of(context).textTheme.bodyMedium
+                                  ?.copyWith(color: AppColors.textSecondary),
+                            ),
+                          ],
+                        ),
+                        PaymentStatusBadge(status: a.paymentStatus),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-        ),
-        DrawerRow(
-          label: l10n.payrollColumnPaidAt,
-          value: paidAt == null ? '—' : Formatters.date(paidAt),
-        ),
+        ] else ...[
+          Row(
+            children: [
+              const Icon(
+                LucideIcons.calendar,
+                size: AppSizing.iconSm,
+                color: AppColors.textSecondary,
+              ),
+              const SizedBox(width: AppSpacing.xs),
+              Text(
+                Formatters.date(a.date),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              PaymentStatusBadge(status: a.paymentStatus),
+            ],
+          ),
+        ],
+        const SizedBox(height: AppSpacing.xxxl),
+        _drawerSectionTitle(LucideIcons.clock, l10n.payrollColumnHours),
         const SizedBox(height: AppSpacing.md),
-        SectionHeader(title: l10n.payrollColumnHours),
         DrawerRow(
           label: l10n.payrollColumnClockIn,
           value: a.clockInAt == null ? '—' : Formatters.time(a.clockInAt!),
@@ -431,8 +480,9 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
             label: l10n.payrollDetailBreakTotal,
             value: Formatters.duration(totalBreak(a)),
           ),
+        const SizedBox(height: AppSpacing.xxxl),
+        _drawerSectionTitle(LucideIcons.timer, l10n.payrollDetailWorkSection),
         const SizedBox(height: AppSpacing.md),
-        SectionHeader(title: l10n.payrollDetailWorkSection),
         DrawerRow(
           label: l10n.payrollDetailWorked,
           value: worked == null ? '—' : Formatters.duration(worked),
@@ -443,8 +493,9 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
               ? '—'
               : l10n.payrollDetailOvertimeInfo(Formatters.duration(overtime)),
         ),
+        const SizedBox(height: AppSpacing.xxxl),
+        _drawerSectionTitle(LucideIcons.wallet, l10n.payrollColumnAmount),
         const SizedBox(height: AppSpacing.md),
-        SectionHeader(title: l10n.payrollColumnAmount),
         DrawerRow(
           label: l10n.payrollDetailRate,
           value: '${Formatters.price(money.rate)} / h',
@@ -465,9 +516,38 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
             style: Theme.of(context).textTheme.titleSmall,
           ),
         ),
+        if (paidAt != null) ...[
+          const SizedBox(height: AppSpacing.md),
+          Text(
+            '${l10n.payrollColumnPaidAt} ${Formatters.date(paidAt)}',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: AppColors.inStock.foreground,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+        if (employee != null && a.paymentStatus == PaymentStatus.unpaid) ...[
+          const SizedBox(height: AppSpacing.xxxl),
+          PrimaryButton(
+            label: l10n.payrollDetailPayNow,
+            icon: LucideIcons.banknote,
+            fullWidth: true,
+            onPressed: () => _confirmPay(employee),
+          ),
+        ],
       ],
     );
   }
+
+  /// A drawer section title matching the drawer header's own text style —
+  /// bigger than the shared [SectionHeader], with a leading icon.
+  Widget _drawerSectionTitle(IconData icon, String title) => Row(
+    children: [
+      Icon(icon, size: AppSizing.iconSm, color: AppColors.textSecondary),
+      const SizedBox(width: AppSpacing.xs),
+      Text(title, style: Theme.of(context).textTheme.titleMedium),
+    ],
+  );
 
   Future<void> _confirmPay(Employee employee) async {
     final l10n = AppLocalizations.of(context);
@@ -717,29 +797,8 @@ class _DaysTable extends StatelessWidget {
 
   DataRow _row(BuildContext context, AppLocalizations l10n, Attendance a) {
     final theme = Theme.of(context);
-    final employee = employeesById[a.employeeId];
-    final schedule = employee == null
-        ? (startMinutes: settings.openMinutes, endMinutes: settings.closeMinutes)
-        : resolvedSchedule(
-            employee,
-            storeOpenMinutes: settings.openMinutes,
-            storeCloseMinutes: settings.closeMinutes,
-          );
-    final ctx = evaluationContext(
-      a,
-      fallbackStartMinutes: schedule.startMinutes,
-      fallbackEndMinutes: schedule.endMinutes,
-      fallbackMaxBreakMinutes: settings.maxBreakMinutes,
-    );
-
-    final worked = workedDuration(a);
-    final overtime = overtimeBy(a, ctx.endMinutes) ?? Duration.zero;
-    final amount = employee == null
-        ? 0.0
-        : dayAmount(a, employee, settings, scheduledEndMinutes: ctx.endMinutes);
-    final paidAt = a.payrollPeriodId == null
-        ? null
-        : paidAtByPeriod[a.payrollPeriodId!];
+    final data = _payrollRowData(a, employeesById, paidAtByPeriod, settings);
+    final employee = data.employee;
 
     final arrival = a.clockInAt == null ? '—' : Formatters.time(a.clockInAt!);
     final departure = a.clockOutAt == null
@@ -786,21 +845,271 @@ class _DaysTable extends StatelessWidget {
             ],
           ),
         ),
-        DataCell(Text(worked == null ? '—' : Formatters.duration(worked))),
+        DataCell(
+          Text(data.worked == null ? '—' : Formatters.duration(data.worked!)),
+        ),
         DataCell(
           Text(
-            overtime == Duration.zero ? '—' : Formatters.duration(overtime),
+            data.overtime == Duration.zero
+                ? '—'
+                : Formatters.duration(data.overtime),
           ),
         ),
-        DataCell(NumericCell(Formatters.price(amount), emphasis: true)),
+        DataCell(NumericCell(Formatters.price(data.amount), emphasis: true)),
         DataCell(PaymentStatusBadge(status: a.paymentStatus)),
-        DataCell(Text(paidAt == null ? '—' : Formatters.date(paidAt))),
+        DataCell(
+          Text(data.paidAt == null ? '—' : Formatters.date(data.paidAt!)),
+        ),
         DataCell(
           IconButton(
             tooltip: l10n.payrollViewDetail,
             icon: const Icon(LucideIcons.eye, size: AppSizing.iconSm),
             onPressed: () => onOpen(a),
           ),
+        ),
+      ],
+    );
+  }
+}
+
+/// The fields a table row and a card both need, computed once so the two
+/// renderings of the same day can never drift apart — mirrors
+/// `_attendanceRowData` in the pointage history page.
+typedef _PayrollRowData = ({
+  Employee? employee,
+  Duration? worked,
+  Duration overtime,
+  double amount,
+  DateTime? paidAt,
+});
+
+_PayrollRowData _payrollRowData(
+  Attendance a,
+  Map<String, Employee> employeesById,
+  Map<String, DateTime> paidAtByPeriod,
+  StoreSettings settings,
+) {
+  final employee = employeesById[a.employeeId];
+  final schedule = employee == null
+      ? (startMinutes: settings.openMinutes, endMinutes: settings.closeMinutes)
+      : resolvedSchedule(
+          employee,
+          storeOpenMinutes: settings.openMinutes,
+          storeCloseMinutes: settings.closeMinutes,
+        );
+  final ctx = evaluationContext(
+    a,
+    fallbackStartMinutes: schedule.startMinutes,
+    fallbackEndMinutes: schedule.endMinutes,
+    fallbackMaxBreakMinutes: settings.maxBreakMinutes,
+  );
+
+  return (
+    employee: employee,
+    worked: workedDuration(a),
+    overtime: overtimeBy(a, ctx.endMinutes) ?? Duration.zero,
+    amount: employee == null
+        ? 0.0
+        : dayAmount(a, employee, settings, scheduledEndMinutes: ctx.endMinutes),
+    paidAt: a.payrollPeriodId == null
+        ? null
+        : paidAtByPeriod[a.payrollPeriodId!],
+  );
+}
+
+/// The payroll history as a grid of day cards — the table's small-screen
+/// alternative, the same concept as `_HistoryCards` on the pointage history
+/// page: fits as many columns as the available width allows via
+/// [cardGridColumns] rather than always stacking a single column.
+class _DaysCards extends StatelessWidget {
+  const _DaysCards({
+    required this.rows,
+    required this.employeesById,
+    required this.paidAtByPeriod,
+    required this.settings,
+    required this.showEmployee,
+    required this.onOpen,
+  });
+
+  final List<Attendance> rows;
+  final Map<String, Employee> employeesById;
+  final Map<String, DateTime> paidAtByPeriod;
+  final StoreSettings settings;
+  final bool showEmployee;
+  final ValueChanged<Attendance> onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final columns = cardGridColumns(constraints.maxWidth);
+        const spacing = AppSpacing.lg;
+        final cardWidth = columns == 1
+            ? constraints.maxWidth
+            : (constraints.maxWidth - spacing * (columns - 1)) / columns;
+
+        return Wrap(
+          spacing: spacing,
+          runSpacing: spacing,
+          children: [
+            for (final a in rows)
+              SizedBox(
+                width: cardWidth,
+                child: _PayrollDayCard(
+                  attendance: a,
+                  data: _payrollRowData(a, employeesById, paidAtByPeriod, settings),
+                  showEmployee: showEmployee,
+                  onTap: () => onOpen(a),
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+/// One paid or unpaid day, as a card — styled after [OrderRow]: a status
+/// stripe down the left edge instead of a neutral surface, and the money
+/// figure set in the same tabular numeric style as an order total.
+class _PayrollDayCard extends StatelessWidget {
+  const _PayrollDayCard({
+    required this.attendance,
+    required this.data,
+    required this.showEmployee,
+    required this.onTap,
+  });
+
+  final Attendance attendance;
+  final _PayrollRowData data;
+  final bool showEmployee;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final employee = data.employee;
+    final colors = PaymentStatusBadge.colorsFor(attendance.paymentStatus);
+
+    return AppCard(
+      onTap: onTap,
+      accentColor: colors.solid,
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.lg,
+        vertical: AppSpacing.md,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      showEmployee && employee != null
+                          ? employeeDisplayName(employee)
+                          : Formatters.dateLong(attendance.date),
+                      style: theme.textTheme.titleSmall,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      showEmployee
+                          ? Formatters.date(attendance.date)
+                          : (employee == null
+                                ? '—'
+                                : l10n.employeeCinLabel(employee.cin)),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              PaymentStatusBadge(status: attendance.paymentStatus),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Expanded(
+                child: _Figure(
+                  label: l10n.payrollColumnWorked,
+                  value: data.worked == null
+                      ? '—'
+                      : Formatters.duration(data.worked!),
+                ),
+              ),
+              Expanded(
+                child: _Figure(
+                  label: l10n.payrollColumnOvertime,
+                  value: data.overtime == Duration.zero
+                      ? '—'
+                      : Formatters.duration(data.overtime),
+                ),
+              ),
+              _Figure(
+                label: l10n.payrollColumnAmount,
+                value: Formatters.price(data.amount),
+                alignEnd: true,
+                emphasis: true,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A labelled figure inside a [_PayrollDayCard] — worked/overtime/amount all
+/// share this shape, with the amount set apart by [emphasis].
+class _Figure extends StatelessWidget {
+  const _Figure({
+    required this.label,
+    required this.value,
+    this.alignEnd = false,
+    this.emphasis = false,
+  });
+
+  final String label;
+  final String value;
+  final bool alignEnd;
+  final bool emphasis;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Column(
+      crossAxisAlignment: alignEnd
+          ? CrossAxisAlignment.end
+          : CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          label,
+          style: theme.textTheme.labelSmall?.copyWith(
+            color: AppColors.textSecondary,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          value,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: emphasis
+              ? AppTypography.numeric
+              : theme.textTheme.titleSmall,
         ),
       ],
     );
