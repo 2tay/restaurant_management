@@ -4,7 +4,9 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../app/routes.dart';
 import '../../../../app/navigation.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/utils/formatters.dart';
 import '../../../../core/utils/responsive.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../data/providers.dart';
@@ -65,8 +67,9 @@ class _StockHistoryPageState extends ConsumerState<StockHistoryPage> {
   /// also matches what [_clearFilters] does, which is to widen the period back
   /// out to everything — a count that ignored the period would leave the clear
   /// button changing something the count said was not set.
+  /// Filters behind the phone's filter button. The type is not one of them:
+  /// it has its own row of chips, always on screen.
   int get _activeFilterCount =>
-      (_type != null ? 1 : 0) +
       (_period != HistoryPeriod.all ? 1 : 0) +
       (_itemId != null ? 1 : 0) +
       (_userName != null ? 1 : 0);
@@ -157,24 +160,20 @@ class _StockHistoryPageState extends ConsumerState<StockHistoryPage> {
         onRetry: () =>
             ref.invalidate(movementRowsForStoreProvider(widget.storeId)),
         builder: (context, allMovements) {
-          final movements = _filtered(allMovements);
+          // Every filter but the type, so each type chip can say how many
+          // rows tapping it would show.
+          final beforeType = _filtered(allMovements);
+          final movements = _type == null
+              ? beforeType
+              : [
+                  for (final row in beforeType)
+                    if (row.movement.type == _type) row,
+                ];
           final users =
               allMovements.map((row) => row.movement.userName).toSet().toList()
                 ..sort();
 
           final filters = <Widget>[
-            _Menu<StockMovementType?>(
-              label: l10n.movementsFilterType,
-              selectedLabel: _type == null
-                  ? null
-                  : movementTypeLabel(l10n, _type!),
-              entries: {
-                null: l10n.movementsFilterAllTypes,
-                for (final type in StockMovementType.values)
-                  type: movementTypeLabel(l10n, type),
-              },
-              onSelected: (value) => setState(() => _type = value),
-            ),
             _Menu<HistoryPeriod>(
               label: l10n.movementsFilterPeriod,
               selectedLabel: _periodLabel(l10n, _period),
@@ -209,9 +208,23 @@ class _StockHistoryPageState extends ConsumerState<StockHistoryPage> {
             style: Theme.of(context).textTheme.bodySmall,
           );
 
+          final typeChips = _TypeChips(
+            selected: _type,
+            total: beforeType.length,
+            counts: {
+              for (final type in StockMovementType.values)
+                type: beforeType
+                    .where((row) => row.movement.type == type)
+                    .length,
+            },
+            onSelected: (type) => setState(() => _type = type),
+          );
+
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              typeChips,
+              const SizedBox(height: AppSpacing.md),
               // Four filter menus stack into four rows on a 328dp phone, and
               // with the count under them that was 559dp of chrome above the
               // log — the screen showed two rows of it. On a phone they move
@@ -281,18 +294,13 @@ class _StockHistoryPageState extends ConsumerState<StockHistoryPage> {
                               )
                             : _clearFilters,
                       )
-                    : ListView.separated(
-                        itemCount: movements.length,
-                        separatorBuilder: (_, _) =>
-                            const SizedBox(height: AppSpacing.sm),
-                        itemBuilder: (context, index) => MovementRow(
-                          view: movements[index],
+                    : _GroupedList(
+                        movements: movements,
+                        rowBuilder: (view) => MovementRow(
+                          view: view,
                           storeId: widget.storeId,
                           onTap: () => context.pushScreen(
-                            Routes.toItem(
-                              widget.storeId,
-                              movements[index].movement.itemId,
-                            ),
+                            Routes.toItem(widget.storeId, view.movement.itemId),
                           ),
                         ),
                       ),
@@ -336,7 +344,6 @@ class _StockHistoryPageState extends ConsumerState<StockHistoryPage> {
 
     return rows.where((row) {
       final movement = row.movement;
-      if (_type != null && movement.type != _type) return false;
       if (_itemId != null && movement.itemId != _itemId) return false;
       if (_userName != null && movement.userName != _userName) return false;
       if (cutoff != null && movement.occurredAt.isBefore(cutoff)) return false;
@@ -346,6 +353,205 @@ class _StockHistoryPageState extends ConsumerState<StockHistoryPage> {
 }
 
 /// A chip-shaped dropdown filter.
+/// One chip per movement type, in that type's colour, each with its count.
+///
+/// Replaces a "Type" menu: the type is the filter people reach for most on
+/// this screen, and a row of chips is one tap where a menu was two — and it
+/// doubles as a legend for the colours the rows below are drawn in.
+class _TypeChips extends StatelessWidget {
+  const _TypeChips({
+    required this.selected,
+    required this.total,
+    required this.counts,
+    required this.onSelected,
+  });
+
+  final StockMovementType? selected;
+  final int total;
+  final Map<StockMovementType, int> counts;
+  final ValueChanged<StockMovementType?> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          _TypeChip(
+            label: l10n.movementsFilterAllTypes,
+            icon: LucideIcons.arrowRightLeft,
+            count: total,
+            colors: null,
+            selected: selected == null,
+            onTap: () => onSelected(null),
+          ),
+          for (final type in StockMovementType.values) ...[
+            const SizedBox(width: AppSpacing.sm),
+            _TypeChip(
+              label: movementTypeLabel(l10n, type),
+              icon: movementTypeIcon(type),
+              count: counts[type] ?? 0,
+              colors: movementColors(type),
+              selected: selected == type,
+              // Tapping the chip that is already on turns it off, rather than
+              // making the user find "Tous" to get back.
+              onTap: () => onSelected(selected == type ? null : type),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _TypeChip extends StatelessWidget {
+  const _TypeChip({
+    required this.label,
+    required this.icon,
+    required this.count,
+    required this.colors,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final int count;
+
+  /// Null for "Tous", which is drawn in the primary teal.
+  final StockStatusColors? colors;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final solid = colors?.solid ?? AppColors.primary600;
+    final foreground = colors?.foreground ?? AppColors.onPrimaryContainer;
+    final container = colors?.container ?? AppColors.primaryContainer;
+
+    return Semantics(
+      button: true,
+      selected: selected,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: AppRadius.pillAll,
+        child: AnimatedContainer(
+          duration: AppMotion.duration(context, AppMotion.fast),
+          constraints: const BoxConstraints(minHeight: AppSizing.minTapTarget),
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+          decoration: BoxDecoration(
+            color: selected ? container : AppColors.surface,
+            borderRadius: AppRadius.pillAll,
+            border: Border.all(
+              color: selected ? solid : AppColors.border,
+              width: selected ? 2 : 1,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: AppSizing.iconSm, color: solid),
+              const SizedBox(width: AppSpacing.sm),
+              Text(
+                label,
+                style: theme.textTheme.labelLarge?.copyWith(
+                  color: selected ? foreground : AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.sm,
+                  vertical: 2,
+                ),
+                decoration: BoxDecoration(
+                  color: selected ? AppColors.surface : container,
+                  borderRadius: AppRadius.pillAll,
+                ),
+                child: Text(
+                  '$count',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: foreground,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The history, under a header per day.
+///
+/// "Aujourd'hui", "Hier", then the date. Somebody checking what came in this
+/// morning reads the first block and stops, instead of scanning a timestamp
+/// on every row to find where today ends.
+class _GroupedList extends StatelessWidget {
+  const _GroupedList({required this.movements, required this.rowBuilder});
+
+  /// Newest first, as the repository returns them.
+  final List<MovementRowView> movements;
+  final Widget Function(MovementRowView view) rowBuilder;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
+    // Headers and rows flattened into one list, so it stays lazy.
+    final entries = <Object>[];
+    DateTime? day;
+    for (final row in movements) {
+      final at = row.movement.occurredAt;
+      final rowDay = DateTime(at.year, at.month, at.day);
+      if (rowDay != day) {
+        entries.add(rowDay);
+        day = rowDay;
+      }
+      entries.add(row);
+    }
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final yesterday = DateTime(now.year, now.month, now.day - 1);
+
+    return ListView.builder(
+      itemCount: entries.length,
+      itemBuilder: (context, index) {
+        final entry = entries[index];
+        if (entry is DateTime) {
+          final label = entry == today
+              ? l10n.dateToday
+              : entry == yesterday
+              ? l10n.dateYesterday
+              : Formatters.dateWithWeekday(entry);
+          return Padding(
+            padding: EdgeInsets.only(
+              top: index == 0 ? 0 : AppSpacing.md,
+              bottom: AppSpacing.sm,
+            ),
+            child: Text(
+              label,
+              style: Theme.of(
+                context,
+              ).textTheme.labelLarge?.copyWith(color: AppColors.textSecondary),
+            ),
+          );
+        }
+        return Padding(
+          padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+          child: rowBuilder(entry as MovementRowView),
+        );
+      },
+    );
+  }
+}
+
 class _Menu<T> extends StatelessWidget {
   const _Menu({
     required this.label,

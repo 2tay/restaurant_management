@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -12,18 +14,26 @@ import '../../../../l10n/app_localizations.dart';
 import '../../../../data/providers.dart';
 import '../../../../data/repositories/repositories.dart';
 import '../../../../data/view_models/view_models.dart';
+import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
+import '../widgets/movement_labels.dart';
+import '../widgets/picker/movement_cart.dart';
+import '../widgets/picker/product_picker_sheet.dart';
 
-/// Receive a delivery.
+/// Receive a delivery — several products at once.
 ///
-/// The interesting interaction in the app: **picking a supplier auto-fills that
-/// supplier's current price, and the field stays editable.** Both halves
-/// matter. Auto-filling removes the typing the brief asks us to avoid; keeping
-/// it editable acknowledges that the invoice sometimes disagrees with the price
-/// on file, and when it does the difference is what feeds the price history.
+/// Products are picked by their card, not from a list of names, and each one
+/// becomes its own line. A delivery of eight products is one form, saved in
+/// one transaction, instead of the same form filled eight times.
 ///
-/// Pre-selects the item's default supplier, so the common case is: pick item,
-/// tap +, save.
+/// The interaction that matters on every line: **picking a product
+/// auto-fills its usual supplier and that supplier's current price, and both
+/// stay editable.** Auto-filling removes the typing; keeping it editable
+/// acknowledges that the invoice sometimes disagrees with the price on file,
+/// and when it does the difference is what feeds the price history.
+///
+/// Each line has its own supplier, so a run to the market that came back with
+/// tomatoes from one stall and herbs from another is still one delivery.
 class StockInPage extends ConsumerStatefulWidget {
   const StockInPage({required this.storeId, super.key});
 
@@ -33,158 +43,137 @@ class StockInPage extends ConsumerStatefulWidget {
   ConsumerState<StockInPage> createState() => _StockInPageState();
 }
 
-class _StockInPageState extends ConsumerState<StockInPage> {
-  final _priceController = TextEditingController();
+/// One product on the delivery, and what the user has entered for it.
+class _DeliveryLine {
+  _DeliveryLine(this.itemId);
 
-  String? _itemId;
-  String? _supplierId;
-  double _quantity = 1;
-  DateTime _date = DateTime.now();
+  final String itemId;
+  final TextEditingController price = TextEditingController();
 
-  /// The price on file for the current item–supplier pair, so the form can tell
-  /// whether the user has since edited it.
-  double? _autofilledPrice;
+  String? supplierId;
+  double quantity = 1;
 
-  @override
-  void dispose() {
-    _priceController.dispose();
-    super.dispose();
-  }
+  /// The price on file for the current item–supplier pair, so the line can
+  /// tell whether the user has since edited it.
+  double? autofilledPrice;
 
-  /// The picked article, from the list the dropdown already shows.
-  ItemRowView? _selected(List<ItemRowView> rows) {
-    for (final row in rows) {
-      if (row.item.id == _itemId) return row;
-    }
-    return null;
-  }
-
-  double? get _enteredPrice =>
-      double.tryParse(_priceController.text.replaceAll(',', '.').trim());
-
-  bool get _canSubmit =>
-      _itemId != null && _supplierId != null && _quantity > 0;
+  double? get enteredPrice =>
+      double.tryParse(price.text.replaceAll(',', '.').trim());
 
   /// True when the user has changed the auto-filled price — the invoice
   /// disagreed with the price on file.
-  bool get _priceWasEdited {
-    final entered = _enteredPrice;
-    final autofilled = _autofilledPrice;
+  bool get priceWasEdited {
+    final entered = enteredPrice;
+    final autofilled = autofilledPrice;
     if (entered == null || autofilled == null) return false;
     return (entered - autofilled).abs() > 0.001;
   }
 
-  /// Picking an article pre-selects its usual supplier and pulls that price in.
-  ///
-  /// This is the whole point of the screen: for a routine delivery the form is
-  /// already filled, and the only thing left to do is confirm the quantity.
-  ///
-  /// Asynchronous now, because the offers are a query. The write it eventually
-  /// makes is the user's, so a slow answer costs a beat of an empty price field
-  /// rather than a wrong number.
-  Future<void> _onItemChanged(String? itemId) async {
-    setState(() {
-      _itemId = itemId;
-      _supplierId = null;
-      _autofilledPrice = null;
-      _priceController.clear();
-    });
-    if (itemId == null) return;
+  bool get isValid => supplierId != null && quantity > 0;
 
+  double get total => (enteredPrice ?? 0) * quantity;
+}
+
+class _StockInPageState extends ConsumerState<StockInPage> {
+  final List<_DeliveryLine> _lines = [];
+  DateTime _date = DateTime.now();
+  bool _saving = false;
+
+  @override
+  void dispose() {
+    for (final line in _lines) {
+      line.price.dispose();
+    }
+    super.dispose();
+  }
+
+  bool get _canSubmit =>
+      !_saving && _lines.isNotEmpty && _lines.every((line) => line.isValid);
+
+  double get _total => _lines.fold(0, (sum, line) => sum + line.total);
+
+  Future<void> _pick() async {
+    final picked = await ProductPickerSheet.show(
+      context,
+      storeId: widget.storeId,
+      alreadyPicked: {for (final line in _lines) line.itemId},
+    );
+    if (picked == null || picked.isEmpty || !mounted) return;
+
+    final added = [for (final row in picked) _DeliveryLine(row.item.id)];
+    setState(() => _lines.addAll(added));
+    for (final line in added) {
+      unawaited(_prefill(line));
+    }
+  }
+
+  /// A new line pre-selects the product's usual supplier and pulls that price
+  /// in. For a routine delivery the line is then already filled, and the only
+  /// thing left to do is confirm the quantity.
+  Future<void> _prefill(_DeliveryLine line) async {
     final pricing = await ref
         .read(supplierRepositoryProvider)
-        .defaultPriceForItem(itemId);
-    if (!mounted || _itemId != itemId) return;
+        .defaultPriceForItem(line.itemId);
+    if (!mounted || !_lines.contains(line) || line.supplierId != null) return;
 
     setState(() {
-      _supplierId = pricing?.supplierId;
-      _autofilledPrice = pricing?.pricePerUnit;
-      _priceController.text = pricing == null
+      line.supplierId = pricing?.supplierId;
+      line.autofilledPrice = pricing?.pricePerUnit;
+      line.price.text = pricing == null
           ? ''
           : Formatters.quantity(pricing.pricePerUnit);
     });
   }
 
-  Future<void> _onSupplierChanged(String? supplierId) async {
-    setState(() => _supplierId = supplierId);
-
-    final itemId = _itemId;
-    if (itemId == null || supplierId == null) {
-      setState(() {
-        _autofilledPrice = null;
-        _priceController.clear();
-      });
-      return;
-    }
+  Future<void> _onSupplierChanged(
+    _DeliveryLine line,
+    String? supplierId,
+  ) async {
+    setState(() {
+      line.supplierId = supplierId;
+      line.autofilledPrice = null;
+      line.price.clear();
+    });
+    if (supplierId == null) return;
 
     final price = await ref
         .read(supplierRepositoryProvider)
-        .priceFor(itemId, supplierId);
-    if (!mounted || _itemId != itemId || _supplierId != supplierId) return;
+        .priceFor(line.itemId, supplierId);
+    if (!mounted || line.supplierId != supplierId) return;
 
     setState(() {
-      _autofilledPrice = price?.pricePerUnit;
-      _priceController.text = price == null
+      line.autofilledPrice = price?.pricePerUnit;
+      line.price.text = price == null
           ? ''
           : Formatters.quantity(price.pricePerUnit);
     });
   }
 
-  bool get _isDirty => _itemId != null;
+  void _remove(_DeliveryLine line) {
+    setState(() => _lines.remove(line));
+    // After the frame, so a line leaving through a swipe is not disposed
+    // while the dismiss animation still holds its field.
+    WidgetsBinding.instance.addPostFrameCallback((_) => line.price.dispose());
+  }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
 
+    // Read fresh on every build, so the "en stock" figure under each line
+    // moves if a delivery lands elsewhere while this one is being entered.
     final rows =
-        ref.watch(itemRowsProvider((
-              storeId: widget.storeId,
-              filter: ItemFilter.none,
-            ))).value ??
+        ref
+            .watch(
+              itemRowsProvider((
+                storeId: widget.storeId,
+                filter: ItemFilter.none,
+              )),
+            )
+            .value ??
         const <ItemRowView>[];
-
-    final row = _selected(rows);
-    final item = row?.item;
-    final unit = row?.unitAbbreviation ?? '';
-
-    final items = [
-      for (final row in rows)
-        DropdownOption(
-          value: row.item.id,
-          label: row.item.name,
-          secondaryLabel: row.categoryName,
-        ),
-    ];
-
-    // Only suppliers that actually supply this article. Offering all of them
-    // would invite a link that does not exist and a price of nothing.
-    final offers = item == null
-        ? const <SupplierPriceView>[]
-        : ref.watch(itemPricingProvider(item.id)).value?.prices ??
-              const <SupplierPriceView>[];
-
-    final supplierOptions = <DropdownOption<String>>[
-      for (final offer in offers)
-        DropdownOption(
-          value: offer.price.supplierId,
-          label: offer.supplierName,
-          secondaryLabel:
-              '${Formatters.price(offer.price.pricePerUnit)} / $unit',
-        ),
-    ];
-
-    // The supplier named beside the auto-filled price. Taken from the same
-    // list the menu shows, so the sentence cannot name somebody the menu does
-    // not offer.
-    var supplierName = '—';
-    for (final offer in offers) {
-      if (offer.price.supplierId == _supplierId) {
-        supplierName = offer.supplierName;
-      }
-    }
-
-    final total = (_enteredPrice ?? 0) * _quantity;
+    final byId = {for (final row in rows) row.item.id: row};
 
     return FormScaffold(
       title: l10n.stockInTitle,
@@ -199,88 +188,18 @@ class _StockInPageState extends ConsumerState<StockInPage> {
       ],
       submitLabel: l10n.stockInSubmit,
       submitIcon: LucideIcons.arrowDownToLine,
+      submitSecondary: CartSummary(count: _lines.length, total: _total),
       onSubmit: _canSubmit ? _submit : null,
-      isDirty: _isDirty,
-      maxWidth: 720,
+      isDirty: _lines.isNotEmpty,
+      maxWidth: 820,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          AppCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                AppDropdown<String>(
-                  label: l10n.stockInItem,
-                  value: _itemId,
-                  options: items,
-                  onChanged: _onItemChanged,
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                AppDropdown<String>(
-                  label: l10n.stockInSupplier,
-                  value: _supplierId,
-                  options: supplierOptions,
-                  enabled: item != null,
-                  onChanged: _onSupplierChanged,
-                ),
-                if (item != null && supplierOptions.isEmpty) ...[
-                  const SizedBox(height: AppSpacing.sm),
-                  _Hint(
-                    icon: LucideIcons.triangleAlert,
-                    colors: AppColors.lowStock,
-                    message: l10n.stockInNoSupplier,
-                    action: SecondaryButton(
-                      label: l10n.itemLinkSupplier,
-                      onPressed: () => context.pushScreen(
-                        Routes.toLinkSupplier(widget.storeId, item.id),
-                      ),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-
+          // One date for the whole delivery: it arrived once.
           AppCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(l10n.stockInQuantity, style: theme.textTheme.labelMedium),
-                const SizedBox(height: AppSpacing.sm),
-                QuantityStepper(
-                  value: _quantity,
-                  unitAbbreviation: unit,
-                  min: 0,
-                  onChanged: (value) => setState(() => _quantity = value),
-                ),
-                const SizedBox(height: AppSpacing.xl),
-
-                AppTextField.currency(
-                  label: l10n.stockInUnitPrice(unit.isEmpty ? '—' : unit),
-                  controller: _priceController,
-                  enabled: _supplierId != null,
-                  onChanged: (_) => setState(() {}),
-                ),
-                if (_supplierId != null && !_priceWasEdited) ...[
-                  const SizedBox(height: AppSpacing.sm),
-                  Text(
-                    l10n.stockInPriceAutofilled(supplierName),
-                    style: theme.textTheme.bodySmall,
-                  ),
-                ],
-                if (_priceWasEdited) ...[
-                  const SizedBox(height: AppSpacing.sm),
-                  _Hint(
-                    icon: LucideIcons.info,
-                    colors: AppColors.lowStock,
-                    message: l10n.stockInPriceChanged(
-                      Formatters.price(_autofilledPrice!),
-                    ),
-                  ),
-                ],
-
-                const SizedBox(height: AppSpacing.xl),
                 Text(l10n.stockInDate, style: theme.textTheme.labelMedium),
                 const SizedBox(height: AppSpacing.sm),
                 DateField(
@@ -296,23 +215,38 @@ class _StockInPageState extends ConsumerState<StockInPage> {
           ),
           const SizedBox(height: AppSpacing.lg),
 
-          if (_canSubmit && total > 0)
-            AppCard(
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      l10n.stockInTotal,
-                      style: theme.textTheme.titleSmall,
+          MovementCartList(
+            accent: movementColors(StockMovementType.stockIn),
+            onPick: _pick,
+            lines: [
+              for (final line in _lines)
+                if (byId[line.itemId] != null)
+                  MovementLineCard(
+                    key: ObjectKey(line),
+                    view: byId[line.itemId]!,
+                    onRemove: () => _remove(line),
+                    invalid: line.supplierId == null,
+                    trailing: line.total > 0
+                        ? Text(
+                            Formatters.price(line.total),
+                            style: AppTypography.numeric.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
+                          )
+                        : null,
+                    child: _DeliveryLineFields(
+                      storeId: widget.storeId,
+                      line: line,
+                      view: byId[line.itemId]!,
+                      onSupplierChanged: (id) => _onSupplierChanged(line, id),
+                      onQuantityChanged: (value) =>
+                          setState(() => line.quantity = value),
+                      onPriceChanged: () => setState(() {}),
                     ),
                   ),
-                  Text(
-                    Formatters.price(total),
-                    style: AppTypography.numericHero,
-                  ),
-                ],
-              ),
-            ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.xl),
         ],
       ),
     );
@@ -320,34 +254,192 @@ class _StockInPageState extends ConsumerState<StockInPage> {
 
   Future<void> _submit() async {
     final l10n = AppLocalizations.of(context);
+    final movements = ref.read(movementRepositoryProvider);
     final suppliers = ref.read(supplierRepositoryProvider);
-    final priceWasEdited = _priceWasEdited;
+    final lines = List.of(_lines);
 
-    // No order behind it: somebody ran to the market. The movement carries no
-    // order or receipt reference, which is exactly how the history tells the
-    // two paths apart.
-    await ref
-        .read(movementRepositoryProvider)
-        .recordStockIn(
-          storeId: widget.storeId,
-          itemId: _itemId!,
-          quantity: _quantity,
-          supplierId: _supplierId,
-          unitPrice: _enteredPrice,
-          occurredAt: _date,
-        );
+    setState(() => _saving = true);
+    try {
+      // All of it or none of it: a failure on the sixth line must not leave
+      // five on the shelf and the user unsure which.
+      await movements.batch(() async {
+        for (final line in lines) {
+          // No order behind it: somebody ran to the market. The movement
+          // carries no order or receipt reference, which is exactly how the
+          // history tells the two paths apart.
+          await movements.recordStockIn(
+            storeId: widget.storeId,
+            itemId: line.itemId,
+            quantity: line.quantity,
+            supplierId: line.supplierId,
+            unitPrice: line.enteredPrice,
+            occurredAt: _date,
+          );
 
-    // A price typed here that differs from the one on file is a real price
-    // change, recorded the same way receiving a delivery records one.
-    final price = await suppliers.priceFor(_itemId!, _supplierId!);
-    final entered = _enteredPrice;
-    if (price != null && entered != null && priceWasEdited) {
-      await suppliers.updatePrice(price.id, entered, changedAt: _date);
+          // A price typed here that differs from the one on file is a real
+          // price change, recorded the same way receiving a delivery records
+          // one.
+          final entered = line.enteredPrice;
+          if (entered != null && line.priceWasEdited) {
+            final price = await suppliers.priceFor(
+              line.itemId,
+              line.supplierId!,
+            );
+            if (price != null) {
+              await suppliers.updatePrice(price.id, entered, changedAt: _date);
+            }
+          }
+        }
+      });
+    } finally {
+      if (mounted) setState(() => _saving = false);
     }
 
     if (!mounted) return;
-    AppSnackBar.success(context, l10n.stockInRecorded);
+    AppSnackBar.success(
+      context,
+      lines.length == 1
+          ? l10n.stockInRecorded
+          : l10n.movementsRecorded(lines.length),
+    );
     context.goSection(Routes.toMovements(widget.storeId));
+  }
+}
+
+/// Supplier, price and quantity for one delivery line.
+class _DeliveryLineFields extends ConsumerWidget {
+  const _DeliveryLineFields({
+    required this.storeId,
+    required this.line,
+    required this.view,
+    required this.onSupplierChanged,
+    required this.onQuantityChanged,
+    required this.onPriceChanged,
+  });
+
+  final String storeId;
+  final _DeliveryLine line;
+  final ItemRowView view;
+  final ValueChanged<String?> onSupplierChanged;
+  final ValueChanged<double> onQuantityChanged;
+  final VoidCallback onPriceChanged;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final unit = view.unitAbbreviation;
+
+    // Only suppliers that actually supply this article. Offering all of them
+    // would invite a link that does not exist and a price of nothing.
+    final pricing = ref.watch(itemPricingProvider(line.itemId));
+    final offers = pricing.value?.prices ?? const <SupplierPriceView>[];
+
+    final supplierOptions = <DropdownOption<String>>[
+      for (final offer in offers)
+        DropdownOption(
+          value: offer.price.supplierId,
+          label: offer.supplierName,
+          secondaryLabel:
+              '${Formatters.price(offer.price.pricePerUnit)} / $unit',
+        ),
+    ];
+
+    var supplierName = '—';
+    for (final offer in offers) {
+      if (offer.price.supplierId == line.supplierId) {
+        supplierName = offer.supplierName;
+      }
+    }
+
+    if (pricing.hasValue && supplierOptions.isEmpty) {
+      return _Hint(
+        icon: LucideIcons.triangleAlert,
+        colors: AppColors.lowStock,
+        message: l10n.stockInNoSupplier,
+        action: SecondaryButton(
+          label: l10n.itemLinkSupplier,
+          onPressed: () =>
+              context.pushScreen(Routes.toLinkSupplier(storeId, line.itemId)),
+        ),
+      );
+    }
+
+    final supplier = AppDropdown<String>(
+      label: l10n.stockInSupplier,
+      // The default supplier can arrive before this line's offers have: a
+      // menu asked to show a value it does not list asserts, so it shows
+      // nothing for that frame instead.
+      value: supplierOptions.any((option) => option.value == line.supplierId)
+          ? line.supplierId
+          : null,
+      options: supplierOptions,
+      onChanged: onSupplierChanged,
+    );
+
+    final price = AppTextField.currency(
+      label: l10n.stockInUnitPrice(unit.isEmpty ? '—' : unit),
+      controller: line.price,
+      enabled: line.supplierId != null,
+      onChanged: (_) => onPriceChanged(),
+    );
+
+    final quantity = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        LineFieldLabel(l10n.stockInQuantity),
+        QuantityStepper(
+          value: line.quantity,
+          unitAbbreviation: unit,
+          min: 0,
+          onChanged: onQuantityChanged,
+        ),
+      ],
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final wide = constraints.maxWidth >= 560;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (wide)
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(flex: 3, child: supplier),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(flex: 2, child: price),
+                ],
+              )
+            else ...[
+              supplier,
+              const SizedBox(height: AppSpacing.md),
+              price,
+            ],
+            if (line.supplierId != null && !line.priceWasEdited) ...[
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                l10n.stockInPriceAutofilled(supplierName),
+                style: theme.textTheme.bodySmall,
+              ),
+            ],
+            if (line.priceWasEdited) ...[
+              const SizedBox(height: AppSpacing.sm),
+              _Hint(
+                icon: LucideIcons.info,
+                colors: AppColors.lowStock,
+                message: l10n.stockInPriceChanged(
+                  Formatters.price(line.autofilledPrice!),
+                ),
+              ),
+            ],
+            const SizedBox(height: AppSpacing.md),
+            quantity,
+          ],
+        );
+      },
+    );
   }
 }
 

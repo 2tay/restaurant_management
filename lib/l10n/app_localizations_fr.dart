@@ -973,6 +973,97 @@ class AppLocalizationsFr extends AppLocalizations {
   String get adjustmentNoChange => 'Aucun écart — rien à enregistrer.';
 
   @override
+  String adjustmentLargeDropWarning(String percent) {
+    return 'Baisse de $percent — vérifiez votre comptage.';
+  }
+
+  @override
+  String adjustmentLargeConfirmBodyMany(int count, String percent) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count produits baissent',
+      one: '1 produit baisse',
+    );
+    return '$_temp0 d\'au moins $percent. Vérifiez votre comptage avant de confirmer.';
+  }
+
+  @override
+  String movementCountedOf(String counted, String expected) {
+    return 'Compté $counted — prévu $expected';
+  }
+
+  @override
+  String get dateToday => 'Aujourd\'hui';
+
+  @override
+  String get dateYesterday => 'Hier';
+
+  @override
+  String get pickerTitle => 'Choisir des produits';
+
+  @override
+  String get pickerSearchHint => 'Rechercher un produit';
+
+  @override
+  String get pickerAllCategories => 'Toutes';
+
+  @override
+  String get pickerNoResults => 'Aucun produit ne correspond.';
+
+  @override
+  String pickerConfirm(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Ajouter $count produits',
+      one: 'Ajouter 1 produit',
+      zero: 'Sélectionnez des produits',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get cartEmptyBody =>
+      'Touchez les produits concernés — vous pourrez en ajouter d\'autres ensuite.';
+
+  @override
+  String get cartAddProduct => 'Ajouter un produit';
+
+  @override
+  String cartInStock(String quantity) {
+    return 'En stock : $quantity';
+  }
+
+  @override
+  String cartLineCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count produits',
+      one: '1 produit',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get cartRemoveLine => 'Retirer';
+
+  @override
+  String get cartTotal => 'Total';
+
+  @override
+  String movementsRecorded(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count mouvements enregistrés',
+      one: '1 mouvement enregistré',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get suppliersTitle => 'Fournisseurs';
 
   @override

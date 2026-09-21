@@ -1726,6 +1726,108 @@ abstract class AppLocalizations {
   /// **'Aucun écart — rien à enregistrer.'**
   String get adjustmentNoChange;
 
+  /// Inline warning on an adjustment line whose count drops the stock by a large share.
+  ///
+  /// In fr, this message translates to:
+  /// **'Baisse de {percent} — vérifiez votre comptage.'**
+  String adjustmentLargeDropWarning(String percent);
+
+  /// Body of the large-adjustment confirmation when several lines are counted at once.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =1{1 produit baisse} other{{count} produits baissent}} d\'au moins {percent}. Vérifiez votre comptage avant de confirmer.'**
+  String adjustmentLargeConfirmBodyMany(int count, String percent);
+
+  /// History row description of an adjustment: the physical count against what the system expected.
+  ///
+  /// In fr, this message translates to:
+  /// **'Compté {counted} — prévu {expected}'**
+  String movementCountedOf(String counted, String expected);
+
+  /// Date group header for today in the movement history.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aujourd\'hui'**
+  String get dateToday;
+
+  /// Date group header for yesterday in the movement history.
+  ///
+  /// In fr, this message translates to:
+  /// **'Hier'**
+  String get dateYesterday;
+
+  /// Title of the product picker, and the empty-cart call to action on the movement forms.
+  ///
+  /// In fr, this message translates to:
+  /// **'Choisir des produits'**
+  String get pickerTitle;
+
+  /// Search placeholder in the product picker.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rechercher un produit'**
+  String get pickerSearchHint;
+
+  /// Category chip that clears the category filter in the product picker.
+  ///
+  /// In fr, this message translates to:
+  /// **'Toutes'**
+  String get pickerAllCategories;
+
+  /// Shown in the product picker when the search matches nothing.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun produit ne correspond.'**
+  String get pickerNoResults;
+
+  /// Confirm button of the product picker, with the number selected.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =0{Sélectionnez des produits} =1{Ajouter 1 produit} other{Ajouter {count} produits}}'**
+  String pickerConfirm(int count);
+
+  /// Body of the empty-cart card on the movement forms.
+  ///
+  /// In fr, this message translates to:
+  /// **'Touchez les produits concernés — vous pourrez en ajouter d\'autres ensuite.'**
+  String get cartEmptyBody;
+
+  /// Reopens the product picker to add more lines.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ajouter un produit'**
+  String get cartAddProduct;
+
+  /// Current stock under a product on a movement line.
+  ///
+  /// In fr, this message translates to:
+  /// **'En stock : {quantity}'**
+  String cartInStock(String quantity);
+
+  /// Number of lines in the movement cart.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =1{1 produit} other{{count} produits}}'**
+  String cartLineCount(int count);
+
+  /// Tooltip of the button that removes a line from the movement cart.
+  ///
+  /// In fr, this message translates to:
+  /// **'Retirer'**
+  String get cartRemoveLine;
+
+  /// Grand total label in the delivery cart summary.
+  ///
+  /// In fr, this message translates to:
+  /// **'Total'**
+  String get cartTotal;
+
+  /// Snackbar after saving a multi-line movement form.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =1{1 mouvement enregistré} other{{count} mouvements enregistrés}}'**
+  String movementsRecorded(int count);
+
   /// Suppliers list heading.
   ///
   /// In fr, this message translates to:

@@ -59,7 +59,6 @@ class MovementRepository {
   Future<List<StockMovement>> recentActivity(String storeId, {int limit = 8}) =>
       (_forStore(storeId)..limit(limit)).get().then(_toMovements);
 
-
   // ---------------------------------------------------------------------------
   // Rows for the screens
   // ---------------------------------------------------------------------------
@@ -132,6 +131,19 @@ class MovementRepository {
   // ---------------------------------------------------------------------------
   // Writes — the only place quantity and average cost move
   // ---------------------------------------------------------------------------
+
+  /// Runs several writes as one: all of them land, or none do.
+  ///
+  /// For the multi-line forms — a delivery of eight products, a count of a
+  /// whole shelf. Each `record*` call inside [body] still goes through
+  /// [_record], so quantity keeps exactly one writer; drift turns their own
+  /// transactions into savepoints of this one, the same way `confirmReceipt`
+  /// nests them. A failure on line six rolls back lines one to five rather
+  /// than leaving half a delivery on the shelf.
+  ///
+  /// Any other repository on the same database (a supplier price edited on a
+  /// delivery line) joins the same transaction when called inside [body].
+  Future<T> batch<T>(Future<T> Function() body) => _db.transaction(body);
 
   /// A delivery arriving.
   ///
@@ -292,10 +304,9 @@ class MovementRepository {
   /// half-applied delivery impossible rather than merely unlikely.
   Future<StockMovement> _record(StockMovement draft) {
     return _db.transaction(() async {
-      final row =
-          await (_db.select(_db.items)
-                ..where((i) => i.id.equals(draft.itemId)))
-              .getSingleOrNull();
+      final row = await (_db.select(
+        _db.items,
+      )..where((i) => i.id.equals(draft.itemId))).getSingleOrNull();
 
       if (row == null) {
         // Phase 1 filed the movement anyway, with no cost figures, because a

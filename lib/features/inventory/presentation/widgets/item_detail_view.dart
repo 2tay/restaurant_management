@@ -65,12 +65,8 @@ class ItemDetailView extends ConsumerWidget {
       ref.watch(itemPricingProvider(itemId)),
       ref.watch(movementRowsForItemProvider(itemId)),
       ref.watch(itemOnOrderProvider((storeId: storeId, itemId: itemId))),
-      (row, pricing, movements, onOrder) => (
-        row: row,
-        pricing: pricing,
-        movements: movements,
-        onOrder: onOrder,
-      ),
+      (row, pricing, movements, onOrder) =>
+          (row: row, pricing: pricing, movements: movements, onOrder: onOrder),
     );
 
     return AsyncContent<
@@ -169,9 +165,8 @@ class ItemDetailView extends ConsumerWidget {
                 child: SecondaryButton(
                   label: l10n.actionEdit,
                   icon: LucideIcons.pencil,
-                  onPressed: () => context.pushScreen(
-                    Routes.toEditItem(storeId, item.id),
-                  ),
+                  onPressed: () =>
+                      context.pushScreen(Routes.toEditItem(storeId, item.id)),
                 ),
               ),
               const SizedBox(width: AppSpacing.sm),
@@ -180,8 +175,12 @@ class ItemDetailView extends ConsumerWidget {
                 icon: LucideIcons.trash2,
                 filled: false,
                 onPressed: () async {
-                  final deleted =
-                      await confirmDeleteItem(context, ref, storeId, item);
+                  final deleted = await confirmDeleteItem(
+                    context,
+                    ref,
+                    storeId,
+                    item,
+                  );
                   // The pane was showing a product that is gone. Closing it is
                   // the only honest thing left to do.
                   if (deleted) onClose?.call();
@@ -232,10 +231,7 @@ class ItemDetailView extends ConsumerWidget {
                 ),
               ),
               const Divider(height: AppSpacing.xl),
-              _FactRow(
-                label: l10n.itemCategoryLabel,
-                value: row.categoryName,
-              ),
+              _FactRow(label: l10n.itemCategoryLabel, value: row.categoryName),
               const Divider(height: AppSpacing.xl),
               _FactRow(
                 label: l10n.itemUpdatedLabel,
@@ -358,9 +354,8 @@ class ItemDetailView extends ConsumerWidget {
         SectionHeader(
           title: l10n.itemMovementsTitle,
           trailing: TextButton(
-            onPressed: () => context.goSection(
-              Routes.toMovements(storeId, itemId: itemId),
-            ),
+            onPressed: () =>
+                context.goSection(Routes.toMovements(storeId, itemId: itemId)),
             child: Text(l10n.actionViewAll),
           ),
         ),
@@ -381,8 +376,7 @@ class ItemDetailView extends ConsumerWidget {
             padding: EdgeInsets.zero,
             child: Column(
               children: [
-                for (final movement in movements)
-                  _MovementLine(view: movement),
+                for (final movement in movements) _MovementLine(view: movement),
               ],
             ),
           ),
@@ -673,8 +667,6 @@ class _MovementLine extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final movement = view.movement;
-    final isIncrease = movement.quantity > 0;
-
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.lg,
@@ -686,13 +678,9 @@ class _MovementLine extends StatelessWidget {
       child: Row(
         children: [
           Icon(
-            isIncrease
-                ? LucideIcons.arrowDownToLine
-                : LucideIcons.arrowUpFromLine,
+            movementTypeIcon(movement.type),
             size: AppSizing.iconMd,
-            color: isIncrease
-                ? AppColors.inStock.solid
-                : AppColors.textSecondary,
+            color: movementColors(movement.type).solid,
           ),
           const SizedBox(width: AppSpacing.md),
           Expanded(
@@ -705,6 +693,7 @@ class _MovementLine extends StatelessWidget {
                     movement,
                     view.supplierName ?? '—',
                     orderReference: view.orderReference,
+                    unit: view.unitAbbreviation,
                   ),
                   style: theme.textTheme.bodyLarge,
                   maxLines: 1,
@@ -723,9 +712,7 @@ class _MovementLine extends StatelessWidget {
           Text(
             Formatters.quantityDelta(movement.quantity, view.unitAbbreviation),
             style: AppTypography.numeric.copyWith(
-              color: isIncrease
-                  ? AppColors.inStock.foreground
-                  : AppColors.textPrimary,
+              color: quantityDeltaColor(movement.quantity),
             ),
           ),
         ],

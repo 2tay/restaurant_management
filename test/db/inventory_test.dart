@@ -51,18 +51,16 @@ void main() {
     return total;
   }
 
-  Future<Item> chicons({
-    double quantity = 0,
-    double? openingUnitCost,
-  }) async => (await items.create(
-    storeId: StoreIds.sablon,
-    name: 'Chicons',
-    categoryId: CategoryIds.legumes,
-    unitId: UnitIds.kg,
-    quantity: quantity,
-    lowStockThreshold: 4,
-    openingUnitCost: openingUnitCost,
-  ))!;
+  Future<Item> chicons({double quantity = 0, double? openingUnitCost}) async =>
+      (await items.create(
+        storeId: StoreIds.sablon,
+        name: 'Chicons',
+        categoryId: CategoryIds.legumes,
+        unitId: UnitIds.kg,
+        quantity: quantity,
+        lowStockThreshold: 4,
+        openingUnitCost: openingUnitCost,
+      ))!;
 
   group('stock movements are the only writer of quantity', () {
     test('a delivery raises it and the log agrees', () async {
@@ -130,22 +128,24 @@ void main() {
       expect(stockStatusOf(after), StockStatus.outOfStock);
     });
 
-    test('an adjustment records both figures and lands on the counted one',
-        () async {
-      final item = (await items.item(ItemIds.pommesTerre))!;
+    test(
+      'an adjustment records both figures and lands on the counted one',
+      () async {
+        final item = (await items.item(ItemIds.pommesTerre))!;
 
-      final movement = await movements.recordAdjustment(
-        storeId: StoreIds.sablon,
-        itemId: item.id,
-        systemQuantity: item.quantity,
-        countedQuantity: 31,
-      );
+        final movement = await movements.recordAdjustment(
+          storeId: StoreIds.sablon,
+          itemId: item.id,
+          systemQuantity: item.quantity,
+          countedQuantity: 31,
+        );
 
-      expect(movement.systemQuantity, item.quantity);
-      expect(movement.countedQuantity, 31);
-      expect(movement.quantity, 31 - item.quantity);
-      expect((await items.item(item.id))!.quantity, 31);
-    });
+        expect(movement.systemQuantity, item.quantity);
+        expect(movement.countedQuantity, 31);
+        expect(movement.quantity, 31 - item.quantity);
+        expect((await items.item(item.id))!.quantity, 31);
+      },
+    );
 
     test('quantity always equals the sum of the log', () async {
       final created = await chicons(quantity: 10);
@@ -253,27 +253,29 @@ void main() {
   });
 
   group('valuation follows the stock', () {
-    test('rises by what the delivery cost, not by what stock is worth now',
-        () async {
-      // This used to assert `before + 10 x the supplier's current price`, which
-      // is the bug: it valued the delivery at the price on file rather than at
-      // the price paid, and — because the same price was then applied to every
-      // unit on hand — silently revalued stock bought weeks earlier too.
-      final before = await reports.stockValuation(StoreIds.sablon);
+    test(
+      'rises by what the delivery cost, not by what stock is worth now',
+      () async {
+        // This used to assert `before + 10 x the supplier's current price`, which
+        // is the bug: it valued the delivery at the price on file rather than at
+        // the price paid, and — because the same price was then applied to every
+        // unit on hand — silently revalued stock bought weeks earlier too.
+        final before = await reports.stockValuation(StoreIds.sablon);
 
-      await movements.recordStockIn(
-        storeId: StoreIds.sablon,
-        itemId: ItemIds.poulet,
-        quantity: 10,
-        supplierId: SupplierIds.grossisteCentral,
-        unitPrice: 15.00,
-      );
+        await movements.recordStockIn(
+          storeId: StoreIds.sablon,
+          itemId: ItemIds.poulet,
+          quantity: 10,
+          supplierId: SupplierIds.grossisteCentral,
+          unitPrice: 15.00,
+        );
 
-      expect(
-        await reports.stockValuation(StoreIds.sablon),
-        closeTo(before + 10 * 15.00, 0.01),
-      );
-    });
+        expect(
+          await reports.stockValuation(StoreIds.sablon),
+          closeTo(before + 10 * 15.00, 0.01),
+        );
+      },
+    );
 
     test('a delivery at a new price leaves the old stock alone', () async {
       // The headline case, on a real seeded article. Whatever chicken was
@@ -333,27 +335,35 @@ void main() {
       );
     });
 
-    test('an article with no supplier contributes nothing rather than a guess',
-        () async {
-      final before = await reports.stockValuation(StoreIds.sablon);
+    test(
+      'an article with no supplier contributes nothing rather than a guess',
+      () async {
+        final before = await reports.stockValuation(StoreIds.sablon);
 
-      final created = await chicons(quantity: 50);
+        final created = await chicons(quantity: 50);
 
-      expect(await suppliers.pricesForItem(created.id), isEmpty);
-      expect(
-        await reports.stockValuation(StoreIds.sablon),
-        before,
-        reason: '50 kg of unknown cost is not 50 kg of free stock, and it is '
-            'not 50 kg at a price nobody has quoted either',
-      );
-    });
+        expect(await suppliers.pricesForItem(created.id), isEmpty);
+        expect(
+          await reports.stockValuation(StoreIds.sablon),
+          before,
+          reason:
+              '50 kg of unknown cost is not 50 kg of free stock, and it is '
+              'not 50 kg at a price nobody has quoted either',
+        );
+      },
+    );
 
-    test('an empty establishment is worth nothing rather than crashing',
-        () async {
-      expect(await reports.stockValuation(StoreIds.saintGilles), 0);
-      expect(await reports.valuationByCategory(StoreIds.saintGilles), isEmpty);
-      expect(await reports.valuationByItem(StoreIds.saintGilles), isEmpty);
-    });
+    test(
+      'an empty establishment is worth nothing rather than crashing',
+      () async {
+        expect(await reports.stockValuation(StoreIds.saintGilles), 0);
+        expect(
+          await reports.valuationByCategory(StoreIds.saintGilles),
+          isEmpty,
+        );
+        expect(await reports.valuationByItem(StoreIds.saintGilles), isEmpty);
+      },
+    );
   });
 
   group('an article starts with the cost it was bought at', () {
@@ -364,18 +374,20 @@ void main() {
       expect(created.quantity, 50);
     });
 
-    test('it is set by the opening movement, not written onto the article',
-        () async {
-      // The single-writer rule reaches cost as well as quantity: the article's
-      // first movement is what gives it a cost, so the log explains the number
-      // from the article's first day.
-      final created = await chicons(quantity: 50, openingUnitCost: 3.20);
+    test(
+      'it is set by the opening movement, not written onto the article',
+      () async {
+        // The single-writer rule reaches cost as well as quantity: the article's
+        // first movement is what gives it a cost, so the log explains the number
+        // from the article's first day.
+        final created = await chicons(quantity: 50, openingUnitCost: 3.20);
 
-      final opening = (await movements.movementsForItem(created.id)).single;
-      expect(opening.type, StockMovementType.adjustment);
-      expect(opening.unitCost, closeTo(3.20, 0.001));
-      expect(opening.averageCostAfter, closeTo(3.20, 0.001));
-    });
+        final opening = (await movements.movementsForItem(created.id)).single;
+        expect(opening.type, StockMovementType.adjustment);
+        expect(opening.unitCost, closeTo(3.20, 0.001));
+        expect(opening.averageCostAfter, closeTo(3.20, 0.001));
+      },
+    );
 
     test('without one, the cost stays unknown rather than zero', () async {
       final created = await chicons(quantity: 50);
@@ -570,21 +582,23 @@ void main() {
       );
     });
 
-    test('a delivery with no price recorded leaves the average where it was',
-        () async {
-      final before = (await poulet()).averageCost!;
+    test(
+      'a delivery with no price recorded leaves the average where it was',
+      () async {
+        final before = (await poulet()).averageCost!;
 
-      await movements.recordStockIn(
-        storeId: StoreIds.sablon,
-        itemId: ItemIds.poulet,
-        quantity: 10,
-      );
+        await movements.recordStockIn(
+          storeId: StoreIds.sablon,
+          itemId: ItemIds.poulet,
+          quantity: 10,
+        );
 
-      // An unrecorded price is not a price of zero. Treating it as one would
-      // drag the average towards nothing and quietly destroy the article's
-      // value.
-      expect((await poulet()).averageCost, closeTo(before, 0.001));
-    });
+        // An unrecorded price is not a price of zero. Treating it as one would
+        // drag the average towards nothing and quietly destroy the article's
+        // value.
+        expect((await poulet()).averageCost, closeTo(before, 0.001));
+      },
+    );
 
     test('the recorder stamps the current user when nobody is named', () async {
       final expected = await AccountRepository(db).currentUserName();
@@ -598,6 +612,83 @@ void main() {
 
       expect(movement.userName, expected);
       expect(expected, isNotEmpty);
+    });
+  });
+
+  // The multi-product forms save every line through `batch`. The promise is
+  // the one a delivery note makes: it arrived, all of it, or it did not.
+  group('a multi-line form saves all of its lines or none', () {
+    const lines = {
+      ItemIds.tomates: 12.0,
+      ItemIds.oignons: 5.0,
+      ItemIds.persil: 2.0,
+    };
+
+    Future<Map<String, double>> quantities() async => {
+      for (final id in lines.keys) id: (await items.item(id))!.quantity,
+    };
+
+    test(
+      'three lines raise three quantities, each with its own movement',
+      () async {
+        final before = await quantities();
+
+        await movements.batch(() async {
+          for (final MapEntry(key: id, value: quantity) in lines.entries) {
+            await movements.recordStockIn(
+              storeId: StoreIds.sablon,
+              itemId: id,
+              quantity: quantity,
+              supplierId: SupplierIds.maraicher,
+              unitPrice: 2.5,
+            );
+          }
+        });
+
+        final after = await quantities();
+        for (final MapEntry(key: id, value: quantity) in lines.entries) {
+          expect(after[id], before[id]! + quantity, reason: id);
+          expect((await latestFor(id)).quantity, quantity, reason: id);
+        }
+      },
+    );
+
+    test('a failure on the last line rolls back the ones before it', () async {
+      final before = await quantities();
+      final logBefore = {
+        for (final id in lines.keys)
+          id: (await movements.movementsForItem(id)).length,
+      };
+
+      await expectLater(
+        movements.batch(() async {
+          for (final MapEntry(key: id, value: quantity) in lines.entries) {
+            await movements.recordStockOut(
+              storeId: StoreIds.sablon,
+              itemId: id,
+              quantity: quantity,
+              reason: StockOutReason.waste,
+            );
+          }
+          // An article that does not exist: the writer refuses it.
+          await movements.recordStockOut(
+            storeId: StoreIds.sablon,
+            itemId: 'item-does-not-exist',
+            quantity: 1,
+            reason: StockOutReason.waste,
+          );
+        }),
+        throwsStateError,
+      );
+
+      expect(await quantities(), before);
+      for (final id in lines.keys) {
+        expect(
+          (await movements.movementsForItem(id)).length,
+          logBefore[id],
+          reason: id,
+        );
+      }
     });
   });
 }

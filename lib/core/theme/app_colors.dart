@@ -80,6 +80,18 @@ abstract final class AppColors {
     container: Color(0xFFFADEDE),
   );
 
+  /// Neutral information — neither good nor bad news.
+  ///
+  /// The colour of a stock *adjustment*: a count corrected the system, which
+  /// is bookkeeping rather than an alarm. Red read as an error and amber as a
+  /// warning; blue keeps it apart from both the green of a delivery and the
+  /// red of a stock-out.
+  static const StockStatusColors info = StockStatusColors(
+    solid: Color(0xFF1E66C5),
+    foreground: Color(0xFF0D3F80),
+    container: Color(0xFFDCE9FA),
+  );
+
   /// The pointage "en pause" colour. Deliberately in the teal family rather
   /// than amber: on the kiosk board a break is a normal, benign state, not a
   /// warning, and the redesign asks for the primary accent here. It is a tinted

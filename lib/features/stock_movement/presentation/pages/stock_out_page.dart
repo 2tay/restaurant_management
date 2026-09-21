@@ -6,7 +6,6 @@ import '../../../../app/routes.dart';
 import '../../../../app/navigation.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
-import '../../../../core/utils/formatters.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../data/providers.dart';
 import '../../../../data/repositories/repositories.dart';
@@ -14,12 +13,16 @@ import '../../../../data/view_models/view_models.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 import '../widgets/movement_labels.dart';
+import '../widgets/picker/movement_cart.dart';
+import '../widgets/picker/product_picker_sheet.dart';
 
-/// Record stock leaving: sold, used, wasted or transferred.
+/// Record stock leaving — sold, used, wasted or transferred — for several
+/// products at once.
 ///
-/// The reason is a row of large chips rather than a dropdown. This is the
-/// screen used most often mid-service, the options never change, and one tap
-/// beats open-scroll-select every time.
+/// The reason is a row of large chips rather than a dropdown, and it is chosen
+/// once for the whole form. This is the screen used most often mid-service,
+/// the options never change, and "everything that went in the bin tonight" is
+/// one reason with many products, not many forms with one.
 class StockOutPage extends ConsumerStatefulWidget {
   const StockOutPage({required this.storeId, super.key});
 
@@ -29,58 +32,49 @@ class StockOutPage extends ConsumerStatefulWidget {
   ConsumerState<StockOutPage> createState() => _StockOutPageState();
 }
 
+class _StockOutLine {
+  _StockOutLine(this.itemId);
+
+  final String itemId;
+  double quantity = 1;
+}
+
 class _StockOutPageState extends ConsumerState<StockOutPage> {
-  String? _itemId;
-  double _quantity = 1;
+  final List<_StockOutLine> _lines = [];
   StockOutReason _reason = StockOutReason.sale;
+  bool _saving = false;
 
-  /// The picked article, from the list the dropdown is already showing.
-  ///
-  /// Not a query of its own: the row carries the quantity and the unit, which
-  /// is everything this screen asks about it.
-  ItemRowView? _selected(List<ItemRowView> rows) {
-    for (final row in rows) {
-      if (row.item.id == _itemId) return row;
-    }
-    return null;
+  bool get _canSubmit =>
+      !_saving && _lines.isNotEmpty && _lines.every((l) => l.quantity > 0);
+
+  Future<void> _pick() async {
+    final picked = await ProductPickerSheet.show(
+      context,
+      storeId: widget.storeId,
+      alreadyPicked: {for (final line in _lines) line.itemId},
+    );
+    if (picked == null || picked.isEmpty || !mounted) return;
+    setState(() {
+      _lines.addAll([for (final row in picked) _StockOutLine(row.item.id)]);
+    });
   }
-
-  bool get _canSubmit => _itemId != null && _quantity > 0;
-
-  bool _exceedsStock(ItemRowView? row) =>
-      row != null && _quantity > row.item.quantity;
-
-  bool get _isDirty => _itemId != null;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
 
-    // Alphabetical, not worst-first: this is a picker, and somebody looking for
-    // "Tomates" wants it where the alphabet says it is.
     final rows =
-        ref.watch(itemRowsProvider((
-              storeId: widget.storeId,
-              filter: ItemFilter.none,
-            ))).value ??
+        ref
+            .watch(
+              itemRowsProvider((
+                storeId: widget.storeId,
+                filter: ItemFilter.none,
+              )),
+            )
+            .value ??
         const <ItemRowView>[];
-
-    final row = _selected(rows);
-    final item = row?.item;
-    final unit = row?.unitAbbreviation ?? '';
-
-    final items = [
-      for (final row in rows)
-        DropdownOption(
-          value: row.item.id,
-          label: row.item.name,
-          secondaryLabel: Formatters.quantityWithUnit(
-            row.item.quantity,
-            row.unitAbbreviation,
-          ),
-        ),
-    ];
+    final byId = {for (final row in rows) row.item.id: row};
 
     return FormScaffold(
       title: l10n.stockOutTitle,
@@ -95,85 +89,13 @@ class _StockOutPageState extends ConsumerState<StockOutPage> {
       ],
       submitLabel: l10n.stockOutSubmit,
       submitIcon: LucideIcons.arrowUpFromLine,
+      submitSecondary: CartSummary(count: _lines.length),
       onSubmit: _canSubmit ? _submit : null,
-      isDirty: _isDirty,
-      maxWidth: 720,
+      isDirty: _lines.isNotEmpty,
+      maxWidth: 820,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          AppCard(
-            child: AppDropdown<String>(
-              label: l10n.stockInItem,
-              value: _itemId,
-              options: items,
-              onChanged: (value) => setState(() => _itemId = value),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-
-          AppCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        l10n.stockOutQuantity,
-                        style: theme.textTheme.labelMedium,
-                      ),
-                    ),
-                    if (item != null)
-                      Text(
-                        l10n.stockOutAvailable(
-                          Formatters.quantityWithUnit(item.quantity, unit),
-                        ),
-                        style: theme.textTheme.bodySmall,
-                      ),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                QuantityStepper(
-                  value: _quantity,
-                  unitAbbreviation: unit,
-                  onChanged: (value) => setState(() => _quantity = value),
-                ),
-                if (_exceedsStock(row)) ...[
-                  const SizedBox(height: AppSpacing.md),
-                  // A warning rather than a hard block: stock counts drift,
-                  // and refusing to record something that actually left the
-                  // building would make the data worse, not better.
-                  Container(
-                    padding: const EdgeInsets.all(AppSpacing.md),
-                    decoration: BoxDecoration(
-                      color: AppColors.lowStock.container,
-                      borderRadius: AppRadius.mdAll,
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          LucideIcons.triangleAlert,
-                          size: AppSizing.iconMd,
-                          color: AppColors.lowStock.foreground,
-                        ),
-                        const SizedBox(width: AppSpacing.sm),
-                        Expanded(
-                          child: Text(
-                            l10n.stockOutExceedsStock,
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: AppColors.lowStock.foreground,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-
           AppCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -195,6 +117,28 @@ class _StockOutPageState extends ConsumerState<StockOutPage> {
               ],
             ),
           ),
+          const SizedBox(height: AppSpacing.lg),
+
+          MovementCartList(
+            accent: movementColors(StockMovementType.stockOut),
+            onPick: _pick,
+            lines: [
+              for (final line in _lines)
+                if (byId[line.itemId] != null)
+                  MovementLineCard(
+                    key: ObjectKey(line),
+                    view: byId[line.itemId]!,
+                    onRemove: () => setState(() => _lines.remove(line)),
+                    child: _StockOutFields(
+                      line: line,
+                      view: byId[line.itemId]!,
+                      onChanged: (value) =>
+                          setState(() => line.quantity = value),
+                    ),
+                  ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.xl),
         ],
       ),
     );
@@ -202,23 +146,99 @@ class _StockOutPageState extends ConsumerState<StockOutPage> {
 
   Future<void> _submit() async {
     final l10n = AppLocalizations.of(context);
+    final movements = ref.read(movementRepositoryProvider);
+    final lines = List.of(_lines);
 
-    // Recorded as entered even when it takes the item below zero. The warning
-    // above is the whole intervention: refusing would make staff either lie to
-    // the app or stop using it, and negative stock is itself a useful signal
-    // that a delivery went unrecorded.
-    await ref
-        .read(movementRepositoryProvider)
-        .recordStockOut(
-          storeId: widget.storeId,
-          itemId: _itemId!,
-          quantity: _quantity,
-          reason: _reason,
-        );
+    setState(() => _saving = true);
+    try {
+      // Recorded as entered even when it takes an item below zero. The
+      // warning on the line is the whole intervention: refusing would make
+      // staff either lie to the app or stop using it, and negative stock is
+      // itself a useful signal that a delivery went unrecorded.
+      await movements.batch(() async {
+        for (final line in lines) {
+          await movements.recordStockOut(
+            storeId: widget.storeId,
+            itemId: line.itemId,
+            quantity: line.quantity,
+            reason: _reason,
+          );
+        }
+      });
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
 
     if (!mounted) return;
-    AppSnackBar.success(context, l10n.stockOutRecorded);
+    AppSnackBar.success(
+      context,
+      lines.length == 1
+          ? l10n.stockOutRecorded
+          : l10n.movementsRecorded(lines.length),
+    );
     context.goSection(Routes.toMovements(widget.storeId));
+  }
+}
+
+/// The quantity leaving, and a warning when it is more than is on the shelf.
+class _StockOutFields extends StatelessWidget {
+  const _StockOutFields({
+    required this.line,
+    required this.view,
+    required this.onChanged,
+  });
+
+  final _StockOutLine line;
+  final ItemRowView view;
+  final ValueChanged<double> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final exceeds = line.quantity > view.item.quantity;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        LineFieldLabel(l10n.stockOutQuantity),
+        QuantityStepper(
+          value: line.quantity,
+          unitAbbreviation: view.unitAbbreviation,
+          onChanged: onChanged,
+        ),
+        if (exceeds) ...[
+          const SizedBox(height: AppSpacing.md),
+          // A warning rather than a hard block: stock counts drift, and
+          // refusing to record something that actually left the building
+          // would make the data worse, not better.
+          Container(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            decoration: BoxDecoration(
+              color: AppColors.lowStock.container,
+              borderRadius: AppRadius.mdAll,
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  LucideIcons.triangleAlert,
+                  size: AppSizing.iconMd,
+                  color: AppColors.lowStock.foreground,
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: Text(
+                    l10n.stockOutExceedsStock,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: AppColors.lowStock.foreground,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
   }
 }
 
