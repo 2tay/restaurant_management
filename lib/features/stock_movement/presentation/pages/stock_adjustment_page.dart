@@ -24,9 +24,14 @@ import '../widgets/picker/product_picker_sheet.dart';
 /// works out the difference. Asking them to compute the delta themselves is how
 /// adjustments get entered backwards.
 ///
+/// A product that counts right is one tap — "Juste" — and its row turns
+/// green, so a shelf of twenty with two gaps is twenty taps and two numbers.
+/// Only the gaps are saved: a count that matched is a check, not a
+/// correction.
+///
 /// A large downward correction confirms first, per the brief, and the dialog
 /// states the size of the drop. Someone who typed 8 when they meant 80 should
-/// be stopped by reading the number back to them. Each line also warns on its
+/// be stopped by reading the number back to them. Each row also warns on its
 /// own, before the save, so the one that needs a second look is findable.
 class StockAdjustmentPage extends ConsumerStatefulWidget {
   const StockAdjustmentPage({required this.storeId, super.key});
@@ -42,7 +47,12 @@ class _CountLine {
   _CountLine(this.itemId, this.counted);
 
   final String itemId;
+  final FocusNode focus = FocusNode();
   double counted;
+
+  /// Marked "Juste": counted and found to match. Cleared by any change to the
+  /// count, so a green row always means what it says.
+  bool confirmed = false;
 }
 
 /// Below this share, a downward correction is routine. At or beyond it, the
@@ -69,6 +79,9 @@ class _StockAdjustmentPageState extends ConsumerState<StockAdjustmentPage> {
   @override
   void dispose() {
     _noteController.dispose();
+    for (final line in _lines) {
+      line.focus.dispose();
+    }
     super.dispose();
   }
 
@@ -77,6 +90,11 @@ class _StockAdjustmentPageState extends ConsumerState<StockAdjustmentPage> {
       context,
       storeId: widget.storeId,
       alreadyPicked: {for (final line in _lines) line.itemId},
+      featured: recentItemIds(
+        ref.read(movementRowsForStoreProvider(widget.storeId)).value,
+        StockMovementType.adjustment,
+      ),
+      featuredTitle: AppLocalizations.of(context).pickerSectionRecent,
     );
     if (picked == null || picked.isEmpty || !mounted) return;
     setState(() {
@@ -88,12 +106,27 @@ class _StockAdjustmentPageState extends ConsumerState<StockAdjustmentPage> {
     });
   }
 
+  void _remove(_CountLine line) {
+    setState(() => _lines.remove(line));
+    WidgetsBinding.instance.addPostFrameCallback((_) => line.focus.dispose());
+  }
+
+  void _focusAfter(_CountLine line) {
+    final index = _lines.indexOf(line);
+    if (index >= 0 && index + 1 < _lines.length) {
+      _lines[index + 1].focus.requestFocus();
+    } else {
+      FocusScope.of(context).unfocus();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final colors = movementColors(StockMovementType.adjustment);
 
     // Read fresh on every build rather than cached, so a delivery landing
-    // while somebody is counting moves the "système" figure under their eyes
+    // while somebody is counting moves the "prévu" figure under their eyes
     // instead of leaving them comparing against a number that has stopped
     // being true.
     final rows =
@@ -108,16 +141,20 @@ class _StockAdjustmentPageState extends ConsumerState<StockAdjustmentPage> {
         const <ItemRowView>[];
     final byId = {for (final row in rows) row.item.id: row};
 
-    // Only a count that differs is saved. A line counted and found right is
-    // a check, not a correction.
-    final changedCount = _lines.where((line) {
+    var gaps = 0;
+    var correct = 0;
+    for (final line in _lines) {
       final row = byId[line.itemId];
-      return row != null && _hasChange(row.item.quantity, line.counted);
-    }).length;
+      if (row == null) continue;
+      if (_hasChange(row.item.quantity, line.counted)) {
+        gaps++;
+      } else if (line.confirmed) {
+        correct++;
+      }
+    }
 
     return FormScaffold(
       title: l10n.adjustmentTitle,
-      subtitle: l10n.adjustmentSubtitle,
       back: BackDestination(
         label: l10n.movementsTitle,
         path: Routes.toMovements(widget.storeId),
@@ -128,20 +165,32 @@ class _StockAdjustmentPageState extends ConsumerState<StockAdjustmentPage> {
       ],
       submitLabel: l10n.adjustmentSubmit,
       submitIcon: LucideIcons.clipboardCheck,
-      submitSecondary: CartSummary(count: changedCount),
-      onSubmit: !_saving && changedCount > 0 ? () => _submit(byId) : null,
+      submitSecondary: CartSummary(
+        count: _lines.length,
+        detail: [
+          l10n.adjustmentGapCount(gaps),
+          if (correct > 0) l10n.adjustmentCorrectCount(correct),
+        ].join('  ·  '),
+      ),
+      onSubmit: !_saving && gaps > 0 ? () => _submit(byId) : null,
       isDirty: _lines.isNotEmpty,
-      maxWidth: 820,
+      maxWidth: 900,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          MovementCartList(
-            accent: movementColors(StockMovementType.adjustment),
+          MovementBanner(
+            colors: colors,
+            icon: LucideIcons.clipboardCheck,
+            message: l10n.adjustmentSubtitle,
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          MovementProductsCard(
+            accent: colors,
             onPick: _pick,
-            lines: [
+            rows: [
               for (final line in _lines)
                 if (byId[line.itemId] != null)
-                  _countLine(context, line, byId[line.itemId]!),
+                  _countRow(context, line, byId[line.itemId]!),
             ],
           ),
           if (_lines.isNotEmpty) ...[
@@ -161,86 +210,67 @@ class _StockAdjustmentPageState extends ConsumerState<StockAdjustmentPage> {
     );
   }
 
-  Widget _countLine(BuildContext context, _CountLine line, ItemRowView view) {
+  Widget _countRow(BuildContext context, _CountLine line, ItemRowView view) {
     final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
     final system = view.item.quantity;
     final unit = view.unitAbbreviation;
     final delta = _delta(system, line.counted);
+    final changed = _hasChange(system, line.counted);
+    final done = line.confirmed && !changed;
 
     return MovementLineCard(
       key: ObjectKey(line),
       view: view,
-      onRemove: () => setState(() => _lines.remove(line)),
+      onRemove: () => _remove(line),
+      inlineMinWidth: 700,
+      state: done ? LineState.done : LineState.normal,
+      subtitle: _isLargeDrop(system, line.counted)
+          ? Text(
+              l10n.adjustmentLargeDropWarning(
+                Formatters.percent(delta.abs() / system),
+              ),
+              style: TextStyle(
+                color: AppColors.lowStock.foreground,
+                fontWeight: FontWeight.w600,
+              ),
+            )
+          : Text(
+              l10n.adjustmentExpected(
+                Formatters.quantityWithUnit(system, unit),
+              ),
+            ),
       // The difference, in the colour of what it does to the stock.
       trailing: Text(
-        _hasChange(system, line.counted)
-            ? Formatters.quantityDelta(delta, unit)
-            : '—',
+        changed ? Formatters.quantityDelta(delta, unit) : '—',
         style: AppTypography.numeric.copyWith(
           fontWeight: FontWeight.w700,
           color: quantityDeltaColor(delta),
         ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      controls: Wrap(
+        spacing: AppSpacing.sm,
+        runSpacing: AppSpacing.sm,
+        crossAxisAlignment: WrapCrossAlignment.center,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  l10n.adjustmentSystemQuantity,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              ),
-              Text(
-                Formatters.quantityWithUnit(system, unit),
-                style: AppTypography.numeric,
-              ),
-            ],
+          QuantityStepper(
+            compact: true,
+            value: line.counted,
+            unitAbbreviation: unit,
+            focusNode: line.focus,
+            textInputAction: TextInputAction.next,
+            onSubmitted: () => _focusAfter(line),
+            onChanged: (value) => setState(() {
+              line.counted = value;
+              line.confirmed = false;
+            }),
           ),
-          const SizedBox(height: AppSpacing.md),
-          LineFieldLabel(l10n.adjustmentCountedQuantity),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: QuantityStepper(
-              value: line.counted,
-              unitAbbreviation: unit,
-              onChanged: (value) => setState(() => line.counted = value),
-            ),
+          _CorrectButton(
+            selected: done,
+            onPressed: () => setState(() {
+              line.counted = system;
+              line.confirmed = true;
+            }),
           ),
-          if (_isLargeDrop(system, line.counted)) ...[
-            const SizedBox(height: AppSpacing.md),
-            Container(
-              padding: const EdgeInsets.all(AppSpacing.md),
-              decoration: BoxDecoration(
-                color: AppColors.lowStock.container,
-                borderRadius: AppRadius.mdAll,
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    LucideIcons.triangleAlert,
-                    size: AppSizing.iconMd,
-                    color: AppColors.lowStock.foreground,
-                  ),
-                  const SizedBox(width: AppSpacing.sm),
-                  Expanded(
-                    child: Text(
-                      l10n.adjustmentLargeDropWarning(
-                        Formatters.percent(delta.abs() / system),
-                      ),
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: AppColors.lowStock.foreground,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
         ],
       ),
     );
@@ -325,5 +355,35 @@ class _StockAdjustmentPageState extends ConsumerState<StockAdjustmentPage> {
           : l10n.movementsRecorded(counts.length),
     );
     context.goSection(Routes.toMovements(widget.storeId));
+  }
+}
+
+/// "Juste" — the count matches. Filled green once pressed.
+class _CorrectButton extends StatelessWidget {
+  const _CorrectButton({required this.selected, required this.onPressed});
+
+  final bool selected;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    const colors = AppColors.inStock;
+
+    return OutlinedButton.icon(
+      onPressed: onPressed,
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size(0, AppSizing.minTapTarget),
+        foregroundColor: colors.foreground,
+        backgroundColor: selected ? colors.container : null,
+        side: BorderSide(
+          color: selected ? colors.solid : AppColors.border,
+          width: selected ? 2 : 1,
+        ),
+        shape: const StadiumBorder(),
+      ),
+      icon: const Icon(LucideIcons.check, size: AppSizing.iconSm),
+      label: Text(l10n.adjustmentMarkCorrect),
+    );
   }
 }

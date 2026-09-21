@@ -33,8 +33,15 @@ abstract final class ProductPickerSheet {
     BuildContext context, {
     required String storeId,
     Set<String> alreadyPicked = const {},
+    List<String> featured = const [],
+    String? featuredTitle,
   }) {
-    final body = _ProductPicker(storeId: storeId, alreadyPicked: alreadyPicked);
+    final body = _ProductPicker(
+      storeId: storeId,
+      alreadyPicked: alreadyPicked,
+      featured: featured,
+      featuredTitle: featuredTitle,
+    );
 
     if (context.isPhone) {
       return showModalBottomSheet<List<ItemRowView>>(
@@ -68,10 +75,21 @@ abstract final class ProductPickerSheet {
 }
 
 class _ProductPicker extends ConsumerStatefulWidget {
-  const _ProductPicker({required this.storeId, required this.alreadyPicked});
+  const _ProductPicker({
+    required this.storeId,
+    required this.alreadyPicked,
+    required this.featured,
+    required this.featuredTitle,
+  });
 
   final String storeId;
   final Set<String> alreadyPicked;
+
+  /// Products worth putting first — the ones running low on a delivery, the
+  /// ones used lately on a stock-out — shown in their own section under
+  /// [featuredTitle] until the user searches or picks a category.
+  final List<String> featured;
+  final String? featuredTitle;
 
   @override
   ConsumerState<_ProductPicker> createState() => _ProductPickerState();
@@ -88,6 +106,99 @@ class _ProductPickerState extends ConsumerState<_ProductPicker> {
     setState(() {
       if (!_picked.remove(itemId)) _picked.add(itemId);
     });
+  }
+
+  Widget _card(ItemRowView row) {
+    final id = row.item.id;
+    final locked = widget.alreadyPicked.contains(id);
+    return PickerProductCard(
+      view: row,
+      selected: locked || _picked.contains(id),
+      locked: locked,
+      onTap: locked ? null : () => _toggle(id),
+    );
+  }
+
+  SliverGrid _sliverGrid(BuildContext context, List<ItemRowView> rows) =>
+      SliverGrid.builder(
+        gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+          maxCrossAxisExtent: 180,
+          mainAxisSpacing: AppSpacing.md,
+          crossAxisSpacing: AppSpacing.md,
+          mainAxisExtent: PickerProductCard.heightFor(context),
+        ),
+        itemCount: rows.length,
+        itemBuilder: (context, index) => _card(rows[index]),
+      );
+
+  Widget _header(BuildContext context, String title, IconData icon) =>
+      SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+          child: Row(
+            children: [
+              Icon(
+                icon,
+                size: AppSizing.iconSm,
+                color: AppColors.textSecondary,
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Text(
+                title,
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+
+  /// The grid — split in two, featured first, while nothing narrows it.
+  Widget _grid(
+    BuildContext context,
+    List<ItemRowView> visible,
+    Map<String, ItemRowView> byId,
+  ) {
+    final l10n = AppLocalizations.of(context);
+    final browsing = _query.trim().isEmpty && _category == null;
+    final featured = browsing && widget.featuredTitle != null
+        ? [
+            for (final id in widget.featured)
+              if (byId[id] != null) byId[id]!,
+          ]
+        : const <ItemRowView>[];
+    final featuredIds = {for (final row in featured) row.item.id};
+    final rest = [
+      for (final row in visible)
+        if (!featuredIds.contains(row.item.id)) row,
+    ];
+
+    return CustomScrollView(
+      slivers: [
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.lg,
+            0,
+            AppSpacing.lg,
+            AppSpacing.lg,
+          ),
+          sliver: SliverMainAxisGroup(
+            slivers: [
+              if (featured.isNotEmpty) ...[
+                _header(context, widget.featuredTitle!, LucideIcons.sparkles),
+                _sliverGrid(context, featured),
+                const SliverToBoxAdapter(
+                  child: SizedBox(height: AppSpacing.lg),
+                ),
+                _header(context, l10n.pickerSectionAll, LucideIcons.layoutGrid),
+              ],
+              _sliverGrid(context, rest),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 
   @override
@@ -196,32 +307,7 @@ class _ProductPickerState extends ConsumerState<_ProductPicker> {
                     ),
                   ),
                 )
-              : GridView.builder(
-                  padding: const EdgeInsets.fromLTRB(
-                    AppSpacing.lg,
-                    0,
-                    AppSpacing.lg,
-                    AppSpacing.lg,
-                  ),
-                  gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-                    maxCrossAxisExtent: 180,
-                    mainAxisSpacing: AppSpacing.md,
-                    crossAxisSpacing: AppSpacing.md,
-                    mainAxisExtent: PickerProductCard.heightFor(context),
-                  ),
-                  itemCount: visible.length,
-                  itemBuilder: (context, index) {
-                    final row = visible[index];
-                    final id = row.item.id;
-                    final locked = widget.alreadyPicked.contains(id);
-                    return PickerProductCard(
-                      view: row,
-                      selected: locked || _picked.contains(id),
-                      locked: locked,
-                      onTap: locked ? null : () => _toggle(id),
-                    );
-                  },
-                ),
+              : _grid(context, visible, byId),
         ),
 
         // The confirm button says how many, so the count is never a

@@ -1053,6 +1053,114 @@ class AppLocalizationsFr extends AppLocalizations {
   String get cartTotal => 'Total';
 
   @override
+  String get cartProducts => 'Produits';
+
+  @override
+  String get lineChooseSupplier => 'Choisir un fournisseur';
+
+  @override
+  String linePriceEdited(String old) {
+    return 'prix modifié (avant $old)';
+  }
+
+  @override
+  String linePriceLabel(String unit) {
+    return 'Prix / $unit';
+  }
+
+  @override
+  String supplierSheetTitle(String item) {
+    return 'Fournisseur — $item';
+  }
+
+  @override
+  String get supplierBestPrice => 'Meilleur prix';
+
+  @override
+  String get supplierUsual => 'Habituel';
+
+  @override
+  String get supplierApplyAll =>
+      'Utiliser ce fournisseur pour tous les produits qu\'il propose';
+
+  @override
+  String supplierAppliedAll(String supplier, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count produits',
+      one: '1 produit',
+    );
+    return '$supplier choisi pour $_temp0';
+  }
+
+  @override
+  String cartIssueNoSupplier(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count produits sans fournisseur',
+      one: '1 produit sans fournisseur',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String cartIssueNoQuantity(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count produits sans quantité',
+      one: '1 produit sans quantité',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String adjustmentExpected(String quantity) {
+    return 'prévu $quantity';
+  }
+
+  @override
+  String get adjustmentMarkCorrect => 'Juste';
+
+  @override
+  String adjustmentCorrectCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count justes',
+      one: '1 juste',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String adjustmentGapCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count écarts',
+      one: '1 écart',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get pickerSectionRestock => 'À réapprovisionner';
+
+  @override
+  String get pickerSectionRecent => 'Utilisés récemment';
+
+  @override
+  String get pickerSectionAll => 'Tous les produits';
+
+  @override
+  String deliveryReceivedOn(String date) {
+    return 'Reçue $date';
+  }
+
+  @override
   String movementsRecorded(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,

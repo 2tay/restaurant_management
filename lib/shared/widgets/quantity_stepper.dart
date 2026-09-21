@@ -27,6 +27,10 @@ class QuantityStepper extends StatefulWidget {
     this.min = 0,
     this.max = 99999,
     this.allowDecimals = true,
+    this.compact = false,
+    this.focusNode,
+    this.textInputAction,
+    this.onSubmitted,
     super.key,
   });
 
@@ -46,6 +50,18 @@ class QuantityStepper extends StatefulWidget {
   /// False for units that cannot be fractional — pieces, crates.
   final bool allowDecimals;
 
+  /// A smaller stepper (40dp buttons, a narrower field) for a row that lists
+  /// several products, where the full-size one would take a line to itself.
+  final bool compact;
+
+  /// Lets a form move focus from one stepper to the next.
+  final FocusNode? focusNode;
+
+  /// The keyboard's action key. [TextInputAction.next] on a multi-line form,
+  /// with [onSubmitted] moving to the following line.
+  final TextInputAction? textInputAction;
+  final VoidCallback? onSubmitted;
+
   @override
   State<QuantityStepper> createState() => _QuantityStepperState();
 }
@@ -54,21 +70,31 @@ class _QuantityStepperState extends State<QuantityStepper> {
   late final TextEditingController _controller = TextEditingController(
     text: Formatters.quantity(widget.value),
   );
-  final FocusNode _focusNode = FocusNode();
+  late final FocusNode _ownFocusNode = FocusNode();
+  FocusNode get _focusNode => widget.focusNode ?? _ownFocusNode;
 
   @override
   void initState() {
     super.initState();
     // Reformat on blur so a half-typed "12," becomes "12" rather than sitting
     // there looking broken.
-    _focusNode.addListener(() {
-      if (!_focusNode.hasFocus) _syncControllerToValue();
-    });
+    _focusNode.addListener(_onFocusChange);
+  }
+
+  void _onFocusChange() {
+    if (!_focusNode.hasFocus) _syncControllerToValue();
   }
 
   @override
   void didUpdateWidget(QuantityStepper oldWidget) {
     super.didUpdateWidget(oldWidget);
+    // A node handed in by the form belongs to the form and outlives this
+    // stepper, so the listener has to move with it and come off on dispose —
+    // left behind, it would call into a disposed controller.
+    if (oldWidget.focusNode != widget.focusNode) {
+      (oldWidget.focusNode ?? _ownFocusNode).removeListener(_onFocusChange);
+      _focusNode.addListener(_onFocusChange);
+    }
     if (oldWidget.value != widget.value && !_focusNode.hasFocus) {
       _syncControllerToValue();
     }
@@ -76,8 +102,9 @@ class _QuantityStepperState extends State<QuantityStepper> {
 
   @override
   void dispose() {
+    _focusNode.removeListener(_onFocusChange);
     _controller.dispose();
-    _focusNode.dispose();
+    _ownFocusNode.dispose();
     super.dispose();
   }
 
@@ -117,6 +144,8 @@ class _QuantityStepperState extends State<QuantityStepper> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final compact = widget.compact;
+    final gap = compact ? AppSpacing.xs : AppSpacing.sm;
 
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -125,10 +154,11 @@ class _QuantityStepperState extends State<QuantityStepper> {
           icon: LucideIcons.minus,
           onPressed: widget.value > widget.min ? () => _nudge(-_step) : null,
           semanticLabel: l10n.a11yDecrease,
+          compact: compact,
         ),
-        const SizedBox(width: AppSpacing.sm),
+        SizedBox(width: gap),
         SizedBox(
-          width: AppSizing.stepperFieldWidth,
+          width: compact ? 104 : AppSizing.stepperFieldWidth,
           child: TextField(
             controller: _controller,
             focusNode: _focusNode,
@@ -139,23 +169,29 @@ class _QuantityStepperState extends State<QuantityStepper> {
               FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
             ],
             onChanged: _onFieldChanged,
+            textInputAction: widget.textInputAction,
+            onSubmitted: widget.onSubmitted == null
+                ? null
+                : (_) => widget.onSubmitted!(),
             decoration: InputDecoration(
+              isDense: compact,
               suffixText: widget.unitAbbreviation.isEmpty
                   ? null
                   : widget.unitAbbreviation,
               suffixStyle: Theme.of(context).textTheme.bodyMedium,
-              contentPadding: const EdgeInsets.symmetric(
+              contentPadding: EdgeInsets.symmetric(
                 horizontal: AppSpacing.sm,
-                vertical: AppSpacing.lg,
+                vertical: compact ? AppSpacing.md : AppSpacing.lg,
               ),
             ),
           ),
         ),
-        const SizedBox(width: AppSpacing.sm),
+        SizedBox(width: gap),
         _StepperButton(
           icon: LucideIcons.plus,
           onPressed: widget.value < widget.max ? () => _nudge(_step) : null,
           semanticLabel: l10n.a11yIncrease,
+          compact: compact,
         ),
       ],
     );
@@ -168,11 +204,13 @@ class _StepperButton extends StatefulWidget {
     required this.icon,
     required this.onPressed,
     required this.semanticLabel,
+    this.compact = false,
   });
 
   final IconData icon;
   final VoidCallback? onPressed;
   final String semanticLabel;
+  final bool compact;
 
   @override
   State<_StepperButton> createState() => _StepperButtonState();
@@ -224,9 +262,13 @@ class _StepperButtonState extends State<_StepperButton> {
             onTap: widget.onPressed,
             borderRadius: AppRadius.mdAll,
             child: Container(
-              width: AppSizing.stepperButton,
-              constraints: const BoxConstraints(
-                minHeight: AppSizing.inputHeight,
+              width: widget.compact
+                  ? AppSizing.minTapTarget
+                  : AppSizing.stepperButton,
+              constraints: BoxConstraints(
+                minHeight: widget.compact
+                    ? AppSizing.minTapTarget
+                    : AppSizing.inputHeight,
               ),
               alignment: Alignment.center,
               decoration: BoxDecoration(
@@ -237,7 +279,7 @@ class _StepperButtonState extends State<_StepperButton> {
               ),
               child: Icon(
                 widget.icon,
-                size: AppSizing.iconLg,
+                size: widget.compact ? AppSizing.iconMd : AppSizing.iconLg,
                 color: enabled ? AppColors.textPrimary : AppColors.textDisabled,
               ),
             ),

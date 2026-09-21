@@ -1822,6 +1822,120 @@ abstract class AppLocalizations {
   /// **'Total'**
   String get cartTotal;
 
+  /// Heading of the product list on the movement forms.
+  ///
+  /// In fr, this message translates to:
+  /// **'Produits'**
+  String get cartProducts;
+
+  /// Supplier chip on a delivery line with no supplier yet.
+  ///
+  /// In fr, this message translates to:
+  /// **'Choisir un fournisseur'**
+  String get lineChooseSupplier;
+
+  /// Note on a delivery line whose price differs from the one on file.
+  ///
+  /// In fr, this message translates to:
+  /// **'prix modifié (avant {old})'**
+  String linePriceEdited(String old);
+
+  /// Label of the compact unit price field on a delivery line.
+  ///
+  /// In fr, this message translates to:
+  /// **'Prix / {unit}'**
+  String linePriceLabel(String unit);
+
+  /// Title of the supplier choice sheet for one product.
+  ///
+  /// In fr, this message translates to:
+  /// **'Fournisseur — {item}'**
+  String supplierSheetTitle(String item);
+
+  /// Tag on the cheapest supplier in the supplier choice sheet.
+  ///
+  /// In fr, this message translates to:
+  /// **'Meilleur prix'**
+  String get supplierBestPrice;
+
+  /// Tag on the product's default supplier in the supplier choice sheet.
+  ///
+  /// In fr, this message translates to:
+  /// **'Habituel'**
+  String get supplierUsual;
+
+  /// Checkbox in the supplier choice sheet: apply the chosen supplier to every line it supplies.
+  ///
+  /// In fr, this message translates to:
+  /// **'Utiliser ce fournisseur pour tous les produits qu\'il propose'**
+  String get supplierApplyAll;
+
+  /// Snackbar after applying one supplier to several delivery lines.
+  ///
+  /// In fr, this message translates to:
+  /// **'{supplier} choisi pour {count, plural, =1{1 produit} other{{count} produits}}'**
+  String supplierAppliedAll(String supplier, int count);
+
+  /// Validation message in the form footer; tapping it scrolls to the line.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =1{1 produit sans fournisseur} other{{count} produits sans fournisseur}}'**
+  String cartIssueNoSupplier(int count);
+
+  /// Validation message in the form footer; tapping it scrolls to the line.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =1{1 produit sans quantité} other{{count} produits sans quantité}}'**
+  String cartIssueNoQuantity(int count);
+
+  /// What the system expects, under a product on the count form.
+  ///
+  /// In fr, this message translates to:
+  /// **'prévu {quantity}'**
+  String adjustmentExpected(String quantity);
+
+  /// Button on a count line: the count matches the system.
+  ///
+  /// In fr, this message translates to:
+  /// **'Juste'**
+  String get adjustmentMarkCorrect;
+
+  /// How many counted lines matched the system, in the form footer.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =1{1 juste} other{{count} justes}}'**
+  String adjustmentCorrectCount(int count);
+
+  /// How many counted lines differ from the system, in the form footer.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =1{1 écart} other{{count} écarts}}'**
+  String adjustmentGapCount(int count);
+
+  /// Product picker section on the delivery form: low and out-of-stock products.
+  ///
+  /// In fr, this message translates to:
+  /// **'À réapprovisionner'**
+  String get pickerSectionRestock;
+
+  /// Product picker section: products recently used on this kind of movement.
+  ///
+  /// In fr, this message translates to:
+  /// **'Utilisés récemment'**
+  String get pickerSectionRecent;
+
+  /// Product picker section with every other product.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tous les produits'**
+  String get pickerSectionAll;
+
+  /// Date chip on the delivery form.
+  ///
+  /// In fr, this message translates to:
+  /// **'Reçue {date}'**
+  String deliveryReceivedOn(String date);
+
   /// Snackbar after saving a multi-line movement form.
   ///
   /// In fr, this message translates to:
