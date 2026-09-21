@@ -15,6 +15,7 @@ import 'package:stock_inventory/features/inventory/presentation/widgets/item_det
 import 'package:stock_inventory/features/stock_movement/presentation/widgets/movement_row.dart';
 import 'package:stock_inventory/features/stock_movement/presentation/widgets/movement_table.dart';
 import 'package:stock_inventory/shared/widgets/app_table.dart';
+import 'package:stock_inventory/shared/widgets/view_mode_toggle.dart';
 
 import 'support/app_harness.dart';
 
@@ -133,5 +134,43 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.byType(AppTable<MovementRowView>), findsOneWidget);
     expect(find.byType(AppTable<ItemRowView>), findsOneWidget);
+  });
+
+  testApp('the list/table switch sits at the right end of the filter bar', (
+    tester,
+  ) async {
+    await open(tester, _tablet, Routes.toMovements(_store));
+
+    final toggle = tester.getRect(
+      find.byType(ViewModeToggle<MovementsViewMode>),
+    );
+    final list = tester.getRect(find.byType(MovementRow).first);
+    // Its right edge lines up with the list's, give or take a pixel.
+    expect((toggle.right - list.right).abs(), lessThan(2));
+  });
+
+  testApp('each dashboard panel has its "Voir tout" at its right edge', (
+    tester,
+  ) async {
+    await open(tester, _tablet, Routes.toDashboard(_store));
+
+    for (final type in [AppTable<MovementRowView>, AppTable<ItemRowView>]) {
+      final table = tester.getRect(find.byType(type));
+      final links = find
+          .text('Voir tout')
+          .evaluate()
+          .map((element) => tester.getRect(find.byWidget(element.widget)));
+      // The link above this table ends near the table's right edge — not
+      // somewhere in the middle of the header.
+      final above = links.where(
+        (rect) => rect.bottom <= table.top && rect.left >= table.left,
+      );
+      expect(above, isNotEmpty);
+      expect(
+        above.any((rect) => table.right - rect.right < 48),
+        isTrue,
+        reason: '$type',
+      );
+    }
   });
 }

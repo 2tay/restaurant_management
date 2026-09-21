@@ -119,6 +119,7 @@ class MovementRepository {
           MovementRowView(
             movement: movementFromRow(row.readTable(_db.stockMovements)),
             itemName: row.readTableOrNull(_db.items)?.name ?? '—',
+            itemImagePath: row.readTableOrNull(_db.items)?.imagePath,
             unitAbbreviation:
                 row.readTableOrNull(_db.units)?.abbreviation ?? '',
             supplierName: row.readTableOrNull(_db.suppliers)?.name,

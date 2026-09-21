@@ -877,7 +877,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get periodAll => 'Tout l\'historique';
 
   @override
-  String get movementTypeIn => 'Livraison';
+  String get movementTypeIn => 'Entrée';
 
   @override
   String get movementTypeOut => 'Sortie';

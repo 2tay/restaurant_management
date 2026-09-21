@@ -52,6 +52,7 @@ export 'searchable_dropdown.dart';
 export 'section_header.dart';
 export 'section_tabs.dart';
 export 'stat_tile.dart';
+export 'status_dot.dart';
 export 'status_pill.dart';
 export 'stock_status_badge.dart';
 // store_switcher.dart removed with the top bar — the sidebar owns store

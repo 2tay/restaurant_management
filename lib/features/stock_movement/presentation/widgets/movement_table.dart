@@ -13,6 +13,7 @@ import '../../../../l10n/app_localizations.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 import 'movement_labels.dart';
+import 'movement_type_badge.dart';
 
 /// How the movement history is shown.
 enum MovementsViewMode { list, table }
@@ -31,12 +32,14 @@ final movementsViewModeProvider =
       MovementsViewModeNotifier.new,
     );
 
-/// The movement history as a table: when, what kind, which product and the
-/// detail, how much and what it was worth, and who.
+/// The movement history as a table: when, which product (with its photo) and
+/// the detail, what kind, how much and what it was worth, and who.
 ///
-/// Each row carries its type's colour down its left edge, as the cards do.
-/// On a narrow screen the value, the person and the receipt link drop out
-/// before anything scrolls sideways.
+/// Entrées, sorties and ajustements stand apart at a glance: each row's
+/// type is a small soft badge in its colour, and its quantity is written in
+/// the same colour. Nothing else is tinted — no stripe, no coloured icon — so
+/// the table still reads as a table. On a narrow screen the value, the person and the receipt link drop
+/// out before anything scrolls sideways.
 class MovementTable extends StatelessWidget {
   const MovementTable({
     required this.movements,
@@ -54,13 +57,12 @@ class MovementTable extends StatelessWidget {
 
     return AppTable<MovementRowView>(
       rows: movements,
-      rowAccent: (view) => movementColors(view.movement.type).solid,
       onRowTap: (view) =>
           context.pushScreen(Routes.toItem(storeId, view.movement.itemId)),
       columns: [
-        AppTableColumn(label: l10n.tableColDate, width: 156),
-        AppTableColumn(label: l10n.tableColType, width: 150),
+        AppTableColumn(label: l10n.tableColDate, width: 150),
         AppTableColumn(label: l10n.tableColProduct, flex: 3),
+        AppTableColumn(label: l10n.tableColType, width: 140),
         AppTableColumn(label: l10n.tableColQuantity, width: 120, numeric: true),
         AppTableColumn(
           label: l10n.tableColValue,
@@ -78,56 +80,65 @@ class MovementTable extends StatelessWidget {
         return switch (column) {
           0 => Text(
             Formatters.dateTime(movement.occurredAt),
-            style: theme.textTheme.bodyMedium,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: AppColors.textSecondary,
+            ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
-          1 => StatusPill(
-            colors: movementColors(movement.type),
-            icon: movementTypeIcon(movement.type),
-            label: movementTypeLabel(l10n, movement.type),
-          ),
-          2 => Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          1 => Row(
             children: [
-              Text(
-                view.itemName,
-                style: theme.textTheme.titleSmall,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              Text(
-                movementDescription(
-                  l10n,
-                  movement,
-                  view.supplierName ?? '—',
-                  orderReference: view.orderReference,
-                  unit: unit,
-                  withType: false,
+              ProductImage(imagePath: view.itemImagePath, size: 36, radius: 8),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      view.itemName,
+                      style: theme.textTheme.titleSmall,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      movementDescription(
+                        l10n,
+                        movement,
+                        view.supplierName ?? '—',
+                        orderReference: view.orderReference,
+                        unit: unit,
+                        withType: false,
+                      ),
+                      style: theme.textTheme.bodySmall,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                 ),
-                style: theme.textTheme.bodySmall,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),
+          2 => MovementTypeBadge(type: movement.type),
           3 => Text(
             Formatters.quantityDelta(movement.quantity, unit),
             style: AppTypography.numeric.copyWith(
               fontWeight: FontWeight.w700,
-              color: quantityDeltaColor(movement.quantity),
+              color: movementQuantityColor(movement.type),
             ),
             maxLines: 1,
           ),
           4 => Text(
             _value(movement),
-            style: AppTypography.numericSmall,
+            style: AppTypography.numeric.copyWith(
+              color: AppColors.textSecondary,
+            ),
             maxLines: 1,
           ),
-          5 => EmployeeNameTag(
-            name: movement.userName,
-            employeeId: movement.employeeId,
+          5 => Text(
+            movement.userName,
             style: theme.textTheme.bodyMedium,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
           _ =>
             movement.receiptId == null

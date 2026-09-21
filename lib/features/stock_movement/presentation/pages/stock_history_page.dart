@@ -131,15 +131,6 @@ class _StockHistoryPageState extends ConsumerState<StockHistoryPage> {
     final items =
         ref.watch(itemsByNameProvider(widget.storeId)).value ?? const [];
 
-    // Everyone, archived included: a movement keeps the person who recorded
-    // it after they have left.
-    final employeesById = {
-      for (final employee
-          in ref.watch(employeesProvider(widget.storeId)).value ??
-              const <Employee>[])
-        employee.id: employee,
-    };
-
     return ShellPage(
       title: l10n.movementsTitle,
       subtitle: l10n.movementsSubtitle,
@@ -269,22 +260,37 @@ class _StockHistoryPageState extends ConsumerState<StockHistoryPage> {
                   ],
                 )
               else
-                Wrap(
-                  spacing: AppSpacing.sm,
-                  runSpacing: AppSpacing.sm,
-                  crossAxisAlignment: WrapCrossAlignment.center,
+                // Filters on the left, how to show them on the right — the
+                // switch is about the whole list, not one more filter.
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    ..._typeChips(l10n, beforeType.length, counts, onType),
-                    // A hairline between "what kind" and "which ones".
-                    Container(
-                      width: 1,
-                      height: 24,
-                      margin: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.xs,
+                    Expanded(
+                      child: Wrap(
+                        spacing: AppSpacing.sm,
+                        runSpacing: AppSpacing.sm,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          ..._typeChips(
+                            l10n,
+                            beforeType.length,
+                            counts,
+                            onType,
+                          ),
+                          // A hairline between "what kind" and "which ones".
+                          Container(
+                            width: 1,
+                            height: 24,
+                            margin: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.xs,
+                            ),
+                            color: AppColors.border,
+                          ),
+                          ...filters,
+                        ],
                       ),
-                      color: AppColors.border,
                     ),
-                    ...filters,
+                    const SizedBox(width: AppSpacing.md),
                     ViewModeToggle<MovementsViewMode>(
                       value: viewMode,
                       onSelected: ref
@@ -338,9 +344,6 @@ class _StockHistoryPageState extends ConsumerState<StockHistoryPage> {
                         movements: movements,
                         rowBuilder: (view) => MovementRow(
                           view: view,
-                          employee: view.movement.employeeId == null
-                              ? null
-                              : employeesById[view.movement.employeeId],
                           storeId: widget.storeId,
                           onTap: () => context.pushScreen(
                             Routes.toItem(widget.storeId, view.movement.itemId),

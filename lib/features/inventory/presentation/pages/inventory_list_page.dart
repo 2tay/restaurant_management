@@ -703,12 +703,6 @@ class _ProductTable extends StatelessWidget {
       }),
       onRowTap: (row) => onTap(row.item.id),
       isSelected: (row) => row.item.id == selectedId,
-      rowAccent: (row) {
-        final status = stockStatusOf(row.item);
-        return status == StockStatus.inStock
-            ? null
-            : StockStatusBadge.colorsFor(status).solid;
-      },
       columns: [
         AppTableColumn(label: l10n.tableColProduct, flex: 4, sortKey: _byName),
         AppTableColumn(
@@ -776,10 +770,8 @@ class _ProductTable extends StatelessWidget {
           1 => Text(
             Formatters.quantityWithUnit(item.quantity, unit),
             style: AppTypography.numeric.copyWith(
-              fontWeight: FontWeight.w700,
-              color: status == StockStatus.inStock
-                  ? AppColors.textPrimary
-                  : colors.foreground,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
@@ -790,15 +782,20 @@ class _ProductTable extends StatelessWidget {
               color: AppColors.textSecondary,
             ),
           ),
-          3 => _LevelBar(item: item, colors: colors),
+          3 => _LevelBar(item: item, status: status),
           4 => Text(
             item.averageCost == null
                 ? '—'
                 : Formatters.price(item.quantity * item.averageCost!),
-            style: AppTypography.numeric,
+            style: AppTypography.numeric.copyWith(
+              color: AppColors.textSecondary,
+            ),
             maxLines: 1,
           ),
-          _ => StockStatusBadge(status: status, compact: false),
+          _ => StatusDot(
+            color: colors.solid,
+            label: StockStatusBadge.labelFor(l10n, status),
+          ),
         };
       },
     );
@@ -806,13 +803,16 @@ class _ProductTable extends StatelessWidget {
 }
 
 /// How full the shelf is: stock against the ceiling the store orders up to,
-/// or twice the alert threshold when no ceiling is set — in the status
-/// colour, so a column of them reads at a glance.
+/// or twice the alert threshold when no ceiling is set.
+///
+/// Grey while all is well; amber or red only once the product needs
+/// attention — so a column of bars is quiet, and the ones that are not stand
+/// out.
 class _LevelBar extends StatelessWidget {
-  const _LevelBar({required this.item, required this.colors});
+  const _LevelBar({required this.item, required this.status});
 
   final Item item;
-  final StockStatusColors colors;
+  final StockStatus status;
 
   @override
   Widget build(BuildContext context) {
@@ -828,8 +828,10 @@ class _LevelBar extends StatelessWidget {
       child: LinearProgressIndicator(
         value: level,
         minHeight: 6,
-        color: colors.solid,
-        backgroundColor: colors.container,
+        color: status == StockStatus.inStock
+            ? AppColors.neutral400
+            : StockStatusBadge.colorsFor(status).solid,
+        backgroundColor: AppColors.neutral100,
       ),
     );
   }

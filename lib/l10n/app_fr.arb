@@ -665,7 +665,7 @@
   "periodAll": "Tout l'historique",
   "@periodAll": {"description": "Date range option covering everything."},
 
-  "movementTypeIn": "Livraison",
+  "movementTypeIn": "Entrée",
   "@movementTypeIn": {"description": "Stock-in movement type. Plain language, not 'stock ingress'."},
   "movementTypeOut": "Sortie",
   "@movementTypeOut": {"description": "Stock-out movement type."},

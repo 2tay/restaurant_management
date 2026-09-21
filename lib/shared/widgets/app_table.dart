@@ -65,6 +65,7 @@ class AppTable<T> extends StatelessWidget {
     this.shrinkWrap = false,
     this.bordered = true,
     this.rowHeight = 56,
+    this.headerColor = AppColors.surfaceVariant,
     super.key,
   });
 
@@ -95,6 +96,11 @@ class AppTable<T> extends StatelessWidget {
   /// The minimum height of a row; a row grows if its content needs more.
   final double rowHeight;
 
+  /// The header's background. Grey on a full page, where it marks the top of
+  /// a long table; the page's own white inside a card, where a grey band
+  /// would read as a second surface stacked on the first.
+  final Color headerColor;
+
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
@@ -106,6 +112,7 @@ class AppTable<T> extends StatelessWidget {
         ];
 
         final header = _HeaderRow(
+          color: headerColor,
           columns: [for (final i in visible) columns[i]],
           sortKey: sortKey,
           sortAscending: sortAscending,
@@ -194,12 +201,14 @@ class _Cells extends StatelessWidget {
 
 class _HeaderRow extends StatelessWidget {
   const _HeaderRow({
+    required this.color,
     required this.columns,
     required this.sortKey,
     required this.sortAscending,
     required this.onSort,
   });
 
+  final Color color;
   final List<AppTableColumn> columns;
   final Object? sortKey;
   final bool sortAscending;
@@ -208,17 +217,17 @@ class _HeaderRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final style = theme.textTheme.labelMedium?.copyWith(
+    final style = theme.textTheme.labelSmall?.copyWith(
       color: AppColors.textSecondary,
       fontWeight: FontWeight.w600,
-      letterSpacing: 0.3,
+      letterSpacing: 0.4,
     );
 
     return Container(
-      constraints: const BoxConstraints(minHeight: 44),
-      decoration: const BoxDecoration(
-        color: AppColors.surfaceVariant,
-        border: Border(bottom: BorderSide(color: AppColors.border)),
+      constraints: const BoxConstraints(minHeight: 40),
+      decoration: BoxDecoration(
+        color: color,
+        border: const Border(bottom: BorderSide(color: AppColors.border)),
       ),
       // Lines the headings up with the cells, which sit past the accent edge.
       padding: const EdgeInsets.only(left: _accentWidth),
@@ -260,7 +269,7 @@ class _HeaderCell extends StatelessWidget {
   Widget build(BuildContext context) {
     final label = Flexible(
       child: Text(
-        column.label,
+        column.label.toUpperCase(),
         style: active ? style?.copyWith(color: AppColors.textPrimary) : style,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
@@ -322,7 +331,7 @@ class _DataRow extends StatelessWidget {
       color: selected ? AppColors.primaryContainer : AppColors.surface,
       child: InkWell(
         onTap: onTap,
-        hoverColor: AppColors.surfaceVariant,
+        hoverColor: AppColors.neutral50,
         child: Container(
           constraints: BoxConstraints(minHeight: minHeight),
           decoration: BoxDecoration(

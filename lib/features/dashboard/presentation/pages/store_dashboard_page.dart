@@ -20,6 +20,7 @@ import '../../../../shared/widgets/widgets.dart';
 import '../../../orders/presentation/pages/orders_list_page.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../stock_movement/presentation/widgets/movement_labels.dart';
+import '../../../stock_movement/presentation/widgets/movement_type_badge.dart';
 import '../widgets/summary_tile.dart';
 
 /// The store dashboard.
@@ -391,30 +392,50 @@ class _Panel extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  Flexible(
-                    child: Text(
-                      title,
-                      style: theme.textTheme.titleSmall,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                  // The title takes whatever the link leaves, so the link
+                  // sits hard against the right edge of the panel.
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            title,
+                            style: theme.textTheme.titleSmall,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (count != null) ...[
+                          const SizedBox(width: AppSpacing.sm),
+                          _CountBadge(count: count!),
+                        ],
+                      ],
                     ),
                   ),
-                  if (count != null) ...[
-                    const SizedBox(width: AppSpacing.sm),
-                    _CountBadge(count: count!),
-                  ],
-                  const Spacer(),
-                  // Shrinks with the title rather than pushing the row past
-                  // its edge — the narrower panel at 150% text had no room
-                  // for both at full width.
                   if (onViewAll != null)
-                    Flexible(
+                    // Capped rather than fixed: at 150% text the narrower
+                    // panel has no room for the label at full width, and the
+                    // label gives way before the row does.
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 160),
                       child: TextButton(
                         onPressed: onViewAll,
-                        child: Text(
-                          l10n.actionViewAll,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Flexible(
+                              child: Text(
+                                l10n.actionViewAll,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            const SizedBox(width: AppSpacing.xs),
+                            const Icon(
+                              LucideIcons.arrowRight,
+                              size: AppSizing.iconSm,
+                            ),
+                          ],
                         ),
                       ),
                     ),
@@ -500,38 +521,52 @@ class _ActivityTable extends StatelessWidget {
       rows: activity,
       shrinkWrap: true,
       bordered: false,
-      rowHeight: 48,
-      rowAccent: (view) => movementColors(view.movement.type).solid,
+      headerColor: AppColors.surface,
+      rowHeight: 52,
       onRowTap: (view) =>
           context.pushScreen(Routes.toItem(storeId, view.movement.itemId)),
       columns: [
         AppTableColumn(label: l10n.tableColProduct, flex: 3),
+        AppTableColumn(
+          label: l10n.tableColType,
+          width: 128,
+          minTableWidth: 480,
+        ),
         AppTableColumn(label: l10n.tableColQuantity, width: 104, numeric: true),
-        AppTableColumn(label: l10n.tableColBy, flex: 2, minTableWidth: 420),
+        AppTableColumn(label: l10n.tableColBy, flex: 2, minTableWidth: 600),
         AppTableColumn(label: l10n.tableColTime, width: 72, numeric: true),
       ],
       cell: (context, view, column) {
         final movement = view.movement;
         return switch (column) {
-          0 => Text(
-            view.itemName,
-            style: theme.textTheme.titleSmall,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+          0 => Row(
+            children: [
+              ProductImage(imagePath: view.itemImagePath, size: 32, radius: 6),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: Text(
+                  view.itemName,
+                  style: theme.textTheme.titleSmall,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
           ),
-          1 => Text(
+          1 => MovementTypeBadge(type: movement.type),
+          2 => Text(
             Formatters.quantityDelta(movement.quantity, view.unitAbbreviation),
             style: AppTypography.numeric.copyWith(
               fontWeight: FontWeight.w700,
-              color: quantityDeltaColor(movement.quantity),
+              color: movementQuantityColor(movement.type),
             ),
             maxLines: 1,
           ),
-          2 => EmployeeNameTag(
-            name: movement.userName,
-            employeeId: movement.employeeId,
-            style: theme.textTheme.bodySmall,
-            avatarSize: 18,
+          3 => Text(
+            movement.userName,
+            style: theme.textTheme.bodyMedium,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
           _ => Text(
             _when(movement.occurredAt, now),
@@ -617,9 +652,8 @@ class _AlertsTable extends StatelessWidget {
       rows: alerts,
       shrinkWrap: true,
       bordered: false,
-      rowHeight: 48,
-      rowAccent: (view) =>
-          StockStatusBadge.colorsFor(stockStatusOf(view.item)).solid,
+      headerColor: AppColors.surface,
+      rowHeight: 52,
       onRowTap: (view) =>
           context.pushScreen(Routes.toItem(storeId, view.item.id)),
       columns: [
@@ -630,7 +664,11 @@ class _AlertsTable extends StatelessWidget {
           width: 88,
           minTableWidth: 400,
         ),
-        AppTableColumn(label: l10n.tableColStatus, width: 56),
+        AppTableColumn(
+          label: l10n.tableColStatus,
+          width: 132,
+          minTableWidth: 440,
+        ),
       ],
       cell: (context, view, column) {
         final item = view.item;
@@ -661,8 +699,8 @@ class _AlertsTable extends StatelessWidget {
                   view.unitAbbreviation,
                 ),
                 style: AppTypography.numeric.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: colors.foreground,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
                 ),
                 maxLines: 1,
               ),
@@ -682,7 +720,10 @@ class _AlertsTable extends StatelessWidget {
               backgroundColor: colors.container,
             ),
           ),
-          _ => StockStatusBadge(status: status, compact: true),
+          _ => StatusDot(
+            color: colors.solid,
+            label: StockStatusBadge.labelFor(l10n, status),
+          ),
         };
       },
     );

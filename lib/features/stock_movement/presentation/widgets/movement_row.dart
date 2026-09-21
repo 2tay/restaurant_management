@@ -13,28 +13,19 @@ import '../../../../l10n/app_localizations.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 import 'movement_labels.dart';
+import 'movement_type_badge.dart';
 
 /// One entry in the movement history.
 ///
-/// Green in, red out, blue for a count — on the icon, the type pill and the
-/// stripe down the card's edge, so a column of rows reads by colour before a
-/// single word of it is. The pill carries the type in words as well, for
-/// anyone who cannot tell the colours apart.
+/// The product's photo leads, then what moved and why. The type — Entrée
+/// green, Sortie red, Ajustement blue — is a small soft badge with its icon
+/// and name, and the quantity is written in the same colour: two cues that
+/// agree, so entries and exits stand apart at a glance, with nothing else on
+/// the card tinted.
 class MovementRow extends StatelessWidget {
-  const MovementRow({
-    required this.view,
-    this.storeId,
-    this.onTap,
-    this.employee,
-    super.key,
-  });
+  const MovementRow({required this.view, this.storeId, this.onTap, super.key});
 
   final MovementRowView view;
-
-  /// Who recorded it, when the movement names an employee and the caller
-  /// has them — drawn as a small avatar beside the name. Older movements,
-  /// and screens that do not look employees up, show the name alone.
-  final Employee? employee;
 
   /// Needed to link back to the receipt. Omitted where the row is decorative.
   final String? storeId;
@@ -45,27 +36,9 @@ class MovementRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final movement = view.movement;
-    final colors = movementColors(movement.type);
-
     final parts = _Parts(
-      icon: Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          color: colors.container,
-          shape: BoxShape.circle,
-        ),
-        child: Icon(
-          movementTypeIcon(movement.type),
-          size: AppSizing.iconMd,
-          color: colors.foreground,
-        ),
-      ),
-      pill: StatusPill(
-        colors: colors,
-        icon: movementTypeIcon(movement.type),
-        label: movementTypeLabel(l10n, movement.type),
-      ),
+      icon: ProductImage(imagePath: view.itemImagePath, size: 40, radius: 8),
+      pill: MovementTypeBadge(type: movement.type),
       description: Text(
         movementDescription(
           l10n,
@@ -86,7 +59,7 @@ class MovementRow extends StatelessWidget {
         overflow: TextOverflow.ellipsis,
         style: AppTypography.numeric.copyWith(
           fontWeight: FontWeight.w700,
-          color: quantityDeltaColor(movement.quantity),
+          color: movementQuantityColor(movement.type),
         ),
       ),
       value: _valueLabel(movement),
@@ -110,7 +83,6 @@ class MovementRow extends StatelessWidget {
 
     return AppCard(
       onTap: onTap,
-      accentColor: colors.solid,
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.lg,
         vertical: AppSpacing.md,
@@ -159,10 +131,6 @@ class MovementRow extends StatelessWidget {
               const SizedBox(height: AppSpacing.xs),
               Row(
                 children: [
-                  if (employee != null) ...[
-                    EmployeeAvatar(employee: employee!, size: 18),
-                    const SizedBox(width: AppSpacing.xs),
-                  ],
                   Expanded(
                     child: Text(
                       '${movement.userName} · '
@@ -232,10 +200,6 @@ class MovementRow extends StatelessWidget {
               ),
               Row(
                 children: [
-                  if (employee != null) ...[
-                    EmployeeAvatar(employee: employee!, size: 18),
-                    const SizedBox(width: AppSpacing.xs),
-                  ],
                   Flexible(
                     child: Text(
                       movement.userName,

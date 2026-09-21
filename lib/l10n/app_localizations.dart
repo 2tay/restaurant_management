@@ -1573,7 +1573,7 @@ abstract class AppLocalizations {
   /// Stock-in movement type. Plain language, not 'stock ingress'.
   ///
   /// In fr, this message translates to:
-  /// **'Livraison'**
+  /// **'Entrée'**
   String get movementTypeIn;
 
   /// Stock-out movement type.

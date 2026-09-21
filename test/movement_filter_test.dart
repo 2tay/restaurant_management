@@ -150,7 +150,7 @@ void main() {
   // row of chips that scrolled sideways, and "Ajustement" sat off the edge of
   // a 360dp screen where nobody knew to swipe for it.
   group('the type filter on a phone', () {
-    const types = ['Tous les types', 'Livraison', 'Sortie', 'Ajustement'];
+    const types = ['Tous les types', 'Entrée', 'Sortie', 'Ajustement'];
 
     Finder segment(String label) =>
         find.bySemanticsLabel(RegExp('^${RegExp.escape(label)}, \\d+\$'));
