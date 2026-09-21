@@ -1161,6 +1161,33 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String get actorSheetTitle => 'Qui enregistre ?';
+
+  @override
+  String get actorSheetSubtitle =>
+      'Touchez votre nom, puis confirmez avec votre numéro CIN.';
+
+  @override
+  String get actorMe => 'Moi';
+
+  @override
+  String get actorSearchHint => 'Rechercher un employé';
+
+  @override
+  String get actorNoEmployees => 'Aucun employé actif dans cet établissement.';
+
+  @override
+  String movementsRecordedBy(int count, String name) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count mouvements enregistrés',
+      one: '1 mouvement enregistré',
+    );
+    return '$_temp0 par $name';
+  }
+
+  @override
   String movementsRecorded(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,

@@ -47,6 +47,15 @@ class StockMovements extends Table {
   /// The name, not the id — see `price_history.changedByName`.
   TextColumn get userName => text()();
 
+  /// The employee who recorded it, confirmed at the kitchen tablet by their
+  /// CIN — null on movements from before v6, and on those the app files on
+  /// its own behalf (a receipt against a commande, an opening balance).
+  ///
+  /// **No foreign key**, for the same reason as [supplierId]: an employee
+  /// leaving does not unmake what they recorded. [userName] keeps the name as
+  /// it was, so the row still reads right if the employee is later removed.
+  TextColumn get employeeId => text().nullable()();
+
   /// **No foreign key, on purpose.** Deleting a supplier keeps the movements
   /// that name them: a movement records goods that really moved, and the
   /// supplier going away does not unmake that. The row keeps their id and the

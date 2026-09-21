@@ -1936,6 +1936,42 @@ abstract class AppLocalizations {
   /// **'Reçue {date}'**
   String deliveryReceivedOn(String date);
 
+  /// Title of the sheet where the employee at the shared tablet picks themselves before a stock movement is saved.
+  ///
+  /// In fr, this message translates to:
+  /// **'Qui enregistre ?'**
+  String get actorSheetTitle;
+
+  /// Instruction under the who-is-recording sheet title.
+  ///
+  /// In fr, this message translates to:
+  /// **'Touchez votre nom, puis confirmez avec votre numéro CIN.'**
+  String get actorSheetSubtitle;
+
+  /// Tag on the signed-in user's card in the who-is-recording sheet.
+  ///
+  /// In fr, this message translates to:
+  /// **'Moi'**
+  String get actorMe;
+
+  /// Search placeholder in the who-is-recording sheet.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rechercher un employé'**
+  String get actorSearchHint;
+
+  /// Empty state of the who-is-recording sheet.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun employé actif dans cet établissement.'**
+  String get actorNoEmployees;
+
+  /// Snackbar after saving movements, naming the employee who confirmed.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =1{1 mouvement enregistré} other{{count} mouvements enregistrés}} par {name}'**
+  String movementsRecordedBy(int count, String name);
+
   /// Snackbar after saving a multi-line movement form.
   ///
   /// In fr, this message translates to:

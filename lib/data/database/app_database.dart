@@ -84,7 +84,7 @@ class AppDatabase extends _$AppDatabase {
   static const String databaseName = 'stock_inventory';
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -177,6 +177,14 @@ class AppDatabase extends _$AppDatabase {
       // true, and needs no backfill.
       if (from < 5) {
         await m.addColumn(items, items.imagePath);
+      }
+
+      // v5 → v6: `stock_movements.employeeId`, who recorded the movement at
+      // the shared tablet. Nullable with no default: a movement from before
+      // simply names nobody by id, and still carries the `userName` it always
+      // had.
+      if (from < 6) {
+        await m.addColumn(stockMovements, stockMovements.employeeId);
       }
     },
 

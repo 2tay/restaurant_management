@@ -23,6 +23,12 @@ abstract final class AuthRules {
 /// backend would keep.
 String fakePinHash(String pin) => 'pin:${pin.trim()}';
 
+/// The hash on a credential row that exists only to hold a lockout counter —
+/// an employee confirmed at the shared tablet by their CIN who has never been
+/// given a PIN. Empty, so no PIN matches it: [fakePinHash] always carries its
+/// prefix.
+const String noPinHash = '';
+
 /// Whether [pin] is the one behind this credential.
 bool pinMatches(EmployeeCredential credential, String pin) =>
     credential.pinHash == fakePinHash(pin);

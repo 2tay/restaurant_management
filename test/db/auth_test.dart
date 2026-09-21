@@ -247,5 +247,60 @@ void main() {
       final result = await credentials.verifyCin(_marcCin, 'nobody');
       expect(result.result, CinCheckResult.noCredential);
     });
+
+    // The shared kitchen tablet asks every employee for their CIN before a
+    // stock movement, and an employee created without a PIN has no
+    // credential row for the lockout counter to live in. They get one — with
+    // a hash no PIN can match, so it confirms who they are and grants no
+    // login.
+    group('an employee created without a PIN', () {
+      const cin = '01.02.03-444.55';
+
+      Future<Employee> hire() async => (await EmployeeRepository(db).create(
+            storeId: 'store-sablon',
+            firstName: 'Sans',
+            lastName: 'Pin',
+            cin: cin,
+            phone: '0470 00 00 00',
+            email: 'sans.pin@example.be',
+            role: EmployeeRole.staff,
+            contractType: ContractType.values.first,
+            pay: 2000,
+          ))!;
+
+      test('can still confirm who they are by CIN', () async {
+        final employee = await hire();
+        expect(await credentials.forEmployee(employee.id), isNull);
+
+        final result = await credentials.verifyCin(cin, employee.id);
+
+        expect(result.result, CinCheckResult.ok);
+        final row = (await credentials.forEmployee(employee.id))!;
+        expect(row.pinHash, noPinHash);
+      });
+
+      test('and a wrong CIN counts toward their lockout', () async {
+        final employee = await hire();
+
+        final result = await credentials.verifyCin('0000', employee.id);
+
+        expect(result.result, CinCheckResult.wrongCin);
+        expect(
+          (await credentials.forEmployee(employee.id))!.failedAttempts,
+          1,
+        );
+      });
+
+      test('but the row it gets opens no login, whatever PIN is tried',
+          () async {
+        final employee = await hire();
+        await credentials.verifyCin(cin, employee.id);
+
+        for (final pin in ['0000', '1234', '']) {
+          final attempt = await credentials.authenticate(cin, pin);
+          expect(attempt.outcome, isNot(LoginOutcome.success), reason: pin);
+        }
+      });
+    });
   });
 }

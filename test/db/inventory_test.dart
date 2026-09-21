@@ -17,7 +17,14 @@ import 'package:stock_inventory/core/utils/stock_status.dart';
 import 'package:stock_inventory/data/database/app_database.dart';
 import 'package:stock_inventory/data/repositories/repositories.dart';
 import 'package:stock_inventory/data/seed/dataset/dataset.dart'
-    show CategoryIds, ItemIds, OrderIds, StoreIds, SupplierIds, UnitIds;
+    show
+        CategoryIds,
+        EmployeeIds,
+        ItemIds,
+        OrderIds,
+        StoreIds,
+        SupplierIds,
+        UnitIds;
 import 'package:stock_inventory/models/models.dart';
 
 import '../support/db_fixture.dart';
@@ -612,6 +619,37 @@ void main() {
 
       expect(movement.userName, expected);
       expect(expected, isNotEmpty);
+    });
+  });
+
+  // The kitchen tablet stays signed in as the manager; the cook who moved the
+  // stock confirms by CIN, and the movement is theirs — by id, and by the name
+  // as it was that day.
+  group('a movement names the employee who recorded it', () {
+    test('the id and the name are both kept', () async {
+      final movement = await movements.recordStockOut(
+        storeId: StoreIds.sablon,
+        itemId: ItemIds.tomates,
+        quantity: 1,
+        reason: StockOutReason.waste,
+        userName: 'Karim Haddouch',
+        employeeId: EmployeeIds.karim,
+      );
+
+      final stored = await latestFor(ItemIds.tomates);
+      expect(stored.id, movement.id);
+      expect(stored.employeeId, EmployeeIds.karim);
+      expect(stored.userName, 'Karim Haddouch');
+    });
+
+    test('a movement the app files itself names nobody by id', () async {
+      await movements.recordStockIn(
+        storeId: StoreIds.sablon,
+        itemId: ItemIds.tomates,
+        quantity: 1,
+      );
+
+      expect((await latestFor(ItemIds.tomates)).employeeId, isNull);
     });
   });
 

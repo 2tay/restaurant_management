@@ -12,10 +12,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stock_inventory/app/router.dart';
 import 'package:stock_inventory/app/routes.dart';
+import 'package:stock_inventory/data/repositories/repositories.dart';
 import 'package:stock_inventory/data/seed/dataset/dataset.dart';
 import 'package:stock_inventory/features/stock_movement/presentation/widgets/picker/movement_cart.dart';
 import 'package:stock_inventory/features/stock_movement/presentation/widgets/picker/product_picker_sheet.dart';
 import 'package:stock_inventory/features/stock_movement/presentation/widgets/picker/supplier_choice.dart';
+
+import 'package:stock_inventory/shared/widgets/widgets.dart';
 
 import 'support/app_harness.dart';
 
@@ -53,10 +56,10 @@ void main() {
 
           expect(find.byType(MovementLineCard), findsNothing);
           await tester.ensureVisible(find.text(_choose));
-      await tester.pumpAndSettle();
-      await tester.ensureVisible(find.text(_choose));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text(_choose));
+          await tester.pumpAndSettle();
+          await tester.ensureVisible(find.text(_choose));
+          await tester.pumpAndSettle();
+          await tester.tap(find.text(_choose));
           await tester.pumpAndSettle();
 
           await tester.tap(find.byType(PickerProductCard).at(0));
@@ -162,5 +165,91 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(MovementLineCard), findsOneWidget);
+  });
+
+  // The tablet stays signed in as the manager all day. Whoever moved the
+  // stock names themselves at the save — their card, then their CIN, the same
+  // check as the pointage board — and the movement is recorded as theirs.
+  group('who is at the tablet', () {
+    const karimCin = '87.03.11-245.68';
+
+    Future<void> submitStockOut(WidgetTester tester) async {
+      await pickTwo(tester, Routes.toStockOut(_store));
+      await tester.tap(find.text('Enregistrer la sortie'));
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> enterCin(WidgetTester tester, String cin) async {
+      final dialog = find.byType(IdentityPromptDialog);
+      await tester.enterText(
+        find.descendant(of: dialog, matching: find.byType(TextField)),
+        cin,
+      );
+      await tester.pump();
+      await tester.tap(
+        find.descendant(of: dialog, matching: find.text('Valider')),
+      );
+      // The check is a database transaction: let it finish in real time
+      // before settling the frames it changes.
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 100)),
+      );
+      await tester.pumpAndSettle();
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 100)),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testApp('the movements are saved under the employee who confirmed', (
+      tester,
+    ) async {
+      final db = await pumpApp(tester, size: _tablet);
+      await submitStockOut(tester);
+
+      expect(find.text('Qui enregistre ?'), findsOneWidget);
+      await tester.tap(find.text('Karim Haddouch'));
+      await tester.pumpAndSettle();
+
+      // Someone else's CIN, or a wrong one, is refused and nothing is saved.
+      await enterCin(tester, '00.00.00-000.00');
+      expect(find.textContaining('Numéro incorrect'), findsOneWidget);
+
+      await enterCin(tester, karimCin);
+
+      final recorded = (await MovementRepository(
+        db,
+      ).movementsForStore(_store)).take(2).toList();
+      for (final movement in recorded) {
+        expect(movement.employeeId, EmployeeIds.karim);
+        expect(movement.userName, 'Karim Haddouch');
+      }
+    });
+
+    testApp('closing the sheet saves nothing and keeps the form', (
+      tester,
+    ) async {
+      final db = await pumpApp(tester, size: _tablet);
+      final before = (await MovementRepository(
+        db,
+      ).movementsForStore(_store)).length;
+      await submitStockOut(tester);
+
+      await tester.tap(find.byTooltip('Fermer').first);
+      await tester.pumpAndSettle();
+
+      expect(
+        (await MovementRepository(db).movementsForStore(_store)).length,
+        before,
+      );
+      expect(find.byType(MovementLineCard), findsNWidgets(2));
+    });
+
+    testApp('the signed-in manager is on the grid as "Moi"', (tester) async {
+      await pumpApp(tester, size: _tablet);
+      await submitStockOut(tester);
+
+      expect(find.text('Moi'), findsOneWidget);
+    });
   });
 }

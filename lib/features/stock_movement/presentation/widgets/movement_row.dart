@@ -21,9 +21,20 @@ import 'movement_labels.dart';
 /// single word of it is. The pill carries the type in words as well, for
 /// anyone who cannot tell the colours apart.
 class MovementRow extends StatelessWidget {
-  const MovementRow({required this.view, this.storeId, this.onTap, super.key});
+  const MovementRow({
+    required this.view,
+    this.storeId,
+    this.onTap,
+    this.employee,
+    super.key,
+  });
 
   final MovementRowView view;
+
+  /// Who recorded it, when the movement names an employee and the caller
+  /// has them — drawn as a small avatar beside the name. Older movements,
+  /// and screens that do not look employees up, show the name alone.
+  final Employee? employee;
 
   /// Needed to link back to the receipt. Omitted where the row is decorative.
   final String? storeId;
@@ -148,10 +159,14 @@ class MovementRow extends StatelessWidget {
               const SizedBox(height: AppSpacing.xs),
               Row(
                 children: [
+                  if (employee != null) ...[
+                    EmployeeAvatar(employee: employee!, size: 18),
+                    const SizedBox(width: AppSpacing.xs),
+                  ],
                   Expanded(
                     child: Text(
-                      '${Formatters.dateTime(movement.occurredAt)} · '
-                      '${movement.userName}',
+                      '${movement.userName} · '
+                      '${Formatters.dateTime(movement.occurredAt)}',
                       style: theme.textTheme.bodySmall,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -215,11 +230,21 @@ class MovementRow extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
-              Text(
-                movement.userName,
-                style: theme.textTheme.bodySmall,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+              Row(
+                children: [
+                  if (employee != null) ...[
+                    EmployeeAvatar(employee: employee!, size: 18),
+                    const SizedBox(width: AppSpacing.xs),
+                  ],
+                  Flexible(
+                    child: Text(
+                      movement.userName,
+                      style: theme.textTheme.bodySmall,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

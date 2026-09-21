@@ -18,6 +18,8 @@ import '../../../../data/view_models/view_models.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 import '../widgets/movement_labels.dart';
+import '../../../../core/utils/employee_status.dart';
+import '../widgets/picker/movement_actor_sheet.dart';
 import '../widgets/picker/movement_cart.dart';
 import '../widgets/picker/product_picker_sheet.dart';
 import '../widgets/picker/supplier_choice.dart';
@@ -352,6 +354,16 @@ class _StockInPageState extends ConsumerState<StockInPage> {
     final suppliers = ref.read(supplierRepositoryProvider);
     final lines = List.of(_lines);
 
+    // Who is at the tablet. Asked here, at the save, so the person who
+    // confirms is the person who saves.
+    final actor = await MovementActorSheet.show(
+      context,
+      storeId: widget.storeId,
+      actionLabel: l10n.stockInSubmit,
+    );
+    if (actor == null || !mounted) return;
+    final actorName = employeeDisplayName(actor);
+
     setState(() => _saving = true);
     try {
       // All of it or none of it: a failure on the sixth row must not leave
@@ -368,6 +380,8 @@ class _StockInPageState extends ConsumerState<StockInPage> {
             supplierId: line.supplierId,
             unitPrice: line.enteredPrice,
             occurredAt: _date,
+            userName: actorName,
+            employeeId: actor.id,
           );
 
           // A price typed here that differs from the one on file is a real
@@ -392,9 +406,7 @@ class _StockInPageState extends ConsumerState<StockInPage> {
     if (!mounted) return;
     AppSnackBar.success(
       context,
-      lines.length == 1
-          ? l10n.stockInRecorded
-          : l10n.movementsRecorded(lines.length),
+      l10n.movementsRecordedBy(lines.length, actor.firstName),
     );
     context.goSection(Routes.toMovements(widget.storeId));
   }

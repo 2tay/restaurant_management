@@ -40,6 +40,7 @@ class StockMovement {
     required this.quantity,
     required this.occurredAt,
     required this.userName,
+    this.employeeId,
     this.supplierId,
     this.unitPrice,
     this.reason,
@@ -65,6 +66,10 @@ class StockMovement {
 
   /// Display name of whoever recorded it.
   final String userName;
+
+  /// The employee who recorded it, when they confirmed who they were at the
+  /// tablet. Null on older movements and on those the app files itself.
+  final String? employeeId;
 
   /// [StockMovementType.stockIn] only.
   final String? supplierId;

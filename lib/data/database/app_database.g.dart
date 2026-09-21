@@ -4215,6 +4215,17 @@ class $StockMovementsTable extends StockMovements
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _employeeIdMeta = const VerificationMeta(
+    'employeeId',
+  );
+  @override
+  late final GeneratedColumn<String> employeeId = GeneratedColumn<String>(
+    'employee_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _supplierIdMeta = const VerificationMeta(
     'supplierId',
   );
@@ -4330,6 +4341,7 @@ class $StockMovementsTable extends StockMovements
     quantity,
     occurredAt,
     userName,
+    employeeId,
     supplierId,
     unitPrice,
     reason,
@@ -4397,6 +4409,12 @@ class $StockMovementsTable extends StockMovements
       );
     } else if (isInserting) {
       context.missing(_userNameMeta);
+    }
+    if (data.containsKey('employee_id')) {
+      context.handle(
+        _employeeIdMeta,
+        employeeId.isAcceptableOrUnknown(data['employee_id']!, _employeeIdMeta),
+      );
     }
     if (data.containsKey('supplier_id')) {
       context.handle(
@@ -4500,6 +4518,10 @@ class $StockMovementsTable extends StockMovements
         DriftSqlType.string,
         data['${effectivePrefix}user_name'],
       )!,
+      employeeId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}employee_id'],
+      ),
       supplierId: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}supplier_id'],
@@ -4577,6 +4599,15 @@ class StockMovementRow extends DataClass
   /// The name, not the id — see `price_history.changedByName`.
   final String userName;
 
+  /// The employee who recorded it, confirmed at the kitchen tablet by their
+  /// CIN — null on movements from before v6, and on those the app files on
+  /// its own behalf (a receipt against a commande, an opening balance).
+  ///
+  /// **No foreign key**, for the same reason as [supplierId]: an employee
+  /// leaving does not unmake what they recorded. [userName] keeps the name as
+  /// it was, so the row still reads right if the employee is later removed.
+  final String? employeeId;
+
   /// **No foreign key, on purpose.** Deleting a supplier keeps the movements
   /// that name them: a movement records goods that really moved, and the
   /// supplier going away does not unmake that. The row keeps their id and the
@@ -4616,6 +4647,7 @@ class StockMovementRow extends DataClass
     required this.quantity,
     required this.occurredAt,
     required this.userName,
+    this.employeeId,
     this.supplierId,
     this.unitPrice,
     this.reason,
@@ -4641,6 +4673,9 @@ class StockMovementRow extends DataClass
     map['quantity'] = Variable<double>(quantity);
     map['occurred_at'] = Variable<DateTime>(occurredAt);
     map['user_name'] = Variable<String>(userName);
+    if (!nullToAbsent || employeeId != null) {
+      map['employee_id'] = Variable<String>(employeeId);
+    }
     if (!nullToAbsent || supplierId != null) {
       map['supplier_id'] = Variable<String>(supplierId);
     }
@@ -4685,6 +4720,9 @@ class StockMovementRow extends DataClass
       quantity: Value(quantity),
       occurredAt: Value(occurredAt),
       userName: Value(userName),
+      employeeId: employeeId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(employeeId),
       supplierId: supplierId == null && nullToAbsent
           ? const Value.absent()
           : Value(supplierId),
@@ -4731,6 +4769,7 @@ class StockMovementRow extends DataClass
       quantity: serializer.fromJson<double>(json['quantity']),
       occurredAt: serializer.fromJson<DateTime>(json['occurredAt']),
       userName: serializer.fromJson<String>(json['userName']),
+      employeeId: serializer.fromJson<String?>(json['employeeId']),
       supplierId: serializer.fromJson<String?>(json['supplierId']),
       unitPrice: serializer.fromJson<double?>(json['unitPrice']),
       reason: $StockMovementsTable.$converterreasonn.fromJson(
@@ -4758,6 +4797,7 @@ class StockMovementRow extends DataClass
       'quantity': serializer.toJson<double>(quantity),
       'occurredAt': serializer.toJson<DateTime>(occurredAt),
       'userName': serializer.toJson<String>(userName),
+      'employeeId': serializer.toJson<String?>(employeeId),
       'supplierId': serializer.toJson<String?>(supplierId),
       'unitPrice': serializer.toJson<double?>(unitPrice),
       'reason': serializer.toJson<String?>(
@@ -4781,6 +4821,7 @@ class StockMovementRow extends DataClass
     double? quantity,
     DateTime? occurredAt,
     String? userName,
+    Value<String?> employeeId = const Value.absent(),
     Value<String?> supplierId = const Value.absent(),
     Value<double?> unitPrice = const Value.absent(),
     Value<StockOutReason?> reason = const Value.absent(),
@@ -4799,6 +4840,7 @@ class StockMovementRow extends DataClass
     quantity: quantity ?? this.quantity,
     occurredAt: occurredAt ?? this.occurredAt,
     userName: userName ?? this.userName,
+    employeeId: employeeId.present ? employeeId.value : this.employeeId,
     supplierId: supplierId.present ? supplierId.value : this.supplierId,
     unitPrice: unitPrice.present ? unitPrice.value : this.unitPrice,
     reason: reason.present ? reason.value : this.reason,
@@ -4827,6 +4869,9 @@ class StockMovementRow extends DataClass
           ? data.occurredAt.value
           : this.occurredAt,
       userName: data.userName.present ? data.userName.value : this.userName,
+      employeeId: data.employeeId.present
+          ? data.employeeId.value
+          : this.employeeId,
       supplierId: data.supplierId.present
           ? data.supplierId.value
           : this.supplierId,
@@ -4858,6 +4903,7 @@ class StockMovementRow extends DataClass
           ..write('quantity: $quantity, ')
           ..write('occurredAt: $occurredAt, ')
           ..write('userName: $userName, ')
+          ..write('employeeId: $employeeId, ')
           ..write('supplierId: $supplierId, ')
           ..write('unitPrice: $unitPrice, ')
           ..write('reason: $reason, ')
@@ -4881,6 +4927,7 @@ class StockMovementRow extends DataClass
     quantity,
     occurredAt,
     userName,
+    employeeId,
     supplierId,
     unitPrice,
     reason,
@@ -4903,6 +4950,7 @@ class StockMovementRow extends DataClass
           other.quantity == this.quantity &&
           other.occurredAt == this.occurredAt &&
           other.userName == this.userName &&
+          other.employeeId == this.employeeId &&
           other.supplierId == this.supplierId &&
           other.unitPrice == this.unitPrice &&
           other.reason == this.reason &&
@@ -4923,6 +4971,7 @@ class StockMovementsCompanion extends UpdateCompanion<StockMovementRow> {
   final Value<double> quantity;
   final Value<DateTime> occurredAt;
   final Value<String> userName;
+  final Value<String?> employeeId;
   final Value<String?> supplierId;
   final Value<double?> unitPrice;
   final Value<StockOutReason?> reason;
@@ -4942,6 +4991,7 @@ class StockMovementsCompanion extends UpdateCompanion<StockMovementRow> {
     this.quantity = const Value.absent(),
     this.occurredAt = const Value.absent(),
     this.userName = const Value.absent(),
+    this.employeeId = const Value.absent(),
     this.supplierId = const Value.absent(),
     this.unitPrice = const Value.absent(),
     this.reason = const Value.absent(),
@@ -4962,6 +5012,7 @@ class StockMovementsCompanion extends UpdateCompanion<StockMovementRow> {
     required double quantity,
     required DateTime occurredAt,
     required String userName,
+    this.employeeId = const Value.absent(),
     this.supplierId = const Value.absent(),
     this.unitPrice = const Value.absent(),
     this.reason = const Value.absent(),
@@ -4988,6 +5039,7 @@ class StockMovementsCompanion extends UpdateCompanion<StockMovementRow> {
     Expression<double>? quantity,
     Expression<DateTime>? occurredAt,
     Expression<String>? userName,
+    Expression<String>? employeeId,
     Expression<String>? supplierId,
     Expression<double>? unitPrice,
     Expression<String>? reason,
@@ -5008,6 +5060,7 @@ class StockMovementsCompanion extends UpdateCompanion<StockMovementRow> {
       if (quantity != null) 'quantity': quantity,
       if (occurredAt != null) 'occurred_at': occurredAt,
       if (userName != null) 'user_name': userName,
+      if (employeeId != null) 'employee_id': employeeId,
       if (supplierId != null) 'supplier_id': supplierId,
       if (unitPrice != null) 'unit_price': unitPrice,
       if (reason != null) 'reason': reason,
@@ -5030,6 +5083,7 @@ class StockMovementsCompanion extends UpdateCompanion<StockMovementRow> {
     Value<double>? quantity,
     Value<DateTime>? occurredAt,
     Value<String>? userName,
+    Value<String?>? employeeId,
     Value<String?>? supplierId,
     Value<double?>? unitPrice,
     Value<StockOutReason?>? reason,
@@ -5050,6 +5104,7 @@ class StockMovementsCompanion extends UpdateCompanion<StockMovementRow> {
       quantity: quantity ?? this.quantity,
       occurredAt: occurredAt ?? this.occurredAt,
       userName: userName ?? this.userName,
+      employeeId: employeeId ?? this.employeeId,
       supplierId: supplierId ?? this.supplierId,
       unitPrice: unitPrice ?? this.unitPrice,
       reason: reason ?? this.reason,
@@ -5089,6 +5144,9 @@ class StockMovementsCompanion extends UpdateCompanion<StockMovementRow> {
     }
     if (userName.present) {
       map['user_name'] = Variable<String>(userName.value);
+    }
+    if (employeeId.present) {
+      map['employee_id'] = Variable<String>(employeeId.value);
     }
     if (supplierId.present) {
       map['supplier_id'] = Variable<String>(supplierId.value);
@@ -5138,6 +5196,7 @@ class StockMovementsCompanion extends UpdateCompanion<StockMovementRow> {
           ..write('quantity: $quantity, ')
           ..write('occurredAt: $occurredAt, ')
           ..write('userName: $userName, ')
+          ..write('employeeId: $employeeId, ')
           ..write('supplierId: $supplierId, ')
           ..write('unitPrice: $unitPrice, ')
           ..write('reason: $reason, ')
@@ -10553,13 +10612,13 @@ class AttendanceRow extends DataClass implements Insertable<AttendanceRow> {
   final DateTime? clockOutAt;
 
   /// The evaluation context this day was worked in, frozen when the row is
-  /// created (schema v3): the resolved start / end of day and the break
+  /// created (schema v4): the resolved start / end of day and the break
   /// allowance that `en retard`, `heures supp.` and `pause dépassée` are
   /// measured against. Without it, changing the store hours or an employee's
   /// schedule silently rewrote every past day's figures — a day that was on
   /// time became late, real overtime vanished.
   ///
-  /// Null on rows created before v3 (the migration backfills them with what
+  /// Null on rows created before v4 (the migration backfills them with what
   /// they resolved to at upgrade time) and, defensively, whenever the reader
   /// cannot resolve one — [attendance_status.dart]'s `evaluationContext` falls
   /// back to the live resolved schedule in that case.

@@ -260,7 +260,34 @@ class CredentialRepository {
       final at = now ?? DateTime.now();
       var row = await _rowFor(expectedEmployeeId);
       if (row == null) {
-        return const CinVerification(CinCheckResult.noCredential);
+        // An employee created without a PIN has no credential row, and the
+        // lockout counter lives there. Rather than refusing them — every
+        // employee has a CIN, and the shared tablet needs every one of them to
+        // confirm who they are — give them a row with [noPinHash], which no
+        // PIN can match: it holds the counter and grants no login.
+        final employeeExists =
+            await (_db.select(_db.employees)
+                  ..where((e) => e.id.equals(expectedEmployeeId)))
+                .getSingleOrNull() !=
+            null;
+        if (!employeeExists) {
+          return const CinVerification(CinCheckResult.noCredential);
+        }
+        await _db
+            .into(_db.employeeCredentials)
+            .insert(
+              credentialToRow(
+                EmployeeCredential(
+                  id: newId(),
+                  employeeId: expectedEmployeeId,
+                  pinHash: noPinHash,
+                ),
+              ),
+            );
+        row = await _rowFor(expectedEmployeeId);
+        if (row == null) {
+          return const CinVerification(CinCheckResult.noCredential);
+        }
       }
 
       // A lockout whose moment has passed: clear it so the employee gets the

@@ -15,6 +15,8 @@ import '../../../../data/view_models/view_models.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 import '../widgets/movement_labels.dart';
+import '../../../../core/utils/employee_status.dart';
+import '../widgets/picker/movement_actor_sheet.dart';
 import '../widgets/picker/movement_cart.dart';
 import '../widgets/picker/product_picker_sheet.dart';
 
@@ -326,6 +328,16 @@ class _StockAdjustmentPageState extends ConsumerState<StockAdjustmentPage> {
       if (!confirmed || !mounted) return;
     }
 
+    // Who is at the tablet. Asked here, at the save, so the person who
+    // confirms is the person who saves.
+    final actor = await MovementActorSheet.show(
+      context,
+      storeId: widget.storeId,
+      actionLabel: l10n.adjustmentSubmit,
+    );
+    if (actor == null || !mounted) return;
+    final actorName = employeeDisplayName(actor);
+
     final note = _noteController.text.trim();
     setState(() => _saving = true);
     try {
@@ -340,6 +352,8 @@ class _StockAdjustmentPageState extends ConsumerState<StockAdjustmentPage> {
             systemQuantity: item.quantity,
             countedQuantity: counted,
             note: note.isEmpty ? null : note,
+            userName: actorName,
+            employeeId: actor.id,
           );
         }
       });
@@ -350,9 +364,7 @@ class _StockAdjustmentPageState extends ConsumerState<StockAdjustmentPage> {
     if (!mounted) return;
     AppSnackBar.success(
       context,
-      counts.length == 1
-          ? l10n.adjustmentRecorded
-          : l10n.movementsRecorded(counts.length),
+      l10n.movementsRecordedBy(counts.length, actor.firstName),
     );
     context.goSection(Routes.toMovements(widget.storeId));
   }
