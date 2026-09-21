@@ -2254,6 +2254,30 @@ abstract class AppLocalizations {
   /// **'Aucun produit sous son seuil d\'alerte.'**
   String get dashboardAllGoodBody;
 
+  /// Phone tab on the dashboard showing recent movements.
+  ///
+  /// In fr, this message translates to:
+  /// **'Activité'**
+  String get dashboardTabActivity;
+
+  /// Phone tab on the dashboard showing products under their alert threshold.
+  ///
+  /// In fr, this message translates to:
+  /// **'À surveiller'**
+  String get dashboardTabAlerts;
+
+  /// A product's stock against its alert threshold on the dashboard.
+  ///
+  /// In fr, this message translates to:
+  /// **'{quantity} / seuil {threshold}'**
+  String dashboardAlertLevel(String quantity, String threshold);
+
+  /// Short label of the add-product quick action on the dashboard.
+  ///
+  /// In fr, this message translates to:
+  /// **'Produit'**
+  String get dashboardAddProductShort;
+
   /// Dashboard empty state for a brand-new store.
   ///
   /// In fr, this message translates to:

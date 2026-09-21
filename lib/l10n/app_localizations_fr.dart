@@ -1365,6 +1365,20 @@ class AppLocalizationsFr extends AppLocalizations {
   String get dashboardAllGoodBody => 'Aucun produit sous son seuil d\'alerte.';
 
   @override
+  String get dashboardTabActivity => 'Activité';
+
+  @override
+  String get dashboardTabAlerts => 'À surveiller';
+
+  @override
+  String dashboardAlertLevel(String quantity, String threshold) {
+    return '$quantity / seuil $threshold';
+  }
+
+  @override
+  String get dashboardAddProductShort => 'Produit';
+
+  @override
   String get dashboardEmptyStore => 'Cet établissement est vide';
 
   @override

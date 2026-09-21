@@ -11,6 +11,7 @@ export 'adaptive_row.dart';
 export 'app_breadcrumbs.dart';
 export 'app_card.dart';
 export 'app_dropdown.dart';
+export 'card_row.dart';
 export 'app_scaffold.dart';
 export 'app_sidebar.dart';
 export 'app_snackbar.dart';

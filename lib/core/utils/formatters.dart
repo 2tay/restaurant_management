@@ -110,12 +110,17 @@ abstract final class Formatters {
   static final DateFormat _time = DateFormat('HH:mm', locale);
   static final DateFormat _weekday = DateFormat('EEEE', locale);
   static final DateFormat _dateNoPad = DateFormat('d/M/yyyy', locale);
+  static final DateFormat _weekdayDayMonth = DateFormat('EEEE d MMMM', locale);
 
   /// `22/08/2026`
   static String date(DateTime value) => _shortDate.format(value);
 
   /// `22 août 2026`
   static String dateLong(DateTime value) => _longDate.format(value);
+
+  /// `lundi 21 septembre` — the dashboard's "today", in a sentence.
+  static String weekdayDayMonth(DateTime value) =>
+      _weekdayDayMonth.format(value);
 
   /// `22 août` — chart axes and compact rows.
   static String dayMonth(DateTime value) => _dayMonth.format(value);

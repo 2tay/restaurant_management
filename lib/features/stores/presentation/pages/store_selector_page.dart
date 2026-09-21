@@ -44,7 +44,9 @@ class StoreSelectorPage extends ConsumerWidget {
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 1200),
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(AppSpacing.xxl),
+              padding: EdgeInsets.all(
+                context.isPhone ? AppSpacing.lg : AppSpacing.xxl,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -72,7 +74,7 @@ class StoreSelectorPage extends ConsumerWidget {
                       // Opening a store is an owner action (Phase 6). A manager
                       // sees the grid but not the button — and the route is
                       // guarded too.
-                      if (canCreateStore) ...[
+                      if (canCreateStore && !context.isPhone) ...[
                         const SizedBox(width: AppSpacing.lg),
                         PrimaryButton(
                           label: l10n.storesAdd,
@@ -82,6 +84,17 @@ class StoreSelectorPage extends ConsumerWidget {
                       ],
                     ],
                   ),
+                  // On a phone the button takes its own line: beside the
+                  // title it squeezed the heading into a column of letters.
+                  if (canCreateStore && context.isPhone) ...[
+                    const SizedBox(height: AppSpacing.lg),
+                    PrimaryButton(
+                      label: l10n.storesAdd,
+                      icon: LucideIcons.plus,
+                      fullWidth: true,
+                      onPressed: () => context.goSection(Routes.addStore),
+                    ),
+                  ],
                   const SizedBox(height: AppSpacing.xxl),
                   AsyncContent<List<StoreCardView>>(
                     value: cards,
