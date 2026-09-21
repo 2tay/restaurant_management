@@ -59,17 +59,21 @@ class _UsageReportPageState extends ConsumerState<UsageReportPage> {
     final total = usage.fold<double>(0, (sum, point) => sum + point.value);
 
     final wasted =
-        ref.watch(
-          wasteValueProvider((storeId: widget.storeId, days: _rangeDays)),
-        ).value ??
+        ref
+            .watch(
+              wasteValueProvider((storeId: widget.storeId, days: _rangeDays)),
+            )
+            .value ??
         0;
     final consumed =
-        ref.watch(
-          consumptionValueProvider((
-            storeId: widget.storeId,
-            days: _rangeDays,
-          )),
-        ).value ??
+        ref
+            .watch(
+              consumptionValueProvider((
+                storeId: widget.storeId,
+                days: _rangeDays,
+              )),
+            )
+            .value ??
         0;
 
     return ShellPage(
@@ -97,51 +101,96 @@ class _UsageReportPageState extends ConsumerState<UsageReportPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          GridView.count(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisCount: context.gridColumns(max: 3),
-            crossAxisSpacing: AppSpacing.lg,
-            mainAxisSpacing: AppSpacing.lg,
-            childAspectRatio: 1.6,
+          CardRow(
+            minCardWidth: 190,
+            scrollCardWidth: 180,
+            spacing: context.isPhone ? AppSpacing.md : AppSpacing.lg,
             children: [
               SummaryTile(
                 label: l10n.usageTotal,
                 value: Formatters.priceCompact(total),
                 icon: LucideIcons.chartLine,
+                iconColors: AppColors.info,
               ),
               SummaryTile(
                 label: l10n.reportConsumptionValue,
                 value: Formatters.priceCompact(consumed),
                 icon: LucideIcons.trendingDown,
+                iconColors: AppColors.onBreak,
               ),
               SummaryTile(
                 label: l10n.reportWasteValue,
                 value: Formatters.priceCompact(wasted),
                 icon: LucideIcons.ban,
-                accent: AppColors.lowStock,
+                accent: wasted > 0 ? AppColors.lowStock : null,
+                iconColors: AppColors.inStock,
               ),
             ],
           ),
           const SizedBox(height: AppSpacing.xl),
 
-          SectionHeader(title: l10n.usageTrend),
-          AppCard(
-            child: SizedBox(height: 280, child: _UsageChart(points: usage)),
-          ),
-          const SizedBox(height: AppSpacing.xl),
-
-          SectionHeader(title: l10n.usageWasteTrend),
-          AppCard(
-            child: SizedBox(
-              height: 240,
-              child: _WasteChart(points: wasteTrend),
+          // The two trends side by side with room — one row, the same height,
+          // so usage and waste read against each other — and stacked on a
+          // phone, where a chart needs the whole width to be legible.
+          if (context.canSplitView)
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: _ChartSection(
+                    title: l10n.usageTrend,
+                    chart: _UsageChart(points: usage),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.lg),
+                Expanded(
+                  child: _ChartSection(
+                    title: l10n.usageWasteTrend,
+                    chart: _WasteChart(points: wasteTrend),
+                  ),
+                ),
+              ],
+            )
+          else ...[
+            _ChartSection(
+              title: l10n.usageTrend,
+              chart: _UsageChart(points: usage),
             ),
-          ),
+            const SizedBox(height: AppSpacing.xl),
+            _ChartSection(
+              title: l10n.usageWasteTrend,
+              chart: _WasteChart(points: wasteTrend),
+              height: 240,
+            ),
+          ],
         ],
       ),
     );
   }
+}
+
+/// A titled chart in a card, at a fixed height so two of them line up.
+class _ChartSection extends StatelessWidget {
+  const _ChartSection({
+    required this.title,
+    required this.chart,
+    this.height = 280,
+  });
+
+  final String title;
+  final Widget chart;
+  final double height;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      SectionHeader(title: title),
+      AppCard(
+        child: SizedBox(height: height, child: chart),
+      ),
+    ],
+  );
 }
 
 class _RangeSelector extends StatelessWidget {
