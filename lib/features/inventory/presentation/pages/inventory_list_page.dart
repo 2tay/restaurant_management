@@ -6,16 +6,19 @@ import '../../../../app/routes.dart';
 import '../../../../app/navigation.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/theme/app_typography.dart';
+import '../../../../core/utils/formatters.dart';
 import '../../../../core/utils/item_search.dart';
+import '../../../../core/utils/stock_status.dart';
 import '../../../../core/utils/responsive.dart';
 import '../../../../data/providers.dart';
 import '../../../../data/repositories/repositories.dart';
 import '../../../../data/view_models/view_models.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 import '../widgets/item_detail_view.dart';
 import '../widgets/item_card.dart';
-import '../widgets/item_list_row.dart';
 
 /// How the visible products are ordered.
 ///
@@ -50,7 +53,7 @@ enum ItemSort {
 /// choice is per session — it lives in a provider rather than in a widget's
 /// state so it survives opening a product and coming back, and it is not
 /// written to disk because the app has no preferences store to write it to.
-enum InventoryViewMode { grid, list }
+enum InventoryViewMode { grid, table }
 
 class InventoryViewModeNotifier extends Notifier<InventoryViewMode> {
   @override
@@ -281,7 +284,13 @@ class _ListPane extends ConsumerWidget {
                 )
               : viewMode == InventoryViewMode.grid
               ? _ProductGrid(rows: rows, onTap: onTap, selectedId: selectedId)
-              : _ProductList(rows: rows, onTap: onTap, selectedId: selectedId),
+              : _ProductTable(
+                  rows: rows,
+                  onTap: onTap,
+                  selectedId: selectedId,
+                  sort: filter.sort,
+                  onSort: notifier.setSort,
+                ),
         ),
       ],
     );
@@ -642,31 +651,186 @@ class _ProductGrid extends StatelessWidget {
 /// Everything the card carries, on one line: thumbnail, name, category,
 /// status, quantity, and the same arrow. For the user who knows what they are
 /// looking for and wants twenty products on screen rather than six.
-class _ProductList extends StatelessWidget {
-  const _ProductList({
+/// The products as a table: what it is, how much is left against its
+/// threshold and its ceiling, what it is worth, and whether that is a problem.
+///
+/// The headers sort — name, stock, status — through the same [ItemSort] the
+/// sort menu sets, so the two can never disagree. On a narrow screen the
+/// secondary columns drop out rather than the table scrolling sideways.
+class _ProductTable extends StatelessWidget {
+  const _ProductTable({
     required this.rows,
     required this.onTap,
     required this.selectedId,
+    required this.sort,
+    required this.onSort,
   });
 
   final List<ItemRowView> rows;
   final ValueChanged<String> onTap;
   final String? selectedId;
+  final ItemSort sort;
+  final ValueChanged<ItemSort> onSort;
+
+  static const _byName = 'name';
+  static const _byStock = 'stock';
+  static const _byStatus = 'status';
 
   @override
   Widget build(BuildContext context) {
-    return ListView.separated(
-      padding: EdgeInsets.zero,
-      itemCount: rows.length,
-      separatorBuilder: (context, _) => const SizedBox(height: AppSpacing.sm),
-      itemBuilder: (context, index) {
-        final row = rows[index];
-        return ItemListRow(
-          view: row,
-          selected: selectedId == row.item.id,
-          onTap: () => onTap(row.item.id),
-        );
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+
+    final (Object? key, bool ascending) = switch (sort) {
+      ItemSort.nameAsc => (_byName, true),
+      ItemSort.nameDesc => (_byName, false),
+      ItemSort.stockAsc => (_byStock, true),
+      ItemSort.stockDesc => (_byStock, false),
+      ItemSort.status => (_byStatus, true),
+      ItemSort.recent => (null, true),
+    };
+
+    return AppTable<ItemRowView>(
+      rows: rows,
+      sortKey: key,
+      sortAscending: ascending,
+      onSort: (column) => onSort(switch (column) {
+        _byName =>
+          sort == ItemSort.nameAsc ? ItemSort.nameDesc : ItemSort.nameAsc,
+        _byStock =>
+          sort == ItemSort.stockAsc ? ItemSort.stockDesc : ItemSort.stockAsc,
+        _ => ItemSort.status,
+      }),
+      onRowTap: (row) => onTap(row.item.id),
+      isSelected: (row) => row.item.id == selectedId,
+      rowAccent: (row) {
+        final status = stockStatusOf(row.item);
+        return status == StockStatus.inStock
+            ? null
+            : StockStatusBadge.colorsFor(status).solid;
       },
+      columns: [
+        AppTableColumn(label: l10n.tableColProduct, flex: 4, sortKey: _byName),
+        AppTableColumn(
+          label: l10n.tableColStock,
+          width: 128,
+          numeric: true,
+          sortKey: _byStock,
+        ),
+        AppTableColumn(
+          label: l10n.tableColThreshold,
+          width: 96,
+          numeric: true,
+          minTableWidth: 720,
+        ),
+        AppTableColumn(
+          label: l10n.tableColLevel,
+          width: 140,
+          minTableWidth: 860,
+        ),
+        AppTableColumn(
+          label: l10n.tableColValue,
+          width: 112,
+          numeric: true,
+          minTableWidth: 620,
+        ),
+        AppTableColumn(
+          label: l10n.tableColStatus,
+          width: 168,
+          sortKey: _byStatus,
+          minTableWidth: 480,
+        ),
+      ],
+      cell: (context, row, column) {
+        final item = row.item;
+        final unit = row.unitAbbreviation;
+        final status = stockStatusOf(item);
+        final colors = StockStatusBadge.colorsFor(status);
+
+        return switch (column) {
+          0 => Row(
+            children: [
+              ProductImage(imagePath: item.imagePath, size: 40, radius: 8),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item.name,
+                      style: theme.textTheme.titleSmall,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      row.categoryName,
+                      style: theme.textTheme.bodySmall,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          1 => Text(
+            Formatters.quantityWithUnit(item.quantity, unit),
+            style: AppTypography.numeric.copyWith(
+              fontWeight: FontWeight.w700,
+              color: status == StockStatus.inStock
+                  ? AppColors.textPrimary
+                  : colors.foreground,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          2 => Text(
+            Formatters.quantity(item.lowStockThreshold),
+            style: AppTypography.numeric.copyWith(
+              color: AppColors.textSecondary,
+            ),
+          ),
+          3 => _LevelBar(item: item, colors: colors),
+          4 => Text(
+            item.averageCost == null
+                ? '—'
+                : Formatters.price(item.quantity * item.averageCost!),
+            style: AppTypography.numeric,
+            maxLines: 1,
+          ),
+          _ => StockStatusBadge(status: status, compact: false),
+        };
+      },
+    );
+  }
+}
+
+/// How full the shelf is: stock against the ceiling the store orders up to,
+/// or twice the alert threshold when no ceiling is set — in the status
+/// colour, so a column of them reads at a glance.
+class _LevelBar extends StatelessWidget {
+  const _LevelBar({required this.item, required this.colors});
+
+  final Item item;
+  final StockStatusColors colors;
+
+  @override
+  Widget build(BuildContext context) {
+    final ceiling = item.maxStock > 0
+        ? item.maxStock
+        : item.lowStockThreshold * 2;
+    final level = ceiling <= 0
+        ? 0.0
+        : (item.quantity / ceiling).clamp(0.0, 1.0);
+
+    return ClipRRect(
+      borderRadius: AppRadius.pillAll,
+      child: LinearProgressIndicator(
+        value: level,
+        minHeight: 6,
+        color: colors.solid,
+        backgroundColor: colors.container,
+      ),
     );
   }
 }
@@ -725,7 +889,7 @@ class _SortMenu extends StatelessWidget {
   }
 }
 
-/// Cards or rows, as a two-button segmented control.
+/// Cards or a table, as the shared two-button toggle.
 class _ViewModeToggle extends StatelessWidget {
   const _ViewModeToggle({required this.mode, required this.onSelected});
 
@@ -735,80 +899,21 @@ class _ViewModeToggle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-
-    return Container(
-      height: AppSizing.minTapTarget,
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: AppRadius.pillAll,
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _ViewModeButton(
-            icon: LucideIcons.layoutGrid,
-            label: l10n.inventoryViewGrid,
-            selected: mode == InventoryViewMode.grid,
-            onTap: () => onSelected(InventoryViewMode.grid),
-          ),
-          _ViewModeButton(
-            icon: LucideIcons.list,
-            label: l10n.inventoryViewList,
-            selected: mode == InventoryViewMode.list,
-            onTap: () => onSelected(InventoryViewMode.list),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ViewModeButton extends StatelessWidget {
-  const _ViewModeButton({
-    required this.icon,
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: label,
-      child: Semantics(
-        button: true,
-        selected: selected,
-        label: label,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: AppRadius.pillAll,
-          child: AnimatedContainer(
-            duration: AppMotion.duration(context, AppMotion.fast),
-            curve: AppMotion.standard,
-            // Square at the tap-target floor, even though the icon inside is
-            // small: this is a control for a wet finger on a tablet.
-            width: AppSizing.minTapTarget,
-            height: AppSizing.minTapTarget,
-            decoration: BoxDecoration(
-              color: selected ? AppColors.primaryContainer : Colors.transparent,
-              borderRadius: AppRadius.pillAll,
-            ),
-            child: Icon(
-              icon,
-              size: AppSizing.iconMd,
-              color: selected
-                  ? AppColors.onPrimaryContainer
-                  : AppColors.textSecondary,
-            ),
-          ),
+    return ViewModeToggle<InventoryViewMode>(
+      value: mode,
+      onSelected: onSelected,
+      options: [
+        ViewModeOption(
+          value: InventoryViewMode.grid,
+          icon: LucideIcons.layoutGrid,
+          label: l10n.inventoryViewGrid,
         ),
-      ),
+        ViewModeOption(
+          value: InventoryViewMode.table,
+          icon: LucideIcons.table,
+          label: l10n.inventoryViewTable,
+        ),
+      ],
     );
   }
 }

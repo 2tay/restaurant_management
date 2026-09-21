@@ -832,6 +832,90 @@ abstract class AppLocalizations {
   /// **'Stock décroissant'**
   String get inventorySortStockDesc;
 
+  /// Tooltip of the table view button on the product list.
+  ///
+  /// In fr, this message translates to:
+  /// **'Vue tableau'**
+  String get inventoryViewTable;
+
+  /// Tooltip of the list view button on the movement history.
+  ///
+  /// In fr, this message translates to:
+  /// **'Vue liste'**
+  String get movementsViewList;
+
+  /// Tooltip of the table view button on the movement history.
+  ///
+  /// In fr, this message translates to:
+  /// **'Vue tableau'**
+  String get movementsViewTable;
+
+  /// Table column header.
+  ///
+  /// In fr, this message translates to:
+  /// **'Produit'**
+  String get tableColProduct;
+
+  /// Table column header: quantity on hand.
+  ///
+  /// In fr, this message translates to:
+  /// **'Stock'**
+  String get tableColStock;
+
+  /// Table column header: alert threshold.
+  ///
+  /// In fr, this message translates to:
+  /// **'Seuil'**
+  String get tableColThreshold;
+
+  /// Table column header: stock level gauge.
+  ///
+  /// In fr, this message translates to:
+  /// **'Niveau'**
+  String get tableColLevel;
+
+  /// Table column header: money value.
+  ///
+  /// In fr, this message translates to:
+  /// **'Valeur'**
+  String get tableColValue;
+
+  /// Table column header: stock status.
+  ///
+  /// In fr, this message translates to:
+  /// **'Statut'**
+  String get tableColStatus;
+
+  /// Table column header.
+  ///
+  /// In fr, this message translates to:
+  /// **'Date'**
+  String get tableColDate;
+
+  /// Table column header: movement type.
+  ///
+  /// In fr, this message translates to:
+  /// **'Type'**
+  String get tableColType;
+
+  /// Table column header.
+  ///
+  /// In fr, this message translates to:
+  /// **'Quantité'**
+  String get tableColQuantity;
+
+  /// Table column header: who recorded it.
+  ///
+  /// In fr, this message translates to:
+  /// **'Par'**
+  String get tableColBy;
+
+  /// Table column header: time of day.
+  ///
+  /// In fr, this message translates to:
+  /// **'Heure'**
+  String get tableColTime;
+
   /// Tooltip on the button switching the product list to cards.
   ///
   /// In fr, this message translates to:

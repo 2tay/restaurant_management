@@ -432,6 +432,48 @@ class AppLocalizationsFr extends AppLocalizations {
   String get inventorySortStockDesc => 'Stock décroissant';
 
   @override
+  String get inventoryViewTable => 'Vue tableau';
+
+  @override
+  String get movementsViewList => 'Vue liste';
+
+  @override
+  String get movementsViewTable => 'Vue tableau';
+
+  @override
+  String get tableColProduct => 'Produit';
+
+  @override
+  String get tableColStock => 'Stock';
+
+  @override
+  String get tableColThreshold => 'Seuil';
+
+  @override
+  String get tableColLevel => 'Niveau';
+
+  @override
+  String get tableColValue => 'Valeur';
+
+  @override
+  String get tableColStatus => 'Statut';
+
+  @override
+  String get tableColDate => 'Date';
+
+  @override
+  String get tableColType => 'Type';
+
+  @override
+  String get tableColQuantity => 'Quantité';
+
+  @override
+  String get tableColBy => 'Par';
+
+  @override
+  String get tableColTime => 'Heure';
+
+  @override
   String get inventoryViewGrid => 'Vue grille';
 
   @override

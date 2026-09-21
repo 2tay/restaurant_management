@@ -20,7 +20,8 @@ import 'package:stock_inventory/data/database/app_database.dart';
 import 'package:stock_inventory/data/seed/dataset/dataset.dart';
 import 'package:stock_inventory/features/inventory/presentation/pages/inventory_list_page.dart';
 import 'package:stock_inventory/features/inventory/presentation/widgets/item_card.dart';
-import 'package:stock_inventory/features/inventory/presentation/widgets/item_list_row.dart';
+import 'package:stock_inventory/data/view_models/view_models.dart';
+import 'package:stock_inventory/shared/widgets/app_table.dart';
 import 'package:drift/drift.dart' show Value;
 
 import 'support/app_harness.dart';
@@ -41,9 +42,9 @@ Future<void> _openInventory(WidgetTester tester, Size size) async {
   await tester.pumpAndSettle();
 }
 
-/// Switches the catalogue to rows, by pressing the button a user would.
+/// Switches the catalogue to the table, by pressing the button a user would.
 Future<void> _switchToList(WidgetTester tester) async {
-  await tester.tap(find.byTooltip('Vue liste').first);
+  await tester.tap(find.byTooltip('Vue tableau').first);
   await tester.pumpAndSettle();
 }
 
@@ -97,7 +98,7 @@ void main() {
         await _switchToList(tester);
 
         expect(tester.takeException(), isNull);
-        expect(find.byType(ItemListRow), findsWidgets);
+        expect(find.byType(AppTable<ItemRowView>), findsWidgets);
         expect(find.byType(ItemCard), findsNothing);
       });
     }
@@ -109,7 +110,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(ItemCard), findsWidgets);
-      expect(find.byType(ItemListRow), findsNothing);
+      expect(find.byType(AppTable<ItemRowView>), findsNothing);
     });
   });
 
@@ -207,7 +208,7 @@ void main() {
       await _sortBy(tester, 'Nom A → Z');
 
       expect(tester.takeException(), isNull);
-      expect(find.byType(ItemListRow), findsWidgets);
+      expect(find.byType(AppTable<ItemRowView>), findsWidgets);
     });
 
     // The ordering is not a filter, and clearing the filters must not quietly

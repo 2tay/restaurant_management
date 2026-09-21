@@ -288,21 +288,19 @@ class StoreDashboardPage extends ConsumerWidget {
           // What happened and what needs doing — side by side with room,
           // two tabs of one panel on a phone.
           if (context.canSplitView)
-            IntrinsicHeight(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Expanded(
-                    flex: 3,
-                    child: _ActivityPanel(storeId: storeId, activity: activity),
-                  ),
-                  const SizedBox(width: AppSpacing.lg),
-                  Expanded(
-                    flex: 2,
-                    child: _AlertsPanel(storeId: storeId, alerts: alerts),
-                  ),
-                ],
-              ),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  flex: 3,
+                  child: _ActivityPanel(storeId: storeId, activity: activity),
+                ),
+                const SizedBox(width: AppSpacing.lg),
+                Expanded(
+                  flex: 2,
+                  child: _AlertsPanel(storeId: storeId, alerts: alerts),
+                ),
+              ],
             )
           else
             _TabbedPanels(storeId: storeId, activity: activity, alerts: alerts),
@@ -479,129 +477,77 @@ class _ActivityPanel extends StatelessWidget {
               actionLabel: l10n.actionAddDelivery,
               onAction: () => context.pushScreen(Routes.toStockIn(storeId)),
             )
-          : Column(
-              children: [
-                for (final (i, view) in activity.indexed)
-                  _ActivityLine(
-                    view: view,
-                    last: i == activity.length - 1,
-                    onTap: () => context.pushScreen(
-                      Routes.toItem(storeId, view.movement.itemId),
-                    ),
-                  ),
-              ],
-            ),
+          : _ActivityTable(storeId: storeId, activity: activity),
     );
   }
 }
 
-/// One movement as a line of a timeline: a dot in the movement's colour and a
-/// rail joining it to the next, the product, who and when, and the signed
-/// quantity.
-class _ActivityLine extends StatelessWidget {
-  const _ActivityLine({
-    required this.view,
-    required this.last,
-    required this.onTap,
-  });
+/// The latest movements as a compact table: product with its type's dot,
+/// the signed quantity, who, and when. Each row opens the product.
+class _ActivityTable extends StatelessWidget {
+  const _ActivityTable({required this.storeId, required this.activity});
 
-  final MovementRowView view;
-  final bool last;
-  final VoidCallback onTap;
+  final String storeId;
+  final List<MovementRowView> activity;
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final movement = view.movement;
-    final colors = movementColors(movement.type);
-
-    final at = movement.occurredAt;
     final now = DateTime.now();
-    final today =
-        at.year == now.year && at.month == now.month && at.day == now.day;
-    final when = today ? Formatters.time(at) : Formatters.dayMonth(at);
 
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-        child: IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              SizedBox(
-                width: 20,
-                child: Column(
-                  children: [
-                    const SizedBox(height: AppSpacing.md + 4),
-                    Container(
-                      width: 10,
-                      height: 10,
-                      decoration: BoxDecoration(
-                        color: colors.solid,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: colors.container, width: 2),
-                      ),
-                    ),
-                    if (!last)
-                      Expanded(
-                        child: Container(width: 2, color: AppColors.hairline),
-                      ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        view.itemName,
-                        style: theme.textTheme.titleSmall,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 2),
-                      Row(
-                        children: [
-                          Flexible(
-                            child: EmployeeNameTag(
-                              name: movement.userName,
-                              employeeId: movement.employeeId,
-                              style: theme.textTheme.bodySmall,
-                              avatarSize: 16,
-                            ),
-                          ),
-                          Text(' · $when', style: theme.textTheme.bodySmall),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              Align(
-                alignment: Alignment.centerRight,
-                child: Text(
-                  Formatters.quantityDelta(
-                    movement.quantity,
-                    view.unitAbbreviation,
-                  ),
-                  style: AppTypography.numeric.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: quantityDeltaColor(movement.quantity),
-                  ),
-                ),
-              ),
-            ],
+    return AppTable<MovementRowView>(
+      rows: activity,
+      shrinkWrap: true,
+      bordered: false,
+      rowHeight: 48,
+      rowAccent: (view) => movementColors(view.movement.type).solid,
+      onRowTap: (view) =>
+          context.pushScreen(Routes.toItem(storeId, view.movement.itemId)),
+      columns: [
+        AppTableColumn(label: l10n.tableColProduct, flex: 3),
+        AppTableColumn(label: l10n.tableColQuantity, width: 104, numeric: true),
+        AppTableColumn(label: l10n.tableColBy, flex: 2, minTableWidth: 420),
+        AppTableColumn(label: l10n.tableColTime, width: 72, numeric: true),
+      ],
+      cell: (context, view, column) {
+        final movement = view.movement;
+        return switch (column) {
+          0 => Text(
+            view.itemName,
+            style: theme.textTheme.titleSmall,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
-        ),
-      ),
+          1 => Text(
+            Formatters.quantityDelta(movement.quantity, view.unitAbbreviation),
+            style: AppTypography.numeric.copyWith(
+              fontWeight: FontWeight.w700,
+              color: quantityDeltaColor(movement.quantity),
+            ),
+            maxLines: 1,
+          ),
+          2 => EmployeeNameTag(
+            name: movement.userName,
+            employeeId: movement.employeeId,
+            style: theme.textTheme.bodySmall,
+            avatarSize: 18,
+          ),
+          _ => Text(
+            _when(movement.occurredAt, now),
+            style: theme.textTheme.bodySmall,
+            maxLines: 1,
+          ),
+        };
+      },
     );
   }
+
+  /// The time today, the day before that.
+  static String _when(DateTime at, DateTime now) =>
+      at.year == now.year && at.month == now.month && at.day == now.day
+      ? Formatters.time(at)
+      : Formatters.dayMonth(at);
 }
 
 class _AlertsPanel extends StatelessWidget {
@@ -643,12 +589,7 @@ class _AlertsPanel extends StatelessWidget {
               title: l10n.dashboardAllGood,
               message: l10n.dashboardAllGoodBody,
             )
-          : Column(
-              children: [
-                for (final view in shown)
-                  _AlertLine(view: view, storeId: storeId),
-              ],
-            ),
+          : _AlertsTable(storeId: storeId, alerts: shown),
     );
   }
 }
@@ -658,71 +599,92 @@ double _level(Item item) => item.lowStockThreshold <= 0
     ? 0
     : (item.quantity / item.lowStockThreshold).clamp(0.0, 1.0);
 
-class _AlertLine extends StatelessWidget {
-  const _AlertLine({required this.view, required this.storeId});
+/// The products under their threshold as a compact table: photo and name,
+/// stock against threshold with a gauge, and the status. Each row opens the
+/// product.
+class _AlertsTable extends StatelessWidget {
+  const _AlertsTable({required this.storeId, required this.alerts});
 
-  final ItemRowView view;
   final String storeId;
+  final List<ItemRowView> alerts;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final item = view.item;
-    final unit = view.unitAbbreviation;
-    final status = stockStatusOf(item);
-    final colors = StockStatusBadge.colorsFor(status);
 
-    return InkWell(
-      onTap: () => context.pushScreen(Routes.toItem(storeId, item.id)),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.lg,
-          vertical: AppSpacing.sm,
+    return AppTable<ItemRowView>(
+      rows: alerts,
+      shrinkWrap: true,
+      bordered: false,
+      rowHeight: 48,
+      rowAccent: (view) =>
+          StockStatusBadge.colorsFor(stockStatusOf(view.item)).solid,
+      onRowTap: (view) =>
+          context.pushScreen(Routes.toItem(storeId, view.item.id)),
+      columns: [
+        AppTableColumn(label: l10n.tableColProduct, flex: 3),
+        AppTableColumn(label: l10n.tableColStock, width: 112, numeric: true),
+        AppTableColumn(
+          label: l10n.tableColLevel,
+          width: 88,
+          minTableWidth: 400,
         ),
-        child: Row(
-          children: [
-            ProductImage(imagePath: item.imagePath, size: 36, radius: 8),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    item.name,
-                    style: theme.textTheme.titleSmall,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  Text(
-                    l10n.dashboardAlertLevel(
-                      Formatters.quantityWithUnit(item.quantity, unit),
-                      Formatters.quantity(item.lowStockThreshold),
-                    ),
-                    style: theme.textTheme.bodySmall,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  // How close to empty, in the status colour — the gauge a
-                  // manager reads before the number.
-                  ClipRRect(
-                    borderRadius: AppRadius.pillAll,
-                    child: LinearProgressIndicator(
-                      value: _level(item),
-                      minHeight: 4,
-                      color: colors.solid,
-                      backgroundColor: colors.container,
-                    ),
-                  ),
-                ],
+        AppTableColumn(label: l10n.tableColStatus, width: 56),
+      ],
+      cell: (context, view, column) {
+        final item = view.item;
+        final status = stockStatusOf(item);
+        final colors = StockStatusBadge.colorsFor(status);
+        return switch (column) {
+          0 => Row(
+            children: [
+              ProductImage(imagePath: item.imagePath, size: 32, radius: 6),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: Text(
+                  item.name,
+                  style: theme.textTheme.titleSmall,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
+            ],
+          ),
+          1 => Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                Formatters.quantityWithUnit(
+                  item.quantity,
+                  view.unitAbbreviation,
+                ),
+                style: AppTypography.numeric.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: colors.foreground,
+                ),
+                maxLines: 1,
+              ),
+              Text(
+                '/ ${Formatters.quantity(item.lowStockThreshold)}',
+                style: theme.textTheme.bodySmall,
+                maxLines: 1,
+              ),
+            ],
+          ),
+          2 => ClipRRect(
+            borderRadius: AppRadius.pillAll,
+            child: LinearProgressIndicator(
+              value: _level(item),
+              minHeight: 6,
+              color: colors.solid,
+              backgroundColor: colors.container,
             ),
-            const SizedBox(width: AppSpacing.md),
-            StockStatusBadge(status: status, compact: true),
-          ],
-        ),
-      ),
+          ),
+          _ => StockStatusBadge(status: status, compact: true),
+        };
+      },
     );
   }
 }

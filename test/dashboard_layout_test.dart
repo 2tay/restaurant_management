@@ -14,7 +14,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:stock_inventory/app/router.dart';
 import 'package:stock_inventory/app/routes.dart';
 import 'package:stock_inventory/data/seed/dataset/dataset.dart';
+import 'package:stock_inventory/data/view_models/view_models.dart';
 import 'package:stock_inventory/features/dashboard/presentation/widgets/summary_tile.dart';
+import 'package:stock_inventory/shared/widgets/app_table.dart';
 
 import 'support/app_harness.dart';
 
@@ -79,13 +81,13 @@ void main() {
     final alertsTab = find.text('À surveiller');
     await tester.ensureVisible(alertsTab);
     await tester.pumpAndSettle();
-    expect(find.byType(LinearProgressIndicator), findsNothing);
+    expect(find.byType(AppTable<ItemRowView>), findsNothing);
 
     await tester.tap(alertsTab);
     await tester.pumpAndSettle();
 
-    // The alert lines, each with its gauge towards the threshold.
-    expect(find.byType(LinearProgressIndicator), findsWidgets);
+    // The alerts, as their table.
+    expect(find.byType(AppTable<ItemRowView>), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

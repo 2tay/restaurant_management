@@ -15,6 +15,7 @@ import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 import '../widgets/movement_labels.dart';
 import '../widgets/movement_row.dart';
+import '../widgets/movement_table.dart';
 
 /// A date range for the history filter.
 enum HistoryPeriod {
@@ -123,6 +124,7 @@ class _StockHistoryPageState extends ConsumerState<StockHistoryPage> {
     // and pushing them into SQL would put four more shapes of query behind a
     // screen whose entire job is to let somebody try one filter after another.
     final rows = ref.watch(movementRowsForStoreProvider(widget.storeId));
+    final viewMode = ref.watch(movementsViewModeProvider);
 
     // Empty while its query is out. The menu shows only "tous les articles"
     // for that frame, which is the correct set of choices given what is known.
@@ -283,6 +285,24 @@ class _StockHistoryPageState extends ConsumerState<StockHistoryPage> {
                       color: AppColors.border,
                     ),
                     ...filters,
+                    ViewModeToggle<MovementsViewMode>(
+                      value: viewMode,
+                      onSelected: ref
+                          .read(movementsViewModeProvider.notifier)
+                          .select,
+                      options: [
+                        ViewModeOption(
+                          value: MovementsViewMode.list,
+                          icon: LucideIcons.list,
+                          label: l10n.movementsViewList,
+                        ),
+                        ViewModeOption(
+                          value: MovementsViewMode.table,
+                          icon: LucideIcons.table,
+                          label: l10n.movementsViewTable,
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               const SizedBox(height: AppSpacing.md),
@@ -305,6 +325,14 @@ class _StockHistoryPageState extends ConsumerState<StockHistoryPage> {
                                 Routes.toStockIn(widget.storeId),
                               )
                             : _clearFilters,
+                      )
+                    // The table on a tablet or wider when chosen; a phone
+                    // keeps the cards, which a narrow table would only
+                    // squeeze.
+                    : viewMode == MovementsViewMode.table && !context.isPhone
+                    ? MovementTable(
+                        movements: movements,
+                        storeId: widget.storeId,
                       )
                     : _GroupedList(
                         movements: movements,

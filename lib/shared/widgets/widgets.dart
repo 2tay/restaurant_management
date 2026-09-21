@@ -14,6 +14,7 @@ export 'app_dropdown.dart';
 export 'card_row.dart';
 export 'app_scaffold.dart';
 export 'app_sidebar.dart';
+export 'app_table.dart';
 export 'app_snackbar.dart';
 export 'app_text_field.dart';
 export 'async_content.dart';
@@ -55,3 +56,4 @@ export 'status_pill.dart';
 export 'stock_status_badge.dart';
 // store_switcher.dart removed with the top bar — the sidebar owns store
 // selection now (see app_sidebar.dart).
+export 'view_mode_toggle.dart';
