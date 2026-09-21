@@ -24,11 +24,13 @@ import 'package:stock_inventory/app/router.dart';
 import 'package:stock_inventory/app/routes.dart';
 import 'package:stock_inventory/data/seed/dataset/dataset.dart';
 import 'package:stock_inventory/features/stock_movement/presentation/widgets/movement_row.dart';
+import 'package:stock_inventory/models/models.dart';
 import 'package:stock_inventory/shared/widgets/widgets.dart';
 
 import 'support/app_harness.dart';
 
 const Size _tablet = Size(1280, 800);
+const Size _phone = Size(360, 740);
 const String _store = StoreIds.sablon;
 
 // The French the pills carry. Written out rather than read back from
@@ -142,5 +144,47 @@ void main() {
       Routes.toMovements(_store, itemId: 'item-poulet'),
       endsWith('/movements?item=item-poulet'),
     );
+  });
+
+  // The type filter is one row of four segments on a phone. It used to be a
+  // row of chips that scrolled sideways, and "Ajustement" sat off the edge of
+  // a 360dp screen where nobody knew to swipe for it.
+  group('the type filter on a phone', () {
+    const types = ['Tous les types', 'Livraison', 'Sortie', 'Ajustement'];
+
+    Finder segment(String label) =>
+        find.bySemanticsLabel(RegExp('^${RegExp.escape(label)}, \\d+\$'));
+
+    testApp('shows all four types inside the screen', (tester) async {
+      final semantics = tester.ensureSemantics();
+      await pumpApp(tester, size: _phone);
+      await open(tester, Routes.toMovements(_store));
+
+      for (final label in types) {
+        expect(segment(label), findsOneWidget, reason: label);
+        final rect = tester.getRect(segment(label));
+        expect(rect.left, greaterThanOrEqualTo(0), reason: label);
+        expect(rect.right, lessThanOrEqualTo(_phone.width), reason: label);
+      }
+      // And the other filters sit behind one button on the same row.
+      expect(find.byType(FilterSheetButton), findsOneWidget);
+      semantics.dispose();
+    });
+
+    testApp('a type narrows the list to that type', (tester) async {
+      final semantics = tester.ensureSemantics();
+      await pumpApp(tester, size: _phone);
+      await open(tester, Routes.toMovements(_store));
+
+      await tester.tap(segment('Sortie'));
+      await tester.pumpAndSettle();
+
+      final rows = tester.widgetList<MovementRow>(find.byType(MovementRow));
+      expect(rows, isNotEmpty);
+      for (final row in rows) {
+        expect(row.view.movement.type, StockMovementType.stockOut);
+      }
+      semantics.dispose();
+    });
   });
 }

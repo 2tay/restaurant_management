@@ -73,9 +73,7 @@ abstract final class FilterSheet {
               // Scrollable: a store with long category names, on a phone with
               // the type turned up, is taller than the half screen a sheet
               // gets.
-              Flexible(
-                child: SingleChildScrollView(child: builder(context)),
-              ),
+              Flexible(child: SingleChildScrollView(child: builder(context))),
 
               const SizedBox(height: AppSpacing.lg),
               PrimaryButton(
@@ -100,6 +98,7 @@ class FilterSheetButton extends StatelessWidget {
   const FilterSheetButton({
     required this.activeCount,
     required this.onPressed,
+    this.compact = false,
     super.key,
   });
 
@@ -108,10 +107,50 @@ class FilterSheetButton extends StatelessWidget {
 
   final VoidCallback onPressed;
 
+  /// A round icon button with a count badge instead of the labelled pill.
+  final bool compact;
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final active = activeCount > 0;
+
+    if (compact) {
+      // Icon only, with the count as a badge — for a row that is already
+      // full, where the word "Filtres" would cost the space the row is for.
+      return Tooltip(
+        message: active
+            ? l10n.filtersTitleWithCount(activeCount)
+            : l10n.filtersTitle,
+        child: Badge(
+          isLabelVisible: active,
+          label: Text('$activeCount'),
+          backgroundColor: AppColors.primary600,
+          child: Material(
+            color: active ? AppColors.primaryContainer : AppColors.surface,
+            shape: CircleBorder(
+              side: BorderSide(
+                color: active ? AppColors.primary600 : AppColors.border,
+              ),
+            ),
+            child: InkWell(
+              onTap: onPressed,
+              customBorder: const CircleBorder(),
+              child: SizedBox.square(
+                dimension: AppSizing.minTapTarget,
+                child: Icon(
+                  LucideIcons.slidersHorizontal,
+                  size: AppSizing.iconMd,
+                  color: active
+                      ? AppColors.onPrimaryContainer
+                      : AppColors.textSecondary,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
 
     return Material(
       color: Colors.transparent,

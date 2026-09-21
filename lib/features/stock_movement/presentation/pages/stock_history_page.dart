@@ -203,37 +203,33 @@ class _StockHistoryPageState extends ConsumerState<StockHistoryPage> {
             ),
           ];
 
-          final count = Text(
-            l10n.movementsCount(movements.length),
-            style: Theme.of(context).textTheme.bodySmall,
-          );
-
-          final typeChips = _TypeChips(
-            selected: _type,
-            total: beforeType.length,
-            counts: {
-              for (final type in StockMovementType.values)
-                type: beforeType
-                    .where((row) => row.movement.type == type)
-                    .length,
-            },
-            onSelected: (type) => setState(() => _type = type),
-          );
+          final counts = {
+            for (final type in StockMovementType.values)
+              type: beforeType.where((row) => row.movement.type == type).length,
+          };
+          void onType(StockMovementType? type) => setState(() => _type = type);
 
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              typeChips,
-              const SizedBox(height: AppSpacing.md),
-              // Four filter menus stack into four rows on a 328dp phone, and
-              // with the count under them that was 559dp of chrome above the
-              // log — the screen showed two rows of it. On a phone they move
-              // behind one button; on a tablet they stay where they are, which
-              // is where a filter belongs when there is room for it.
+              // One row of chrome, not three. The type chips carry their own
+              // counts, so the separate "N mouvements" line went; on a phone
+              // the chips share their row with an icon-only filter button,
+              // and the four menus live behind it.
               if (context.isPhone)
                 Row(
                   children: [
+                    Expanded(
+                      child: _TypeSegments(
+                        selected: _type,
+                        total: beforeType.length,
+                        counts: counts,
+                        onSelected: onType,
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
                     FilterSheetButton(
+                      compact: true,
                       activeCount: _activeFilterCount,
                       onPressed: () => FilterSheet.show(
                         context,
@@ -259,20 +255,27 @@ class _StockHistoryPageState extends ConsumerState<StockHistoryPage> {
                         ),
                       ),
                     ),
-                    const SizedBox(width: AppSpacing.md),
-                    Expanded(child: count),
                   ],
                 )
-              else ...[
+              else
                 Wrap(
                   spacing: AppSpacing.sm,
                   runSpacing: AppSpacing.sm,
                   crossAxisAlignment: WrapCrossAlignment.center,
-                  children: filters,
+                  children: [
+                    ..._typeChips(l10n, beforeType.length, counts, onType),
+                    // A hairline between "what kind" and "which ones".
+                    Container(
+                      width: 1,
+                      height: 24,
+                      margin: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.xs,
+                      ),
+                      color: AppColors.border,
+                    ),
+                    ...filters,
+                  ],
                 ),
-                const SizedBox(height: AppSpacing.md),
-                count,
-              ],
               const SizedBox(height: AppSpacing.md),
 
               Expanded(
@@ -311,6 +314,37 @@ class _StockHistoryPageState extends ConsumerState<StockHistoryPage> {
       ),
     );
   }
+
+  /// One chip per movement type, in that type's colour, each with its count.
+  ///
+  /// Replaces a "Type" menu: the type is the filter people reach for most on
+  /// this screen, and a chip is one tap where a menu was two — and the row
+  /// doubles as a legend for the colours the rows below are drawn in.
+  /// Tapping the chip that is already on turns it off.
+  List<Widget> _typeChips(
+    AppLocalizations l10n,
+    int total,
+    Map<StockMovementType, int> counts,
+    ValueChanged<StockMovementType?> onSelected,
+  ) => [
+    _TypeChip(
+      label: l10n.movementsFilterAllTypes,
+      icon: LucideIcons.arrowRightLeft,
+      count: total,
+      colors: null,
+      selected: _type == null,
+      onTap: () => onSelected(null),
+    ),
+    for (final type in StockMovementType.values)
+      _TypeChip(
+        label: movementTypeLabel(l10n, type),
+        icon: movementTypeIcon(type),
+        count: counts[type] ?? 0,
+        colors: movementColors(type),
+        selected: _type == type,
+        onTap: () => onSelected(_type == type ? null : type),
+      ),
+  ];
 
   String? _itemName(List<Item> items) {
     if (_itemId == null) return null;
@@ -353,13 +387,12 @@ class _StockHistoryPageState extends ConsumerState<StockHistoryPage> {
 }
 
 /// A chip-shaped dropdown filter.
-/// One chip per movement type, in that type's colour, each with its count.
-///
-/// Replaces a "Type" menu: the type is the filter people reach for most on
-/// this screen, and a row of chips is one tap where a menu was two — and it
-/// doubles as a legend for the colours the rows below are drawn in.
-class _TypeChips extends StatelessWidget {
-  const _TypeChips({
+/// Segments that always fit: the four types share the phone's width
+/// equally, label over icon and count, and the label shrinks rather than
+/// being cut off. A scrolling row of chips hid "Ajustement" off the edge of a
+/// 360dp screen, where nobody knew to swipe for it.
+class _TypeSegments extends StatelessWidget {
+  const _TypeSegments({
     required this.selected,
     required this.total,
     required this.counts,
@@ -375,33 +408,104 @@ class _TypeChips extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
 
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: [
-          _TypeChip(
-            label: l10n.movementsFilterAllTypes,
-            icon: LucideIcons.arrowRightLeft,
-            count: total,
-            colors: null,
-            selected: selected == null,
-            onTap: () => onSelected(null),
-          ),
-          for (final type in StockMovementType.values) ...[
-            const SizedBox(width: AppSpacing.sm),
-            _TypeChip(
-              label: movementTypeLabel(l10n, type),
-              icon: movementTypeIcon(type),
-              count: counts[type] ?? 0,
-              colors: movementColors(type),
-              selected: selected == type,
-              // Tapping the chip that is already on turns it off, rather than
-              // making the user find "Tous" to get back.
-              onTap: () => onSelected(selected == type ? null : type),
+    Widget segment({
+      required String label,
+      required IconData icon,
+      required int count,
+      required StockStatusColors? colors,
+      required bool isSelected,
+      required VoidCallback onTap,
+    }) {
+      final theme = Theme.of(context);
+      final solid = colors?.solid ?? AppColors.primary600;
+      final foreground = colors?.foreground ?? AppColors.onPrimaryContainer;
+      final container = colors?.container ?? AppColors.primaryContainer;
+
+      return Expanded(
+        child: Semantics(
+          button: true,
+          selected: isSelected,
+          label: '$label, $count',
+          excludeSemantics: true,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: AppRadius.mdAll,
+            child: AnimatedContainer(
+              duration: AppMotion.duration(context, AppMotion.fast),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.xs,
+                vertical: 6,
+              ),
+              decoration: BoxDecoration(
+                color: isSelected ? container : AppColors.surface,
+                borderRadius: AppRadius.mdAll,
+                border: Border.all(
+                  color: isSelected ? solid : AppColors.border,
+                  width: isSelected ? 2 : 1,
+                ),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      label,
+                      maxLines: 1,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: isSelected ? foreground : AppColors.textPrimary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(icon, size: AppSizing.iconSm, color: solid),
+                        const SizedBox(width: AppSpacing.xs),
+                        Text(
+                          '$count',
+                          style: theme.textTheme.labelMedium?.copyWith(
+                            color: foreground,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ],
+          ),
+        ),
+      );
+    }
+
+    return Row(
+      children: [
+        segment(
+          label: l10n.movementsFilterAllTypes,
+          icon: LucideIcons.arrowRightLeft,
+          count: total,
+          colors: null,
+          isSelected: selected == null,
+          onTap: () => onSelected(null),
+        ),
+        for (final type in StockMovementType.values) ...[
+          const SizedBox(width: AppSpacing.xs),
+          segment(
+            label: movementTypeLabel(l10n, type),
+            icon: movementTypeIcon(type),
+            count: counts[type] ?? 0,
+            colors: movementColors(type),
+            isSelected: selected == type,
+            onTap: () => onSelected(selected == type ? null : type),
+          ),
         ],
-      ),
+      ],
     );
   }
 }
