@@ -99,6 +99,18 @@ class ReceiptDetailPage extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // Who checked it in, with their face when the receipt names them —
+          // the person to ask when a figure below looks wrong.
+          Align(
+            alignment: Alignment.centerLeft,
+            child: EmployeeNameTag(
+              name: l10n.receiptReceivedBy(receipt.receivedByName),
+              employeeId: receipt.receivedByEmployeeId,
+              style: Theme.of(context).textTheme.bodyMedium,
+              avatarSize: 28,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.md),
           OrderSummaryCard(
             figures: [
               OrderFigure(

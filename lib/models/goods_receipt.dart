@@ -17,6 +17,7 @@ class GoodsReceipt {
     required this.receivedAt,
     required this.receivedByName,
     required this.lines,
+    this.receivedByEmployeeId,
     this.note,
   });
 
@@ -32,6 +33,10 @@ class GoodsReceipt {
   /// Display name of whoever stood at the door and checked it in. Receiving
   /// moves both stock and money, so who confirmed it is part of the record.
   final String receivedByName;
+
+  /// The employee behind [receivedByName], when they confirmed who they were
+  /// at the tablet. Null on older receipts.
+  final String? receivedByEmployeeId;
 
   final List<GoodsReceiptLine> lines;
 

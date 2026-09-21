@@ -601,12 +601,21 @@ class _ReceiptCard extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                Text(
-                  '${Formatters.dateTime(receipt.receivedAt)} · '
-                  '${l10n.receiptReceivedBy(receipt.receivedByName)}',
-                  style: theme.textTheme.bodySmall,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                Row(
+                  children: [
+                    Text(
+                      '${Formatters.dateTime(receipt.receivedAt)} · ',
+                      style: theme.textTheme.bodySmall,
+                    ),
+                    Flexible(
+                      child: EmployeeNameTag(
+                        name: l10n.receiptReceivedBy(receipt.receivedByName),
+                        employeeId: receipt.receivedByEmployeeId,
+                        style: theme.textTheme.bodySmall,
+                        avatarSize: 18,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),

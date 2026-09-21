@@ -6422,6 +6422,17 @@ class $GoodsReceiptsTable extends GoodsReceipts
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _receivedByEmployeeIdMeta =
+      const VerificationMeta('receivedByEmployeeId');
+  @override
+  late final GeneratedColumn<String> receivedByEmployeeId =
+      GeneratedColumn<String>(
+        'received_by_employee_id',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
   static const VerificationMeta _noteMeta = const VerificationMeta('note');
   @override
   late final GeneratedColumn<String> note = GeneratedColumn<String>(
@@ -6438,6 +6449,7 @@ class $GoodsReceiptsTable extends GoodsReceipts
     storeId,
     receivedAt,
     receivedByName,
+    receivedByEmployeeId,
     note,
   ];
   @override
@@ -6492,6 +6504,15 @@ class $GoodsReceiptsTable extends GoodsReceipts
     } else if (isInserting) {
       context.missing(_receivedByNameMeta);
     }
+    if (data.containsKey('received_by_employee_id')) {
+      context.handle(
+        _receivedByEmployeeIdMeta,
+        receivedByEmployeeId.isAcceptableOrUnknown(
+          data['received_by_employee_id']!,
+          _receivedByEmployeeIdMeta,
+        ),
+      );
+    }
     if (data.containsKey('note')) {
       context.handle(
         _noteMeta,
@@ -6527,6 +6548,10 @@ class $GoodsReceiptsTable extends GoodsReceipts
         DriftSqlType.string,
         data['${effectivePrefix}received_by_name'],
       )!,
+      receivedByEmployeeId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}received_by_employee_id'],
+      ),
       note: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}note'],
@@ -6554,6 +6579,12 @@ class GoodsReceiptRow extends DataClass implements Insertable<GoodsReceiptRow> {
   /// reference is a position in that order, so it has to be stable.
   final DateTime receivedAt;
   final String receivedByName;
+
+  /// The employee who checked the delivery in, confirmed at the tablet by
+  /// their CIN. Null on receipts from before v7. No foreign key, for the same
+  /// reason as `stock_movements.employeeId`: somebody leaving does not unmake
+  /// the delivery they received, and [receivedByName] keeps the name.
+  final String? receivedByEmployeeId;
   final String? note;
   const GoodsReceiptRow({
     required this.id,
@@ -6561,6 +6592,7 @@ class GoodsReceiptRow extends DataClass implements Insertable<GoodsReceiptRow> {
     required this.storeId,
     required this.receivedAt,
     required this.receivedByName,
+    this.receivedByEmployeeId,
     this.note,
   });
   @override
@@ -6571,6 +6603,9 @@ class GoodsReceiptRow extends DataClass implements Insertable<GoodsReceiptRow> {
     map['store_id'] = Variable<String>(storeId);
     map['received_at'] = Variable<DateTime>(receivedAt);
     map['received_by_name'] = Variable<String>(receivedByName);
+    if (!nullToAbsent || receivedByEmployeeId != null) {
+      map['received_by_employee_id'] = Variable<String>(receivedByEmployeeId);
+    }
     if (!nullToAbsent || note != null) {
       map['note'] = Variable<String>(note);
     }
@@ -6584,6 +6619,9 @@ class GoodsReceiptRow extends DataClass implements Insertable<GoodsReceiptRow> {
       storeId: Value(storeId),
       receivedAt: Value(receivedAt),
       receivedByName: Value(receivedByName),
+      receivedByEmployeeId: receivedByEmployeeId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(receivedByEmployeeId),
       note: note == null && nullToAbsent ? const Value.absent() : Value(note),
     );
   }
@@ -6599,6 +6637,9 @@ class GoodsReceiptRow extends DataClass implements Insertable<GoodsReceiptRow> {
       storeId: serializer.fromJson<String>(json['storeId']),
       receivedAt: serializer.fromJson<DateTime>(json['receivedAt']),
       receivedByName: serializer.fromJson<String>(json['receivedByName']),
+      receivedByEmployeeId: serializer.fromJson<String?>(
+        json['receivedByEmployeeId'],
+      ),
       note: serializer.fromJson<String?>(json['note']),
     );
   }
@@ -6611,6 +6652,7 @@ class GoodsReceiptRow extends DataClass implements Insertable<GoodsReceiptRow> {
       'storeId': serializer.toJson<String>(storeId),
       'receivedAt': serializer.toJson<DateTime>(receivedAt),
       'receivedByName': serializer.toJson<String>(receivedByName),
+      'receivedByEmployeeId': serializer.toJson<String?>(receivedByEmployeeId),
       'note': serializer.toJson<String?>(note),
     };
   }
@@ -6621,6 +6663,7 @@ class GoodsReceiptRow extends DataClass implements Insertable<GoodsReceiptRow> {
     String? storeId,
     DateTime? receivedAt,
     String? receivedByName,
+    Value<String?> receivedByEmployeeId = const Value.absent(),
     Value<String?> note = const Value.absent(),
   }) => GoodsReceiptRow(
     id: id ?? this.id,
@@ -6628,6 +6671,9 @@ class GoodsReceiptRow extends DataClass implements Insertable<GoodsReceiptRow> {
     storeId: storeId ?? this.storeId,
     receivedAt: receivedAt ?? this.receivedAt,
     receivedByName: receivedByName ?? this.receivedByName,
+    receivedByEmployeeId: receivedByEmployeeId.present
+        ? receivedByEmployeeId.value
+        : this.receivedByEmployeeId,
     note: note.present ? note.value : this.note,
   );
   GoodsReceiptRow copyWithCompanion(GoodsReceiptsCompanion data) {
@@ -6641,6 +6687,9 @@ class GoodsReceiptRow extends DataClass implements Insertable<GoodsReceiptRow> {
       receivedByName: data.receivedByName.present
           ? data.receivedByName.value
           : this.receivedByName,
+      receivedByEmployeeId: data.receivedByEmployeeId.present
+          ? data.receivedByEmployeeId.value
+          : this.receivedByEmployeeId,
       note: data.note.present ? data.note.value : this.note,
     );
   }
@@ -6653,14 +6702,22 @@ class GoodsReceiptRow extends DataClass implements Insertable<GoodsReceiptRow> {
           ..write('storeId: $storeId, ')
           ..write('receivedAt: $receivedAt, ')
           ..write('receivedByName: $receivedByName, ')
+          ..write('receivedByEmployeeId: $receivedByEmployeeId, ')
           ..write('note: $note')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, orderId, storeId, receivedAt, receivedByName, note);
+  int get hashCode => Object.hash(
+    id,
+    orderId,
+    storeId,
+    receivedAt,
+    receivedByName,
+    receivedByEmployeeId,
+    note,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -6670,6 +6727,7 @@ class GoodsReceiptRow extends DataClass implements Insertable<GoodsReceiptRow> {
           other.storeId == this.storeId &&
           other.receivedAt == this.receivedAt &&
           other.receivedByName == this.receivedByName &&
+          other.receivedByEmployeeId == this.receivedByEmployeeId &&
           other.note == this.note);
 }
 
@@ -6679,6 +6737,7 @@ class GoodsReceiptsCompanion extends UpdateCompanion<GoodsReceiptRow> {
   final Value<String> storeId;
   final Value<DateTime> receivedAt;
   final Value<String> receivedByName;
+  final Value<String?> receivedByEmployeeId;
   final Value<String?> note;
   final Value<int> rowid;
   const GoodsReceiptsCompanion({
@@ -6687,6 +6746,7 @@ class GoodsReceiptsCompanion extends UpdateCompanion<GoodsReceiptRow> {
     this.storeId = const Value.absent(),
     this.receivedAt = const Value.absent(),
     this.receivedByName = const Value.absent(),
+    this.receivedByEmployeeId = const Value.absent(),
     this.note = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -6696,6 +6756,7 @@ class GoodsReceiptsCompanion extends UpdateCompanion<GoodsReceiptRow> {
     required String storeId,
     required DateTime receivedAt,
     required String receivedByName,
+    this.receivedByEmployeeId = const Value.absent(),
     this.note = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
@@ -6709,6 +6770,7 @@ class GoodsReceiptsCompanion extends UpdateCompanion<GoodsReceiptRow> {
     Expression<String>? storeId,
     Expression<DateTime>? receivedAt,
     Expression<String>? receivedByName,
+    Expression<String>? receivedByEmployeeId,
     Expression<String>? note,
     Expression<int>? rowid,
   }) {
@@ -6718,6 +6780,8 @@ class GoodsReceiptsCompanion extends UpdateCompanion<GoodsReceiptRow> {
       if (storeId != null) 'store_id': storeId,
       if (receivedAt != null) 'received_at': receivedAt,
       if (receivedByName != null) 'received_by_name': receivedByName,
+      if (receivedByEmployeeId != null)
+        'received_by_employee_id': receivedByEmployeeId,
       if (note != null) 'note': note,
       if (rowid != null) 'rowid': rowid,
     });
@@ -6729,6 +6793,7 @@ class GoodsReceiptsCompanion extends UpdateCompanion<GoodsReceiptRow> {
     Value<String>? storeId,
     Value<DateTime>? receivedAt,
     Value<String>? receivedByName,
+    Value<String?>? receivedByEmployeeId,
     Value<String?>? note,
     Value<int>? rowid,
   }) {
@@ -6738,6 +6803,7 @@ class GoodsReceiptsCompanion extends UpdateCompanion<GoodsReceiptRow> {
       storeId: storeId ?? this.storeId,
       receivedAt: receivedAt ?? this.receivedAt,
       receivedByName: receivedByName ?? this.receivedByName,
+      receivedByEmployeeId: receivedByEmployeeId ?? this.receivedByEmployeeId,
       note: note ?? this.note,
       rowid: rowid ?? this.rowid,
     );
@@ -6761,6 +6827,11 @@ class GoodsReceiptsCompanion extends UpdateCompanion<GoodsReceiptRow> {
     if (receivedByName.present) {
       map['received_by_name'] = Variable<String>(receivedByName.value);
     }
+    if (receivedByEmployeeId.present) {
+      map['received_by_employee_id'] = Variable<String>(
+        receivedByEmployeeId.value,
+      );
+    }
     if (note.present) {
       map['note'] = Variable<String>(note.value);
     }
@@ -6778,6 +6849,7 @@ class GoodsReceiptsCompanion extends UpdateCompanion<GoodsReceiptRow> {
           ..write('storeId: $storeId, ')
           ..write('receivedAt: $receivedAt, ')
           ..write('receivedByName: $receivedByName, ')
+          ..write('receivedByEmployeeId: $receivedByEmployeeId, ')
           ..write('note: $note, ')
           ..write('rowid: $rowid')
           ..write(')'))

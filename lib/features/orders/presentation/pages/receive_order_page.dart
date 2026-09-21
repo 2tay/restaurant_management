@@ -6,6 +6,7 @@ import '../../../../app/navigation.dart';
 import '../../../../app/routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/utils/employee_status.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/utils/order_status.dart';
 import '../../../../data/providers.dart';
@@ -334,11 +335,22 @@ class _ReceiveOrderPageState extends ConsumerState<_ReceiveForm> {
       if (!mounted) return;
     }
 
+    // Who is at the door. Asked once the prices are settled, at the moment
+    // of saving, so the person who confirms is the person who received it.
+    final actor = await ActorConfirmSheet.show(
+      context,
+      storeId: widget.storeId,
+      actionLabel: l10n.receiveConfirm,
+    );
+    if (actor == null || !mounted) return;
+
     final orderId = widget.view.order.id;
     await ref
         .read(orderRepositoryProvider)
         .confirmReceipt(
           orderId: orderId,
+          receivedByName: employeeDisplayName(actor),
+          receivedByEmployeeId: actor.id,
           lines: [
             for (final line in _lines)
               if (line.quantityReceived > 0) line.toDraftLine(),
@@ -349,7 +361,7 @@ class _ReceiveOrderPageState extends ConsumerState<_ReceiveForm> {
         );
 
     if (!mounted) return;
-    AppSnackBar.success(context, l10n.receiveConfirmed);
+    AppSnackBar.success(context, l10n.receiveConfirmedBy(actor.firstName));
     context.backTo(Routes.toOrder(widget.storeId, orderId));
   }
 
@@ -425,10 +437,14 @@ class _UnorderedItemSheetState extends ConsumerState<_UnorderedItemSheet> {
     final l10n = AppLocalizations.of(context);
 
     final rows =
-        ref.watch(itemRowsProvider((
-              storeId: widget.storeId,
-              filter: ItemFilter.none,
-            ))).value ??
+        ref
+            .watch(
+              itemRowsProvider((
+                storeId: widget.storeId,
+                filter: ItemFilter.none,
+              )),
+            )
+            .value ??
         const <ItemRowView>[];
 
     final items = [

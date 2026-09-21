@@ -84,7 +84,7 @@ class AppDatabase extends _$AppDatabase {
   static const String databaseName = 'stock_inventory';
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -185,6 +185,13 @@ class AppDatabase extends _$AppDatabase {
       // had.
       if (from < 6) {
         await m.addColumn(stockMovements, stockMovements.employeeId);
+      }
+
+      // v6 → v7: `goods_receipts.receivedByEmployeeId`, the same for a
+      // delivery received against a commande. Nullable, no default, no
+      // backfill: older receipts keep the name they always had.
+      if (from < 7) {
+        await m.addColumn(goodsReceipts, goodsReceipts.receivedByEmployeeId);
       }
     },
 

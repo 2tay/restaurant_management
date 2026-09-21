@@ -1972,6 +1972,12 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{1 mouvement enregistré} other{{count} mouvements enregistrés}} par {name}'**
   String movementsRecordedBy(int count, String name);
 
+  /// Snackbar after a delivery is received against a commande, naming the employee who confirmed.
+  ///
+  /// In fr, this message translates to:
+  /// **'Livraison reçue par {name}'**
+  String receiveConfirmedBy(String name);
+
   /// Snackbar after saving a multi-line movement form.
   ///
   /// In fr, this message translates to:

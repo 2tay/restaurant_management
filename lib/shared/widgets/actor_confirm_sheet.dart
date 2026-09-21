@@ -2,18 +2,23 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
-import '../../../../../core/theme/app_colors.dart';
-import '../../../../../core/theme/app_spacing.dart';
-import '../../../../../core/utils/employee_status.dart';
-import '../../../../../core/utils/responsive.dart';
-import '../../../../../data/current_employee.dart';
-import '../../../../../data/providers.dart';
-import '../../../../../l10n/app_localizations.dart';
-import '../../../../../models/models.dart';
-import '../../../../../shared/widgets/widgets.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_spacing.dart';
+import '../../core/utils/employee_status.dart';
+import '../../core/utils/responsive.dart';
+import '../../data/current_employee.dart';
+import '../../data/providers.dart';
+import '../../l10n/app_localizations.dart';
+import '../../models/models.dart';
+import 'app_card.dart';
+import 'employee_avatar.dart';
+import 'employee_role_badge.dart';
+import 'identity_prompt_dialog.dart';
+import 'search_field.dart';
 
 /// "Qui enregistre ?" — the employee at the shared kitchen tablet names
-/// themselves before a stock movement is saved.
+/// themselves before stock is moved: a manual movement, or a delivery received
+/// against a commande.
 ///
 /// The tablet stays signed in as the manager all day; the people moving stock
 /// are the cooks. So every save asks who it is: tap your card, then confirm
@@ -26,7 +31,7 @@ import '../../../../../shared/widgets/widgets.dart';
 /// saves, so the next person always names themselves.
 ///
 /// Resolves to the confirmed employee, or null if the sheet was dismissed.
-abstract final class MovementActorSheet {
+abstract final class ActorConfirmSheet {
   static Future<Employee?> show(
     BuildContext context, {
     required String storeId,

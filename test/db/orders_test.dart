@@ -16,7 +16,7 @@ import 'package:stock_inventory/core/utils/order_status.dart';
 import 'package:stock_inventory/data/database/app_database.dart';
 import 'package:stock_inventory/data/repositories/repositories.dart';
 import 'package:stock_inventory/data/seed/dataset/dataset.dart'
-    show ItemIds, OrderIds, StoreIds, SupplierIds;
+    show EmployeeIds, ItemIds, OrderIds, StoreIds, SupplierIds;
 import 'package:stock_inventory/models/models.dart';
 
 import '../support/db_fixture.dart';
@@ -1023,6 +1023,56 @@ void main() {
         reason: 'somebody buying 5 kg of tomatoes at the market with no '
             'commande behind it must still be recordable',
       );
+    });
+  });
+
+  // The kitchen tablet stays signed in as the manager; whoever received the
+  // delivery confirms by CIN, and the receipt, every movement it files and
+  // any price change it writes are theirs.
+  group('a receipt names the employee who received it', () {
+    const line = ReceiptDraftLine(
+      itemId: ItemIds.poulet,
+      quantityOrdered: 15,
+      quantityReceived: 15,
+      orderedUnitPrice: 12.80,
+      actualUnitPrice: 14.50,
+    );
+
+    test('on the receipt, its movement and the price history', () async {
+      final receipt = await orders.confirmReceipt(
+        orderId: OrderIds.sentGrossiste,
+        lines: const [line],
+        receivedByName: 'Karim Haddouch',
+        receivedByEmployeeId: EmployeeIds.karim,
+      );
+
+      final stored = (await orders.receipt(receipt!.id))!;
+      expect(stored.receivedByName, 'Karim Haddouch');
+      expect(stored.receivedByEmployeeId, EmployeeIds.karim);
+
+      final movement = await newestMovement();
+      expect(movement.receiptId, receipt.id);
+      expect(movement.employeeId, EmployeeIds.karim);
+      expect(movement.userName, 'Karim Haddouch');
+
+      final history = await suppliers.priceHistoryFor(
+        ItemIds.poulet,
+        SupplierIds.grossisteCentral,
+      );
+      expect(history.first.changedByName, 'Karim Haddouch');
+    });
+
+    test('without one, it falls back to the signed-in user by name only',
+        () async {
+      final receipt = await orders.confirmReceipt(
+        orderId: OrderIds.sentGrossiste,
+        lines: const [line],
+      );
+
+      final stored = (await orders.receipt(receipt!.id))!;
+      expect(stored.receivedByName, isNotEmpty);
+      expect(stored.receivedByEmployeeId, isNull);
+      expect((await newestMovement()).employeeId, isNull);
     });
   });
 }

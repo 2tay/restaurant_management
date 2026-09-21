@@ -6,6 +6,7 @@
 library;
 
 export 'action_density.dart';
+export 'actor_confirm_sheet.dart';
 export 'adaptive_row.dart';
 export 'app_breadcrumbs.dart';
 export 'app_card.dart';
@@ -26,6 +27,7 @@ export 'date_field.dart';
 export 'detail_drawer.dart';
 export 'empty_state.dart';
 export 'employee_avatar.dart';
+export 'employee_name_tag.dart';
 export 'employee_role_badge.dart';
 export 'employee_selector.dart';
 export 'error_state.dart';

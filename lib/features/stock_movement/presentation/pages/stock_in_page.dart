@@ -19,7 +19,6 @@ import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 import '../widgets/movement_labels.dart';
 import '../../../../core/utils/employee_status.dart';
-import '../widgets/picker/movement_actor_sheet.dart';
 import '../widgets/picker/movement_cart.dart';
 import '../widgets/picker/product_picker_sheet.dart';
 import '../widgets/picker/supplier_choice.dart';
@@ -356,7 +355,7 @@ class _StockInPageState extends ConsumerState<StockInPage> {
 
     // Who is at the tablet. Asked here, at the save, so the person who
     // confirms is the person who saves.
-    final actor = await MovementActorSheet.show(
+    final actor = await ActorConfirmSheet.show(
       context,
       storeId: widget.storeId,
       actionLabel: l10n.stockInSubmit,

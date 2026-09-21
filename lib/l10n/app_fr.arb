@@ -802,6 +802,8 @@
   "@actorNoEmployees": {"description": "Empty state of the who-is-recording sheet."},
   "movementsRecordedBy": "{count, plural, =1{1 mouvement enregistré} other{{count} mouvements enregistrés}} par {name}",
   "@movementsRecordedBy": {"description": "Snackbar after saving movements, naming the employee who confirmed.", "placeholders": {"count": {"type": "int"}, "name": {"type": "String"}}},
+  "receiveConfirmedBy": "Livraison reçue par {name}",
+  "@receiveConfirmedBy": {"description": "Snackbar after a delivery is received against a commande, naming the employee who confirmed.", "placeholders": {"name": {"type": "String"}}},
   "movementsRecorded": "{count, plural, =1{1 mouvement enregistré} other{{count} mouvements enregistrés}}",
   "@movementsRecorded": {"description": "Snackbar after saving a multi-line movement form.", "placeholders": {"count": {"type": "int"}}},
 "suppliersTitle": "Fournisseurs",

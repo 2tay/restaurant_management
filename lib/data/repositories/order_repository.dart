@@ -652,6 +652,7 @@ class OrderRepository {
     required String orderId,
     required List<ReceiptDraftLine> lines,
     String? receivedByName,
+    String? receivedByEmployeeId,
     String? note,
   }) async {
     final receivedBy =
@@ -684,6 +685,7 @@ class OrderRepository {
         storeId: existing.storeId,
         receivedAt: now,
         receivedByName: receivedBy,
+        receivedByEmployeeId: receivedByEmployeeId,
         lines: receiptLines,
         note: note,
       );
@@ -712,6 +714,7 @@ class OrderRepository {
           unitPrice: line.actualUnitPrice,
           occurredAt: now,
           userName: receivedBy,
+          employeeId: receivedByEmployeeId,
           orderId: existing.id,
           receiptId: receiptId,
           note: line.note,

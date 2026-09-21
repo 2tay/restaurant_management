@@ -1188,6 +1188,11 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String receiveConfirmedBy(String name) {
+    return 'Livraison reçue par $name';
+  }
+
+  @override
   String movementsRecorded(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
