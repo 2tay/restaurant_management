@@ -130,8 +130,9 @@ class InventoryFilter {
       categoryId: clearCategory ? null : categoryId ?? this.categoryId,
       supplierId: clearSupplier ? null : supplierId ?? this.supplierId,
       lowStockOnly: lowStockOnly ?? this.lowStockOnly,
-      selectedItemId:
-          clearSelection ? null : selectedItemId ?? this.selectedItemId,
+      selectedItemId: clearSelection
+          ? null
+          : selectedItemId ?? this.selectedItemId,
       sort: sort ?? this.sort,
     );
   }
@@ -175,10 +176,10 @@ final inventoryFilterProvider =
 
 /// The inventory list.
 ///
-/// On a wide tablet this is a master–detail split: list on the left, the
-/// selected item's detail on the right. Below the split breakpoint, tapping a
-/// row pushes the detail as its own page instead. The brief asks for exactly
-/// this — full-screen navigation for every tap wastes a tablet's width.
+/// Tapping a product slides its detail in from the right as a drawer over the
+/// list, the way the pointage history opens a day. The list keeps its whole
+/// width: a split pane used to halve the grid the moment anything was
+/// selected, and every card reflowed under the user's finger.
 class InventoryListPage extends ConsumerWidget {
   const InventoryListPage({required this.storeId, super.key});
 
@@ -196,8 +197,6 @@ class InventoryListPage extends ConsumerWidget {
     final rows = ref.watch(
       itemRowsProvider((storeId: storeId, filter: filter.itemFilter)),
     );
-    final canSplit = context.canSplitView;
-
     return ShellPage(
       title: l10n.inventoryTitle,
       scrollable: false,
@@ -222,64 +221,10 @@ class InventoryListPage extends ConsumerWidget {
             for (final row in allRows)
               if (itemMatchesSearch(row.item, query)) row,
           ], filter.sort);
-          final selected = _resolveSelection(visible, filter, canSplit);
-
-          if (!canSplit || selected == null) {
-            return _ListPane(storeId: storeId, rows: visible);
-          }
-
-          // The detail pane exists only once a product has been chosen, and
-          // the grid keeps the whole width until then. A permanently reserved
-          // half-screen holding "Sélectionnez un produit" spends the most
-          // valuable space on the page saying nothing, and shrinks the grid
-          // that is the point of the screen.
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                flex: 5,
-                child: _ListPane(storeId: storeId, rows: visible),
-              ),
-              const SizedBox(width: AppSpacing.xl),
-              Expanded(
-                flex: 4,
-                child: ItemDetailView(
-                  itemId: selected.item.id,
-                  storeId: storeId,
-                  onClose: () => afterFrame(
-                    ref.read(inventoryFilterProvider.notifier).clearSelection,
-                  ),
-                ),
-              ),
-            ],
-          );
+          return _ListPane(storeId: storeId, rows: visible);
         },
       ),
     );
-  }
-
-  /// The product whose detail is open, or null for none.
-  ///
-  /// Nothing is selected until somebody selects something. This used to open
-  /// on the first row so the pane was never blank, which meant the screen
-  /// arrived having already made a choice on the user's behalf and put one
-  /// arbitrary product's detail — and its delete button — in front of them.
-  ///
-  /// A selection filtered out of the list closes the pane rather than sliding
-  /// to a neighbour: the product the user was reading is not on screen any
-  /// more, and quietly swapping in a different one is how somebody edits the
-  /// wrong thing.
-  ItemRowView? _resolveSelection(
-    List<ItemRowView> rows,
-    InventoryFilter filter,
-    bool canSplit,
-  ) {
-    if (!canSplit || filter.selectedItemId == null) return null;
-
-    for (final row in rows) {
-      if (row.item.id == filter.selectedItemId) return row;
-    }
-    return null;
   }
 }
 
@@ -293,8 +238,6 @@ class _ListPane extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final filter = ref.watch(inventoryFilterProvider);
     final notifier = ref.read(inventoryFilterProvider.notifier);
-    final canSplit = context.canSplitView;
-
     // The two filter menus. Empty while their queries are out, which draws
     // each menu with only its "toutes" entry — briefly, and better than a menu
     // that grows a frame after somebody has reached for it.
@@ -302,7 +245,9 @@ class _ListPane extends ConsumerWidget {
     final suppliers = ref.watch(suppliersProvider(storeId)).value ?? const [];
     final viewMode = ref.watch(inventoryViewModeProvider);
     final onTap = _open(context, ref);
-    final selectedId = canSplit ? filter.selectedItemId : null;
+    // The card whose drawer is open stays marked, so it is plain which
+    // product the drawer is about once it slides away again.
+    final selectedId = filter.selectedItemId;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -342,22 +287,25 @@ class _ListPane extends ConsumerWidget {
     );
   }
 
-  /// What tapping a product does.
-  ///
-  /// On a wide screen it fills the detail pane beside the list; below the split
-  /// breakpoint there is no pane, so it pushes the product's own page. Both
-  /// views, and the arrow on every card, go through this one callback, so they
-  /// cannot drift apart.
+  /// What tapping a product does: its detail slides in as a drawer over the
+  /// list — on a phone, the drawer takes the whole screen. Both views, and
+  /// the arrow on every card, go through this one callback, so they cannot
+  /// drift apart.
   ValueChanged<String> _open(BuildContext context, WidgetRef ref) {
-    final canSplit = context.canSplitView;
     final notifier = ref.read(inventoryFilterProvider.notifier);
 
-    return (itemId) {
-      if (canSplit) {
-        notifier.select(itemId);
-      } else {
-        context.pushScreen(Routes.toItem(storeId, itemId));
-      }
+    return (itemId) async {
+      notifier.select(itemId);
+      await DetailDrawer.showCustom(
+        context,
+        width: 560,
+        builder: (drawerContext) => ItemDetailView(
+          itemId: itemId,
+          storeId: storeId,
+          onClose: () => Navigator.of(drawerContext).pop(),
+        ),
+      );
+      notifier.clearSelection();
     };
   }
 }
@@ -767,7 +715,10 @@ class _SortMenu extends StatelessWidget {
         // [FilterPill] only shrinks against a bounded width, which is also
         // what [Flexible] needs.
         return constraints.maxWidth.isFinite
-            ? Row(mainAxisSize: MainAxisSize.min, children: [Flexible(child: menu)])
+            ? Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [Flexible(child: menu)],
+              )
             : menu;
       },
     );

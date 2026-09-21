@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../app/navigation.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../l10n/app_localizations.dart';
@@ -22,15 +23,40 @@ class DetailDrawer extends StatelessWidget {
     BuildContext context, {
     required String title,
     required List<Widget> children,
-  }) {
+  }) =>
+      _slideIn(context, (_) => DetailDrawer(title: title, children: children));
+
+  /// The same panel around content that brings its own header — a view that
+  /// is also a page or a pane elsewhere, like a product's detail. [width] on
+  /// a tablet and up; the full width on a phone.
+  static Future<void> showCustom(
+    BuildContext context, {
+    required WidgetBuilder builder,
+    double width = 440,
+  }) => _slideIn(
+    context,
+    (context) => _DrawerPanel(
+      width: width,
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.xl),
+        child: builder(context),
+      ),
+    ),
+  );
+
+  static Future<void> _slideIn(BuildContext context, WidgetBuilder builder) {
     return showGeneralDialog<void>(
       context: context,
       barrierDismissible: true,
       barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
       barrierColor: Colors.black.withValues(alpha: 0.25),
       transitionDuration: AppMotion.duration(context, AppMotion.page),
-      pageBuilder: (context, _, _) =>
-          DetailDrawer(title: title, children: children),
+      // A link inside closes the drawer before it navigates — see
+      // [DrawerScope] — so the page it opens is not hidden behind it.
+      pageBuilder: (context, _, _) => DrawerScope(
+        close: () => Navigator.of(context).pop(),
+        child: builder(context),
+      ),
       transitionBuilder: (context, animation, _, child) => SlideTransition(
         position: Tween<Offset>(
           begin: const Offset(1, 0),
@@ -45,10 +71,59 @@ class DetailDrawer extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+
+    return _DrawerPanel(
+      width: 440,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.xl,
+              AppSpacing.md,
+              AppSpacing.sm,
+              AppSpacing.md,
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(title, style: theme.textTheme.titleMedium),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: const Icon(LucideIcons.x),
+                  tooltip: l10n.actionClose,
+                ),
+              ],
+            ),
+          ),
+          Divider(height: 1, color: AppColors.border.withValues(alpha: 0.5)),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.all(AppSpacing.xl),
+              children: children,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The sheet itself: pinned right, full height, [width] wide — or the whole
+/// screen on a phone.
+class _DrawerPanel extends StatelessWidget {
+  const _DrawerPanel({required this.width, required this.child});
+
+  final double width;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
     final screenWidth = MediaQuery.sizeOf(context).width;
     final panelWidth = screenWidth < AppBreakpoints.compact
         ? screenWidth
-        : 440.0;
+        : width.clamp(0.0, screenWidth);
 
     return Align(
       alignment: Alignment.centerRight,
@@ -58,40 +133,7 @@ class DetailDrawer extends StatelessWidget {
         child: SizedBox(
           width: panelWidth,
           height: double.infinity,
-          child: SafeArea(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                    AppSpacing.xl,
-                    AppSpacing.md,
-                    AppSpacing.sm,
-                    AppSpacing.md,
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(title, style: theme.textTheme.titleMedium),
-                      ),
-                      IconButton(
-                        onPressed: () => Navigator.of(context).pop(),
-                        icon: const Icon(LucideIcons.x),
-                        tooltip: l10n.actionClose,
-                      ),
-                    ],
-                  ),
-                ),
-                Divider(height: 1, color: AppColors.border.withValues(alpha: 0.5)),
-                Expanded(
-                  child: ListView(
-                    padding: const EdgeInsets.all(AppSpacing.xl),
-                    children: children,
-                  ),
-                ),
-              ],
-            ),
-          ),
+          child: SafeArea(child: child),
         ),
       ),
     );
@@ -101,7 +143,12 @@ class DetailDrawer extends StatelessWidget {
 /// A `label — value` line for the drawer body. `value` may be a string or,
 /// via [valueWidget], any widget (a badge, an amount).
 class DrawerRow extends StatelessWidget {
-  const DrawerRow({required this.label, this.value, this.valueWidget, super.key});
+  const DrawerRow({
+    required this.label,
+    this.value,
+    this.valueWidget,
+    super.key,
+  });
 
   final String label;
   final String? value;

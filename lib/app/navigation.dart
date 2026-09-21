@@ -17,12 +17,43 @@ import 'package:go_router/go_router.dart';
 /// - [backTo] — pops when there is something to pop, and otherwise lands on a
 ///   sensible parent. The fallback matters: a deep link opens a screen with an
 ///   empty stack, and back still has to do something reasonable.
+/// Marks content shown inside a slide-in drawer, and how to close it.
+///
+/// A drawer is a dialog on the root navigator; the store's screens are pushed
+/// onto the shell's navigator, *underneath* it. A link inside a drawer that
+/// simply pushed would open its page behind the drawer, out of sight. So
+/// [AppNavigation.goSection] and [AppNavigation.pushScreen] look for this
+/// first and close the drawer before they navigate — every drawer gets that
+/// for free, and the content inside needs to know nothing about where it is
+/// shown.
+class DrawerScope extends InheritedWidget {
+  const DrawerScope({required this.close, required super.child, super.key});
+
+  /// Dismisses the drawer this content is in.
+  final VoidCallback close;
+
+  static DrawerScope? maybeOf(BuildContext context) =>
+      context.getInheritedWidgetOfExactType<DrawerScope>();
+
+  @override
+  bool updateShouldNotify(DrawerScope oldWidget) => false;
+}
+
 extension AppNavigation on BuildContext {
   /// Switch to a root section. Clears anything pushed on top of it.
-  void goSection(String path) => go(path);
+  void goSection(String path) {
+    // The router first: once the drawer closes, this context is gone.
+    final router = GoRouter.of(this);
+    DrawerScope.maybeOf(this)?.close();
+    router.go(path);
+  }
 
   /// Open a screen the user will come back from.
-  void pushScreen(String path) => push(path);
+  void pushScreen(String path) {
+    final router = GoRouter.of(this);
+    DrawerScope.maybeOf(this)?.close();
+    router.push(path);
+  }
 
   /// Go back one level.
   ///
