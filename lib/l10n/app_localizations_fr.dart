@@ -435,6 +435,17 @@ class AppLocalizationsFr extends AppLocalizations {
   String get inventoryViewTable => 'Vue tableau';
 
   @override
+  String movementsShowMore(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count restants',
+      one: '1 restant',
+    );
+    return 'Afficher plus ($_temp0)';
+  }
+
+  @override
   String get movementsViewList => 'Vue liste';
 
   @override
@@ -1832,6 +1843,22 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsTabSync => 'Synchronisation';
+
+  @override
+  String get settingsTabStoreHint => 'Nom, adresse, horaires et paie';
+
+  @override
+  String get settingsTabAccountHint => 'Profil, sécurité et établissements';
+
+  @override
+  String get settingsTabNotificationsHint => 'Les alertes que vous recevez';
+
+  @override
+  String get settingsTabSyncHint => 'Connexion et données locales';
+
+  @override
+  String get settingsTabSyncAttention =>
+      'Hors ligne ou modifications en attente';
 
   @override
   String get movementsTabHistory => 'Historique';

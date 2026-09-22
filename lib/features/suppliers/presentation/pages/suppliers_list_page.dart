@@ -47,7 +47,6 @@ class _SuppliersListPageState extends ConsumerState<SuppliersListPage> {
     return ShellPage(
       title: l10n.suppliersTitle,
       subtitle: l10n.suppliersSubtitle,
-      scrollable: false,
       actions: [
         PrimaryButton(
           label: l10n.suppliersAdd,
@@ -182,8 +181,9 @@ class _ListPane extends StatelessWidget {
           style: Theme.of(context).textTheme.bodySmall,
         ),
         const SizedBox(height: AppSpacing.md),
-        Expanded(
-          child: suppliers.isEmpty
+        // Part of the page: the whole page scrolls, title and search included.
+        Builder(
+          builder: (context) => suppliers.isEmpty
               ? (allCount == 0
                     ? EmptyState(
                         icon: LucideIcons.truck,
@@ -196,6 +196,10 @@ class _ListPane extends StatelessWidget {
                       )
                     : EmptyState.noResults(l10n))
               : ListView.separated(
+                  shrinkWrap: true,
+                  primary: false,
+                  physics: const NeverScrollableScrollPhysics(),
+                  padding: EdgeInsets.zero,
                   itemCount: suppliers.length,
                   separatorBuilder: (_, _) =>
                       const SizedBox(height: AppSpacing.sm),

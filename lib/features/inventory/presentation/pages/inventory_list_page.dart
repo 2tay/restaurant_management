@@ -202,7 +202,6 @@ class InventoryListPage extends ConsumerWidget {
     );
     return ShellPage(
       title: l10n.inventoryTitle,
-      scrollable: false,
       actions: [
         PrimaryButton(
           label: l10n.actionAddItem,
@@ -270,8 +269,10 @@ class _ListPane extends ConsumerWidget {
         ),
         const SizedBox(height: AppSpacing.md),
 
-        Expanded(
-          child: rows.isEmpty
+        // Part of the page, not a box of its own: the whole page scrolls,
+        // title and filters included.
+        Builder(
+          builder: (context) => rows.isEmpty
               ? _EmptyList(
                   storeId: storeId,
                   // With no filter active, an empty result means the
@@ -621,6 +622,9 @@ class _ProductGrid extends StatelessWidget {
 
         return GridView.builder(
           padding: EdgeInsets.zero,
+          shrinkWrap: true,
+          primary: false,
+          physics: const NeverScrollableScrollPhysics(),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: columns,
             mainAxisSpacing: AppSpacing.md,
@@ -692,6 +696,7 @@ class _ProductTable extends StatelessWidget {
 
     return AppTable<ItemRowView>(
       rows: rows,
+      shrinkWrap: true,
       sortKey: key,
       sortAscending: ascending,
       onSort: (column) => onSort(switch (column) {

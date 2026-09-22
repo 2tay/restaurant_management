@@ -54,6 +54,12 @@ class StockHistoryPage extends ConsumerStatefulWidget {
 }
 
 class _StockHistoryPageState extends ConsumerState<StockHistoryPage> {
+  /// How many movements are shown before "Afficher plus". The page scrolls as
+  /// a whole, so every row shown is built; the log has no ceiling ("Tout
+  /// l'historique" grows every day), and a batch keeps the page quick.
+  static const int _batch = 100;
+  int _shown = _batch;
+
   StockMovementType? _type;
   HistoryPeriod _period = HistoryPeriod.last30;
   String? _itemId;
@@ -134,7 +140,6 @@ class _StockHistoryPageState extends ConsumerState<StockHistoryPage> {
     return ShellPage(
       title: l10n.movementsTitle,
       subtitle: l10n.movementsSubtitle,
-      scrollable: false,
       actions: [
         SecondaryButton(
           label: l10n.actionAdjustStock,
@@ -313,8 +318,10 @@ class _StockHistoryPageState extends ConsumerState<StockHistoryPage> {
                 ),
               const SizedBox(height: AppSpacing.md),
 
-              Expanded(
-                child: movements.isEmpty
+              // Part of the page rather than a box of its own: the whole page
+              // scrolls, title and filters included.
+              Builder(
+                builder: (context) => movements.isEmpty
                     ? EmptyState(
                         icon: LucideIcons.arrowRightLeft,
                         title: allMovements.isEmpty
@@ -337,11 +344,11 @@ class _StockHistoryPageState extends ConsumerState<StockHistoryPage> {
                     // squeeze.
                     : viewMode == MovementsViewMode.table && !context.isPhone
                     ? MovementTable(
-                        movements: movements,
+                        movements: movements.take(_shown).toList(),
                         storeId: widget.storeId,
                       )
                     : _GroupedList(
-                        movements: movements,
+                        movements: movements.take(_shown).toList(),
                         rowBuilder: (view) => MovementRow(
                           view: view,
                           storeId: widget.storeId,
@@ -351,6 +358,16 @@ class _StockHistoryPageState extends ConsumerState<StockHistoryPage> {
                         ),
                       ),
               ),
+              if (movements.length > _shown) ...[
+                const SizedBox(height: AppSpacing.md),
+                Center(
+                  child: SecondaryButton(
+                    label: l10n.movementsShowMore(movements.length - _shown),
+                    icon: LucideIcons.chevronDown,
+                    onPressed: () => setState(() => _shown += _batch),
+                  ),
+                ),
+              ],
             ],
           );
         },
@@ -668,6 +685,10 @@ class _GroupedList extends StatelessWidget {
     final yesterday = DateTime(now.year, now.month, now.day - 1);
 
     return ListView.builder(
+      shrinkWrap: true,
+      primary: false,
+      physics: const NeverScrollableScrollPhysics(),
+      padding: EdgeInsets.zero,
       itemCount: entries.length,
       itemBuilder: (context, index) {
         final entry = entries[index];

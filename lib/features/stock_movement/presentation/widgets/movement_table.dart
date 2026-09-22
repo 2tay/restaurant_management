@@ -57,6 +57,7 @@ class MovementTable extends StatelessWidget {
 
     return AppTable<MovementRowView>(
       rows: movements,
+      shrinkWrap: true,
       onRowTap: (view) =>
           context.pushScreen(Routes.toItem(storeId, view.movement.itemId)),
       columns: [

@@ -838,6 +838,12 @@ abstract class AppLocalizations {
   /// **'Vue tableau'**
   String get inventoryViewTable;
 
+  /// Button under the movement history that shows the next batch of movements.
+  ///
+  /// In fr, this message translates to:
+  /// **'Afficher plus ({count, plural, =1{1 restant} other{{count} restants}})'**
+  String movementsShowMore(int count);
+
   /// Tooltip of the list view button on the movement history.
   ///
   /// In fr, this message translates to:
@@ -3075,6 +3081,36 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Synchronisation'**
   String get settingsTabSync;
+
+  /// One-line summary under the store settings tab in the vertical settings navigation.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nom, adresse, horaires et paie'**
+  String get settingsTabStoreHint;
+
+  /// One-line summary under the account settings tab in the vertical settings navigation.
+  ///
+  /// In fr, this message translates to:
+  /// **'Profil, sécurité et établissements'**
+  String get settingsTabAccountHint;
+
+  /// One-line summary under the notification preferences tab in the vertical settings navigation.
+  ///
+  /// In fr, this message translates to:
+  /// **'Les alertes que vous recevez'**
+  String get settingsTabNotificationsHint;
+
+  /// One-line summary under the sync status tab in the vertical settings navigation.
+  ///
+  /// In fr, this message translates to:
+  /// **'Connexion et données locales'**
+  String get settingsTabSyncHint;
+
+  /// Screen-reader hint for the dot on the sync tab, shown while offline or with unsynced changes.
+  ///
+  /// In fr, this message translates to:
+  /// **'Hors ligne ou modifications en attente'**
+  String get settingsTabSyncAttention;
 
   /// Stock movement sub-navigation tab for the history list.
   ///

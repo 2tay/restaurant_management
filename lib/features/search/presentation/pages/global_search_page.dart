@@ -47,10 +47,14 @@ class _GlobalSearchPageState extends ConsumerState<GlobalSearchPage> {
     // uses, for the reason written down in `item_search.dart`: SQLite folds
     // case for ASCII only, so a `LIKE` here would stop finding "Épicerie".
     final allItems =
-        ref.watch(itemRowsProvider((
-              storeId: widget.storeId,
-              filter: ItemFilter.none,
-            ))).value ??
+        ref
+            .watch(
+              itemRowsProvider((
+                storeId: widget.storeId,
+                filter: ItemFilter.none,
+              )),
+            )
+            .value ??
         const <ItemRowView>[];
     final allSuppliers =
         ref.watch(supplierRowsProvider(widget.storeId)).value ??
@@ -93,7 +97,6 @@ class _GlobalSearchPageState extends ConsumerState<GlobalSearchPage> {
         path: Routes.toDashboard(widget.storeId),
       ),
       title: l10n.searchTitle,
-      scrollable: false,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -115,8 +118,9 @@ class _GlobalSearchPageState extends ConsumerState<GlobalSearchPage> {
           ],
           const SizedBox(height: AppSpacing.lg),
 
-          Expanded(
-            child: query.isEmpty
+          // Part of the page: the whole page scrolls, search box included.
+          Builder(
+            builder: (context) => query.isEmpty
                 ? EmptyState(
                     icon: LucideIcons.search,
                     title: l10n.searchPrompt,
@@ -125,6 +129,10 @@ class _GlobalSearchPageState extends ConsumerState<GlobalSearchPage> {
                 : total == 0
                 ? EmptyState.noResults(l10n)
                 : ListView(
+                    shrinkWrap: true,
+                    primary: false,
+                    physics: const NeverScrollableScrollPhysics(),
+                    padding: EdgeInsets.zero,
                     children: [
                       if (items.isNotEmpty) ...[
                         SectionHeader(

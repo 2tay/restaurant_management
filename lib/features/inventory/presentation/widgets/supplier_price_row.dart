@@ -159,11 +159,17 @@ class _Tag extends StatelessWidget {
         children: [
           Icon(icon, size: 12, color: foreground),
           const SizedBox(width: AppSpacing.xs),
-          Text(
-            label,
-            style: Theme.of(
-              context,
-            ).textTheme.labelSmall?.copyWith(color: foreground),
+          // Gives way on a narrow phone, where the price column leaves the
+          // name and its tags little over a hundred pixels.
+          Flexible(
+            child: Text(
+              label,
+              style: Theme.of(
+                context,
+              ).textTheme.labelSmall?.copyWith(color: foreground),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
         ],
       ),

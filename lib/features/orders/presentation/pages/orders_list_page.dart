@@ -120,7 +120,6 @@ class OrdersListPage extends ConsumerWidget {
     return ShellPage(
       title: l10n.ordersTitle,
       subtitle: l10n.ordersSubtitle,
-      scrollable: false,
       actions: [
         PrimaryButton(
           label: l10n.ordersNewAction,
@@ -229,14 +228,20 @@ class OrdersListPage extends ConsumerWidget {
               ],
               const SizedBox(height: AppSpacing.md),
 
-              Expanded(
-                child: orders.isEmpty
+              // Part of the page: the whole page scrolls, title and filters
+              // included.
+              Builder(
+                builder: (context) => orders.isEmpty
                     ? _Empty(
                         storeId: storeId,
                         storeHasOrders: all.isNotEmpty,
                         onClearFilters: notifier.clear,
                       )
                     : ListView.separated(
+                        shrinkWrap: true,
+                        primary: false,
+                        physics: const NeverScrollableScrollPhysics(),
+                        padding: EdgeInsets.zero,
                         itemCount: orders.length,
                         separatorBuilder: (_, _) =>
                             const SizedBox(height: AppSpacing.sm),

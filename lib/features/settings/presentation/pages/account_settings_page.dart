@@ -13,7 +13,7 @@ import '../../../../data/providers.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
-import 'store_settings_page.dart' show settingsTabs;
+import '../widgets/settings_tabs.dart';
 
 /// The signed-in employee's own profile, security and linked stores.
 class AccountSettingsPage extends ConsumerWidget {
@@ -33,10 +33,11 @@ class AccountSettingsPage extends ConsumerWidget {
     final stores = ref.watch(storesProvider);
 
     return ShellPage(
-      tabs: SectionTabs(
+      tabs: SettingsTabs(
+        storeId: storeId,
         currentPath: Routes.toAccountSettings(storeId),
-        tabs: settingsTabs(l10n, storeId),
       ),
+      sideTabsOnWide: true,
       title: l10n.accountSettingsTitle,
       child: AsyncContent<List<Store>>(
         value: stores,

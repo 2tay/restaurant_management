@@ -39,6 +39,7 @@ class ItemDetailView extends ConsumerWidget {
     required this.storeId,
     this.showTitle = true,
     this.onClose,
+    this.scrollsItself = true,
     super.key,
   });
 
@@ -57,6 +58,11 @@ class ItemDetailView extends ConsumerWidget {
   /// Closes the pane. Null when the view is the whole page, which closes by
   /// going back.
   final VoidCallback? onClose;
+
+  /// True in the drawer, which is its own scrolling box. False on the
+  /// product page, which scrolls as a whole — its title and buttons going up
+  /// with the content rather than staying pinned above it.
+  final bool scrollsItself;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -126,6 +132,9 @@ class ItemDetailView extends ConsumerWidget {
 
     return ListView(
       padding: EdgeInsets.zero,
+      shrinkWrap: !scrollsItself,
+      primary: scrollsItself ? null : false,
+      physics: scrollsItself ? null : const NeverScrollableScrollPhysics(),
       children: [
         if (showTitle) ...[
           Row(

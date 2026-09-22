@@ -64,7 +64,8 @@ void main() {
 
       final header = find.descendant(
         of: find.byType(AppTable<ItemRowView>),
-        matching: find.text('Produit'),
+        // Headers are set in capitals.
+        matching: find.text('PRODUIT'),
       );
       await tester.tap(header);
       await tester.pumpAndSettle();
@@ -149,25 +150,34 @@ void main() {
     expect((toggle.right - list.right).abs(), lessThan(2));
   });
 
-  testApp('each dashboard panel has its "Voir tout" at its right edge', (
+  testApp('each dashboard panel has "Tout afficher" at its right edge', (
     tester,
   ) async {
     await open(tester, _tablet, Routes.toDashboard(_store));
 
+    // The buttons, not their label: the label sits inside the button's own
+    // padding, beside its arrow.
+    final buttons = [
+      for (final element
+          in find
+              .ancestor(
+                of: find.text('Tout afficher'),
+                matching: find.byType(TextButton),
+              )
+              .evaluate())
+        tester.getRect(find.byWidget(element.widget)),
+    ];
+
     for (final type in [AppTable<MovementRowView>, AppTable<ItemRowView>]) {
       final table = tester.getRect(find.byType(type));
-      final links = find
-          .text('Voir tout')
-          .evaluate()
-          .map((element) => tester.getRect(find.byWidget(element.widget)));
-      // The link above this table ends near the table's right edge — not
+      // The button above this table ends at the table's right edge — not
       // somewhere in the middle of the header.
-      final above = links.where(
+      final above = buttons.where(
         (rect) => rect.bottom <= table.top && rect.left >= table.left,
       );
-      expect(above, isNotEmpty);
+      expect(above, isNotEmpty, reason: '$type');
       expect(
-        above.any((rect) => table.right - rect.right < 48),
+        above.any((rect) => (table.right - rect.right).abs() < 16),
         isTrue,
         reason: '$type',
       );

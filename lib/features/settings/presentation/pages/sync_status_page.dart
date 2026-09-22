@@ -10,7 +10,7 @@ import '../../../../core/utils/formatters.dart';
 import '../../../../data/providers.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../shared/widgets/widgets.dart';
-import 'store_settings_page.dart';
+import '../widgets/settings_tabs.dart';
 
 /// Sync status, and the demo toggle for offline mode.
 ///
@@ -35,10 +35,11 @@ class SyncStatusPage extends ConsumerWidget {
     final seededAt = ref.watch(seededAtProvider).value;
 
     return ShellPage(
-      tabs: SectionTabs(
+      tabs: SettingsTabs(
+        storeId: storeId,
         currentPath: Routes.toSyncStatus(storeId),
-        tabs: settingsTabs(l10n, storeId),
       ),
+      sideTabsOnWide: true,
       title: l10n.syncTitle,
       subtitle: l10n.syncSubtitle,
       child: ConstrainedBox(

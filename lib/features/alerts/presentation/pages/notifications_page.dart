@@ -61,7 +61,6 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
       subtitle: l10n.notificationsUnread(unreadCount),
       // Information, not description — kept on a phone.
       keepSubtitle: true,
-      scrollable: false,
       actions: [
         if (unreadCount > 0)
           SecondaryButton(
@@ -90,8 +89,9 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
             ],
           ),
           const SizedBox(height: AppSpacing.lg),
-          Expanded(
-            child: AsyncContent<List<NotificationItem>>(
+          // Part of the page: the whole page scrolls, title included.
+          Builder(
+            builder: (context) => AsyncContent<List<NotificationItem>>(
               value: asyncAll,
               onRetry: () =>
                   ref.invalidate(notificationsProvider(widget.storeId)),
@@ -105,6 +105,10 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
                       message: l10n.notificationsEmptyBody,
                     )
                   : ListView.separated(
+                      shrinkWrap: true,
+                      primary: false,
+                      physics: const NeverScrollableScrollPhysics(),
+                      padding: EdgeInsets.zero,
                       itemCount: shown.length,
                       separatorBuilder: (_, _) =>
                           const SizedBox(height: AppSpacing.sm),

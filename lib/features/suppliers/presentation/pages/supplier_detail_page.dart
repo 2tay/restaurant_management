@@ -100,16 +100,17 @@ class _SupplierDetailPageState extends ConsumerState<SupplierDetailPage> {
       ],
     );
 
+    // Embedded beside the suppliers list, it scrolls with that page rather
+    // than on its own — a scroll view inside a scrolling page catches the
+    // finger and the page stops moving.
     if (embedded) {
-      return SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Align(alignment: Alignment.centerLeft, child: tabs),
-            const SizedBox(height: AppSpacing.xl),
-            body,
-          ],
-        ),
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Align(alignment: Alignment.centerLeft, child: tabs),
+          const SizedBox(height: AppSpacing.xl),
+          body,
+        ],
       );
     }
 
@@ -236,8 +237,7 @@ class _SupplierDetailPageState extends ConsumerState<SupplierDetailPage> {
             label: l10n.actionDelete,
             icon: LucideIcons.trash2,
             filled: false,
-            onPressed: () =>
-                _confirmDelete(context, supplier, products.length),
+            onPressed: () => _confirmDelete(context, supplier, products.length),
           ),
         ),
       ],

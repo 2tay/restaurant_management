@@ -14,23 +14,7 @@ import '../../../../data/providers.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
-
-/// The four settings tabs, built the same way on all four screens.
-List<SectionTab> settingsTabs(AppLocalizations l10n, String storeId) => [
-  SectionTab(
-    label: l10n.settingsTabStore,
-    path: Routes.toStoreSettings(storeId),
-  ),
-  SectionTab(
-    label: l10n.settingsTabAccount,
-    path: Routes.toAccountSettings(storeId),
-  ),
-  SectionTab(
-    label: l10n.settingsTabNotifications,
-    path: Routes.toNotificationSettings(storeId),
-  ),
-  SectionTab(label: l10n.settingsTabSync, path: Routes.toSyncStatus(storeId)),
-];
+import '../widgets/settings_tabs.dart';
 
 /// Store name, address and preferences, plus the pointage hours and payroll
 /// coefficients.
@@ -52,11 +36,8 @@ class StoreSettingsPage extends ConsumerWidget {
       ref.watch(storeProvider(storeId)),
       ref.watch(unitsProvider(storeId)),
       ref.watch(storeSettingsProvider(storeId)),
-      (store, units, settings) => (
-        store: store,
-        units: units,
-        settings: settings,
-      ),
+      (store, units, settings) =>
+          (store: store, units: units, settings: settings),
     );
 
     return AsyncContent<
@@ -71,10 +52,11 @@ class StoreSettingsPage extends ConsumerWidget {
       // The chrome is drawn either way, so the tabs and the title do not
       // arrive a frame after the page they belong to.
       skeleton: ShellPage(
-        tabs: SectionTabs(
+        tabs: SettingsTabs(
+          storeId: storeId,
           currentPath: Routes.toStoreSettings(storeId),
-          tabs: settingsTabs(l10n, storeId),
         ),
+        sideTabsOnWide: true,
         title: l10n.storeSettingsTitle,
         child: const SkeletonList(rows: 3, rowHeight: 180),
       ),
@@ -82,10 +64,11 @@ class StoreSettingsPage extends ConsumerWidget {
         final store = data.store;
         if (store == null) {
           return ShellPage(
-            tabs: SectionTabs(
+            tabs: SettingsTabs(
+              storeId: storeId,
               currentPath: Routes.toStoreSettings(storeId),
-              tabs: settingsTabs(l10n, storeId),
             ),
+            sideTabsOnWide: true,
             title: l10n.storeSettingsTitle,
             child: ErrorState(
               title: l10n.shellNoStoreTitle,
@@ -185,8 +168,7 @@ class _StoreSettingsFormState extends ConsumerState<_StoreSettingsForm> {
   /// but the fields and the save button are read-only.
   bool get _canEdit {
     final employee = ref.watch(currentEmployeeProvider);
-    return employee != null &&
-        can(employee.role, Capability.editStoreSettings);
+    return employee != null && can(employee.role, Capability.editStoreSettings);
   }
 
   @override
@@ -196,10 +178,11 @@ class _StoreSettingsFormState extends ConsumerState<_StoreSettingsForm> {
     final canEdit = _canEdit;
 
     return ShellPage(
-      tabs: SectionTabs(
+      tabs: SettingsTabs(
+        storeId: storeId,
         currentPath: Routes.toStoreSettings(storeId),
-        tabs: settingsTabs(l10n, storeId),
       ),
+      sideTabsOnWide: true,
       title: l10n.storeSettingsTitle,
       actions: [
         PrimaryButton(
@@ -329,9 +312,7 @@ class _StoreSettingsFormState extends ConsumerState<_StoreSettingsForm> {
                       label: l10n.storeSettingsMaxBreak,
                       controller: _maxBreak,
                       keyboardType: TextInputType.number,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.digitsOnly,
-                      ],
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                       prefixIcon: LucideIcons.coffee,
                     ),
                   ),
@@ -508,10 +489,7 @@ class _ReadOnlyNotice extends StatelessWidget {
           ),
           const SizedBox(width: AppSpacing.sm),
           Expanded(
-            child: Text(
-              message,
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
+            child: Text(message, style: Theme.of(context).textTheme.bodyMedium),
           ),
         ],
       ),

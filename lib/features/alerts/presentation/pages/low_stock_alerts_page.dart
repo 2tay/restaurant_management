@@ -51,7 +51,6 @@ class LowStockAlertsPage extends ConsumerWidget {
       ),
       title: l10n.alertsTitle,
       subtitle: l10n.alertsSubtitle,
-      scrollable: false,
       actions: [
         SecondaryButton(
           label: l10n.actionAddDelivery,
@@ -76,7 +75,12 @@ class LowStockAlertsPage extends ConsumerWidget {
           title: l10n.alertsEmpty,
           message: l10n.alertsEmptyBody,
         ),
+        // Part of the page: the whole page scrolls, title included.
         builder: (context, alerts) => ListView.separated(
+          shrinkWrap: true,
+          primary: false,
+          physics: const NeverScrollableScrollPhysics(),
+          padding: EdgeInsets.zero,
           itemCount: alerts.length,
           separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
           itemBuilder: (context, index) =>
