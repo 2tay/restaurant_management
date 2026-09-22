@@ -53,6 +53,7 @@ import '../core/utils/permissions.dart';
 import '../data/current_employee.dart';
 import '../models/models.dart';
 import '../shared/widgets/app_scaffold.dart';
+import 'navigation.dart';
 import 'page_transitions.dart';
 import 'routes.dart';
 
@@ -185,6 +186,7 @@ final GoRouter appRouter = GoRouter(
     // Store-scoped — inside the shell
     // -------------------------------------------------------------------------
     ShellRoute(
+      observers: [BackHistory()],
       builder: (context, state, child) =>
           _StoreShell(storeId: state.pathParameters['storeId'], child: child),
       routes: [

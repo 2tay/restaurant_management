@@ -172,6 +172,50 @@ void main() {
     });
   });
 
+  group('the back control names where back goes', () {
+    String backLabel(WidgetTester tester) =>
+        tester.widget<Tooltip>(
+          find.descendant(
+            of: find.byType(BackControl),
+            matching: find.byType(Tooltip),
+          ),
+        ).message!;
+
+    testApp('names the screen it pops to, not the hierarchy parent', (
+      tester,
+    ) async {
+      await _pump(tester);
+      appRouter.go(Routes.toDashboard(_store));
+      await tester.pumpAndSettle();
+      unawaited(appRouter.push(Routes.toItem(_store, mockItems.first.id)));
+      await tester.pumpAndSettle();
+
+      expect(backLabel(tester), 'Retour à Tableau de bord');
+    });
+
+    testApp('names the list when the detail was opened from it', (
+      tester,
+    ) async {
+      await _pump(tester);
+      appRouter.go(Routes.toInventory(_store));
+      await tester.pumpAndSettle();
+      unawaited(appRouter.push(Routes.toItem(_store, mockItems.first.id)));
+      await tester.pumpAndSettle();
+
+      expect(backLabel(tester), 'Retour à Produits');
+    });
+
+    testApp('falls back to the parent when there is nothing to pop', (
+      tester,
+    ) async {
+      await _pump(tester);
+      appRouter.go(Routes.toItem(_store, mockItems.first.id));
+      await tester.pumpAndSettle();
+
+      expect(backLabel(tester), 'Retour à Produits');
+    });
+  });
+
   group('the sidebar tracks where the user is', () {
     /// The label of the sidebar nav row currently highlighted.
     String activeNav(WidgetTester tester) => tester
@@ -188,12 +232,14 @@ void main() {
 
       expect(
         activeNav(tester),
-        'Inventaire',
-        reason: 'an item detail is still inside Inventaire',
+        'Produits',
+        reason: 'an item detail is still inside Produits',
       );
     });
 
-    testApp('highlights Fournisseurs on a supplier pricing screen', (
+    // Fournisseurs lives under the Achats group: the group's tile is the
+    // top-level entry that lights up, and it opens to show Fournisseurs.
+    testApp('highlights Achats on a supplier pricing screen', (
       tester,
     ) async {
       await _pump(tester);
@@ -204,7 +250,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(activeNav(tester), 'Fournisseurs');
+      expect(activeNav(tester), 'Achats');
     });
 
     testApp('highlights Gestion Employée from a nested employee screen', (

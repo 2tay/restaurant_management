@@ -6,6 +6,7 @@ import '../../../../app/routes.dart';
 import '../../../../app/navigation.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/utils/responsive.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/utils/stock_status.dart';
@@ -305,6 +306,31 @@ class _AlertCard extends StatelessWidget {
           // French labels do not fit a tablet held in portrait. Squeezing them
           // crushes the action button below the width of its own icon, so
           // below this the card becomes three stacked rows instead.
+          // On a phone at large text even two things a line do not fit — the
+          // badge alone is wider than half the card — so everything takes a
+          // line of its own, badge first.
+          if (constraints.maxWidth < 480 && context.isLargeText) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: StockStatusBadge(status: status),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                nameBlock,
+                const SizedBox(height: AppSpacing.md),
+                quantityBlock,
+                const SizedBox(height: AppSpacing.sm),
+                onOrderBlock,
+                if (orderButton != null) ...[
+                  const SizedBox(height: AppSpacing.md),
+                  Align(alignment: Alignment.centerLeft, child: orderButton),
+                ],
+              ],
+            );
+          }
+
           if (constraints.maxWidth < 900) {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,

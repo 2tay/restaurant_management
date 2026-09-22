@@ -19,6 +19,7 @@ import 'back_control.dart';
 import 'error_state.dart';
 import 'loading_state.dart';
 import 'offline_banner.dart';
+import 'section_tabs.dart';
 
 /// Whether the shell's navigation sidebar is hidden so the current page's
 /// content fills the whole window.
@@ -312,7 +313,7 @@ class AppScaffoldNoStore extends StatelessWidget {
 /// Every screen uses this, which is what makes the header convention hold
 /// without exception:
 ///
-/// - **Left**: back control, breadcrumbs, title, subtitle
+/// - **Left**: breadcrumbs, then the back arrow beside the title, subtitle
 /// - **Right**: actions — create, save, export, search, filter
 ///
 /// A user who has learned where the button is on one screen has learned it on
@@ -330,6 +331,7 @@ class ShellPage extends StatelessWidget {
     this.crumbs = const [],
     this.onBack,
     this.tabs,
+    this.sideTabsOnWide = false,
     this.footer,
     this.maxContentWidth,
     super.key,
@@ -370,6 +372,17 @@ class ShellPage extends StatelessWidget {
   /// Sub-navigation within a section, e.g. Catégories | Unités.
   final Widget? tabs;
 
+  /// Moves [tabs] into a column beside the content once the page is wide
+  /// enough for it — the settings pattern, where each tab is a screen of its
+  /// own and a list with descriptions says more than a row of four words.
+  /// Below [sideTabsMinWidth] they stay a bar under the title.
+  final bool sideTabsOnWide;
+
+  /// Page width from which [sideTabsOnWide] takes effect: the 240dp column,
+  /// its gap, and enough left for a 720dp form.
+  static const double sideTabsMinWidth = 960;
+  static const double _sideTabsWidth = 240;
+
   /// Pinned to the bottom of the content area, above the page edge. Used for
   /// form action bars so they stay reachable on a long form.
   final Widget? footer;
@@ -380,6 +393,47 @@ class ShellPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // So a screen pushed over this one can say "Retour à <this title>".
+    final route = ModalRoute.of(context);
+    if (route != null) BackHistory.registerTitle(route, title);
+
+    if (tabs == null || !sideTabsOnWide) return _page(context, showTabs: true);
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < sideTabsMinWidth) {
+          return _page(context, showTabs: true);
+        }
+
+        // The column stays put while the page beside it scrolls, and starts
+        // level with the title.
+        final insets = (padding ?? context.pageInsets).resolve(
+          Directionality.of(context),
+        );
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Its own scroll view: on a short window at large text the four
+            // entries and their descriptions can outgrow the height.
+            SizedBox(
+              width: _sideTabsWidth + insets.left,
+              child: SingleChildScrollView(
+                padding: EdgeInsets.only(
+                  left: insets.left,
+                  top: insets.top,
+                  bottom: insets.bottom,
+                ),
+                child: SectionTabsAxis(axis: Axis.vertical, child: tabs!),
+              ),
+            ),
+            Expanded(child: _page(context, showTabs: false)),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _page(BuildContext context, {required bool showTabs}) {
     final theme = Theme.of(context);
 
     // The gap between the header and the content it introduces. 24dp is right
@@ -394,16 +448,16 @@ class ShellPage extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (back != null) ...[
-            Align(
-              alignment: Alignment.centerLeft,
-              child: BackControl(destination: back!, onBack: onBack),
-            ),
-            const SizedBox(height: AppSpacing.sm),
-          ],
+          // Indented past the back arrow, so the trail lines up with the title
+          // text it leads to rather than with the arrow.
           if (crumbs.length > 1) ...[
-            AppBreadcrumbs(crumbs: crumbs),
-            const SizedBox(height: AppSpacing.sm),
+            Padding(
+              padding: EdgeInsets.only(
+                left: back != null ? _backArrowWidth : 0,
+              ),
+              child: AppBreadcrumbs(crumbs: crumbs),
+            ),
+            const SizedBox(height: AppSpacing.xs),
           ],
           _TitleRow(
             title: title,
@@ -411,8 +465,14 @@ class ShellPage extends StatelessWidget {
             keepSubtitle: keepSubtitle,
             actions: actions,
             theme: theme,
+            leading: back == null
+                ? null
+                : BackControl(destination: back!, onBack: onBack),
           ),
-          if (tabs != null) ...[const SizedBox(height: AppSpacing.lg), tabs!],
+          if (showTabs && tabs != null) ...[
+            const SizedBox(height: AppSpacing.lg),
+            tabs!,
+          ],
         ],
       ),
     );
@@ -457,6 +517,13 @@ class ShellPage extends StatelessWidget {
   }
 }
 
+/// Space between the back arrow and the title.
+const double _backArrowGap = AppSpacing.sm;
+
+/// How far the title text sits from the header's left edge beside the arrow —
+/// the breadcrumbs are indented by the same amount to line up with it.
+const double _backArrowWidth = AppSizing.minTapTarget + _backArrowGap;
+
 class _TitleRow extends StatelessWidget {
   const _TitleRow({
     required this.title,
@@ -464,6 +531,7 @@ class _TitleRow extends StatelessWidget {
     required this.keepSubtitle,
     required this.actions,
     required this.theme,
+    this.leading,
   });
 
   final String title;
@@ -471,6 +539,9 @@ class _TitleRow extends StatelessWidget {
   final bool keepSubtitle;
   final List<Widget> actions;
   final ThemeData theme;
+
+  /// The back arrow, level with the title.
+  final Widget? leading;
 
   @override
   Widget build(BuildContext context) {
@@ -483,20 +554,45 @@ class _TitleRow extends StatelessWidget {
     //
     // The four screens whose subtitle is real information — an unread count,
     // which product's price history this is — opt out with [keepSubtitle].
-    final showSubtitle =
-        subtitle != null && (keepSubtitle || !context.isPhone);
+    final showSubtitle = subtitle != null && (keepSubtitle || !context.isPhone);
 
-    final titleBlock = Column(
+    final titleText = Text(title, style: theme.textTheme.headlineMedium);
+
+    final textBlock = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(title, style: theme.textTheme.headlineMedium),
+        // Beside the arrow, the title's first line is centred on the arrow's
+        // 48dp target. A minimum rather than a fixed height, so the title
+        // still grows when the user turns the type up.
+        if (leading == null)
+          titleText
+        else
+          Container(
+            constraints: const BoxConstraints(
+              minHeight: AppSizing.minTapTarget,
+            ),
+            alignment: Alignment.centerLeft,
+            child: titleText,
+          ),
         if (showSubtitle) ...[
           const SizedBox(height: AppSpacing.xs),
           Text(subtitle!, style: theme.textTheme.bodyMedium),
         ],
       ],
     );
+
+    final titleBlock = leading == null
+        ? textBlock
+        : Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              leading!,
+              const SizedBox(width: _backArrowGap),
+              Flexible(child: textBlock),
+            ],
+          );
 
     if (actions.isEmpty) return titleBlock;
 

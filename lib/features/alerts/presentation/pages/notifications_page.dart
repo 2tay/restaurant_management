@@ -7,6 +7,7 @@ import '../../../../app/navigation.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/formatters.dart';
+import '../../../../core/utils/responsive.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../data/providers.dart';
 import '../../../../models/models.dart';
@@ -174,6 +175,25 @@ class _NotificationCard extends StatelessWidget {
     final theme = Theme.of(context);
     final (icon, colors) = _appearance(notification.kind);
 
+    // The time sits in its own column beside the text when there is room. On
+    // a phone, or at large text, that column squeezes the message to a few
+    // words a line, so the time moves under the message instead.
+    final stacked = context.isPhone || context.isLargeText;
+    final time = Text(
+      Formatters.relative(notification.createdAt),
+      style: theme.textTheme.bodySmall,
+    );
+    const unreadDot = SizedBox(
+      width: 10,
+      height: 10,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: AppColors.primary600,
+          shape: BoxShape.circle,
+        ),
+      ),
+    );
+
     return AppCard(
       onTap: onTap,
       accentColor: isRead ? null : colors.solid,
@@ -202,29 +222,32 @@ class _NotificationCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(notification.body, style: theme.textTheme.bodyMedium),
+                if (stacked) ...[
+                  const SizedBox(height: AppSpacing.xs),
+                  Row(
+                    children: [
+                      Flexible(child: time),
+                      if (!isRead) ...[
+                        const SizedBox(width: AppSpacing.sm),
+                        unreadDot,
+                      ],
+                    ],
+                  ),
+                ],
               ],
             ),
           ),
-          const SizedBox(width: AppSpacing.md),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                Formatters.relative(notification.createdAt),
-                style: theme.textTheme.bodySmall,
-              ),
-              const SizedBox(height: AppSpacing.xs),
-              if (!isRead)
-                Container(
-                  width: 10,
-                  height: 10,
-                  decoration: const BoxDecoration(
-                    color: AppColors.primary600,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-            ],
-          ),
+          if (!stacked) ...[
+            const SizedBox(width: AppSpacing.md),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                time,
+                const SizedBox(height: AppSpacing.xs),
+                if (!isRead) unreadDot,
+              ],
+            ),
+          ],
         ],
       ),
     );

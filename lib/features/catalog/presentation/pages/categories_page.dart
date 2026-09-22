@@ -5,6 +5,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../app/routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/utils/responsive.dart';
 import '../../../../data/providers.dart';
 import '../../../../data/view_models/view_models.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -167,6 +168,24 @@ class _CatalogTile extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
 
+    // On a phone, or at large text, the count pill cannot share the line with
+    // the title and both buttons — it moves under the subtitle instead.
+    final stacked = context.isPhone || context.isLargeText;
+
+    final pill = trailingLabel == null
+        ? null
+        : Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md,
+              vertical: AppSpacing.xs,
+            ),
+            decoration: const BoxDecoration(
+              color: AppColors.surfaceVariant,
+              borderRadius: AppRadius.pillAll,
+            ),
+            child: Text(trailingLabel!, style: theme.textTheme.labelMedium),
+          );
+
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.lg,
@@ -202,21 +221,15 @@ class _CatalogTile extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
                 Text(subtitle, style: theme.textTheme.bodySmall),
+                if (pill != null && stacked) ...[
+                  const SizedBox(height: AppSpacing.xs),
+                  pill,
+                ],
               ],
             ),
           ),
-          if (trailingLabel != null) ...[
-            Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.md,
-                vertical: AppSpacing.xs,
-              ),
-              decoration: const BoxDecoration(
-                color: AppColors.surfaceVariant,
-                borderRadius: AppRadius.pillAll,
-              ),
-              child: Text(trailingLabel!, style: theme.textTheme.labelMedium),
-            ),
+          if (pill != null && !stacked) ...[
+            pill,
             const SizedBox(width: AppSpacing.sm),
           ],
           IconButton(

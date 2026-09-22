@@ -6,15 +6,16 @@ import '../../core/theme/app_spacing.dart';
 import '../../l10n/app_localizations.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
-/// The back control that sits top-left on every pushed screen.
+/// The back control that sits left of the title on every pushed screen.
 ///
-/// Deliberately a labelled button rather than a bare arrow icon. A 24dp chevron
-/// is a fine target for a thumb on a phone held in one hand; it is a poor one
-/// for someone reaching across a counter, and it says nothing about where back
-/// leads. Naming the destination removes the guess.
+/// An arrow, not a labelled button. The label — "Retour à Inventaire" — took a
+/// row of its own above the breadcrumbs, which already name where back leads,
+/// so the header spent 48dp repeating itself before the title. The destination
+/// still reaches the user: as a tooltip on hover and long-press, and as the
+/// screen-reader label.
 ///
-/// Falls back to a bare arrow only when the destination name is long enough to
-/// crowd the header.
+/// The tap target stays the full 48dp square. Someone reaching across a counter
+/// needs the area, not the words.
 class BackControl extends StatelessWidget {
   const BackControl({required this.destination, this.onBack, super.key});
 
@@ -24,58 +25,36 @@ class BackControl extends StatelessWidget {
   /// discarding input.
   final Future<void> Function()? onBack;
 
-  /// Beyond this, the label is dropped and only the arrow shows.
-  static const int _maxLabelLength = 22;
-
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
 
-    final showLabel = destination.label.length <= _maxLabelLength;
-    final label = showLabel ? l10n.backTo(destination.label) : l10n.backGeneric;
+    // Named after the screen back actually pops to. The destination's own
+    // label is for when there is nothing to pop and back lands on the parent.
+    final route = ModalRoute.of(context);
+    final previous = route == null ? null : BackHistory.previousTitle(route);
+    final label = l10n.backTo(previous ?? destination.label);
 
-    return Semantics(
-      button: true,
-      label: l10n.backTo(destination.label),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: AppRadius.pillAll,
-        child: InkWell(
-          onTap: () => _handleBack(context),
+    return Tooltip(
+      message: label,
+      excludeFromSemantics: true,
+      child: Semantics(
+        button: true,
+        label: label,
+        excludeSemantics: true,
+        child: Material(
+          color: Colors.transparent,
           borderRadius: AppRadius.pillAll,
-          child: Container(
-            // A minimum, not a fixed height: 48dp is the tap-target floor the
-            // brief sets, and a control pinned to it clips its own label once
-            // the user turns the type up.
-            constraints: const BoxConstraints(
-              minHeight: AppSizing.minTapTarget,
-            ),
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.md,
-              vertical: AppSpacing.sm,
-            ),
-            alignment: Alignment.center,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(
-                  LucideIcons.arrowLeft,
-                  size: AppSizing.iconMd,
-                  color: AppColors.textSecondary,
-                ),
-                const SizedBox(width: AppSpacing.sm),
-                Flexible(
-                  child: Text(
-                    label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.labelLarge?.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ),
-              ],
+          child: InkWell(
+            onTap: () => _handleBack(context),
+            borderRadius: AppRadius.pillAll,
+            child: const SizedBox.square(
+              dimension: AppSizing.minTapTarget,
+              child: Icon(
+                LucideIcons.arrowLeft,
+                size: AppSizing.iconMd,
+                color: AppColors.textSecondary,
+              ),
             ),
           ),
         ),
