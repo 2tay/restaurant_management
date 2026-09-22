@@ -17,7 +17,6 @@ import '../../../../data/repositories/repositories.dart';
 import '../../../../data/view_models/view_models.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
-import '../../../orders/presentation/pages/orders_list_page.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../stock_movement/presentation/widgets/movement_labels.dart';
 import '../../../stock_movement/presentation/widgets/movement_type_badge.dart';
@@ -218,7 +217,7 @@ class StoreDashboardPage extends ConsumerWidget {
                 icon: LucideIcons.clipboardList,
                 iconColors: AppColors.lowStock,
                 caption: l10n.dashboardOnOrderCaption(openOrders.length),
-                onTap: () => context.goSection(Routes.toOrders(storeId)),
+                onTap: () => context.goSection(Routes.toReceptions(storeId)),
               ),
               SummaryTile(
                 label: l10n.dashboardTileSuppliers,
@@ -342,12 +341,9 @@ class _StaleOrdersWarning extends ConsumerWidget {
       action: SecondaryButton(
         label: l10n.dashboardStaleOrdersAction,
         icon: LucideIcons.clipboardList,
-        onPressed: () {
-          // Land on the orders that need doing something about, not on ninety
-          // days of history the user then has to filter down.
-          ref.read(ordersFilterProvider.notifier).showOpenOnly();
-          context.goSection(Routes.toOrders(storeId));
-        },
+        // Réceptions lists the late orders first, each with its button to
+        // receive what came or close it.
+        onPressed: () => context.goSection(Routes.toReceptions(storeId)),
       ),
     );
   }

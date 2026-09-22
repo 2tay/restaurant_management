@@ -56,6 +56,9 @@ abstract final class Routes {
   static const String editOrder = '$orderDetail/edit';
   static const String receiveOrder = '$orderDetail/receive';
 
+  // Réceptions: what is due to arrive and what has arrived, under Achats.
+  static const String receptions = '$storeBase/receptions';
+
   static const String suppliers = '$storeBase/suppliers';
   static const String addSupplier = '$suppliers/new';
   static const String supplierDetail = '$suppliers/:supplierId';
@@ -161,6 +164,8 @@ abstract final class Routes {
 
   static String toReceipt(String storeId, String receiptId) =>
       '/store/$storeId/orders/receipts/$receiptId';
+
+  static String toReceptions(String storeId) => '/store/$storeId/receptions';
 
   static String toSuppliers(String storeId) => '/store/$storeId/suppliers';
 

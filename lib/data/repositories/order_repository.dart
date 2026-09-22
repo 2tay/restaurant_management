@@ -264,6 +264,59 @@ class OrderRepository {
     _db.goodsReceipts.id.equals(id),
   ).get().then((rows) => _assembleReceipts(rows).firstOrNull);
 
+  /// Every delivery received in the store, **newest first**, each with its
+  /// quotable number, its commande and supplier, its value and how many of
+  /// its lines did not match — the Réceptions page's history.
+  ///
+  /// The number after the slash is still the receipt's position among its own
+  /// commande's deliveries, oldest first, so it matches the bon de réception.
+  Stream<List<StoreReceiptRowView>> watchStoreReceiptRows(String storeId) =>
+      _receipts(_db.goodsReceipts.storeId.equals(storeId))
+          .watch()
+          .map(_assembleReceipts)
+          .asyncMap((receipts) async {
+            final orderIds = {for (final r in receipts) r.orderId};
+            final orderRows = orderIds.isEmpty
+                ? const <PurchaseOrderRow>[]
+                : await (_db.select(
+                    _db.purchaseOrders,
+                  )..where((o) => o.id.isIn(orderIds))).get();
+            final ordersById = {for (final o in orderRows) o.id: o};
+            final names = await _supplierNames({
+              for (final o in orderRows) o.supplierId,
+            });
+
+            // Position within each commande, oldest first — the receipts
+            // arrive in that order from the query.
+            final sequence = <String, int>{};
+            final numbered = <String, int>{};
+            for (final receipt in receipts) {
+              final next = (sequence[receipt.orderId] ?? 0) + 1;
+              sequence[receipt.orderId] = next;
+              numbered[receipt.id] = next;
+            }
+
+            final rows = [
+              for (final receipt in receipts)
+                StoreReceiptRowView(
+                  receipt: receipt,
+                  reference: ordersById[receipt.orderId] == null
+                      ? 'BR-${receipt.id}'
+                      : receiptReference(
+                          ordersById[receipt.orderId]!.reference,
+                          numbered[receipt.id]!,
+                        ),
+                  orderReference:
+                      ordersById[receipt.orderId]?.reference ?? '—',
+                  supplierName:
+                      names[ordersById[receipt.orderId]?.supplierId] ?? '—',
+                  value: receiptValue(receipt),
+                  discrepancies: receiptDiscrepancyCount(receipt),
+                ),
+            ];
+            return rows.reversed.toList();
+          });
+
   /// The quotable number for one delivery — `BR-2026-014/2`.
   ///
   /// Resolves the receipt's position among its commande's deliveries and hands

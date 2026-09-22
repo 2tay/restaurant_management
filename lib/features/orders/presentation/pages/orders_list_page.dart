@@ -6,6 +6,8 @@ import '../../../../app/navigation.dart';
 import '../../../../app/routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/theme/app_typography.dart';
+import '../../../../core/utils/formatters.dart';
 import '../../../../core/utils/responsive.dart';
 import '../../../../core/utils/order_status.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -13,54 +15,70 @@ import '../../../../data/providers.dart';
 import '../../../../data/view_models/view_models.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
+import '../../documents/order_document_button.dart';
+import '../widgets/order_actions.dart';
 import '../widgets/order_row.dart';
 import '../widgets/order_status_badge.dart';
 
 /// How many days back a date filter reaches. Null means no date filter.
 enum OrderDateRange { last7, last30, last90 }
 
+/// The status tabs across the top of the orders list.
+enum OrdersTab {
+  all,
+  drafts,
+  sent,
+  partial,
+
+  /// Fully received or cancelled — nothing left to do.
+  done;
+
+  bool matches(PurchaseOrder order) => switch (this) {
+    OrdersTab.all => true,
+    OrdersTab.drafts => order.status == PurchaseOrderStatus.draft,
+    OrdersTab.sent => order.status == PurchaseOrderStatus.sent,
+    OrdersTab.partial => order.status == PurchaseOrderStatus.partial,
+    OrdersTab.done =>
+      order.status == PurchaseOrderStatus.received ||
+          order.status == PurchaseOrderStatus.cancelled,
+  };
+
+  String label(AppLocalizations l10n) => switch (this) {
+    OrdersTab.all => l10n.ordersTabAll,
+    OrdersTab.drafts => l10n.ordersTabDrafts,
+    OrdersTab.sent => l10n.ordersTabSent,
+    OrdersTab.partial => l10n.ordersTabPartial,
+    OrdersTab.done => l10n.ordersTabDone,
+  };
+}
+
 /// Local filter state for the orders list. UI state only — no business rules.
 class OrdersFilter {
-  const OrdersFilter({
-    this.status,
-    this.supplierId,
-    this.range,
-    this.openOnly = false,
-  });
+  const OrdersFilter({this.tab = OrdersTab.all, this.supplierId, this.range});
 
-  final PurchaseOrderStatus? status;
+  /// Which status tab is open. Always on screen, so not counted as a filter.
+  final OrdersTab tab;
   final String? supplierId;
   final OrderDateRange? range;
-
-  /// Sent and partial only — the orders somebody still has to do something
-  /// about. The one filter staff actually reach for, so it gets its own chip
-  /// rather than living inside the status menu.
-  final bool openOnly;
 
   bool get hasActiveFilters => activeFilterCount > 0;
 
   /// How many filters are narrowing the list, for the button that stands in
   /// for them on a phone.
   int get activeFilterCount =>
-      (status != null ? 1 : 0) +
-      (supplierId != null ? 1 : 0) +
-      (range != null ? 1 : 0) +
-      (openOnly ? 1 : 0);
+      (supplierId != null ? 1 : 0) + (range != null ? 1 : 0);
 
   OrdersFilter copyWith({
-    PurchaseOrderStatus? status,
+    OrdersTab? tab,
     String? supplierId,
     OrderDateRange? range,
-    bool? openOnly,
-    bool clearStatus = false,
     bool clearSupplier = false,
     bool clearRange = false,
   }) {
     return OrdersFilter(
-      status: clearStatus ? null : status ?? this.status,
+      tab: tab ?? this.tab,
       supplierId: clearSupplier ? null : supplierId ?? this.supplierId,
       range: clearRange ? null : range ?? this.range,
-      openOnly: openOnly ?? this.openOnly,
     );
   }
 }
@@ -69,9 +87,7 @@ class OrdersFilterNotifier extends Notifier<OrdersFilter> {
   @override
   OrdersFilter build() => const OrdersFilter();
 
-  void setStatus(PurchaseOrderStatus? value) => value == null
-      ? state = state.copyWith(clearStatus: true)
-      : state = state.copyWith(status: value);
+  void setTab(OrdersTab tab) => state = state.copyWith(tab: tab);
 
   void setSupplier(String? id) => id == null
       ? state = state.copyWith(clearSupplier: true)
@@ -81,14 +97,24 @@ class OrdersFilterNotifier extends Notifier<OrdersFilter> {
       ? state = state.copyWith(clearRange: true)
       : state = state.copyWith(range: value);
 
-  void toggleOpenOnly() => state = state.copyWith(openOnly: !state.openOnly);
-
-  /// Used by the dashboard's stale-orders prompt, which wants to land the user
-  /// on the open orders rather than on everything.
-  void showOpenOnly() => state = const OrdersFilter(openOnly: true);
-
-  void clear() => state = const OrdersFilter();
+  /// Clears the supplier and period, keeping the tab the user is on.
+  void clear() => state = OrdersFilter(tab: state.tab);
 }
+
+/// Cards or a table — kept for the session.
+enum OrdersViewMode { list, table }
+
+class OrdersViewModeNotifier extends Notifier<OrdersViewMode> {
+  @override
+  OrdersViewMode build() => OrdersViewMode.list;
+
+  void select(OrdersViewMode mode) => state = mode;
+}
+
+final ordersViewModeProvider =
+    NotifierProvider<OrdersViewModeNotifier, OrdersViewMode>(
+      OrdersViewModeNotifier.new,
+    );
 
 final ordersFilterProvider =
     NotifierProvider<OrdersFilterNotifier, OrdersFilter>(
@@ -135,31 +161,24 @@ class OrdersListPage extends ConsumerWidget {
           final orders = _visible(all, filter);
 
           final filters = <Widget>[
-            _StatusMenu(
-              selected: filter.status,
-              onSelected: notifier.setStatus,
-            ),
             _SupplierMenu(
               suppliers: suppliers,
               selectedId: filter.supplierId,
               onSelected: notifier.setSupplier,
             ),
             _RangeMenu(selected: filter.range, onSelected: notifier.setRange),
-            FilterChip(
-              label: Text(l10n.ordersOpenOnly),
-              avatar: Icon(
-                LucideIcons.truck,
-                size: AppSizing.iconSm,
-                color: filter.openOnly
-                    ? AppColors.steel800
-                    : AppColors.textSecondary,
-              ),
-              selected: filter.openOnly,
-              onSelected: (_) => notifier.toggleOpenOnly(),
-              selectedColor: AppColors.offlineContainer,
-              checkmarkColor: AppColors.steel800,
-            ),
           ];
+
+          // Counted over the supplier and period filters, so each tab says
+          // how many rows tapping it would show.
+          final beforeTab = _visible(all, filter.copyWith(tab: OrdersTab.all));
+          final counts = {
+            for (final tab in OrdersTab.values)
+              tab: beforeTab.where((view) => tab.matches(view.order)).length,
+          };
+          final viewMode = ref.watch(ordersViewModeProvider);
+          final showTable =
+              viewMode == OrdersViewMode.table && !context.isPhone;
 
           final count = Text(
             l10n.ordersCount(orders.length),
@@ -169,6 +188,12 @@ class OrdersListPage extends ConsumerWidget {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              _StatusTabs(
+                tab: filter.tab,
+                counts: counts,
+                onSelected: notifier.setTab,
+              ),
+              const SizedBox(height: AppSpacing.md),
               // Four filters and a count stack into five rows on a phone. They
               // move behind one button there and stay on screen on a tablet,
               // the same bargain the inventory and movement lists make.
@@ -209,18 +234,48 @@ class OrdersListPage extends ConsumerWidget {
                   ],
                 )
               else ...[
-                Wrap(
-                  spacing: AppSpacing.sm,
-                  runSpacing: AppSpacing.sm,
-                  crossAxisAlignment: WrapCrossAlignment.center,
+                // Filters on the left, how to show them on the right.
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    ...filters,
-                    if (filter.hasActiveFilters)
-                      TextButton.icon(
-                        onPressed: notifier.clear,
-                        icon: const Icon(LucideIcons.x, size: AppSizing.iconSm),
-                        label: Text(l10n.inventoryClearFilters),
+                    Expanded(
+                      child: Wrap(
+                        spacing: AppSpacing.sm,
+                        runSpacing: AppSpacing.sm,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          ...filters,
+                          if (filter.hasActiveFilters)
+                            TextButton.icon(
+                              onPressed: notifier.clear,
+                              icon: const Icon(
+                                LucideIcons.x,
+                                size: AppSizing.iconSm,
+                              ),
+                              label: Text(l10n.inventoryClearFilters),
+                            ),
+                        ],
                       ),
+                    ),
+                    const SizedBox(width: AppSpacing.md),
+                    ViewModeToggle<OrdersViewMode>(
+                      value: viewMode,
+                      onSelected: ref
+                          .read(ordersViewModeProvider.notifier)
+                          .select,
+                      options: [
+                        ViewModeOption(
+                          value: OrdersViewMode.list,
+                          icon: LucideIcons.list,
+                          label: l10n.movementsViewList,
+                        ),
+                        ViewModeOption(
+                          value: OrdersViewMode.table,
+                          icon: LucideIcons.table,
+                          label: l10n.movementsViewTable,
+                        ),
+                      ],
+                    ),
                   ],
                 ),
                 const SizedBox(height: AppSpacing.md),
@@ -237,6 +292,8 @@ class OrdersListPage extends ConsumerWidget {
                         storeHasOrders: all.isNotEmpty,
                         onClearFilters: notifier.clear,
                       )
+                    : showTable
+                    ? _OrdersTable(storeId: storeId, orders: orders)
                     : ListView.separated(
                         shrinkWrap: true,
                         primary: false,
@@ -253,6 +310,7 @@ class OrdersListPage extends ConsumerWidget {
                             onTap: () => context.pushScreen(
                               Routes.toOrder(storeId, view.order.id),
                             ),
+                            action: _QuickAction(storeId: storeId, view: view),
                           );
                         },
                       ),
@@ -273,8 +331,7 @@ class OrdersListPage extends ConsumerWidget {
 
     return rows.where((view) {
       final order = view.order;
-      if (filter.openOnly && !orderIsOpen(order)) return false;
-      if (filter.status != null && order.status != filter.status) return false;
+      if (!filter.tab.matches(order)) return false;
       if (filter.supplierId != null && order.supplierId != filter.supplierId) {
         return false;
       }
@@ -326,54 +383,6 @@ class _Empty extends StatelessWidget {
       onAction: () => context.pushScreen(Routes.toNewOrder(storeId)),
     );
   }
-}
-
-class _StatusMenu extends StatelessWidget {
-  const _StatusMenu({required this.selected, required this.onSelected});
-
-  final PurchaseOrderStatus? selected;
-  final ValueChanged<PurchaseOrderStatus?> onSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-
-    return PopupMenuButton<String>(
-      tooltip: l10n.ordersFilterStatus,
-      shape: const RoundedRectangleBorder(borderRadius: AppRadius.mdAll),
-      onSelected: (value) => onSelected(
-        value == _all
-            ? null
-            : PurchaseOrderStatus.values.firstWhere((s) => s.name == value),
-      ),
-      itemBuilder: (context) => [
-        PopupMenuItem<String>(
-          value: _all,
-          child: Text(l10n.ordersFilterAllStatuses),
-        ),
-        const PopupMenuDivider(),
-        for (final status in PurchaseOrderStatus.values)
-          PopupMenuItem<String>(
-            value: status.name,
-            child: Row(
-              children: [
-                OrderStatusBadge(status: status, compact: true),
-                const SizedBox(width: AppSpacing.md),
-                Text(OrderStatusBadge.labelFor(l10n, status)),
-              ],
-            ),
-          ),
-      ],
-      child: FilterPill(
-        label: l10n.ordersFilterStatus,
-        selectedLabel: selected == null
-            ? null
-            : OrderStatusBadge.labelFor(l10n, selected!),
-      ),
-    );
-  }
-
-  static const String _all = '__all__';
 }
 
 class _SupplierMenu extends StatelessWidget {
@@ -465,4 +474,250 @@ class _RangeMenu extends StatelessWidget {
   }
 
   static const String _all = '__all__';
+}
+
+/// The status tabs: one chip per status, each with how many orders it holds.
+/// One tap to the drafts waiting to be sent, or the orders waiting to arrive.
+class _StatusTabs extends StatelessWidget {
+  const _StatusTabs({
+    required this.tab,
+    required this.counts,
+    required this.onSelected,
+  });
+
+  final OrdersTab tab;
+  final Map<OrdersTab, int> counts;
+  final ValueChanged<OrdersTab> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          for (final (i, value) in OrdersTab.values.indexed) ...[
+            if (i > 0) const SizedBox(width: AppSpacing.sm),
+            Semantics(
+              button: true,
+              selected: value == tab,
+              child: InkWell(
+                onTap: () => onSelected(value),
+                borderRadius: AppRadius.pillAll,
+                child: AnimatedContainer(
+                  duration: AppMotion.duration(context, AppMotion.fast),
+                  constraints: const BoxConstraints(
+                    minHeight: AppSizing.minTapTarget,
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.md,
+                  ),
+                  decoration: BoxDecoration(
+                    color: value == tab
+                        ? AppColors.primaryContainer
+                        : AppColors.surface,
+                    borderRadius: AppRadius.pillAll,
+                    border: Border.all(
+                      color: value == tab
+                          ? AppColors.primary600
+                          : AppColors.border,
+                      width: value == tab ? 2 : 1,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        value.label(l10n),
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          color: value == tab
+                              ? AppColors.onPrimaryContainer
+                              : AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.sm),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.sm,
+                          vertical: AppSpacing.xxs,
+                        ),
+                        decoration: BoxDecoration(
+                          color: value == tab
+                              ? AppColors.surface
+                              : AppColors.surfaceVariant,
+                          borderRadius: AppRadius.pillAll,
+                        ),
+                        child: Text(
+                          '${counts[value] ?? 0}',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// The one thing to do next with an order, on its row: send a draft, receive
+/// a sent or partial one, reorder a finished one.
+class _QuickAction extends ConsumerWidget {
+  const _QuickAction({required this.storeId, required this.view});
+
+  final String storeId;
+  final OrderRowView view;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final order = view.order;
+
+    return switch (order.status) {
+      PurchaseOrderStatus.draft => SecondaryButton(
+        label: l10n.orderActionSend,
+        icon: LucideIcons.send,
+        onPressed: () =>
+            confirmSendOrder(context, ref, order, view.supplierName),
+      ),
+      PurchaseOrderStatus.sent || PurchaseOrderStatus.partial => PrimaryButton(
+        label: l10n.receptionsReceive,
+        icon: LucideIcons.packageCheck,
+        onPressed: () =>
+            context.pushScreen(Routes.toReceiveOrder(storeId, order.id)),
+      ),
+      PurchaseOrderStatus.received ||
+      PurchaseOrderStatus.cancelled => SecondaryButton(
+        label: l10n.orderActionDuplicate,
+        icon: LucideIcons.copy,
+        onPressed: () => duplicateOrder(context, ref, storeId, order),
+      ),
+    };
+  }
+}
+
+/// How much of what was ordered has arrived, as a share — the Reçu column.
+double _receivedShare(PurchaseOrder order) {
+  var ordered = 0.0;
+  var received = 0.0;
+  for (final line in order.lines) {
+    ordered += line.quantityOrdered;
+    received += line.quantityReceived.clamp(0, line.quantityOrdered);
+  }
+  return ordered <= 0 ? 0 : (received / ordered).clamp(0.0, 1.0);
+}
+
+/// The orders as a table: reference and date, supplier, status, lines,
+/// amount, how much has arrived, and the next action.
+class _OrdersTable extends StatelessWidget {
+  const _OrdersTable({required this.storeId, required this.orders});
+
+  final String storeId;
+  final List<OrderRowView> orders;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+
+    return AppTable<OrderRowView>(
+      rows: orders,
+      shrinkWrap: true,
+      onRowTap: (view) =>
+          context.pushScreen(Routes.toOrder(storeId, view.order.id)),
+      columns: [
+        AppTableColumn(label: l10n.tableColReference, width: 170),
+        AppTableColumn(label: l10n.tableColSupplier, flex: 3),
+        AppTableColumn(label: l10n.tableColStatus, width: 150),
+        AppTableColumn(
+          label: l10n.tableColLines,
+          width: 80,
+          numeric: true,
+          minTableWidth: 980,
+        ),
+        AppTableColumn(label: l10n.tableColAmount, width: 112, numeric: true),
+        AppTableColumn(
+          label: l10n.tableColReceived,
+          width: 120,
+          minTableWidth: 860,
+        ),
+        const AppTableColumn(label: '', width: 220),
+      ],
+      cell: (context, view, column) {
+        final order = view.order;
+        return switch (column) {
+          0 => Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                order.reference,
+                style: theme.textTheme.titleSmall,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              Text(
+                Formatters.date(order.sentAt ?? order.createdAt),
+                style: theme.textTheme.bodySmall,
+                maxLines: 1,
+              ),
+            ],
+          ),
+          1 => Text(
+            view.supplierName,
+            style: theme.textTheme.bodyMedium,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          2 => OrderStatusBadge(status: order.status),
+          3 => Text('${order.lines.length}', style: AppTypography.numeric),
+          4 => Text(
+            Formatters.price(orderTotal(order)),
+            style: AppTypography.numeric,
+            maxLines: 1,
+          ),
+          5 =>
+            order.status == PurchaseOrderStatus.draft
+                ? Text('—', style: theme.textTheme.bodySmall)
+                : Row(
+                    children: [
+                      Expanded(
+                        child: ClipRRect(
+                          borderRadius: AppRadius.pillAll,
+                          child: LinearProgressIndicator(
+                            value: _receivedShare(order),
+                            minHeight: 6,
+                            color: AppColors.primary600,
+                            backgroundColor: AppColors.neutral100,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.sm),
+                      Text(
+                        Formatters.percent(_receivedShare(order)),
+                        style: theme.textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
+          _ => Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              OrderDocumentButton(order: order, compact: true),
+              const SizedBox(width: AppSpacing.xs),
+              Flexible(
+                child: _QuickAction(storeId: storeId, view: view),
+              ),
+            ],
+          ),
+        };
+      },
+    );
+  }
 }

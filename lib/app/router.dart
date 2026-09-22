@@ -37,6 +37,7 @@ import '../features/orders/presentation/pages/edit_order_page.dart';
 import '../features/orders/presentation/pages/order_detail_page.dart';
 import '../features/orders/presentation/pages/orders_list_page.dart';
 import '../features/orders/presentation/pages/receipt_detail_page.dart';
+import '../features/orders/presentation/pages/receptions_page.dart';
 import '../features/orders/presentation/pages/receive_order_page.dart';
 import '../features/stores/presentation/pages/add_store_page.dart';
 import '../features/stock_movement/presentation/pages/stock_adjustment_page.dart';
@@ -383,6 +384,18 @@ final GoRouter appRouter = GoRouter(
             child: ReceiveOrderPage(
               storeId: _storeId(state),
               orderId: state.pathParameters['orderId']!,
+            ),
+          ),
+        ),
+
+        // --- Réceptions -----------------------------------------------------
+        GoRoute(
+          path: Routes.receptions,
+          pageBuilder: (context, state) => appPage(
+            key: state.pageKey,
+            child: ReceptionsPage(
+              storeId: _storeId(state),
+              showHistory: state.uri.queryParameters['tab'] == 'history',
             ),
           ),
         ),

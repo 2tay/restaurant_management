@@ -61,10 +61,11 @@ enum SidebarVariant {
 }
 
 class _AppSidebarState extends ConsumerState<AppSidebar> {
-  /// Whether the Gestion Employée entry is expanded in place. A location already
-  /// inside the family forces it open — you cannot fold away the section you are
-  /// standing in — but it can still be opened manually from elsewhere.
-  bool _employeesExpanded = false;
+  /// The groups (Achats, Gestion Employée) expanded in place, by their
+  /// [_Destination.matchSegment]. A location already inside a group forces it
+  /// open — you cannot fold away the section you are standing in — but any
+  /// group can still be opened manually from elsewhere.
+  final Set<String> _expanded = {};
 
   /// The route the sidebar was last built against, so the drawer variant can
   /// tell that a tap actually navigated. Threading an `onNavigate` callback
@@ -120,18 +121,17 @@ class _AppSidebarState extends ConsumerState<AppSidebar> {
                 collapsed: collapsed,
                 location: location,
                 role: role,
-                employeesExpanded: _employeesExpanded,
-                onToggleEmployees: () =>
-                    setState(() => _employeesExpanded = !_employeesExpanded),
+                expanded: _expanded,
+                onToggleGroup: (key) => setState(
+                  () => _expanded.contains(key)
+                      ? _expanded.remove(key)
+                      : _expanded.add(key),
+                ),
               ),
             ),
           ),
           const _SidebarDivider(),
-          _SidebarProfile(
-            storeId: _storeId,
-            collapsed: collapsed,
-            l10n: l10n,
-          ),
+          _SidebarProfile(storeId: _storeId, collapsed: collapsed, l10n: l10n),
         ],
       ),
     );
@@ -271,9 +271,9 @@ class _HeaderIconButton extends StatelessWidget {
               child: Text(
                 '$badgeCount',
                 textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: AppColors.white,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.labelSmall?.copyWith(color: AppColors.white),
               ),
             ),
           ),
@@ -294,6 +294,7 @@ class _Destination {
     required this.matchSegment,
     this.pathBuilder,
     this.children,
+    this.familySegments,
   });
 
   final IconData icon;
@@ -305,27 +306,48 @@ class _Destination {
 
   final String Function(String storeId)? pathBuilder;
 
-  /// Set only on Gestion Employée — the one entry that expands rather than
-  /// navigating.
+  /// Set on the groups — Achats, Gestion Employée — which expand rather than
+  /// navigate.
   final List<_ChildDestination>? children;
+
+  /// The sections a group spans, when they are not all under
+  /// [matchSegment] — Achats holds orders, receptions and suppliers.
+  final List<String>? familySegments;
+
+  /// Whether [location] is somewhere inside this entry.
+  bool contains(String location) => (familySegments ?? [matchSegment]).any(
+    (segment) => location.contains('/$segment'),
+  );
 }
 
-/// One sub-destination under the Gestion Employée accordion.
+/// One sub-destination under a group.
 class _ChildDestination {
   const _ChildDestination({
     required this.label,
     required this.pathBuilder,
     required this.icon,
     required this.isActive,
-    required this.capability,
+    this.capability,
   });
 
   final String Function(AppLocalizations l10n) label;
   final String Function(String storeId) pathBuilder;
   final IconData icon;
-  final Capability capability;
+
+  /// Who may see it. Null for everyone.
+  final Capability? capability;
   final bool Function(String location) isActive;
 }
+
+// Achats. Receiving and the bons de réception live under /orders in the URL
+// but belong to Réceptions, which is where a delivery is dealt with.
+bool _isReceptionsActive(String location) =>
+    location.contains('/receptions') ||
+    location.contains('/orders/receipts') ||
+    location.endsWith('/receive');
+bool _isOrdersActive(String location) =>
+    location.contains('/orders') && !_isReceptionsActive(location);
+bool _isSuppliersActive(String location) => location.contains('/suppliers');
 
 bool _isTimeclockActive(String location) =>
     location.contains('/employees/timeclock');
@@ -359,16 +381,30 @@ const List<_Destination> _destinations = [
     matchSegment: 'movements',
   ),
   _Destination(
-    icon: LucideIcons.clipboardList,
-    label: _labelOrders,
-    pathBuilder: Routes.toOrders,
-    matchSegment: 'orders',
-  ),
-  _Destination(
-    icon: LucideIcons.truck,
-    label: _labelSuppliers,
-    pathBuilder: Routes.toSuppliers,
-    matchSegment: 'suppliers',
+    icon: LucideIcons.shoppingCart,
+    label: _labelPurchases,
+    matchSegment: 'purchases',
+    familySegments: ['orders', 'receptions', 'suppliers'],
+    children: [
+      _ChildDestination(
+        label: _labelOrders,
+        pathBuilder: Routes.toOrders,
+        icon: LucideIcons.clipboardList,
+        isActive: _isOrdersActive,
+      ),
+      _ChildDestination(
+        label: _labelReceptions,
+        pathBuilder: Routes.toReceptions,
+        icon: LucideIcons.packageCheck,
+        isActive: _isReceptionsActive,
+      ),
+      _ChildDestination(
+        label: _labelSuppliers,
+        pathBuilder: Routes.toSuppliers,
+        icon: LucideIcons.truck,
+        isActive: _isSuppliersActive,
+      ),
+    ],
   ),
   _Destination(
     icon: LucideIcons.tags,
@@ -431,6 +467,8 @@ String _labelDashboard(AppLocalizations l) => l.navDashboard;
 String _labelInventory(AppLocalizations l) => l.navInventory;
 String _labelMovements(AppLocalizations l) => l.navStockMovement;
 String _labelOrders(AppLocalizations l) => l.navOrders;
+String _labelPurchases(AppLocalizations l) => l.navPurchases;
+String _labelReceptions(AppLocalizations l) => l.navReceptions;
 String _labelSuppliers(AppLocalizations l) => l.navSuppliers;
 String _labelCatalog(AppLocalizations l) => l.navCatalog;
 String _labelAlerts(AppLocalizations l) => l.navAlerts;
@@ -448,16 +486,16 @@ class _NavList extends StatelessWidget {
     required this.collapsed,
     required this.location,
     required this.role,
-    required this.employeesExpanded,
-    required this.onToggleEmployees,
+    required this.expanded,
+    required this.onToggleGroup,
   });
 
   final String storeId;
   final bool collapsed;
   final String location;
   final EmployeeRole role;
-  final bool employeesExpanded;
-  final VoidCallback onToggleEmployees;
+  final Set<String> expanded;
+  final ValueChanged<String> onToggleGroup;
 
   @override
   Widget build(BuildContext context) {
@@ -473,22 +511,26 @@ class _NavList extends StatelessWidget {
             label: destination.label(l10n),
             active: active,
             collapsed: collapsed,
-            onTap: () =>
-                context.goSection(destination.pathBuilder!(storeId)),
+            onTap: () => context.goSection(destination.pathBuilder!(storeId)),
           ),
         );
         continue;
       }
 
-      // Gestion Employée — an accordion, filtered to the children this role can
-      // reach, and hidden entirely when that leaves none.
+      // A group — Achats, Gestion Employée — as an accordion, filtered to the
+      // children this role can reach, and hidden entirely when that leaves
+      // none.
       final children = destination.children!
-          .where((child) => can(role, child.capability))
+          .where(
+            (child) => child.capability == null || can(role, child.capability!),
+          )
           .toList();
       if (children.isEmpty) continue;
 
-      final onFamily = location.contains('/${destination.matchSegment}');
-      final expanded = !collapsed && (employeesExpanded || onFamily);
+      final onFamily = destination.contains(location);
+      final isOpen =
+          !collapsed &&
+          (expanded.contains(destination.matchSegment) || onFamily);
 
       tiles.add(
         // A Builder, not the outer context: `_showFlyout` positions the menu
@@ -505,12 +547,12 @@ class _NavList extends StatelessWidget {
             collapsed: collapsed,
             onTap: collapsed
                 ? () => _showFlyout(tileContext, children)
-                : onToggleEmployees,
+                : () => onToggleGroup(destination.matchSegment),
             trailing: collapsed
                 ? null
                 : AnimatedRotation(
                     duration: AppMotion.duration(context, AppMotion.fast),
-                    turns: expanded ? 0.5 : 0,
+                    turns: isOpen ? 0.5 : 0,
                     child: const Icon(
                       LucideIcons.chevronDown,
                       size: AppSizing.iconSm,
@@ -520,7 +562,7 @@ class _NavList extends StatelessWidget {
         ),
       );
 
-      if (expanded) {
+      if (isOpen) {
         for (var i = 0; i < children.length; i++) {
           final child = children[i];
           tiles.add(
@@ -849,14 +891,14 @@ class _SidebarProfile extends ConsumerWidget {
 
   /// A touch under the sidebar's width — wide enough for "Mes établissements"
   /// without truncation, narrow enough to still read as a floating panel.
-  static const double _menuWidth = AppSizing.sidebarWidthExpanded - AppSpacing.xl;
+  static const double _menuWidth =
+      AppSizing.sidebarWidthExpanded - AppSpacing.xl;
 
   /// Roughly the menu's rendered height — three 48dp rows, the divider above
   /// "Se déconnecter", and the menu's own vertical padding. Only used to lift
   /// the menu clear of the profile row; being a few pixels off just nudges the
   /// gap.
-  static const double _menuLift =
-      3 * AppSizing.minTapTarget + AppSpacing.xxl;
+  static const double _menuLift = 3 * AppSizing.minTapTarget + AppSpacing.xxl;
 
   /// Opens the user menu — a steel panel [_menuWidth] wide, centred on the
   /// sidebar and floating just above the profile row, with a drop shadow.
@@ -870,8 +912,10 @@ class _SidebarProfile extends ConsumerWidget {
     final left = topLeft.dx + (box.size.width - _menuWidth) / 2;
     // Anchor a zero-height box just above the row so the menu grows downward
     // from there and its bottom lands a hair above the row.
-    final anchorTop = (topLeft.dy - AppSpacing.xs - _menuLift)
-        .clamp(AppSpacing.sm, overlay.size.height);
+    final anchorTop = (topLeft.dy - AppSpacing.xs - _menuLift).clamp(
+      AppSpacing.sm,
+      overlay.size.height,
+    );
     final anchor = Rect.fromLTWH(left, anchorTop, _menuWidth, 0);
 
     final selected = await showMenu<String>(
@@ -1077,9 +1121,9 @@ class _InitialsAvatar extends StatelessWidget {
       ),
       child: Text(
         initials,
-        style: Theme.of(context).textTheme.labelMedium?.copyWith(
-          color: AppColors.white,
-        ),
+        style: Theme.of(
+          context,
+        ).textTheme.labelMedium?.copyWith(color: AppColors.white),
       ),
     );
   }

@@ -384,6 +384,14 @@ final ordersForSupplierProvider =
     );
 
 /// The open ones, named the same way.
+/// Every delivery received in the store, newest first — the Réceptions
+/// page's history.
+final storeReceiptRowsProvider =
+    StreamProvider.family<List<StoreReceiptRowView>, String>(
+      (ref, storeId) =>
+          ref.watch(orderRepositoryProvider).watchStoreReceiptRows(storeId),
+    );
+
 final openOrderRowsProvider = StreamProvider.family<List<OrderRowView>, String>(
   (ref, storeId) =>
       ref.watch(orderRepositoryProvider).watchOpenOrderRows(storeId),

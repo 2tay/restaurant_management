@@ -2148,6 +2148,23 @@ class AppLocalizationsFr extends AppLocalizations {
   String get editOrderTitle => 'Modifier la commande';
 
   @override
+  String get orderTimelineCreated => 'Créée';
+
+  @override
+  String get orderTimelineSent => 'Envoyée';
+
+  @override
+  String orderTimelineReceipt(int number) {
+    return 'Réception $number';
+  }
+
+  @override
+  String get orderTimelineDone => 'Terminée';
+
+  @override
+  String get orderTimelineCancelled => 'Annulée';
+
+  @override
   String get orderStepSupplier => 'Fournisseur';
 
   @override
@@ -3423,6 +3440,139 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get addStoreVatNumberHelp =>
       'Facultatif. Figure sur les bons de réception envoyés aux fournisseurs.';
+
+  @override
+  String get orderStepProducts => 'Produits';
+
+  @override
+  String get orderStepReview => 'Récapitulatif';
+
+  @override
+  String get orderContinue => 'Continuer';
+
+  @override
+  String get orderEditProducts => 'Modifier les produits';
+
+  @override
+  String get orderPickProducts => 'Choisir des produits';
+
+  @override
+  String get orderActionDuplicate => 'Dupliquer';
+
+  @override
+  String orderDuplicated(String reference) {
+    return 'Nouveau brouillon $reference créé';
+  }
+
+  @override
+  String get ordersTabAll => 'Toutes';
+
+  @override
+  String get ordersTabDrafts => 'Brouillons';
+
+  @override
+  String get ordersTabSent => 'Envoyées';
+
+  @override
+  String get ordersTabPartial => 'Partielles';
+
+  @override
+  String get ordersTabDone => 'Terminées';
+
+  @override
+  String get tableColReference => 'Référence';
+
+  @override
+  String get tableColLines => 'Lignes';
+
+  @override
+  String get tableColAmount => 'Montant';
+
+  @override
+  String get tableColReceived => 'Reçu';
+
+  @override
+  String get navPurchases => 'Achats';
+
+  @override
+  String get navReceptions => 'Réceptions';
+
+  @override
+  String get receptionsTitle => 'Réceptions';
+
+  @override
+  String get receptionsSubtitle => 'Ce qui doit arriver, et ce qui est arrivé.';
+
+  @override
+  String get receptionsTabPending => 'À réceptionner';
+
+  @override
+  String get receptionsTabHistory => 'Historique';
+
+  @override
+  String get receptionsPendingEmpty => 'Rien à réceptionner';
+
+  @override
+  String get receptionsPendingEmptyBody =>
+      'Toutes les commandes envoyées ont été réceptionnées.';
+
+  @override
+  String get receptionsHistoryEmpty => 'Aucune réception pour le moment';
+
+  @override
+  String get receptionsHistoryEmptyBody =>
+      'Les livraisons réceptionnées apparaîtront ici.';
+
+  @override
+  String receptionsSentOn(String date) {
+    return 'Envoyée le $date';
+  }
+
+  @override
+  String receptionsLinesLeft(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count produits à recevoir',
+      one: '1 produit à recevoir',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get receptionsLate => 'En retard';
+
+  @override
+  String get receptionsReceive => 'Réceptionner';
+
+  @override
+  String get receptionsConform => 'Conforme';
+
+  @override
+  String receptionsDiscrepancies(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count écarts',
+      one: '1 écart',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get tableColReceipt => 'Bon';
+
+  @override
+  String get tableColOrder => 'Commande';
+
+  @override
+  String get tableColSupplier => 'Fournisseur';
+
+  @override
+  String get tableColReceivedBy => 'Reçu par';
+
+  @override
+  String get tableColDiscrepancies => 'Écarts';
 
   @override
   String get orderDocAction => 'Bon de commande (PDF)';

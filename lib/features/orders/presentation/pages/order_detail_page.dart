@@ -16,6 +16,7 @@ import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 import '../../documents/order_document_button.dart';
 import '../../documents/receipt_document_button.dart';
+import '../widgets/order_actions.dart';
 import '../widgets/order_status_badge.dart';
 import '../widgets/order_summary_card.dart';
 
@@ -102,7 +103,11 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _Header(order: order, receiptCount: receipts.length),
+          _Header(
+            order: order,
+            receiptCount: receipts.length,
+            receiptDates: [for (final r in receipts) r.receipt.receivedAt],
+          ),
           const SizedBox(height: AppSpacing.xl),
 
           if (order.status == PurchaseOrderStatus.sent ||
@@ -202,30 +207,21 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
           ),
         ];
 
-      // Final. Nothing left to do but read it.
+      // Final. Nothing left to do but read it — or order the same again.
       case PurchaseOrderStatus.received:
       case PurchaseOrderStatus.cancelled:
-        return const [];
+        return [
+          PrimaryButton(
+            label: l10n.orderActionDuplicate,
+            icon: LucideIcons.copy,
+            onPressed: () => duplicateOrder(context, ref, widget.storeId, order),
+          ),
+        ];
     }
   }
 
-  Future<void> _confirmSend(PurchaseOrder order, String supplierName) async {
-    final l10n = AppLocalizations.of(context);
-
-    final confirmed = await ConfirmDialog.show(
-      context,
-      title: l10n.orderSendConfirmTitle(supplierName),
-      message: l10n.orderSendConfirmBody,
-      confirmLabel: l10n.orderSendConfirmAction,
-      isDestructive: false,
-    );
-    if (!confirmed || !mounted) return;
-
-    await ref.read(orderRepositoryProvider).send(order.id);
-
-    if (!mounted) return;
-    AppSnackBar.success(context, l10n.orderSent(supplierName));
-  }
+  Future<void> _confirmSend(PurchaseOrder order, String supplierName) =>
+      confirmSendOrder(context, ref, order, supplierName);
 
   Future<void> _confirmDelete(PurchaseOrder order) async {
     final l10n = AppLocalizations.of(context);
@@ -282,10 +278,17 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
 
 /// The figures and dates at the top of the order.
 class _Header extends StatelessWidget {
-  const _Header({required this.order, required this.receiptCount});
+  const _Header({
+    required this.order,
+    required this.receiptCount,
+    required this.receiptDates,
+  });
 
   final PurchaseOrder order;
   final int receiptCount;
+
+  /// When each delivery arrived, oldest first — the timeline's middle.
+  final List<DateTime> receiptDates;
 
   @override
   Widget build(BuildContext context) {
@@ -313,12 +316,7 @@ class _Header extends StatelessWidget {
       footnote: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            _dateLine(l10n),
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: AppColors.textSecondary,
-            ),
-          ),
+          _Timeline(order: order, receiptDates: receiptDates),
           if (shortfall > 0) ...[
             const SizedBox(height: AppSpacing.sm),
             Row(
@@ -344,15 +342,76 @@ class _Header extends StatelessWidget {
       ),
     );
   }
+}
 
-  String _dateLine(AppLocalizations l10n) {
-    if (order.closedAt != null) {
-      return l10n.orderClosedOn(Formatters.dateLong(order.closedAt!));
-    }
-    if (order.sentAt != null) {
-      return l10n.orderSentOn(Formatters.dateLong(order.sentAt!));
-    }
-    return l10n.orderCreatedOn(Formatters.dateLong(order.createdAt));
+/// What happened to the order, in order: created, sent, each delivery,
+/// finished or cancelled — each with its date. The steps still to come are
+/// not drawn; the order's status says what is next.
+class _Timeline extends StatelessWidget {
+  const _Timeline({required this.order, required this.receiptDates});
+
+  final PurchaseOrder order;
+  final List<DateTime> receiptDates;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+
+    final events = <(String, DateTime, bool)>[
+      (l10n.orderTimelineCreated, order.createdAt, false),
+      if (order.sentAt != null) (l10n.orderTimelineSent, order.sentAt!, false),
+      for (final (i, at) in receiptDates.indexed)
+        (l10n.orderTimelineReceipt(i + 1), at, false),
+      if (order.closedAt != null)
+        (
+          order.status == PurchaseOrderStatus.cancelled
+              ? l10n.orderTimelineCancelled
+              : l10n.orderTimelineDone,
+          order.closedAt!,
+          true,
+        ),
+    ];
+
+    return Wrap(
+      spacing: AppSpacing.sm,
+      runSpacing: AppSpacing.sm,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        for (final (i, (label, at, last)) in events.indexed) ...[
+          if (i > 0)
+            const Icon(
+              LucideIcons.chevronRight,
+              size: AppSizing.iconSm,
+              color: AppColors.textDisabled,
+            ),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: last ? AppColors.primary600 : AppColors.neutral400,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.xs),
+              Flexible(
+                child: Text(
+                  '$label · ${Formatters.date(at)}',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: AppColors.textPrimary,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ],
+    );
   }
 }
 

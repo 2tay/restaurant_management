@@ -3574,7 +3574,37 @@ abstract class AppLocalizations {
   /// **'Modifier la commande'**
   String get editOrderTitle;
 
-  /// First step of creating an order. Supplier selection comes first, not as a field in the middle of the form — everything else on the screen depends on it.
+  /// Order timeline step.
+  ///
+  /// In fr, this message translates to:
+  /// **'Créée'**
+  String get orderTimelineCreated;
+
+  /// Order timeline step.
+  ///
+  /// In fr, this message translates to:
+  /// **'Envoyée'**
+  String get orderTimelineSent;
+
+  /// Order timeline step: one delivery received.
+  ///
+  /// In fr, this message translates to:
+  /// **'Réception {number}'**
+  String orderTimelineReceipt(int number);
+
+  /// Order timeline step: fully received or closed.
+  ///
+  /// In fr, this message translates to:
+  /// **'Terminée'**
+  String get orderTimelineDone;
+
+  /// Order timeline step: cancelled.
+  ///
+  /// In fr, this message translates to:
+  /// **'Annulée'**
+  String get orderTimelineCancelled;
+
+  /// New order step 1.
   ///
   /// In fr, this message translates to:
   /// **'Fournisseur'**
@@ -5559,6 +5589,228 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Facultatif. Figure sur les bons de réception envoyés aux fournisseurs.'**
   String get addStoreVatNumberHelp;
+
+  /// New order step 2.
+  ///
+  /// In fr, this message translates to:
+  /// **'Produits'**
+  String get orderStepProducts;
+
+  /// New order step 3.
+  ///
+  /// In fr, this message translates to:
+  /// **'Récapitulatif'**
+  String get orderStepReview;
+
+  /// Moves the new order form to its next step.
+  ///
+  /// In fr, this message translates to:
+  /// **'Continuer'**
+  String get orderContinue;
+
+  /// On the order summary: back to the products step.
+  ///
+  /// In fr, this message translates to:
+  /// **'Modifier les produits'**
+  String get orderEditProducts;
+
+  /// Opens the product picker (cards with photos) on the order form.
+  ///
+  /// In fr, this message translates to:
+  /// **'Choisir des produits'**
+  String get orderPickProducts;
+
+  /// Starts a new draft with the same supplier, products and quantities as this order.
+  ///
+  /// In fr, this message translates to:
+  /// **'Dupliquer'**
+  String get orderActionDuplicate;
+
+  /// Snackbar after duplicating an order.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nouveau brouillon {reference} créé'**
+  String orderDuplicated(String reference);
+
+  /// Orders status tab: every order.
+  ///
+  /// In fr, this message translates to:
+  /// **'Toutes'**
+  String get ordersTabAll;
+
+  /// Orders status tab: drafts, not sent yet.
+  ///
+  /// In fr, this message translates to:
+  /// **'Brouillons'**
+  String get ordersTabDrafts;
+
+  /// Orders status tab: sent, nothing received yet.
+  ///
+  /// In fr, this message translates to:
+  /// **'Envoyées'**
+  String get ordersTabSent;
+
+  /// Orders status tab: partly received.
+  ///
+  /// In fr, this message translates to:
+  /// **'Partielles'**
+  String get ordersTabPartial;
+
+  /// Orders status tab: fully received or cancelled.
+  ///
+  /// In fr, this message translates to:
+  /// **'Terminées'**
+  String get ordersTabDone;
+
+  /// Table column: the order reference.
+  ///
+  /// In fr, this message translates to:
+  /// **'Référence'**
+  String get tableColReference;
+
+  /// Table column: number of lines.
+  ///
+  /// In fr, this message translates to:
+  /// **'Lignes'**
+  String get tableColLines;
+
+  /// Table column: order total.
+  ///
+  /// In fr, this message translates to:
+  /// **'Montant'**
+  String get tableColAmount;
+
+  /// Table column: how much of the order has been received.
+  ///
+  /// In fr, this message translates to:
+  /// **'Reçu'**
+  String get tableColReceived;
+
+  /// Sidebar group holding Commandes, Réceptions and Fournisseurs.
+  ///
+  /// In fr, this message translates to:
+  /// **'Achats'**
+  String get navPurchases;
+
+  /// Sidebar entry under Achats: deliveries expected and received.
+  ///
+  /// In fr, this message translates to:
+  /// **'Réceptions'**
+  String get navReceptions;
+
+  /// Title of the receptions page.
+  ///
+  /// In fr, this message translates to:
+  /// **'Réceptions'**
+  String get receptionsTitle;
+
+  /// Subtitle of the receptions page.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ce qui doit arriver, et ce qui est arrivé.'**
+  String get receptionsSubtitle;
+
+  /// Receptions tab: sent and partial orders waiting for their delivery.
+  ///
+  /// In fr, this message translates to:
+  /// **'À réceptionner'**
+  String get receptionsTabPending;
+
+  /// Receptions tab: every delivery received.
+  ///
+  /// In fr, this message translates to:
+  /// **'Historique'**
+  String get receptionsTabHistory;
+
+  /// Empty state of the pending receptions tab.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rien à réceptionner'**
+  String get receptionsPendingEmpty;
+
+  /// Empty state body of the pending receptions tab.
+  ///
+  /// In fr, this message translates to:
+  /// **'Toutes les commandes envoyées ont été réceptionnées.'**
+  String get receptionsPendingEmptyBody;
+
+  /// Empty state of the receptions history.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucune réception pour le moment'**
+  String get receptionsHistoryEmpty;
+
+  /// Empty state body of the receptions history.
+  ///
+  /// In fr, this message translates to:
+  /// **'Les livraisons réceptionnées apparaîtront ici.'**
+  String get receptionsHistoryEmptyBody;
+
+  /// When a pending order was sent.
+  ///
+  /// In fr, this message translates to:
+  /// **'Envoyée le {date}'**
+  String receptionsSentOn(String date);
+
+  /// How many lines of a pending order are still outstanding.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =1{1 produit à recevoir} other{{count} produits à recevoir}}'**
+  String receptionsLinesLeft(int count);
+
+  /// Badge on an order left partially received past the store's threshold.
+  ///
+  /// In fr, this message translates to:
+  /// **'En retard'**
+  String get receptionsLate;
+
+  /// Button on a pending order: open the receive screen.
+  ///
+  /// In fr, this message translates to:
+  /// **'Réceptionner'**
+  String get receptionsReceive;
+
+  /// A delivery with no discrepancy, in the history table.
+  ///
+  /// In fr, this message translates to:
+  /// **'Conforme'**
+  String get receptionsConform;
+
+  /// Number of discrepancies on a delivery, in the history table.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =1{1 écart} other{{count} écarts}}'**
+  String receptionsDiscrepancies(int count);
+
+  /// Table column: the receipt reference.
+  ///
+  /// In fr, this message translates to:
+  /// **'Bon'**
+  String get tableColReceipt;
+
+  /// Table column: the order reference.
+  ///
+  /// In fr, this message translates to:
+  /// **'Commande'**
+  String get tableColOrder;
+
+  /// Table column.
+  ///
+  /// In fr, this message translates to:
+  /// **'Fournisseur'**
+  String get tableColSupplier;
+
+  /// Table column: who received the delivery.
+  ///
+  /// In fr, this message translates to:
+  /// **'Reçu par'**
+  String get tableColReceivedBy;
+
+  /// Table column: discrepancies on a delivery.
+  ///
+  /// In fr, this message translates to:
+  /// **'Écarts'**
+  String get tableColDiscrepancies;
 
   /// Button that generates the PDF of an order to send to the supplier, and opens the share / download sheet.
   ///

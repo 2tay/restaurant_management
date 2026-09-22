@@ -22,6 +22,7 @@ class OrderRow extends StatelessWidget {
     required this.stalePartialDays,
     this.onTap,
     this.selected = false,
+    this.action,
     super.key,
   });
 
@@ -36,6 +37,10 @@ class OrderRow extends StatelessWidget {
 
   final VoidCallback? onTap;
   final bool selected;
+
+  /// The next thing to do with this order — Envoyer, Réceptionner,
+  /// Dupliquer. At the end of the row with room; under it on a phone.
+  final Widget? action;
 
   @override
   Widget build(BuildContext context) {
@@ -53,84 +58,114 @@ class OrderRow extends StatelessWidget {
         horizontal: AppSpacing.lg,
         vertical: AppSpacing.md,
       ),
-      child: Row(
-        children: [
-          Expanded(
-            flex: 4,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  view.supplierName,
-                  style: theme.textTheme.titleSmall,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                Text(
-                  order.reference,
-                  style: theme.textTheme.bodySmall,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: AppSpacing.md),
-
-          Expanded(
-            flex: 3,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  Formatters.date(order.sentAt ?? order.createdAt),
-                  style: theme.textTheme.bodyMedium,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                Text(
-                  l10n.ordersColumnLines(order.lines.length),
-                  style: theme.textTheme.bodySmall,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: AppSpacing.md),
-
-          // Flagged here as well as on the dashboard: somebody scanning the
-          // list should not have to do the date arithmetic themselves.
-          if (stale) ...[
-            Tooltip(
-              message: l10n.dashboardStaleOrdersBody,
-              child: const Icon(
-                LucideIcons.clock,
-                size: AppSizing.iconMd,
-                color: AppColors.warning,
+      child: _withAction(
+        context,
+        Row(
+          children: [
+            Expanded(
+              flex: 4,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    view.supplierName,
+                    style: theme.textTheme.titleSmall,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    order.reference,
+                    style: theme.textTheme.bodySmall,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
               ),
             ),
             const SizedBox(width: AppSpacing.md),
-          ],
 
-          Expanded(
-            flex: 2,
-            child: Align(
-              alignment: Alignment.centerRight,
-              child: Text(
-                Formatters.price(orderTotal(order)),
-                style: AppTypography.numeric,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.right,
+            Expanded(
+              flex: 3,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    Formatters.date(order.sentAt ?? order.createdAt),
+                    style: theme.textTheme.bodyMedium,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    l10n.ordersColumnLines(order.lines.length),
+                    style: theme.textTheme.bodySmall,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
               ),
             ),
-          ),
-          const SizedBox(width: AppSpacing.md),
+            const SizedBox(width: AppSpacing.md),
 
-          SizedBox(width: 132, child: OrderStatusBadge(status: order.status)),
-        ],
+            // Flagged here as well as on the dashboard: somebody scanning the
+            // list should not have to do the date arithmetic themselves.
+            if (stale) ...[
+              Tooltip(
+                message: l10n.dashboardStaleOrdersBody,
+                child: const Icon(
+                  LucideIcons.clock,
+                  size: AppSizing.iconMd,
+                  color: AppColors.warning,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.md),
+            ],
+
+            Expanded(
+              flex: 2,
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: Text(
+                  Formatters.price(orderTotal(order)),
+                  style: AppTypography.numeric,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.right,
+                ),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.md),
+
+            SizedBox(width: 132, child: OrderStatusBadge(status: order.status)),
+          ],
+        ),
       ),
+    );
+  }
+
+  Widget _withAction(BuildContext context, Widget row) {
+    if (action == null) return row;
+    // Beside the row only with room for both; the row's own columns need
+    // about five hundred pixels, and squeezed any narrower they overflow.
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < 760) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              row,
+              const SizedBox(height: AppSpacing.sm),
+              Align(alignment: Alignment.centerRight, child: action),
+            ],
+          );
+        }
+        return Row(
+          children: [
+            Expanded(child: row),
+            const SizedBox(width: AppSpacing.md),
+            action!,
+          ],
+        );
+      },
     );
   }
 }

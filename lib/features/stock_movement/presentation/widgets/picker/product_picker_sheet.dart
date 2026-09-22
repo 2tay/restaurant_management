@@ -35,12 +35,14 @@ abstract final class ProductPickerSheet {
     Set<String> alreadyPicked = const {},
     List<String> featured = const [],
     String? featuredTitle,
+    Set<String>? onlyItemIds,
   }) {
     final body = _ProductPicker(
       storeId: storeId,
       alreadyPicked: alreadyPicked,
       featured: featured,
       featuredTitle: featuredTitle,
+      onlyItemIds: onlyItemIds,
     );
 
     if (context.isPhone) {
@@ -80,10 +82,14 @@ class _ProductPicker extends ConsumerStatefulWidget {
     required this.alreadyPicked,
     required this.featured,
     required this.featuredTitle,
+    this.onlyItemIds,
   });
 
   final String storeId;
   final Set<String> alreadyPicked;
+
+  /// Limits the grid to these products — a supplier's, on an order.
+  final Set<String>? onlyItemIds;
 
   /// Products worth putting first — the ones running low on a delivery, the
   /// ones used lately on a stock-out — shown in their own section under
@@ -206,16 +212,20 @@ class _ProductPickerState extends ConsumerState<_ProductPicker> {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
 
-    final rows =
-        ref
-            .watch(
-              itemRowsProvider((
-                storeId: widget.storeId,
-                filter: ItemFilter.none,
-              )),
-            )
-            .value ??
-        const <ItemRowView>[];
+    final only = widget.onlyItemIds;
+    final rows = [
+      for (final row
+          in ref
+                  .watch(
+                    itemRowsProvider((
+                      storeId: widget.storeId,
+                      filter: ItemFilter.none,
+                    )),
+                  )
+                  .value ??
+              const <ItemRowView>[])
+        if (only == null || only.contains(row.item.id)) row,
+    ];
 
     final categories = {for (final row in rows) row.categoryName}.toList()
       ..sort();

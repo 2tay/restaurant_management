@@ -69,6 +69,12 @@ List<WalkableRoute> allRoutes() {
     ),
 
     (label: 'orders', path: Routes.toOrders(store), inShell: true),
+    (label: 'receptions', path: Routes.toReceptions(store), inShell: true),
+    (
+      label: 'receptions history',
+      path: '${Routes.toReceptions(store)}?tab=history',
+      inShell: true,
+    ),
     (label: 'new order', path: Routes.toNewOrder(store), inShell: true),
     (
       label: 'order detail (draft)',

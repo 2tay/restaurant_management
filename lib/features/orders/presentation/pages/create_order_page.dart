@@ -15,6 +15,7 @@ import '../../../../data/repositories/repositories.dart';
 import '../../../../data/view_models/view_models.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
+import '../../../stock_movement/presentation/widgets/picker/product_picker_sheet.dart';
 import '../widgets/order_line_editor.dart';
 import '../widgets/suggested_items_panel.dart';
 
@@ -146,6 +147,16 @@ class _OrderFormPageState extends ConsumerState<_OrderForm> {
   /// selected, and re-picking the same one would then wrongly offer to clear
   /// them.
   bool _pickingSupplier = false;
+
+  /// On the third step — the summary before sending.
+  bool _reviewing = false;
+
+  /// 0 supplier, 1 products, 2 summary.
+  int get _step => _supplierId == null || _pickingSupplier
+      ? 0
+      : _reviewing
+      ? 2
+      : 1;
 
   // Snapshot for the dirty check, so undoing an edit back to where it started
   // correctly stops counting as unsaved.
@@ -372,6 +383,13 @@ class _OrderFormPageState extends ConsumerState<_OrderForm> {
     );
     final title = _isEditing ? l10n.editOrderTitle : l10n.createOrderTitle;
 
+    final step = _step;
+    final saveDraft = SecondaryButton(
+      label: l10n.orderActionSaveDraft,
+      icon: LucideIcons.check,
+      onPressed: _canSubmit ? _saveDraft : null,
+    );
+
     return FormScaffold(
       title: title,
       back: back,
@@ -379,20 +397,176 @@ class _OrderFormPageState extends ConsumerState<_OrderForm> {
         Crumb(l10n.ordersTitle, Routes.toOrders(widget.storeId)),
         Crumb(title),
       ],
-      submitLabel: l10n.orderActionSend,
-      submitIcon: LucideIcons.send,
-      onSubmit: _canSubmit ? _send : null,
-      submitSecondary: SecondaryButton(
-        label: l10n.orderActionSaveDraft,
-        icon: LucideIcons.check,
-        onPressed: _canSubmit ? _saveDraft : null,
-      ),
+      // Continue through the steps; send only from the summary, once the
+      // whole order has been read back.
+      submitLabel: step == 2 ? l10n.orderActionSend : l10n.orderContinue,
+      submitIcon: step == 2 ? LucideIcons.send : LucideIcons.arrowRight,
+      onSubmit: switch (step) {
+        0 => null,
+        1 => _canSubmit ? () => setState(() => _reviewing = true) : null,
+        _ => _canSubmit ? _send : null,
+      },
+      submitSecondary: step == 0 ? null : saveDraft,
       isDirty: _isDirty,
       maxWidth: 1080,
-      child: _supplierId == null || _pickingSupplier
-          ? _SupplierStep(storeId: widget.storeId, onChosen: _chooseSupplier)
-          : _linesStep(context, l10n),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _StepIndicator(
+            current: step,
+            labels: [
+              l10n.orderStepSupplier,
+              l10n.orderStepProducts,
+              l10n.orderStepReview,
+            ],
+            // Back to a step already done; never ahead of the current one.
+            onTap: (target) => setState(() {
+              if (target == 0) {
+                _pickingSupplier = true;
+                _reviewing = false;
+              } else if (target == 1) {
+                _pickingSupplier = false;
+                _reviewing = false;
+              }
+            }),
+          ),
+          const SizedBox(height: AppSpacing.xl),
+          switch (step) {
+            0 => _SupplierStep(
+              storeId: widget.storeId,
+              onChosen: _chooseSupplier,
+            ),
+            1 => _linesStep(context, l10n),
+            _ => _reviewStep(context, l10n),
+          },
+        ],
+      ),
     );
+  }
+
+  /// Step 3: the order read back — supplier, every line, the note, the
+  /// total — before it goes.
+  Widget _reviewStep(BuildContext context, AppLocalizations l10n) {
+    final theme = Theme.of(context);
+    final supplierName = _supplierName(_supplierId!);
+    final note = _note;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _ChosenSupplier(
+          name: supplierName,
+          onChange: () => setState(() {
+            _pickingSupplier = true;
+            _reviewing = false;
+          }),
+        ),
+        const SizedBox(height: AppSpacing.lg),
+        SectionHeader(
+          title: l10n.orderStepProducts,
+          count: _lines.length,
+          trailing: SecondaryButton(
+            label: l10n.orderEditProducts,
+            icon: LucideIcons.pencil,
+            onPressed: () => setState(() => _reviewing = false),
+          ),
+        ),
+        AppTable<OrderLineDraft>(
+          rows: _lines,
+          shrinkWrap: true,
+          columns: [
+            AppTableColumn(label: l10n.tableColProduct, flex: 3),
+            AppTableColumn(
+              label: l10n.orderDocColumnQuantity,
+              width: 120,
+              numeric: true,
+            ),
+            AppTableColumn(
+              label: l10n.orderDocColumnUnitPrice,
+              width: 120,
+              numeric: true,
+              minTableWidth: 520,
+            ),
+            AppTableColumn(
+              label: l10n.orderDocColumnTotal,
+              width: 112,
+              numeric: true,
+            ),
+          ],
+          cell: (context, line, column) => switch (column) {
+            0 => Text(
+              _itemNameOf(line.itemId),
+              style: theme.textTheme.titleSmall,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            1 => Text(
+              Formatters.quantityWithUnit(line.quantity, _unitOf(line.itemId)),
+              style: AppTypography.numeric,
+            ),
+            2 => Text(
+              Formatters.price(line.unitPrice),
+              style: AppTypography.numeric,
+            ),
+            _ => Text(
+              Formatters.price(line.total),
+              style: AppTypography.numeric.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          },
+        ),
+        if (note != null) ...[
+          const SizedBox(height: AppSpacing.lg),
+          AppCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(l10n.orderNoteLabel, style: theme.textTheme.labelMedium),
+                const SizedBox(height: AppSpacing.xs),
+                Text(note, style: theme.textTheme.bodyLarge),
+              ],
+            ),
+          ),
+        ],
+        const SizedBox(height: AppSpacing.lg),
+        AppCard(
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  l10n.orderTotalLabel,
+                  style: theme.textTheme.titleSmall,
+                ),
+              ),
+              Text(Formatters.price(_total), style: AppTypography.numericHero),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _itemNameOf(String itemId) {
+    for (final offer in _offers) {
+      if (offer.price.itemId == itemId) return offer.itemName;
+    }
+    return '—';
+  }
+
+  /// Opens the product picker — the same photo cards as the movement forms —
+  /// limited to what this supplier sells.
+  Future<void> _pickProducts() async {
+    final l10n = AppLocalizations.of(context);
+    final picked = await ProductPickerSheet.show(
+      context,
+      storeId: widget.storeId,
+      alreadyPicked: {for (final line in _lines) line.itemId},
+      onlyItemIds: {for (final offer in _offers) offer.price.itemId},
+    );
+    if (picked == null || picked.isEmpty || !mounted) return;
+    setState(() => _addItems([for (final row in picked) row.item]));
+    AppSnackBar.success(context, l10n.orderSuggestedAdded(picked.length));
   }
 
   Widget _linesStep(BuildContext context, AppLocalizations l10n) {
@@ -419,12 +593,14 @@ class _OrderFormPageState extends ConsumerState<_OrderForm> {
     };
 
     final suggestions =
-        ref.watch(
-          itemRowsProvider((
-            storeId: widget.storeId,
-            filter: ItemFilter(supplierId: supplierId, lowStockOnly: true),
-          )),
-        ).value ??
+        ref
+            .watch(
+              itemRowsProvider((
+                storeId: widget.storeId,
+                filter: ItemFilter(supplierId: supplierId, lowStockOnly: true),
+              )),
+            )
+            .value ??
         const <ItemRowView>[];
 
     // The alerts screen sends people here with "fill it in for me". Done on
@@ -470,10 +646,21 @@ class _OrderFormPageState extends ConsumerState<_OrderForm> {
         SectionHeader(
           title: l10n.orderStepLines,
           count: _lines.isEmpty ? null : _lines.length,
-          trailing: SecondaryButton(
-            label: l10n.orderAddLine,
-            icon: LucideIcons.plus,
-            onPressed: _availableItems().isEmpty ? null : _addEmptyLine,
+          trailing: Wrap(
+            spacing: AppSpacing.sm,
+            runSpacing: AppSpacing.sm,
+            children: [
+              SecondaryButton(
+                label: l10n.orderPickProducts,
+                icon: LucideIcons.layoutGrid,
+                onPressed: _availableItems().isEmpty ? null : _pickProducts,
+              ),
+              SecondaryButton(
+                label: l10n.orderAddLine,
+                icon: LucideIcons.plus,
+                onPressed: _availableItems().isEmpty ? null : _addEmptyLine,
+              ),
+            ],
           ),
         ),
 
@@ -839,6 +1026,107 @@ class _ChosenSupplier extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// "1 Fournisseur — 2 Produits — 3 Récapitulatif": where the form is, what
+/// is done (ticked), and what comes next. A done step is tappable, to go back
+/// to it; the next ones are not, since each needs the one before.
+class _StepIndicator extends StatelessWidget {
+  const _StepIndicator({
+    required this.current,
+    required this.labels,
+    required this.onTap,
+  });
+
+  final int current;
+  final List<String> labels;
+  final ValueChanged<int> onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    Widget step(int index) {
+      final done = index < current;
+      final active = index == current;
+      final circle = Container(
+        width: 28,
+        height: 28,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: done || active ? AppColors.primary600 : AppColors.surface,
+          border: Border.all(
+            color: done || active ? AppColors.primary600 : AppColors.border,
+          ),
+        ),
+        child: done
+            ? const Icon(
+                LucideIcons.check,
+                size: AppSizing.iconSm,
+                color: AppColors.white,
+              )
+            : Text(
+                '${index + 1}',
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: active ? AppColors.white : AppColors.textSecondary,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+      );
+
+      final content = Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          circle,
+          const SizedBox(width: AppSpacing.sm),
+          Flexible(
+            child: Text(
+              labels[index],
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.labelLarge?.copyWith(
+                color: active ? AppColors.textPrimary : AppColors.textSecondary,
+                fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      );
+
+      return Flexible(
+        child: done
+            ? InkWell(
+                onTap: () => onTap(index),
+                borderRadius: AppRadius.mdAll,
+                child: Padding(
+                  padding: const EdgeInsets.all(AppSpacing.xs),
+                  child: content,
+                ),
+              )
+            : Padding(
+                padding: const EdgeInsets.all(AppSpacing.xs),
+                child: content,
+              ),
+      );
+    }
+
+    return Row(
+      children: [
+        for (var i = 0; i < labels.length; i++) ...[
+          if (i > 0)
+            Expanded(
+              child: Container(
+                height: 2,
+                margin: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+                color: i <= current ? AppColors.primary600 : AppColors.border,
+              ),
+            ),
+          step(i),
+        ],
+      ],
     );
   }
 }

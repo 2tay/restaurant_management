@@ -199,6 +199,20 @@ ReceiptLineOutcome outcomeOf({
 bool isDiscrepancy(ReceiptLineOutcome outcome) =>
     outcome != ReceiptLineOutcome.complete;
 
+/// How many lines of [receipt] are discrepancies — short, over, or not on the
+/// order.
+int receiptDiscrepancyCount(GoodsReceipt receipt) => receipt.lines
+    .where(
+      (line) => isDiscrepancy(
+        outcomeOf(
+          ordered: line.quantityOrdered,
+          received: line.quantityReceived,
+          wasUnordered: line.wasUnordered,
+        ),
+      ),
+    )
+    .length;
+
 /// True when a price moved far enough to be worth confirming.
 ///
 /// Guards against a zero baseline: an item with no price on file has no
