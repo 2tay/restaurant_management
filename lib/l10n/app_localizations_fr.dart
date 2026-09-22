@@ -3425,6 +3425,45 @@ class AppLocalizationsFr extends AppLocalizations {
       'Facultatif. Figure sur les bons de réception envoyés aux fournisseurs.';
 
   @override
+  String get orderDocAction => 'Bon de commande (PDF)';
+
+  @override
+  String get orderDocActionShort => 'PDF';
+
+  @override
+  String get orderDocTitle => 'BON DE COMMANDE';
+
+  @override
+  String get orderDocDraft => 'BROUILLON — NON ENVOYÉ';
+
+  @override
+  String get orderDocDeliverTo => 'Livrer à';
+
+  @override
+  String get orderDocDate => 'Date';
+
+  @override
+  String get orderDocColumnQuantity => 'Quantité';
+
+  @override
+  String get orderDocColumnUnitPrice => 'Prix unitaire';
+
+  @override
+  String get orderDocColumnTotal => 'Total';
+
+  @override
+  String get orderDocTotalLabel => 'Total de la commande';
+
+  @override
+  String get orderDocClosing =>
+      'Merci de confirmer la commande et la date de livraison.';
+
+  @override
+  String orderDocFooter(String date) {
+    return 'Document généré le $date — ne constitue pas une facture.';
+  }
+
+  @override
   String get receiptDocAction => 'Bon de réception';
 
   @override

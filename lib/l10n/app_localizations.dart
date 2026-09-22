@@ -5560,6 +5560,78 @@ abstract class AppLocalizations {
   /// **'Facultatif. Figure sur les bons de réception envoyés aux fournisseurs.'**
   String get addStoreVatNumberHelp;
 
+  /// Button that generates the PDF of an order to send to the supplier, and opens the share / download sheet.
+  ///
+  /// In fr, this message translates to:
+  /// **'Bon de commande (PDF)'**
+  String get orderDocAction;
+
+  /// Short label of the order PDF button, for narrow screens.
+  ///
+  /// In fr, this message translates to:
+  /// **'PDF'**
+  String get orderDocActionShort;
+
+  /// Main heading of the order PDF.
+  ///
+  /// In fr, this message translates to:
+  /// **'BON DE COMMANDE'**
+  String get orderDocTitle;
+
+  /// Stamp on the PDF of an order that has not been sent yet.
+  ///
+  /// In fr, this message translates to:
+  /// **'BROUILLON — NON ENVOYÉ'**
+  String get orderDocDraft;
+
+  /// Heading of the delivery address block on the order PDF.
+  ///
+  /// In fr, this message translates to:
+  /// **'Livrer à'**
+  String get orderDocDeliverTo;
+
+  /// Label for the order's creation date on the PDF.
+  ///
+  /// In fr, this message translates to:
+  /// **'Date'**
+  String get orderDocDate;
+
+  /// Order PDF table column.
+  ///
+  /// In fr, this message translates to:
+  /// **'Quantité'**
+  String get orderDocColumnQuantity;
+
+  /// Order PDF table column.
+  ///
+  /// In fr, this message translates to:
+  /// **'Prix unitaire'**
+  String get orderDocColumnUnitPrice;
+
+  /// Order PDF table column.
+  ///
+  /// In fr, this message translates to:
+  /// **'Total'**
+  String get orderDocColumnTotal;
+
+  /// Label of the total on the order PDF.
+  ///
+  /// In fr, this message translates to:
+  /// **'Total de la commande'**
+  String get orderDocTotalLabel;
+
+  /// Closing sentence addressed to the supplier on the order PDF.
+  ///
+  /// In fr, this message translates to:
+  /// **'Merci de confirmer la commande et la date de livraison.'**
+  String get orderDocClosing;
+
+  /// Footer of the order PDF.
+  ///
+  /// In fr, this message translates to:
+  /// **'Document généré le {date} — ne constitue pas une facture.'**
+  String orderDocFooter(String date);
+
   /// Button that generates the PDF delivery record for one receipt and opens the share sheet.
   ///
   /// In fr, this message translates to:

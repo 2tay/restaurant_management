@@ -14,6 +14,7 @@ import '../../../../data/providers.dart';
 import '../../../../data/view_models/view_models.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
+import '../../documents/order_document_button.dart';
 import '../../documents/receipt_document_button.dart';
 import '../widgets/order_status_badge.dart';
 import '../widgets/order_summary_card.dart';
@@ -85,6 +86,9 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
       subtitle: supplierName,
       actions: [
         OrderStatusBadge(status: order.status),
+        // Every status: a draft to check before sending, a sent order to
+        // forward again, a finished one for the records.
+        OrderDocumentButton(order: order),
         ..._actionsFor(context, l10n, order, supplierName),
       ],
       tabs: SectionTabs(

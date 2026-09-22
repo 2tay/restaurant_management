@@ -9,6 +9,7 @@ import '../database/app_database.dart';
 import '../mappers/mappers.dart';
 import '../view_models/item_detail_views.dart';
 import '../view_models/order_detail_view.dart';
+import '../view_models/order_document_sources.dart';
 import '../view_models/receipt_document_sources.dart';
 import 'account_repository.dart';
 import 'movement_repository.dart';
@@ -405,14 +406,37 @@ class OrderRepository {
     );
   }
 
+  /// What the bon de commande needs: the store, the supplier, and each
+  /// article's name and unit. Null when the store or supplier is gone.
+  Future<OrderDocumentSources?> orderDocumentSources(
+    PurchaseOrder order,
+  ) async {
+    final store = await StoreRepository(_db).store(order.storeId);
+    if (store == null) return null;
+
+    final supplier = await SupplierRepository(_db).supplier(order.supplierId);
+    if (supplier == null) return null;
+
+    return OrderDocumentSources(
+      order: order,
+      store: store,
+      supplier: supplier,
+      items: await _itemsNamed({for (final line in order.lines) line.itemId}),
+    );
+  }
+
   /// Name and unit abbreviation for every article on a delivery.
   ///
   /// A left join, so an article whose unit has been deleted still yields a name.
   /// An article deleted outright is simply absent from the map — the document
   /// prints a dash for it, because a receipt is evidence and the evidence
   /// outlives the catalogue entry.
-  Future<Map<String, ReceiptDocumentItem>> _itemsOn(GoodsReceipt receipt) async {
-    final ids = {for (final line in receipt.lines) line.itemId};
+  Future<Map<String, ReceiptDocumentItem>> _itemsOn(GoodsReceipt receipt) =>
+      _itemsNamed({for (final line in receipt.lines) line.itemId});
+
+  /// Name and unit abbreviation for each of [ids] — the lookup both documents
+  /// share.
+  Future<Map<String, ReceiptDocumentItem>> _itemsNamed(Set<String> ids) async {
     if (ids.isEmpty) return const {};
 
     final rows =
