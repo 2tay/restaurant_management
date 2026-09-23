@@ -5,22 +5,49 @@ import '../../core/theme/app_spacing.dart';
 
 /// A small icon and one line of text — a phone number, an email, an
 /// address — for the contact block of a card.
+///
+/// With [value], the text is a grey caption and the value follows it in the
+/// brand green: "Embauché le  12 janv. 2024".
 class InfoLine extends StatelessWidget {
-  const InfoLine({required this.icon, required this.text, super.key});
+  const InfoLine({
+    required this.icon,
+    required this.text,
+    this.value,
+    super.key,
+  });
 
   final IconData icon;
   final String text;
+  final String? value;
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Row(
       children: [
         Icon(icon, size: AppSizing.iconSm, color: AppColors.textSecondary),
         const SizedBox(width: AppSpacing.sm),
         Expanded(
-          child: Text(
-            text,
-            style: Theme.of(context).textTheme.bodyMedium,
+          child: Text.rich(
+            TextSpan(
+              text: text,
+              style: value == null
+                  ? theme.textTheme.bodyMedium
+                  : theme.textTheme.bodyMedium?.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+              children: [
+                if (value != null)
+                  TextSpan(
+                    text: '  $value',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: AppColors.primary600,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+              ],
+            ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -85,63 +112,6 @@ class HighlightTile extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-/// An icon beside a caption and its value — "Embauché le / 12 janv. 2024" —
-/// for the facts row at the foot of a card.
-class IconStat extends StatelessWidget {
-  const IconStat({
-    required this.icon,
-    required this.label,
-    required this.value,
-    super.key,
-  });
-
-  final IconData icon;
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(top: AppSpacing.xxs),
-          child: Icon(
-            icon,
-            size: AppSizing.iconSm,
-            color: AppColors.textSecondary,
-          ),
-        ),
-        const SizedBox(width: AppSpacing.sm),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                label,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: AppColors.textSecondary,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              Text(
-                value,
-                style: theme.textTheme.titleSmall,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ),
-        ),
-      ],
     );
   }
 }

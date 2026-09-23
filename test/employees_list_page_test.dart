@@ -214,8 +214,8 @@ void main() {
     expect(toggle.top, greaterThan(search.bottom));
   });
 
-  testApp('the card: identity, status, role, contact, rate, hire date, '
-      'position — stacked vertically', (tester) async {
+  testApp('the card: identity, status, role, contact, rate, hire date — '
+      'stacked vertically', (tester) async {
     final db = await _open(tester);
     final amelie = (await EmployeeRepository(db).employee(
       EmployeeIds.amelie,
@@ -227,20 +227,42 @@ void main() {
     expect(inCard('Amélie Vandenberghe'), findsOneWidget);
     expect(inCard('PIN ${amelie.pin}'), findsOneWidget);
     expect(inCard('Actif'), findsOneWidget);
-    expect(inCard('Gérant'), findsWidgets); // the badge, and « Poste »
+    expect(inCard('Gérant'), findsOneWidget); // the badge — no « Poste »
+    expect(inCard('Poste'), findsNothing);
     expect(inCard(amelie.phone), findsOneWidget);
     expect(inCard(amelie.email), findsOneWidget);
     expect(inCard('${Formatters.price(amelie.pay)} /h'), findsOneWidget);
     expect(inCard('Salaire horaire'), findsOneWidget);
-    expect(inCard('Embauché le'), findsOneWidget);
-    expect(inCard(Formatters.date(amelie.hireDate)), findsOneWidget);
-    expect(inCard('Poste'), findsOneWidget);
+    // One foot line: « Embauché le » and the date, in the rate's green.
+    final hired = find.descendant(
+      of: card,
+      matching: find.byKey(const ValueKey('employee-card-hired')),
+    );
+    // The text's RichText, not the icon's.
+    final line = tester.widget<RichText>(
+      find.descendant(
+        of: hired,
+        matching: find.byWidgetPredicate(
+          (w) =>
+              w is RichText && w.text.toPlainText().contains('Embauché le'),
+        ),
+      ),
+    );
+    expect(line.text.toPlainText(), contains('Embauché le'));
+    expect(
+      line.text.toPlainText(),
+      contains(Formatters.date(amelie.hireDate)),
+    );
+    // Text.rich wraps the span in a root one: root → caption → date.
+    final caption = (line.text as TextSpan).children!.single as TextSpan;
+    final dateSpan = caption.children!.single as TextSpan;
+    expect(dateSpan.style?.color, const Color(0xFF0F766E));
 
     // Vertical: name, then contact, then the rate, then the foot row.
     double y(String text) => tester.getTopLeft(inCard(text)).dy;
     expect(y(amelie.phone), greaterThan(y('Amélie Vandenberghe')));
     expect(y('Salaire horaire'), greaterThan(y(amelie.email)));
-    expect(y('Embauché le'), greaterThan(y('Salaire horaire')));
+    expect(tester.getTopLeft(hired).dy, greaterThan(y('Salaire horaire')));
     // Outlined on hover.
     expect(
       tester.widget<AppCard>(
@@ -248,6 +270,86 @@ void main() {
       ).outlineOnHover,
       isTrue,
     );
+  });
+
+  testApp('no card for the owner — the table still lists them', (
+    tester,
+  ) async {
+    await _open(tester);
+    expect(
+      find.byKey(const ValueKey('employee-card-${EmployeeIds.marc}')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('employee-card-${EmployeeIds.amelie}')),
+      findsOneWidget,
+    );
+
+    await _toList(tester);
+    final table = tester.widget<DataTable>(find.byType(DataTable));
+    expect(
+      table.rows.any(
+        (r) => r.key == const ValueKey('employee-row-${EmployeeIds.marc}'),
+      ),
+      isTrue,
+    );
+  });
+
+  testApp('the ⋮ is green; its menu is white, an icon beside each action', (
+    tester,
+  ) async {
+    await _open(tester);
+    final card = find.byKey(const ValueKey('employee-card-${EmployeeIds.karim}'));
+    final menu = find.descendant(
+      of: card,
+      matching: find.byKey(const ValueKey('employee-card-menu')),
+    );
+    final dots = tester.widget<Icon>(
+      find.descendant(of: menu, matching: find.byType(Icon)),
+    );
+    expect(dots.color, const Color(0xFF0F766E));
+    expect(
+      tester.widget<PopupMenuButton<Object?>>(menu).color,
+      Colors.white,
+    );
+
+    await tester.tap(menu);
+    await tester.pumpAndSettle();
+    for (final label in ['Modifier', 'Retirer']) {
+      final item = find.ancestor(
+        of: find.text(label),
+        matching: find.byType(Row),
+      );
+      expect(
+        find.descendant(of: item.first, matching: find.byType(Icon)),
+        findsOneWidget,
+        reason: label,
+      );
+    }
+  });
+
+  testApp('the card whose drawer is open keeps the hover outline', (
+    tester,
+  ) async {
+    await _open(tester);
+    AppCard cardOf(String id) => tester.widget<AppCard>(
+      find
+          .descendant(
+            of: find.byKey(ValueKey('employee-card-$id')),
+            matching: find.byType(AppCard),
+          )
+          .first,
+    );
+    expect(cardOf(EmployeeIds.karim).selected, isFalse);
+
+    await tester.tap(find.text(_karim));
+    await tester.pumpAndSettle();
+    expect(cardOf(EmployeeIds.karim).selected, isTrue);
+    expect(cardOf(EmployeeIds.amelie).selected, isFalse);
+
+    await tester.tap(find.byTooltip('Fermer'));
+    await tester.pumpAndSettle();
+    expect(cardOf(EmployeeIds.karim).selected, isFalse);
   });
 
   testApp('the card menu: Modifier opens the edit pop-up', (tester) async {

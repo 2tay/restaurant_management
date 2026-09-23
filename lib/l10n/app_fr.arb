@@ -1521,8 +1521,6 @@
   "@employeeCardHourlyRate": {"description": "Staff card: caption under the hourly rate."},
   "employeeCardHiredOn": "Embauché le",
   "@employeeCardHiredOn": {"description": "Staff card: caption of the hire date."},
-  "employeeCardPosition": "Poste",
-  "@employeeCardPosition": {"description": "Staff card: caption of the role."},
   "employeeCardActions": "Actions",
   "@employeeCardActions": {"description": "Tooltip of the ⋮ menu on a staff card."},
   "employeesArchivedPill": "Retiré",

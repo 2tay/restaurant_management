@@ -39,13 +39,20 @@ class _EmployeesListPageState extends ConsumerState<EmployeesListPage> {
   bool _showArchived = false;
   CollectionViewMode _viewMode = CollectionViewMode.grid;
 
+  /// The employee whose detail drawer is open — their card stays outlined.
+  String? _openId;
+
   void _add() => showEmployeeWizard(context, storeId: widget.storeId);
 
-  void _open(Employee employee) => showEmployeeDetailDrawer(
-    context,
-    storeId: widget.storeId,
-    employee: employee,
-  );
+  Future<void> _open(Employee employee) async {
+    setState(() => _openId = employee.id);
+    await showEmployeeDetailDrawer(
+      context,
+      storeId: widget.storeId,
+      employee: employee,
+    );
+    if (mounted) setState(() => _openId = null);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -155,7 +162,13 @@ class _EmployeesListPageState extends ConsumerState<EmployeesListPage> {
           _EmployeeTable(employees: filtered, onOpen: _open)
         else
           _EmployeeGrid(
-            employees: filtered,
+            // The owner is the account, not a member of staff to manage from
+            // here — no card for them (the table still lists everyone).
+            employees: [
+              for (final e in filtered)
+                if (e.role != EmployeeRole.owner) e,
+            ],
+            openId: _openId,
             onOpen: _open,
             onEdit: (employee) => showEmployeeWizard(
               context,
@@ -280,11 +293,12 @@ class _ArchivedFilterPill extends StatelessWidget {
 }
 
 /// The roster as a grid of vertical [EmployeeCard]s — as many per line as
-/// the width allows (narrow cards, so up to five on a wide window), sized by
+/// the width allows (300dp minimum, up to four), sized by
 /// the same [cardGridColumns] as the pointage and payroll history cards.
 class _EmployeeGrid extends StatelessWidget {
   const _EmployeeGrid({
     required this.employees,
+    required this.openId,
     required this.onOpen,
     required this.onEdit,
     required this.onArchive,
@@ -292,6 +306,7 @@ class _EmployeeGrid extends StatelessWidget {
   });
 
   final List<Employee> employees;
+  final String? openId;
   final ValueChanged<Employee> onOpen;
   final ValueChanged<Employee> onEdit;
   final ValueChanged<Employee> onArchive;
@@ -303,8 +318,8 @@ class _EmployeeGrid extends StatelessWidget {
       builder: (context, constraints) {
         final columns = cardGridColumns(
           constraints.maxWidth,
-          minCardWidth: 260,
-          maxColumns: 5,
+          minCardWidth: 300,
+          maxColumns: 4,
         );
         const spacing = AppSpacing.lg;
         final cardWidth = columns == 1
@@ -321,6 +336,7 @@ class _EmployeeGrid extends StatelessWidget {
                 child: EmployeeCard(
                   key: ValueKey('employee-card-${employee.id}'),
                   employee: employee,
+                  selected: employee.id == openId,
                   onTap: () => onOpen(employee),
                   onEdit: () => onEdit(employee),
                   onArchive: () => onArchive(employee),

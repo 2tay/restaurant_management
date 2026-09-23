@@ -4006,12 +4006,6 @@ abstract class AppLocalizations {
   /// **'Embauché le'**
   String get employeeCardHiredOn;
 
-  /// Staff card: caption of the role.
-  ///
-  /// In fr, this message translates to:
-  /// **'Poste'**
-  String get employeeCardPosition;
-
   /// Tooltip of the ⋮ menu on a staff card.
   ///
   /// In fr, this message translates to:

@@ -17,10 +17,11 @@ enum _CardAction { edit, archive, restore }
 /// - identity — photo, name, PIN, the Actif / Retiré status and the role;
 /// - contact — phone and email;
 /// - the hourly rate, put forward in a tinted block;
-/// - a foot row — hire date and position.
+/// - the hire date (the position is already the role badge).
 ///
 /// Tapping the card opens the detail drawer ([onTap]); the ⋮ menu edits,
-/// retires or restores without opening it. Outlined in green on hover.
+/// retires or restores without opening it. Outlined in green on hover, and
+/// while its drawer is open ([selected]).
 class EmployeeCard extends StatelessWidget {
   const EmployeeCard({
     required this.employee,
@@ -28,6 +29,7 @@ class EmployeeCard extends StatelessWidget {
     required this.onEdit,
     required this.onArchive,
     required this.onRestore,
+    this.selected = false,
     super.key,
   });
 
@@ -36,6 +38,9 @@ class EmployeeCard extends StatelessWidget {
   final VoidCallback onEdit;
   final VoidCallback onArchive;
   final VoidCallback onRestore;
+
+  /// The card whose detail drawer is open — drawn like a hovered one.
+  final bool selected;
 
   @override
   Widget build(BuildContext context) {
@@ -46,6 +51,7 @@ class EmployeeCard extends StatelessWidget {
     return AppCard(
       onTap: onTap,
       outlineOnHover: true,
+      selected: selected,
       padding: const EdgeInsets.all(AppSpacing.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -121,32 +127,11 @@ class EmployeeCard extends StatelessWidget {
             caption: l10n.employeeCardHourlyRate,
           ),
           const SizedBox(height: AppSpacing.lg),
-          const Divider(height: 1, color: AppColors.border),
-          const SizedBox(height: AppSpacing.md),
-          IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(
-                  child: IconStat(
-                    icon: LucideIcons.calendar,
-                    label: l10n.employeeCardHiredOn,
-                    value: Formatters.date(employee.hireDate),
-                  ),
-                ),
-                const VerticalDivider(
-                  width: AppSpacing.lg,
-                  color: AppColors.border,
-                ),
-                Expanded(
-                  child: IconStat(
-                    icon: LucideIcons.briefcase,
-                    label: l10n.employeeCardPosition,
-                    value: employeeRoleLabel(l10n, employee.role),
-                  ),
-                ),
-              ],
-            ),
+          InfoLine(
+            key: const ValueKey('employee-card-hired'),
+            icon: LucideIcons.calendar,
+            text: l10n.employeeCardHiredOn,
+            value: Formatters.date(employee.hireDate),
           ),
         ],
       ),
@@ -160,6 +145,24 @@ class _CardMenu extends StatelessWidget {
   final bool archived;
   final ValueChanged<_CardAction> onSelected;
 
+  static PopupMenuItem<_CardAction> _item(
+    _CardAction action,
+    IconData icon,
+    String label,
+    Color color,
+  ) {
+    return PopupMenuItem(
+      value: action,
+      child: Row(
+        children: [
+          Icon(icon, size: AppSizing.iconSm, color: color),
+          const SizedBox(width: AppSpacing.md),
+          Text(label, style: TextStyle(color: color)),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -167,26 +170,35 @@ class _CardMenu extends StatelessWidget {
     return PopupMenuButton<_CardAction>(
       key: const ValueKey('employee-card-menu'),
       tooltip: l10n.employeeCardActions,
+      // The brand green of the rate, so the menu reads as part of the card.
       icon: const Icon(
         LucideIcons.ellipsisVertical,
         size: AppSizing.iconSm,
-        color: AppColors.textSecondary,
+        color: AppColors.primary600,
       ),
+      color: AppColors.surface,
+      surfaceTintColor: Colors.transparent,
       onSelected: onSelected,
       itemBuilder: (_) => [
-        PopupMenuItem(value: _CardAction.edit, child: Text(l10n.actionEdit)),
+        _item(
+          _CardAction.edit,
+          LucideIcons.pencil,
+          l10n.actionEdit,
+          AppColors.textPrimary,
+        ),
         if (archived)
-          PopupMenuItem(
-            value: _CardAction.restore,
-            child: Text(l10n.employeeRestore),
+          _item(
+            _CardAction.restore,
+            LucideIcons.userCheck,
+            l10n.employeeRestore,
+            AppColors.textPrimary,
           )
         else
-          PopupMenuItem(
-            value: _CardAction.archive,
-            child: Text(
-              l10n.employeeArchiveConfirm,
-              style: const TextStyle(color: AppColors.error),
-            ),
+          _item(
+            _CardAction.archive,
+            LucideIcons.userMinus,
+            l10n.employeeArchiveConfirm,
+            AppColors.error,
           ),
       ],
     );

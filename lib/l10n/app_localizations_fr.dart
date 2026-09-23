@@ -2425,9 +2425,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get employeeCardHiredOn => 'Embauché le';
 
   @override
-  String get employeeCardPosition => 'Poste';
-
-  @override
   String get employeeCardActions => 'Actions';
 
   @override
