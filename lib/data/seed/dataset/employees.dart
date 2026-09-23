@@ -154,8 +154,7 @@ final List<Employee> mockEmployees = [
     email: 'ayoub.aittaleb@testcalcul.be',
     hireDate: DateTime(2026, 6, 1),
     role: EmployeeRole.staff,
-    pay: 12.5,
-    // No personal schedule — inherits the store's 08:00–22:00 day.
+    pay: 50,
     createdAt: DateTime(2026, 6, 1),
   ),
   Employee(
@@ -168,7 +167,7 @@ final List<Employee> mockEmployees = [
     email: 'hakim.toutay@testcalcul.be',
     hireDate: DateTime(2026, 6, 1),
     role: EmployeeRole.staff,
-    pay: 15,
+    pay: 70,
     createdAt: DateTime(2026, 6, 1),
   ),
 ];

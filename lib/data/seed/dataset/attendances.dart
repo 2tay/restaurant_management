@@ -35,9 +35,9 @@ const String _testCalculHakimPeriodId = 'payroll-testcalcul-hakim';
 /// Only *today*'s rows are left mid-day (`working` / `onBreak`); every earlier
 /// day is finished, because a day in the past cannot still be in progress. A
 /// day with no row at all means "not clocked in yet" and is simply absent —
-/// Noah and Marc have no row today. Every day here is a single session; the
-/// two-cycle case (a day with more than one Pointer → Fin de journée) is not
-/// part of the demo dataset, only of the pointage board's live behaviour.
+/// Noah and Marc have no row today. Most days are a single session; the
+/// several-cycles case (more than one Pointer → Fin de journée in a day) is
+/// yesterday on TestCalcul — see [_testCalculMultiSessionDays].
 ///
 /// Covers every state the walkthrough needs, without manipulation:
 /// - **several pauses in one day** — Fatima today (one ended, one running)
@@ -275,6 +275,8 @@ final List<Attendance> mockAttendances = [
 
   // --- TestCalcul — a full month of finished days for the salaire check -----
   ..._testCalculAttendances(),
+  // --- TestCalcul — yesterday, split into several sessions ------------------
+  ..._testCalculMultiSessionDays(),
 ];
 
 /// Attendance for the TestCalcul store: every working day (Mon–Sat) from
@@ -288,12 +290,10 @@ final List<Attendance> mockAttendances = [
 /// stay `unpaid`, so the paiement screen shows "des jours payés et d'autres
 /// pas encore".
 ///
-/// - **Ayoub** (fixe, 08:00–22:00, 1 h lunch): normally clocks out at 22:00
-///   (13 h worked, no overtime). Every 5th working day he stays to 23:30
-///   (+1 h 30 overtime). His 2nd working day is a late arrival (08:35).
-/// - **Hakim** (extra, 10:00–20:00, 30 min break): normally clocks out at
-///   20:00 (9 h 30 worked). Every 4th working day he stays to 22:00
-///   (+2 h overtime).
+/// - **Ayoub** (50 €/h, 1 h lunch): 08:00–22:00 (13 h worked). Every 5th
+///   working day he stays to 23:30; his 2nd working day starts at 08:35.
+/// - **Hakim** (70 €/h, 30 min break): 10:00–20:00 (9 h 30 worked). Every 4th
+///   working day he stays to 22:00.
 List<Attendance> _testCalculAttendances() {
   final rows = <Attendance>[];
   final firstDay = DateTime(2026, 7, 1);
@@ -361,5 +361,67 @@ List<Attendance> _testCalculAttendances() {
   }
   return rows;
 }
+
+/// Yesterday on TestCalcul, finished and unpaid, with the day split into
+/// several Pointer → Fin de journée cycles — the case a single-session history
+/// never shows:
+/// - **Ayoub**, 2 sessions: 08:00–12:00, then 13:30–18:00 with a 15-min break
+///   (8 h 15 worked → 412,50 € at 50 €/h).
+/// - **Hakim**, 3 sessions: 07:00–10:00, 11:00–14:30 with a 20-min break, then
+///   17:00–21:00 (10 h 10 worked → 711,67 € at 70 €/h).
+List<Attendance> _testCalculMultiSessionDays() => [
+  Attendance(
+    id: 'att-testcalcul-ayoub-yesterday',
+    storeId: StoreIds.testCalcul,
+    employeeId: EmployeeIds.ayoub,
+    date: dayOnly(1),
+    status: AttendanceStatus.done,
+    sessions: [
+      AttendanceSession(
+        clockInAt: timeOnDay(1, 8),
+        clockOutAt: timeOnDay(1, 12),
+      ),
+      AttendanceSession(
+        clockInAt: timeOnDay(1, 13, 30),
+        clockOutAt: timeOnDay(1, 18),
+        pauses: [
+          AttendancePause(
+            startAt: timeOnDay(1, 15, 30),
+            endAt: timeOnDay(1, 15, 45),
+          ),
+        ],
+      ),
+    ],
+    paymentStatus: PaymentStatus.unpaid,
+  ),
+  Attendance(
+    id: 'att-testcalcul-hakim-yesterday',
+    storeId: StoreIds.testCalcul,
+    employeeId: EmployeeIds.hakim,
+    date: dayOnly(1),
+    status: AttendanceStatus.done,
+    sessions: [
+      AttendanceSession(
+        clockInAt: timeOnDay(1, 7),
+        clockOutAt: timeOnDay(1, 10),
+      ),
+      AttendanceSession(
+        clockInAt: timeOnDay(1, 11),
+        clockOutAt: timeOnDay(1, 14, 30),
+        pauses: [
+          AttendancePause(
+            startAt: timeOnDay(1, 12, 30),
+            endAt: timeOnDay(1, 12, 50),
+          ),
+        ],
+      ),
+      AttendanceSession(
+        clockInAt: timeOnDay(1, 17),
+        clockOutAt: timeOnDay(1, 21),
+      ),
+    ],
+    paymentStatus: PaymentStatus.unpaid,
+  ),
+];
 
 String _pad(int value) => value.toString().padLeft(2, '0');

@@ -253,6 +253,35 @@ void main() {
       }
     });
 
+    test('TestCalcul: 50 / 70 €/h, and yesterday split into 2 / 3 sessions',
+        () async {
+      final people = {
+        for (final e in await employeesForStore(StoreIds.testCalcul)) e.id: e,
+      };
+      expect(people[EmployeeIds.ayoub]!.pay, 50);
+      expect(people[EmployeeIds.hakim]!.pay, 70);
+
+      // "Yesterday" is relative to the seed instant, which the fixture pins —
+      // so the rows are found by id, not by today's date.
+      final all = await attendances();
+      Attendance dayOf(String id) => all.singleWhere((a) => a.id == id);
+
+      // Yesterday = the same work day as Karim's seeded yesterday.
+      final yesterday = dayOf(AttendanceIds.karim1).date;
+
+      final ayoub = dayOf('att-testcalcul-ayoub-yesterday');
+      expect(ayoub.date, yesterday);
+      expect(ayoub.sessions, hasLength(2));
+      expect(ayoub.status, AttendanceStatus.done);
+      expect(workedDuration(ayoub), const Duration(hours: 8, minutes: 15));
+
+      final hakim = dayOf('att-testcalcul-hakim-yesterday');
+      expect(hakim.date, yesterday);
+      expect(hakim.sessions, hasLength(3));
+      expect(hakim.status, AttendanceStatus.done);
+      expect(workedDuration(hakim), const Duration(hours: 10, minutes: 10));
+    });
+
     test('per-store pointage settings survive a seed', () async {
       Future<StoreRow> row(String id) => (db.select(
             db.stores,
