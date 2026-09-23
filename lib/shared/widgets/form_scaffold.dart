@@ -41,6 +41,7 @@ class FormScaffold extends StatelessWidget {
     this.forwardActions = const [],
     this.headerBackLinkLabel,
     this.centered = false,
+    this.inlineActions = false,
     this.maxWidth = 760,
     super.key,
   });
@@ -91,6 +92,11 @@ class FormScaffold extends StatelessWidget {
   /// in the window, instead of holding it to the left edge.
   final bool centered;
 
+  /// Puts the actions right under the form, in its column, instead of a bar
+  /// pinned to the bottom of the window — for a short form (a wizard step)
+  /// where the buttons belong with the fields they act on.
+  final bool inlineActions;
+
   final double maxWidth;
 
   final Widget child;
@@ -98,6 +104,28 @@ class FormScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+
+    final actionBar = _ActionBar(
+      maxWidth: maxWidth,
+      centered: centered,
+      inline: inlineActions,
+      leading: [
+        SecondaryButton(
+          label: l10n.actionCancel,
+          onPressed: () => _leave(context),
+        ),
+        ?secondaryAction,
+      ],
+      trailing: [
+        ...forwardActions,
+        ?submitSecondary,
+        PrimaryButton(
+          label: submitLabel,
+          icon: submitIcon,
+          onPressed: onSubmit,
+        ),
+      ],
+    );
 
     return PopScope(
       // Taking control of pops so the Android back gesture runs through the
@@ -127,27 +155,17 @@ class FormScaffold extends StatelessWidget {
         // A centred form keeps a root-screen header: title left, the way back
         // at the page's right edge (see Personnel and its Ajouter button).
         fullWidthHeader: centered,
-        footer: _ActionBar(
-          maxWidth: maxWidth,
-          centered: centered,
-          leading: [
-            SecondaryButton(
-              label: l10n.actionCancel,
-              onPressed: () => _leave(context),
-            ),
-            ?secondaryAction,
-          ],
-          trailing: [
-            ...forwardActions,
-            ?submitSecondary,
-            PrimaryButton(
-              label: submitLabel,
-              icon: submitIcon,
-              onPressed: onSubmit,
-            ),
-          ],
-        ),
-        child: child,
+        footer: inlineActions ? null : actionBar,
+        child: inlineActions
+            ? Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  child,
+                  const SizedBox(height: AppSpacing.xl),
+                  actionBar,
+                ],
+              )
+            : child,
       ),
     );
   }
@@ -191,13 +209,15 @@ class _HeaderBackLink extends StatelessWidget {
   }
 }
 
-/// The pinned bar along the bottom of a form.
+/// The form's actions: a bar pinned along the bottom, or — with
+/// [FormScaffold.inlineActions] — a row laid under the fields.
 class _ActionBar extends StatelessWidget {
   const _ActionBar({
     required this.leading,
     required this.trailing,
     required this.maxWidth,
     required this.centered,
+    required this.inline,
   });
 
   /// Dismissive actions, left to right. Cancel first.
@@ -209,17 +229,25 @@ class _ActionBar extends StatelessWidget {
   final double maxWidth;
   final bool centered;
 
+  /// Laid in the content column rather than pinned: no surface, no rule,
+  /// no padding of its own.
+  final bool inline;
+
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        border: Border(top: BorderSide(color: AppColors.border)),
-      ),
-      padding: EdgeInsets.symmetric(
-        horizontal: context.isPhone ? AppSpacing.lg : AppSpacing.xl,
-        vertical: AppSpacing.lg,
-      ),
+      decoration: inline
+          ? null
+          : const BoxDecoration(
+              color: AppColors.surface,
+              border: Border(top: BorderSide(color: AppColors.border)),
+            ),
+      padding: inline
+          ? EdgeInsets.zero
+          : EdgeInsets.symmetric(
+              horizontal: context.isPhone ? AppSpacing.lg : AppSpacing.xl,
+              vertical: AppSpacing.lg,
+            ),
       child: Align(
         alignment: centered ? Alignment.topCenter : Alignment.topLeft,
         child: ConstrainedBox(

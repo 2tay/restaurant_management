@@ -10,7 +10,7 @@ enum AppTextFieldVariant {
   /// The theme's field: grey fill, hairline border.
   standard,
 
-  /// White, borderless and taller, with a green border only on focus — for
+  /// White and borderless, with a green border only on focus — for
   /// fields laid straight on the page background rather than inside a card
   /// (the wizard forms).
   plain,
@@ -149,13 +149,13 @@ class AppTextField extends StatelessWidget {
           style: suffixText == '€' ? AppTypography.numeric : null,
           decoration: InputDecoration(
             // Plain: white on the page's grey, no outline at rest, the brand
-            // green only while typing — and a taller hit area.
+            // green only while typing.
             filled: plain ? true : null,
             fillColor: plain ? AppColors.surface : null,
             contentPadding: plain
                 ? const EdgeInsets.symmetric(
                     horizontal: AppSpacing.lg,
-                    vertical: AppSpacing.lg + AppSpacing.xs + AppSpacing.xxs,
+                    vertical: AppSpacing.md + AppSpacing.xxs,
                   )
                 : null,
             enabledBorder: plain ? _plainBorder(BorderSide.none) : null,

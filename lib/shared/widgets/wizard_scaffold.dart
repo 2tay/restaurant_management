@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../app/navigation.dart';
-import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../l10n/app_localizations.dart';
 import 'form_scaffold.dart';
@@ -59,7 +58,7 @@ class WizardScaffold extends StatelessWidget {
     this.submitIcon,
     this.isDirty = false,
     this.freeNavigation = false,
-    this.maxWidth = 900,
+    this.maxWidth = 1080,
     super.key,
   }) : assert(steps.length > 1, 'a wizard has at least two steps');
 
@@ -113,6 +112,7 @@ class WizardScaffold extends StatelessWidget {
       back: back,
       headerBackLinkLabel: backLinkLabel,
       centered: true,
+      inlineActions: true,
       isDirty: isDirty,
       maxWidth: maxWidth,
       forwardActions: [
@@ -134,6 +134,9 @@ class WizardScaffold extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // A little more air between the page header and the steps than a
+          // root screen leaves before its content.
+          const SizedBox(height: AppSpacing.lg),
           WizardStepIndicator(
             labels: [for (final s in steps) s.label],
             current: currentStep,
@@ -142,9 +145,7 @@ class WizardScaffold extends StatelessWidget {
                 ? _stepsBeforeValid(i)
                 : i < currentStep,
           ),
-          const SizedBox(height: AppSpacing.lg),
-          const Divider(height: 1, color: AppColors.border),
-          const SizedBox(height: AppSpacing.xl),
+          const SizedBox(height: AppSpacing.xxl),
           KeyedSubtree(
             key: ValueKey('wizard-page-$currentStep'),
             // Wizard steps lie on the page background, not in a card, so

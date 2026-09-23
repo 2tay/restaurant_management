@@ -300,6 +300,27 @@ void main() {
       expect((page.center.dx - 900).abs(), lessThan(40));
     });
 
+    testWidgets('the actions follow the step, not a bar pinned to the bottom',
+        (tester) async {
+      _size(tester, const Size(1800, 1000));
+      await tester.pumpWidget(
+        _host(_Harness(valid: const [true, true, true], onSubmit: () {})),
+      );
+
+      final pageBottom = tester
+          .getRect(find.byKey(const ValueKey('wizard-page-0')))
+          .bottom;
+      final next = tester.getRect(_button('Suivant').first);
+      final cancel = tester.getRect(_button('Annuler').first);
+      // Right under the content, well above the window's bottom edge…
+      expect(next.top, greaterThan(pageBottom));
+      expect(next.top - pageBottom, lessThan(80));
+      expect(next.bottom, lessThan(1000 - 200));
+      // …and inside the wizard's column, Annuler left, Suivant right.
+      expect(cancel.left, greaterThan(300));
+      expect(next.right, lessThan(1800 - 300));
+    });
+
     testWidgets('plain fields show their placeholder in #777', (tester) async {
       _size(tester, const Size(1280, 800));
       await tester.pumpWidget(
