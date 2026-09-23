@@ -7,6 +7,7 @@ import '../../models/supplier.dart';
 import '../../models/supplier_price.dart';
 import '../database/app_database.dart';
 import '../mappers/mappers.dart';
+import '../notifications/notification_engine.dart';
 import '../view_models/item_detail_views.dart';
 import '../view_models/supplier_views.dart';
 import 'account_repository.dart';
@@ -488,6 +489,24 @@ class SupplierRepository {
         ),
       );
 
+      // A price move is the one thing in this app nobody can see for
+      // themselves: it happens on a supplier's side, between two invoices.
+      // Naming both the article and the supplier is what makes the feed entry
+      // worth opening.
+      final named = await _namesForPriceChange(existing.itemId, existing.supplierId);
+      if (named != null) {
+        await NotificationEngine(_db).priceChanged(
+          storeId: named.storeId,
+          itemId: existing.itemId,
+          itemName: named.itemName,
+          supplierId: existing.supplierId,
+          supplierName: named.supplierName,
+          from: existing.pricePerUnit,
+          to: newPrice,
+          unitAbbreviation: named.unitAbbreviation,
+        );
+      }
+
       return SupplierPrice(
         id: existing.id,
         itemId: existing.itemId,
@@ -497,6 +516,37 @@ class SupplierRepository {
         isDefault: existing.isDefault,
       );
     });
+  }
+
+  /// The article, its unit and the supplier, spelled out for a price-change
+  /// notification. Null when the article or the supplier has gone — in which
+  /// case there is nothing intelligible to say, and the price edit stands on
+  /// its own.
+  Future<({
+    String storeId,
+    String itemName,
+    String unitAbbreviation,
+    String supplierName,
+  })?>
+  _namesForPriceChange(String itemId, String supplierId) async {
+    final query = _db.select(_db.items).join([
+      innerJoin(_db.units, _db.units.id.equalsExp(_db.items.unitId)),
+    ])..where(_db.items.id.equals(itemId));
+    final row = await query.getSingleOrNull();
+    if (row == null) return null;
+
+    final supplier = await (_db.select(
+      _db.suppliers,
+    )..where((s) => s.id.equals(supplierId))).getSingleOrNull();
+    if (supplier == null) return null;
+
+    final item = row.readTable(_db.items);
+    return (
+      storeId: item.storeId,
+      itemName: item.name,
+      unitAbbreviation: row.readTable(_db.units).abbreviation,
+      supplierName: supplier.name,
+    );
   }
 
   /// Marks one supplier as the one normally used for an article.

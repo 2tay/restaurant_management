@@ -1463,6 +1463,112 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String get alertsKpiOutOfStock => 'Ruptures';
+
+  @override
+  String get alertsKpiLowStock => 'Stock bas';
+
+  @override
+  String get alertsKpiOnOrder => 'Déjà commandés';
+
+  @override
+  String get alertsKpiSuppliers => 'Fournisseurs';
+
+  @override
+  String get alertsFilterSeverity => 'Gravité';
+
+  @override
+  String get alertsFilterCoverage => 'Couverture';
+
+  @override
+  String get alertsFilterSupplier => 'Fournisseur';
+
+  @override
+  String get alertsFilterSort => 'Tri';
+
+  @override
+  String get alertsFilterAll => 'Toutes';
+
+  @override
+  String get alertsFilterAllSuppliers => 'Tous';
+
+  @override
+  String get alertsCoverageUncovered => 'Rien en commande';
+
+  @override
+  String get alertsCoverageOnOrder => 'En commande';
+
+  @override
+  String get alertsSortUrgency => 'Urgence';
+
+  @override
+  String get alertsSortShortfall => 'Manque';
+
+  @override
+  String get alertsSortName => 'Nom';
+
+  @override
+  String get alertsNoSupplier => 'Sans fournisseur';
+
+  @override
+  String alertsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count produits',
+      one: '1 produit',
+      zero: 'Aucun produit',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String alertsLevel(String quantity, String threshold) {
+    return '$quantity sur $threshold';
+  }
+
+  @override
+  String get alertsSelectAll => 'Tout sélectionner';
+
+  @override
+  String alertsSelectionSummary(int items, int suppliers) {
+    String _temp0 = intl.Intl.pluralLogic(
+      items,
+      locale: localeName,
+      other: '$items produits',
+      one: '1 produit',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      suppliers,
+      locale: localeName,
+      other: '$suppliers fournisseurs',
+      one: '1 fournisseur',
+    );
+    return '$_temp0 · $_temp1';
+  }
+
+  @override
+  String get alertsSelectionClear => 'Annuler la sélection';
+
+  @override
+  String get alertsColumnItem => 'Produit';
+
+  @override
+  String get alertsColumnStock => 'Stock';
+
+  @override
+  String get alertsColumnThreshold => 'Seuil';
+
+  @override
+  String get alertsColumnShortfall => 'Manque';
+
+  @override
+  String get alertsColumnOnOrder => 'En commande';
+
+  @override
+  String get alertsColumnStatus => 'Statut';
+
+  @override
   String get notificationsTitle => 'Notifications';
 
   @override
@@ -1495,6 +1601,40 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get notificationsFilterUnread => 'Non lues';
+
+  @override
+  String get notificationsFilterKind => 'Type';
+
+  @override
+  String get notificationsKindStock => 'Stock';
+
+  @override
+  String get notificationsKindPrice => 'Prix';
+
+  @override
+  String get notificationsKindAdjustment => 'Ajustements';
+
+  @override
+  String get notificationsKindDelivery => 'Livraisons';
+
+  @override
+  String get notificationsToday => 'Aujourd\'hui';
+
+  @override
+  String get notificationsYesterday => 'Hier';
+
+  @override
+  String get notificationsMarkRead => 'Marquer comme lue';
+
+  @override
+  String get notificationsMarkedOneRead => 'Notification marquée comme lue.';
+
+  @override
+  String get notificationsNoneOfKind => 'Aucune notification de ce type';
+
+  @override
+  String get notificationsNoneOfKindBody =>
+      'Changez le filtre pour voir les autres notifications.';
 
   @override
   String get reportsTitle => 'Rapports';

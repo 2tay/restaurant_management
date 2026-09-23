@@ -7,6 +7,7 @@ import '../../models/purchase_order.dart';
 import '../../models/purchase_order_line.dart';
 import '../database/app_database.dart';
 import '../mappers/mappers.dart';
+import '../notifications/notification_engine.dart';
 import '../view_models/item_detail_views.dart';
 import '../view_models/order_detail_view.dart';
 import '../view_models/order_document_sources.dart';
@@ -806,6 +807,22 @@ class OrderRepository {
       }
 
       await _applyReceiptToOrder(existing, lines, closedAt: now);
+
+      // One entry for the delivery, after everything it caused has been
+      // applied. The stock-ins above each notified their own crossing, which is
+      // the useful half; this is the receipt itself, and it is the kind that
+      // ships switched off.
+      final supplier = await SupplierRepository(_db).supplier(existing.supplierId);
+      if (supplier != null) {
+        await NotificationEngine(_db).deliveryReceived(
+          storeId: existing.storeId,
+          supplierId: supplier.id,
+          supplierName: supplier.name,
+          lineCount: receiptLines.where((l) => l.quantityReceived > 0).length,
+          receivedBy: receivedBy,
+        );
+      }
+
       return receipt;
     });
   }

@@ -2416,6 +2416,168 @@ abstract class AppLocalizations {
   /// **'Commander chez {supplier}'**
   String alertsOrderFrom(String supplier);
 
+  /// KPI tile counting articles at zero.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ruptures'**
+  String get alertsKpiOutOfStock;
+
+  /// KPI tile counting articles at or under their threshold but not yet at zero.
+  ///
+  /// In fr, this message translates to:
+  /// **'Stock bas'**
+  String get alertsKpiLowStock;
+
+  /// KPI tile counting alerted articles that already have stock on its way.
+  ///
+  /// In fr, this message translates to:
+  /// **'Déjà commandés'**
+  String get alertsKpiOnOrder;
+
+  /// KPI tile counting the distinct suppliers who would fill the current alerts.
+  ///
+  /// In fr, this message translates to:
+  /// **'Fournisseurs'**
+  String get alertsKpiSuppliers;
+
+  /// Label of the severity filter on the alerts screen.
+  ///
+  /// In fr, this message translates to:
+  /// **'Gravité'**
+  String get alertsFilterSeverity;
+
+  /// Label of the filter separating alerts that already have stock coming from those that do not.
+  ///
+  /// In fr, this message translates to:
+  /// **'Couverture'**
+  String get alertsFilterCoverage;
+
+  /// Label of the supplier filter on the alerts screen.
+  ///
+  /// In fr, this message translates to:
+  /// **'Fournisseur'**
+  String get alertsFilterSupplier;
+
+  /// Label of the sort control on the alerts screen.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tri'**
+  String get alertsFilterSort;
+
+  /// The unfiltered option in the alerts severity and coverage menus.
+  ///
+  /// In fr, this message translates to:
+  /// **'Toutes'**
+  String get alertsFilterAll;
+
+  /// The unfiltered option in the alerts supplier menu.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tous'**
+  String get alertsFilterAllSuppliers;
+
+  /// Coverage filter option: nobody has ordered this yet.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rien en commande'**
+  String get alertsCoverageUncovered;
+
+  /// Coverage filter option: stock is already on its way.
+  ///
+  /// In fr, this message translates to:
+  /// **'En commande'**
+  String get alertsCoverageOnOrder;
+
+  /// Sort option: worst first, the screen's default order.
+  ///
+  /// In fr, this message translates to:
+  /// **'Urgence'**
+  String get alertsSortUrgency;
+
+  /// Sort option: by how far below the threshold the article is.
+  ///
+  /// In fr, this message translates to:
+  /// **'Manque'**
+  String get alertsSortShortfall;
+
+  /// Sort option: alphabetical.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nom'**
+  String get alertsSortName;
+
+  /// Supplier filter option, and row label, for articles with no default supplier.
+  ///
+  /// In fr, this message translates to:
+  /// **'Sans fournisseur'**
+  String get alertsNoSupplier;
+
+  /// How many articles the current filters leave.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =0{Aucun produit} =1{1 produit} other{{count} produits}}'**
+  String alertsCount(int count);
+
+  /// An article's stock against its threshold, e.g. "4 kg sur 10 kg".
+  ///
+  /// In fr, this message translates to:
+  /// **'{quantity} sur {threshold}'**
+  String alertsLevel(String quantity, String threshold);
+
+  /// Checkbox that selects every article in a severity section.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tout sélectionner'**
+  String get alertsSelectAll;
+
+  /// What the selection action bar counts before the create-orders button.
+  ///
+  /// In fr, this message translates to:
+  /// **'{items, plural, =1{1 produit} other{{items} produits}} · {suppliers, plural, =1{1 fournisseur} other{{suppliers} fournisseurs}}'**
+  String alertsSelectionSummary(int items, int suppliers);
+
+  /// Clears the current selection from the action bar.
+  ///
+  /// In fr, this message translates to:
+  /// **'Annuler la sélection'**
+  String get alertsSelectionClear;
+
+  /// Table column: the article.
+  ///
+  /// In fr, this message translates to:
+  /// **'Produit'**
+  String get alertsColumnItem;
+
+  /// Table column: what is physically there.
+  ///
+  /// In fr, this message translates to:
+  /// **'Stock'**
+  String get alertsColumnStock;
+
+  /// Table column: the low-stock threshold.
+  ///
+  /// In fr, this message translates to:
+  /// **'Seuil'**
+  String get alertsColumnThreshold;
+
+  /// Table column: how much is needed to get back above the threshold.
+  ///
+  /// In fr, this message translates to:
+  /// **'Manque'**
+  String get alertsColumnShortfall;
+
+  /// Table column: how much is already on its way.
+  ///
+  /// In fr, this message translates to:
+  /// **'En commande'**
+  String get alertsColumnOnOrder;
+
+  /// Table column: the stock status badge.
+  ///
+  /// In fr, this message translates to:
+  /// **'Statut'**
+  String get alertsColumnStatus;
+
   /// Notification centre heading.
   ///
   /// In fr, this message translates to:
@@ -2463,6 +2625,72 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Non lues'**
   String get notificationsFilterUnread;
+
+  /// Label of the notification type filter.
+  ///
+  /// In fr, this message translates to:
+  /// **'Type'**
+  String get notificationsFilterKind;
+
+  /// Type filter grouping low-stock and out-of-stock notifications.
+  ///
+  /// In fr, this message translates to:
+  /// **'Stock'**
+  String get notificationsKindStock;
+
+  /// Type filter for supplier price changes.
+  ///
+  /// In fr, this message translates to:
+  /// **'Prix'**
+  String get notificationsKindPrice;
+
+  /// Type filter for large stock adjustments.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ajustements'**
+  String get notificationsKindAdjustment;
+
+  /// Type filter for recorded deliveries.
+  ///
+  /// In fr, this message translates to:
+  /// **'Livraisons'**
+  String get notificationsKindDelivery;
+
+  /// Day heading above today's notifications.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aujourd\'hui'**
+  String get notificationsToday;
+
+  /// Day heading above yesterday's notifications.
+  ///
+  /// In fr, this message translates to:
+  /// **'Hier'**
+  String get notificationsYesterday;
+
+  /// Action that marks one notification read without opening what it is about.
+  ///
+  /// In fr, this message translates to:
+  /// **'Marquer comme lue'**
+  String get notificationsMarkRead;
+
+  /// Confirmation after marking a single notification read.
+  ///
+  /// In fr, this message translates to:
+  /// **'Notification marquée comme lue.'**
+  String get notificationsMarkedOneRead;
+
+  /// Empty state when the type or unread filter leaves nothing.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucune notification de ce type'**
+  String get notificationsNoneOfKind;
+
+  /// Supporting line when the notification filters leave nothing.
+  ///
+  /// In fr, this message translates to:
+  /// **'Changez le filtre pour voir les autres notifications.'**
+  String get notificationsNoneOfKindBody;
 
   /// Reports dashboard heading.
   ///

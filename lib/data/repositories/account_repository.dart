@@ -4,6 +4,7 @@ import '../../models/notification_item.dart';
 import '../database/app_database.dart';
 import '../database/meta_keys.dart';
 import '../mappers/mappers.dart';
+import 'new_id.dart';
 
 /// The notification feed, and the name every write is attributed to.
 ///
@@ -56,6 +57,63 @@ class AccountRepository {
   // ---------------------------------------------------------------------------
   // Writes — notifications
   // ---------------------------------------------------------------------------
+
+  /// Files one notification, unless the same thing was just said.
+  ///
+  /// Returns the row that was written, or null when it was suppressed.
+  ///
+  /// **The deduplication is the point.** An article sitting a hair under its
+  /// threshold produces a movement every service, and every one of them crosses
+  /// nothing — but a naive engine would file a warning each time and bury the
+  /// feed under one article. Nothing is written when a notification of the same
+  /// [kind] about the same [relatedItemId] already exists inside [window]; the
+  /// existing one is left alone rather than refreshed, so its timestamp keeps
+  /// saying when the situation actually started.
+  ///
+  /// A draft with no [relatedItemId] — a delivery — dedupes on kind alone,
+  /// which is why [window] is short for those callers.
+  Future<NotificationItem?> emit({
+    required String storeId,
+    required NotificationKind kind,
+    required String title,
+    required String body,
+    String? relatedItemId,
+    String? relatedSupplierId,
+    DateTime? createdAt,
+    Duration window = const Duration(hours: 12),
+  }) async {
+    final now = createdAt ?? DateTime.now();
+
+    final since = now.subtract(window);
+    final existing =
+        await (_db.select(_db.notifications)
+              ..where(
+                (n) =>
+                    n.storeId.equals(storeId) &
+                    n.kind.equalsValue(kind) &
+                    n.createdAt.isBiggerThanValue(since) &
+                    (relatedItemId == null
+                        ? n.relatedItemId.isNull()
+                        : n.relatedItemId.equals(relatedItemId)),
+              )
+              ..limit(1))
+            .getSingleOrNull();
+    if (existing != null) return null;
+
+    final notification = NotificationItem(
+      id: newId(),
+      storeId: storeId,
+      kind: kind,
+      title: title,
+      body: body,
+      createdAt: now,
+      isRead: false,
+      relatedItemId: relatedItemId,
+      relatedSupplierId: relatedSupplierId,
+    );
+    await _db.into(_db.notifications).insert(notificationToRow(notification));
+    return notification;
+  }
 
   /// Marks one notification read. False if it is missing or already was.
   ///

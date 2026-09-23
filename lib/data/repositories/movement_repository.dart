@@ -5,6 +5,7 @@ import '../../models/item.dart';
 import '../../models/stock_movement.dart';
 import '../database/app_database.dart';
 import '../mappers/mappers.dart';
+import '../notifications/notification_engine.dart';
 import '../view_models/item_detail_views.dart';
 import 'account_repository.dart';
 import 'new_id.dart';
@@ -367,6 +368,24 @@ class MovementRepository {
       );
 
       await _db.into(_db.stockMovements).insert(movementToRow(recorded));
+
+      // Inside the transaction, and last: the feed describes a movement that
+      // has actually been filed. `item` is the article *before* this movement,
+      // which is exactly what the crossing rules need — the engine cannot
+      // recompute it afterwards, because by then the quantity has already
+      // moved.
+      final engine = NotificationEngine(_db);
+      await engine.stockMoved(before: item, after: item.quantity + draft.quantity);
+      if (draft.type == StockMovementType.adjustment &&
+          draft.systemQuantity != null &&
+          draft.countedQuantity != null) {
+        await engine.adjustmentRecorded(
+          before: item,
+          systemQuantity: draft.systemQuantity!,
+          countedQuantity: draft.countedQuantity!,
+        );
+      }
+
       return recorded;
     });
   }
