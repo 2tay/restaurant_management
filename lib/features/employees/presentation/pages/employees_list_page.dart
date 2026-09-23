@@ -354,7 +354,8 @@ class _EmployeeGrid extends StatelessWidget {
 }
 
 /// The roster as a table — the alternative to the card grid, for scanning
-/// contact details and rates side by side. Same [DataTableWrapper] as the
+/// contact details, rates and hire dates side by side. The whole row opens
+/// the detail drawer (hand cursor), so there is no separate detail button. Same [DataTableWrapper] as the
 /// pointage history: below its minimum width it scrolls sideways rather than
 /// squeezing the columns.
 class _EmployeeTable extends StatelessWidget {
@@ -376,7 +377,7 @@ class _EmployeeTable extends StatelessWidget {
         DataColumn(label: Text(l10n.employeeFormPhone)),
         DataColumn(label: Text(l10n.employeeFormEmail)),
         DataColumn(label: Text(l10n.employeesColumnPay), numeric: true),
-        DataColumn(label: Text(l10n.employeesColumnDetail)),
+        DataColumn(label: Text(l10n.employeesColumnHired)),
       ],
       rows: [for (final e in employees) _row(context, l10n, e)],
     );
@@ -412,13 +413,7 @@ class _EmployeeTable extends StatelessWidget {
         DataCell(Text(employee.phone)),
         DataCell(Text(employee.email)),
         DataCell(Text('${Formatters.price(employee.pay)} / h')),
-        DataCell(
-          IconButton(
-            tooltip: l10n.employeesViewDetail,
-            icon: const Icon(LucideIcons.eye, size: AppSizing.iconSm),
-            onPressed: () => onOpen(employee),
-          ),
-        ),
+        DataCell(Text(Formatters.date(employee.hireDate))),
       ],
     );
   }

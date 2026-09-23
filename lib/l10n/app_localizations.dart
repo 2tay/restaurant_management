@@ -4090,17 +4090,11 @@ abstract class AppLocalizations {
   /// **'Tarif'**
   String get employeesColumnPay;
 
-  /// Staff roster table: the column holding the open-detail button.
+  /// Staff roster table: the hire-date column.
   ///
   /// In fr, this message translates to:
-  /// **'Détail'**
-  String get employeesColumnDetail;
-
-  /// Tooltip on the button opening an employee's detail drawer.
-  ///
-  /// In fr, this message translates to:
-  /// **'Voir le détail'**
-  String get employeesViewDetail;
+  /// **'Embauché le'**
+  String get employeesColumnHired;
 
   /// Employee drawer: link to the full attendance history, under the most recent days.
   ///

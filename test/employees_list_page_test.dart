@@ -36,22 +36,14 @@ Future<void> _toList(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
-/// A `DataRow` is not a widget, so there is nothing per row to scope a finder
-/// to: the eye button is picked by Karim's position among the table's rows.
+/// The whole row opens the drawer — tap Karim's name in the table.
 Future<void> _openKarimFromList(WidgetTester tester) async {
-  final table = tester.widget<DataTable>(find.byType(DataTable));
-  final index = table.rows.indexWhere(
-    (r) => r.key == const ValueKey('employee-row-${EmployeeIds.karim}'),
+  final name = find.descendant(
+    of: find.byType(DataTable),
+    matching: find.text(_karim),
   );
-  expect(index, isNonNegative);
-  final eye = find
-      .descendant(
-        of: find.byType(DataTable),
-        matching: find.widgetWithIcon(IconButton, LucideIcons.eye),
-      )
-      .at(index);
-  await tester.ensureVisible(eye);
-  await tester.tap(eye);
+  await tester.ensureVisible(name);
+  await tester.tap(name);
   await tester.pumpAndSettle();
 }
 
@@ -529,6 +521,65 @@ void main() {
     await tester.tap(find.byTooltip('Vue grille'));
     await tester.pumpAndSettle();
     expect(find.byType(DataTable), findsNothing);
+  });
+
+  testApp('the table: no Détail column, a hire-date column, a hand cursor '
+      'on every row', (tester) async {
+    final db = await _open(tester);
+    await _toList(tester);
+    final karim = (await EmployeeRepository(db).employee(EmployeeIds.karim))!;
+
+    final table = tester.widget<DataTable>(find.byType(DataTable));
+    final headers = [
+      for (final c in table.columns) (c.label as Text).data,
+    ];
+    expect(headers, isNot(contains('Détail')));
+    expect(headers.last, 'Embauché le');
+    expect(
+      find.descendant(
+        of: find.byType(DataTable),
+        matching: find.text(Formatters.date(karim.hireDate)),
+      ),
+      findsWidgets,
+    );
+    expect(
+      find.descendant(
+        of: find.byType(DataTable),
+        matching: find.byIcon(LucideIcons.eye),
+      ),
+      findsNothing,
+    );
+    for (final row in table.rows) {
+      expect(
+        row.mouseCursor?.resolve(const <WidgetState>{}),
+        SystemMouseCursors.click,
+      );
+    }
+  });
+
+  testApp('every table: #F5F5F5 header, hairline frame, square corners', (
+    tester,
+  ) async {
+    await _open(tester);
+    await _toList(tester);
+
+    final table = tester.widget<DataTable>(find.byType(DataTable));
+    expect(
+      table.headingRowColor?.resolve(const <WidgetState>{}),
+      const Color(0xFFF5F5F5),
+    );
+    expect(table.dividerThickness, 0.5);
+    final frame = tester.widget<Container>(
+      find
+          .descendant(
+            of: find.byType(DataTableWrapper),
+            matching: find.byType(Container),
+          )
+          .first,
+    );
+    final decoration = frame.decoration! as BoxDecoration;
+    expect(decoration.borderRadius, isNull);
+    expect((decoration.border! as Border).top.width, 0.5);
   });
 
   testApp('a card opens the detail drawer, not a page', (tester) async {

@@ -124,6 +124,9 @@ abstract final class AppColors {
   /// readable, yet clearly not a value.
   static const Color placeholder = Color(0xFF777777);
 
+  /// The heading row of every data table — a flat light grey.
+  static const Color tableHeader = Color(0xFFF5F5F5);
+
   /// A near-invisible edge for elevated surfaces. Cards are separated by their
   /// shadow, not by an outline; this only stops white-on-white going mushy at
   /// the boundary.

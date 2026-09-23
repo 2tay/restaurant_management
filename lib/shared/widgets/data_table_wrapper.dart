@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_colors.dart';
-import '../../core/theme/app_spacing.dart';
 
 /// A bordered, horizontally scrollable container for a [DataTable].
 ///
@@ -44,19 +43,38 @@ class _DataTableWrapperState extends State<DataTableWrapper> {
     super.dispose();
   }
 
+  /// Hairline width for the table's frame and row dividers.
+  static const double _rule = 0.5;
+
+  /// A row that opens something gets the hand cursor, like a link — callers
+  /// build their rows without having to remember it.
+  static DataRow _withCursor(DataRow row) {
+    if (row.onSelectChanged == null || row.mouseCursor != null) return row;
+    return DataRow(
+      key: row.key,
+      selected: row.selected,
+      onSelectChanged: row.onSelectChanged,
+      onLongPress: row.onLongPress,
+      color: row.color,
+      mouseCursor: const WidgetStatePropertyAll(SystemMouseCursors.click),
+      cells: row.cells,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final columns = widget.columns;
-    final rows = widget.rows;
+    final rows = [for (final row in widget.rows) _withCursor(row)];
     final minWidth = widget.minWidth;
     final sortColumnIndex = widget.sortColumnIndex;
     final sortAscending = widget.sortAscending;
 
+    // Square corners and a hairline frame: the table reads as part of the
+    // page rather than as a card floating on it.
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: AppRadius.lgAll,
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: AppColors.border, width: _rule),
       ),
       clipBehavior: Clip.antiAlias,
       child: LayoutBuilder(
@@ -78,9 +96,9 @@ class _DataTableWrapperState extends State<DataTableWrapper> {
               sortColumnIndex: sortColumnIndex,
               sortAscending: sortAscending,
               headingRowColor: const WidgetStatePropertyAll(
-                AppColors.surfaceVariant,
+                AppColors.tableHeader,
               ),
-              dividerThickness: 1,
+              dividerThickness: _rule,
               showCheckboxColumn: false,
             ),
           );

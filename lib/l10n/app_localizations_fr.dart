@@ -2470,10 +2470,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get employeesColumnPay => 'Tarif';
 
   @override
-  String get employeesColumnDetail => 'Détail';
-
-  @override
-  String get employeesViewDetail => 'Voir le détail';
+  String get employeesColumnHired => 'Embauché le';
 
   @override
   String get employeeHistorySeeAll => 'Voir tout l\'historique';
