@@ -2469,6 +2469,27 @@ class AppLocalizationsFr extends AppLocalizations {
   String get employeeFormBackHome => 'Retour à l\'accueil';
 
   @override
+  String get employeeFormFirstNameHint => 'Ex. Nora';
+
+  @override
+  String get employeeFormLastNameHint => 'Ex. Benali';
+
+  @override
+  String get employeeFormPhoneHint => '+32 470 12 34 56';
+
+  @override
+  String get employeeFormEmailHint => 'prenom.nom@exemple.be';
+
+  @override
+  String get employeeFormPayHint => 'Ex. 15,50';
+
+  @override
+  String get employeeFormPasswordConfirmHint => 'Répétez les 4 chiffres';
+
+  @override
+  String get employeeFormPhotoHelp => 'Facultatif · JPG ou PNG';
+
+  @override
   String get employeeFormPayHelp =>
       'Payé à l\'heure réellement travaillée, pauses déduites.';
 

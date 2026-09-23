@@ -166,6 +166,11 @@ class AppTextField extends StatelessWidget {
                   )
                 : null,
             hintText: hint,
+            hintStyle: plain
+                ? theme.textTheme.bodyLarge?.copyWith(
+                    color: AppColors.placeholder,
+                  )
+                : null,
             helperText: helperText,
             errorText: errorText,
             prefixIcon: prefixIcon == null ? null : Icon(prefixIcon),

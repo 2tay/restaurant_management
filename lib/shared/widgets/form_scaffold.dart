@@ -40,6 +40,7 @@ class FormScaffold extends StatelessWidget {
     this.submitSecondary,
     this.forwardActions = const [],
     this.headerBackLinkLabel,
+    this.centered = false,
     this.maxWidth = 760,
     super.key,
   });
@@ -86,6 +87,10 @@ class FormScaffold extends StatelessWidget {
   /// It goes through the same unsaved-input guard.
   final String? headerBackLinkLabel;
 
+  /// Centres the form column — header, body and the action bar's buttons —
+  /// in the window, instead of holding it to the left edge.
+  final bool centered;
+
   final double maxWidth;
 
   final Widget child;
@@ -118,8 +123,11 @@ class FormScaffold extends StatelessWidget {
         ],
         onBack: () => _leave(context),
         maxContentWidth: maxWidth,
+        centerContent: centered,
+        alignActionsWithTitle: headerBackLinkLabel != null,
         footer: _ActionBar(
           maxWidth: maxWidth,
+          centered: centered,
           leading: [
             SecondaryButton(
               label: l10n.actionCancel,
@@ -187,6 +195,7 @@ class _ActionBar extends StatelessWidget {
     required this.leading,
     required this.trailing,
     required this.maxWidth,
+    required this.centered,
   });
 
   /// Dismissive actions, left to right. Cancel first.
@@ -196,6 +205,7 @@ class _ActionBar extends StatelessWidget {
   final List<Widget> trailing;
 
   final double maxWidth;
+  final bool centered;
 
   @override
   Widget build(BuildContext context) {
@@ -209,7 +219,7 @@ class _ActionBar extends StatelessWidget {
         vertical: AppSpacing.lg,
       ),
       child: Align(
-        alignment: Alignment.topLeft,
+        alignment: centered ? Alignment.topCenter : Alignment.topLeft,
         child: ConstrainedBox(
           constraints: BoxConstraints(maxWidth: maxWidth),
           child: LayoutBuilder(

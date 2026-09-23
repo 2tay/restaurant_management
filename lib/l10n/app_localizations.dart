@@ -4084,6 +4084,48 @@ abstract class AppLocalizations {
   /// **'Retour à l\'accueil'**
   String get employeeFormBackHome;
 
+  /// Placeholder of the first-name field.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ex. Nora'**
+  String get employeeFormFirstNameHint;
+
+  /// Placeholder of the last-name field.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ex. Benali'**
+  String get employeeFormLastNameHint;
+
+  /// Placeholder of the phone field.
+  ///
+  /// In fr, this message translates to:
+  /// **'+32 470 12 34 56'**
+  String get employeeFormPhoneHint;
+
+  /// Placeholder of the email field.
+  ///
+  /// In fr, this message translates to:
+  /// **'prenom.nom@exemple.be'**
+  String get employeeFormEmailHint;
+
+  /// Placeholder of the hourly-rate field.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ex. 15,50'**
+  String get employeeFormPayHint;
+
+  /// Placeholder of the confirm-password field.
+  ///
+  /// In fr, this message translates to:
+  /// **'Répétez les 4 chiffres'**
+  String get employeeFormPasswordConfirmHint;
+
+  /// Help line beside the photo button on the employee form.
+  ///
+  /// In fr, this message translates to:
+  /// **'Facultatif · JPG ou PNG'**
+  String get employeeFormPhotoHelp;
+
   /// Employee wizard, pay step: how the hourly rate is applied.
   ///
   /// In fr, this message translates to:

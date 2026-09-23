@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../app/navigation.dart';
+import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../l10n/app_localizations.dart';
 import 'form_scaffold.dart';
@@ -58,7 +59,7 @@ class WizardScaffold extends StatelessWidget {
     this.submitIcon,
     this.isDirty = false,
     this.freeNavigation = false,
-    this.maxWidth = 760,
+    this.maxWidth = 900,
     super.key,
   }) : assert(steps.length > 1, 'a wizard has at least two steps');
 
@@ -111,6 +112,7 @@ class WizardScaffold extends StatelessWidget {
       keepSubtitle: true,
       back: back,
       headerBackLinkLabel: backLinkLabel,
+      centered: true,
       isDirty: isDirty,
       maxWidth: maxWidth,
       forwardActions: [
@@ -140,6 +142,8 @@ class WizardScaffold extends StatelessWidget {
                 ? _stepsBeforeValid(i)
                 : i < currentStep,
           ),
+          const SizedBox(height: AppSpacing.lg),
+          const Divider(height: 1, color: AppColors.border),
           const SizedBox(height: AppSpacing.xl),
           KeyedSubtree(
             key: ValueKey('wizard-page-$currentStep'),

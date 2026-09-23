@@ -281,6 +281,45 @@ void main() {
       );
     });
 
+    testWidgets('centred column: the back link and the primary button share '
+        'its right edge', (tester) async {
+      _size(tester, const Size(1800, 900));
+      await tester.pumpWidget(
+        _host(_Harness(valid: const [true, true, true], onSubmit: () {})),
+      );
+
+      final link = tester.getTopRight(find.text("Retour à l'accueil")).dx;
+      final next = tester.getTopRight(_button('Suivant').first).dx;
+      final title = tester.getTopLeft(find.text('Ajouter')).dx;
+      // Same right edge (±24dp of button padding), well inside the window…
+      expect((link - next).abs(), lessThan(24));
+      expect(next, lessThan(1800 - 300));
+      // …and the column is centred rather than pinned to the left.
+      expect(title, greaterThan(300));
+      // The link sits on the title line, not the middle of the header.
+      expect(
+        tester.getTopLeft(find.text("Retour à l'accueil")).dy,
+        lessThan(tester.getTopLeft(find.text('Trois étapes.')).dy),
+      );
+    });
+
+    testWidgets('plain fields show their placeholder in #777', (tester) async {
+      _size(tester, const Size(1280, 800));
+      await tester.pumpWidget(
+        _host(
+          const AppTextFieldVariantScope(
+            variant: AppTextFieldVariant.plain,
+            child: AppTextField(label: 'Prénom', hint: 'Ex. Nora'),
+          ),
+        ),
+      );
+      final decoration = tester
+          .widget<TextField>(find.byType(TextField))
+          .decoration!;
+      expect(decoration.hintStyle?.color, const Color(0xFF777777));
+      expect(find.text('Ex. Nora'), findsOneWidget);
+    });
+
     testWidgets('fits a phone', (tester) async {
       _size(tester, const Size(390, 844));
       await tester.pumpWidget(

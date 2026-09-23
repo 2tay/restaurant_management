@@ -288,6 +288,7 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
             Expanded(
               child: AppTextField(
                 label: l10n.employeeFormFirstName,
+                hint: l10n.employeeFormFirstNameHint,
                 controller: _firstName,
                 prefixIcon: LucideIcons.user,
                 autofocus: !_isEditing,
@@ -298,6 +299,7 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
             Expanded(
               child: AppTextField(
                 label: l10n.employeeFormLastName,
+                hint: l10n.employeeFormLastNameHint,
                 controller: _lastName,
                 onChanged: (_) => setState(() {}),
               ),
@@ -307,6 +309,7 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
         const SizedBox(height: AppSpacing.lg),
         AppTextField(
           label: l10n.employeeFormPin,
+          hint: l10n.loginPinHint,
           controller: _pin,
           prefixIcon: LucideIcons.idCard,
           errorText: _pinTaken ? l10n.employeePinTaken : null,
@@ -319,6 +322,7 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
             Expanded(
               child: AppTextField(
                 label: l10n.employeeFormPhone,
+                hint: l10n.employeeFormPhoneHint,
                 controller: _phone,
                 prefixIcon: LucideIcons.phone,
                 keyboardType: TextInputType.phone,
@@ -329,6 +333,7 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
             Expanded(
               child: AppTextField(
                 label: l10n.employeeFormEmail,
+                hint: l10n.employeeFormEmailHint,
                 controller: _email,
                 prefixIcon: LucideIcons.mail,
                 keyboardType: TextInputType.emailAddress,
@@ -349,26 +354,38 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
             const SizedBox(width: AppSpacing.lg),
             Expanded(
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  SecondaryButton(
-                    label: _hasPhoto
-                        ? l10n.employeeFormPhotoReplace
-                        : l10n.employeeFormPhotoAction,
-                    icon: LucideIcons.camera,
-                    onPressed: _pickPhoto,
-                  ),
-                  if (_hasPhoto) ...[
-                    const SizedBox(height: AppSpacing.sm),
-                    TextButton.icon(
-                      onPressed: _removePhoto,
-                      icon: const Icon(
-                        LucideIcons.trash2,
-                        size: AppSizing.iconSm,
+                  Wrap(
+                    spacing: AppSpacing.sm,
+                    runSpacing: AppSpacing.sm,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      SecondaryButton(
+                        label: _hasPhoto
+                            ? l10n.employeeFormPhotoReplace
+                            : l10n.employeeFormPhotoAction,
+                        icon: LucideIcons.camera,
+                        onPressed: _pickPhoto,
                       ),
-                      label: Text(l10n.employeeFormPhotoRemove),
+                      if (_hasPhoto)
+                        TextButton.icon(
+                          onPressed: _removePhoto,
+                          icon: const Icon(
+                            LucideIcons.trash2,
+                            size: AppSizing.iconSm,
+                          ),
+                          label: Text(l10n.employeeFormPhotoRemove),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.xs),
+                  Text(
+                    l10n.employeeFormPhotoHelp,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppColors.textSecondary,
                     ),
-                  ],
+                  ),
                 ],
               ),
             ),
@@ -385,6 +402,7 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
       children: [
         AppTextField(
           label: l10n.employeeFormPayHourly,
+          hint: l10n.employeeFormPayHint,
           controller: _pay,
           prefixIcon: LucideIcons.wallet,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -435,6 +453,7 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
             Expanded(
               child: AppTextField(
                 label: l10n.employeeFormPassword,
+                hint: l10n.loginPasswordHint,
                 controller: _password,
                 prefixIcon: LucideIcons.lock,
                 obscureText: true,
@@ -450,6 +469,7 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
             Expanded(
               child: AppTextField(
                 label: l10n.employeeFormPasswordConfirm,
+                hint: l10n.employeeFormPasswordConfirmHint,
                 controller: _passwordConfirm,
                 prefixIcon: LucideIcons.lock,
                 obscureText: true,

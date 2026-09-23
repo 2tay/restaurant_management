@@ -106,7 +106,7 @@ class WizardStepIndicator extends StatelessWidget {
           if (i > 0)
             Expanded(
               child: Container(
-                height: 2,
+                height: 3,
                 margin: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
                 color: i <= current ? AppColors.primary600 : AppColors.border,
               ),
@@ -149,31 +149,38 @@ class _StepChip extends StatelessWidget {
     final theme = Theme.of(context);
     final active = state != _StepState.upcoming;
 
+    // Current and done are both solid teal — the current one also carries a
+    // soft halo, so "where am I" reads at a glance; upcoming steps are a grey
+    // outline.
     final dot = Container(
       width: 32,
       height: 32,
       alignment: Alignment.center,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: switch (state) {
-          _StepState.done => AppColors.primary600,
-          _StepState.current => AppColors.primaryContainer,
-          _StepState.upcoming => AppColors.surface,
-        },
-        border: Border.all(
-          color: active ? AppColors.primary600 : AppColors.borderStrong,
-          width: 2,
-        ),
+        color: active ? AppColors.primary600 : AppColors.surface,
+        border: active
+            ? null
+            : Border.all(color: AppColors.borderStrong, width: 2),
+        boxShadow: state == _StepState.current
+            ? const [
+                BoxShadow(
+                  color: AppColors.primaryContainer,
+                  spreadRadius: 4,
+                ),
+              ]
+            : null,
       ),
       child: state == _StepState.done
-          ? const Icon(LucideIcons.check, size: AppSizing.iconSm,
-              color: Colors.white)
+          ? const Icon(
+              LucideIcons.check,
+              size: AppSizing.iconSm,
+              color: Colors.white,
+            )
           : Text(
               '$number',
               style: theme.textTheme.labelLarge?.copyWith(
-                color: active
-                    ? AppColors.onPrimaryContainer
-                    : AppColors.textSecondary,
+                color: active ? Colors.white : AppColors.textSecondary,
               ),
             ),
     );

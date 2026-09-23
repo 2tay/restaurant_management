@@ -120,6 +120,10 @@ abstract final class AppColors {
   static const Color border = Color(0xFFD6DCE1);
   static const Color borderStrong = Color(0xFFB4BDC4);
 
+  /// Placeholder text in the plain (wizard) fields. #777 is 4.5:1 on white —
+  /// readable, yet clearly not a value.
+  static const Color placeholder = Color(0xFF777777);
+
   /// A near-invisible edge for elevated surfaces. Cards are separated by their
   /// shadow, not by an outline; this only stops white-on-white going mushy at
   /// the boundary.

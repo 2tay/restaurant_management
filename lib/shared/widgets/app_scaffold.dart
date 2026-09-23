@@ -332,6 +332,8 @@ class ShellPage extends StatelessWidget {
     this.tabs,
     this.footer,
     this.maxContentWidth,
+    this.centerContent = false,
+    this.alignActionsWithTitle = false,
     super.key,
   });
 
@@ -378,6 +380,15 @@ class ShellPage extends StatelessWidget {
   /// uncomfortable to read regardless of how much room there is.
   final double? maxContentWidth;
 
+  /// Centres the [maxContentWidth] column in the page instead of holding it
+  /// to the left edge — for a focused, single-task screen (a wizard) whose
+  /// header action must sit at the column's right, not mid-window.
+  final bool centerContent;
+
+  /// Aligns [actions] with the title line rather than the middle of the
+  /// title + subtitle block — right for a link, which reads with the title.
+  final bool alignActionsWithTitle;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -410,6 +421,7 @@ class ShellPage extends StatelessWidget {
             subtitle: subtitle,
             keepSubtitle: keepSubtitle,
             actions: actions,
+            alignActionsWithTitle: alignActionsWithTitle,
             theme: theme,
           ),
           if (tabs != null) ...[const SizedBox(height: AppSpacing.lg), tabs!],
@@ -427,7 +439,7 @@ class ShellPage extends StatelessWidget {
 
     if (maxContentWidth != null) {
       body = Align(
-        alignment: Alignment.topLeft,
+        alignment: centerContent ? Alignment.topCenter : Alignment.topLeft,
         child: ConstrainedBox(
           constraints: BoxConstraints(maxWidth: maxContentWidth!),
           child: body,
@@ -463,6 +475,7 @@ class _TitleRow extends StatelessWidget {
     required this.subtitle,
     required this.keepSubtitle,
     required this.actions,
+    required this.alignActionsWithTitle,
     required this.theme,
   });
 
@@ -470,6 +483,7 @@ class _TitleRow extends StatelessWidget {
   final String? subtitle;
   final bool keepSubtitle;
   final List<Widget> actions;
+  final bool alignActionsWithTitle;
   final ThemeData theme;
 
   @override
@@ -537,7 +551,9 @@ class _TitleRow extends StatelessWidget {
           width: constraints.maxWidth.isFinite ? constraints.maxWidth : null,
           child: Wrap(
             alignment: WrapAlignment.spaceBetween,
-            crossAxisAlignment: WrapCrossAlignment.center,
+            crossAxisAlignment: alignActionsWithTitle
+                ? WrapCrossAlignment.start
+                : WrapCrossAlignment.center,
             spacing: AppSpacing.xl,
             runSpacing: AppSpacing.lg,
             children: [
