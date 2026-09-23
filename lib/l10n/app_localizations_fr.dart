@@ -2437,6 +2437,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get employeesKpiManagers => 'Gérants';
 
   @override
+  String get employeesKpiAverageRate => 'Tarif moyen';
+
+  @override
   String get employeesKpiHiredThisMonth => 'Embauches ce mois';
 
   @override

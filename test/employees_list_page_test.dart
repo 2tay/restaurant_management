@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:stock_inventory/app/router.dart';
 import 'package:stock_inventory/app/routes.dart';
+import 'package:stock_inventory/core/utils/formatters.dart';
 import 'package:stock_inventory/data/database/app_database.dart';
 import 'package:stock_inventory/data/repositories/repositories.dart';
 import 'package:stock_inventory/data/seed/dataset/dataset.dart';
@@ -61,6 +62,55 @@ void main() {
     expect(find.byType(ViewModeToggle), findsOneWidget);
     expect(find.byType(DataTable), findsNothing);
     expect(find.text(_karim), findsOneWidget);
+  });
+
+  testApp('a 4th KPI: the average hourly rate of the active roster', (
+    tester,
+  ) async {
+    final db = await _open(tester);
+    final active = await EmployeeRepository(db).activeEmployees(StoreIds.sablon);
+    final average =
+        active.map((e) => e.pay).reduce((a, b) => a + b) / active.length;
+
+    final tile = find.byKey(const ValueKey('kpi-average-rate'));
+    expect(tile, findsOneWidget);
+    expect(
+      find.descendant(of: tile, matching: find.text('Tarif moyen')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: tile,
+        matching: find.text('${Formatters.price(average)} /h'),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testApp('search, archived filter and view toggle share one line, the '
+      'controls under the 4th KPI', (tester) async {
+    await _open(tester);
+
+    final search = tester.getRect(find.byType(SearchField));
+    final toggle = tester.getRect(find.byType(ViewModeToggle));
+    final kpi = tester.getRect(find.byKey(const ValueKey('kpi-average-rate')));
+
+    // Same line…
+    expect((search.center.dy - toggle.center.dy).abs(), lessThan(8));
+    // …the toggle's right edge on the 4th KPI's, the search on the left.
+    expect((toggle.right - kpi.right).abs(), lessThan(1));
+    expect(search.left, lessThan(kpi.left));
+    expect(toggle.left, greaterThan(kpi.left - 400));
+  });
+
+  testApp('on a phone the two controls move under the search', (tester) async {
+    await _open(tester);
+    tester.view.physicalSize = const Size(390, 844);
+    await tester.pumpAndSettle();
+
+    final search = tester.getRect(find.byType(SearchField));
+    final toggle = tester.getRect(find.byType(ViewModeToggle));
+    expect(toggle.top, greaterThan(search.bottom));
   });
 
   testApp('the toggle switches to the table and back', (tester) async {

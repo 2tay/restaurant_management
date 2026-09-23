@@ -4024,6 +4024,12 @@ abstract class AppLocalizations {
   /// **'Gérants'**
   String get employeesKpiManagers;
 
+  /// Staff roster KPI: mean hourly rate of the active employees.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tarif moyen'**
+  String get employeesKpiAverageRate;
+
   /// Roster KPI: employees hired this calendar month.
   ///
   /// In fr, this message translates to:

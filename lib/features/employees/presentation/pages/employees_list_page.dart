@@ -87,21 +87,17 @@ class _EmployeesListPageState extends ConsumerState<EmployeesListPage> {
               hint: l10n.employeesSearchHint,
               onChanged: (value) => setState(() => _query = value),
             );
-            final controls = [
-              Flexible(
-                child: _ArchivedFilterPill(
-                  active: _showArchived,
-                  onTap: () => setState(() => _showArchived = !_showArchived),
-                ),
-              ),
-              const SizedBox(width: AppSpacing.md),
-              ViewModeToggle(
-                mode: _viewMode,
-                onSelected: (mode) => setState(() => _viewMode = mode),
-              ),
-            ];
-            // On a phone the search, the pill and the toggle do not fit one
-            // line; the search takes its own, the two controls sit under it.
+            final pill = _ArchivedFilterPill(
+              active: _showArchived,
+              onTap: () => setState(() => _showArchived = !_showArchived),
+            );
+            final toggle = ViewModeToggle(
+              mode: _viewMode,
+              onSelected: (mode) => setState(() => _viewMode = mode),
+            );
+            // One line: the search on the left, the two controls at the right
+            // edge — under the last KPI. On a phone they do not fit one line;
+            // the search takes its own, the two controls sit under it.
             if (constraints.maxWidth < AppBreakpoints.compact) {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -110,7 +106,14 @@ class _EmployeesListPageState extends ConsumerState<EmployeesListPage> {
                   const SizedBox(height: AppSpacing.sm),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: controls,
+                    children: [
+                      // Flexible only here, where the line is short: beside
+                      // an Expanded search it would split the free space and
+                      // leave the controls short of the right edge.
+                      Flexible(child: pill),
+                      const SizedBox(width: AppSpacing.md),
+                      toggle,
+                    ],
                   ),
                 ],
               );
@@ -119,7 +122,9 @@ class _EmployeesListPageState extends ConsumerState<EmployeesListPage> {
               children: [
                 Expanded(child: search),
                 const SizedBox(width: AppSpacing.md),
-                ...controls,
+                pill,
+                const SizedBox(width: AppSpacing.md),
+                toggle,
               ],
             );
           },
@@ -164,7 +169,8 @@ class _EmployeesListPageState extends ConsumerState<EmployeesListPage> {
   }
 }
 
-/// Four counts over the whole roster (active only), independent of the search
+/// Four figures over the whole roster (active only) — three counts and the
+/// average hourly rate — independent of the search
 /// below — the same split the reports pages use between a headline total and
 /// a filtered result count.
 class _KpiRow extends StatelessWidget {
@@ -187,6 +193,11 @@ class _KpiRow extends StatelessWidget {
           (e) => e.hireDate.year == now.year && e.hireDate.month == now.month,
         )
         .length;
+    // Mean hourly rate of the active roster — what an hour of staff costs on
+    // average. A dash, not "0,00 €", when nobody is active.
+    final averageRate = active.isEmpty
+        ? null
+        : active.map((e) => e.pay).reduce((a, b) => a + b) / active.length;
 
     return StatTileRow(
       tiles: [
@@ -204,6 +215,14 @@ class _KpiRow extends StatelessWidget {
           label: l10n.employeesKpiHiredThisMonth,
           value: '$hiredThisMonth',
           icon: LucideIcons.userPlus,
+        ),
+        StatTile(
+          key: const ValueKey('kpi-average-rate'),
+          label: l10n.employeesKpiAverageRate,
+          value: averageRate == null
+              ? '—'
+              : '${Formatters.price(averageRate)} /h',
+          icon: LucideIcons.wallet,
         ),
       ],
     );
