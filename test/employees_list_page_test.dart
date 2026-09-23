@@ -36,17 +36,6 @@ Future<void> _toList(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
-/// The whole row opens the drawer — tap Karim's name in the table.
-Future<void> _openKarimFromList(WidgetTester tester) async {
-  final name = find.descendant(
-    of: find.byType(DataTable),
-    matching: find.text(_karim),
-  );
-  await tester.ensureVisible(name);
-  await tester.tap(name);
-  await tester.pumpAndSettle();
-}
-
 void main() {
   testApp('opens on the card grid, with the toggle on cards', (tester) async {
     await _open(tester);
@@ -255,12 +244,12 @@ void main() {
     expect(y(amelie.phone), greaterThan(y('Amélie Vandenberghe')));
     expect(y('Salaire horaire'), greaterThan(y(amelie.email)));
     expect(tester.getTopLeft(hired).dy, greaterThan(y('Salaire horaire')));
-    // No hover effect on the card.
+    // Not a button: no tap handler, so no hover effect either.
     expect(
       tester.widget<AppCard>(
         find.descendant(of: card, matching: find.byType(AppCard)).first,
-      ).hoverFeedback,
-      isFalse,
+      ).onTap,
+      isNull,
     );
     // A little room between each icon and its text.
     final phoneLine = find
@@ -356,9 +345,14 @@ void main() {
 
     await tester.tap(menu);
     await tester.pumpAndSettle();
-    for (final label in ['Modifier', 'Retirer']) {
+    for (final label in [
+      'Historique pointage',
+      'Historique paiement',
+      'Modifier',
+      'Retirer',
+    ]) {
       final item = find.ancestor(
-        of: find.text(label),
+        of: find.text(label).last, // the menu, over the sidebar
         matching: find.byType(Row),
       );
       expect(
@@ -367,30 +361,6 @@ void main() {
         reason: label,
       );
     }
-  });
-
-  testApp('the card whose drawer is open keeps the hover outline', (
-    tester,
-  ) async {
-    await _open(tester);
-    AppCard cardOf(String id) => tester.widget<AppCard>(
-      find
-          .descendant(
-            of: find.byKey(ValueKey('employee-card-$id')),
-            matching: find.byType(AppCard),
-          )
-          .first,
-    );
-    expect(cardOf(EmployeeIds.karim).selected, isFalse);
-
-    await tester.tap(find.text(_karim));
-    await tester.pumpAndSettle();
-    expect(cardOf(EmployeeIds.karim).selected, isTrue);
-    expect(cardOf(EmployeeIds.amelie).selected, isFalse);
-
-    await tester.tap(find.byTooltip('Fermer'));
-    await tester.pumpAndSettle();
-    expect(cardOf(EmployeeIds.karim).selected, isFalse);
   });
 
   testApp('the card menu: Modifier opens the edit pop-up', (tester) async {
@@ -408,7 +378,6 @@ void main() {
     await tester.tap(find.text('Modifier'));
     await tester.pumpAndSettle();
     expect(find.byType(WizardDialog), findsOneWidget);
-    expect(find.byType(DetailDrawer), findsNothing);
   });
 
   testApp('the card menu: Retirer asks, then archives', (tester) async {
@@ -551,8 +520,8 @@ void main() {
     expect(find.byType(DataTable), findsNothing);
   });
 
-  testApp('the table: no Détail column, a hire-date column, a hand cursor '
-      'on every row', (tester) async {
+  testApp('the table: no Détail column, a hire-date column, rows are not '
+      'links', (tester) async {
     final db = await _open(tester);
     await _toList(tester);
     final karim = (await EmployeeRepository(db).employee(EmployeeIds.karim))!;
@@ -562,7 +531,7 @@ void main() {
       for (final c in table.columns) (c.label as Text).data,
     ];
     expect(headers, isNot(contains('Détail')));
-    expect(headers.last, 'Embauché le');
+    expect(headers[headers.length - 2], 'Embauché le');
     expect(
       find.descendant(
         of: find.byType(DataTable),
@@ -577,10 +546,11 @@ void main() {
       ),
       findsNothing,
     );
+    // Nothing opens on a row click, so no hand cursor.
     for (final row in table.rows) {
       expect(
         row.mouseCursor?.resolve(const <WidgetState>{}),
-        SystemMouseCursors.click,
+        SystemMouseCursors.basic,
       );
     }
   });
@@ -619,102 +589,141 @@ void main() {
     expect(tester.getTopLeft(cover).dy - tableTop, headingHeight);
   });
 
-  testApp('a card opens the detail drawer, not a page', (tester) async {
-    await _open(tester);
-    final location = appRouter.routerDelegate.currentConfiguration.uri
-        .toString();
 
-    await tester.tap(find.text(_karim));
-    await tester.pumpAndSettle();
-
-    expect(tester.takeException(), isNull);
-    expect(find.byType(DetailDrawer), findsOneWidget);
-    expect(find.text('Coordonnées'), findsOneWidget);
-    // In the drawer (the card behind shows the email too).
-    expect(
-      find.descendant(
-        of: find.byType(DetailDrawer),
-        matching: find.text('karim.haddouch@brasserie-sablon.be'),
-      ),
-      findsOneWidget,
-    );
-    // Still on the roster underneath.
-    expect(
-      appRouter.routerDelegate.currentConfiguration.uri.toString(),
-      location,
-    );
-
-    await tester.tap(find.byTooltip('Fermer'));
-    await tester.pumpAndSettle();
-    expect(find.byType(DetailDrawer), findsNothing);
-  });
-
-  testApp('a table row opens the same drawer', (tester) async {
-    await _open(tester);
-    await _toList(tester);
-    await _openKarimFromList(tester);
-
-    expect(find.byType(DetailDrawer), findsOneWidget);
-    expect(find.text('karim.haddouch@brasserie-sablon.be'), findsWidgets);
-  });
-
-  testApp('Modifier in the drawer closes it and opens the edit pop-up', (
-    tester,
-  ) async {
+  testApp('a plain click on a card opens nothing', (tester) async {
     await _open(tester);
     await tester.tap(find.text(_karim));
     await tester.pumpAndSettle();
-
-    await tester.tap(
-      find.descendant(
-        of: find.byType(DetailDrawer),
-        matching: find.widgetWithText(SecondaryButton, 'Modifier'),
-      ),
-    );
-    await tester.pumpAndSettle();
-
     expect(find.byType(DetailDrawer), findsNothing);
-    // The edit wizard opens as a pop-up over the roster.
-    expect(find.byType(WizardDialog), findsOneWidget);
+    expect(find.byType(WizardDialog), findsNothing);
     expect(
       appRouter.routerDelegate.currentConfiguration.uri.toString(),
       Routes.toEmployees(StoreIds.sablon),
     );
   });
 
-  testApp('Retirer in the drawer archives, and the drawer follows', (
+  testApp('card menu → Historique pointage: the history, filtered to them', (
     tester,
   ) async {
-    final db = await _open(tester);
-    await tester.tap(find.text(_karim));
-    await tester.pumpAndSettle();
-
-    final retire = find.descendant(
-      of: find.byType(DetailDrawer),
-      matching: find.widgetWithText(DestructiveButton, 'Retirer'),
+    await _open(tester);
+    final card = find.byKey(const ValueKey('employee-card-${EmployeeIds.karim}'));
+    await tester.tap(
+      find.descendant(
+        of: card,
+        matching: find.byKey(const ValueKey('employee-card-menu')),
+      ),
     );
-    await tester.ensureVisible(retire);
-    await tester.tap(retire);
     await tester.pumpAndSettle();
-    // The confirmation dialog's own button.
-    await tester.tap(find.widgetWithText(FilledButton, 'Retirer').last);
+    // .last: the sidebar has an entry with the same label; the menu is on top.
+    await tester.tap(find.text('Historique pointage').last);
     await tester.pumpAndSettle();
 
-    final karim = await EmployeeRepository(db).employee(EmployeeIds.karim);
-    expect(karim!.archivedAt, isNotNull);
-    // The open drawer re-renders as archived: Restaurer replaces Retirer.
+    expect(
+      appRouter.routerDelegate.currentConfiguration.uri.toString(),
+      Routes.toAttendanceHistory(
+        StoreIds.sablon,
+        employeeId: EmployeeIds.karim,
+      ),
+    );
     expect(
       find.descendant(
-        of: find.byType(DetailDrawer),
-        matching: find.widgetWithText(SecondaryButton, 'Restaurer'),
+        of: find.byType(EmployeeSelector),
+        matching: find.text(_karim),
       ),
       findsOneWidget,
     );
   });
 
-  testApp('both views and the drawer fit a phone', (tester) async {
-    // Opened wide, then narrowed: the start-up screen before Personnel has its
-    // own phone-width overflow, which is not what this test is about.
+  testApp('card menu → Historique paiement: the payroll, filtered to them', (
+    tester,
+  ) async {
+    await _open(tester);
+    final card = find.byKey(const ValueKey('employee-card-${EmployeeIds.karim}'));
+    await tester.tap(
+      find.descendant(
+        of: card,
+        matching: find.byKey(const ValueKey('employee-card-menu')),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Historique paiement').last);
+    await tester.pumpAndSettle();
+
+    expect(
+      appRouter.routerDelegate.currentConfiguration.uri.toString(),
+      Routes.toPayroll(StoreIds.sablon, employeeId: EmployeeIds.karim),
+    );
+    expect(
+      find.descendant(
+        of: find.byType(EmployeeSelector),
+        matching: find.text(_karim),
+      ),
+      findsOneWidget,
+    );
+    // Filtered to one person → the pay button is there.
+    expect(find.widgetWithText(PrimaryButton, 'Payer'), findsOneWidget);
+  });
+
+  testApp('the table fills its frame; an Actions column with the two '
+      'histories and the ⋮ menu', (tester) async {
+    await _open(tester);
+    await _toList(tester);
+
+    final frame = tester.getSize(find.byType(DataTableWrapper)).width;
+    final table = tester.getSize(find.byType(DataTable)).width;
+    expect(table, greaterThanOrEqualTo(frame - 2)); // frame hairlines
+
+    final dataTable = tester.widget<DataTable>(find.byType(DataTable));
+    expect((dataTable.columns.last.label as Text).data, 'Actions');
+    expect(
+      find.byKey(const ValueKey('employee-row-attendance-${EmployeeIds.karim}')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byType(DataTable),
+        matching: find.byKey(const ValueKey('employee-card-menu')),
+      ),
+      findsWidgets,
+    );
+
+    // The Actions column is the last one — scroll the table to it first.
+    final payroll = find.byKey(
+      const ValueKey('employee-row-payroll-${EmployeeIds.karim}'),
+    );
+    await tester.ensureVisible(payroll);
+    await tester.pumpAndSettle();
+    await tester.tap(payroll);
+    await tester.pumpAndSettle();
+    expect(
+      appRouter.routerDelegate.currentConfiguration.uri.toString(),
+      Routes.toPayroll(StoreIds.sablon, employeeId: EmployeeIds.karim),
+    );
+  });
+
+  testApp('the table row menu holds Modifier / Retirer, not the histories', (
+    tester,
+  ) async {
+    await _open(tester);
+    await _toList(tester);
+    final row = find.byKey(
+      const ValueKey('employee-row-attendance-${EmployeeIds.karim}'),
+    );
+    final menu = find.descendant(
+      of: find.ancestor(of: row, matching: find.byType(Row)).first,
+      matching: find.byKey(const ValueKey('employee-card-menu')),
+    );
+    await tester.ensureVisible(menu);
+    await tester.pumpAndSettle();
+    await tester.tap(menu);
+    await tester.pumpAndSettle();
+    expect(find.text('Modifier'), findsOneWidget);
+    expect(find.text('Retirer'), findsOneWidget);
+    // Only the sidebar's own entry — none in this menu.
+    expect(find.text('Historique pointage'), findsOneWidget);
+  });
+
+  testApp('both views fit a phone', (tester) async {
     await _open(tester);
     tester.view.physicalSize = const Size(390, 844);
     await tester.pumpAndSettle();
@@ -724,9 +733,6 @@ void main() {
     await _toList(tester);
     expect(tester.takeException(), isNull);
     expect(find.byType(DataTable), findsOneWidget);
-
-    await _openKarimFromList(tester);
-    expect(tester.takeException(), isNull);
-    expect(find.byType(DetailDrawer), findsOneWidget);
   });
+
 }

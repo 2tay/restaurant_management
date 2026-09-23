@@ -21,7 +21,6 @@ class AppCard extends StatefulWidget {
     this.selected = false,
     this.accentColor,
     this.bordered = true,
-    this.hoverFeedback = true,
     this.dashedBorderColor,
     super.key,
   });
@@ -43,10 +42,6 @@ class AppCard extends StatefulWidget {
   /// False drops the resting hairline — the shadow alone lifts the card (the
   /// KPI tiles). Selection and keyboard focus still draw their outline.
   final bool bordered;
-
-  /// False keeps an interactive card still under the pointer — no lift. It
-  /// stays tappable, and selection / focus still show.
-  final bool hoverFeedback;
 
   /// Draws a dashed outline in this colour instead of the resting hairline —
   /// a record that is no longer active (a retired employee).
@@ -87,9 +82,7 @@ class _AppCardState extends State<AppCard> {
       child: widget.child,
     );
 
-    final lifted =
-        _isInteractive &&
-        ((widget.hoverFeedback && _hovered) || widget.selected || _focused);
+    final lifted = _isInteractive && (_hovered || widget.selected || _focused);
 
     final dashed = widget.dashedBorderColor;
     final showDashes = dashed != null && !widget.selected && !_focused;

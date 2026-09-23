@@ -91,7 +91,10 @@ class _DataTableWrapperState extends State<DataTableWrapper> {
 
           final table = ConstrainedBox(
             constraints: BoxConstraints(minWidth: floor),
+            // passthrough: the DataTable must see the min-width floor, or it
+            // shrinks to its content and leaves the frame half empty.
             child: Stack(
+              fit: StackFit.passthrough,
               children: [
                 DataTable(
                   columns: columns,

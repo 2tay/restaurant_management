@@ -51,23 +51,22 @@ Future<AppDatabase> _openAdd(WidgetTester tester) async {
   return db;
 }
 
-/// Personnel → the person's card → drawer → Modifier.
+/// Personnel → the person's card → ⋮ → Modifier.
 Future<void> _openEdit(WidgetTester tester, String name) async {
   await _roster(tester);
   await _openEditFromRoster(tester, name);
 }
 
-/// The card → drawer → Modifier path, on a roster already pumped. The card,
-/// not just the name: the signed-in owner's name is also in the sidebar.
+/// The card's ⋮ → Modifier path, on a roster already pumped.
 Future<void> _openEditFromRoster(WidgetTester tester, String name) async {
-  await tester.tap(find.widgetWithText(AppCard, name));
-  await tester.pumpAndSettle();
   await tester.tap(
     find.descendant(
-      of: find.byType(DetailDrawer),
-      matching: find.widgetWithText(SecondaryButton, 'Modifier'),
+      of: find.widgetWithText(AppCard, name),
+      matching: find.byKey(const ValueKey('employee-card-menu')),
     ),
   );
+  await tester.pumpAndSettle();
+  await tester.tap(find.text('Modifier'));
   await tester.pumpAndSettle();
 }
 
@@ -173,12 +172,11 @@ void main() {
     expect(await CredentialRepository(db).forEmployee(created.id), isNull);
   });
 
-  testApp('Modifier in the drawer opens the same pop-up, savable at once', (
+  testApp('Modifier in the card menu opens the same pop-up, savable at once', (
     tester,
   ) async {
     await _openEdit(tester, 'Amélie Vandenberghe');
 
-    expect(find.byType(DetailDrawer), findsNothing);
     expect(find.byType(WizardDialog), findsOneWidget);
     expect(_enabled(tester, 'Enregistrer'), isTrue);
 

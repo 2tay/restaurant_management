@@ -4090,17 +4090,29 @@ abstract class AppLocalizations {
   /// **'Tarif'**
   String get employeesColumnPay;
 
+  /// Staff roster table: the column of per-row actions.
+  ///
+  /// In fr, this message translates to:
+  /// **'Actions'**
+  String get employeesColumnActions;
+
+  /// Staff card / row action: open the attendance history filtered to this person.
+  ///
+  /// In fr, this message translates to:
+  /// **'Historique pointage'**
+  String get employeeActionAttendance;
+
+  /// Staff card / row action: open the payroll history filtered to this person.
+  ///
+  /// In fr, this message translates to:
+  /// **'Historique paiement'**
+  String get employeeActionPayroll;
+
   /// Staff roster table: the hire-date column.
   ///
   /// In fr, this message translates to:
   /// **'Embauché le'**
   String get employeesColumnHired;
-
-  /// Employee drawer: link to the full attendance history, under the most recent days.
-  ///
-  /// In fr, this message translates to:
-  /// **'Voir tout l\'historique'**
-  String get employeeHistorySeeAll;
 
   /// Employee wizard, step 1: photo, name, PIN and contact details.
   ///
@@ -4264,12 +4276,6 @@ abstract class AppLocalizations {
   /// **'Rôle et accès'**
   String get employeeFormRole;
 
-  /// Employment section header on the employee form and detail page.
-  ///
-  /// In fr, this message translates to:
-  /// **'Rémunération'**
-  String get employeeFormEmployment;
-
   /// Pay field label when the contract is extra.
   ///
   /// In fr, this message translates to:
@@ -4287,24 +4293,6 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Employé modifié'**
   String get employeeUpdated;
-
-  /// Hire date line on the employee detail header.
-  ///
-  /// In fr, this message translates to:
-  /// **'Embauché le {date}'**
-  String employeeHiredOn(String date);
-
-  /// Section heading on the employee detail page for contact fields.
-  ///
-  /// In fr, this message translates to:
-  /// **'Coordonnées'**
-  String get employeeDetailContact;
-
-  /// Section heading for one employee's attendance history.
-  ///
-  /// In fr, this message translates to:
-  /// **'Historique de pointage'**
-  String get employeeHistoryTitle;
 
   /// Destructive confirmation dialog title for archiving an employee. Regular space before the question mark, matching the rest of the file.
   ///
@@ -4341,18 +4329,6 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Employé restauré'**
   String get employeeRestored;
-
-  /// Status line on an archived employee's detail page.
-  ///
-  /// In fr, this message translates to:
-  /// **'Retiré le {date}'**
-  String employeeDetailArchivedOn(String date);
-
-  /// Shown in the attendance history section when the employee has no rows yet.
-  ///
-  /// In fr, this message translates to:
-  /// **'Aucun pointage enregistré.'**
-  String get employeeHistoryEmpty;
 
   /// Attendance status — no row for the day yet.
   ///

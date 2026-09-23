@@ -38,9 +38,17 @@ DateTime _dayOnly(DateTime value) =>
 /// A range start can never go before an employee's hire date — the picker is
 /// bounded there and `PayrollRepository.days` enforces it again per employee.
 class PayrollHistoryPage extends ConsumerStatefulWidget {
-  const PayrollHistoryPage({required this.storeId, super.key});
+  const PayrollHistoryPage({
+    required this.storeId,
+    this.initialEmployeeId,
+    super.key,
+  });
 
   final String storeId;
+
+  /// Opens filtered to this employee — "Historique" from the staff roster.
+  /// Ignored when the id is not on the list.
+  final String? initialEmployeeId;
 
   @override
   ConsumerState<PayrollHistoryPage> createState() => _PayrollHistoryPageState();
@@ -60,6 +68,10 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
   List<Employee> _employees = const [];
 
   String? get _employeeId => _selectedEmployee?.id;
+
+  /// [widget.initialEmployeeId], until the roster it resolves against has
+  /// loaded once.
+  late String? _pendingEmployeeId = widget.initialEmployeeId;
 
   @override
   void initState() {
@@ -122,6 +134,21 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
               (a, b) =>
                   employeeDisplayName(a).compareTo(employeeDisplayName(b)),
             );
+          final pending = _pendingEmployeeId;
+          if (pending != null) {
+            // Once, during this build — the same narrowing a pick in the
+            // selector does (range floored at the hire date), minus setState.
+            _pendingEmployeeId = null;
+            final employee = _employees
+                .where((e) => e.id == pending)
+                .firstOrNull;
+            if (employee != null) {
+              _selectedEmployee = employee;
+              final hire = _dayOnly(employee.hireDate);
+              if (_from.isBefore(hire)) _from = hire;
+              if (_to.isBefore(_from)) _to = _dayOnly(DateTime.now());
+            }
+          }
           return _buildBody(l10n, _employees, base.settings);
         },
       ),

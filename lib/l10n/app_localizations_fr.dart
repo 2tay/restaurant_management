@@ -2470,10 +2470,16 @@ class AppLocalizationsFr extends AppLocalizations {
   String get employeesColumnPay => 'Tarif';
 
   @override
-  String get employeesColumnHired => 'Embauché le';
+  String get employeesColumnActions => 'Actions';
 
   @override
-  String get employeeHistorySeeAll => 'Voir tout l\'historique';
+  String get employeeActionAttendance => 'Historique pointage';
+
+  @override
+  String get employeeActionPayroll => 'Historique paiement';
+
+  @override
+  String get employeesColumnHired => 'Embauché le';
 
   @override
   String get employeeWizardStepInfo => 'Information professionnelle';
@@ -2564,9 +2570,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get employeeFormRole => 'Rôle et accès';
 
   @override
-  String get employeeFormEmployment => 'Rémunération';
-
-  @override
   String get employeeFormPayHourly => 'Tarif horaire (€/h)';
 
   @override
@@ -2574,17 +2577,6 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get employeeUpdated => 'Employé modifié';
-
-  @override
-  String employeeHiredOn(String date) {
-    return 'Embauché le $date';
-  }
-
-  @override
-  String get employeeDetailContact => 'Coordonnées';
-
-  @override
-  String get employeeHistoryTitle => 'Historique de pointage';
 
   @override
   String employeeArchiveTitle(String name) {
@@ -2606,14 +2598,6 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get employeeRestored => 'Employé restauré';
-
-  @override
-  String employeeDetailArchivedOn(String date) {
-    return 'Retiré le $date';
-  }
-
-  @override
-  String get employeeHistoryEmpty => 'Aucun pointage enregistré.';
 
   @override
   String get attendanceStatusNotClockedIn => 'Non pointé';

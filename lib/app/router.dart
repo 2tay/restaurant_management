@@ -486,14 +486,20 @@ final GoRouter appRouter = GoRouter(
           path: Routes.attendanceHistory,
           pageBuilder: (context, state) => appPage(
             key: state.pageKey,
-            child: AttendanceHistoryPage(storeId: _storeId(state)),
+            child: AttendanceHistoryPage(
+              storeId: _storeId(state),
+              initialEmployeeId: state.uri.queryParameters['employee'],
+            ),
           ),
         ),
         GoRoute(
           path: Routes.payroll,
           pageBuilder: (context, state) => appPage(
             key: state.pageKey,
-            child: PayrollHistoryPage(storeId: _storeId(state)),
+            child: PayrollHistoryPage(
+              storeId: _storeId(state),
+              initialEmployeeId: state.uri.queryParameters['employee'],
+            ),
           ),
         ),
 

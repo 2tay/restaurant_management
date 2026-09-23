@@ -31,9 +31,17 @@ DateTime _dayOnly(DateTime value) =>
 /// the Gestion Employée dropdown, so a `goSection` destination with no back
 /// control.
 class AttendanceHistoryPage extends ConsumerStatefulWidget {
-  const AttendanceHistoryPage({required this.storeId, super.key});
+  const AttendanceHistoryPage({
+    required this.storeId,
+    this.initialEmployeeId,
+    super.key,
+  });
 
   final String storeId;
+
+  /// Opens filtered to this employee — "Historique" from the staff roster.
+  /// Ignored when the id is not on the list.
+  final String? initialEmployeeId;
 
   @override
   ConsumerState<AttendanceHistoryPage> createState() =>
@@ -50,6 +58,10 @@ class _AttendanceHistoryPageState extends ConsumerState<AttendanceHistoryPage> {
   int _page = 0;
 
   String? get _employeeId => _selectedEmployee?.id;
+
+  /// [widget.initialEmployeeId], until the roster it resolves against has
+  /// loaded once.
+  late String? _pendingEmployeeId = widget.initialEmployeeId;
 
   @override
   void initState() {
@@ -86,6 +98,14 @@ class _AttendanceHistoryPageState extends ConsumerState<AttendanceHistoryPage> {
               (x, y) =>
                   employeeDisplayName(x).compareTo(employeeDisplayName(y)),
             );
+          final pending = _pendingEmployeeId;
+          if (pending != null) {
+            // Once, during this build — before anything reads the filter.
+            _pendingEmployeeId = null;
+            _selectedEmployee = employees
+                .where((e) => e.id == pending)
+                .firstOrNull;
+          }
           return _buildBody(l10n, employees, b.settings);
         },
       ),

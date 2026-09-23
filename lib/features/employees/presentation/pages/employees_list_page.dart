@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../../../app/navigation.dart';
+import '../../../../app/routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/employee_status.dart';
@@ -13,7 +15,7 @@ import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 import '../widgets/employee_actions.dart';
 import '../widgets/employee_card.dart';
-import '../widgets/employee_detail_drawer.dart';
+import '../widgets/employee_actions_menu.dart';
 import '../widgets/employee_wizard_dialog.dart';
 
 /// The staff roster — *Personnel*.
@@ -24,8 +26,10 @@ import '../widgets/employee_wizard_dialog.dart';
 /// "afficher les personnels retirés" brings them back into view.
 ///
 /// Two layouts of the same filtered roster — cards (the default) or a table —
-/// behind the same toggle the inventory uses. Either way a click opens the
-/// person's detail in a drawer over the list rather than navigating away.
+/// behind the same toggle the inventory uses. The actions — the person's
+/// pointage and payment histories (opened filtered to them), Modifier,
+/// Retirer / Restaurer — are on each card's ⋮ menu and in the table's Actions
+/// column; nothing opens on a plain click.
 class EmployeesListPage extends ConsumerStatefulWidget {
   const EmployeesListPage({required this.storeId, super.key});
 
@@ -40,20 +44,20 @@ class _EmployeesListPageState extends ConsumerState<EmployeesListPage> {
   bool _showArchived = false;
   CollectionViewMode _viewMode = CollectionViewMode.grid;
 
-  /// The employee whose detail drawer is open — their card stays outlined.
-  String? _openId;
-
   void _add() => showEmployeeWizard(context, storeId: widget.storeId);
 
-  Future<void> _open(Employee employee) async {
-    setState(() => _openId = employee.id);
-    await showEmployeeDetailDrawer(
-      context,
-      storeId: widget.storeId,
-      employee: employee,
-    );
-    if (mounted) setState(() => _openId = null);
-  }
+  late final _actions = _RosterActions(
+    onAttendance: (e) => context.goSection(
+      Routes.toAttendanceHistory(widget.storeId, employeeId: e.id),
+    ),
+    onPayroll: (e) => context.goSection(
+      Routes.toPayroll(widget.storeId, employeeId: e.id),
+    ),
+    onEdit: (e) =>
+        showEmployeeWizard(context, storeId: widget.storeId, employee: e),
+    onArchive: (e) => confirmArchiveEmployee(context, ref, e),
+    onRestore: (e) => restoreEmployee(context, ref, e),
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -167,7 +171,7 @@ class _EmployeesListPageState extends ConsumerState<EmployeesListPage> {
               for (final e in filtered)
                 if (e.role != EmployeeRole.owner) e,
             ],
-            onOpen: _open,
+            actions: _actions,
           )
         else
           _EmployeeGrid(
@@ -177,16 +181,7 @@ class _EmployeesListPageState extends ConsumerState<EmployeesListPage> {
               for (final e in filtered)
                 if (e.role != EmployeeRole.owner) e,
             ],
-            openId: _openId,
-            onOpen: _open,
-            onEdit: (employee) => showEmployeeWizard(
-              context,
-              storeId: widget.storeId,
-              employee: employee,
-            ),
-            onArchive: (employee) =>
-                confirmArchiveEmployee(context, ref, employee),
-            onRestore: (employee) => restoreEmployee(context, ref, employee),
+            actions: _actions,
           ),
       ],
     );
@@ -307,21 +302,10 @@ class _ArchivedFilterPill extends StatelessWidget {
 /// the width allows (300dp minimum, up to four), sized by
 /// the same [cardGridColumns] as the pointage and payroll history cards.
 class _EmployeeGrid extends StatelessWidget {
-  const _EmployeeGrid({
-    required this.employees,
-    required this.openId,
-    required this.onOpen,
-    required this.onEdit,
-    required this.onArchive,
-    required this.onRestore,
-  });
+  const _EmployeeGrid({required this.employees, required this.actions});
 
   final List<Employee> employees;
-  final String? openId;
-  final ValueChanged<Employee> onOpen;
-  final ValueChanged<Employee> onEdit;
-  final ValueChanged<Employee> onArchive;
-  final ValueChanged<Employee> onRestore;
+  final _RosterActions actions;
 
   @override
   Widget build(BuildContext context) {
@@ -347,11 +331,11 @@ class _EmployeeGrid extends StatelessWidget {
                 child: EmployeeCard(
                   key: ValueKey('employee-card-${employee.id}'),
                   employee: employee,
-                  selected: employee.id == openId,
-                  onTap: () => onOpen(employee),
-                  onEdit: () => onEdit(employee),
-                  onArchive: () => onArchive(employee),
-                  onRestore: () => onRestore(employee),
+                  onAttendance: () => actions.onAttendance(employee),
+                  onPayroll: () => actions.onPayroll(employee),
+                  onEdit: () => actions.onEdit(employee),
+                  onArchive: () => actions.onArchive(employee),
+                  onRestore: () => actions.onRestore(employee),
                 ),
               ),
           ],
@@ -361,16 +345,33 @@ class _EmployeeGrid extends StatelessWidget {
   }
 }
 
+/// What a card or a table row can do for one person — built once by the page.
+class _RosterActions {
+  const _RosterActions({
+    required this.onAttendance,
+    required this.onPayroll,
+    required this.onEdit,
+    required this.onArchive,
+    required this.onRestore,
+  });
+
+  final ValueChanged<Employee> onAttendance;
+  final ValueChanged<Employee> onPayroll;
+  final ValueChanged<Employee> onEdit;
+  final ValueChanged<Employee> onArchive;
+  final ValueChanged<Employee> onRestore;
+}
+
 /// The roster as a table — the alternative to the card grid, for scanning
-/// contact details, rates and hire dates side by side. The whole row opens
-/// the detail drawer (hand cursor), so there is no separate detail button. Same [DataTableWrapper] as the
-/// pointage history: below its minimum width it scrolls sideways rather than
-/// squeezing the columns.
+/// contact details, rates and hire dates side by side. The Actions column
+/// opens the two histories directly and holds the same ⋮ menu as a card.
+/// Same [DataTableWrapper] as the pointage history: below its minimum width
+/// it scrolls sideways rather than squeezing the columns.
 class _EmployeeTable extends StatelessWidget {
-  const _EmployeeTable({required this.employees, required this.onOpen});
+  const _EmployeeTable({required this.employees, required this.actions});
 
   final List<Employee> employees;
-  final ValueChanged<Employee> onOpen;
+  final _RosterActions actions;
 
   @override
   Widget build(BuildContext context) {
@@ -386,6 +387,7 @@ class _EmployeeTable extends StatelessWidget {
         DataColumn(label: Text(l10n.employeeFormEmail)),
         DataColumn(label: Text(l10n.employeesColumnPay), numeric: true),
         DataColumn(label: Text(l10n.employeesColumnHired)),
+        DataColumn(label: Text(l10n.employeesColumnActions)),
       ],
       rows: [for (final e in employees) _row(context, l10n, e)],
     );
@@ -405,7 +407,10 @@ class _EmployeeTable extends StatelessWidget {
                   : null,
             )
           : null,
-      onSelectChanged: (_) => onOpen(employee),
+      // Nothing opens on a row click; the handler only keeps the hover
+      // highlight (red for the retired), with the ordinary arrow cursor.
+      onSelectChanged: (_) {},
+      mouseCursor: const WidgetStatePropertyAll(SystemMouseCursors.basic),
       cells: [
         DataCell(
           Row(
@@ -436,6 +441,36 @@ class _EmployeeTable extends StatelessWidget {
         DataCell(Text(employee.email)),
         DataCell(Text('${Formatters.price(employee.pay)} / h')),
         DataCell(Text(Formatters.date(employee.hireDate))),
+        DataCell(
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                key: ValueKey('employee-row-attendance-${employee.id}'),
+                tooltip: l10n.employeeActionAttendance,
+                icon: const Icon(LucideIcons.history, size: AppSizing.iconSm),
+                color: AppColors.primary600,
+                onPressed: () => actions.onAttendance(employee),
+              ),
+              IconButton(
+                key: ValueKey('employee-row-payroll-${employee.id}'),
+                tooltip: l10n.employeeActionPayroll,
+                icon: const Icon(LucideIcons.receipt, size: AppSizing.iconSm),
+                color: AppColors.primary600,
+                onPressed: () => actions.onPayroll(employee),
+              ),
+              EmployeeActionsMenu(
+                employee: employee,
+                includeHistories: false,
+                onAttendance: () => actions.onAttendance(employee),
+                onPayroll: () => actions.onPayroll(employee),
+                onEdit: () => actions.onEdit(employee),
+                onArchive: () => actions.onArchive(employee),
+                onRestore: () => actions.onRestore(employee),
+              ),
+            ],
+          ),
+        ),
       ],
     );
   }

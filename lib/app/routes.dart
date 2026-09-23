@@ -189,11 +189,15 @@ abstract final class Routes {
   static String toTimeclock(String storeId) =>
       '/store/$storeId/employees/timeclock';
 
-  static String toAttendanceHistory(String storeId) =>
-      '/store/$storeId/employees/attendance-history';
+  /// With [employeeId], the history opens already filtered to that person.
+  static String toAttendanceHistory(String storeId, {String? employeeId}) =>
+      '/store/$storeId/employees/attendance-history'
+      '${employeeId == null ? '' : '?employee=$employeeId'}';
 
-  static String toPayroll(String storeId) =>
-      '/store/$storeId/employees/payroll';
+  /// With [employeeId], the payroll opens already filtered to that person.
+  static String toPayroll(String storeId, {String? employeeId}) =>
+      '/store/$storeId/employees/payroll'
+      '${employeeId == null ? '' : '?employee=$employeeId'}';
 
   static String toStoreSettings(String storeId) =>
       '/store/$storeId/settings/store';
