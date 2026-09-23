@@ -277,130 +277,127 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
     );
   }
 
-  /// Step 1 — who the person is and how to reach them.
+  /// Step 1 — who the person is and how to reach them; the photo, optional,
+  /// comes last.
   Widget _identityStep(AppLocalizations l10n) {
-    return AppCard(
-      child: Column(
-        children: [
-          Row(
-            children: [
-              _PhotoTile(
-                image: _photoPreview,
-                firstName: _firstName.text,
-                lastName: _lastName.text,
+    return Column(
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: AppTextField(
+                label: l10n.employeeFormFirstName,
+                controller: _firstName,
+                prefixIcon: LucideIcons.user,
+                autofocus: !_isEditing,
+                onChanged: (_) => setState(() {}),
               ),
-              const SizedBox(width: AppSpacing.lg),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    SecondaryButton(
-                      label: _hasPhoto
-                          ? l10n.employeeFormPhotoReplace
-                          : l10n.employeeFormPhotoAction,
-                      icon: LucideIcons.camera,
-                      onPressed: _pickPhoto,
-                    ),
-                    if (_hasPhoto) ...[
-                      const SizedBox(height: AppSpacing.sm),
-                      TextButton.icon(
-                        onPressed: _removePhoto,
-                        icon: const Icon(
-                          LucideIcons.trash2,
-                          size: AppSizing.iconSm,
-                        ),
-                        label: Text(l10n.employeeFormPhotoRemove),
+            ),
+            const SizedBox(width: AppSpacing.lg),
+            Expanded(
+              child: AppTextField(
+                label: l10n.employeeFormLastName,
+                controller: _lastName,
+                onChanged: (_) => setState(() {}),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.lg),
+        AppTextField(
+          label: l10n.employeeFormPin,
+          controller: _pin,
+          prefixIcon: LucideIcons.idCard,
+          errorText: _pinTaken ? l10n.employeePinTaken : null,
+          onChanged: (_) => setState(() => _pinTaken = false),
+        ),
+        const SizedBox(height: AppSpacing.lg),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: AppTextField(
+                label: l10n.employeeFormPhone,
+                controller: _phone,
+                prefixIcon: LucideIcons.phone,
+                keyboardType: TextInputType.phone,
+                onChanged: (_) => setState(() {}),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.lg),
+            Expanded(
+              child: AppTextField(
+                label: l10n.employeeFormEmail,
+                controller: _email,
+                prefixIcon: LucideIcons.mail,
+                keyboardType: TextInputType.emailAddress,
+                errorText: _emailTaken ? l10n.employeeEmailTaken : null,
+                onChanged: (_) => setState(() => _emailTaken = false),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.xl),
+        Row(
+          children: [
+            _PhotoTile(
+              image: _photoPreview,
+              firstName: _firstName.text,
+              lastName: _lastName.text,
+            ),
+            const SizedBox(width: AppSpacing.lg),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  SecondaryButton(
+                    label: _hasPhoto
+                        ? l10n.employeeFormPhotoReplace
+                        : l10n.employeeFormPhotoAction,
+                    icon: LucideIcons.camera,
+                    onPressed: _pickPhoto,
+                  ),
+                  if (_hasPhoto) ...[
+                    const SizedBox(height: AppSpacing.sm),
+                    TextButton.icon(
+                      onPressed: _removePhoto,
+                      icon: const Icon(
+                        LucideIcons.trash2,
+                        size: AppSizing.iconSm,
                       ),
-                    ],
+                      label: Text(l10n.employeeFormPhotoRemove),
+                    ),
                   ],
-                ),
+                ],
               ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: AppTextField(
-                  label: l10n.employeeFormFirstName,
-                  controller: _firstName,
-                  prefixIcon: LucideIcons.user,
-                  autofocus: !_isEditing,
-                  onChanged: (_) => setState(() {}),
-                ),
-              ),
-              const SizedBox(width: AppSpacing.lg),
-              Expanded(
-                child: AppTextField(
-                  label: l10n.employeeFormLastName,
-                  controller: _lastName,
-                  onChanged: (_) => setState(() {}),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          AppTextField(
-            label: l10n.employeeFormPin,
-            controller: _pin,
-            prefixIcon: LucideIcons.idCard,
-            errorText: _pinTaken ? l10n.employeePinTaken : null,
-            onChanged: (_) => setState(() => _pinTaken = false),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: AppTextField(
-                  label: l10n.employeeFormPhone,
-                  controller: _phone,
-                  prefixIcon: LucideIcons.phone,
-                  keyboardType: TextInputType.phone,
-                  onChanged: (_) => setState(() {}),
-                ),
-              ),
-              const SizedBox(width: AppSpacing.lg),
-              Expanded(
-                child: AppTextField(
-                  label: l10n.employeeFormEmail,
-                  controller: _email,
-                  prefixIcon: LucideIcons.mail,
-                  keyboardType: TextInputType.emailAddress,
-                  errorText: _emailTaken ? l10n.employeeEmailTaken : null,
-                  onChanged: (_) => setState(() => _emailTaken = false),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 
   /// Step 2 — the hourly rate.
   Widget _payStep(AppLocalizations l10n) {
-    return AppCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          AppTextField(
-            label: l10n.employeeFormPayHourly,
-            controller: _pay,
-            prefixIcon: LucideIcons.wallet,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            onChanged: (_) => setState(() {}),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        AppTextField(
+          label: l10n.employeeFormPayHourly,
+          controller: _pay,
+          prefixIcon: LucideIcons.wallet,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          onChanged: (_) => setState(() {}),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        Text(
+          l10n.employeeFormPayHelp,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: AppColors.textSecondary,
           ),
-          const SizedBox(height: AppSpacing.sm),
-          Text(
-            l10n.employeeFormPayHelp,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: AppColors.textSecondary,
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -430,60 +427,58 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
   }
 
   Widget _passwordCard(AppLocalizations l10n) {
-    return AppCard(
-      child: Column(
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: AppTextField(
-                  label: l10n.employeeFormPassword,
-                  controller: _password,
-                  prefixIcon: LucideIcons.lock,
-                  obscureText: true,
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [
-                    FilteringTextInputFormatter.digitsOnly,
-                    LengthLimitingTextInputFormatter(AuthRules.passwordLength),
-                  ],
-                  onChanged: (_) => setState(() {}),
-                ),
-              ),
-              const SizedBox(width: AppSpacing.lg),
-              Expanded(
-                child: AppTextField(
-                  label: l10n.employeeFormPasswordConfirm,
-                  controller: _passwordConfirm,
-                  prefixIcon: LucideIcons.lock,
-                  obscureText: true,
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [
-                    FilteringTextInputFormatter.digitsOnly,
-                    LengthLimitingTextInputFormatter(AuthRules.passwordLength),
-                  ],
-                  errorText: _passwordMismatch
-                      ? l10n.employeeFormPasswordMismatch
-                      : null,
-                  onChanged: (_) => setState(() {}),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              _isEditing
-                  ? l10n.employeeFormPasswordEditHelp
-                  : l10n.employeeFormPasswordHelp,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: AppColors.textSecondary,
+    return Column(
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: AppTextField(
+                label: l10n.employeeFormPassword,
+                controller: _password,
+                prefixIcon: LucideIcons.lock,
+                obscureText: true,
+                keyboardType: TextInputType.number,
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  LengthLimitingTextInputFormatter(AuthRules.passwordLength),
+                ],
+                onChanged: (_) => setState(() {}),
               ),
             ),
+            const SizedBox(width: AppSpacing.lg),
+            Expanded(
+              child: AppTextField(
+                label: l10n.employeeFormPasswordConfirm,
+                controller: _passwordConfirm,
+                prefixIcon: LucideIcons.lock,
+                obscureText: true,
+                keyboardType: TextInputType.number,
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  LengthLimitingTextInputFormatter(AuthRules.passwordLength),
+                ],
+                errorText: _passwordMismatch
+                    ? l10n.employeeFormPasswordMismatch
+                    : null,
+                onChanged: (_) => setState(() {}),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: Text(
+            _isEditing
+                ? l10n.employeeFormPasswordEditHelp
+                : l10n.employeeFormPasswordHelp,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: AppColors.textSecondary,
+            ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 

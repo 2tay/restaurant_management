@@ -238,6 +238,49 @@ void main() {
       expect(submitted, 1);
     });
 
+    testWidgets('fields inside a step are white, borderless, green on focus', (
+      tester,
+    ) async {
+      _size(tester, const Size(1280, 800));
+      await tester.pumpWidget(
+        _host(
+          WizardScaffold(
+            title: 'Ajouter',
+            description: '…',
+            back: const BackDestination(label: 'Personnel', path: '/'),
+            backLinkLabel: 'Retour',
+            currentStep: 0,
+            onStepChanged: (_) {},
+            submitLabel: 'Enregistrer',
+            onSubmit: () {},
+            steps: const [
+              WizardStep(label: 'A', child: AppTextField(label: 'Prénom')),
+              WizardStep(label: 'B', child: SizedBox()),
+            ],
+          ),
+        ),
+      );
+
+      final decoration = tester
+          .widget<TextField>(find.byType(TextField))
+          .decoration!;
+      expect(decoration.fillColor, Colors.white);
+      expect(
+        (decoration.enabledBorder! as OutlineInputBorder).borderSide,
+        BorderSide.none,
+      );
+      final focused = decoration.focusedBorder! as OutlineInputBorder;
+      expect(focused.borderSide.width, 2);
+      expect(focused.borderSide.style, BorderStyle.solid);
+
+      // Outside a wizard the theme's standard field is untouched.
+      await tester.pumpWidget(_host(const AppTextField(label: 'Prénom')));
+      expect(
+        tester.widget<TextField>(find.byType(TextField)).decoration!.fillColor,
+        isNull,
+      );
+    });
+
     testWidgets('fits a phone', (tester) async {
       _size(tester, const Size(390, 844));
       await tester.pumpWidget(

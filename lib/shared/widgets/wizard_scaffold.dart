@@ -5,6 +5,7 @@ import '../../app/navigation.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../l10n/app_localizations.dart';
 import 'form_scaffold.dart';
+import 'app_text_field.dart';
 import 'primary_button.dart';
 import 'wizard_step_indicator.dart';
 
@@ -142,7 +143,12 @@ class WizardScaffold extends StatelessWidget {
           const SizedBox(height: AppSpacing.xl),
           KeyedSubtree(
             key: ValueKey('wizard-page-$currentStep'),
-            child: step.child,
+            // Wizard steps lie on the page background, not in a card, so
+            // their fields are the white, borderless variant.
+            child: AppTextFieldVariantScope(
+              variant: AppTextFieldVariant.plain,
+              child: step.child,
+            ),
           ),
         ],
       ),

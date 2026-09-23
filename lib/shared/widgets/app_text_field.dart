@@ -1,8 +1,43 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_typography.dart';
+
+/// How an [AppTextField] is drawn.
+enum AppTextFieldVariant {
+  /// The theme's field: grey fill, hairline border.
+  standard,
+
+  /// White, borderless and taller, with a green border only on focus — for
+  /// fields laid straight on the page background rather than inside a card
+  /// (the wizard forms).
+  plain,
+}
+
+/// Sets the [AppTextFieldVariant] for every [AppTextField] below it that does
+/// not choose one itself — so a whole form (a wizard step) switches style in
+/// one place instead of field by field.
+class AppTextFieldVariantScope extends InheritedWidget {
+  const AppTextFieldVariantScope({
+    required this.variant,
+    required super.child,
+    super.key,
+  });
+
+  final AppTextFieldVariant variant;
+
+  static AppTextFieldVariant of(BuildContext context) =>
+      context
+          .dependOnInheritedWidgetOfExactType<AppTextFieldVariantScope>()
+          ?.variant ??
+      AppTextFieldVariant.standard;
+
+  @override
+  bool updateShouldNotify(AppTextFieldVariantScope oldWidget) =>
+      variant != oldWidget.variant;
+}
 
 /// A labelled text field.
 ///
@@ -29,6 +64,7 @@ class AppTextField extends StatelessWidget {
     this.onSubmitted,
     this.inputFormatters,
     this.textInputAction,
+    this.variant,
     super.key,
   });
 
@@ -57,6 +93,9 @@ class AppTextField extends StatelessWidget {
   final ValueChanged<String>? onSubmitted;
   final List<TextInputFormatter>? inputFormatters;
   final TextInputAction? textInputAction;
+
+  /// Null inherits from the nearest [AppTextFieldVariantScope].
+  final AppTextFieldVariant? variant;
 
   /// A money field. Accepts a comma decimal separator, because that is what a
   /// Belgian keyboard and a Belgian brain both produce.
@@ -87,6 +126,9 @@ class AppTextField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final plain =
+        (variant ?? AppTextFieldVariantScope.of(context)) ==
+        AppTextFieldVariant.plain;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -106,6 +148,23 @@ class AppTextField extends StatelessWidget {
           onSubmitted: onSubmitted,
           style: suffixText == '€' ? AppTypography.numeric : null,
           decoration: InputDecoration(
+            // Plain: white on the page's grey, no outline at rest, the brand
+            // green only while typing — and a taller hit area.
+            filled: plain ? true : null,
+            fillColor: plain ? AppColors.surface : null,
+            contentPadding: plain
+                ? const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.lg,
+                    vertical: AppSpacing.lg + AppSpacing.xs + AppSpacing.xxs,
+                  )
+                : null,
+            enabledBorder: plain ? _plainBorder(BorderSide.none) : null,
+            disabledBorder: plain ? _plainBorder(BorderSide.none) : null,
+            focusedBorder: plain
+                ? _plainBorder(
+                    BorderSide(color: theme.colorScheme.primary, width: 2),
+                  )
+                : null,
             hintText: hint,
             helperText: helperText,
             errorText: errorText,
@@ -118,4 +177,7 @@ class AppTextField extends StatelessWidget {
       ],
     );
   }
+
+  static OutlineInputBorder _plainBorder(BorderSide side) =>
+      OutlineInputBorder(borderRadius: AppRadius.mdAll, borderSide: side);
 }

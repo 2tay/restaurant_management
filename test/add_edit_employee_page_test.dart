@@ -86,6 +86,21 @@ void main() {
     expect(_enabled(tester, 'Suivant'), isFalse);
   });
 
+  testApp('step 1: no card behind the fields, and the photo comes last', (
+    tester,
+  ) async {
+    await _open(tester, Routes.toAddEmployee(StoreIds.sablon));
+
+    final page = find.byKey(const ValueKey('wizard-page-0'));
+    expect(
+      find.descendant(of: page, matching: find.byType(AppCard)),
+      findsNothing,
+    );
+    final emailY = tester.getTopLeft(find.byType(TextField).last).dy;
+    final photoY = tester.getTopLeft(find.text('Choisir une photo')).dy;
+    expect(photoY, greaterThan(emailY));
+  });
+
   testApp('the back link returns to Personnel', (tester) async {
     await _open(tester, Routes.toAddEmployee(StoreIds.sablon));
     await _tap(tester, "Retour à l'accueil");
