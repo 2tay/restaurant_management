@@ -19,10 +19,11 @@ import '../../../../../shared/widgets/widgets.dart';
 /// and a quantity for a delivery, a count for an inventory — so a row takes
 /// those as a child, and everything around them is drawn here, once.
 
-/// A tinted strip across the top of a form, in its movement's colour, so the
-/// person holding the tablet knows at a glance whether they are receiving,
-/// removing or counting. [trailing] carries the one form-wide setting — the
-/// delivery date.
+/// A quiet strip across the top of a form: a neutral card carrying a thin
+/// accent rail and a tinted icon tile in its movement's colour, so the person
+/// holding the tablet knows at a glance whether they are receiving, removing
+/// or counting without the colour taking over the screen. [trailing] carries
+/// the one form-wide setting — the delivery date.
 class MovementBanner extends StatelessWidget {
   const MovementBanner({
     required this.colors,
@@ -40,64 +41,86 @@ class MovementBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.lg,
-        vertical: AppSpacing.md,
-      ),
       decoration: BoxDecoration(
-        color: colors.container,
+        color: AppColors.surface,
         borderRadius: AppRadius.lgAll,
+        border: Border.all(color: AppColors.border),
       ),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final lead = Row(
-            children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: colors.solid,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  icon,
-                  size: AppSizing.iconSm,
-                  color: AppColors.white,
-                ),
-              ),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Text(
-                  message,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodyMedium?.copyWith(color: colors.foreground),
-                ),
-              ),
-            ],
-          );
-          if (trailing == null) return lead;
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
+        children: [
+          // The whole of the colour: a hairline rail down the left edge,
+          // drawn beside the content rather than stretched by a Row, which
+          // cannot stretch under an unbounded height.
+          Positioned(
+            top: 0,
+            bottom: 0,
+            left: 0,
+            width: 3,
+            child: ColoredBox(color: colors.solid),
+          ),
+          Padding(
+            // The left inset leaves the rail clear.
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.md + 3,
+              AppSpacing.md,
+              AppSpacing.md,
+              AppSpacing.md,
+            ),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final lead = Row(
+                  children: [
+                    Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: colors.container,
+                        borderRadius: AppRadius.smAll,
+                      ),
+                      child: Icon(
+                        icon,
+                        size: AppSizing.iconSm,
+                        color: colors.solid,
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.md),
+                    Expanded(
+                      child: Text(
+                        message,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+                if (trailing == null) return lead;
 
-          // On a phone the setting takes its own line: beside the message
-          // it squeezed the sentence into a column one word wide.
-          if (constraints.maxWidth < 520) {
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                lead,
-                const SizedBox(height: AppSpacing.sm),
-                trailing!,
-              ],
-            );
-          }
-          return Row(
-            children: [
-              Expanded(child: lead),
-              const SizedBox(width: AppSpacing.sm),
-              trailing!,
-            ],
-          );
-        },
+                // On a phone the setting takes its own line: beside the
+                // message it squeezed the sentence into a column one word
+                // wide.
+                if (constraints.maxWidth < 520) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      lead,
+                      const SizedBox(height: AppSpacing.sm),
+                      trailing!,
+                    ],
+                  );
+                }
+                return Row(
+                  children: [
+                    Expanded(child: lead),
+                    const SizedBox(width: AppSpacing.md),
+                    trailing!,
+                  ],
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

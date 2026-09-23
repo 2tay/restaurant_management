@@ -311,11 +311,23 @@ class _StockInPageState extends ConsumerState<StockInPage> {
             icon: LucideIcons.arrowDownToLine,
             message: l10n.stockInSubtitle,
             // One date for the whole delivery: it arrived once.
-            trailing: ActionChip(
-              avatar: const Icon(LucideIcons.calendar, size: AppSizing.iconSm),
-              label: Text(l10n.deliveryReceivedOn(_dateLabel(l10n))),
+            trailing: OutlinedButton.icon(
               onPressed: _pickDate,
-              backgroundColor: AppColors.surface,
+              icon: const Icon(LucideIcons.calendar, size: AppSizing.iconSm),
+              label: Text(l10n.deliveryReceivedOn(_dateLabel(l10n))),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.textPrimary,
+                backgroundColor: AppColors.surface,
+                side: const BorderSide(color: AppColors.border),
+                shape: const RoundedRectangleBorder(
+                  borderRadius: AppRadius.pillAll,
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.md,
+                ),
+                visualDensity: VisualDensity.compact,
+                textStyle: Theme.of(context).textTheme.labelLarge,
+              ),
             ),
           ),
           const SizedBox(height: AppSpacing.lg),
