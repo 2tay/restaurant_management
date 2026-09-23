@@ -34,6 +34,7 @@ class StatTile extends StatelessWidget {
     final foreground = accent?.foreground ?? AppColors.textPrimary;
 
     return AppCard(
+      bordered: false,
       child: LayoutBuilder(
         builder: (context, constraints) {
           // The icon medallion is 52dp of the tile's width including its gap.
@@ -60,13 +61,13 @@ class StatTile extends StatelessWidget {
             width: AppSizing.statTileMedallion,
             height: AppSizing.statTileMedallion,
             decoration: BoxDecoration(
-              color: accent?.container ?? AppColors.surfaceVariant,
+              color: accent?.container ?? AppColors.primaryContainer,
               shape: BoxShape.circle,
             ),
             child: Icon(
               icon,
               size: AppSizing.iconMd,
-              color: accent?.foreground ?? AppColors.textSecondary,
+              color: accent?.foreground ?? AppColors.primary600,
             ),
           ),
           const SizedBox(width: AppSpacing.md),

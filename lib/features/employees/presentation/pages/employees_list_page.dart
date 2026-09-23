@@ -169,8 +169,8 @@ class _EmployeesListPageState extends ConsumerState<EmployeesListPage> {
   }
 }
 
-/// Four figures over the whole roster (active only) — three counts and the
-/// average hourly rate — independent of the search
+/// Five figures over the whole roster (active only) — three counts, the
+/// average and the highest hourly rate — independent of the search
 /// below — the same split the reports pages use between a headline total and
 /// a filtered result count.
 class _KpiRow extends StatelessWidget {
@@ -198,6 +198,9 @@ class _KpiRow extends StatelessWidget {
     final averageRate = active.isEmpty
         ? null
         : active.map((e) => e.pay).reduce((a, b) => a + b) / active.length;
+    final maxRate = active.isEmpty
+        ? null
+        : active.map((e) => e.pay).reduce((a, b) => a > b ? a : b);
 
     return StatTileRow(
       tiles: [
@@ -224,6 +227,12 @@ class _KpiRow extends StatelessWidget {
               : '${Formatters.price(averageRate)} /h',
           icon: LucideIcons.wallet,
         ),
+        StatTile(
+          key: const ValueKey('kpi-max-rate'),
+          label: l10n.employeesKpiMaxRate,
+          value: maxRate == null ? '—' : '${Formatters.price(maxRate)} /h',
+          icon: LucideIcons.trendingUp,
+        ),
       ],
     );
   }
@@ -244,10 +253,10 @@ class _ArchivedFilterPill extends StatelessWidget {
 
     return Material(
       color: Colors.transparent,
-      borderRadius: AppRadius.pillAll,
+      borderRadius: AppRadius.smAll,
       child: InkWell(
         onTap: onTap,
-        borderRadius: AppRadius.pillAll,
+        borderRadius: AppRadius.smAll,
         child: FilterPill(
           label: l10n.employeesShowArchived,
           selectedLabel: active ? l10n.employeesShowArchived : null,

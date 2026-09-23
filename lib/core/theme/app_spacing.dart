@@ -49,6 +49,12 @@ abstract final class AppSizing {
   /// Absolute minimum for any tappable element. Enforced by the brief.
   static const double minTapTarget = 48;
 
+  /// Height of the flat controls in a list screen's toolbar — the view
+  /// toggle and the filter pills. Under the 48dp touch floor on purpose: the
+  /// bar is a desktop / tablet control strip, and each control keeps a full
+  /// 40dp square hit area.
+  static const double toolbarControlHeight = 40;
+
   /// Primary actions get more than the minimum.
   static const double buttonHeight = 56;
   static const double buttonHeightLarge = 64;

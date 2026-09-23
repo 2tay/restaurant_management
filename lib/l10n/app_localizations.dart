@@ -4030,6 +4030,12 @@ abstract class AppLocalizations {
   /// **'Tarif moyen'**
   String get employeesKpiAverageRate;
 
+  /// Staff roster KPI: highest hourly rate among the active employees.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tarif max'**
+  String get employeesKpiMaxRate;
+
   /// Roster KPI: employees hired this calendar month.
   ///
   /// In fr, this message translates to:

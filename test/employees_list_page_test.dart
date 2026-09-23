@@ -87,13 +87,97 @@ void main() {
     );
   });
 
+  testApp('a 5th KPI: the highest hourly rate', (tester) async {
+    final db = await _open(tester);
+    final active = await EmployeeRepository(db).activeEmployees(StoreIds.sablon);
+    final highest = active.map((e) => e.pay).reduce((a, b) => a > b ? a : b);
+
+    final tile = find.byKey(const ValueKey('kpi-max-rate'));
+    expect(
+      find.descendant(of: tile, matching: find.text('Tarif max')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: tile,
+        matching: find.text('${Formatters.price(highest)} /h'),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testApp('KPI cards: no border, a green icon on a light green disc', (
+    tester,
+  ) async {
+    await _open(tester);
+    final tile = find.byKey(const ValueKey('kpi-max-rate'));
+
+    expect(
+      tester.widget<AppCard>(
+        find.descendant(of: tile, matching: find.byType(AppCard)),
+      ).bordered,
+      isFalse,
+    );
+    final icon = tester.widget<Icon>(
+      find.descendant(of: tile, matching: find.byType(Icon)),
+    );
+    expect(icon.color, const Color(0xFF0F766E));
+  });
+
+  testApp('search: white, #777 placeholder and icon, green on focus', (
+    tester,
+  ) async {
+    await _open(tester);
+    final decoration = tester
+        .widget<TextField>(
+          find.descendant(
+            of: find.byType(SearchField),
+            matching: find.byType(TextField),
+          ),
+        )
+        .decoration!;
+
+    expect(decoration.fillColor, Colors.white);
+    expect(
+      (decoration.enabledBorder! as OutlineInputBorder).borderSide,
+      BorderSide.none,
+    );
+    expect(decoration.hintStyle?.color, const Color(0xFF777777));
+    const green = Color(0xFF0F766E);
+    expect(
+      (decoration.focusedBorder! as OutlineInputBorder).borderSide.color,
+      green,
+    );
+    final iconColor = decoration.prefixIconColor! as WidgetStateColor;
+    expect(iconColor.resolve(const <WidgetState>{}), const Color(0xFF777777));
+    expect(iconColor.resolve(const {WidgetState.focused}), green);
+  });
+
+  testApp('view toggle and archived filter: flat and 40dp high', (
+    tester,
+  ) async {
+    await _open(tester);
+    expect(tester.getSize(find.byType(ViewModeToggle)).height, 40);
+    final pill = find.byType(FilterPill);
+    expect(tester.getSize(pill).height, 40);
+    final toggleBox = tester.widget<Container>(
+      find
+          .descendant(
+            of: find.byType(ViewModeToggle),
+            matching: find.byType(Container),
+          )
+          .first,
+    );
+    expect((toggleBox.decoration! as BoxDecoration).border, isNull);
+  });
+
   testApp('search, archived filter and view toggle share one line, the '
-      'controls under the 4th KPI', (tester) async {
+      'controls under the last KPI', (tester) async {
     await _open(tester);
 
     final search = tester.getRect(find.byType(SearchField));
     final toggle = tester.getRect(find.byType(ViewModeToggle));
-    final kpi = tester.getRect(find.byKey(const ValueKey('kpi-average-rate')));
+    final kpi = tester.getRect(find.byKey(const ValueKey('kpi-max-rate')));
 
     // Same line…
     expect((search.center.dy - toggle.center.dy).abs(), lessThan(8));

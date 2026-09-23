@@ -25,11 +25,10 @@ class ViewModeToggle extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
 
     return Container(
-      height: AppSizing.minTapTarget,
-      decoration: BoxDecoration(
+      height: AppSizing.toolbarControlHeight,
+      decoration: const BoxDecoration(
         color: AppColors.surface,
-        borderRadius: AppRadius.pillAll,
-        border: Border.all(color: AppColors.border),
+        borderRadius: AppRadius.smAll,
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -75,17 +74,17 @@ class _ViewModeButton extends StatelessWidget {
         label: label,
         child: InkWell(
           onTap: onTap,
-          borderRadius: AppRadius.pillAll,
+          borderRadius: AppRadius.smAll,
           child: AnimatedContainer(
             duration: AppMotion.duration(context, AppMotion.fast),
             curve: AppMotion.standard,
-            // Square at the tap-target floor, even though the icon inside is
-            // small: this is a control for a wet finger on a tablet.
-            width: AppSizing.minTapTarget,
-            height: AppSizing.minTapTarget,
+            // Square at the toolbar height: a full-size hit area for a small
+            // icon.
+            width: AppSizing.toolbarControlHeight,
+            height: AppSizing.toolbarControlHeight,
             decoration: BoxDecoration(
               color: selected ? AppColors.primaryContainer : Colors.transparent,
-              borderRadius: AppRadius.pillAll,
+              borderRadius: AppRadius.smAll,
             ),
             child: Icon(
               icon,

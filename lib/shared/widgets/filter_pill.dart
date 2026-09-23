@@ -41,16 +41,18 @@ class FilterPill extends StatelessWidget {
         : AppColors.textSecondary;
 
     return Container(
-      constraints: const BoxConstraints(minHeight: AppSizing.minTapTarget),
+      constraints: const BoxConstraints(
+        minHeight: AppSizing.toolbarControlHeight,
+      ),
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.md,
         vertical: AppSpacing.sm,
       ),
       decoration: BoxDecoration(
         color: active ? AppColors.primaryContainer : AppColors.surface,
-        borderRadius: AppRadius.pillAll,
+        borderRadius: AppRadius.smAll,
         border: Border.all(
-          color: active ? AppColors.primary600 : AppColors.border,
+          color: Colors.transparent,
         ),
       ),
       // The label is capped where there is room and *flexible* where there is

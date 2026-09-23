@@ -80,9 +80,26 @@ class _SearchFieldState extends State<SearchField> {
           },
           decoration: InputDecoration(
             hintText: widget.hint ?? l10n.actionSearch,
-            prefixIcon: const Icon(
-              LucideIcons.search,
-              color: AppColors.textSecondary,
+            // White and borderless at rest, like the wizard fields; the brand
+            // green on focus, for the outline and the magnifier alike.
+            hintStyle: Theme.of(
+              context,
+            ).textTheme.bodyLarge?.copyWith(color: AppColors.placeholder),
+            filled: true,
+            fillColor: AppColors.surface,
+            enabledBorder: const OutlineInputBorder(
+              borderRadius: AppRadius.mdAll,
+              borderSide: BorderSide.none,
+            ),
+            focusedBorder: const OutlineInputBorder(
+              borderRadius: AppRadius.mdAll,
+              borderSide: BorderSide(color: AppColors.primary600, width: 2),
+            ),
+            prefixIcon: const Icon(LucideIcons.search),
+            prefixIconColor: WidgetStateColor.resolveWith(
+              (states) => states.contains(WidgetState.focused)
+                  ? AppColors.primary600
+                  : AppColors.placeholder,
             ),
             suffixIcon: hasText
                 ? IconButton(

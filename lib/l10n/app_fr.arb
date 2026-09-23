@@ -1529,6 +1529,8 @@
   "@employeesKpiManagers": {"description": "Roster KPI: count of owners and managers."},
   "employeesKpiAverageRate": "Tarif moyen",
   "@employeesKpiAverageRate": {"description": "Staff roster KPI: mean hourly rate of the active employees."},
+  "employeesKpiMaxRate": "Tarif max",
+  "@employeesKpiMaxRate": {"description": "Staff roster KPI: highest hourly rate among the active employees."},
   "employeesKpiHiredThisMonth": "Embauches ce mois",
   "@employeesKpiHiredThisMonth": {"description": "Roster KPI: employees hired this calendar month."},
 

@@ -20,6 +20,7 @@ class AppCard extends StatefulWidget {
     this.padding,
     this.selected = false,
     this.accentColor,
+    this.bordered = true,
     super.key,
   });
 
@@ -36,6 +37,10 @@ class AppCard extends StatefulWidget {
   /// A thick left edge — carries stock status onto a card without relying on
   /// the surface colour, which has to stay neutral.
   final Color? accentColor;
+
+  /// False drops the resting hairline — the shadow alone lifts the card (the
+  /// KPI tiles). Selection and keyboard focus still draw their outline.
+  final bool bordered;
 
   /// The hairline a resting card is drawn with.
   static const double borderWidth = 1;
@@ -93,10 +98,12 @@ class _AppCardState extends State<AppCard> {
                   color: AppColors.primary600,
                   width: AppCard.selectedBorderWidth,
                 )
-              : Border.all(
+              : widget.bordered
+              ? Border.all(
                   color: AppColors.hairline,
                   width: AppCard.borderWidth,
-                ),
+                )
+              : null,
           // Pressed drops back to resting so the card appears to sink under
           // the finger rather than staying lifted.
           boxShadow: _pressed

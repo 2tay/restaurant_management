@@ -2440,6 +2440,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get employeesKpiAverageRate => 'Tarif moyen';
 
   @override
+  String get employeesKpiMaxRate => 'Tarif max';
+
+  @override
   String get employeesKpiHiredThisMonth => 'Embauches ce mois';
 
   @override
