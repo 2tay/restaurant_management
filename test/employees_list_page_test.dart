@@ -122,6 +122,13 @@ void main() {
       find.descendant(of: tile, matching: find.byType(Icon)),
     );
     expect(icon.color, const Color(0xFF0F766E));
+    // …on a translucent green disc.
+    final disc = tester.widget<Container>(
+      find.ancestor(of: find.byWidget(icon), matching: find.byType(Container))
+          .first,
+    );
+    final discColor = (disc.decoration! as BoxDecoration).color!;
+    expect(discColor.a, lessThan(0.3));
   });
 
   testApp('search: white, #777 placeholder and icon, green on focus', (
@@ -158,6 +165,15 @@ void main() {
   ) async {
     await _open(tester);
     expect(tester.getSize(find.byType(ViewModeToggle)).height, 40);
+    // Small icons inside the toggle.
+    for (final icon in tester.widgetList<Icon>(
+      find.descendant(
+        of: find.byType(ViewModeToggle),
+        matching: find.byType(Icon),
+      ),
+    )) {
+      expect(icon.size, 18); // AppSizing.iconSm, down from 22
+    }
     final pill = find.byType(FilterPill);
     expect(tester.getSize(pill).height, 40);
     final toggleBox = tester.widget<Container>(

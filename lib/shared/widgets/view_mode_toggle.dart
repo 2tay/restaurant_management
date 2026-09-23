@@ -88,7 +88,7 @@ class _ViewModeButton extends StatelessWidget {
             ),
             child: Icon(
               icon,
-              size: AppSizing.iconMd,
+              size: AppSizing.iconSm,
               color: selected
                   ? AppColors.onPrimaryContainer
                   : AppColors.textSecondary,

@@ -61,7 +61,11 @@ class StatTile extends StatelessWidget {
             width: AppSizing.statTileMedallion,
             height: AppSizing.statTileMedallion,
             decoration: BoxDecoration(
-              color: accent?.container ?? AppColors.primaryContainer,
+              // A translucent wash of the brand green, not a flat tint — it
+              // sits lighter on the white card.
+              color:
+                  accent?.container ??
+                  AppColors.primary600.withValues(alpha: 0.10),
               shape: BoxShape.circle,
             ),
             child: Icon(
