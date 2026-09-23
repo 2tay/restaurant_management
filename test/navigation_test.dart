@@ -47,7 +47,6 @@ final _rootScreens = <String, String>{
 Map<String, String> _pushedScreens() {
   final item = mockItems.first.id;
   final supplier = mockSuppliers.first.id;
-  final employee = mockEmployees.first.id;
 
   return {
     'item detail': Routes.toItem(_store, item),
@@ -70,8 +69,6 @@ Map<String, String> _pushedScreens() {
     'valuation report': Routes.toValuationReport(_store),
     'comparison report': Routes.toComparisonReport(_store),
     'usage report': Routes.toUsageReport(_store),
-    'add employee': Routes.toAddEmployee(_store),
-    'edit employee': Routes.toEditEmployee(_store, employee),
     'search': Routes.toSearch(_store),
   };
 }
@@ -211,9 +208,7 @@ void main() {
     ) async {
       await _pump(tester);
       unawaited(
-        appRouter.push(
-          Routes.toEditEmployee(_store, mockEmployees.first.id),
-        ),
+        appRouter.push(Routes.toAttendanceHistory(_store)),
       );
       await tester.pumpAndSettle();
 

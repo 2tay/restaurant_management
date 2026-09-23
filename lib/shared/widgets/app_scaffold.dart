@@ -332,9 +332,6 @@ class ShellPage extends StatelessWidget {
     this.tabs,
     this.footer,
     this.maxContentWidth,
-    this.centerContent = false,
-    this.fullWidthHeader = false,
-    this.centerContentVertically = false,
     super.key,
   });
 
@@ -381,23 +378,6 @@ class ShellPage extends StatelessWidget {
   /// uncomfortable to read regardless of how much room there is.
   final double? maxContentWidth;
 
-  /// Centres the [maxContentWidth] column in the page instead of holding it
-  /// to the left edge — for a focused, single-task screen (a wizard) whose
-  /// header action must sit at the column's right, not mid-window.
-  final bool centerContent;
-
-  /// Keeps the header (title, subtitle, actions) at the page's full width
-  /// even when the content below is held to [maxContentWidth] — so a focused
-  /// screen's header reads exactly like a root screen's, its action at the
-  /// page's right edge, while the content stays a comfortable column.
-  final bool fullWidthHeader;
-
-  /// With [fullWidthHeader] on a scrolling page: when the content is shorter
-  /// than the window, it sits in the space under the header — a little above
-  /// the middle, where the eye expects a form, rather than dead centre (the
-  /// header stays at the top); when taller, the page scrolls as usual.
-  final bool centerContentVertically;
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -437,34 +417,20 @@ class ShellPage extends StatelessWidget {
       ),
     );
 
-    Widget constrain(Widget w) => maxContentWidth == null
-        ? w
-        : Align(
-            alignment: centerContent ? Alignment.topCenter : Alignment.topLeft,
-            child: ConstrainedBox(
-              constraints: BoxConstraints(maxWidth: maxContentWidth!),
-              child: w,
-            ),
-          );
+    Widget body = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        header,
+        if (scrollable) child else Expanded(child: child),
+      ],
+    );
 
-    final Widget body;
-    if (fullWidthHeader) {
-      final content = constrain(child);
-      body = Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          header,
-          if (scrollable) content else Expanded(child: content),
-        ],
-      );
-    } else {
-      body = constrain(
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            header,
-            if (scrollable) child else Expanded(child: child),
-          ],
+    if (maxContentWidth != null) {
+      body = Align(
+        alignment: Alignment.topLeft,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: maxContentWidth!),
+          child: body,
         ),
       );
     }
@@ -473,38 +439,6 @@ class ShellPage extends StatelessWidget {
     // window, and this is dense content that needs the room more than the
     // margin needs the air.
     final insets = padding ?? context.pageInsets;
-
-    if (centerContentVertically && fullWidthHeader && scrollable) {
-      // A min-height column: `spaceBetween` over [header, content, spacer]
-      // shares the free height equally above and below the content, and the
-      // spacer (an eighth of the window) tips that balance upward. A content
-      // taller than the window simply makes the column taller and scrolls. No
-      // intrinsic measuring, so LayoutBuilders inside are fine.
-      final resolved = insets.resolve(Directionality.of(context));
-      final centred = LayoutBuilder(
-        builder: (context, viewport) => SingleChildScrollView(
-          padding: insets,
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              minHeight: (viewport.maxHeight - resolved.vertical)
-                  .clamp(0, double.infinity),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                header,
-                constrain(child),
-                SizedBox(height: viewport.maxHeight / 8),
-              ],
-            ),
-          ),
-        ),
-      );
-      if (footer == null) return centred;
-      return Column(children: [Expanded(child: centred), footer!]);
-    }
 
     final content = scrollable
         ? SingleChildScrollView(padding: insets, child: body)

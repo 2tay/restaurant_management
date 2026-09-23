@@ -6,8 +6,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
-import '../../../../app/navigation.dart';
-import '../../../../app/routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/credential_status.dart';
@@ -17,11 +15,12 @@ import '../../../../l10n/app_localizations.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 
-/// Create or edit a member of staff.
+/// Create or edit a member of staff, in a [WizardDialog] over the roster.
 ///
-/// One [WizardScaffold] for both modes, in three steps:
+/// Three steps:
 ///
-/// 1. **Information professionnelle** — photo, name, PIN, phone, email.
+/// 1. **Information professionnelle** — name, PIN, phone, email, and last
+///    the photo.
 /// 2. **Rémunération** — the hourly rate.
 /// 3. **Rôle et sécurité** — the role, and the login password for a role that
 ///    signs in. An Employé never signs in (their pointage is done at the
@@ -29,44 +28,26 @@ import '../../../../shared/widgets/widgets.dart';
 ///    is saved for one.
 ///
 /// Creating walks the steps in order; editing may jump to any step and save
-/// from each ([WizardScaffold.freeNavigation]). The role picker shows what
-/// each role can do rather than just its name, and only offers Gérant /
-/// Employé — nobody is made Propriétaire from here. An existing owner keeps
-/// the role, shown alone.
+/// from each ([WizardDialog.freeNavigation]). The role picker shows what each
+/// role can do rather than just its name, and only offers Gérant / Employé —
+/// nobody is made Propriétaire from here. An existing owner keeps the role,
+/// shown alone.
 ///
-/// Split in two, like the other forms whose fields fill from a query: this
-/// resolves the employee being edited, and [_EmployeeForm] owns the
-/// controllers — `initState` cannot wait for the row.
-class AddEditEmployeePage extends ConsumerWidget {
-  const AddEditEmployeePage({required this.storeId, this.employeeId, super.key});
-
-  final String storeId;
-
-  /// Null when creating.
-  final String? employeeId;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    if (employeeId == null) {
-      return _EmployeeForm(storeId: storeId);
-    }
-    final employee = ref.watch(employeeProvider(employeeId!));
-    return AsyncContent<Employee?>(
-      value: employee,
-      onRetry: () => ref.invalidate(employeeProvider(employeeId!)),
-      builder: (context, employee) => employee == null
-          ? const ErrorState()
-          : _EmployeeForm(
-              key: ValueKey(employee.id),
-              storeId: storeId,
-              employee: employee,
-            ),
-    );
-  }
+/// Resolves to the saved employee, or null when the dialog was closed without
+/// saving.
+Future<Employee?> showEmployeeWizard(
+  BuildContext context, {
+  required String storeId,
+  Employee? employee,
+}) {
+  return WizardDialog.show<Employee>(
+    context,
+    builder: (_) => _EmployeeForm(storeId: storeId, employee: employee),
+  );
 }
 
 class _EmployeeForm extends ConsumerStatefulWidget {
-  const _EmployeeForm({required this.storeId, this.employee, super.key});
+  const _EmployeeForm({required this.storeId, this.employee});
 
   final String storeId;
   final Employee? employee;
@@ -239,16 +220,11 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
     final l10n = AppLocalizations.of(context);
     final existing = _employee;
 
-    return WizardScaffold(
+    return WizardDialog(
       title: _isEditing ? l10n.editEmployeeTitle : l10n.addEmployeeTitle,
       description: existing == null
           ? l10n.employeeFormDescription
           : l10n.employeeFormEditDescription(employeeDisplayName(existing)),
-      back: BackDestination(
-        label: l10n.employeesTitle,
-        path: Routes.toEmployees(widget.storeId),
-      ),
-      backLinkLabel: l10n.employeeFormBackHome,
       currentStep: _step,
       onStepChanged: (step) => setState(() => _step = step),
       freeNavigation: _isEditing,
@@ -256,7 +232,6 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
       submitIcon: LucideIcons.check,
       onSubmit: _submit,
       isDirty: _isDirty,
-      maxWidth: 720,
       steps: [
         WizardStep(
           label: l10n.employeeWizardStepInfo,
@@ -577,7 +552,9 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
       context,
       _isEditing ? l10n.employeeUpdated : l10n.employeeCreated,
     );
-    context.goSection(Routes.toEmployees(widget.storeId));
+    // Close the dialog — Navigator.pop, not maybePop: the save is the one
+    // way out that must not ask "abandonner les modifications ?".
+    Navigator.of(context).pop(result);
   }
 
   static String _formatPay(double value) => value == value.roundToDouble()

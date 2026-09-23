@@ -90,7 +90,6 @@ void main() {
       for (final blocked in [
         Routes.toEmployees(_store),
         Routes.toPayroll(_store),
-        Routes.toAddEmployee(_store),
       ]) {
         appRouter.go(blocked);
         await tester.pumpAndSettle();

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../app/navigation.dart';
 import '../../core/theme/app_colors.dart';
@@ -35,15 +34,9 @@ class FormScaffold extends StatelessWidget {
     this.keepSubtitle = false,
     this.crumbs = const [],
     this.submitIcon,
-    this.submitTonal = false,
     this.isDirty = false,
     this.secondaryAction,
     this.submitSecondary,
-    this.forwardActions = const [],
-    this.headerBackLinkLabel,
-    this.centered = false,
-    this.centerVertically = false,
-    this.inlineActions = false,
     this.maxWidth = 760,
     super.key,
   });
@@ -63,9 +56,6 @@ class FormScaffold extends StatelessWidget {
   final String submitLabel;
   final IconData? submitIcon;
 
-  /// Draws the submit as [PrimaryButton.tonal].
-  final bool submitTonal;
-
   /// Null disables the submit button — the form is incomplete.
   final VoidCallback? onSubmit;
 
@@ -84,28 +74,6 @@ class FormScaffold extends StatelessWidget {
   /// it as a way out of the form, which is the opposite of what it does.
   final Widget? submitSecondary;
 
-  /// Further constructive actions, placed left of [submitSecondary] and the
-  /// primary submit — a wizard's Précédent / Suivant.
-  final List<Widget> forwardActions;
-
-  /// When set, the way back is a link on the right of the title row with this
-  /// label, instead of the back control above the title (and no breadcrumbs).
-  /// It goes through the same unsaved-input guard.
-  final String? headerBackLinkLabel;
-
-  /// Centres the form column — header, body and the action bar's buttons —
-  /// in the window, instead of holding it to the left edge.
-  final bool centered;
-
-  /// Centres the form in the height left under the header — a short, focused
-  /// form (a wizard) instead of hugging the top of a tall window.
-  final bool centerVertically;
-
-  /// Puts the actions right under the form, in its column, instead of a bar
-  /// pinned to the bottom of the window — for a short form (a wizard step)
-  /// where the buttons belong with the fields they act on.
-  final bool inlineActions;
-
   final double maxWidth;
 
   final Widget child;
@@ -113,34 +81,6 @@ class FormScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-
-    final actionBar = _ActionBar(
-      maxWidth: maxWidth,
-      centered: centered,
-      inline: inlineActions,
-      leading: [
-        SecondaryButton(
-          label: l10n.actionCancel,
-          // Inline, under the fields: a quiet way out rather than an outlined
-          // button competing with the steps.
-          tone: inlineActions
-              ? SecondaryButtonTone.quiet
-              : SecondaryButtonTone.outlined,
-          onPressed: () => _leave(context),
-        ),
-        ?secondaryAction,
-      ],
-      trailing: [
-        ...forwardActions,
-        ?submitSecondary,
-        PrimaryButton(
-          label: submitLabel,
-          icon: submitIcon,
-          tonal: submitTonal,
-          onPressed: onSubmit,
-        ),
-      ],
-    );
 
     return PopScope(
       // Taking control of pops so the Android back gesture runs through the
@@ -155,33 +95,29 @@ class FormScaffold extends StatelessWidget {
         title: title,
         subtitle: subtitle,
         keepSubtitle: keepSubtitle,
-        back: headerBackLinkLabel == null ? back : null,
-        crumbs: headerBackLinkLabel == null ? crumbs : const [],
-        actions: [
-          if (headerBackLinkLabel != null)
-            _HeaderBackLink(
-              label: headerBackLinkLabel!,
-              onPressed: () => _leave(context),
-            ),
-        ],
+        back: back,
+        crumbs: crumbs,
         onBack: () => _leave(context),
         maxContentWidth: maxWidth,
-        centerContent: centered,
-        // A centred form keeps a root-screen header: title left, the way back
-        // at the page's right edge (see Personnel and its Ajouter button).
-        fullWidthHeader: centered,
-        centerContentVertically: centerVertically,
-        footer: inlineActions ? null : actionBar,
-        child: inlineActions
-            ? Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  child,
-                  const SizedBox(height: AppSpacing.xxxl),
-                  actionBar,
-                ],
-              )
-            : child,
+        footer: _ActionBar(
+          maxWidth: maxWidth,
+          leading: [
+            SecondaryButton(
+              label: l10n.actionCancel,
+              onPressed: () => _leave(context),
+            ),
+            ?secondaryAction,
+          ],
+          trailing: [
+            ?submitSecondary,
+            PrimaryButton(
+              label: submitLabel,
+              icon: submitIcon,
+              onPressed: onSubmit,
+            ),
+          ],
+        ),
+        child: child,
       ),
     );
   }
@@ -207,33 +143,12 @@ class FormScaffold extends StatelessWidget {
   }
 }
 
-/// The way back as a link on the title row — see
-/// [FormScaffold.headerBackLinkLabel].
-class _HeaderBackLink extends StatelessWidget {
-  const _HeaderBackLink({required this.label, required this.onPressed});
-
-  final String label;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return TextButton.icon(
-      onPressed: onPressed,
-      icon: const Icon(LucideIcons.arrowLeft, size: AppSizing.iconSm),
-      label: Text(label),
-    );
-  }
-}
-
-/// The form's actions: a bar pinned along the bottom, or — with
-/// [FormScaffold.inlineActions] — a row laid under the fields.
+/// The pinned bar along the bottom of a form.
 class _ActionBar extends StatelessWidget {
   const _ActionBar({
     required this.leading,
     required this.trailing,
     required this.maxWidth,
-    required this.centered,
-    required this.inline,
   });
 
   /// Dismissive actions, left to right. Cancel first.
@@ -243,29 +158,20 @@ class _ActionBar extends StatelessWidget {
   final List<Widget> trailing;
 
   final double maxWidth;
-  final bool centered;
-
-  /// Laid in the content column rather than pinned: no surface, no rule,
-  /// no padding of its own.
-  final bool inline;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: inline
-          ? null
-          : const BoxDecoration(
-              color: AppColors.surface,
-              border: Border(top: BorderSide(color: AppColors.border)),
-            ),
-      padding: inline
-          ? EdgeInsets.zero
-          : EdgeInsets.symmetric(
-              horizontal: context.isPhone ? AppSpacing.lg : AppSpacing.xl,
-              vertical: AppSpacing.lg,
-            ),
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
+        border: Border(top: BorderSide(color: AppColors.border)),
+      ),
+      padding: EdgeInsets.symmetric(
+        horizontal: context.isPhone ? AppSpacing.lg : AppSpacing.xl,
+        vertical: AppSpacing.lg,
+      ),
       child: Align(
-        alignment: centered ? Alignment.topCenter : Alignment.topLeft,
+        alignment: Alignment.topLeft,
         child: ConstrainedBox(
           constraints: BoxConstraints(maxWidth: maxWidth),
           child: LayoutBuilder(

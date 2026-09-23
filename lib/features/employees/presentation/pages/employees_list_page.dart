@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
-import '../../../../app/navigation.dart';
-import '../../../../app/routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/employee_status.dart';
@@ -14,6 +12,7 @@ import '../../../../l10n/app_localizations.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 import '../widgets/employee_detail_drawer.dart';
+import '../widgets/employee_wizard_dialog.dart';
 
 /// The staff roster — *Personnel*.
 ///
@@ -39,6 +38,8 @@ class _EmployeesListPageState extends ConsumerState<EmployeesListPage> {
   bool _showArchived = false;
   CollectionViewMode _viewMode = CollectionViewMode.grid;
 
+  void _add() => showEmployeeWizard(context, storeId: widget.storeId);
+
   void _open(Employee employee) => showEmployeeDetailDrawer(
     context,
     storeId: widget.storeId,
@@ -58,8 +59,7 @@ class _EmployeesListPageState extends ConsumerState<EmployeesListPage> {
           label: l10n.employeesAdd,
           shortLabel: l10n.shortAddEmployee,
           icon: LucideIcons.userPlus,
-          onPressed: () =>
-              context.pushScreen(Routes.toAddEmployee(widget.storeId)),
+          onPressed: _add,
         ),
       ],
       child: AsyncContent<List<Employee>>(
@@ -135,9 +135,7 @@ class _EmployeesListPageState extends ConsumerState<EmployeesListPage> {
                     message: l10n.employeesEmptyBody,
                     actionLabel: l10n.employeesAdd,
                     actionIcon: LucideIcons.userPlus,
-                    onAction: () => context.pushScreen(
-                      Routes.toAddEmployee(widget.storeId),
-                    ),
+                    onAction: _add,
                   )
                 : EmptyState.noResults(
                     l10n,

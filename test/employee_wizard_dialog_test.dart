@@ -1,6 +1,6 @@
-// The employee form as a three-step wizard (design step 1.2):
-// Information professionnelle → Rémunération → Rôle et sécurité. Propriétaire
-// is never assignable, and only a role that signs in is asked for a password.
+// The employee wizard, in a pop-up over Personnel: Information
+// professionnelle → Rémunération → Rôle et sécurité. Propriétaire is never
+// assignable, and only a role that signs in is asked for a password.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -18,13 +18,13 @@ const _manager = ValueKey('role-option-manager');
 const _staff = ValueKey('role-option-staff');
 const _staffNotice = ValueKey('staff-no-password');
 
-Future<AppDatabase> _open(
-  WidgetTester tester,
-  String path, {
-  Size size = const Size(1280, 900),
-}) async {
-  final db = await pumpApp(tester, size: size, asEmployeeId: EmployeeIds.marc);
-  appRouter.go(path);
+Future<AppDatabase> _roster(WidgetTester tester) async {
+  final db = await pumpApp(
+    tester,
+    size: const Size(1440, 900),
+    asEmployeeId: EmployeeIds.marc,
+  );
+  appRouter.go(Routes.toEmployees(StoreIds.sablon));
   await tester.pumpAndSettle();
   return db;
 }
@@ -35,17 +35,41 @@ Finder _button(String label) => find.ancestor(
 );
 
 bool _enabled(WidgetTester tester, String label) =>
-    tester.widget<ButtonStyleButton>(_button(label).first).onPressed != null;
+    tester.widget<ButtonStyleButton>(_button(label).last).onPressed != null;
 
 Future<void> _tap(WidgetTester tester, String label) async {
-  final button = _button(label).first;
+  final button = _button(label).last;
   await tester.ensureVisible(button);
   await tester.tap(button);
   await tester.pumpAndSettle();
 }
 
+/// Personnel → Ajouter un employé.
+Future<AppDatabase> _openAdd(WidgetTester tester) async {
+  final db = await _roster(tester);
+  await _tap(tester, 'Ajouter un employé');
+  return db;
+}
+
+/// Personnel → the person's card → drawer → Modifier.
+Future<void> _openEdit(WidgetTester tester, String name) async {
+  await _roster(tester);
+  // The card — the signed-in owner's name is also in the sidebar.
+  await tester.tap(find.widgetWithText(AppCard, name));
+  await tester.pumpAndSettle();
+  await tester.tap(
+    find.descendant(
+      of: find.byType(DetailDrawer),
+      matching: find.widgetWithText(SecondaryButton, 'Modifier'),
+    ),
+  );
+  await tester.pumpAndSettle();
+}
+
+Finder get _fields =>
+    find.descendant(of: find.byType(Dialog), matching: find.byType(TextField));
+
 Future<void> _fillIdentity(WidgetTester tester) async {
-  final fields = find.byType(TextField);
   const values = [
     'Nora',
     'Benali',
@@ -54,7 +78,7 @@ Future<void> _fillIdentity(WidgetTester tester) async {
     'nora.benali@example.test',
   ];
   for (final (i, value) in values.indexed) {
-    await tester.enterText(fields.at(i), value);
+    await tester.enterText(_fields.at(i), value);
   }
   await tester.pumpAndSettle();
 }
@@ -63,25 +87,25 @@ Future<void> _fillIdentity(WidgetTester tester) async {
 Future<void> _walkToRoleStep(WidgetTester tester) async {
   await _fillIdentity(tester);
   await _tap(tester, 'Suivant');
-  await tester.enterText(find.byType(TextField).first, '18,5');
+  await tester.enterText(_fields.first, '18,5');
   await tester.pumpAndSettle();
   await _tap(tester, 'Suivant');
 }
 
 void main() {
-  testApp('opens on step 1 with the title, paragraph and back link', (
+  testApp('Ajouter un employé opens the wizard in a pop-up over Personnel', (
     tester,
   ) async {
-    await _open(tester, Routes.toAddEmployee(StoreIds.sablon));
+    await _openAdd(tester);
 
     expect(tester.takeException(), isNull);
-    expect(find.byType(WizardStepIndicator), findsOneWidget);
-    // Under the test font the three labels do not fit the 720dp form, so the
-    // indicator is in its compact form here (the full row is covered by
-    // wizard_test.dart).
-    expect(find.textContaining('Information professionnelle'), findsOneWidget);
+    expect(find.byType(WizardDialog), findsOneWidget);
+    expect(
+      appRouter.routerDelegate.currentConfiguration.uri.toString(),
+      Routes.toEmployees(StoreIds.sablon),
+    );
     expect(find.textContaining('trois étapes'), findsOneWidget);
-    expect(find.text("Retour à l'accueil"), findsOneWidget);
+    expect(find.textContaining('Information professionnelle'), findsWidgets);
     // Step 1 is empty → cannot move on.
     expect(_enabled(tester, 'Suivant'), isFalse);
   });
@@ -89,34 +113,23 @@ void main() {
   testApp('step 1: no card behind the fields; the photo picker comes last', (
     tester,
   ) async {
-    await _open(tester, Routes.toAddEmployee(StoreIds.sablon));
+    await _openAdd(tester);
 
     final page = find.byKey(const ValueKey('wizard-page-0'));
     expect(
       find.descendant(of: page, matching: find.byType(AppCard)),
       findsNothing,
     );
-    final emailY = tester.getTopLeft(find.byType(TextField).last).dy;
-    // The grey circle is the picker; there is no separate photo button.
+    final emailY = tester.getTopLeft(_fields.last).dy;
     final picker = find.byKey(const ValueKey('employee-photo-picker'));
     expect(picker, findsOneWidget);
     expect(find.text('Choisir une photo'), findsNothing);
     expect(tester.getTopLeft(picker).dy, greaterThan(emailY));
   });
 
-  testApp('the back link returns to Personnel', (tester) async {
-    await _open(tester, Routes.toAddEmployee(StoreIds.sablon));
-    await _tap(tester, "Retour à l'accueil");
-
-    expect(
-      appRouter.routerDelegate.currentConfiguration.uri.toString(),
-      Routes.toEmployees(StoreIds.sablon),
-    );
-  });
-
   testApp('walks the three steps; Gérant / Employé only, never Propriétaire',
       (tester) async {
-    await _open(tester, Routes.toAddEmployee(StoreIds.sablon));
+    await _openAdd(tester);
     await _walkToRoleStep(tester);
 
     expect(find.byKey(_manager), findsOneWidget);
@@ -125,11 +138,9 @@ void main() {
   });
 
   testApp('an Employé is asked for no password; a Gérant is', (tester) async {
-    await _open(tester, Routes.toAddEmployee(StoreIds.sablon));
+    await _openAdd(tester);
     await _walkToRoleStep(tester);
 
-    // Default role is Employé: no password fields, a note instead, and the
-    // form can be saved as is.
     expect(find.byKey(_staffNotice), findsOneWidget);
     expect(find.text('Mot de passe'), findsNothing);
     expect(_enabled(tester, 'Enregistrer'), isTrue);
@@ -138,15 +149,17 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(_staffNotice), findsNothing);
     expect(find.text('Mot de passe'), findsOneWidget);
-    // A Gérant needs one before saving.
     expect(_enabled(tester, 'Enregistrer'), isFalse);
   });
 
-  testApp('saving an Employé creates them with no credential', (tester) async {
-    final db = await _open(tester, Routes.toAddEmployee(StoreIds.sablon));
+  testApp('saving an Employé closes the pop-up and adds them, with no '
+      'credential', (tester) async {
+    final db = await _openAdd(tester);
     await _walkToRoleStep(tester);
     await _tap(tester, 'Enregistrer');
 
+    expect(find.byType(WizardDialog), findsNothing);
+    expect(find.text('Nora Benali'), findsOneWidget); // on the roster behind
     final created = await EmployeeRepository(
       db,
     ).employeeByPin('11.22.33-444.55');
@@ -155,15 +168,13 @@ void main() {
     expect(await CredentialRepository(db).forEmployee(created.id), isNull);
   });
 
-  testApp('editing can save from any step', (
+  testApp('Modifier in the drawer opens the same pop-up, savable at once', (
     tester,
   ) async {
-    await _open(
-      tester,
-      Routes.toEditEmployee(StoreIds.sablon, EmployeeIds.amelie),
-    );
+    await _openEdit(tester, 'Amélie Vandenberghe');
 
-    expect(find.textContaining('Amélie Vandenberghe'), findsWidgets);
+    expect(find.byType(DetailDrawer), findsNothing);
+    expect(find.byType(WizardDialog), findsOneWidget);
     expect(_enabled(tester, 'Enregistrer'), isTrue);
 
     await _tap(tester, 'Suivant');
@@ -177,10 +188,7 @@ void main() {
   testApp('editing the owner keeps Propriétaire as the only role', (
     tester,
   ) async {
-    await _open(
-      tester,
-      Routes.toEditEmployee(StoreIds.sablon, EmployeeIds.marc),
-    );
+    await _openEdit(tester, 'Marc Delvaux');
     await _tap(tester, 'Suivant');
     await _tap(tester, 'Suivant');
 
@@ -189,13 +197,15 @@ void main() {
     expect(find.byKey(_staff), findsNothing);
   });
 
-  testApp('fits a phone', (tester) async {
-    await _open(tester, Routes.toAddEmployee(StoreIds.sablon));
+  testApp('full screen on a phone', (tester) async {
+    await _openAdd(tester);
     tester.view.physicalSize = const Size(390, 844);
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
-    expect(find.text('Étape 1 sur 3 · Information professionnelle'),
-        findsOneWidget);
+    expect(
+      find.text('Étape 1 sur 3 · Information professionnelle'),
+      findsOneWidget,
+    );
   });
 }

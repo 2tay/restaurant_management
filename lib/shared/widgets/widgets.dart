@@ -51,7 +51,7 @@ export 'stat_tile.dart';
 export 'status_pill.dart';
 export 'stock_status_badge.dart';
 export 'view_mode_toggle.dart';
-export 'wizard_scaffold.dart';
+export 'wizard_dialog.dart';
 export 'wizard_step_indicator.dart';
 // store_switcher.dart removed with the top bar — the sidebar owns store
 // selection now (see app_sidebar.dart).

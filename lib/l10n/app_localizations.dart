@@ -4078,12 +4078,6 @@ abstract class AppLocalizations {
   /// **'Modifiez la fiche de {name}. Chaque étape peut être enregistrée directement.'**
   String employeeFormEditDescription(String name);
 
-  /// Employee wizard: link on the title row back to the staff roster.
-  ///
-  /// In fr, this message translates to:
-  /// **'Retour à l\'accueil'**
-  String get employeeFormBackHome;
-
   /// Placeholder of the first-name field.
   ///
   /// In fr, this message translates to:

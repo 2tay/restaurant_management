@@ -74,13 +74,9 @@ abstract final class Routes {
   // their routes resolve to a "bientôt disponible" placeholder so the sidebar
   // entry can carry all four items from the start.
   static const String employees = '$storeBase/employees';
-  static const String addEmployee = '$employees/new';
   static const String timeclock = '$employees/timeclock';
   static const String attendanceHistory = '$employees/attendance-history';
   static const String payroll = '$employees/payroll';
-  // One employee's detail is a drawer over the roster, not a route; only the
-  // edit form has a path of its own.
-  static const String editEmployee = '$employees/:employeeId/edit';
 
   static const String storeSettings = '$storeBase/settings/store';
   static const String accountSettings = '$storeBase/settings/account';
@@ -189,12 +185,6 @@ abstract final class Routes {
       '/store/$storeId/reports/usage';
 
   static String toEmployees(String storeId) => '/store/$storeId/employees';
-
-  static String toAddEmployee(String storeId) =>
-      '/store/$storeId/employees/new';
-
-  static String toEditEmployee(String storeId, String employeeId) =>
-      '/store/$storeId/employees/$employeeId/edit';
 
   static String toTimeclock(String storeId) =>
       '/store/$storeId/employees/timeclock';

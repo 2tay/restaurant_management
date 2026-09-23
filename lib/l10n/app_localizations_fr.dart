@@ -2466,9 +2466,6 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get employeeFormBackHome => 'Retour à l\'accueil';
-
-  @override
   String get employeeFormFirstNameHint => 'Ex. Nora';
 
   @override

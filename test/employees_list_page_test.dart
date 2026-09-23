@@ -9,7 +9,6 @@ import 'package:stock_inventory/app/routes.dart';
 import 'package:stock_inventory/data/database/app_database.dart';
 import 'package:stock_inventory/data/repositories/repositories.dart';
 import 'package:stock_inventory/data/seed/dataset/dataset.dart';
-import 'package:stock_inventory/features/employees/presentation/pages/add_edit_employee_page.dart';
 import 'package:stock_inventory/shared/widgets/widgets.dart';
 
 import 'support/app_harness.dart';
@@ -110,7 +109,7 @@ void main() {
     expect(find.text('karim.haddouch@brasserie-sablon.be'), findsWidgets);
   });
 
-  testApp('Modifier in the drawer closes it and opens the form', (
+  testApp('Modifier in the drawer closes it and opens the edit pop-up', (
     tester,
   ) async {
     await _open(tester);
@@ -126,10 +125,12 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(DetailDrawer), findsNothing);
-    // The edit form is pushed on top of the roster (a push keeps the base
-    // location, so the form is checked for rather than the URL).
-    expect(find.byType(AddEditEmployeePage), findsOneWidget);
-    expect(find.byType(WizardScaffold), findsOneWidget);
+    // The edit wizard opens as a pop-up over the roster.
+    expect(find.byType(WizardDialog), findsOneWidget);
+    expect(
+      appRouter.routerDelegate.currentConfiguration.uri.toString(),
+      Routes.toEmployees(StoreIds.sablon),
+    );
   });
 
   testApp('Retirer in the drawer archives, and the drawer follows', (

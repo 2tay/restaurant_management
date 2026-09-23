@@ -12,6 +12,7 @@ import '../../../../data/providers.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
+import 'employee_wizard_dialog.dart';
 
 /// How many of the most recent days the drawer lists — enough to see how the
 /// week went; the full history is one tap away on the Historique screen.
@@ -32,7 +33,17 @@ Future<void> showEmployeeDetailDrawer(
     context,
     title: employeeDisplayName(employee),
     children: [
-      EmployeeDetailBody(storeId: storeId, employeeId: employee.id),
+      EmployeeDetailBody(
+        storeId: storeId,
+        employeeId: employee.id,
+        // The roster's context, not the drawer's: the drawer closes first,
+        // and the edit dialog opens over the roster.
+        onEdit: (current) => showEmployeeWizard(
+          context,
+          storeId: storeId,
+          employee: current,
+        ),
+      ),
     ],
   );
 }
@@ -42,11 +53,15 @@ class EmployeeDetailBody extends ConsumerWidget {
   const EmployeeDetailBody({
     required this.storeId,
     required this.employeeId,
+    required this.onEdit,
     super.key,
   });
 
   final String storeId;
   final String employeeId;
+
+  /// Opens the edit wizard for the employee as currently shown.
+  final ValueChanged<Employee> onEdit;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -137,7 +152,7 @@ class EmployeeDetailBody extends ConsumerWidget {
               icon: LucideIcons.pencil,
               onPressed: () {
                 Navigator.of(context).pop();
-                context.pushScreen(Routes.toEditEmployee(storeId, employee.id));
+                onEdit(employee);
               },
             ),
             if (archived)

@@ -1550,8 +1550,6 @@
   "@employeeFormDescription": {"description": "Paragraph under the add-employee title."},
   "employeeFormEditDescription": "Modifiez la fiche de {name}. Chaque étape peut être enregistrée directement.",
   "@employeeFormEditDescription": {"description": "Paragraph under the edit-employee title.", "placeholders": {"name": {"type": "String"}}},
-  "employeeFormBackHome": "Retour à l'accueil",
-  "@employeeFormBackHome": {"description": "Employee wizard: link on the title row back to the staff roster."},
   "employeeFormFirstNameHint": "Ex. Nora",
   "@employeeFormFirstNameHint": {"description": "Placeholder of the first-name field."},
   "employeeFormLastNameHint": "Ex. Benali",

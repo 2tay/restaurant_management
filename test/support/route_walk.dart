@@ -17,7 +17,6 @@ List<WalkableRoute> allRoutes() {
   const store = StoreIds.sablon;
   final item = mockItems.first.id;
   final supplier = mockSuppliers.first.id;
-  final employee = mockEmployees.first.id;
 
   // A draft and a partially received order, because the detail screen renders
   // a different action row for each status and only one of them can be wrong
@@ -125,7 +124,6 @@ List<WalkableRoute> allRoutes() {
     (label: 'usage report', path: Routes.toUsageReport(store), inShell: true),
 
     (label: 'employees', path: Routes.toEmployees(store), inShell: true),
-    (label: 'add employee', path: Routes.toAddEmployee(store), inShell: true),
     (label: 'timeclock', path: Routes.toTimeclock(store), inShell: true),
     (
       label: 'attendance history',
@@ -133,11 +131,6 @@ List<WalkableRoute> allRoutes() {
       inShell: true,
     ),
     (label: 'payroll', path: Routes.toPayroll(store), inShell: true),
-    (
-      label: 'edit employee',
-      path: Routes.toEditEmployee(store, employee),
-      inShell: true,
-    ),
 
     (
       label: 'store settings',
