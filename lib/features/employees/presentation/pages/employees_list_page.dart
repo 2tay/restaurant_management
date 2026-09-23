@@ -7,11 +7,13 @@ import '../../../../app/routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/employee_status.dart';
+import '../../../../core/utils/formatters.dart';
 import '../../../../core/utils/responsive.dart';
 import '../../../../data/providers.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
+import '../widgets/employee_detail_drawer.dart';
 
 /// The staff roster — *Personnel*.
 ///
@@ -19,6 +21,10 @@ import '../../../../shared/widgets/widgets.dart';
 /// carries no back control. Archived people are hidden by default, the same
 /// instinct as items and suppliers defaulting to what is currently usable —
 /// "afficher les personnels retirés" brings them back into view.
+///
+/// Two layouts of the same filtered roster — cards (the default) or a table —
+/// behind the same toggle the inventory uses. Either way a click opens the
+/// person's detail in a drawer over the list rather than navigating away.
 class EmployeesListPage extends ConsumerStatefulWidget {
   const EmployeesListPage({required this.storeId, super.key});
 
@@ -31,6 +37,13 @@ class EmployeesListPage extends ConsumerStatefulWidget {
 class _EmployeesListPageState extends ConsumerState<EmployeesListPage> {
   String _query = '';
   bool _showArchived = false;
+  CollectionViewMode _viewMode = CollectionViewMode.grid;
+
+  void _open(Employee employee) => showEmployeeDetailDrawer(
+    context,
+    storeId: widget.storeId,
+    employee: employee,
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -68,20 +81,48 @@ class _EmployeesListPageState extends ConsumerState<EmployeesListPage> {
       children: [
         _KpiRow(employees: all),
         const SizedBox(height: AppSpacing.lg),
-        Row(
-          children: [
-            Expanded(
-              child: SearchField(
-                hint: l10n.employeesSearchHint,
-                onChanged: (value) => setState(() => _query = value),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final search = SearchField(
+              hint: l10n.employeesSearchHint,
+              onChanged: (value) => setState(() => _query = value),
+            );
+            final controls = [
+              Flexible(
+                child: _ArchivedFilterPill(
+                  active: _showArchived,
+                  onTap: () => setState(() => _showArchived = !_showArchived),
+                ),
               ),
-            ),
-            const SizedBox(width: AppSpacing.md),
-            _ArchivedFilterPill(
-              active: _showArchived,
-              onTap: () => setState(() => _showArchived = !_showArchived),
-            ),
-          ],
+              const SizedBox(width: AppSpacing.md),
+              ViewModeToggle(
+                mode: _viewMode,
+                onSelected: (mode) => setState(() => _viewMode = mode),
+              ),
+            ];
+            // On a phone the search, the pill and the toggle do not fit one
+            // line; the search takes its own, the two controls sit under it.
+            if (constraints.maxWidth < AppBreakpoints.compact) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  search,
+                  const SizedBox(height: AppSpacing.sm),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: controls,
+                  ),
+                ],
+              );
+            }
+            return Row(
+              children: [
+                Expanded(child: search),
+                const SizedBox(width: AppSpacing.md),
+                ...controls,
+              ],
+            );
+          },
         ),
         const SizedBox(height: AppSpacing.md),
         if (filtered.isEmpty)
@@ -106,8 +147,10 @@ class _EmployeesListPageState extends ConsumerState<EmployeesListPage> {
                     }),
                   ),
           )
+        else if (_viewMode == CollectionViewMode.list)
+          _EmployeeTable(employees: filtered, onOpen: _open)
         else
-          _EmployeeGrid(employees: filtered, storeId: widget.storeId),
+          _EmployeeGrid(employees: filtered, onOpen: _open),
       ],
     );
   }
@@ -205,10 +248,10 @@ class _ArchivedFilterPill extends StatelessWidget {
 /// [AdaptiveRow] inside each card stacks its own content at that width, so a
 /// card reads the same whether there is 1 column or 4.
 class _EmployeeGrid extends StatelessWidget {
-  const _EmployeeGrid({required this.employees, required this.storeId});
+  const _EmployeeGrid({required this.employees, required this.onOpen});
 
   final List<Employee> employees;
-  final String storeId;
+  final ValueChanged<Employee> onOpen;
 
   @override
   Widget build(BuildContext context) {
@@ -227,7 +270,10 @@ class _EmployeeGrid extends StatelessWidget {
             for (final employee in employees)
               SizedBox(
                 width: cardWidth,
-                child: _EmployeeRow(employee: employee, storeId: storeId),
+                child: _EmployeeCard(
+                  employee: employee,
+                  onTap: () => onOpen(employee),
+                ),
               ),
           ],
         );
@@ -236,11 +282,11 @@ class _EmployeeGrid extends StatelessWidget {
   }
 }
 
-class _EmployeeRow extends StatelessWidget {
-  const _EmployeeRow({required this.employee, required this.storeId});
+class _EmployeeCard extends StatelessWidget {
+  const _EmployeeCard({required this.employee, required this.onTap});
 
   final Employee employee;
-  final String storeId;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -249,9 +295,9 @@ class _EmployeeRow extends StatelessWidget {
     final archived = !isEmployeeActive(employee);
 
     return AppCard(
-      onTap: () => context.pushScreen(Routes.toEmployee(storeId, employee.id)),
-      // Avatar and identity stay together; the role and contract badges drop
-      // to their own line on a phone, where the name alone fills the row.
+      onTap: onTap,
+      // Avatar and identity stay together; the role badge drops to its own
+      // line on a phone, where the name alone fills the row.
       child: AdaptiveRow(
         cells: [
           AdaptiveCell(
@@ -316,6 +362,77 @@ class _EmployeeRow extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// The roster as a table — the alternative to the card grid, for scanning
+/// contact details and rates side by side. Same [DataTableWrapper] as the
+/// pointage history: below its minimum width it scrolls sideways rather than
+/// squeezing the columns.
+class _EmployeeTable extends StatelessWidget {
+  const _EmployeeTable({required this.employees, required this.onOpen});
+
+  final List<Employee> employees;
+  final ValueChanged<Employee> onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
+    return DataTableWrapper(
+      minWidth: 960,
+      columns: [
+        DataColumn(label: Text(l10n.employeesColumnName)),
+        DataColumn(label: Text(l10n.employeeFormPin)),
+        DataColumn(label: Text(l10n.employeesColumnRole)),
+        DataColumn(label: Text(l10n.employeeFormPhone)),
+        DataColumn(label: Text(l10n.employeeFormEmail)),
+        DataColumn(label: Text(l10n.employeesColumnPay), numeric: true),
+        DataColumn(label: Text(l10n.employeesColumnDetail)),
+      ],
+      rows: [for (final e in employees) _row(context, l10n, e)],
+    );
+  }
+
+  DataRow _row(BuildContext context, AppLocalizations l10n, Employee employee) {
+    final theme = Theme.of(context);
+    final archived = !isEmployeeActive(employee);
+
+    return DataRow(
+      key: ValueKey('employee-row-${employee.id}'),
+      onSelectChanged: (_) => onOpen(employee),
+      cells: [
+        DataCell(
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              EmployeeAvatar(employee: employee, size: 32, dimmed: archived),
+              const SizedBox(width: AppSpacing.md),
+              Text(
+                employeeDisplayName(employee),
+                style: theme.textTheme.bodyMedium,
+              ),
+              if (archived) ...[
+                const SizedBox(width: AppSpacing.sm),
+                LabelChip(label: l10n.employeesArchivedPill, dense: true),
+              ],
+            ],
+          ),
+        ),
+        DataCell(Text(employee.pin)),
+        DataCell(EmployeeRoleBadge(role: employee.role)),
+        DataCell(Text(employee.phone)),
+        DataCell(Text(employee.email)),
+        DataCell(Text('${Formatters.price(employee.pay)} / h')),
+        DataCell(
+          IconButton(
+            tooltip: l10n.employeesViewDetail,
+            icon: const Icon(LucideIcons.eye, size: AppSizing.iconSm),
+            onPressed: () => onOpen(employee),
+          ),
+        ),
+      ],
     );
   }
 }

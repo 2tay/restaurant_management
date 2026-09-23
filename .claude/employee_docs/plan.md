@@ -130,14 +130,14 @@ décision.
 - Section credentials relabellisée (Phase 6), section contrat/horaires supprimée (Phases 1 & 3).
 - Réorganisation des sections restantes pour un formulaire plus resserré.
 
-## Phase 8 — Personnel : vue liste + drawer de détail
+## Phase 8 — Personnel : vue liste + drawer de détail ✅
 
 - Toggle carte/liste sur `EmployeesListPage`, avec une vue tableau (`DataTableWrapper`, même
   pattern que l'historique de pointage) en alternative à la grille de cartes actuelle.
 - Le clic sur un employé (carte ou ligne) ouvre un `DetailDrawer` (infos + historique) au lieu de
   naviguer vers `EmployeeDetailPage`, qui est retirée.
 
-## Phase 9 — Historique de pointage : nettoyage du tableau
+## Phase 9 — Historique de pointage : nettoyage du tableau ✅
 
 - `_HistoryTable` : retrait de la colonne "Horaire" (arrivée→départ + résumé pause) ; le tableau
   garde Date / Employé / Travaillé / Statut / Alertes / Détail. Le détail complet (sessions,

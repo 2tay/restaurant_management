@@ -429,10 +429,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String get inventorySortStockDesc => 'Stock décroissant';
 
   @override
-  String get inventoryViewGrid => 'Vue grille';
+  String get viewModeGrid => 'Vue grille';
 
   @override
-  String get inventoryViewList => 'Vue liste';
+  String get viewModeList => 'Vue liste';
 
   @override
   String get inventoryStockCurrent => 'Stock actuel';
@@ -2343,9 +2343,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get employeesNavPayroll => 'Historique de paiement';
 
   @override
-  String get employeeSectionComingSoonTitle => 'Bientôt disponible';
-
-  @override
   String get employeeSectionComingSoonTimeclock =>
       'Le tableau de pointage arrive dans une prochaine étape.';
 
@@ -2422,6 +2419,24 @@ class AppLocalizationsFr extends AppLocalizations {
   String get employeesKpiHiredThisMonth => 'Embauches ce mois';
 
   @override
+  String get employeesColumnName => 'Employé';
+
+  @override
+  String get employeesColumnRole => 'Rôle';
+
+  @override
+  String get employeesColumnPay => 'Tarif';
+
+  @override
+  String get employeesColumnDetail => 'Détail';
+
+  @override
+  String get employeesViewDetail => 'Voir le détail';
+
+  @override
+  String get employeeHistorySeeAll => 'Voir tout l\'historique';
+
+  @override
   String get employeeFormIdentity => 'Identité';
 
   @override
@@ -2483,9 +2498,6 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get employeeHistoryTitle => 'Historique de pointage';
-
-  @override
-  String get employeePayrollTitle => 'Historique de paiement';
 
   @override
   String employeeArchiveTitle(String name) {

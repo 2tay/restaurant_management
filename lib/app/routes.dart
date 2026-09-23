@@ -78,8 +78,9 @@ abstract final class Routes {
   static const String timeclock = '$employees/timeclock';
   static const String attendanceHistory = '$employees/attendance-history';
   static const String payroll = '$employees/payroll';
-  static const String employeeDetail = '$employees/:employeeId';
-  static const String editEmployee = '$employeeDetail/edit';
+  // One employee's detail is a drawer over the roster, not a route; only the
+  // edit form has a path of its own.
+  static const String editEmployee = '$employees/:employeeId/edit';
 
   static const String storeSettings = '$storeBase/settings/store';
   static const String accountSettings = '$storeBase/settings/account';
@@ -191,9 +192,6 @@ abstract final class Routes {
 
   static String toAddEmployee(String storeId) =>
       '/store/$storeId/employees/new';
-
-  static String toEmployee(String storeId, String employeeId) =>
-      '/store/$storeId/employees/$employeeId';
 
   static String toEditEmployee(String storeId, String employeeId) =>
       '/store/$storeId/employees/$employeeId/edit';

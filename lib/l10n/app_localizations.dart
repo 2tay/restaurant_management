@@ -826,17 +826,17 @@ abstract class AppLocalizations {
   /// **'Stock décroissant'**
   String get inventorySortStockDesc;
 
-  /// Tooltip on the button switching the product list to cards.
+  /// Tooltip on the button switching a list screen (products, staff) to cards.
   ///
   /// In fr, this message translates to:
   /// **'Vue grille'**
-  String get inventoryViewGrid;
+  String get viewModeGrid;
 
-  /// Tooltip on the button switching the product list to compact rows.
+  /// Tooltip on the button switching a list screen (products, staff) to rows.
   ///
   /// In fr, this message translates to:
   /// **'Vue liste'**
-  String get inventoryViewList;
+  String get viewModeList;
 
   /// Caption above the quantity on a product card. Says the figure is what is on the shelf now, not an order or a threshold.
   ///
@@ -3862,12 +3862,6 @@ abstract class AppLocalizations {
   /// **'Historique de paiement'**
   String get employeesNavPayroll;
 
-  /// Heading of the placeholder screen for a Gestion Employée section not yet built.
-  ///
-  /// In fr, this message translates to:
-  /// **'Bientôt disponible'**
-  String get employeeSectionComingSoonTitle;
-
   /// Placeholder body for the pointage board.
   ///
   /// In fr, this message translates to:
@@ -4000,6 +3994,42 @@ abstract class AppLocalizations {
   /// **'Embauches ce mois'**
   String get employeesKpiHiredThisMonth;
 
+  /// Staff roster table: the name column.
+  ///
+  /// In fr, this message translates to:
+  /// **'Employé'**
+  String get employeesColumnName;
+
+  /// Staff roster table: the role column.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rôle'**
+  String get employeesColumnRole;
+
+  /// Staff roster table: the hourly rate column.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tarif'**
+  String get employeesColumnPay;
+
+  /// Staff roster table: the column holding the open-detail button.
+  ///
+  /// In fr, this message translates to:
+  /// **'Détail'**
+  String get employeesColumnDetail;
+
+  /// Tooltip on the button opening an employee's detail drawer.
+  ///
+  /// In fr, this message translates to:
+  /// **'Voir le détail'**
+  String get employeesViewDetail;
+
+  /// Employee drawer: link to the full attendance history, under the most recent days.
+  ///
+  /// In fr, this message translates to:
+  /// **'Voir tout l\'historique'**
+  String get employeeHistorySeeAll;
+
   /// Employee form: heading of the card holding the photo, name, PIN and contact details.
   ///
   /// In fr, this message translates to:
@@ -4119,12 +4149,6 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Historique de pointage'**
   String get employeeHistoryTitle;
-
-  /// Section heading for one employee's payroll history.
-  ///
-  /// In fr, this message translates to:
-  /// **'Historique de paiement'**
-  String get employeePayrollTitle;
 
   /// Destructive confirmation dialog title for archiving an employee. Regular space before the question mark, matching the rest of the file.
   ///

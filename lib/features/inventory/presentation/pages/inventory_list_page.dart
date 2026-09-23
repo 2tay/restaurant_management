@@ -4,7 +4,6 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../app/routes.dart';
 import '../../../../app/navigation.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/item_search.dart';
 import '../../../../core/utils/responsive.dart';
@@ -50,17 +49,15 @@ enum ItemSort {
 /// choice is per session — it lives in a provider rather than in a widget's
 /// state so it survives opening a product and coming back, and it is not
 /// written to disk because the app has no preferences store to write it to.
-enum InventoryViewMode { grid, list }
-
-class InventoryViewModeNotifier extends Notifier<InventoryViewMode> {
+class InventoryViewModeNotifier extends Notifier<CollectionViewMode> {
   @override
-  InventoryViewMode build() => InventoryViewMode.grid;
+  CollectionViewMode build() => CollectionViewMode.grid;
 
-  void select(InventoryViewMode mode) => state = mode;
+  void select(CollectionViewMode mode) => state = mode;
 }
 
 final inventoryViewModeProvider =
-    NotifierProvider<InventoryViewModeNotifier, InventoryViewMode>(
+    NotifierProvider<InventoryViewModeNotifier, CollectionViewMode>(
       InventoryViewModeNotifier.new,
     );
 
@@ -334,7 +331,7 @@ class _ListPane extends ConsumerWidget {
                   storeHasItems: filter.hasActiveFilters,
                   onClearFilters: notifier.clear,
                 )
-              : viewMode == InventoryViewMode.grid
+              : viewMode == CollectionViewMode.grid
               ? _ProductGrid(rows: rows, onTap: onTap, selectedId: selectedId)
               : _ProductList(rows: rows, onTap: onTap, selectedId: selectedId),
         ),
@@ -394,8 +391,8 @@ class _ListControls extends StatelessWidget {
 
   final Map<String, String> categories;
   final Map<String, String> suppliers;
-  final InventoryViewMode viewMode;
-  final ValueChanged<InventoryViewMode> onViewMode;
+  final CollectionViewMode viewMode;
+  final ValueChanged<CollectionViewMode> onViewMode;
 
   /// Under this the two groups stop fitting on one line together. It is the
   /// pane's width, not the screen's: this list is half the window with a
@@ -485,7 +482,7 @@ class _ListControls extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: AppSpacing.sm),
-                _ViewModeToggle(mode: viewMode, onSelected: onViewMode),
+                ViewModeToggle(mode: viewMode, onSelected: onViewMode),
               ],
             ),
           ],
@@ -592,7 +589,7 @@ class _ListControls extends StatelessWidget {
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
         _SortMenu(sort: filter.sort, onSelected: notifier.setSort),
-        _ViewModeToggle(mode: viewMode, onSelected: onViewMode),
+        ViewModeToggle(mode: viewMode, onSelected: onViewMode),
       ],
     );
 
@@ -770,94 +767,6 @@ class _SortMenu extends StatelessWidget {
             ? Row(mainAxisSize: MainAxisSize.min, children: [Flexible(child: menu)])
             : menu;
       },
-    );
-  }
-}
-
-/// Cards or rows, as a two-button segmented control.
-class _ViewModeToggle extends StatelessWidget {
-  const _ViewModeToggle({required this.mode, required this.onSelected});
-
-  final InventoryViewMode mode;
-  final ValueChanged<InventoryViewMode> onSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-
-    return Container(
-      height: AppSizing.minTapTarget,
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: AppRadius.pillAll,
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _ViewModeButton(
-            icon: LucideIcons.layoutGrid,
-            label: l10n.inventoryViewGrid,
-            selected: mode == InventoryViewMode.grid,
-            onTap: () => onSelected(InventoryViewMode.grid),
-          ),
-          _ViewModeButton(
-            icon: LucideIcons.list,
-            label: l10n.inventoryViewList,
-            selected: mode == InventoryViewMode.list,
-            onTap: () => onSelected(InventoryViewMode.list),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ViewModeButton extends StatelessWidget {
-  const _ViewModeButton({
-    required this.icon,
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: label,
-      child: Semantics(
-        button: true,
-        selected: selected,
-        label: label,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: AppRadius.pillAll,
-          child: AnimatedContainer(
-            duration: AppMotion.duration(context, AppMotion.fast),
-            curve: AppMotion.standard,
-            // Square at the tap-target floor, even though the icon inside is
-            // small: this is a control for a wet finger on a tablet.
-            width: AppSizing.minTapTarget,
-            height: AppSizing.minTapTarget,
-            decoration: BoxDecoration(
-              color: selected ? AppColors.primaryContainer : Colors.transparent,
-              borderRadius: AppRadius.pillAll,
-            ),
-            child: Icon(
-              icon,
-              size: AppSizing.iconMd,
-              color: selected
-                  ? AppColors.onPrimaryContainer
-                  : AppColors.textSecondary,
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

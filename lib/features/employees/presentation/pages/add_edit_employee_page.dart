@@ -501,11 +501,7 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
       context,
       _isEditing ? l10n.employeeUpdated : l10n.employeeCreated,
     );
-    if (existingId != null) {
-      context.pushScreen(Routes.toEmployee(widget.storeId, existingId));
-    } else {
-      context.goSection(Routes.toEmployees(widget.storeId));
-    }
+    context.goSection(Routes.toEmployees(widget.storeId));
   }
 
   static String _formatPay(double value) => value == value.roundToDouble()

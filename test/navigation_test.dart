@@ -71,7 +71,6 @@ Map<String, String> _pushedScreens() {
     'comparison report': Routes.toComparisonReport(_store),
     'usage report': Routes.toUsageReport(_store),
     'add employee': Routes.toAddEmployee(_store),
-    'employee detail': Routes.toEmployee(_store, employee),
     'edit employee': Routes.toEditEmployee(_store, employee),
     'search': Routes.toSearch(_store),
   };
@@ -212,7 +211,9 @@ void main() {
     ) async {
       await _pump(tester);
       unawaited(
-        appRouter.push(Routes.toEmployee(_store, mockEmployees.first.id)),
+        appRouter.push(
+          Routes.toEditEmployee(_store, mockEmployees.first.id),
+        ),
       );
       await tester.pumpAndSettle();
 
