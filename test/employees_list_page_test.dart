@@ -439,7 +439,8 @@ void main() {
     expect(find.text('Retirer'), findsNothing);
   });
 
-  testApp("a retired employee's card: red dashed outline, red badge", (
+  testApp("a retired employee's card: red dashed outline, badge and rate; "
+      'the retirement date instead of the hire date', (
     tester,
   ) async {
     await _open(tester);
@@ -475,6 +476,31 @@ void main() {
         retired ? const Color(0xFFC62828) : isNull,
         reason: card.employee.id,
       );
+      final scope = find.byWidget(card);
+      final rate = tester.widget<HighlightTile>(
+        find.descendant(of: scope, matching: find.byType(HighlightTile)),
+      );
+      expect(
+        rate.color,
+        retired ? const Color(0xFFC62828) : const Color(0xFF0F766E),
+        reason: card.employee.id,
+      );
+      final retiredLine = find.descendant(
+        of: scope,
+        matching: find.byKey(const ValueKey('employee-card-retired')),
+      );
+      final hiredLine = find.descendant(
+        of: scope,
+        matching: find.byKey(const ValueKey('employee-card-hired')),
+      );
+      expect(retiredLine, retired ? findsOneWidget : findsNothing);
+      expect(hiredLine, retired ? findsNothing : findsOneWidget);
+      if (retired) {
+        final line = tester.widget<InfoLine>(retiredLine);
+        expect(line.text, 'Retiré le');
+        expect(line.value, Formatters.date(card.employee.archivedAt!));
+        expect(line.valueColor, const Color(0xFFC62828));
+      }
     }
   });
 

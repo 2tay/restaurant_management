@@ -4006,6 +4006,12 @@ abstract class AppLocalizations {
   /// **'Embauché le'**
   String get employeeCardHiredOn;
 
+  /// Retired staff card: caption of the date they were retired.
+  ///
+  /// In fr, this message translates to:
+  /// **'Retiré le'**
+  String get employeeCardRetiredOn;
+
   /// Tooltip of the ⋮ menu on a staff card.
   ///
   /// In fr, this message translates to:

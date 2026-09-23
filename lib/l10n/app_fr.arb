@@ -1521,6 +1521,8 @@
   "@employeeCardHourlyRate": {"description": "Staff card: caption under the hourly rate."},
   "employeeCardHiredOn": "Embauché le",
   "@employeeCardHiredOn": {"description": "Staff card: caption of the hire date."},
+  "employeeCardRetiredOn": "Retiré le",
+  "@employeeCardRetiredOn": {"description": "Retired staff card: caption of the date they were retired."},
   "employeeCardActions": "Actions",
   "@employeeCardActions": {"description": "Tooltip of the ⋮ menu on a staff card."},
   "employeesArchivedPill": "Retiré",

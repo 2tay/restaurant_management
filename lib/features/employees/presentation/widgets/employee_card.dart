@@ -21,8 +21,9 @@ enum _CardAction { edit, archive, restore }
 ///
 /// Tapping the card opens the detail drawer ([onTap]); the ⋮ menu edits,
 /// retires or restores without opening it. Outlined in green while its drawer
-/// is open ([selected]); a retired employee's card has a red dashed outline
-/// and a red Retiré badge.
+/// is open ([selected]). A retired employee's card turns red — dashed
+/// outline, Retiré badge, the rate block — and its foot line gives the date
+/// they were retired instead of the hire date.
 class EmployeeCard extends StatelessWidget {
   const EmployeeCard({
     required this.employee,
@@ -124,17 +125,28 @@ class EmployeeCard extends StatelessWidget {
           InfoLine(icon: LucideIcons.mail, text: employee.email),
           const SizedBox(height: AppSpacing.lg),
           HighlightTile(
+            key: const ValueKey('employee-card-rate'),
             icon: LucideIcons.coins,
             value: '${Formatters.price(employee.pay)} /h',
             caption: l10n.employeeCardHourlyRate,
+            color: archived ? AppColors.error : AppColors.primary600,
           ),
           const SizedBox(height: AppSpacing.lg),
-          InfoLine(
-            key: const ValueKey('employee-card-hired'),
-            icon: LucideIcons.calendar,
-            text: l10n.employeeCardHiredOn,
-            value: Formatters.date(employee.hireDate),
-          ),
+          if (archived)
+            InfoLine(
+              key: const ValueKey('employee-card-retired'),
+              icon: LucideIcons.calendarX,
+              text: l10n.employeeCardRetiredOn,
+              value: Formatters.date(employee.archivedAt!),
+              valueColor: AppColors.error,
+            )
+          else
+            InfoLine(
+              key: const ValueKey('employee-card-hired'),
+              icon: LucideIcons.calendar,
+              text: l10n.employeeCardHiredOn,
+              value: Formatters.date(employee.hireDate),
+            ),
         ],
       ),
     );
