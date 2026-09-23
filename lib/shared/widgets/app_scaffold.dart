@@ -333,7 +333,7 @@ class ShellPage extends StatelessWidget {
     this.footer,
     this.maxContentWidth,
     this.centerContent = false,
-    this.alignActionsWithTitle = false,
+    this.fullWidthHeader = false,
     super.key,
   });
 
@@ -385,9 +385,11 @@ class ShellPage extends StatelessWidget {
   /// header action must sit at the column's right, not mid-window.
   final bool centerContent;
 
-  /// Aligns [actions] with the title line rather than the middle of the
-  /// title + subtitle block — right for a link, which reads with the title.
-  final bool alignActionsWithTitle;
+  /// Keeps the header (title, subtitle, actions) at the page's full width
+  /// even when the content below is held to [maxContentWidth] — so a focused
+  /// screen's header reads exactly like a root screen's, its action at the
+  /// page's right edge, while the content stays a comfortable column.
+  final bool fullWidthHeader;
 
   @override
   Widget build(BuildContext context) {
@@ -421,7 +423,6 @@ class ShellPage extends StatelessWidget {
             subtitle: subtitle,
             keepSubtitle: keepSubtitle,
             actions: actions,
-            alignActionsWithTitle: alignActionsWithTitle,
             theme: theme,
           ),
           if (tabs != null) ...[const SizedBox(height: AppSpacing.lg), tabs!],
@@ -429,20 +430,34 @@ class ShellPage extends StatelessWidget {
       ),
     );
 
-    Widget body = Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        header,
-        if (scrollable) child else Expanded(child: child),
-      ],
-    );
+    Widget constrain(Widget w) => maxContentWidth == null
+        ? w
+        : Align(
+            alignment: centerContent ? Alignment.topCenter : Alignment.topLeft,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: maxContentWidth!),
+              child: w,
+            ),
+          );
 
-    if (maxContentWidth != null) {
-      body = Align(
-        alignment: centerContent ? Alignment.topCenter : Alignment.topLeft,
-        child: ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: maxContentWidth!),
-          child: body,
+    final Widget body;
+    if (fullWidthHeader) {
+      final content = constrain(child);
+      body = Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          header,
+          if (scrollable) content else Expanded(child: content),
+        ],
+      );
+    } else {
+      body = constrain(
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            header,
+            if (scrollable) child else Expanded(child: child),
+          ],
         ),
       );
     }
@@ -475,7 +490,6 @@ class _TitleRow extends StatelessWidget {
     required this.subtitle,
     required this.keepSubtitle,
     required this.actions,
-    required this.alignActionsWithTitle,
     required this.theme,
   });
 
@@ -483,7 +497,6 @@ class _TitleRow extends StatelessWidget {
   final String? subtitle;
   final bool keepSubtitle;
   final List<Widget> actions;
-  final bool alignActionsWithTitle;
   final ThemeData theme;
 
   @override
@@ -551,9 +564,7 @@ class _TitleRow extends StatelessWidget {
           width: constraints.maxWidth.isFinite ? constraints.maxWidth : null,
           child: Wrap(
             alignment: WrapAlignment.spaceBetween,
-            crossAxisAlignment: alignActionsWithTitle
-                ? WrapCrossAlignment.start
-                : WrapCrossAlignment.center,
+            crossAxisAlignment: WrapCrossAlignment.center,
             spacing: AppSpacing.xl,
             runSpacing: AppSpacing.lg,
             children: [

@@ -124,7 +124,9 @@ class FormScaffold extends StatelessWidget {
         onBack: () => _leave(context),
         maxContentWidth: maxWidth,
         centerContent: centered,
-        alignActionsWithTitle: headerBackLinkLabel != null,
+        // A centred form keeps a root-screen header: title left, the way back
+        // at the page's right edge (see Personnel and its Ajouter button).
+        fullWidthHeader: centered,
         footer: _ActionBar(
           maxWidth: maxWidth,
           centered: centered,

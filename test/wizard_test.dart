@@ -281,26 +281,23 @@ void main() {
       );
     });
 
-    testWidgets('centred column: the back link and the primary button share '
-        'its right edge', (tester) async {
+    testWidgets('header at full width like a root page; the steps centred',
+        (tester) async {
       _size(tester, const Size(1800, 900));
       await tester.pumpWidget(
         _host(_Harness(valid: const [true, true, true], onSubmit: () {})),
       );
 
-      final link = tester.getTopRight(find.text("Retour à l'accueil")).dx;
-      final next = tester.getTopRight(_button('Suivant').first).dx;
-      final title = tester.getTopLeft(find.text('Ajouter')).dx;
-      // Same right edge (±24dp of button padding), well inside the window…
-      expect((link - next).abs(), lessThan(24));
-      expect(next, lessThan(1800 - 300));
-      // …and the column is centred rather than pinned to the left.
-      expect(title, greaterThan(300));
-      // The link sits on the title line, not the middle of the header.
+      // Header: title at the page's left, the link at its right edge.
+      expect(tester.getTopLeft(find.text('Ajouter')).dx, lessThan(100));
       expect(
-        tester.getTopLeft(find.text("Retour à l'accueil")).dy,
-        lessThan(tester.getTopLeft(find.text('Trois étapes.')).dy),
+        tester.getTopRight(find.text("Retour à l'accueil")).dx,
+        greaterThan(1800 - 100),
       );
+      // Body: the step content is a centred column, not pinned left.
+      final page = tester.getRect(find.byKey(const ValueKey('wizard-page-0')));
+      expect(page.left, greaterThan(300));
+      expect((page.center.dx - 900).abs(), lessThan(40));
     });
 
     testWidgets('plain fields show their placeholder in #777', (tester) async {
