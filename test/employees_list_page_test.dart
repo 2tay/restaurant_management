@@ -2,6 +2,7 @@
 // the employee's detail in a drawer over the roster instead of a new page.
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:stock_inventory/app/router.dart';
@@ -35,6 +36,12 @@ Future<void> _toList(WidgetTester tester) async {
   await tester.tap(find.byTooltip('Vue liste'));
   await tester.pumpAndSettle();
 }
+
+/// A card's ⋮ button.
+Finder _cardMenu(String employeeId) => find.descendant(
+  of: find.byKey(ValueKey('employee-card-$employeeId')),
+  matching: find.byKey(const ValueKey('employee-card-menu')),
+);
 
 void main() {
   testApp('opens on the card grid, with the toggle on cards', (tester) async {
@@ -315,54 +322,137 @@ void main() {
     }
   });
 
-  testApp('the ⋮ is green; its menu is white, an icon beside each action', (
+  testApp('the ⋮ menu: exactly the 4 actions, icon left, Retirer in red', (
     tester,
   ) async {
     await _open(tester);
-    final card = find.byKey(const ValueKey('employee-card-${EmployeeIds.karim}'));
-    final menu = find.descendant(
-      of: card,
-      matching: find.byKey(const ValueKey('employee-card-menu')),
-    );
+    final menu = _cardMenu(EmployeeIds.karim);
     final dots = tester.widget<Icon>(
       find.descendant(of: menu, matching: find.byType(Icon)),
     );
     expect(dots.color, const Color(0xFF0F766E));
-    expect(
-      tester.widget<PopupMenuButton<Object?>>(menu).color,
-      Colors.white,
-    );
-
-    // Rounded, with the rate block's green wash on hover.
-    final button = tester.widget<PopupMenuButton<Object?>>(menu);
-    expect(
-      (button.shape! as RoundedRectangleBorder).borderRadius,
-      BorderRadius.circular(12),
-    );
-    final menuTheme = Theme.of(tester.element(menu));
-    expect(menuTheme.hoverColor.a, lessThan(0.2));
-    expect(menuTheme.hoverColor.withValues(alpha: 1), const Color(0xFF0F766E));
 
     await tester.tap(menu);
     await tester.pumpAndSettle();
-    for (final label in [
-      'Historique pointage',
-      'Historique paiement',
-      'Modifier',
-      'Retirer',
-    ]) {
-      final item = find.ancestor(
-        of: find.text(label).last, // the menu, over the sidebar
-        matching: find.byType(Row),
-      );
-      expect(
-        find.descendant(of: item.first, matching: find.byType(Icon)),
-        findsOneWidget,
-        reason: label,
-      );
+
+    final items = tester
+        .widgetList<MenuItemButton>(find.byType(MenuItemButton))
+        .toList();
+    expect(
+      items.map((i) => (i.key! as ValueKey<String>).value),
+      [
+        'employee-menu-attendance',
+        'employee-menu-payroll',
+        'employee-menu-edit',
+        'employee-menu-archive',
+      ],
+    );
+    expect(find.text('Voir les détails'), findsNothing);
+    for (final item in items) {
+      expect(item.leadingIcon, isA<Icon>());
     }
+    const red = Color(0xFFC62828);
+    final retire = items.last;
+    expect((retire.leadingIcon! as Icon).color, red);
+    expect(retire.style!.foregroundColor!.resolve(const {}), red);
+    // Hover: the rate block's green wash.
+    final hover = items.first.style!.overlayColor!.resolve(
+      const {WidgetState.hovered},
+    )!;
+    expect(hover.withValues(alpha: 1), const Color(0xFF0F766E));
+    expect(hover.a, lessThan(0.2));
   });
 
+  testApp('the ⋮ menu: white, 12dp corners, hairline border, 190–220dp', (
+    tester,
+  ) async {
+    await _open(tester);
+    await tester.tap(_cardMenu(EmployeeIds.karim));
+    await tester.pumpAndSettle();
+
+    final anchor = tester.widget<MenuAnchor>(
+      find.ancestor(
+        of: _cardMenu(EmployeeIds.karim),
+        matching: find.byType(MenuAnchor),
+      ),
+    );
+    final style = anchor.style!;
+    const none = <WidgetState>{};
+    expect(style.backgroundColor!.resolve(none), Colors.white);
+    final shape = style.shape!.resolve(none)! as RoundedRectangleBorder;
+    expect(shape.borderRadius, BorderRadius.circular(12));
+    expect(shape.side.width, 0.5);
+    expect(style.elevation!.resolve(none), lessThanOrEqualTo(4));
+
+    final width = tester.getSize(find.byType(MenuItemButton).first).width;
+    expect(width, inInclusiveRange(190, 220));
+  });
+
+  testApp('the ⋮ menu opens next to its button and stays in the window', (
+    tester,
+  ) async {
+    await _open(tester);
+    final button = tester.getRect(_cardMenu(EmployeeIds.karim));
+    await tester.tap(_cardMenu(EmployeeIds.karim));
+    await tester.pumpAndSettle();
+
+    final first = tester.getRect(find.byType(MenuItemButton).first);
+    final last = tester.getRect(find.byType(MenuItemButton).last);
+    // Right under the button — or right above it, when there is no room
+    // below (the framework keeps the menu in the window).
+    final below = (first.top - button.bottom).abs() < 40;
+    final above = (button.top - last.bottom).abs() < 40;
+    expect(below || above, isTrue);
+    final window = tester.view.physicalSize / tester.view.devicePixelRatio;
+    expect(first.left, greaterThanOrEqualTo(0));
+    expect(last.right, lessThanOrEqualTo(window.width));
+    expect(last.bottom, lessThanOrEqualTo(window.height));
+  });
+
+  testApp('Échap closes the ⋮ menu', (tester) async {
+    await _open(tester);
+    await tester.tap(_cardMenu(EmployeeIds.karim));
+    await tester.pumpAndSettle();
+    expect(find.byType(MenuItemButton), findsWidgets);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+    expect(find.byType(MenuItemButton), findsNothing);
+  });
+
+  testApp('a click outside closes the ⋮ menu', (tester) async {
+    await _open(tester);
+    await tester.tap(_cardMenu(EmployeeIds.karim));
+    await tester.pumpAndSettle();
+
+    await tester.tapAt(tester.getTopLeft(find.byType(SearchField)));
+    await tester.pumpAndSettle();
+    expect(find.byType(MenuItemButton), findsNothing);
+  });
+
+  testApp("another employee's ⋮ closes this menu and opens theirs at once", (
+    tester,
+  ) async {
+    await _open(tester);
+    await tester.tap(_cardMenu(EmployeeIds.karim));
+    await tester.pumpAndSettle();
+    final karimMenu = tester.getRect(find.byType(MenuItemButton).first);
+
+    // One click on Amélie's ⋮ — not one to close and another to open.
+    await tester.tap(_cardMenu(EmployeeIds.amelie));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('employee-menu-edit')), findsOneWidget);
+    final ameliesMenu = tester.getRect(find.byType(MenuItemButton).first);
+    expect(ameliesMenu, isNot(karimMenu));
+    final amelieButton = tester.getRect(_cardMenu(EmployeeIds.amelie));
+    final lastItem = tester.getRect(find.byType(MenuItemButton).last);
+    expect(
+      (ameliesMenu.top - amelieButton.bottom).abs() < 40 ||
+          (amelieButton.top - lastItem.bottom).abs() < 40,
+      isTrue,
+    );
+  });
   testApp('the card menu: Modifier opens the edit pop-up', (tester) async {
     await _open(tester);
     final card = find.byKey(const ValueKey('employee-card-${EmployeeIds.karim}'));

@@ -455,7 +455,7 @@ class _EmployeeTable extends StatelessWidget {
               IconButton(
                 key: ValueKey('employee-row-payroll-${employee.id}'),
                 tooltip: l10n.employeeActionPayroll,
-                icon: const Icon(LucideIcons.receipt, size: AppSizing.iconSm),
+                icon: const Icon(LucideIcons.wallet, size: AppSizing.iconSm),
                 color: AppColors.primary600,
                 onPressed: () => actions.onPayroll(employee),
               ),
