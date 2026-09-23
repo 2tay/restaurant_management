@@ -1,0 +1,254 @@
+// The shared wizard components (design step 1.1): WizardStepIndicator and
+// WizardScaffold, driven standalone rather than through a real form.
+
+import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:stock_inventory/app/navigation.dart';
+import 'package:stock_inventory/core/theme/app_theme.dart';
+import 'package:stock_inventory/l10n/app_localizations.dart';
+import 'package:stock_inventory/shared/widgets/widgets.dart';
+
+Widget _host(Widget child) => MaterialApp(
+  locale: const Locale('fr', 'BE'),
+  supportedLocales: const [Locale('fr', 'BE')],
+  localizationsDelegates: const [
+    AppLocalizations.delegate,
+    GlobalMaterialLocalizations.delegate,
+    GlobalWidgetsLocalizations.delegate,
+    GlobalCupertinoLocalizations.delegate,
+  ],
+  theme: AppTheme.light,
+  home: Scaffold(body: child),
+);
+
+void _size(WidgetTester tester, Size size) {
+  tester.view.physicalSize = size;
+  tester.view.devicePixelRatio = 1.0;
+  addTearDown(tester.view.reset);
+}
+
+/// A three-step wizard whose validity and submit the test controls.
+class _Harness extends StatefulWidget {
+  const _Harness({
+    required this.valid,
+    required this.onSubmit,
+    this.freeNavigation = false,
+  });
+
+  final List<bool> valid;
+  final VoidCallback onSubmit;
+  final bool freeNavigation;
+
+  @override
+  State<_Harness> createState() => _HarnessState();
+}
+
+class _HarnessState extends State<_Harness> {
+  int _step = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    return WizardScaffold(
+      title: 'Ajouter',
+      description: 'Trois étapes.',
+      back: const BackDestination(label: 'Personnel', path: '/'),
+      backLinkLabel: "Retour à l'accueil",
+      currentStep: _step,
+      onStepChanged: (i) => setState(() => _step = i),
+      freeNavigation: widget.freeNavigation,
+      submitLabel: 'Enregistrer',
+      onSubmit: widget.onSubmit,
+      steps: [
+        for (final (i, label) in ['Infos', 'Paie', 'Rôle'].indexed)
+          WizardStep(
+            label: label,
+            isValid: widget.valid[i],
+            child: Text('page $i'),
+          ),
+      ],
+    );
+  }
+}
+
+Finder _button(String label) => find.ancestor(
+  of: find.text(label),
+  matching: find.byWidgetPredicate((w) => w is ButtonStyleButton),
+);
+
+bool _enabled(WidgetTester tester, String label) =>
+    tester.widget<ButtonStyleButton>(_button(label).first).onPressed != null;
+
+void main() {
+  group('WizardStepIndicator', () {
+    testWidgets('marks done, current and upcoming steps', (tester) async {
+      _size(tester, const Size(1280, 800));
+      await tester.pumpWidget(
+        _host(
+          const WizardStepIndicator(labels: ['A', 'B', 'C'], current: 1),
+        ),
+      );
+
+      expect(find.text('A'), findsOneWidget);
+      expect(find.text('B'), findsOneWidget);
+      expect(find.text('C'), findsOneWidget);
+      // Step 1 is done → a check instead of its number.
+      expect(find.byIcon(LucideIcons.check), findsOneWidget);
+      expect(find.text('1'), findsNothing);
+      expect(find.text('2'), findsOneWidget);
+      expect(find.text('3'), findsOneWidget);
+    });
+
+    testWidgets('only a passed step is tappable by default', (tester) async {
+      _size(tester, const Size(1280, 800));
+      final tapped = <int>[];
+      await tester.pumpWidget(
+        _host(
+          WizardStepIndicator(
+            labels: const ['A', 'B', 'C'],
+            current: 1,
+            onStepTapped: tapped.add,
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('C'));
+      await tester.tap(find.text('B'));
+      await tester.tap(find.text('A'));
+      expect(tapped, [0]);
+    });
+
+    testWidgets('collapses to "Étape n sur N" on a phone', (tester) async {
+      _size(tester, const Size(390, 800));
+      await tester.pumpWidget(
+        _host(
+          const WizardStepIndicator(labels: ['A', 'B', 'C'], current: 1),
+        ),
+      );
+
+      expect(tester.takeException(), isNull);
+      expect(find.text('Étape 2 sur 3 · B'), findsOneWidget);
+      expect(find.byType(LinearProgressIndicator), findsOneWidget);
+    });
+  });
+
+  group('WizardScaffold', () {
+    testWidgets('header: title, paragraph and the back link on the right', (
+      tester,
+    ) async {
+      _size(tester, const Size(1280, 800));
+      await tester.pumpWidget(
+        _host(_Harness(valid: const [true, true, true], onSubmit: () {})),
+      );
+
+      expect(find.text('Ajouter'), findsOneWidget);
+      expect(find.text('Trois étapes.'), findsOneWidget);
+      expect(find.text("Retour à l'accueil"), findsOneWidget);
+      // The link replaces the back control above the title.
+      expect(find.byType(BackControl), findsNothing);
+    });
+
+    testWidgets('Suivant is gated by the step, and walks forward and back', (
+      tester,
+    ) async {
+      _size(tester, const Size(1280, 800));
+      await tester.pumpWidget(
+        _host(_Harness(valid: const [false, true, true], onSubmit: () {})),
+      );
+      expect(find.text('page 0'), findsOneWidget);
+      expect(_enabled(tester, 'Suivant'), isFalse);
+      expect(find.text('Précédent'), findsNothing);
+
+      await tester.pumpWidget(
+        _host(_Harness(valid: const [true, true, true], onSubmit: () {})),
+      );
+      await tester.tap(_button('Suivant').first);
+      await tester.pumpAndSettle();
+      expect(find.text('page 1'), findsOneWidget);
+
+      await tester.tap(_button('Précédent').first);
+      await tester.pumpAndSettle();
+      expect(find.text('page 0'), findsOneWidget);
+    });
+
+    testWidgets('the last step submits, only once every step is valid', (
+      tester,
+    ) async {
+      _size(tester, const Size(1280, 800));
+      var submitted = 0;
+      await tester.pumpWidget(
+        _host(
+          _Harness(valid: const [true, true, true], onSubmit: () => submitted++),
+        ),
+      );
+      // Create mode: no Enregistrer before the last step.
+      expect(find.text('Enregistrer'), findsNothing);
+
+      await tester.tap(_button('Suivant').first);
+      await tester.pumpAndSettle();
+      await tester.tap(_button('Suivant').first);
+      await tester.pumpAndSettle();
+
+      expect(find.text('page 2'), findsOneWidget);
+      expect(find.text('Suivant'), findsNothing);
+      await tester.tap(_button('Enregistrer').first);
+      expect(submitted, 1);
+    });
+
+    testWidgets('an invalid step keeps the final submit disabled', (
+      tester,
+    ) async {
+      _size(tester, const Size(1280, 800));
+      await tester.pumpWidget(
+        _host(
+          _Harness(
+            valid: const [true, true, false],
+            onSubmit: () {},
+            freeNavigation: true,
+          ),
+        ),
+      );
+      expect(_enabled(tester, 'Enregistrer'), isFalse);
+    });
+
+    testWidgets('free navigation: submit on every step, jump from the '
+        'indicator', (tester) async {
+      _size(tester, const Size(1280, 800));
+      var submitted = 0;
+      await tester.pumpWidget(
+        _host(
+          _Harness(
+            valid: const [true, true, true],
+            onSubmit: () => submitted++,
+            freeNavigation: true,
+          ),
+        ),
+      );
+
+      expect(find.text('page 0'), findsOneWidget);
+      expect(_enabled(tester, 'Enregistrer'), isTrue);
+      expect(find.text('Suivant'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('wizard-step-2')));
+      await tester.pumpAndSettle();
+      expect(find.text('page 2'), findsOneWidget);
+
+      await tester.tap(_button('Enregistrer').first);
+      expect(submitted, 1);
+    });
+
+    testWidgets('fits a phone', (tester) async {
+      _size(tester, const Size(390, 844));
+      await tester.pumpWidget(
+        _host(_Harness(valid: const [true, true, true], onSubmit: () {})),
+      );
+      await tester.tap(_button('Suivant').first);
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(find.text('Étape 2 sur 3 · Paie'), findsOneWidget);
+      expect(find.text('Précédent'), findsOneWidget);
+    });
+  });
+}

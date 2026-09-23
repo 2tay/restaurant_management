@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../app/navigation.dart';
 import '../../core/theme/app_colors.dart';
@@ -37,6 +38,8 @@ class FormScaffold extends StatelessWidget {
     this.isDirty = false,
     this.secondaryAction,
     this.submitSecondary,
+    this.forwardActions = const [],
+    this.headerBackLinkLabel,
     this.maxWidth = 760,
     super.key,
   });
@@ -74,6 +77,15 @@ class FormScaffold extends StatelessWidget {
   /// it as a way out of the form, which is the opposite of what it does.
   final Widget? submitSecondary;
 
+  /// Further constructive actions, placed left of [submitSecondary] and the
+  /// primary submit — a wizard's Précédent / Suivant.
+  final List<Widget> forwardActions;
+
+  /// When set, the way back is a link on the right of the title row with this
+  /// label, instead of the back control above the title (and no breadcrumbs).
+  /// It goes through the same unsaved-input guard.
+  final String? headerBackLinkLabel;
+
   final double maxWidth;
 
   final Widget child;
@@ -95,8 +107,15 @@ class FormScaffold extends StatelessWidget {
         title: title,
         subtitle: subtitle,
         keepSubtitle: keepSubtitle,
-        back: back,
-        crumbs: crumbs,
+        back: headerBackLinkLabel == null ? back : null,
+        crumbs: headerBackLinkLabel == null ? crumbs : const [],
+        actions: [
+          if (headerBackLinkLabel != null)
+            _HeaderBackLink(
+              label: headerBackLinkLabel!,
+              onPressed: () => _leave(context),
+            ),
+        ],
         onBack: () => _leave(context),
         maxContentWidth: maxWidth,
         footer: _ActionBar(
@@ -109,6 +128,7 @@ class FormScaffold extends StatelessWidget {
             ?secondaryAction,
           ],
           trailing: [
+            ...forwardActions,
             ?submitSecondary,
             PrimaryButton(
               label: submitLabel,
@@ -139,6 +159,24 @@ class FormScaffold extends StatelessWidget {
       message: l10n.discardChangesBody,
       confirmLabel: l10n.discardChangesConfirm,
       cancelLabel: l10n.discardChangesCancel,
+    );
+  }
+}
+
+/// The way back as a link on the title row — see
+/// [FormScaffold.headerBackLinkLabel].
+class _HeaderBackLink extends StatelessWidget {
+  const _HeaderBackLink({required this.label, required this.onPressed});
+
+  final String label;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextButton.icon(
+      onPressed: onPressed,
+      icon: const Icon(LucideIcons.arrowLeft, size: AppSizing.iconSm),
+      label: Text(label),
     );
   }
 }

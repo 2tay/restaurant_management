@@ -826,6 +826,24 @@ abstract class AppLocalizations {
   /// **'Stock décroissant'**
   String get inventorySortStockDesc;
 
+  /// Wizard: go to the next step.
+  ///
+  /// In fr, this message translates to:
+  /// **'Suivant'**
+  String get wizardNext;
+
+  /// Wizard: go back one step.
+  ///
+  /// In fr, this message translates to:
+  /// **'Précédent'**
+  String get wizardPrevious;
+
+  /// Wizard step indicator on a phone.
+  ///
+  /// In fr, this message translates to:
+  /// **'Étape {current} sur {total}'**
+  String wizardStepOf(int current, int total);
+
   /// Tooltip on the button switching a list screen (products, staff) to cards.
   ///
   /// In fr, this message translates to:

@@ -429,6 +429,17 @@ class AppLocalizationsFr extends AppLocalizations {
   String get inventorySortStockDesc => 'Stock décroissant';
 
   @override
+  String get wizardNext => 'Suivant';
+
+  @override
+  String get wizardPrevious => 'Précédent';
+
+  @override
+  String wizardStepOf(int current, int total) {
+    return 'Étape $current sur $total';
+  }
+
+  @override
   String get viewModeGrid => 'Vue grille';
 
   @override
