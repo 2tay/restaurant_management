@@ -5171,23 +5171,11 @@ abstract class AppLocalizations {
   /// **'Valider'**
   String get identityPromptValidate;
 
-  /// Shown in the identity dialog after a wrong CIN, with the number of attempts left before the lockout.
+  /// Shown in the identity dialog after a wrong CIN. Attempts are unlimited.
   ///
   /// In fr, this message translates to:
-  /// **'Numéro incorrect. {count, plural, =0{Verrouillé.} =1{1 tentative restante.} other{{count} tentatives restantes.}}'**
-  String identityPromptWrong(int count);
-
-  /// Shown in the identity dialog while the credential is locked, with a mm:ss countdown.
-  ///
-  /// In fr, this message translates to:
-  /// **'Trop de tentatives. Réessayez dans {time}.'**
-  String identityPromptLocked(String time);
-
-  /// Shown in the identity dialog when the employee has no credential row.
-  ///
-  /// In fr, this message translates to:
-  /// **'Aucun identifiant n\'est configuré pour cette personne.'**
-  String get identityPromptNoCredential;
+  /// **'Numéro incorrect. Réessayez.'**
+  String get identityPromptWrong;
 
   /// Subtitle of the identity dialog on the pointage board — the action being confirmed and whose CIN is required.
   ///

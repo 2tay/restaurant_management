@@ -1,10 +1,7 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
-import '../../data/repositories/credential_repository.dart';
 import '../../l10n/app_localizations.dart';
 import 'app_text_field.dart';
 
@@ -13,9 +10,9 @@ import 'app_text_field.dart';
 /// login identifier. Used by every button on the pointage kiosk (the card's
 /// employee) and by "Payer" on the payroll page (the signed-in user).
 ///
-/// The dialog owns the retry loop: it stays open through wrong entries and a
-/// lockout countdown, and only resolves `true` once the CIN is right (or
-/// `false` if the user backs out).
+/// The dialog owns the retry loop: it stays open through wrong entries — as
+/// many as it takes, there is no lockout — and only resolves `true` once the
+/// CIN is right (or `false` if the user backs out).
 ///
 /// [verify] is the check itself, normally
 /// `ref.read(credentialRepositoryProvider).verifyCin(cin, expectedEmployeeId)`.
@@ -29,7 +26,7 @@ class IdentityPromptDialog extends StatefulWidget {
 
   final String title;
   final String subtitle;
-  final Future<CinVerification> Function(String cin) verify;
+  final Future<bool> Function(String cin) verify;
 
   /// Shows the dialog and resolves to whether the CIN was accepted. A dismissal
   /// (Annuler, or Échap) resolves `false`.
@@ -37,7 +34,7 @@ class IdentityPromptDialog extends StatefulWidget {
     BuildContext context, {
     required String title,
     required String subtitle,
-    required Future<CinVerification> Function(String cin) verify,
+    required Future<bool> Function(String cin) verify,
   }) async {
     final ok = await showDialog<bool>(
       context: context,
@@ -60,78 +57,29 @@ class _IdentityPromptDialogState extends State<IdentityPromptDialog> {
   String? _message;
   bool _busy = false;
 
-  DateTime? _lockedUntil;
-  Timer? _ticker;
-
-  bool get _locked =>
-      _lockedUntil != null && DateTime.now().isBefore(_lockedUntil!);
-
-  bool get _canSubmit =>
-      !_busy && !_locked && _controller.text.trim().isNotEmpty;
+  bool get _canSubmit => !_busy && _controller.text.trim().isNotEmpty;
 
   @override
   void dispose() {
-    _ticker?.cancel();
     _controller.dispose();
     super.dispose();
-  }
-
-  void _startCountdown() {
-    _ticker?.cancel();
-    _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (!mounted) return;
-      if (!_locked) {
-        _ticker?.cancel();
-        setState(() {
-          _lockedUntil = null;
-          _message = null;
-        });
-      } else {
-        setState(() {});
-      }
-    });
   }
 
   Future<void> _submit() async {
     if (!_canSubmit) return;
     setState(() => _busy = true);
-    final result = await widget.verify(_controller.text.trim());
+    final ok = await widget.verify(_controller.text.trim());
     if (!mounted) return;
 
-    switch (result.result) {
-      case CinCheckResult.ok:
-        Navigator.of(context).pop(true);
-        return;
-      case CinCheckResult.wrongCin:
-        setState(() {
-          _busy = false;
-          _controller.clear();
-          _message = AppLocalizations.of(
-            context,
-          ).identityPromptWrong(result.attemptsRemaining);
-        });
-      case CinCheckResult.locked:
-        setState(() {
-          _busy = false;
-          _controller.clear();
-          _lockedUntil = result.lockedUntil;
-          _message = null;
-        });
-        _startCountdown();
-      case CinCheckResult.noCredential:
-        setState(() {
-          _busy = false;
-          _message = AppLocalizations.of(context).identityPromptNoCredential;
-        });
+    if (ok) {
+      Navigator.of(context).pop(true);
+      return;
     }
-  }
-
-  String _countdown() {
-    final left = _lockedUntil!.difference(DateTime.now());
-    final total = left.isNegative ? 0 : left.inSeconds;
-    final mm = (total ~/ 60).toString().padLeft(2, '0');
-    final ss = (total % 60).toString().padLeft(2, '0');
-    return '$mm:$ss';
+    setState(() {
+      _busy = false;
+      _controller.clear();
+      _message = AppLocalizations.of(context).identityPromptWrong;
+    });
   }
 
   @override
@@ -158,20 +106,12 @@ class _IdentityPromptDialogState extends State<IdentityPromptDialog> {
               label: l10n.identityPromptField,
               controller: _controller,
               hint: l10n.loginCinHint,
-              enabled: !_locked && !_busy,
+              enabled: !_busy,
               autofocus: true,
               onChanged: (_) => setState(() {}),
               onSubmitted: (_) => _submit(),
             ),
-            if (_locked) ...[
-              const SizedBox(height: AppSpacing.md),
-              Text(
-                l10n.identityPromptLocked(_countdown()),
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: AppColors.error,
-                ),
-              ),
-            ] else if (_message != null) ...[
+            if (_message != null) ...[
               const SizedBox(height: AppSpacing.md),
               Text(
                 _message!,

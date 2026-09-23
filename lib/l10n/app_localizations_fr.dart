@@ -3122,25 +3122,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get identityPromptValidate => 'Valider';
 
   @override
-  String identityPromptWrong(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count tentatives restantes.',
-      one: '1 tentative restante.',
-      zero: 'Verrouillé.',
-    );
-    return 'Numéro incorrect. $_temp0';
-  }
-
-  @override
-  String identityPromptLocked(String time) {
-    return 'Trop de tentatives. Réessayez dans $time.';
-  }
-
-  @override
-  String get identityPromptNoCredential =>
-      'Aucun identifiant n\'est configuré pour cette personne.';
+  String get identityPromptWrong => 'Numéro incorrect. Réessayez.';
 
   @override
   String identityPromptPointageSubtitle(String action, String name) {
