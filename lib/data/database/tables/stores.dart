@@ -61,6 +61,24 @@ class Stores extends Table {
   IntColumn get workingDaysPerMonth =>
       integer().withDefault(const Constant(26))();
 
+  // --- Notification preferences --------------------------------------------
+  //
+  // Which events are allowed to write a row into `notifications`. Per store,
+  // like the rest of the settings, and read by the notification engine *before*
+  // it composes anything — a preference that only hid a notification after the
+  // fact would still leave it in the feed and on the bell.
+  //
+  // The defaults are the ones the preferences screen has always displayed:
+  // everything on except deliveries, which are expected rather than surprising.
+
+  BoolColumn get notifyLowStock => boolean().withDefault(const Constant(true))();
+  BoolColumn get notifyPriceChange =>
+      boolean().withDefault(const Constant(true))();
+  BoolColumn get notifyLargeAdjustment =>
+      boolean().withDefault(const Constant(true))();
+  BoolColumn get notifyDeliveries =>
+      boolean().withDefault(const Constant(false))();
+
   @override
   Set<Column<Object>> get primaryKey => {id};
 }

@@ -20,6 +20,13 @@ class StoreSettings {
     required this.overtimeMultiplier,
     required this.workingDaysPerMonth,
     required this.stalePartialOrderDays,
+    // Defaulted rather than required: they have the same defaults in the
+    // schema, and every caller that builds a settings record by hand — the
+    // seed, the fallback for a missing row — means "whatever the schema says".
+    this.notifyLowStock = true,
+    this.notifyPriceChange = true,
+    this.notifyLargeAdjustment = true,
+    this.notifyDeliveries = false,
   });
 
   final String storeId;
@@ -44,4 +51,14 @@ class StoreSettings {
 
   /// How many days a `partial` commande may sit before the dashboard flags it.
   final int stalePartialOrderDays;
+
+  /// Which events may write into the notification feed.
+  ///
+  /// Read by the notification engine before it composes anything, so a
+  /// preference switched off means the notification is never created — not
+  /// created and then hidden, which would still sit unread on the bell.
+  final bool notifyLowStock;
+  final bool notifyPriceChange;
+  final bool notifyLargeAdjustment;
+  final bool notifyDeliveries;
 }

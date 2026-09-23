@@ -32,29 +32,29 @@ void main() {
     verifier = SchemaVerifier(GeneratedHelper());
   });
 
-  test('a fresh database matches the version 7 schema', () async {
-    final connection = await verifier.startAt(7);
+  test('a fresh database matches the version 8 schema', () async {
+    final connection = await verifier.startAt(8);
     final db = AppDatabase.withExecutor(connection);
-    await verifier.migrateAndValidate(db, 7);
+    await verifier.migrateAndValidate(db, 8);
     await db.close();
   });
 
   // The step every incremental migration gets wrong: an install that skipped a
   // release runs both branches back to back, and `onUpgrade` has to be written
   // so it can. There is no v1 -> v2 test any more, and there cannot be —
-  // `schemaVersion` is 7, so an older install is never asked to stop short.
-  test('a version 1 install upgrades all the way to version 7', () async {
+  // `schemaVersion` is 8, so an older install is never asked to stop short.
+  test('a version 1 install upgrades all the way to version 8', () async {
     final connection = await verifier.startAt(1);
     final db = AppDatabase.withExecutor(connection);
 
-    await verifier.migrateAndValidate(db, 7);
+    await verifier.migrateAndValidate(db, 8);
     await db.close();
   });
 
-  test('a version 2 install upgrades to version 7 cleanly', () async {
+  test('a version 2 install upgrades to version 8 cleanly', () async {
     final connection = await verifier.startAt(2);
     final db = AppDatabase.withExecutor(connection);
-    await verifier.migrateAndValidate(db, 7);
+    await verifier.migrateAndValidate(db, 8);
     await db.close();
   });
 
@@ -64,7 +64,7 @@ void main() {
   test('maxStock defaults to zero on an upgraded install', () async {
     final connection = await verifier.startAt(2);
     final db = AppDatabase.withExecutor(connection);
-    await verifier.migrateAndValidate(db, 7);
+    await verifier.migrateAndValidate(db, 8);
 
     final defaults = await db
         .customSelect('PRAGMA table_info(items)')
@@ -77,34 +77,61 @@ void main() {
     await db.close();
   });
 
-  test('a version 3 install upgrades to version 7 cleanly', () async {
+  test('a version 3 install upgrades to version 8 cleanly', () async {
     final connection = await verifier.startAt(3);
     final db = AppDatabase.withExecutor(connection);
 
     // Runs AppDatabase.migration.onUpgrade(3 -> 7) and then checks every table,
     // column, default and index against drift_schema_v7.json.
-    await verifier.migrateAndValidate(db, 7);
+    await verifier.migrateAndValidate(db, 8);
     await db.close();
   });
 
-  test('a version 4 install upgrades to version 7 cleanly', () async {
+  test('a version 4 install upgrades to version 8 cleanly', () async {
     final connection = await verifier.startAt(4);
     final db = AppDatabase.withExecutor(connection);
-    await verifier.migrateAndValidate(db, 7);
+    await verifier.migrateAndValidate(db, 8);
     await db.close();
   });
 
-  test('a version 5 install upgrades to version 7 cleanly', () async {
+  test('a version 5 install upgrades to version 8 cleanly', () async {
     final connection = await verifier.startAt(5);
     final db = AppDatabase.withExecutor(connection);
-    await verifier.migrateAndValidate(db, 7);
+    await verifier.migrateAndValidate(db, 8);
     await db.close();
   });
 
-  test('a version 6 install upgrades to version 7 cleanly', () async {
+  test('a version 6 install upgrades to version 8 cleanly', () async {
     final connection = await verifier.startAt(6);
     final db = AppDatabase.withExecutor(connection);
-    await verifier.migrateAndValidate(db, 7);
+    await verifier.migrateAndValidate(db, 8);
+    await db.close();
+  });
+
+  test('a version 7 install upgrades to version 8 cleanly', () async {
+    final connection = await verifier.startAt(7);
+    final db = AppDatabase.withExecutor(connection);
+    await verifier.migrateAndValidate(db, 8);
+    await db.close();
+  });
+
+  // The four notification preferences arrive switched to what the preferences
+  // screen already displayed — on except deliveries — so an install upgraded in
+  // place opens on the settings it appeared to have.
+  test('v7 -> v8 gives every store the displayed notification defaults', () async {
+    final connection = await verifier.startAt(7);
+    final db = AppDatabase.withExecutor(connection);
+    await verifier.migrateAndValidate(db, 8);
+
+    final columns = await db.customSelect('PRAGMA table_info(stores)').get();
+    Object? defaultOf(String name) => columns
+        .firstWhere((row) => row.read<String>('name') == name)
+        .read<String?>('dflt_value');
+
+    expect(defaultOf('notify_low_stock'), '1');
+    expect(defaultOf('notify_price_change'), '1');
+    expect(defaultOf('notify_large_adjustment'), '1');
+    expect(defaultOf('notify_deliveries'), '0');
     await db.close();
   });
 
@@ -112,7 +139,7 @@ void main() {
   test('v6 -> v7 leaves existing receipts with no employee id', () async {
     final connection = await verifier.startAt(6);
     final db = AppDatabase.withExecutor(connection);
-    await verifier.migrateAndValidate(db, 7);
+    await verifier.migrateAndValidate(db, 8);
 
     final columns = await db
         .customSelect('PRAGMA table_info(goods_receipts)')
@@ -130,7 +157,7 @@ void main() {
   test('v5 -> v7 leaves existing movements with no employee id', () async {
     final connection = await verifier.startAt(5);
     final db = AppDatabase.withExecutor(connection);
-    await verifier.migrateAndValidate(db, 7);
+    await verifier.migrateAndValidate(db, 8);
 
     final columns = await db
         .customSelect('PRAGMA table_info(stock_movements)')
@@ -185,7 +212,7 @@ void main() {
       await old.close();
 
       final db = AppDatabase.withExecutor(schema.newConnection());
-      await verifier.migrateAndValidate(db, 7);
+      await verifier.migrateAndValidate(db, 8);
 
       final rows = await db
           .customSelect(

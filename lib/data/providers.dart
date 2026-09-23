@@ -236,6 +236,17 @@ final lowStockAlertsProvider =
           ref.watch(itemRepositoryProvider).watchLowStockAlerts(storeId),
     );
 
+/// The number on the sidebar's "Alertes" entry — how many articles need a
+/// decision today, ruptures included.
+///
+/// Derived from [lowStockAlertsProvider] rather than counted with a query of
+/// its own: the rail and the screen then answer from the same stream, and a
+/// movement that clears an alert changes both in the same frame.
+final alertsCountProvider = Provider.family<int, String>(
+  (ref, storeId) =>
+      ref.watch(lowStockAlertsProvider(storeId)).value?.length ?? 0,
+);
+
 /// Every article in the establishment, alphabetically — for the callers that do
 /// their own ordering, where "worst first" would be noise.
 final itemsByNameProvider = StreamProvider.family<List<Item>, String>(

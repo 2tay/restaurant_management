@@ -284,6 +284,34 @@ class StoreRepository {
   /// The settings screen falls back to `OrderRules.defaultStalePartialDays` on
   /// nonsense input, which is a decision about the form rather than about the
   /// establishment.
+  /// Switches one notification kind on or off for an establishment.
+  ///
+  /// One field at a time rather than a whole record: the preferences screen is
+  /// four independent switches, and writing all four on every toggle would let
+  /// a stale screen silently revert a change made on another tablet.
+  Future<bool> setNotificationPreference(
+    String storeId, {
+    bool? lowStock,
+    bool? priceChange,
+    bool? largeAdjustment,
+    bool? deliveries,
+  }) async {
+    Value<bool> v(bool? value) =>
+        value == null ? const Value.absent() : Value(value);
+
+    final changed =
+        await (_db.update(_db.stores)..where((s) => s.id.equals(storeId)))
+            .write(
+              StoresCompanion(
+                notifyLowStock: v(lowStock),
+                notifyPriceChange: v(priceChange),
+                notifyLargeAdjustment: v(largeAdjustment),
+                notifyDeliveries: v(deliveries),
+              ),
+            );
+    return changed > 0;
+  }
+
   Future<bool> setStalePartialOrderDays(String storeId, int days) async {
     if (days <= 0) return false;
 

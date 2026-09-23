@@ -84,7 +84,7 @@ class AppDatabase extends _$AppDatabase {
   static const String databaseName = 'stock_inventory';
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -192,6 +192,22 @@ class AppDatabase extends _$AppDatabase {
       // backfill: older receipts keep the name they always had.
       if (from < 7) {
         await m.addColumn(goodsReceipts, goodsReceipts.receivedByEmployeeId);
+      }
+
+      // v7 → v8: the four notification preferences on `stores`. Until now the
+      // preferences screen held them in a `setState` that nothing read and
+      // nothing saved; this is where they land. The column defaults are the
+      // values that screen already displayed, so an install upgraded in place
+      // opens on exactly the settings it appeared to have.
+      if (from < 8) {
+        for (final column in [
+          stores.notifyLowStock,
+          stores.notifyPriceChange,
+          stores.notifyLargeAdjustment,
+          stores.notifyDeliveries,
+        ]) {
+          await m.addColumn(stores, column);
+        }
       }
     },
 

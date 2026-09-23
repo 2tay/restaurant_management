@@ -17,7 +17,7 @@ Store storeFromRow(StoreRow row) => Store(
 );
 
 /// The pointage / paie settings live on the store row too, since Phase 2 employé
-/// folded `mock_store_settings.dart` into it — `storeId` plus these six fields is
+/// folded `mock_store_settings.dart` into it — `storeId` plus these fields is
 /// the whole `StoreSettings` record.
 StoreSettings storeSettingsFromRow(StoreRow row) => StoreSettings(
   storeId: row.id,
@@ -27,6 +27,10 @@ StoreSettings storeSettingsFromRow(StoreRow row) => StoreSettings(
   overtimeMultiplier: row.overtimeMultiplier,
   workingDaysPerMonth: row.workingDaysPerMonth,
   stalePartialOrderDays: row.stalePartialOrderDays,
+  notifyLowStock: row.notifyLowStock,
+  notifyPriceChange: row.notifyPriceChange,
+  notifyLargeAdjustment: row.notifyLargeAdjustment,
+  notifyDeliveries: row.notifyDeliveries,
 );
 
 /// [settings] is optional: when omitted the six settings columns take their

@@ -173,6 +173,66 @@ class $StoresTable extends Stores with TableInfo<$StoresTable, StoreRow> {
     requiredDuringInsert: false,
     defaultValue: const Constant(26),
   );
+  static const VerificationMeta _notifyLowStockMeta = const VerificationMeta(
+    'notifyLowStock',
+  );
+  @override
+  late final GeneratedColumn<bool> notifyLowStock = GeneratedColumn<bool>(
+    'notify_low_stock',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("notify_low_stock" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _notifyPriceChangeMeta = const VerificationMeta(
+    'notifyPriceChange',
+  );
+  @override
+  late final GeneratedColumn<bool> notifyPriceChange = GeneratedColumn<bool>(
+    'notify_price_change',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("notify_price_change" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _notifyLargeAdjustmentMeta =
+      const VerificationMeta('notifyLargeAdjustment');
+  @override
+  late final GeneratedColumn<bool> notifyLargeAdjustment =
+      GeneratedColumn<bool>(
+        'notify_large_adjustment',
+        aliasedName,
+        false,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("notify_large_adjustment" IN (0, 1))',
+        ),
+        defaultValue: const Constant(true),
+      );
+  static const VerificationMeta _notifyDeliveriesMeta = const VerificationMeta(
+    'notifyDeliveries',
+  );
+  @override
+  late final GeneratedColumn<bool> notifyDeliveries = GeneratedColumn<bool>(
+    'notify_deliveries',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("notify_deliveries" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -190,6 +250,10 @@ class $StoresTable extends Stores with TableInfo<$StoresTable, StoreRow> {
     maxBreakMinutes,
     overtimeMultiplier,
     workingDaysPerMonth,
+    notifyLowStock,
+    notifyPriceChange,
+    notifyLargeAdjustment,
+    notifyDeliveries,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -325,6 +389,42 @@ class $StoresTable extends Stores with TableInfo<$StoresTable, StoreRow> {
         ),
       );
     }
+    if (data.containsKey('notify_low_stock')) {
+      context.handle(
+        _notifyLowStockMeta,
+        notifyLowStock.isAcceptableOrUnknown(
+          data['notify_low_stock']!,
+          _notifyLowStockMeta,
+        ),
+      );
+    }
+    if (data.containsKey('notify_price_change')) {
+      context.handle(
+        _notifyPriceChangeMeta,
+        notifyPriceChange.isAcceptableOrUnknown(
+          data['notify_price_change']!,
+          _notifyPriceChangeMeta,
+        ),
+      );
+    }
+    if (data.containsKey('notify_large_adjustment')) {
+      context.handle(
+        _notifyLargeAdjustmentMeta,
+        notifyLargeAdjustment.isAcceptableOrUnknown(
+          data['notify_large_adjustment']!,
+          _notifyLargeAdjustmentMeta,
+        ),
+      );
+    }
+    if (data.containsKey('notify_deliveries')) {
+      context.handle(
+        _notifyDeliveriesMeta,
+        notifyDeliveries.isAcceptableOrUnknown(
+          data['notify_deliveries']!,
+          _notifyDeliveriesMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -394,6 +494,22 @@ class $StoresTable extends Stores with TableInfo<$StoresTable, StoreRow> {
         DriftSqlType.int,
         data['${effectivePrefix}working_days_per_month'],
       )!,
+      notifyLowStock: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}notify_low_stock'],
+      )!,
+      notifyPriceChange: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}notify_price_change'],
+      )!,
+      notifyLargeAdjustment: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}notify_large_adjustment'],
+      )!,
+      notifyDeliveries: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}notify_deliveries'],
+      )!,
     );
   }
 
@@ -443,6 +559,10 @@ class StoreRow extends DataClass implements Insertable<StoreRow> {
   /// Divisor that turns a fixed-salary employee's monthly pay into a daily
   /// rate. `PayrollRules.defaultWorkingDaysPerMonth`.
   final int workingDaysPerMonth;
+  final bool notifyLowStock;
+  final bool notifyPriceChange;
+  final bool notifyLargeAdjustment;
+  final bool notifyDeliveries;
   const StoreRow({
     required this.id,
     required this.name,
@@ -459,6 +579,10 @@ class StoreRow extends DataClass implements Insertable<StoreRow> {
     required this.maxBreakMinutes,
     required this.overtimeMultiplier,
     required this.workingDaysPerMonth,
+    required this.notifyLowStock,
+    required this.notifyPriceChange,
+    required this.notifyLargeAdjustment,
+    required this.notifyDeliveries,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -482,6 +606,10 @@ class StoreRow extends DataClass implements Insertable<StoreRow> {
     map['max_break_minutes'] = Variable<int>(maxBreakMinutes);
     map['overtime_multiplier'] = Variable<double>(overtimeMultiplier);
     map['working_days_per_month'] = Variable<int>(workingDaysPerMonth);
+    map['notify_low_stock'] = Variable<bool>(notifyLowStock);
+    map['notify_price_change'] = Variable<bool>(notifyPriceChange);
+    map['notify_large_adjustment'] = Variable<bool>(notifyLargeAdjustment);
+    map['notify_deliveries'] = Variable<bool>(notifyDeliveries);
     return map;
   }
 
@@ -506,6 +634,10 @@ class StoreRow extends DataClass implements Insertable<StoreRow> {
       maxBreakMinutes: Value(maxBreakMinutes),
       overtimeMultiplier: Value(overtimeMultiplier),
       workingDaysPerMonth: Value(workingDaysPerMonth),
+      notifyLowStock: Value(notifyLowStock),
+      notifyPriceChange: Value(notifyPriceChange),
+      notifyLargeAdjustment: Value(notifyLargeAdjustment),
+      notifyDeliveries: Value(notifyDeliveries),
     );
   }
 
@@ -536,6 +668,12 @@ class StoreRow extends DataClass implements Insertable<StoreRow> {
       workingDaysPerMonth: serializer.fromJson<int>(
         json['workingDaysPerMonth'],
       ),
+      notifyLowStock: serializer.fromJson<bool>(json['notifyLowStock']),
+      notifyPriceChange: serializer.fromJson<bool>(json['notifyPriceChange']),
+      notifyLargeAdjustment: serializer.fromJson<bool>(
+        json['notifyLargeAdjustment'],
+      ),
+      notifyDeliveries: serializer.fromJson<bool>(json['notifyDeliveries']),
     );
   }
   @override
@@ -557,6 +695,10 @@ class StoreRow extends DataClass implements Insertable<StoreRow> {
       'maxBreakMinutes': serializer.toJson<int>(maxBreakMinutes),
       'overtimeMultiplier': serializer.toJson<double>(overtimeMultiplier),
       'workingDaysPerMonth': serializer.toJson<int>(workingDaysPerMonth),
+      'notifyLowStock': serializer.toJson<bool>(notifyLowStock),
+      'notifyPriceChange': serializer.toJson<bool>(notifyPriceChange),
+      'notifyLargeAdjustment': serializer.toJson<bool>(notifyLargeAdjustment),
+      'notifyDeliveries': serializer.toJson<bool>(notifyDeliveries),
     };
   }
 
@@ -576,6 +718,10 @@ class StoreRow extends DataClass implements Insertable<StoreRow> {
     int? maxBreakMinutes,
     double? overtimeMultiplier,
     int? workingDaysPerMonth,
+    bool? notifyLowStock,
+    bool? notifyPriceChange,
+    bool? notifyLargeAdjustment,
+    bool? notifyDeliveries,
   }) => StoreRow(
     id: id ?? this.id,
     name: name ?? this.name,
@@ -592,6 +738,10 @@ class StoreRow extends DataClass implements Insertable<StoreRow> {
     maxBreakMinutes: maxBreakMinutes ?? this.maxBreakMinutes,
     overtimeMultiplier: overtimeMultiplier ?? this.overtimeMultiplier,
     workingDaysPerMonth: workingDaysPerMonth ?? this.workingDaysPerMonth,
+    notifyLowStock: notifyLowStock ?? this.notifyLowStock,
+    notifyPriceChange: notifyPriceChange ?? this.notifyPriceChange,
+    notifyLargeAdjustment: notifyLargeAdjustment ?? this.notifyLargeAdjustment,
+    notifyDeliveries: notifyDeliveries ?? this.notifyDeliveries,
   );
   StoreRow copyWithCompanion(StoresCompanion data) {
     return StoreRow(
@@ -628,6 +778,18 @@ class StoreRow extends DataClass implements Insertable<StoreRow> {
       workingDaysPerMonth: data.workingDaysPerMonth.present
           ? data.workingDaysPerMonth.value
           : this.workingDaysPerMonth,
+      notifyLowStock: data.notifyLowStock.present
+          ? data.notifyLowStock.value
+          : this.notifyLowStock,
+      notifyPriceChange: data.notifyPriceChange.present
+          ? data.notifyPriceChange.value
+          : this.notifyPriceChange,
+      notifyLargeAdjustment: data.notifyLargeAdjustment.present
+          ? data.notifyLargeAdjustment.value
+          : this.notifyLargeAdjustment,
+      notifyDeliveries: data.notifyDeliveries.present
+          ? data.notifyDeliveries.value
+          : this.notifyDeliveries,
     );
   }
 
@@ -648,7 +810,11 @@ class StoreRow extends DataClass implements Insertable<StoreRow> {
           ..write('closeMinutes: $closeMinutes, ')
           ..write('maxBreakMinutes: $maxBreakMinutes, ')
           ..write('overtimeMultiplier: $overtimeMultiplier, ')
-          ..write('workingDaysPerMonth: $workingDaysPerMonth')
+          ..write('workingDaysPerMonth: $workingDaysPerMonth, ')
+          ..write('notifyLowStock: $notifyLowStock, ')
+          ..write('notifyPriceChange: $notifyPriceChange, ')
+          ..write('notifyLargeAdjustment: $notifyLargeAdjustment, ')
+          ..write('notifyDeliveries: $notifyDeliveries')
           ..write(')'))
         .toString();
   }
@@ -670,6 +836,10 @@ class StoreRow extends DataClass implements Insertable<StoreRow> {
     maxBreakMinutes,
     overtimeMultiplier,
     workingDaysPerMonth,
+    notifyLowStock,
+    notifyPriceChange,
+    notifyLargeAdjustment,
+    notifyDeliveries,
   );
   @override
   bool operator ==(Object other) =>
@@ -689,7 +859,11 @@ class StoreRow extends DataClass implements Insertable<StoreRow> {
           other.closeMinutes == this.closeMinutes &&
           other.maxBreakMinutes == this.maxBreakMinutes &&
           other.overtimeMultiplier == this.overtimeMultiplier &&
-          other.workingDaysPerMonth == this.workingDaysPerMonth);
+          other.workingDaysPerMonth == this.workingDaysPerMonth &&
+          other.notifyLowStock == this.notifyLowStock &&
+          other.notifyPriceChange == this.notifyPriceChange &&
+          other.notifyLargeAdjustment == this.notifyLargeAdjustment &&
+          other.notifyDeliveries == this.notifyDeliveries);
 }
 
 class StoresCompanion extends UpdateCompanion<StoreRow> {
@@ -708,6 +882,10 @@ class StoresCompanion extends UpdateCompanion<StoreRow> {
   final Value<int> maxBreakMinutes;
   final Value<double> overtimeMultiplier;
   final Value<int> workingDaysPerMonth;
+  final Value<bool> notifyLowStock;
+  final Value<bool> notifyPriceChange;
+  final Value<bool> notifyLargeAdjustment;
+  final Value<bool> notifyDeliveries;
   final Value<int> rowid;
   const StoresCompanion({
     this.id = const Value.absent(),
@@ -725,6 +903,10 @@ class StoresCompanion extends UpdateCompanion<StoreRow> {
     this.maxBreakMinutes = const Value.absent(),
     this.overtimeMultiplier = const Value.absent(),
     this.workingDaysPerMonth = const Value.absent(),
+    this.notifyLowStock = const Value.absent(),
+    this.notifyPriceChange = const Value.absent(),
+    this.notifyLargeAdjustment = const Value.absent(),
+    this.notifyDeliveries = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   StoresCompanion.insert({
@@ -743,6 +925,10 @@ class StoresCompanion extends UpdateCompanion<StoreRow> {
     this.maxBreakMinutes = const Value.absent(),
     this.overtimeMultiplier = const Value.absent(),
     this.workingDaysPerMonth = const Value.absent(),
+    this.notifyLowStock = const Value.absent(),
+    this.notifyPriceChange = const Value.absent(),
+    this.notifyLargeAdjustment = const Value.absent(),
+    this.notifyDeliveries = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        name = Value(name),
@@ -767,6 +953,10 @@ class StoresCompanion extends UpdateCompanion<StoreRow> {
     Expression<int>? maxBreakMinutes,
     Expression<double>? overtimeMultiplier,
     Expression<int>? workingDaysPerMonth,
+    Expression<bool>? notifyLowStock,
+    Expression<bool>? notifyPriceChange,
+    Expression<bool>? notifyLargeAdjustment,
+    Expression<bool>? notifyDeliveries,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -787,6 +977,11 @@ class StoresCompanion extends UpdateCompanion<StoreRow> {
       if (overtimeMultiplier != null) 'overtime_multiplier': overtimeMultiplier,
       if (workingDaysPerMonth != null)
         'working_days_per_month': workingDaysPerMonth,
+      if (notifyLowStock != null) 'notify_low_stock': notifyLowStock,
+      if (notifyPriceChange != null) 'notify_price_change': notifyPriceChange,
+      if (notifyLargeAdjustment != null)
+        'notify_large_adjustment': notifyLargeAdjustment,
+      if (notifyDeliveries != null) 'notify_deliveries': notifyDeliveries,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -807,6 +1002,10 @@ class StoresCompanion extends UpdateCompanion<StoreRow> {
     Value<int>? maxBreakMinutes,
     Value<double>? overtimeMultiplier,
     Value<int>? workingDaysPerMonth,
+    Value<bool>? notifyLowStock,
+    Value<bool>? notifyPriceChange,
+    Value<bool>? notifyLargeAdjustment,
+    Value<bool>? notifyDeliveries,
     Value<int>? rowid,
   }) {
     return StoresCompanion(
@@ -826,6 +1025,11 @@ class StoresCompanion extends UpdateCompanion<StoreRow> {
       maxBreakMinutes: maxBreakMinutes ?? this.maxBreakMinutes,
       overtimeMultiplier: overtimeMultiplier ?? this.overtimeMultiplier,
       workingDaysPerMonth: workingDaysPerMonth ?? this.workingDaysPerMonth,
+      notifyLowStock: notifyLowStock ?? this.notifyLowStock,
+      notifyPriceChange: notifyPriceChange ?? this.notifyPriceChange,
+      notifyLargeAdjustment:
+          notifyLargeAdjustment ?? this.notifyLargeAdjustment,
+      notifyDeliveries: notifyDeliveries ?? this.notifyDeliveries,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -880,6 +1084,20 @@ class StoresCompanion extends UpdateCompanion<StoreRow> {
     if (workingDaysPerMonth.present) {
       map['working_days_per_month'] = Variable<int>(workingDaysPerMonth.value);
     }
+    if (notifyLowStock.present) {
+      map['notify_low_stock'] = Variable<bool>(notifyLowStock.value);
+    }
+    if (notifyPriceChange.present) {
+      map['notify_price_change'] = Variable<bool>(notifyPriceChange.value);
+    }
+    if (notifyLargeAdjustment.present) {
+      map['notify_large_adjustment'] = Variable<bool>(
+        notifyLargeAdjustment.value,
+      );
+    }
+    if (notifyDeliveries.present) {
+      map['notify_deliveries'] = Variable<bool>(notifyDeliveries.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -904,6 +1122,10 @@ class StoresCompanion extends UpdateCompanion<StoreRow> {
           ..write('maxBreakMinutes: $maxBreakMinutes, ')
           ..write('overtimeMultiplier: $overtimeMultiplier, ')
           ..write('workingDaysPerMonth: $workingDaysPerMonth, ')
+          ..write('notifyLowStock: $notifyLowStock, ')
+          ..write('notifyPriceChange: $notifyPriceChange, ')
+          ..write('notifyLargeAdjustment: $notifyLargeAdjustment, ')
+          ..write('notifyDeliveries: $notifyDeliveries, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();

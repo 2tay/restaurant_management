@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../app/routes.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../data/providers.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 import '../widgets/settings_tabs.dart';
 
@@ -13,77 +16,95 @@ import '../widgets/settings_tabs.dart';
 /// Price-change alerts are on by default and listed second. They are the least
 /// obvious of the four and the one this app exists to provide — a supplier
 /// raising a price by forty cents is invisible without them.
-class NotificationPreferencesPage extends StatefulWidget {
+///
+/// Every switch writes straight to the establishment and the screen redraws
+/// from the stream it just wrote to. Until the notifications became real these
+/// four lived in a `setState` that nothing read and nothing saved: the screen
+/// looked like a setting and was a decoration.
+class NotificationPreferencesPage extends ConsumerWidget {
   const NotificationPreferencesPage({required this.storeId, super.key});
 
   final String storeId;
 
   @override
-  State<NotificationPreferencesPage> createState() =>
-      _NotificationPreferencesPageState();
-}
-
-class _NotificationPreferencesPageState
-    extends State<NotificationPreferencesPage> {
-  bool _lowStock = true;
-  bool _priceChange = true;
-  bool _largeAdjustment = true;
-  bool _deliveries = false;
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
+    final asyncSettings = ref.watch(storeSettingsProvider(storeId));
 
     return ShellPage(
       tabs: SettingsTabs(
-        storeId: widget.storeId,
-        currentPath: Routes.toNotificationSettings(widget.storeId),
+        storeId: storeId,
+        currentPath: Routes.toNotificationSettings(storeId),
       ),
       sideTabsOnWide: true,
       title: l10n.notificationPrefsTitle,
       subtitle: l10n.notificationPrefsSubtitle,
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 720),
-        child: AppCard(
-          padding: EdgeInsets.zero,
-          child: Column(
-            children: [
-              _PreferenceRow(
-                icon: LucideIcons.triangleAlert,
-                title: l10n.notificationPrefLowStock,
-                body: l10n.notificationPrefLowStockBody,
-                value: _lowStock,
-                onChanged: (value) => setState(() => _lowStock = value),
-              ),
-              const Divider(height: 1),
-              _PreferenceRow(
-                icon: LucideIcons.trendingUp,
-                title: l10n.notificationPrefPriceChange,
-                body: l10n.notificationPrefPriceChangeBody,
-                value: _priceChange,
-                onChanged: (value) => setState(() => _priceChange = value),
-              ),
-              const Divider(height: 1),
-              _PreferenceRow(
-                icon: LucideIcons.clipboardCheck,
-                title: l10n.notificationPrefLargeAdjustment,
-                body: l10n.notificationPrefLargeAdjustmentBody,
-                value: _largeAdjustment,
-                onChanged: (value) => setState(() => _largeAdjustment = value),
-              ),
-              const Divider(height: 1),
-              _PreferenceRow(
-                icon: LucideIcons.truck,
-                title: l10n.notificationPrefDeliveries,
-                body: l10n.notificationPrefDeliveriesBody,
-                value: _deliveries,
-                onChanged: (value) => setState(() => _deliveries = value),
-              ),
-            ],
+        child: AsyncContent<StoreSettings>(
+          value: asyncSettings,
+          onRetry: () => ref.invalidate(storeSettingsProvider(storeId)),
+          builder: (context, settings) => AppCard(
+            padding: EdgeInsets.zero,
+            child: Column(
+              children: [
+                _PreferenceRow(
+                  icon: LucideIcons.triangleAlert,
+                  title: l10n.notificationPrefLowStock,
+                  body: l10n.notificationPrefLowStockBody,
+                  value: settings.notifyLowStock,
+                  onChanged: (value) => _save(ref, lowStock: value),
+                ),
+                const Divider(height: 1),
+                _PreferenceRow(
+                  icon: LucideIcons.trendingUp,
+                  title: l10n.notificationPrefPriceChange,
+                  body: l10n.notificationPrefPriceChangeBody,
+                  value: settings.notifyPriceChange,
+                  onChanged: (value) => _save(ref, priceChange: value),
+                ),
+                const Divider(height: 1),
+                _PreferenceRow(
+                  icon: LucideIcons.clipboardCheck,
+                  title: l10n.notificationPrefLargeAdjustment,
+                  body: l10n.notificationPrefLargeAdjustmentBody,
+                  value: settings.notifyLargeAdjustment,
+                  onChanged: (value) => _save(ref, largeAdjustment: value),
+                ),
+                const Divider(height: 1),
+                _PreferenceRow(
+                  icon: LucideIcons.truck,
+                  title: l10n.notificationPrefDeliveries,
+                  body: l10n.notificationPrefDeliveriesBody,
+                  value: settings.notifyDeliveries,
+                  onChanged: (value) => _save(ref, deliveries: value),
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
+  }
+
+  /// One switch at a time, so a screen left open on another tablet cannot
+  /// revert a change it never saw.
+  void _save(
+    WidgetRef ref, {
+    bool? lowStock,
+    bool? priceChange,
+    bool? largeAdjustment,
+    bool? deliveries,
+  }) {
+    ref
+        .read(storeRepositoryProvider)
+        .setNotificationPreference(
+          storeId,
+          lowStock: lowStock,
+          priceChange: priceChange,
+          largeAdjustment: largeAdjustment,
+          deliveries: deliveries,
+        );
   }
 }
 

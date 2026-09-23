@@ -254,30 +254,51 @@ class _HeaderIconButton extends StatelessWidget {
           hoverColor: AppColors.steel700,
         ),
         if (badgeCount > 0)
-          Positioned(
-            right: 4,
-            top: 4,
-            child: Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.xs,
-                vertical: 1,
-              ),
-              constraints: const BoxConstraints(minWidth: 18),
-              decoration: BoxDecoration(
-                color: AppColors.error,
-                borderRadius: AppRadius.pillAll,
-                border: Border.all(color: AppColors.steel800, width: 1.5),
-              ),
-              child: Text(
-                '$badgeCount',
-                textAlign: TextAlign.center,
-                style: Theme.of(
-                  context,
-                ).textTheme.labelSmall?.copyWith(color: AppColors.white),
-              ),
-            ),
-          ),
+          Positioned(right: 4, top: 4, child: _CountBadge(count: badgeCount)),
       ],
+    );
+  }
+}
+
+/// The red count pill — on the bell in the header, and on the navigation row of
+/// a section with something waiting.
+///
+/// Ringed in the sidebar's own steel so it stays separated from whatever it
+/// sits on. On the active row that ring would land on teal and read as a second
+/// alarm, so [inverted] flips it to white-on-teal instead.
+class _CountBadge extends StatelessWidget {
+  const _CountBadge({required this.count, this.inverted = false});
+
+  final int count;
+
+  /// For a row that is already highlighted teal.
+  final bool inverted;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.xs,
+        vertical: 1,
+      ),
+      constraints: const BoxConstraints(minWidth: 18),
+      decoration: BoxDecoration(
+        color: inverted ? AppColors.white : AppColors.error,
+        borderRadius: AppRadius.pillAll,
+        border: inverted
+            ? null
+            : Border.all(color: AppColors.steel800, width: 1.5),
+      ),
+      child: Text(
+        // Three digits stretch the pill past the label beside it, and the
+        // difference between 118 and 99+ changes nothing anybody would do.
+        count > 99 ? '99+' : '$count',
+        textAlign: TextAlign.center,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+          color: inverted ? AppColors.primary600 : AppColors.white,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
     );
   }
 }
@@ -295,6 +316,7 @@ class _Destination {
     this.pathBuilder,
     this.children,
     this.familySegments,
+    this.showAlertBadge = false,
   });
 
   final IconData icon;
@@ -313,6 +335,11 @@ class _Destination {
   /// The sections a group spans, when they are not all under
   /// [matchSegment] — Achats holds orders, receptions and suppliers.
   final List<String>? familySegments;
+
+  /// Whether the row carries the count of articles needing a decision. Set on
+  /// Alertes, which is the first row and the one this establishment opens the
+  /// app for; nothing else in the rail has a number worth pre-empting a glance.
+  final bool showAlertBadge;
 
   /// Whether [location] is somewhere inside this entry.
   bool contains(String location) => (familySegments ?? [matchSegment]).any(
@@ -361,7 +388,17 @@ bool _isPersonnelActive(String location) =>
     !_isAttendanceHistoryActive(location) &&
     !_isPayrollActive(location);
 
+// Alertes leads. It is the screen this establishment opens the app for — what
+// has to be ordered today — so it sits above the dashboard rather than sixth,
+// and it is the only row that carries a count.
 const List<_Destination> _destinations = [
+  _Destination(
+    icon: LucideIcons.triangleAlert,
+    label: _labelAlerts,
+    pathBuilder: Routes.toAlerts,
+    matchSegment: 'alerts',
+    showAlertBadge: true,
+  ),
   _Destination(
     icon: LucideIcons.layoutDashboard,
     label: _labelDashboard,
@@ -411,12 +448,6 @@ const List<_Destination> _destinations = [
     label: _labelCatalog,
     pathBuilder: Routes.toCategories,
     matchSegment: 'catalog',
-  ),
-  _Destination(
-    icon: LucideIcons.triangleAlert,
-    label: _labelAlerts,
-    pathBuilder: Routes.toAlerts,
-    matchSegment: 'alerts',
   ),
   _Destination(
     icon: LucideIcons.chartColumn,
@@ -480,7 +511,7 @@ String _labelAttendanceHistory(AppLocalizations l) =>
     l.employeesNavAttendanceHistory;
 String _labelPayroll(AppLocalizations l) => l.employeesNavPayroll;
 
-class _NavList extends StatelessWidget {
+class _NavList extends ConsumerWidget {
   const _NavList({
     required this.storeId,
     required this.collapsed,
@@ -498,7 +529,7 @@ class _NavList extends StatelessWidget {
   final ValueChanged<String> onToggleGroup;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final tiles = <Widget>[];
 
@@ -511,6 +542,9 @@ class _NavList extends StatelessWidget {
             label: destination.label(l10n),
             active: active,
             collapsed: collapsed,
+            badgeCount: destination.showAlertBadge
+                ? ref.watch(alertsCountProvider(storeId))
+                : 0,
             onTap: () => context.goSection(destination.pathBuilder!(storeId)),
           ),
         );
@@ -676,7 +710,7 @@ class _NavList extends StatelessWidget {
 
 /// One navigation row in the sidebar — icon, label, and a teal highlight when
 /// it is the section the user is in. Reused for every destination; the Gestion
-/// Employée row passes a [trailing] chevron.
+/// Employée row passes a [trailing] chevron, and Alertes a [badgeCount].
 ///
 /// Public so the navigation suite can read which row is [active].
 class SidebarNavTile extends StatelessWidget {
@@ -687,6 +721,7 @@ class SidebarNavTile extends StatelessWidget {
     required this.collapsed,
     required this.onTap,
     this.trailing,
+    this.badgeCount = 0,
     super.key,
   });
 
@@ -697,16 +732,48 @@ class SidebarNavTile extends StatelessWidget {
   final VoidCallback onTap;
   final Widget? trailing;
 
+  /// How many things are waiting in this section. Zero draws nothing.
+  final int badgeCount;
+
   @override
   Widget build(BuildContext context) {
     final foreground = active ? AppColors.white : AppColors.neutral300;
+    final badged = badgeCount > 0;
+
+    // Collapsed there is no room for a pill beside an 88dp-wide icon, so the
+    // count becomes a dot on the icon's corner and the number is spoken by the
+    // tooltip and the semantics label below instead.
+    final Widget leading = badged && collapsed
+        ? Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Icon(icon, size: AppSizing.iconMd, color: foreground),
+              Positioned(
+                right: -2,
+                top: -2,
+                child: Container(
+                  width: 9,
+                  height: 9,
+                  decoration: BoxDecoration(
+                    color: AppColors.error,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: active ? AppColors.primary600 : AppColors.steel800,
+                      width: 1.5,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          )
+        : Icon(icon, size: AppSizing.iconMd, color: foreground);
 
     final row = Row(
       mainAxisAlignment: collapsed
           ? MainAxisAlignment.center
           : MainAxisAlignment.start,
       children: [
-        Icon(icon, size: AppSizing.iconMd, color: foreground),
+        leading,
         if (!collapsed) ...[
           const SizedBox(width: AppSpacing.md),
           Expanded(
@@ -716,10 +783,16 @@ class SidebarNavTile extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.labelLarge?.copyWith(
                 color: foreground,
-                fontWeight: active ? FontWeight.w600 : FontWeight.w500,
+                fontWeight: active || badged
+                    ? FontWeight.w600
+                    : FontWeight.w500,
               ),
             ),
           ),
+          if (badged) ...[
+            const SizedBox(width: AppSpacing.sm),
+            _CountBadge(count: badgeCount, inverted: active),
+          ],
           if (trailing != null)
             IconTheme.merge(
               data: IconThemeData(color: foreground),
@@ -752,15 +825,20 @@ class SidebarNavTile extends StatelessWidget {
     // tooltip alone leaves the row announced as an unnamed button.
     if (!collapsed) return tile;
 
+    // The dot on the icon says "something is waiting" and nothing more, so the
+    // count has to be in the words — it is the only place a screen reader, or
+    // anyone resting on the row, can get it.
+    final spoken = badged ? '$label ($badgeCount)' : label;
+
     // MergeSemantics rather than a plain wrapper: the InkWell already publishes
     // a button node with the tap action, and merging folds the name into it.
     // Excluding it instead would name the row and take away the ability to
     // activate it.
     return MergeSemantics(
       child: Semantics(
-        label: label,
+        label: spoken,
         selected: active,
-        child: Tooltip(message: label, child: tile),
+        child: Tooltip(message: spoken, child: tile),
       ),
     );
   }

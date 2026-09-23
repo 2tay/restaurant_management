@@ -223,6 +223,31 @@ void main() {
         .firstWhere((tile) => tile.active)
         .label;
 
+    // Alertes leads the rail: it is what this establishment opens the app for.
+    testApp('lists Alertes first, above the dashboard', (tester) async {
+      await _pump(tester);
+
+      final labels = tester
+          .widgetList<SidebarNavTile>(find.byType(SidebarNavTile))
+          .map((tile) => tile.label)
+          .toList();
+
+      expect(labels.first, 'Alertes');
+      expect(labels[1], 'Tableau de bord');
+    });
+
+    // The count is the whole point of putting it first — a rail entry that says
+    // nothing is just a link.
+    testApp('badges Alertes with what needs a decision', (tester) async {
+      await _pump(tester);
+
+      final alerts = tester
+          .widgetList<SidebarNavTile>(find.byType(SidebarNavTile))
+          .firstWhere((tile) => tile.label == 'Alertes');
+
+      expect(alerts.badgeCount, greaterThan(0));
+    });
+
     testApp('highlights the section a nested screen belongs to', (
       tester,
     ) async {
