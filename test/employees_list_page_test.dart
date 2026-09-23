@@ -459,6 +459,19 @@ void main() {
     );
     const red = Color(0xFF8E1B1B);
     expect(retiredChip.foreground, red);
+    // The pill that shows them is red too, while active.
+    final pillBox = tester.widget<Container>(
+      find
+          .descendant(
+            of: find.byType(FilterPill),
+            matching: find.byType(Container),
+          )
+          .first,
+    );
+    expect(
+      (pillBox.decoration! as BoxDecoration).color,
+      const Color(0xFFFADEDE),
+    );
 
     final cards = tester.widgetList<EmployeeCard>(find.byType(EmployeeCard));
     for (final card in cards) {

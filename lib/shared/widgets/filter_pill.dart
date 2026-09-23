@@ -17,6 +17,7 @@ class FilterPill extends StatelessWidget {
     required this.label,
     required this.selectedLabel,
     this.icon,
+    this.activeColors,
     super.key,
   });
 
@@ -28,6 +29,11 @@ class FilterPill extends StatelessWidget {
 
   final IconData? icon;
 
+  /// The fill and text colour while active — the brand teal by default. A
+  /// filter that brings back something flagged (the retired staff) takes that
+  /// flag's colour, so the pill and what it shows read as one.
+  final StockStatusColors? activeColors;
+
   /// How much room the label takes before it ellipsizes, where there is room
   /// to spare. Supplier and item names run long, and a filter row that reflows
   /// on every selection is disorienting.
@@ -37,7 +43,7 @@ class FilterPill extends StatelessWidget {
   Widget build(BuildContext context) {
     final active = selectedLabel != null;
     final foreground = active
-        ? AppColors.onPrimaryContainer
+        ? activeColors?.foreground ?? AppColors.onPrimaryContainer
         : AppColors.textSecondary;
 
     return Container(
@@ -49,7 +55,9 @@ class FilterPill extends StatelessWidget {
         vertical: AppSpacing.sm,
       ),
       decoration: BoxDecoration(
-        color: active ? AppColors.primaryContainer : AppColors.surface,
+        color: active
+            ? activeColors?.container ?? AppColors.primaryContainer
+            : AppColors.surface,
         borderRadius: AppRadius.smAll,
         border: Border.all(
           color: Colors.transparent,

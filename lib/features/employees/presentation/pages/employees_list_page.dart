@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/employee_status.dart';
 import '../../../../core/utils/formatters.dart';
@@ -286,6 +287,8 @@ class _ArchivedFilterPill extends StatelessWidget {
           label: l10n.employeesShowArchived,
           selectedLabel: active ? l10n.employeesShowArchived : null,
           icon: LucideIcons.archive,
+          // Red, like the retired cards it brings into view.
+          activeColors: AppColors.outOfStock,
         ),
       ),
     );
