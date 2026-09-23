@@ -35,6 +35,7 @@ class FormScaffold extends StatelessWidget {
     this.keepSubtitle = false,
     this.crumbs = const [],
     this.submitIcon,
+    this.submitTonal = false,
     this.isDirty = false,
     this.secondaryAction,
     this.submitSecondary,
@@ -61,6 +62,9 @@ class FormScaffold extends StatelessWidget {
 
   final String submitLabel;
   final IconData? submitIcon;
+
+  /// Draws the submit as [PrimaryButton.tonal].
+  final bool submitTonal;
 
   /// Null disables the submit button — the form is incomplete.
   final VoidCallback? onSubmit;
@@ -132,6 +136,7 @@ class FormScaffold extends StatelessWidget {
         PrimaryButton(
           label: submitLabel,
           icon: submitIcon,
+          tonal: submitTonal,
           onPressed: onSubmit,
         ),
       ],
@@ -172,7 +177,7 @@ class FormScaffold extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   child,
-                  const SizedBox(height: AppSpacing.xl),
+                  const SizedBox(height: AppSpacing.xxxl),
                   actionBar,
                 ],
               )

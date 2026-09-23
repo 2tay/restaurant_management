@@ -129,7 +129,17 @@ void main() {
 
       expect(tester.takeException(), isNull);
       expect(find.text('Étape 2 sur 3 · B'), findsOneWidget);
-      expect(find.byType(LinearProgressIndicator), findsOneWidget);
+      // One segment per step, the first two filled.
+      for (var i = 0; i < 3; i++) {
+        expect(find.byKey(ValueKey('wizard-segment-$i')), findsOneWidget);
+      }
+      Color colorOf(int i) =>
+          (tester.widget<Container>(find.byKey(ValueKey('wizard-segment-$i')))
+                      .decoration!
+                  as BoxDecoration)
+              .color!;
+      expect(colorOf(0), colorOf(1));
+      expect(colorOf(2), isNot(colorOf(1)));
     });
   });
 
@@ -322,7 +332,7 @@ void main() {
       expect(next.right, lessThan(1800 - 200));
     });
 
-    testWidgets('the steps sit centred in the height under the header', (
+    testWidgets('the steps sit a little above the middle under the header', (
       tester,
     ) async {
       _size(tester, const Size(1800, 1000));
@@ -335,9 +345,9 @@ void main() {
       final bottom = tester.getRect(_button('Suivant').first).bottom;
       final above = top - headerBottom;
       final below = 1000 - bottom;
-      // Roughly equal room above and below (page padding aside).
-      expect(above, greaterThan(100));
-      expect((above - below).abs(), lessThan(80));
+      // Centred, tipped upward: some room above, more below.
+      expect(above, greaterThan(40));
+      expect(below, greaterThan(above));
     });
 
     testWidgets('Annuler is quiet (#777, no border); Précédent is white, '
@@ -360,6 +370,58 @@ void main() {
       final previous = styleOf('Précédent');
       expect(previous.backgroundColor?.resolve(none), Colors.white);
       expect(previous.side?.resolve(none), BorderSide.none);
+    });
+
+    testWidgets('Suivant is translucent green; the final save is solid', (
+      tester,
+    ) async {
+      _size(tester, const Size(1800, 1000));
+      await tester.pumpWidget(
+        _host(_Harness(valid: const [true, true, true], onSubmit: () {})),
+      );
+      const none = <WidgetState>{};
+      Color? backgroundOf(String label) => tester
+          .widget<ButtonStyleButton>(_button(label).first)
+          .style
+          ?.backgroundColor
+          ?.resolve(none);
+
+      final next = backgroundOf('Suivant')!;
+      expect(next.a, lessThan(0.5));
+
+      await tester.tap(_button('Suivant').first);
+      await tester.pumpAndSettle();
+      await tester.tap(_button('Suivant').first);
+      await tester.pumpAndSettle();
+      // Enregistrer takes the theme's solid teal (no override).
+      expect(backgroundOf('Enregistrer'), isNull);
+    });
+
+    testWidgets('Annuler turns white on hover', (tester) async {
+      _size(tester, const Size(1800, 1000));
+      await tester.pumpWidget(
+        _host(_Harness(valid: const [true, true, true], onSubmit: () {})),
+      );
+      final style = tester
+          .widget<ButtonStyleButton>(_button('Annuler').first)
+          .style!;
+      expect(
+        style.backgroundColor?.resolve(const {WidgetState.hovered}),
+        Colors.white,
+      );
+      expect(
+        style.backgroundColor?.resolve(const <WidgetState>{}),
+        Colors.transparent,
+      );
+    });
+
+    testWidgets('no paragraph under the title on a phone', (tester) async {
+      _size(tester, const Size(390, 844));
+      await tester.pumpWidget(
+        _host(_Harness(valid: const [true, true, true], onSubmit: () {})),
+      );
+      expect(find.text('Ajouter'), findsOneWidget);
+      expect(find.text('Trois étapes.'), findsNothing);
     });
 
     testWidgets('plain fields show their placeholder in #777', (tester) async {

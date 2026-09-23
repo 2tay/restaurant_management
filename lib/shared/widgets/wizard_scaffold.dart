@@ -109,7 +109,9 @@ class WizardScaffold extends StatelessWidget {
     return FormScaffold(
       title: title,
       subtitle: description,
-      keepSubtitle: true,
+      // The paragraph explains the screen; on a phone the step indicator says
+      // enough, and the form is what the room is for.
+      keepSubtitle: false,
       back: back,
       headerBackLinkLabel: backLinkLabel,
       centered: true,
@@ -131,6 +133,8 @@ class WizardScaffold extends StatelessWidget {
       ],
       submitLabel: showSubmit ? submitLabel : l10n.wizardNext,
       submitIcon: showSubmit ? submitIcon : LucideIcons.arrowRight,
+      // Suivant moves on; only the final save is the solid commit.
+      submitTonal: !showSubmit,
       onSubmit: showSubmit
           ? (canSubmit ? onSubmit : null)
           : next.onPressed,

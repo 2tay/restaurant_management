@@ -26,6 +26,7 @@ class PrimaryButton extends StatelessWidget {
     this.isBusy = false,
     this.fullWidth = false,
     this.large = false,
+    this.tonal = false,
     super.key,
   });
 
@@ -52,16 +53,27 @@ class PrimaryButton extends StatelessWidget {
   /// quick actions, a form's submit.
   final bool large;
 
+  /// Translucent teal with teal text instead of solid teal — for a forward
+  /// step (a wizard's Suivant) that is the way on but not yet the commit.
+  final bool tonal;
+
   @override
   Widget build(BuildContext context) {
+    final ButtonStyle? sizeStyle = large
+        ? FilledButton.styleFrom(
+            minimumSize: const Size(0, AppSizing.buttonHeightLarge),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
+          )
+        : null;
+    final ButtonStyle? tonalStyle = tonal
+        ? FilledButton.styleFrom(
+            backgroundColor: AppColors.primary600.withValues(alpha: 0.14),
+            foregroundColor: AppColors.primary600,
+          )
+        : null;
     final button = FilledButton(
       onPressed: isBusy ? null : onPressed,
-      style: large
-          ? FilledButton.styleFrom(
-              minimumSize: const Size(0, AppSizing.buttonHeightLarge),
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
-            )
-          : null,
+      style: tonalStyle?.merge(sizeStyle) ?? sizeStyle,
       child: isBusy
           ? const _ButtonSpinner()
           : _ButtonContent(
@@ -120,6 +132,17 @@ class SecondaryButton extends StatelessWidget {
       SecondaryButtonTone.quiet => OutlinedButton.styleFrom(
         foregroundColor: AppColors.placeholder,
         side: BorderSide.none,
+      ).copyWith(
+        // Transparent at rest, the white of the surface buttons on hover /
+        // focus / press — so it reads as a button once the pointer is on it.
+        backgroundColor: WidgetStateProperty.resolveWith(
+          (states) =>
+              states.contains(WidgetState.hovered) ||
+                  states.contains(WidgetState.focused) ||
+                  states.contains(WidgetState.pressed)
+              ? AppColors.surface
+              : Colors.transparent,
+        ),
       ),
       SecondaryButtonTone.surface => OutlinedButton.styleFrom(
         foregroundColor: AppColors.textPrimary,

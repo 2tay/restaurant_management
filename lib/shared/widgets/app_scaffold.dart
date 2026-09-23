@@ -393,7 +393,8 @@ class ShellPage extends StatelessWidget {
   final bool fullWidthHeader;
 
   /// With [fullWidthHeader] on a scrolling page: when the content is shorter
-  /// than the window, it sits centred in the space under the header (the
+  /// than the window, it sits in the space under the header — a little above
+  /// the middle, where the eye expects a form, rather than dead centre (the
   /// header stays at the top); when taller, the page scrolls as usual.
   final bool centerContentVertically;
 
@@ -474,10 +475,11 @@ class ShellPage extends StatelessWidget {
     final insets = padding ?? context.pageInsets;
 
     if (centerContentVertically && fullWidthHeader && scrollable) {
-      // A min-height column: `spaceBetween` over [header, content, nothing]
-      // puts the content in the middle of what the header leaves, and a
-      // content taller than the window simply makes the column taller and
-      // scrolls. No intrinsic measuring, so LayoutBuilders inside are fine.
+      // A min-height column: `spaceBetween` over [header, content, spacer]
+      // shares the free height equally above and below the content, and the
+      // spacer (an eighth of the window) tips that balance upward. A content
+      // taller than the window simply makes the column taller and scrolls. No
+      // intrinsic measuring, so LayoutBuilders inside are fine.
       final resolved = insets.resolve(Directionality.of(context));
       final centred = LayoutBuilder(
         builder: (context, viewport) => SingleChildScrollView(
@@ -491,7 +493,11 @@ class ShellPage extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [header, constrain(child), const SizedBox.shrink()],
+              children: [
+                header,
+                constrain(child),
+                SizedBox(height: viewport.maxHeight / 8),
+              ],
             ),
           ),
         ),

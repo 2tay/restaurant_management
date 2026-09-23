@@ -9,7 +9,8 @@ import '../../l10n/app_localizations.dart';
 /// or still ahead.
 ///
 /// Below [AppBreakpoints.compact] the row of labels no longer fits, so it
-/// collapses to "Étape 2 sur 3 · Rémunération" over a progress bar.
+/// collapses to "Étape 2 sur 3 · Rémunération" over a bar cut into one
+/// segment per step.
 ///
 /// [onStepTapped] is called for a step the user may jump to — [canJumpTo]
 /// decides which; the rest are not tappable.
@@ -85,14 +86,24 @@ class WizardStepIndicator extends StatelessWidget {
           style: theme.textTheme.titleSmall,
         ),
         const SizedBox(height: AppSpacing.sm),
-        ClipRRect(
-          borderRadius: AppRadius.pillAll,
-          child: LinearProgressIndicator(
-            value: (current + 1) / labels.length,
-            minHeight: 6,
-            color: AppColors.primary600,
-            backgroundColor: AppColors.border,
-          ),
+        Row(
+          children: [
+            for (var i = 0; i < labels.length; i++) ...[
+              if (i > 0) const SizedBox(width: AppSpacing.xs),
+              Expanded(
+                child: Container(
+                  key: ValueKey('wizard-segment-$i'),
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: i <= current
+                        ? AppColors.primary600
+                        : AppColors.border,
+                    borderRadius: AppRadius.pillAll,
+                  ),
+                ),
+              ),
+            ],
+          ],
         ),
       ],
     );
