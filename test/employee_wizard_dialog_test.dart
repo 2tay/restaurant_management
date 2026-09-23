@@ -54,7 +54,12 @@ Future<AppDatabase> _openAdd(WidgetTester tester) async {
 /// Personnel → the person's card → drawer → Modifier.
 Future<void> _openEdit(WidgetTester tester, String name) async {
   await _roster(tester);
-  // The card — the signed-in owner's name is also in the sidebar.
+  await _openEditFromRoster(tester, name);
+}
+
+/// The card → drawer → Modifier path, on a roster already pumped. The card,
+/// not just the name: the signed-in owner's name is also in the sidebar.
+Future<void> _openEditFromRoster(WidgetTester tester, String name) async {
   await tester.tap(find.widgetWithText(AppCard, name));
   await tester.pumpAndSettle();
   await tester.tap(
@@ -195,6 +200,70 @@ void main() {
     expect(find.byKey(_owner), findsOneWidget);
     expect(find.byKey(_manager), findsNothing);
     expect(find.byKey(_staff), findsNothing);
+  });
+
+  testApp('Gérant → Employé: saving removes their password', (tester) async {
+    final db = await _roster(tester);
+    expect(await CredentialRepository(db).forEmployee(EmployeeIds.amelie),
+        isNotNull);
+    await _openEditFromRoster(tester, 'Amélie Vandenberghe');
+    await _tap(tester, 'Suivant');
+    await _tap(tester, 'Suivant');
+
+    await tester.tap(find.byKey(_staff));
+    await tester.pumpAndSettle();
+    expect(find.byKey(_staffNotice), findsOneWidget);
+    await _tap(tester, 'Enregistrer');
+
+    expect(find.byType(WizardDialog), findsNothing);
+    expect(await CredentialRepository(db).forEmployee(EmployeeIds.amelie),
+        isNull);
+  });
+
+  testApp('Employé with no password → Gérant: a password is required', (
+    tester,
+  ) async {
+    final db = await _roster(tester);
+    final credentials = CredentialRepository(db);
+    await credentials.clear(EmployeeIds.karim);
+
+    await _openEditFromRoster(tester, 'Karim Haddouch');
+    await _tap(tester, 'Suivant');
+    await _tap(tester, 'Suivant');
+
+    await tester.tap(find.byKey(_manager));
+    await tester.pumpAndSettle();
+    // No password on file: blank is not "keep the current one".
+    expect(_enabled(tester, 'Enregistrer'), isFalse);
+
+    final passwords = find.descendant(
+      of: find.byType(Dialog),
+      matching: find.byType(TextField),
+    );
+    await tester.enterText(passwords.at(0), '5678');
+    await tester.enterText(passwords.at(1), '5678');
+    await tester.pumpAndSettle();
+    expect(_enabled(tester, 'Enregistrer'), isTrue);
+    await _tap(tester, 'Enregistrer');
+
+    final karim = await EmployeeRepository(db).employee(EmployeeIds.karim);
+    final attempt = await credentials.authenticate(karim!.pin, '5678');
+    expect(attempt.outcome, LoginOutcome.success);
+  });
+
+  testApp('a Gérant saved with a blank password keeps the current one', (
+    tester,
+  ) async {
+    final db = await _roster(tester);
+    final credentials = CredentialRepository(db);
+    final before = await credentials.forEmployee(EmployeeIds.amelie);
+
+    await _openEditFromRoster(tester, 'Amélie Vandenberghe');
+    await _tap(tester, 'Enregistrer');
+
+    final after = await credentials.forEmployee(EmployeeIds.amelie);
+    expect(after, isNotNull);
+    expect(after!.passwordHash, before!.passwordHash);
   });
 
   testApp('full screen on a phone', (tester) async {

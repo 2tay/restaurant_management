@@ -142,6 +142,13 @@ void main() {
       expect(await credentials.setPassword('nobody', '1234'), isNull);
     });
 
+    test('clear removes the credential: no more sign-in', () async {
+      expect(await credentials.clear(EmployeeIds.amelie), isTrue);
+      expect(await credentials.forEmployee(EmployeeIds.amelie), isNull);
+      // Nothing left the second time.
+      expect(await credentials.clear(EmployeeIds.amelie), isFalse);
+    });
+
     test('unlock lifts a lockout early', () async {
       for (var i = 0; i < AuthRules.maxFailedAttempts; i++) {
         await credentials.authenticate(_marcPin, '0000');

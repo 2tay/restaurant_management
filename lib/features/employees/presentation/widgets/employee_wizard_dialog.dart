@@ -88,6 +88,13 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
   /// Whether the chosen role signs in to the app, and so has a password.
   bool get _needsPassword => _role != EmployeeRole.staff;
 
+  /// Whether the employee being edited already has a password on file —
+  /// loaded once, when the form opens. Null until known (and always false
+  /// when creating). It decides whether a Gérant's password is optional
+  /// (blank keeps the current one) or required (an Employé promoted to
+  /// Gérant has none yet).
+  bool? _hasCredential;
+
   /// The roles the picker offers. Propriétaire is never assignable from the
   /// form; an owner being edited keeps it, as the only choice, rather than
   /// being silently demoted by a save.
@@ -103,6 +110,17 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
   @override
   void initState() {
     super.initState();
+
+    final editing = widget.employee;
+    if (editing == null) {
+      _hasCredential = false;
+    } else {
+      ref.read(credentialRepositoryProvider).forEmployee(editing.id).then((
+        credential,
+      ) {
+        if (mounted) setState(() => _hasCredential = credential != null);
+      });
+    }
 
     final existing = _employee;
     if (existing != null) {
@@ -150,11 +168,17 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
   bool get _passwordComplete =>
       isValidPassword(_password.text) && _password.text.trim() == _passwordConfirm.text.trim();
 
-  /// Not asked for an Employé. Otherwise required when creating, optional when
-  /// editing (blank keeps the current password).
+  /// Whether a blank password keeps an existing one — only when editing
+  /// someone who already has one.
+  bool get _passwordOptional => _hasCredential ?? false;
+
+  /// Not asked for an Employé. For a role that signs in: optional when the
+  /// person already has a password (blank keeps it), required otherwise —
+  /// a new Gérant, or an Employé being made Gérant.
   bool get _passwordValid {
     if (!_needsPassword) return true;
-    return _isEditing
+    if (_hasCredential == null) return false; // still loading
+    return _passwordOptional
         ? (!_passwordTouched || _passwordComplete)
         : _passwordComplete;
   }
@@ -480,7 +504,7 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
         Align(
           alignment: Alignment.centerLeft,
           child: Text(
-            _isEditing
+            _passwordOptional
                 ? l10n.employeeFormPasswordEditHelp
                 : l10n.employeeFormPasswordHelp,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -512,13 +536,19 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
         role: _role,
         pay: pay,
       );
-      // The password, when the fields were filled — a nested write, not part of the
-      // update transaction, but a refused password there is only a validation miss
-      // and the details have already saved.
-      if (result != null && _needsPassword && _passwordTouched) {
-        await ref
-            .read(credentialRepositoryProvider)
-            .setPassword(result.id, _password.text);
+      // The credential follows the role — a nested write, not part of the
+      // update transaction, but the details have already saved and the form
+      // only lets a valid password through:
+      // - an Employé keeps nothing: any password on file is removed;
+      // - a role that signs in gets the typed password (required when there
+      //   was none, e.g. an Employé made Gérant); blank keeps the current one.
+      if (result != null) {
+        final credentials = ref.read(credentialRepositoryProvider);
+        if (!_needsPassword) {
+          await credentials.clear(result.id);
+        } else if (_passwordTouched) {
+          await credentials.setPassword(result.id, _password.text);
+        }
       }
     } else {
       result = await employees.create(

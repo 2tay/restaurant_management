@@ -137,6 +137,16 @@ class CredentialRepository {
         );
   }
 
+  /// Removes this employee's login credential altogether — they can no longer
+  /// sign in. What a change to the Employé role does: an Employé never signs
+  /// in, so nothing is kept for them. Returns whether there was one to remove.
+  Future<bool> clear(String employeeId) async {
+    final removed = await (_db.delete(
+      _db.employeeCredentials,
+    )..where((c) => c.employeeId.equals(employeeId))).go();
+    return removed > 0;
+  }
+
   /// Lifts a lockout early — the "Débloquer" action a manager or owner takes.
   /// Returns false when there was nothing locked or counted.
   Future<bool> unlock(String employeeId) {
