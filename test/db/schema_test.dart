@@ -115,7 +115,7 @@ void main() {
   Future<void> insertEmployee({
     String id = 'emp-1',
     String storeId = 'store-1',
-    String cin = 'AA.11.11-111.11',
+    String pin = 'AA.11.11-111.11',
     String email = 'employee@example.be',
   }) {
     return db.into(db.employees).insert(
@@ -124,7 +124,7 @@ void main() {
             storeId: storeId,
             firstName: 'Anne',
             lastName: 'Test',
-            cin: cin,
+            pin: pin,
             phone: '+32 470 00 00 00',
             email: email,
             hireDate: DateTime(2026),
@@ -196,8 +196,8 @@ void main() {
       ]);
     });
 
-    test('at schema version 7', () {
-      expect(db.schemaVersion, 7);
+    test('at schema version 9', () {
+      expect(db.schemaVersion, 9);
     });
 
     test('with foreign keys switched on', () async {
@@ -350,7 +350,7 @@ void main() {
       );
     });
 
-    test('CIN is unique across the roster', () async {
+    test('PIN is unique across the roster', () async {
       await seedMinimalStore();
       await insertEmployee(id: 'emp-1', email: 'a@example.be');
       await expectLater(
@@ -361,9 +361,9 @@ void main() {
 
     test('email is unique across the roster', () async {
       await seedMinimalStore();
-      await insertEmployee(id: 'emp-1', cin: 'AA.11.11-111.11');
+      await insertEmployee(id: 'emp-1', pin: 'AA.11.11-111.11');
       await expectLater(
-        insertEmployee(id: 'emp-2', cin: 'BB.22.22-222.22'),
+        insertEmployee(id: 'emp-2', pin: 'BB.22.22-222.22'),
         throwsA(isA<SqliteException>()),
       );
     });
@@ -385,7 +385,7 @@ void main() {
             EmployeeCredentialsCompanion.insert(
               id: id,
               employeeId: 'emp-1',
-              pinHash: 'pin:1234',
+              passwordHash: 'password:1234',
             ),
           );
       await cred('cred-1');
@@ -399,7 +399,7 @@ void main() {
             EmployeeCredentialsCompanion.insert(
               id: 'cred-1',
               employeeId: 'emp-1',
-              pinHash: 'pin:1234',
+              passwordHash: 'password:1234',
             ),
           );
       await insertAttendance(id: 'att-1');

@@ -1,4 +1,4 @@
-// The pointage kiosk board after the redesign: centered cards without the CIN,
+// The pointage kiosk board after the redesign: centered cards without the PIN,
 // the employee selector that pins the board to one card, and POINTER as a
 // colourless outline action.
 
@@ -23,14 +23,14 @@ String _name(String id) {
 }
 
 void main() {
-  testApp('cards show the name but never the CIN', (tester) async {
+  testApp('cards show the name but never the PIN', (tester) async {
     await _openBoard(tester);
 
     expect(tester.takeException(), isNull);
     expect(find.byType(EmployeeAvatar), findsWidgets);
     final marc = mockEmployees.firstWhere((e) => e.id == EmployeeIds.marc);
     expect(find.text(_name(EmployeeIds.marc)), findsWidgets);
-    expect(find.textContaining(marc.cin), findsNothing);
+    expect(find.textContaining(marc.pin), findsNothing);
   });
 
   testApp('POINTER is an outline action, not a filled colour', (tester) async {

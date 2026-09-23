@@ -1,7 +1,7 @@
 // Personnel records — create, edit, archive, restore.
 //
 // Ported from `test/employees_test.dart`: same names, same assertions, against a
-// database instead of a global list. Two rules run through all of it: CIN and
+// database instead of a global list. Two rules run through all of it: PIN and
 // email are unique account-wide (not per store), and removal is a soft archive
 // that never touches history and can be undone.
 
@@ -30,22 +30,22 @@ void main() {
     String storeId = StoreIds.sablon,
     String firstName = 'Test',
     String lastName = 'Personne',
-    String cin = '00.00.00-000.00',
+    String pin = '00.00.00-000.00',
     String phone = '+32 400 00 00 00',
     String email = 'test.personne@example.be',
     EmployeeRole role = EmployeeRole.staff,
     double pay = 2000,
-    String? pin,
+    String? password,
   }) => employees.create(
     storeId: storeId,
     firstName: firstName,
     lastName: lastName,
-    cin: cin,
+    pin: pin,
     phone: phone,
     email: email,
     role: role,
     pay: pay,
-    pin: pin,
+    password: password,
   );
 
   group('creating', () {
@@ -63,13 +63,13 @@ void main() {
 
     test('refuses an empty required field', () async {
       expect(await create(firstName: '  '), isNull);
-      expect(await create(cin: ''), isNull);
+      expect(await create(pin: ''), isNull);
       expect(await create(email: ''), isNull);
     });
 
-    test('refuses a CIN already used, ignoring case and spacing', () async {
+    test('refuses a PIN already used, ignoring case and spacing', () async {
       final existing = (await employees.employee(EmployeeIds.marc))!;
-      expect(await create(cin: ' ${existing.cin.toUpperCase()} '), isNull);
+      expect(await create(pin: ' ${existing.pin.toUpperCase()} '), isNull);
     });
 
     test('refuses an email already used anywhere on the account', () async {
@@ -91,21 +91,21 @@ void main() {
       expect((await employees.employees(StoreIds.sablon)).length, before);
     });
 
-    test('with a PIN, the credential lands in the same transaction', () async {
-      final created = (await create(pin: '4321'))!;
+    test('with a password, the credential lands in the same transaction', () async {
+      final created = (await create(password: '4321'))!;
 
       final credential = await credentials.forEmployee(created.id);
       expect(credential, isNotNull);
       expect(
-        (await credentials.authenticate(created.cin, '4321')).employee?.id,
+        (await credentials.authenticate(created.pin, '4321')).employee?.id,
         created.id,
       );
     });
 
-    test('a bad PIN refuses the whole create', () async {
+    test('a bad password refuses the whole create', () async {
       final before = (await employees.employees(StoreIds.sablon)).length;
 
-      expect(await create(pin: '12'), isNull);
+      expect(await create(password: '12'), isNull);
       expect(
         (await employees.employees(StoreIds.sablon)).length,
         before,
@@ -115,23 +115,23 @@ void main() {
   });
 
   group('editing', () {
-    test("a rename does not collide with the employee's own CIN or email",
+    test("a rename does not collide with the employee's own PIN or email",
         () async {
       final e = (await employees.employee(EmployeeIds.marc))!;
       expect(
-        await employees.update(e.id, cin: e.cin, email: e.email),
+        await employees.update(e.id, pin: e.pin, email: e.email),
         isNotNull,
       );
     });
 
-    test("refuses another employee's CIN or email", () async {
+    test("refuses another employee's PIN or email", () async {
       final a = (await employees.employee(EmployeeIds.marc))!;
       final b = (await employees.employee(EmployeeIds.amelie))!;
-      expect(await employees.update(a.id, cin: b.cin), isNull);
+      expect(await employees.update(a.id, pin: b.pin), isNull);
       expect(await employees.update(a.id, email: b.email), isNull);
       expect(
-        (await employees.employee(a.id))!.cin,
-        a.cin,
+        (await employees.employee(a.id))!.pin,
+        a.pin,
         reason: 'a refused edit must not half-apply',
       );
     });

@@ -7,7 +7,7 @@
 // `mock_payroll_periods.dart` and still relates everything by string id, so a
 // typo still produces a dash or a blank card on a screen nobody opened during
 // the demo. The schema (see `schema_test.dart`) turns the hard invariants —
-// unique CIN, one row per employee per day, the credential FK — into
+// unique PIN, one row per employee per day, the credential FK — into
 // constraints; this suite checks the rest, and that the seed actually inserted
 // what the demo path relies on.
 
@@ -67,11 +67,11 @@ void main() {
       }
     });
 
-    test('CIN and email are unique across the whole roster', () async {
+    test('PIN and email are unique across the whole roster', () async {
       final roster = await employees();
-      final cins = roster.map((e) => e.cin.toLowerCase()).toList();
+      final pins = roster.map((e) => e.pin.toLowerCase()).toList();
       final emails = roster.map((e) => e.email.toLowerCase()).toList();
-      expect(cins.toSet(), hasLength(cins.length), reason: 'duplicate CIN');
+      expect(pins.toSet(), hasLength(pins.length), reason: 'duplicate PIN');
       expect(emails.toSet(), hasLength(emails.length), reason: 'duplicate email');
     });
 
@@ -107,7 +107,7 @@ void main() {
         expect(
           withCredential,
           contains(employee.id),
-          reason: '${employee.firstName} ${employee.lastName} has no PIN',
+          reason: '${employee.firstName} ${employee.lastName} has no password',
         );
       }
     });

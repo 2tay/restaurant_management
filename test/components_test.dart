@@ -9,7 +9,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:stock_inventory/core/theme/app_colors.dart';
 import 'package:stock_inventory/core/theme/app_theme.dart';
-import 'package:stock_inventory/data/repositories/repositories.dart';
 import 'package:stock_inventory/l10n/app_localizations.dart';
 import 'package:stock_inventory/models/models.dart';
 import 'package:stock_inventory/shared/widgets/widgets.dart';
@@ -714,7 +713,7 @@ void main() {
   group('IdentityPromptDialog', () {
     Future<void> open(
       WidgetTester tester,
-      Future<CinVerification> Function(String cin) verify,
+      Future<bool> Function(String pin) verify,
     ) async {
       await tester.pumpWidget(
         _host(
@@ -735,68 +734,54 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    Future<void> submit(WidgetTester tester, String cin) async {
-      await tester.enterText(find.byType(TextField), cin);
+    Future<void> submit(WidgetTester tester, String pin) async {
+      await tester.enterText(find.byType(TextField), pin);
       await tester.pumpAndSettle();
       await tester.tap(find.widgetWithText(FilledButton, 'Valider'));
       await tester.pumpAndSettle();
     }
 
-    testWidgets('a wrong CIN keeps the dialog open with the count left', (
+    testWidgets('a wrong PIN keeps the dialog open, ready for another try', (
       tester,
     ) async {
-      await open(
-        tester,
-        (_) async => const CinVerification(
-          CinCheckResult.wrongCin,
-          attemptsRemaining: 2,
-        ),
-      );
+      await open(tester, (_) async => false);
       await submit(tester, '99.99.99-999.99');
 
       expect(find.byType(IdentityPromptDialog), findsOneWidget);
-      expect(find.textContaining('2 tentatives restantes'), findsOneWidget);
+      expect(find.text('Numéro incorrect. Réessayez.'), findsOneWidget);
+      expect(find.textContaining('tentative'), findsNothing);
     });
 
-    testWidgets('the right CIN closes the dialog', (tester) async {
-      await open(tester, (_) async => const CinVerification(CinCheckResult.ok));
+    testWidgets('attempts are unlimited — Valider never locks', (tester) async {
+      var calls = 0;
+      await open(tester, (_) async {
+        calls++;
+        return false;
+      });
+      for (var i = 0; i < 10; i++) {
+        await submit(tester, '99.99.99-999.99');
+      }
+
+      expect(calls, 10);
+      expect(find.byType(IdentityPromptDialog), findsOneWidget);
+      expect(find.textContaining('Réessayez dans'), findsNothing);
+    });
+
+    testWidgets('the right PIN closes the dialog', (tester) async {
+      await open(tester, (_) async => true);
       await submit(tester, '78.02.14-153.24');
 
       expect(find.byType(IdentityPromptDialog), findsNothing);
     });
-
-    testWidgets('a locked result disables Valider and shows a countdown', (
-      tester,
-    ) async {
-      final until = DateTime.now().add(const Duration(minutes: 5));
-      await open(
-        tester,
-        (_) async => CinVerification(CinCheckResult.locked, lockedUntil: until),
-      );
-      await tester.enterText(find.byType(TextField), '99.99.99-999.99');
-      await tester.pump();
-      await tester.tap(find.widgetWithText(FilledButton, 'Valider'));
-      await tester.pump();
-
-      expect(find.textContaining('Réessayez dans'), findsOneWidget);
-      final valider = tester.widget<FilledButton>(
-        find.widgetWithText(FilledButton, 'Valider'),
-      );
-      expect(valider.onPressed, isNull);
-
-      // Close it so the countdown Timer is disposed before the test ends.
-      await tester.tap(find.widgetWithText(TextButton, 'Annuler'));
-      await tester.pumpAndSettle();
-    });
   });
 
   group('EmployeeSelector', () {
-    Employee emp(String first, String last, String cin) => Employee(
-      id: cin,
+    Employee emp(String first, String last, String pin) => Employee(
+      id: pin,
       storeId: 's1',
       firstName: first,
       lastName: last,
-      cin: cin,
+      pin: pin,
       phone: '0',
       email: '$first@x.c',
       hireDate: DateTime(2026),
@@ -812,7 +797,7 @@ void main() {
 
     Future<Employee?> pumpSelector(
       WidgetTester tester, {
-      bool showCin = false,
+      bool showPin = false,
     }) async {
       Employee? picked;
       await tester.pumpWidget(
@@ -823,7 +808,7 @@ void main() {
               child: EmployeeSelector(
                 employees: roster,
                 value: picked,
-                showCin: showCin,
+                showPin: showPin,
                 onChanged: (e) => setState(() => picked = e),
               ),
             ),
@@ -849,7 +834,7 @@ void main() {
       expect(find.text('Karim Haddouch'), findsOneWidget);
     });
 
-    testWidgets('filters by CIN even when the CIN is not shown', (
+    testWidgets('filters by PIN even when the PIN is not shown', (
       tester,
     ) async {
       await pumpSelector(tester);
@@ -860,12 +845,12 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Amélie Vandenberghe'), findsOneWidget);
       expect(find.text('Karim Haddouch'), findsNothing);
-      // showCin is false → the number itself is not rendered in the row.
-      expect(find.textContaining('CIN 89.07.30-201.44'), findsNothing);
+      // showPin is false → the number itself is not rendered in the row.
+      expect(find.textContaining('PIN 89.07.30-201.44'), findsNothing);
     });
 
-    testWidgets('showCin renders the CIN under each name', (tester) async {
-      await pumpSelector(tester, showCin: true);
+    testWidgets('showPin renders the PIN under each name', (tester) async {
+      await pumpSelector(tester, showPin: true);
       await tester.tap(find.byType(EmployeeSelector));
       await tester.pumpAndSettle();
       expect(find.textContaining('89.07.30-201.44'), findsOneWidget);
