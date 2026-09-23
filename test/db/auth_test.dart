@@ -98,15 +98,16 @@ void main() {
       expect(credential.lockedUntil, isNull);
     });
 
-    test('a staff account is refused even with the right password, counters intact',
+    test('a staff account has no password and is refused whatever is typed',
         () async {
-      final attempt = await credentials.authenticate(_eliePin, '1234');
-      expect(attempt.outcome, LoginOutcome.noAppAccess);
-      expect(attempt.employee?.role, EmployeeRole.staff);
+      // No login secret for an Employé.
+      expect(await credentials.forEmployee(EmployeeIds.elise), isNull);
 
-      final credential = (await credentials.forEmployee(EmployeeIds.elise))!;
-      expect(credential.failedAttempts, 0);
-      expect(credential.lastLoginAt, isNull);
+      for (final typed in ['1234', '0000', '']) {
+        final attempt = await credentials.authenticate(_eliePin, typed);
+        expect(attempt.outcome, LoginOutcome.noAppAccess, reason: typed);
+        expect(attempt.employee?.role, EmployeeRole.staff);
+      }
     });
   });
 

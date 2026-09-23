@@ -75,15 +75,21 @@ void main() {
       expect(emails.toSet(), hasLength(emails.length), reason: 'duplicate email');
     });
 
-    test('every credential points at a real employee, one per employee',
-        () async {
+    test('every credential points at a real owner or manager, one each — '
+        'an Employé has none', () async {
       final employeeIds = (await employees()).map((e) => e.id).toSet();
       final credentials = (await db.select(db.employeeCredentials).get())
           .map(credentialFromRow)
           .toList();
 
+      final roles = {for (final e in await employees()) e.id: e.role};
       final seen = <String>{};
       for (final credential in credentials) {
+        expect(
+          roles[credential.employeeId],
+          isNot(EmployeeRole.staff),
+          reason: 'an Employé has a password: ${credential.employeeId}',
+        );
         expect(
           employeeIds,
           contains(credential.employeeId),

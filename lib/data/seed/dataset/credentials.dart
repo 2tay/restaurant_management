@@ -1,8 +1,10 @@
 import '../../../core/utils/credential_status.dart';
+import '../../../models/employee.dart';
 import '../../../models/employee_credential.dart';
 import 'employees.dart';
 
-/// Login secrets — one per employee, so any PIN a demo types resolves to
+/// Login secrets — one per owner and manager, so any PIN a demo types for
+/// someone who can sign in resolves to
 /// something rather than a dead end.
 ///
 /// **Every password is `1234`.** This is a prototype (see the login screen's own
@@ -14,9 +16,13 @@ import 'employees.dart';
 /// `CredentialMutations` during the walkthrough, not seeded.
 final List<EmployeeCredential> mockCredentials = [
   for (final employee in mockEmployees)
-    EmployeeCredential(
-      id: 'cred-${employee.id}',
-      employeeId: employee.id,
-      passwordHash: fakePasswordHash('1234'),
-    ),
+    // An Employé never signs in (their pointage is at the kiosk, with their
+    // PIN), so they have no login secret — the same rule the employee form
+    // applies.
+    if (employee.role != EmployeeRole.staff)
+      EmployeeCredential(
+        id: 'cred-${employee.id}',
+        employeeId: employee.id,
+        passwordHash: fakePasswordHash('1234'),
+      ),
 ];

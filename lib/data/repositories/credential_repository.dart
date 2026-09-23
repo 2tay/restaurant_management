@@ -22,8 +22,9 @@ enum LoginOutcome {
   /// The credential is locked — refused even though the password may be right.
   locked,
 
-  /// The password was correct, but the role is `staff`: no active app access
-  /// (their pointage is done at the kiosk). Counters untouched.
+  /// The role is `staff`: no active app access (their pointage is done at the
+  /// kiosk), whatever password was typed — an Employé holds none. Counters
+  /// untouched.
   noAppAccess,
 }
 
@@ -181,6 +182,12 @@ class CredentialRepository {
     final employee = await EmployeeRepository(_db).employeeByPin(pin.trim());
     if (employee == null) return const LoginAttempt(LoginOutcome.unknownPin);
 
+    // An Employé never has app access — and, since the role holds no password
+    // at all, the answer must not depend on what was typed. Nothing counted.
+    if (employee.role == EmployeeRole.staff) {
+      return LoginAttempt(LoginOutcome.noAppAccess, employee);
+    }
+
     final credential = await forEmployee(employee.id);
     if (credential == null) {
       return LoginAttempt(LoginOutcome.wrongPassword, employee);
@@ -196,10 +203,6 @@ class CredentialRepository {
         locked ? LoginOutcome.locked : LoginOutcome.wrongPassword,
         employee,
       );
-    }
-
-    if (employee.role == EmployeeRole.staff) {
-      return LoginAttempt(LoginOutcome.noAppAccess, employee);
     }
 
     await recordSuccessfulLogin(employee.id, now: now);
