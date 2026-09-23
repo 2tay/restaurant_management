@@ -20,9 +20,9 @@ const int _pageSize = 25;
 const int _defaultRangeDays = 30;
 
 /// Below this width the table would have to scroll horizontally to show its
-/// seven columns — a card per day reads better on a touch screen than a
+/// six columns — a card per day reads better on a touch screen than a
 /// sideways-scrolling table, so the history switches to cards instead.
-const double _tableMinWidth = 940;
+const double _tableMinWidth = 820;
 
 DateTime _dayOnly(DateTime value) =>
     DateTime(value.year, value.month, value.day);
@@ -554,6 +554,10 @@ class _ActiveFilters extends StatelessWidget {
   }
 }
 
+/// One line per day: Date / Employé / Travaillé / Statut / Alertes / Détail.
+/// The arrival → départ times and the pauses are deliberately not here — a day
+/// can hold several sessions, which no single cell reads well; the drawer's
+/// timeline shows them all.
 class _HistoryTable extends StatelessWidget {
   const _HistoryTable({
     required this.rows,
@@ -572,11 +576,10 @@ class _HistoryTable extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
 
     return DataTableWrapper(
-      minWidth: 940,
+      minWidth: _tableMinWidth,
       columns: [
         DataColumn(label: Text(l10n.attendanceColumnDate)),
         DataColumn(label: Text(l10n.attendanceColumnEmployee)),
-        DataColumn(label: Text(l10n.attendanceColumnSchedule)),
         DataColumn(label: Text(l10n.attendanceColumnWorked)),
         DataColumn(label: Text(l10n.attendanceColumnStatus)),
         DataColumn(label: Text(l10n.attendanceColumnFlags)),
@@ -604,25 +607,6 @@ class _HistoryTable extends StatelessWidget {
               if (employee != null)
                 Text(
                   l10n.employeePinLabel(employee.pin),
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-            ],
-          ),
-        ),
-        DataCell(
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('${data.arrival} → ${data.departure}'),
-              if (totalPauseCount(a) > 0)
-                Text(
-                  l10n.attendanceBreakSummary(
-                    totalPauseCount(a),
-                    Formatters.duration(data.totalPause),
-                  ),
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: AppColors.textSecondary,
                   ),
@@ -686,7 +670,7 @@ _AttendanceRowData _attendanceRowData(
 
 /// The history as a grid of day cards — the table's small-screen alternative.
 /// Below [_tableMinWidth] a `DataTable` would have to scroll sideways to show
-/// its seven columns, which is not a touch-friendly way to read a day's
+/// its six columns, which is not a touch-friendly way to read a day's
 /// pointage.
 ///
 /// Fits as many columns as the available width allows — up to 3 on a wide

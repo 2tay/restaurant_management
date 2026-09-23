@@ -21,8 +21,11 @@ void main() {
   testApp('opens with the compact table and no export button', (tester) async {
     await _open(tester);
     expect(tester.takeException(), isNull);
-    expect(find.text('Horaires'), findsOneWidget);
+    expect(find.text('Durée travail'), findsWidgets);
     expect(find.text('Alertes'), findsWidgets);
+    // Phase 9: no Horaires column — the sessions and pauses live in the
+    // drawer's timeline.
+    expect(find.text('Horaires'), findsNothing);
     // The brief forbids an export affordance here.
     expect(find.text('Exporter'), findsNothing);
   });
