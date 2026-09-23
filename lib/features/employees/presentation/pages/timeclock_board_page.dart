@@ -424,8 +424,8 @@ class _ActionArea extends ConsumerWidget {
   final String storeId;
 
   /// Every board action is attributed to a person, so each one asks for that
-  /// employee's CIN first — the dialog owns the wrong-attempt / lockout loop.
-  /// Only on a confirmed CIN does the pointage write run.
+  /// employee's PIN first — the dialog owns the wrong-attempt / lockout loop.
+  /// Only on a confirmed PIN does the pointage write run.
   Future<void> _run(
     BuildContext context,
     WidgetRef ref,
@@ -441,8 +441,8 @@ class _ActionArea extends ConsumerWidget {
         actionLabel,
         employeeDisplayName(employee),
       ),
-      verify: (cin) =>
-          ref.read(credentialRepositoryProvider).verifyCin(cin, employee.id),
+      verify: (pin) =>
+          ref.read(credentialRepositoryProvider).verifyPin(pin, employee.id),
     );
     if (!ok || !context.mounted) return;
 

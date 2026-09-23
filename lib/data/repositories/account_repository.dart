@@ -8,7 +8,7 @@ import '../mappers/mappers.dart';
 /// The notification feed, and the name every write is attributed to.
 ///
 /// The team / employees module is **not** in the database — it still runs on
-/// `lib/mock_data/` (with its pointage, paie and CIN+PIN auth). So "who is
+/// `lib/mock_data/` (with its pointage, paie and PIN+password auth). So "who is
 /// acting" is a single string in `meta`, seeded with the current employee's
 /// display name. When the employee module is ported to the database this
 /// widens back into a real lookup over an `employees` table.

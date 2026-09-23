@@ -118,7 +118,7 @@ class _EmployeesListPageState extends ConsumerState<EmployeesListPage> {
     if (query.isEmpty) return base;
     return base.where((employee) {
       return employeeDisplayName(employee).toLowerCase().contains(query) ||
-          employee.cin.toLowerCase().contains(query);
+          employee.pin.toLowerCase().contains(query);
     }).toList();
   }
 }
@@ -286,7 +286,7 @@ class _EmployeeRow extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        l10n.employeeCinLabel(employee.cin),
+                        l10n.employeePinLabel(employee.pin),
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: AppColors.textSecondary,
                         ),

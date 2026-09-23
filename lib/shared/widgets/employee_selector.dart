@@ -8,22 +8,22 @@ import '../../l10n/app_localizations.dart';
 import '../../models/models.dart';
 import 'employee_avatar.dart';
 
-/// Pick one employee by name or CIN — the combobox the pointage board and the
+/// Pick one employee by name or PIN — the combobox the pointage board and the
 /// two history pages share instead of each rolling its own search + dropdown.
 ///
 /// Closed, it shows the chosen person (avatar + name) or the hint. Open, it is
 /// a search box over a scrollable list of rows: avatar, name, and — only when
-/// [showCin] — the CIN. Typing filters on name **or** CIN either way. The ✕
+/// [showPin] — the PIN. Typing filters on name **or** PIN either way. The ✕
 /// clears the selection.
 ///
-/// [showCin] defaults to false: on the shared kiosk the CIN must not be on
+/// [showPin] defaults to false: on the shared kiosk the PIN must not be on
 /// screen (it is what confirms an action). The admin history pages pass true.
 class EmployeeSelector extends StatefulWidget {
   const EmployeeSelector({
     required this.employees,
     required this.value,
     required this.onChanged,
-    this.showCin = false,
+    this.showPin = false,
     this.hint,
     super.key,
   });
@@ -31,7 +31,7 @@ class EmployeeSelector extends StatefulWidget {
   final List<Employee> employees;
   final Employee? value;
   final ValueChanged<Employee?> onChanged;
-  final bool showCin;
+  final bool showPin;
   final String? hint;
 
   @override
@@ -62,7 +62,7 @@ class _EmployeeSelectorState extends State<EmployeeSelector> {
         .where(
           (e) =>
               employeeDisplayName(e).toLowerCase().contains(q) ||
-              e.cin.toLowerCase().contains(q),
+              e.pin.toLowerCase().contains(q),
         )
         .toList();
   }
@@ -177,7 +177,7 @@ class _EmployeeSelectorState extends State<EmployeeSelector> {
                                   ),
                                   employee: results[i],
                                   selected: results[i].id == widget.value?.id,
-                                  showCin: widget.showCin,
+                                  showPin: widget.showPin,
                                   onTap: () => _select(results[i]),
                                 ),
                               ),
@@ -276,14 +276,14 @@ class _OptionRow extends StatelessWidget {
   const _OptionRow({
     required this.employee,
     required this.selected,
-    required this.showCin,
+    required this.showPin,
     required this.onTap,
     super.key,
   });
 
   final Employee employee;
   final bool selected;
-  final bool showCin;
+  final bool showPin;
   final VoidCallback onTap;
 
   @override
@@ -314,9 +314,9 @@ class _OptionRow extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.bodyMedium,
                   ),
-                  if (showCin)
+                  if (showPin)
                     Text(
-                      l10n.employeeCinLabel(employee.cin),
+                      l10n.employeePinLabel(employee.pin),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.bodySmall?.copyWith(

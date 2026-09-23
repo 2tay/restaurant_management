@@ -6,16 +6,16 @@ import '../../l10n/app_localizations.dart';
 import 'app_text_field.dart';
 
 /// Confirms who is at a shared screen before an action goes through, by asking
-/// for that person's **CIN** — the unique national-ID number that is also the
+/// for that person's **PIN** — the unique national-ID number that is also the
 /// login identifier. Used by every button on the pointage kiosk (the card's
 /// employee) and by "Payer" on the payroll page (the signed-in user).
 ///
 /// The dialog owns the retry loop: it stays open through wrong entries — as
 /// many as it takes, there is no lockout — and only resolves `true` once the
-/// CIN is right (or `false` if the user backs out).
+/// PIN is right (or `false` if the user backs out).
 ///
 /// [verify] is the check itself, normally
-/// `ref.read(credentialRepositoryProvider).verifyCin(cin, expectedEmployeeId)`.
+/// `ref.read(credentialRepositoryProvider).verifyPin(pin, expectedEmployeeId)`.
 class IdentityPromptDialog extends StatefulWidget {
   const IdentityPromptDialog({
     required this.title,
@@ -26,15 +26,15 @@ class IdentityPromptDialog extends StatefulWidget {
 
   final String title;
   final String subtitle;
-  final Future<bool> Function(String cin) verify;
+  final Future<bool> Function(String pin) verify;
 
-  /// Shows the dialog and resolves to whether the CIN was accepted. A dismissal
+  /// Shows the dialog and resolves to whether the PIN was accepted. A dismissal
   /// (Annuler, or Échap) resolves `false`.
   static Future<bool> show(
     BuildContext context, {
     required String title,
     required String subtitle,
-    required Future<bool> Function(String cin) verify,
+    required Future<bool> Function(String pin) verify,
   }) async {
     final ok = await showDialog<bool>(
       context: context,
@@ -105,7 +105,7 @@ class _IdentityPromptDialogState extends State<IdentityPromptDialog> {
             AppTextField(
               label: l10n.identityPromptField,
               controller: _controller,
-              hint: l10n.loginCinHint,
+              hint: l10n.loginPinHint,
               enabled: !_busy,
               autofocus: true,
               onChanged: (_) => setState(() {}),

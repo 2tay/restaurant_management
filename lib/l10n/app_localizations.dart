@@ -526,12 +526,6 @@ abstract class AppLocalizations {
   /// **'Adresse e-mail'**
   String get loginEmail;
 
-  /// Password field label.
-  ///
-  /// In fr, this message translates to:
-  /// **'Mot de passe'**
-  String get loginPassword;
-
   /// Remember-me toggle on the login form.
   ///
   /// In fr, this message translates to:
@@ -3949,7 +3943,7 @@ abstract class AppLocalizations {
   /// Placeholder in the roster search field.
   ///
   /// In fr, this message translates to:
-  /// **'Rechercher (nom, CIN)'**
+  /// **'Rechercher (nom, PIN)'**
   String get employeesSearchHint;
 
   /// Placeholder shown in the closed EmployeeSelector combobox when nothing is picked.
@@ -3982,11 +3976,11 @@ abstract class AppLocalizations {
   /// **'Ajoutez les membres de votre personnel pour suivre leur pointage et leur paie.'**
   String get employeesEmptyBody;
 
-  /// Compact CIN label shown under an employee's name.
+  /// Compact PIN label shown under an employee's name.
   ///
   /// In fr, this message translates to:
-  /// **'CIN {cin}'**
-  String employeeCinLabel(String cin);
+  /// **'PIN {pin}'**
+  String employeePinLabel(String pin);
 
   /// Roster KPI: count of active employees.
   ///
@@ -4051,8 +4045,8 @@ abstract class AppLocalizations {
   /// Employee national identity card number field label.
   ///
   /// In fr, this message translates to:
-  /// **'N° de carte d\'identité'**
-  String get employeeFormCin;
+  /// **'Numéro PIN'**
+  String get employeeFormPin;
 
   /// Employee phone field label.
   ///
@@ -4066,11 +4060,11 @@ abstract class AppLocalizations {
   /// **'Adresse e-mail'**
   String get employeeFormEmail;
 
-  /// Inline error when the CIN already belongs to another employee.
+  /// Inline error when the PIN already belongs to another employee.
   ///
   /// In fr, this message translates to:
-  /// **'Ce numéro de carte d\'identité est déjà utilisé.'**
-  String get employeeCinTaken;
+  /// **'Ce numéro PIN est déjà utilisé.'**
+  String get employeePinTaken;
 
   /// Inline error when the email already belongs to another employee.
   ///
@@ -4807,37 +4801,37 @@ abstract class AppLocalizations {
   /// Login form: the national ID field, which is the login identifier (Phase 6).
   ///
   /// In fr, this message translates to:
-  /// **'Numéro CIN'**
-  String get loginCin;
+  /// **'Numéro PIN'**
+  String get loginPin;
 
-  /// Placeholder showing the shape of a CIN on the login form.
+  /// Placeholder showing the shape of a PIN on the login form.
   ///
   /// In fr, this message translates to:
   /// **'AB.12.34-567.89'**
-  String get loginCinHint;
+  String get loginPinHint;
 
-  /// Login form: the 4-digit PIN field.
+  /// Login form: the 4-digit password field.
   ///
   /// In fr, this message translates to:
-  /// **'Code PIN'**
-  String get loginPin;
+  /// **'Mot de passe'**
+  String get loginPassword;
 
-  /// Placeholder on the login PIN field.
+  /// Placeholder on the login password field.
   ///
   /// In fr, this message translates to:
   /// **'4 chiffres'**
-  String get loginPinHint;
+  String get loginPasswordHint;
 
   /// Link to the reset screen from the login form. Narrow no-break space before the question mark.
   ///
   /// In fr, this message translates to:
-  /// **'Code oublié ?'**
-  String get loginForgotPin;
+  /// **'Mot de passe oublié ?'**
+  String get loginForgotPassword;
 
-  /// Login error shown for an unknown CIN or a wrong PIN — deliberately not saying which.
+  /// Login error shown for an unknown PIN or a wrong password — deliberately not saying which.
   ///
   /// In fr, this message translates to:
-  /// **'CIN ou code PIN incorrect.'**
+  /// **'PIN ou mot de passe incorrect.'**
   String get loginErrorBadCredentials;
 
   /// Login error when the credential is locked out after too many failed attempts.
@@ -4852,41 +4846,41 @@ abstract class AppLocalizations {
   /// **'Ce compte n\'a pas accès à l\'application. Le pointage se fait au tableau de bord partagé.'**
   String get loginErrorNoAccess;
 
-  /// Section heading on the employee form for the login PIN.
+  /// Section heading on the employee form for the login password.
   ///
   /// In fr, this message translates to:
   /// **'Identifiants'**
   String get employeeFormCredentials;
 
-  /// Employee form: the 4-digit login PIN field.
+  /// Employee form: the 4-digit login password field.
   ///
   /// In fr, this message translates to:
-  /// **'Code PIN'**
-  String get employeeFormPin;
+  /// **'Mot de passe'**
+  String get employeeFormPassword;
 
-  /// Employee form: re-enter the PIN to catch a typo.
+  /// Employee form: re-enter the password to catch a typo.
   ///
   /// In fr, this message translates to:
-  /// **'Confirmer le code'**
-  String get employeeFormPinConfirm;
+  /// **'Confirmer le mot de passe'**
+  String get employeeFormPasswordConfirm;
 
-  /// Helper under the PIN fields when creating an employee.
+  /// Helper under the password fields when creating an employee.
   ///
   /// In fr, this message translates to:
-  /// **'4 chiffres. La personne se connecte avec son numéro CIN et ce code.'**
-  String get employeeFormPinHelp;
+  /// **'4 chiffres. La personne se connecte avec son numéro PIN et ce mot de passe.'**
+  String get employeeFormPasswordHelp;
 
-  /// Helper under the PIN fields when editing an employee.
+  /// Helper under the password fields when editing an employee.
   ///
   /// In fr, this message translates to:
-  /// **'Laisser vide pour conserver le code actuel.'**
-  String get employeeFormPinEditHelp;
+  /// **'Laisser vide pour conserver le mot de passe actuel.'**
+  String get employeeFormPasswordEditHelp;
 
-  /// Error under the confirm-PIN field when the two entries differ.
+  /// Error under the confirm-password field when the two entries differ.
   ///
   /// In fr, this message translates to:
-  /// **'Les deux codes ne correspondent pas.'**
-  String get employeeFormPinMismatch;
+  /// **'Les deux mots de passe ne correspondent pas.'**
+  String get employeeFormPasswordMismatch;
 
   /// Shown to a manager on the store settings page — visible but read-only (Phase 6).
   ///
@@ -5153,16 +5147,16 @@ abstract class AppLocalizations {
   /// **'Document généré le {date} — ne constitue pas une facture.'**
   String receiptDocFooter(String date);
 
-  /// Title of the dialog that asks for a CIN before an action goes through.
+  /// Title of the dialog that asks for a PIN before an action goes through.
   ///
   /// In fr, this message translates to:
   /// **'Confirmation d\'identité'**
   String get identityPromptTitle;
 
-  /// Label of the CIN input in the identity confirmation dialog.
+  /// Label of the PIN input in the identity confirmation dialog.
   ///
   /// In fr, this message translates to:
-  /// **'Numéro CIN'**
+  /// **'Numéro PIN'**
   String get identityPromptField;
 
   /// Confirm button of the identity dialog.
@@ -5171,22 +5165,22 @@ abstract class AppLocalizations {
   /// **'Valider'**
   String get identityPromptValidate;
 
-  /// Shown in the identity dialog after a wrong CIN. Attempts are unlimited.
+  /// Shown in the identity dialog after a wrong PIN. Attempts are unlimited.
   ///
   /// In fr, this message translates to:
   /// **'Numéro incorrect. Réessayez.'**
   String get identityPromptWrong;
 
-  /// Subtitle of the identity dialog on the pointage board — the action being confirmed and whose CIN is required.
+  /// Subtitle of the identity dialog on the pointage board — the action being confirmed and whose PIN is required.
   ///
   /// In fr, this message translates to:
-  /// **'{action} · saisissez le numéro CIN de {name}'**
+  /// **'{action} · saisissez le numéro PIN de {name}'**
   String identityPromptPointageSubtitle(String action, String name);
 
-  /// Subtitle of the identity dialog before settling an employee's payroll days — the signed-in user confirms with their own CIN.
+  /// Subtitle of the identity dialog before settling an employee's payroll days — the signed-in user confirms with their own PIN.
   ///
   /// In fr, this message translates to:
-  /// **'Saisissez votre numéro CIN pour valider le paiement de {name}'**
+  /// **'Saisissez votre numéro PIN pour valider le paiement de {name}'**
   String identityPromptPayrollSubtitle(String name);
 }
 

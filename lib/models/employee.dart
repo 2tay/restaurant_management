@@ -21,7 +21,7 @@ enum EmployeeRole {
 /// A member of staff at one store.
 ///
 /// This is the single "person" model for the app: it carries both the
-/// employment facts (contract, pay, CIN) and the application access
+/// employment facts (contract, pay, PIN) and the application access
 /// ([role]) that the removed `TeamMember` used to hold separately. One store
 /// per person — see `.claude/phase_gestion_employee.md` decision 2; an owner
 /// spans stores by navigating between them, not by a list on this record.
@@ -37,7 +37,7 @@ class Employee {
     required this.storeId,
     required this.firstName,
     required this.lastName,
-    required this.cin,
+    required this.pin,
     required this.phone,
     required this.email,
     required this.hireDate,
@@ -56,7 +56,7 @@ class Employee {
 
   /// Carte d'identité nationale — the identity document number kept on file.
   /// Unique account-wide, and the future login identifier (Phase 6).
-  final String cin;
+  final String pin;
 
   final String phone;
 

@@ -10,24 +10,24 @@ import 'new_id.dart';
 
 /// How a [CredentialRepository.authenticate] call turned out.
 enum LoginOutcome {
-  /// CIN + PIN matched, the employee has app access — the caller signs them in.
+  /// PIN + password matched, the employee has app access — the caller signs them in.
   success,
 
-  /// No employee carries this CIN.
-  unknownCin,
+  /// No employee carries this PIN.
+  unknownPin,
 
-  /// Wrong PIN (or no PIN on file). The failed-attempt counter has been bumped.
-  wrongPin,
+  /// Wrong password (or no password on file). The failed-attempt counter has been bumped.
+  wrongPassword,
 
-  /// The credential is locked — refused even though the PIN may be right.
+  /// The credential is locked — refused even though the password may be right.
   locked,
 
-  /// PIN was correct, but the role is `staff`: no active app access
+  /// The password was correct, but the role is `staff`: no active app access
   /// (their pointage is done at the kiosk). Counters untouched.
   noAppAccess,
 }
 
-/// The result of an authentication attempt. [employee] is set whenever the CIN
+/// The result of an authentication attempt. [employee] is set whenever the PIN
 /// resolved, whatever the [outcome] — the login screen uses it to name the
 /// person in an error ("compte de Marc Delvaux verrouillé").
 class LoginAttempt {
@@ -37,7 +37,7 @@ class LoginAttempt {
   final Employee? employee;
 }
 
-/// The login secret and lockout state behind an employee's CIN.
+/// The login secret and lockout state behind an employee's PIN.
 ///
 /// **The only file that writes `employee_credentials`** — same single-writer
 /// discipline as every other aggregate, and the `ux_audit.py` guard enforces
@@ -51,7 +51,7 @@ class CredentialRepository {
 
   final AppDatabase _db;
 
-  /// This employee's credential, or null when no PIN has been set.
+  /// This employee's credential, or null when no password has been set.
   Future<EmployeeCredential?> forEmployee(String employeeId) =>
       _rowFor(employeeId).then(
         (row) => row == null ? null : credentialFromRow(row),
@@ -61,11 +61,11 @@ class CredentialRepository {
   // Writes
   // ---------------------------------------------------------------------------
 
-  /// Sets (or replaces) this employee's PIN, clearing any failed attempts and
-  /// lockout. Returns null if the PIN is not [AuthRules.pinLength] digits or
+  /// Sets (or replaces) this employee's password, clearing any failed attempts and
+  /// lockout. Returns null if the password is not [AuthRules.passwordLength] digits or
   /// the employee does not exist.
-  Future<EmployeeCredential?> setPin(String employeeId, String pin) async {
-    if (!isValidPin(pin)) return null;
+  Future<EmployeeCredential?> setPassword(String employeeId, String password) async {
+    if (!isValidPassword(password)) return null;
 
     return _db.transaction(() async {
       final employeeExists =
@@ -79,7 +79,7 @@ class CredentialRepository {
       final replacement = EmployeeCredential(
         id: current?.id ?? newId(),
         employeeId: employeeId,
-        pinHash: fakePinHash(pin),
+        passwordHash: fakePasswordHash(password),
       );
 
       if (current == null) {
@@ -88,7 +88,7 @@ class CredentialRepository {
             .insert(credentialToRow(replacement));
       } else {
         // A full write, so `failedAttempts` / `lockedUntil` / `lastLoginAt` all
-        // return to their defaults — a fresh PIN wipes the lockout state.
+        // return to their defaults — a fresh password wipes the lockout state.
         await (_db.update(_db.employeeCredentials)
               ..where((c) => c.employeeId.equals(employeeId)))
             .write(credentialToRow(replacement));
@@ -97,7 +97,7 @@ class CredentialRepository {
     });
   }
 
-  /// Records one wrong PIN. Locks the credential for
+  /// Records one wrong password. Locks the credential for
   /// [AuthRules.lockoutDuration] once [AuthRules.maxFailedAttempts] is reached.
   /// Returns whether this attempt was the one that locked it.
   Future<bool> recordFailedAttempt(String employeeId, {DateTime? now}) {
@@ -164,26 +164,26 @@ class CredentialRepository {
   /// **Does not touch the session** — the login screen (stage 9) signs the user
   /// in on [LoginOutcome.success].
   Future<LoginAttempt> authenticate(
-    String cin,
-    String pin, {
+    String pin,
+    String password, {
     DateTime? now,
   }) async {
-    final employee = await EmployeeRepository(_db).employeeByCin(cin.trim());
-    if (employee == null) return const LoginAttempt(LoginOutcome.unknownCin);
+    final employee = await EmployeeRepository(_db).employeeByPin(pin.trim());
+    if (employee == null) return const LoginAttempt(LoginOutcome.unknownPin);
 
     final credential = await forEmployee(employee.id);
     if (credential == null) {
-      return LoginAttempt(LoginOutcome.wrongPin, employee);
+      return LoginAttempt(LoginOutcome.wrongPassword, employee);
     }
 
     if (isLocked(credential, now: now)) {
       return LoginAttempt(LoginOutcome.locked, employee);
     }
 
-    if (!pinMatches(credential, pin)) {
+    if (!passwordMatches(credential, password)) {
       final locked = await recordFailedAttempt(employee.id, now: now);
       return LoginAttempt(
-        locked ? LoginOutcome.locked : LoginOutcome.wrongPin,
+        locked ? LoginOutcome.locked : LoginOutcome.wrongPassword,
         employee,
       );
     }
@@ -197,17 +197,17 @@ class CredentialRepository {
   }
 
   /// Confirms that whoever is at the screen is [expectedEmployeeId], by asking
-  /// for that person's CIN — the check the pointage board runs before every
-  /// action and the payroll screen runs before "Payer". Strict: the CIN must
+  /// for that person's PIN — the check the pointage board runs before every
+  /// action and the payroll screen runs before "Payer". Strict: the PIN must
   /// resolve to exactly [expectedEmployeeId] (the card, or the signed-in user);
-  /// any other CIN, valid or not, counts as wrong.
+  /// any other PIN, valid or not, counts as wrong.
   ///
   /// Unlimited attempts, no lockout, and no credential row needed: this is a
   /// "who is at the screen" check, not a login, so it reads and writes none of
   /// the login lockout state [authenticate] keeps — a miss here never locks
   /// anybody out of signing in, and a hit never clears a login lockout.
-  Future<bool> verifyCin(String cin, String expectedEmployeeId) async {
-    final match = await EmployeeRepository(_db).employeeByCin(cin.trim());
+  Future<bool> verifyPin(String pin, String expectedEmployeeId) async {
+    final match = await EmployeeRepository(_db).employeeByPin(pin.trim());
     return match != null && match.id == expectedEmployeeId;
   }
 

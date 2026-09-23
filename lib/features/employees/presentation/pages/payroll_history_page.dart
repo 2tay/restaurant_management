@@ -368,7 +368,7 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
                       style: Theme.of(context).textTheme.titleSmall,
                     ),
                     Text(
-                      l10n.employeeCinLabel(employee.cin),
+                      l10n.employeePinLabel(employee.pin),
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: AppColors.textSecondary,
                       ),
@@ -381,7 +381,7 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
           const SizedBox(height: AppSpacing.sm),
           Row(
             children: [
-              // Indented past the avatar so this lines up with the name/CIN
+              // Indented past the avatar so this lines up with the name/PIN
               // above rather than with the avatar's left edge.
               const SizedBox(width: 48 + AppSpacing.md),
               Expanded(
@@ -539,14 +539,14 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
     final actorId = ref.read(currentEmployeeProvider)?.id;
     if (actorId == null) return;
 
-    // The person settling the days confirms with their own CIN — same
+    // The person settling the days confirms with their own PIN — same
     // wrong-attempt / 5-minute lockout as the pointage board.
     final identityOk = await IdentityPromptDialog.show(
       context,
       title: l10n.identityPromptTitle,
       subtitle: l10n.identityPromptPayrollSubtitle(employeeDisplayName(employee)),
-      verify: (cin) =>
-          ref.read(credentialRepositoryProvider).verifyCin(cin, actorId),
+      verify: (pin) =>
+          ref.read(credentialRepositoryProvider).verifyPin(pin, actorId),
     );
     if (!identityOk || !mounted) return;
 
@@ -614,7 +614,7 @@ class _Filters extends StatelessWidget {
           child: EmployeeSelector(
             employees: employees,
             value: selectedEmployee,
-            showCin: true,
+            showPin: true,
             hint: l10n.payrollFilterAllEmployees,
             onChanged: onEmployee,
           ),
@@ -769,7 +769,7 @@ class _DaysTable extends StatelessWidget {
                 Text(employee == null ? '—' : employeeDisplayName(employee)),
                 if (employee != null)
                   Text(
-                    l10n.employeeCinLabel(employee.cin),
+                    l10n.employeePinLabel(employee.pin),
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: AppColors.textSecondary,
                     ),
@@ -951,7 +951,7 @@ class _PayrollDayCard extends StatelessWidget {
                           ? Formatters.date(attendance.date)
                           : (employee == null
                                 ? '—'
-                                : l10n.employeeCinLabel(employee.cin)),
+                                : l10n.employeePinLabel(employee.pin)),
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: AppColors.textSecondary,
                       ),

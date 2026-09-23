@@ -7,7 +7,7 @@ EmployeeCredential credentialFromRow(EmployeeCredentialRow row) =>
     EmployeeCredential(
       id: row.id,
       employeeId: row.employeeId,
-      pinHash: row.pinHash,
+      passwordHash: row.passwordHash,
       failedAttempts: row.failedAttempts,
       lockedUntil: row.lockedUntil,
       lastLoginAt: row.lastLoginAt,
@@ -17,7 +17,7 @@ EmployeeCredentialsCompanion credentialToRow(EmployeeCredential credential) =>
     EmployeeCredentialsCompanion.insert(
       id: credential.id,
       employeeId: credential.employeeId,
-      pinHash: credential.pinHash,
+      passwordHash: credential.passwordHash,
       failedAttempts: Value(credential.failedAttempts),
       lockedUntil: Value(credential.lockedUntil),
       lastLoginAt: Value(credential.lastLoginAt),

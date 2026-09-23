@@ -85,7 +85,7 @@ class AppDatabase extends _$AppDatabase {
   static const String databaseName = 'stock_inventory';
 
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -109,7 +109,7 @@ class AppDatabase extends _$AppDatabase {
         // are separate schema objects and must be created by hand.
         for (final index in [
           employeesStore,
-          employeesCin,
+          employeesPin,
           employeesEmail,
           employeeCredentialsEmployee,
           payrollPeriodsEmployee,
@@ -251,6 +251,28 @@ class AppDatabase extends _$AppDatabase {
         await m.dropColumn(stores, 'overtime_multiplier');
         await m.dropColumn(stores, 'working_days_per_month');
         await m.dropColumn(payrollPeriods, 'total_overtime_hours');
+      }
+
+      // v8 → v9: vocabulary only. What was the CIN (the login identifier, also
+      // typed to confirm identity at the kiosk) is now the PIN, and what was
+      // the PIN (the 4-digit login secret) is now the password. Renamed in
+      // place so every value survives, and the fake hash's `pin:` prefix
+      // follows the rename (see `fakePasswordHash`) so an existing password
+      // still matches. Guarded `from >= 2` for the usual reason.
+      if (from >= 2 && from < 9) {
+        await customStatement('DROP INDEX employees_cin');
+        await m.renameColumn(employees, 'cin', employees.pin);
+        await m.create(employeesPin);
+        await m.renameColumn(
+          employeeCredentials,
+          'pin_hash',
+          employeeCredentials.passwordHash,
+        );
+        await customStatement('''
+          UPDATE employee_credentials
+          SET password_hash = 'password:' || substr(password_hash, 5)
+          WHERE password_hash LIKE 'pin:%'
+        ''');
       }
     },
 

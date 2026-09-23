@@ -243,9 +243,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get loginEmail => 'Adresse e-mail';
 
   @override
-  String get loginPassword => 'Mot de passe';
-
-  @override
   String get loginRemember => 'Rester connecté';
 
   @override
@@ -2392,7 +2389,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get employeesAdd => 'Ajouter un employé';
 
   @override
-  String get employeesSearchHint => 'Rechercher (nom, CIN)';
+  String get employeesSearchHint => 'Rechercher (nom, PIN)';
 
   @override
   String get employeeSelectorHint => 'Rechercher ou sélectionner un employé…';
@@ -2411,8 +2408,8 @@ class AppLocalizationsFr extends AppLocalizations {
       'Ajoutez les membres de votre personnel pour suivre leur pointage et leur paie.';
 
   @override
-  String employeeCinLabel(String cin) {
-    return 'CIN $cin';
+  String employeePinLabel(String pin) {
+    return 'PIN $pin';
   }
 
   @override
@@ -2447,7 +2444,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get employeeFormLastName => 'Nom';
 
   @override
-  String get employeeFormCin => 'N° de carte d\'identité';
+  String get employeeFormPin => 'Numéro PIN';
 
   @override
   String get employeeFormPhone => 'Téléphone';
@@ -2456,8 +2453,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get employeeFormEmail => 'Adresse e-mail';
 
   @override
-  String get employeeCinTaken =>
-      'Ce numéro de carte d\'identité est déjà utilisé.';
+  String get employeePinTaken => 'Ce numéro PIN est déjà utilisé.';
 
   @override
   String get employeeEmailTaken => 'Cette adresse e-mail est déjà utilisée.';
@@ -2907,22 +2903,22 @@ class AppLocalizationsFr extends AppLocalizations {
   String get paymentStatusUnpaid => 'Non payé';
 
   @override
-  String get loginCin => 'Numéro CIN';
+  String get loginPin => 'Numéro PIN';
 
   @override
-  String get loginCinHint => 'AB.12.34-567.89';
+  String get loginPinHint => 'AB.12.34-567.89';
 
   @override
-  String get loginPin => 'Code PIN';
+  String get loginPassword => 'Mot de passe';
 
   @override
-  String get loginPinHint => '4 chiffres';
+  String get loginPasswordHint => '4 chiffres';
 
   @override
-  String get loginForgotPin => 'Code oublié ?';
+  String get loginForgotPassword => 'Mot de passe oublié ?';
 
   @override
-  String get loginErrorBadCredentials => 'CIN ou code PIN incorrect.';
+  String get loginErrorBadCredentials => 'PIN ou mot de passe incorrect.';
 
   @override
   String get loginErrorLocked =>
@@ -2936,21 +2932,22 @@ class AppLocalizationsFr extends AppLocalizations {
   String get employeeFormCredentials => 'Identifiants';
 
   @override
-  String get employeeFormPin => 'Code PIN';
+  String get employeeFormPassword => 'Mot de passe';
 
   @override
-  String get employeeFormPinConfirm => 'Confirmer le code';
+  String get employeeFormPasswordConfirm => 'Confirmer le mot de passe';
 
   @override
-  String get employeeFormPinHelp =>
-      '4 chiffres. La personne se connecte avec son numéro CIN et ce code.';
+  String get employeeFormPasswordHelp =>
+      '4 chiffres. La personne se connecte avec son numéro PIN et ce mot de passe.';
 
   @override
-  String get employeeFormPinEditHelp =>
-      'Laisser vide pour conserver le code actuel.';
+  String get employeeFormPasswordEditHelp =>
+      'Laisser vide pour conserver le mot de passe actuel.';
 
   @override
-  String get employeeFormPinMismatch => 'Les deux codes ne correspondent pas.';
+  String get employeeFormPasswordMismatch =>
+      'Les deux mots de passe ne correspondent pas.';
 
   @override
   String get storeSettingsReadOnlyNotice =>
@@ -3116,7 +3113,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get identityPromptTitle => 'Confirmation d\'identité';
 
   @override
-  String get identityPromptField => 'Numéro CIN';
+  String get identityPromptField => 'Numéro PIN';
 
   @override
   String get identityPromptValidate => 'Valider';
@@ -3126,11 +3123,11 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String identityPromptPointageSubtitle(String action, String name) {
-    return '$action · saisissez le numéro CIN de $name';
+    return '$action · saisissez le numéro PIN de $name';
   }
 
   @override
   String identityPromptPayrollSubtitle(String name) {
-    return 'Saisissez votre numéro CIN pour valider le paiement de $name';
+    return 'Saisissez votre numéro PIN pour valider le paiement de $name';
   }
 }

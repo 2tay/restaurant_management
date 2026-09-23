@@ -7,10 +7,10 @@ import '../../models/models.dart';
 /// model so it stays plain data, and out of the screens so the login form and
 /// the mutation agree.
 abstract final class AuthRules {
-  /// Every PIN is exactly this many digits.
-  static const int pinLength = 4;
+  /// Every password is exactly this many digits.
+  static const int passwordLength = 4;
 
-  /// Consecutive wrong PINs that trip the lockout.
+  /// Consecutive wrong passwords that trip the lockout.
   static const int maxFailedAttempts = 3;
 
   /// How long a locked credential stays locked.
@@ -19,23 +19,23 @@ abstract final class AuthRules {
 
 /// **Not a real hash.** Phase 6 stays offline and fake
 /// (`.claude/phase_gestion_employee.md` decision 3) — this exists only so the
-/// PIN is never stored or compared in the clear, matching the shape a real
+/// password is never stored or compared in the clear, matching the shape a real
 /// backend would keep.
-String fakePinHash(String pin) => 'pin:${pin.trim()}';
+String fakePasswordHash(String password) => 'password:${password.trim()}';
 
-/// Whether [pin] is the one behind this credential.
-bool pinMatches(EmployeeCredential credential, String pin) =>
-    credential.pinHash == fakePinHash(pin);
+/// Whether [password] is the one behind this credential.
+bool passwordMatches(EmployeeCredential credential, String password) =>
+    credential.passwordHash == fakePasswordHash(password);
 
-/// Whether [pin] is a syntactically valid PIN — [AuthRules.pinLength] digits.
-bool isValidPin(String pin) {
-  final trimmed = pin.trim();
-  return trimmed.length == AuthRules.pinLength &&
+/// Whether [password] is a syntactically valid password — [AuthRules.passwordLength] digits.
+bool isValidPassword(String password) {
+  final trimmed = password.trim();
+  return trimmed.length == AuthRules.passwordLength &&
       RegExp(r'^\d+$').hasMatch(trimmed);
 }
 
 /// Whether the credential is locked right now — login is refused until
-/// [EmployeeCredential.lockedUntil] passes, even with the correct PIN.
+/// [EmployeeCredential.lockedUntil] passes, even with the correct password.
 bool isLocked(EmployeeCredential credential, {DateTime? now}) {
   final until = credential.lockedUntil;
   if (until == null) return false;

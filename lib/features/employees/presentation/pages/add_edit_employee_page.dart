@@ -68,12 +68,12 @@ class _EmployeeForm extends ConsumerStatefulWidget {
 class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
   final _firstName = TextEditingController();
   final _lastName = TextEditingController();
-  final _cin = TextEditingController();
+  final _pin = TextEditingController();
   final _phone = TextEditingController();
   final _email = TextEditingController();
   final _pay = TextEditingController();
-  final _pin = TextEditingController();
-  final _pinConfirm = TextEditingController();
+  final _password = TextEditingController();
+  final _passwordConfirm = TextEditingController();
 
   EmployeeRole _role = EmployeeRole.staff;
 
@@ -84,9 +84,9 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
   /// Set when the user removed the photo — clears any existing one on save.
   bool _photoCleared = false;
 
-  /// Set when the entered CIN / email is already used by another employee.
+  /// Set when the entered PIN / email is already used by another employee.
   /// Cleared on the next keystroke so a corrected field stops complaining.
-  bool _cinTaken = false;
+  bool _pinTaken = false;
   bool _emailTaken = false;
 
   bool get _isEditing => widget.employee != null;
@@ -104,7 +104,7 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
     if (existing != null) {
       _firstName.text = existing.firstName;
       _lastName.text = existing.lastName;
-      _cin.text = existing.cin;
+      _pin.text = existing.pin;
       _phone.text = existing.phone;
       _email.text = existing.email;
       _pay.text = _formatPay(existing.pay);
@@ -120,12 +120,12 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
   List<TextEditingController> get _controllers => [
     _firstName,
     _lastName,
-    _cin,
+    _pin,
     _phone,
     _email,
     _pay,
-    _pin,
-    _pinConfirm,
+    _password,
+    _passwordConfirm,
   ];
 
   @override
@@ -139,29 +139,29 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
   double? get _parsedPay =>
       double.tryParse(_pay.text.replaceAll(',', '.').trim());
 
-  bool get _pinTouched =>
-      _pin.text.trim().isNotEmpty || _pinConfirm.text.trim().isNotEmpty;
+  bool get _passwordTouched =>
+      _password.text.trim().isNotEmpty || _passwordConfirm.text.trim().isNotEmpty;
 
-  /// Both PIN fields hold the same valid PIN.
-  bool get _pinComplete =>
-      isValidPin(_pin.text) && _pin.text.trim() == _pinConfirm.text.trim();
+  /// Both password fields hold the same valid password.
+  bool get _passwordComplete =>
+      isValidPassword(_password.text) && _password.text.trim() == _passwordConfirm.text.trim();
 
   /// Required when creating; optional when editing (blank keeps the old code).
-  bool get _pinValid =>
-      _isEditing ? (!_pinTouched || _pinComplete) : _pinComplete;
+  bool get _passwordValid =>
+      _isEditing ? (!_passwordTouched || _passwordComplete) : _passwordComplete;
 
-  bool get _pinMismatch =>
-      _pinConfirm.text.trim().isNotEmpty &&
-      _pin.text.trim() != _pinConfirm.text.trim();
+  bool get _passwordMismatch =>
+      _passwordConfirm.text.trim().isNotEmpty &&
+      _password.text.trim() != _passwordConfirm.text.trim();
 
   bool get _canSubmit =>
       _firstName.text.trim().isNotEmpty &&
       _lastName.text.trim().isNotEmpty &&
-      _cin.text.trim().isNotEmpty &&
+      _pin.text.trim().isNotEmpty &&
       _phone.text.trim().isNotEmpty &&
       _email.text.trim().isNotEmpty &&
       _parsedPay != null &&
-      _pinValid;
+      _passwordValid;
 
   bool get _isDirty =>
       _initialText.entries.any((e) => e.key.text.trim() != e.value.trim()) ||
@@ -293,11 +293,11 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
                 ),
                 const SizedBox(height: AppSpacing.lg),
                 AppTextField(
-                  label: l10n.employeeFormCin,
-                  controller: _cin,
+                  label: l10n.employeeFormPin,
+                  controller: _pin,
                   prefixIcon: LucideIcons.idCard,
-                  errorText: _cinTaken ? l10n.employeeCinTaken : null,
-                  onChanged: (_) => setState(() => _cinTaken = false),
+                  errorText: _pinTaken ? l10n.employeePinTaken : null,
+                  onChanged: (_) => setState(() => _pinTaken = false),
                 ),
                 const SizedBox(height: AppSpacing.lg),
                 Row(
@@ -367,14 +367,14 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
                   children: [
                     Expanded(
                       child: AppTextField(
-                        label: l10n.employeeFormPin,
-                        controller: _pin,
+                        label: l10n.employeeFormPassword,
+                        controller: _password,
                         prefixIcon: LucideIcons.lock,
                         obscureText: true,
                         keyboardType: TextInputType.number,
                         inputFormatters: [
                           FilteringTextInputFormatter.digitsOnly,
-                          LengthLimitingTextInputFormatter(AuthRules.pinLength),
+                          LengthLimitingTextInputFormatter(AuthRules.passwordLength),
                         ],
                         onChanged: (_) => setState(() {}),
                       ),
@@ -382,17 +382,17 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
                     const SizedBox(width: AppSpacing.lg),
                     Expanded(
                       child: AppTextField(
-                        label: l10n.employeeFormPinConfirm,
-                        controller: _pinConfirm,
+                        label: l10n.employeeFormPasswordConfirm,
+                        controller: _passwordConfirm,
                         prefixIcon: LucideIcons.lock,
                         obscureText: true,
                         keyboardType: TextInputType.number,
                         inputFormatters: [
                           FilteringTextInputFormatter.digitsOnly,
-                          LengthLimitingTextInputFormatter(AuthRules.pinLength),
+                          LengthLimitingTextInputFormatter(AuthRules.passwordLength),
                         ],
-                        errorText: _pinMismatch
-                            ? l10n.employeeFormPinMismatch
+                        errorText: _passwordMismatch
+                            ? l10n.employeeFormPasswordMismatch
                             : null,
                         onChanged: (_) => setState(() {}),
                       ),
@@ -404,8 +404,8 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
                   alignment: Alignment.centerLeft,
                   child: Text(
                     _isEditing
-                        ? l10n.employeeFormPinEditHelp
-                        : l10n.employeeFormPinHelp,
+                        ? l10n.employeeFormPasswordEditHelp
+                        : l10n.employeeFormPasswordHelp,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: AppColors.textSecondary,
                     ),
@@ -433,31 +433,31 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
         existingId,
         firstName: _firstName.text,
         lastName: _lastName.text,
-        cin: _cin.text,
+        pin: _pin.text,
         phone: _phone.text,
         email: _email.text,
         role: _role,
         pay: pay,
       );
-      // The PIN, when the fields were filled — a nested write, not part of the
-      // update transaction, but a refused PIN there is only a validation miss
+      // The password, when the fields were filled — a nested write, not part of the
+      // update transaction, but a refused password there is only a validation miss
       // and the details have already saved.
-      if (result != null && _pinTouched) {
+      if (result != null && _passwordTouched) {
         await ref
             .read(credentialRepositoryProvider)
-            .setPin(result.id, _pin.text);
+            .setPassword(result.id, _password.text);
       }
     } else {
       result = await employees.create(
         storeId: widget.storeId,
         firstName: _firstName.text,
         lastName: _lastName.text,
-        cin: _cin.text,
+        pin: _pin.text,
         phone: _phone.text,
         email: _email.text,
         role: _role,
         pay: pay,
-        pin: _pin.text,
+        password: _password.text,
       );
     }
 
@@ -465,8 +465,8 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
 
     if (result == null) {
       // The only failures that reach here are the two uniqueness guards.
-      final byCin = await employees.employeeByCin(
-        _cin.text.trim(),
+      final byPin = await employees.employeeByPin(
+        _pin.text.trim(),
         excludingId: existingId,
       );
       final byEmail = await employees.employeeByEmail(
@@ -475,14 +475,14 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
       );
       if (!mounted) return;
       setState(() {
-        _cinTaken = byCin != null;
+        _pinTaken = byPin != null;
         _emailTaken = byEmail != null;
       });
       return;
     }
 
     // The photo — copied into the store and written onto the row now that the
-    // id exists. A separate write from the details, like the PIN above.
+    // id exists. A separate write from the details, like the password above.
     final photoStore = ref.read(employeePhotoStoreProvider);
     if (_pickedPhotoPath != null) {
       final stored = await photoStore.save(

@@ -35,7 +35,7 @@ archiver ou transformer en doc de complétion par phase une fois chaque phase te
 - **Détail employé** : le drawer remplace entièrement la page `EmployeeDetailPage` (pas de double
   affichage aperçu + page complète).
 
-Schéma actuel : `schemaVersion = 8` (au départ du plan : v5). Chaque phase qui touche la DB avance la version (v6, v7, …).
+Schéma actuel : `schemaVersion = 9` (au départ du plan : v5). Chaque phase qui touche la DB avance la version (v6, v7, …).
 
 ---
 
@@ -107,14 +107,14 @@ Seule la durée max par pause est gérée, et c'est déjà en place (`StoreSetti
 Aucun changement nécessaire ; phase conservée dans la numérotation pour la traçabilité de la
 décision.
 
-## Phase 5 — Identité au pointage : tentatives illimitées
+## Phase 5 — Identité au pointage : tentatives illimitées ✅
 
 - `credential_repository.verifyCin` (renommé en Phase 6) : suppression du lockout pour la
   confirmation d'identité au pointage/paiement — tentatives illimitées. Le lockout du login
   complet propriétaire/gérant (`authenticate`) reste inchangé (périmètre différent).
 - `IdentityPromptDialog` : simplifié, plus de countdown de verrouillage.
 
-## Phase 6 — Renommage CIN→PIN, code PIN→Password
+## Phase 6 — Renommage CIN→PIN, code PIN→Password ✅
 
 - `Employee.cin` → `Employee.pin` (colonne, mapper, repository, l10n, tous les libellés UI).
 - `EmployeeCredential.pinHash` / `AuthRules.pinLength` / `isValidPin` / `fakePinHash` →

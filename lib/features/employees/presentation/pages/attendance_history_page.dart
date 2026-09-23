@@ -298,7 +298,7 @@ class _AttendanceHistoryPageState extends ConsumerState<AttendanceHistoryPage> {
                       style: Theme.of(context).textTheme.titleSmall,
                     ),
                     Text(
-                      l10n.employeeCinLabel(employee.cin),
+                      l10n.employeePinLabel(employee.pin),
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: AppColors.textSecondary,
                       ),
@@ -456,7 +456,7 @@ class _Filters extends StatelessWidget {
           child: EmployeeSelector(
             employees: employees,
             value: selectedEmployee,
-            showCin: true,
+            showPin: true,
             hint: l10n.attendanceFilterAllEmployees,
             onChanged: onEmployee,
           ),
@@ -603,7 +603,7 @@ class _HistoryTable extends StatelessWidget {
               Text(employee == null ? '—' : employeeDisplayName(employee)),
               if (employee != null)
                 Text(
-                  l10n.employeeCinLabel(employee.cin),
+                  l10n.employeePinLabel(employee.pin),
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: AppColors.textSecondary,
                   ),
@@ -816,7 +816,7 @@ class _AttendanceCard extends StatelessWidget {
                     ),
                     if (employee != null)
                       Text(
-                        l10n.employeeCinLabel(employee.cin),
+                        l10n.employeePinLabel(employee.pin),
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: AppColors.textSecondary,
                         ),

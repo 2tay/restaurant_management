@@ -170,8 +170,8 @@ class EmployeeDetailPage extends ConsumerWidget {
                 const Divider(height: AppSpacing.xl),
                 _InfoRow(
                   icon: LucideIcons.idCard,
-                  label: l10n.employeeFormCin,
-                  value: employee.cin,
+                  label: l10n.employeeFormPin,
+                  value: employee.pin,
                 ),
               ],
             ),

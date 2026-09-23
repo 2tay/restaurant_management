@@ -7808,10 +7808,10 @@ class $EmployeesTable extends Employees
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _cinMeta = const VerificationMeta('cin');
+  static const VerificationMeta _pinMeta = const VerificationMeta('pin');
   @override
-  late final GeneratedColumn<String> cin = GeneratedColumn<String>(
-    'cin',
+  late final GeneratedColumn<String> pin = GeneratedColumn<String>(
+    'pin',
     aliasedName,
     false,
     type: DriftSqlType.string,
@@ -7903,7 +7903,7 @@ class $EmployeesTable extends Employees
     storeId,
     firstName,
     lastName,
-    cin,
+    pin,
     phone,
     email,
     photoAsset,
@@ -7954,13 +7954,13 @@ class $EmployeesTable extends Employees
     } else if (isInserting) {
       context.missing(_lastNameMeta);
     }
-    if (data.containsKey('cin')) {
+    if (data.containsKey('pin')) {
       context.handle(
-        _cinMeta,
-        cin.isAcceptableOrUnknown(data['cin']!, _cinMeta),
+        _pinMeta,
+        pin.isAcceptableOrUnknown(data['pin']!, _pinMeta),
       );
     } else if (isInserting) {
-      context.missing(_cinMeta);
+      context.missing(_pinMeta);
     }
     if (data.containsKey('phone')) {
       context.handle(
@@ -8039,9 +8039,9 @@ class $EmployeesTable extends Employees
         DriftSqlType.string,
         data['${effectivePrefix}last_name'],
       )!,
-      cin: attachedDatabase.typeMapping.read(
+      pin: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
-        data['${effectivePrefix}cin'],
+        data['${effectivePrefix}pin'],
       )!,
       phone: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
@@ -8103,7 +8103,7 @@ class EmployeeRow extends DataClass implements Insertable<EmployeeRow> {
   /// identifier (Phase 6). Unique across the whole account, not per store; the
   /// index above makes that a constraint, and the repository keeps its own
   /// check for the message the form shows.
-  final String cin;
+  final String pin;
   final String phone;
 
   /// Unique across the whole account.
@@ -8125,7 +8125,7 @@ class EmployeeRow extends DataClass implements Insertable<EmployeeRow> {
     required this.storeId,
     required this.firstName,
     required this.lastName,
-    required this.cin,
+    required this.pin,
     required this.phone,
     required this.email,
     this.photoAsset,
@@ -8142,7 +8142,7 @@ class EmployeeRow extends DataClass implements Insertable<EmployeeRow> {
     map['store_id'] = Variable<String>(storeId);
     map['first_name'] = Variable<String>(firstName);
     map['last_name'] = Variable<String>(lastName);
-    map['cin'] = Variable<String>(cin);
+    map['pin'] = Variable<String>(pin);
     map['phone'] = Variable<String>(phone);
     map['email'] = Variable<String>(email);
     if (!nullToAbsent || photoAsset != null) {
@@ -8168,7 +8168,7 @@ class EmployeeRow extends DataClass implements Insertable<EmployeeRow> {
       storeId: Value(storeId),
       firstName: Value(firstName),
       lastName: Value(lastName),
-      cin: Value(cin),
+      pin: Value(pin),
       phone: Value(phone),
       email: Value(email),
       photoAsset: photoAsset == null && nullToAbsent
@@ -8194,7 +8194,7 @@ class EmployeeRow extends DataClass implements Insertable<EmployeeRow> {
       storeId: serializer.fromJson<String>(json['storeId']),
       firstName: serializer.fromJson<String>(json['firstName']),
       lastName: serializer.fromJson<String>(json['lastName']),
-      cin: serializer.fromJson<String>(json['cin']),
+      pin: serializer.fromJson<String>(json['pin']),
       phone: serializer.fromJson<String>(json['phone']),
       email: serializer.fromJson<String>(json['email']),
       photoAsset: serializer.fromJson<String?>(json['photoAsset']),
@@ -8215,7 +8215,7 @@ class EmployeeRow extends DataClass implements Insertable<EmployeeRow> {
       'storeId': serializer.toJson<String>(storeId),
       'firstName': serializer.toJson<String>(firstName),
       'lastName': serializer.toJson<String>(lastName),
-      'cin': serializer.toJson<String>(cin),
+      'pin': serializer.toJson<String>(pin),
       'phone': serializer.toJson<String>(phone),
       'email': serializer.toJson<String>(email),
       'photoAsset': serializer.toJson<String?>(photoAsset),
@@ -8234,7 +8234,7 @@ class EmployeeRow extends DataClass implements Insertable<EmployeeRow> {
     String? storeId,
     String? firstName,
     String? lastName,
-    String? cin,
+    String? pin,
     String? phone,
     String? email,
     Value<String?> photoAsset = const Value.absent(),
@@ -8248,7 +8248,7 @@ class EmployeeRow extends DataClass implements Insertable<EmployeeRow> {
     storeId: storeId ?? this.storeId,
     firstName: firstName ?? this.firstName,
     lastName: lastName ?? this.lastName,
-    cin: cin ?? this.cin,
+    pin: pin ?? this.pin,
     phone: phone ?? this.phone,
     email: email ?? this.email,
     photoAsset: photoAsset.present ? photoAsset.value : this.photoAsset,
@@ -8264,7 +8264,7 @@ class EmployeeRow extends DataClass implements Insertable<EmployeeRow> {
       storeId: data.storeId.present ? data.storeId.value : this.storeId,
       firstName: data.firstName.present ? data.firstName.value : this.firstName,
       lastName: data.lastName.present ? data.lastName.value : this.lastName,
-      cin: data.cin.present ? data.cin.value : this.cin,
+      pin: data.pin.present ? data.pin.value : this.pin,
       phone: data.phone.present ? data.phone.value : this.phone,
       email: data.email.present ? data.email.value : this.email,
       photoAsset: data.photoAsset.present
@@ -8287,7 +8287,7 @@ class EmployeeRow extends DataClass implements Insertable<EmployeeRow> {
           ..write('storeId: $storeId, ')
           ..write('firstName: $firstName, ')
           ..write('lastName: $lastName, ')
-          ..write('cin: $cin, ')
+          ..write('pin: $pin, ')
           ..write('phone: $phone, ')
           ..write('email: $email, ')
           ..write('photoAsset: $photoAsset, ')
@@ -8306,7 +8306,7 @@ class EmployeeRow extends DataClass implements Insertable<EmployeeRow> {
     storeId,
     firstName,
     lastName,
-    cin,
+    pin,
     phone,
     email,
     photoAsset,
@@ -8324,7 +8324,7 @@ class EmployeeRow extends DataClass implements Insertable<EmployeeRow> {
           other.storeId == this.storeId &&
           other.firstName == this.firstName &&
           other.lastName == this.lastName &&
-          other.cin == this.cin &&
+          other.pin == this.pin &&
           other.phone == this.phone &&
           other.email == this.email &&
           other.photoAsset == this.photoAsset &&
@@ -8340,7 +8340,7 @@ class EmployeesCompanion extends UpdateCompanion<EmployeeRow> {
   final Value<String> storeId;
   final Value<String> firstName;
   final Value<String> lastName;
-  final Value<String> cin;
+  final Value<String> pin;
   final Value<String> phone;
   final Value<String> email;
   final Value<String?> photoAsset;
@@ -8355,7 +8355,7 @@ class EmployeesCompanion extends UpdateCompanion<EmployeeRow> {
     this.storeId = const Value.absent(),
     this.firstName = const Value.absent(),
     this.lastName = const Value.absent(),
-    this.cin = const Value.absent(),
+    this.pin = const Value.absent(),
     this.phone = const Value.absent(),
     this.email = const Value.absent(),
     this.photoAsset = const Value.absent(),
@@ -8371,7 +8371,7 @@ class EmployeesCompanion extends UpdateCompanion<EmployeeRow> {
     required String storeId,
     required String firstName,
     required String lastName,
-    required String cin,
+    required String pin,
     required String phone,
     required String email,
     this.photoAsset = const Value.absent(),
@@ -8385,7 +8385,7 @@ class EmployeesCompanion extends UpdateCompanion<EmployeeRow> {
        storeId = Value(storeId),
        firstName = Value(firstName),
        lastName = Value(lastName),
-       cin = Value(cin),
+       pin = Value(pin),
        phone = Value(phone),
        email = Value(email),
        hireDate = Value(hireDate),
@@ -8397,7 +8397,7 @@ class EmployeesCompanion extends UpdateCompanion<EmployeeRow> {
     Expression<String>? storeId,
     Expression<String>? firstName,
     Expression<String>? lastName,
-    Expression<String>? cin,
+    Expression<String>? pin,
     Expression<String>? phone,
     Expression<String>? email,
     Expression<String>? photoAsset,
@@ -8413,7 +8413,7 @@ class EmployeesCompanion extends UpdateCompanion<EmployeeRow> {
       if (storeId != null) 'store_id': storeId,
       if (firstName != null) 'first_name': firstName,
       if (lastName != null) 'last_name': lastName,
-      if (cin != null) 'cin': cin,
+      if (pin != null) 'pin': pin,
       if (phone != null) 'phone': phone,
       if (email != null) 'email': email,
       if (photoAsset != null) 'photo_asset': photoAsset,
@@ -8431,7 +8431,7 @@ class EmployeesCompanion extends UpdateCompanion<EmployeeRow> {
     Value<String>? storeId,
     Value<String>? firstName,
     Value<String>? lastName,
-    Value<String>? cin,
+    Value<String>? pin,
     Value<String>? phone,
     Value<String>? email,
     Value<String?>? photoAsset,
@@ -8447,7 +8447,7 @@ class EmployeesCompanion extends UpdateCompanion<EmployeeRow> {
       storeId: storeId ?? this.storeId,
       firstName: firstName ?? this.firstName,
       lastName: lastName ?? this.lastName,
-      cin: cin ?? this.cin,
+      pin: pin ?? this.pin,
       phone: phone ?? this.phone,
       email: email ?? this.email,
       photoAsset: photoAsset ?? this.photoAsset,
@@ -8475,8 +8475,8 @@ class EmployeesCompanion extends UpdateCompanion<EmployeeRow> {
     if (lastName.present) {
       map['last_name'] = Variable<String>(lastName.value);
     }
-    if (cin.present) {
-      map['cin'] = Variable<String>(cin.value);
+    if (pin.present) {
+      map['pin'] = Variable<String>(pin.value);
     }
     if (phone.present) {
       map['phone'] = Variable<String>(phone.value);
@@ -8517,7 +8517,7 @@ class EmployeesCompanion extends UpdateCompanion<EmployeeRow> {
           ..write('storeId: $storeId, ')
           ..write('firstName: $firstName, ')
           ..write('lastName: $lastName, ')
-          ..write('cin: $cin, ')
+          ..write('pin: $pin, ')
           ..write('phone: $phone, ')
           ..write('email: $email, ')
           ..write('photoAsset: $photoAsset, ')
@@ -8565,12 +8565,12 @@ class $EmployeeCredentialsTable extends EmployeeCredentials
       'REFERENCES employees (id) ON DELETE CASCADE',
     ),
   );
-  static const VerificationMeta _pinHashMeta = const VerificationMeta(
-    'pinHash',
+  static const VerificationMeta _passwordHashMeta = const VerificationMeta(
+    'passwordHash',
   );
   @override
-  late final GeneratedColumn<String> pinHash = GeneratedColumn<String>(
-    'pin_hash',
+  late final GeneratedColumn<String> passwordHash = GeneratedColumn<String>(
+    'password_hash',
     aliasedName,
     false,
     type: DriftSqlType.string,
@@ -8614,7 +8614,7 @@ class $EmployeeCredentialsTable extends EmployeeCredentials
   List<GeneratedColumn> get $columns => [
     id,
     employeeId,
-    pinHash,
+    passwordHash,
     failedAttempts,
     lockedUntil,
     lastLoginAt,
@@ -8644,13 +8644,16 @@ class $EmployeeCredentialsTable extends EmployeeCredentials
     } else if (isInserting) {
       context.missing(_employeeIdMeta);
     }
-    if (data.containsKey('pin_hash')) {
+    if (data.containsKey('password_hash')) {
       context.handle(
-        _pinHashMeta,
-        pinHash.isAcceptableOrUnknown(data['pin_hash']!, _pinHashMeta),
+        _passwordHashMeta,
+        passwordHash.isAcceptableOrUnknown(
+          data['password_hash']!,
+          _passwordHashMeta,
+        ),
       );
     } else if (isInserting) {
-      context.missing(_pinHashMeta);
+      context.missing(_passwordHashMeta);
     }
     if (data.containsKey('failed_attempts')) {
       context.handle(
@@ -8696,9 +8699,9 @@ class $EmployeeCredentialsTable extends EmployeeCredentials
         DriftSqlType.string,
         data['${effectivePrefix}employee_id'],
       )!,
-      pinHash: attachedDatabase.typeMapping.read(
+      passwordHash: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
-        data['${effectivePrefix}pin_hash'],
+        data['${effectivePrefix}password_hash'],
       )!,
       failedAttempts: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
@@ -8728,14 +8731,14 @@ class EmployeeCredentialRow extends DataClass
   /// `ON DELETE CASCADE` and unique — one credential per employee, and it goes
   /// when they do.
   final String employeeId;
-  final String pinHash;
+  final String passwordHash;
   final int failedAttempts;
   final DateTime? lockedUntil;
   final DateTime? lastLoginAt;
   const EmployeeCredentialRow({
     required this.id,
     required this.employeeId,
-    required this.pinHash,
+    required this.passwordHash,
     required this.failedAttempts,
     this.lockedUntil,
     this.lastLoginAt,
@@ -8745,7 +8748,7 @@ class EmployeeCredentialRow extends DataClass
     final map = <String, Expression>{};
     map['id'] = Variable<String>(id);
     map['employee_id'] = Variable<String>(employeeId);
-    map['pin_hash'] = Variable<String>(pinHash);
+    map['password_hash'] = Variable<String>(passwordHash);
     map['failed_attempts'] = Variable<int>(failedAttempts);
     if (!nullToAbsent || lockedUntil != null) {
       map['locked_until'] = Variable<DateTime>(lockedUntil);
@@ -8760,7 +8763,7 @@ class EmployeeCredentialRow extends DataClass
     return EmployeeCredentialsCompanion(
       id: Value(id),
       employeeId: Value(employeeId),
-      pinHash: Value(pinHash),
+      passwordHash: Value(passwordHash),
       failedAttempts: Value(failedAttempts),
       lockedUntil: lockedUntil == null && nullToAbsent
           ? const Value.absent()
@@ -8779,7 +8782,7 @@ class EmployeeCredentialRow extends DataClass
     return EmployeeCredentialRow(
       id: serializer.fromJson<String>(json['id']),
       employeeId: serializer.fromJson<String>(json['employeeId']),
-      pinHash: serializer.fromJson<String>(json['pinHash']),
+      passwordHash: serializer.fromJson<String>(json['passwordHash']),
       failedAttempts: serializer.fromJson<int>(json['failedAttempts']),
       lockedUntil: serializer.fromJson<DateTime?>(json['lockedUntil']),
       lastLoginAt: serializer.fromJson<DateTime?>(json['lastLoginAt']),
@@ -8791,7 +8794,7 @@ class EmployeeCredentialRow extends DataClass
     return <String, dynamic>{
       'id': serializer.toJson<String>(id),
       'employeeId': serializer.toJson<String>(employeeId),
-      'pinHash': serializer.toJson<String>(pinHash),
+      'passwordHash': serializer.toJson<String>(passwordHash),
       'failedAttempts': serializer.toJson<int>(failedAttempts),
       'lockedUntil': serializer.toJson<DateTime?>(lockedUntil),
       'lastLoginAt': serializer.toJson<DateTime?>(lastLoginAt),
@@ -8801,14 +8804,14 @@ class EmployeeCredentialRow extends DataClass
   EmployeeCredentialRow copyWith({
     String? id,
     String? employeeId,
-    String? pinHash,
+    String? passwordHash,
     int? failedAttempts,
     Value<DateTime?> lockedUntil = const Value.absent(),
     Value<DateTime?> lastLoginAt = const Value.absent(),
   }) => EmployeeCredentialRow(
     id: id ?? this.id,
     employeeId: employeeId ?? this.employeeId,
-    pinHash: pinHash ?? this.pinHash,
+    passwordHash: passwordHash ?? this.passwordHash,
     failedAttempts: failedAttempts ?? this.failedAttempts,
     lockedUntil: lockedUntil.present ? lockedUntil.value : this.lockedUntil,
     lastLoginAt: lastLoginAt.present ? lastLoginAt.value : this.lastLoginAt,
@@ -8819,7 +8822,9 @@ class EmployeeCredentialRow extends DataClass
       employeeId: data.employeeId.present
           ? data.employeeId.value
           : this.employeeId,
-      pinHash: data.pinHash.present ? data.pinHash.value : this.pinHash,
+      passwordHash: data.passwordHash.present
+          ? data.passwordHash.value
+          : this.passwordHash,
       failedAttempts: data.failedAttempts.present
           ? data.failedAttempts.value
           : this.failedAttempts,
@@ -8837,7 +8842,7 @@ class EmployeeCredentialRow extends DataClass
     return (StringBuffer('EmployeeCredentialRow(')
           ..write('id: $id, ')
           ..write('employeeId: $employeeId, ')
-          ..write('pinHash: $pinHash, ')
+          ..write('passwordHash: $passwordHash, ')
           ..write('failedAttempts: $failedAttempts, ')
           ..write('lockedUntil: $lockedUntil, ')
           ..write('lastLoginAt: $lastLoginAt')
@@ -8849,7 +8854,7 @@ class EmployeeCredentialRow extends DataClass
   int get hashCode => Object.hash(
     id,
     employeeId,
-    pinHash,
+    passwordHash,
     failedAttempts,
     lockedUntil,
     lastLoginAt,
@@ -8860,7 +8865,7 @@ class EmployeeCredentialRow extends DataClass
       (other is EmployeeCredentialRow &&
           other.id == this.id &&
           other.employeeId == this.employeeId &&
-          other.pinHash == this.pinHash &&
+          other.passwordHash == this.passwordHash &&
           other.failedAttempts == this.failedAttempts &&
           other.lockedUntil == this.lockedUntil &&
           other.lastLoginAt == this.lastLoginAt);
@@ -8870,7 +8875,7 @@ class EmployeeCredentialsCompanion
     extends UpdateCompanion<EmployeeCredentialRow> {
   final Value<String> id;
   final Value<String> employeeId;
-  final Value<String> pinHash;
+  final Value<String> passwordHash;
   final Value<int> failedAttempts;
   final Value<DateTime?> lockedUntil;
   final Value<DateTime?> lastLoginAt;
@@ -8878,7 +8883,7 @@ class EmployeeCredentialsCompanion
   const EmployeeCredentialsCompanion({
     this.id = const Value.absent(),
     this.employeeId = const Value.absent(),
-    this.pinHash = const Value.absent(),
+    this.passwordHash = const Value.absent(),
     this.failedAttempts = const Value.absent(),
     this.lockedUntil = const Value.absent(),
     this.lastLoginAt = const Value.absent(),
@@ -8887,18 +8892,18 @@ class EmployeeCredentialsCompanion
   EmployeeCredentialsCompanion.insert({
     required String id,
     required String employeeId,
-    required String pinHash,
+    required String passwordHash,
     this.failedAttempts = const Value.absent(),
     this.lockedUntil = const Value.absent(),
     this.lastLoginAt = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        employeeId = Value(employeeId),
-       pinHash = Value(pinHash);
+       passwordHash = Value(passwordHash);
   static Insertable<EmployeeCredentialRow> custom({
     Expression<String>? id,
     Expression<String>? employeeId,
-    Expression<String>? pinHash,
+    Expression<String>? passwordHash,
     Expression<int>? failedAttempts,
     Expression<DateTime>? lockedUntil,
     Expression<DateTime>? lastLoginAt,
@@ -8907,7 +8912,7 @@ class EmployeeCredentialsCompanion
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (employeeId != null) 'employee_id': employeeId,
-      if (pinHash != null) 'pin_hash': pinHash,
+      if (passwordHash != null) 'password_hash': passwordHash,
       if (failedAttempts != null) 'failed_attempts': failedAttempts,
       if (lockedUntil != null) 'locked_until': lockedUntil,
       if (lastLoginAt != null) 'last_login_at': lastLoginAt,
@@ -8918,7 +8923,7 @@ class EmployeeCredentialsCompanion
   EmployeeCredentialsCompanion copyWith({
     Value<String>? id,
     Value<String>? employeeId,
-    Value<String>? pinHash,
+    Value<String>? passwordHash,
     Value<int>? failedAttempts,
     Value<DateTime?>? lockedUntil,
     Value<DateTime?>? lastLoginAt,
@@ -8927,7 +8932,7 @@ class EmployeeCredentialsCompanion
     return EmployeeCredentialsCompanion(
       id: id ?? this.id,
       employeeId: employeeId ?? this.employeeId,
-      pinHash: pinHash ?? this.pinHash,
+      passwordHash: passwordHash ?? this.passwordHash,
       failedAttempts: failedAttempts ?? this.failedAttempts,
       lockedUntil: lockedUntil ?? this.lockedUntil,
       lastLoginAt: lastLoginAt ?? this.lastLoginAt,
@@ -8944,8 +8949,8 @@ class EmployeeCredentialsCompanion
     if (employeeId.present) {
       map['employee_id'] = Variable<String>(employeeId.value);
     }
-    if (pinHash.present) {
-      map['pin_hash'] = Variable<String>(pinHash.value);
+    if (passwordHash.present) {
+      map['password_hash'] = Variable<String>(passwordHash.value);
     }
     if (failedAttempts.present) {
       map['failed_attempts'] = Variable<int>(failedAttempts.value);
@@ -8967,7 +8972,7 @@ class EmployeeCredentialsCompanion
     return (StringBuffer('EmployeeCredentialsCompanion(')
           ..write('id: $id, ')
           ..write('employeeId: $employeeId, ')
-          ..write('pinHash: $pinHash, ')
+          ..write('passwordHash: $passwordHash, ')
           ..write('failedAttempts: $failedAttempts, ')
           ..write('lockedUntil: $lockedUntil, ')
           ..write('lastLoginAt: $lastLoginAt, ')
@@ -11163,9 +11168,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     'employees_store',
     'CREATE INDEX employees_store ON employees (store_id)',
   );
-  late final Index employeesCin = Index(
-    'employees_cin',
-    'CREATE UNIQUE INDEX employees_cin ON employees (cin)',
+  late final Index employeesPin = Index(
+    'employees_pin',
+    'CREATE UNIQUE INDEX employees_pin ON employees (pin)',
   );
   late final Index employeesEmail = Index(
     'employees_email',
@@ -11246,7 +11251,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     goodsReceiptLinesItem,
     notificationsStoreTime,
     employeesStore,
-    employeesCin,
+    employeesPin,
     employeesEmail,
     employeeCredentialsEmployee,
     payrollPeriodsEmployee,

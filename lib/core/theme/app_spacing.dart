@@ -92,7 +92,7 @@ abstract final class AppSizing {
   static const double searchFieldMaxWidth = 420;
 
   /// The employee picker in a filter bar. Wide enough for "Van der Meulen
-  /// Jean-Baptiste" plus the CIN line under it.
+  /// Jean-Baptiste" plus the PIN line under it.
   static const double filterFieldWidth = 260;
 
   /// A compact date field. Fits `31/12/2025` with the calendar affordance.
