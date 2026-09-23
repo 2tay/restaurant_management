@@ -21,6 +21,7 @@ class AppCard extends StatefulWidget {
     this.selected = false,
     this.accentColor,
     this.bordered = true,
+    this.outlineOnHover = false,
     super.key,
   });
 
@@ -41,6 +42,11 @@ class AppCard extends StatefulWidget {
   /// False drops the resting hairline — the shadow alone lifts the card (the
   /// KPI tiles). Selection and keyboard focus still draw their outline.
   final bool bordered;
+
+  /// Draws the selection outline while the pointer is over an interactive
+  /// card — for a grid of records (the staff cards), where the outline says
+  /// "this one" more clearly than the lift alone.
+  final bool outlineOnHover;
 
   /// The hairline a resting card is drawn with.
   static const double borderWidth = 1;
@@ -93,7 +99,10 @@ class _AppCardState extends State<AppCard> {
           // means the same thing to the person looking at it: this is the card
           // you are about to act on. Without it, tabbing through a list on a
           // desktop window moved an invisible cursor.
-          border: widget.selected || _focused
+          border:
+              widget.selected ||
+                  _focused ||
+                  (widget.outlineOnHover && _isInteractive && _hovered)
               ? Border.all(
                   color: AppColors.primary600,
                   width: AppCard.selectedBorderWidth,

@@ -10,6 +10,7 @@ import 'package:stock_inventory/core/utils/formatters.dart';
 import 'package:stock_inventory/data/database/app_database.dart';
 import 'package:stock_inventory/data/repositories/repositories.dart';
 import 'package:stock_inventory/data/seed/dataset/dataset.dart';
+import 'package:stock_inventory/features/employees/presentation/widgets/employee_card.dart';
 import 'package:stock_inventory/shared/widgets/widgets.dart';
 
 import 'support/app_harness.dart';
@@ -213,6 +214,108 @@ void main() {
     expect(toggle.top, greaterThan(search.bottom));
   });
 
+  testApp('the card: identity, status, role, contact, rate, hire date, '
+      'position — stacked vertically', (tester) async {
+    final db = await _open(tester);
+    final amelie = (await EmployeeRepository(db).employee(
+      EmployeeIds.amelie,
+    ))!;
+    final card = find.byKey(ValueKey('employee-card-${amelie.id}'));
+    Finder inCard(String text) =>
+        find.descendant(of: card, matching: find.text(text));
+
+    expect(inCard('Amélie Vandenberghe'), findsOneWidget);
+    expect(inCard('PIN ${amelie.pin}'), findsOneWidget);
+    expect(inCard('Actif'), findsOneWidget);
+    expect(inCard('Gérant'), findsWidgets); // the badge, and « Poste »
+    expect(inCard(amelie.phone), findsOneWidget);
+    expect(inCard(amelie.email), findsOneWidget);
+    expect(inCard('${Formatters.price(amelie.pay)} /h'), findsOneWidget);
+    expect(inCard('Salaire horaire'), findsOneWidget);
+    expect(inCard('Embauché le'), findsOneWidget);
+    expect(inCard(Formatters.date(amelie.hireDate)), findsOneWidget);
+    expect(inCard('Poste'), findsOneWidget);
+
+    // Vertical: name, then contact, then the rate, then the foot row.
+    double y(String text) => tester.getTopLeft(inCard(text)).dy;
+    expect(y(amelie.phone), greaterThan(y('Amélie Vandenberghe')));
+    expect(y('Salaire horaire'), greaterThan(y(amelie.email)));
+    expect(y('Embauché le'), greaterThan(y('Salaire horaire')));
+    // Outlined on hover.
+    expect(
+      tester.widget<AppCard>(
+        find.descendant(of: card, matching: find.byType(AppCard)).first,
+      ).outlineOnHover,
+      isTrue,
+    );
+  });
+
+  testApp('the card menu: Modifier opens the edit pop-up', (tester) async {
+    await _open(tester);
+    final card = find.byKey(const ValueKey('employee-card-${EmployeeIds.karim}'));
+    await tester.tap(
+      find.descendant(
+        of: card,
+        matching: find.byKey(const ValueKey('employee-card-menu')),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Retirer'), findsOneWidget);
+
+    await tester.tap(find.text('Modifier'));
+    await tester.pumpAndSettle();
+    expect(find.byType(WizardDialog), findsOneWidget);
+    expect(find.byType(DetailDrawer), findsNothing);
+  });
+
+  testApp('the card menu: Retirer asks, then archives', (tester) async {
+    final db = await _open(tester);
+    final card = find.byKey(const ValueKey('employee-card-${EmployeeIds.karim}'));
+    await tester.tap(
+      find.descendant(
+        of: card,
+        matching: find.byKey(const ValueKey('employee-card-menu')),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Retirer'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Retirer').last);
+    await tester.pumpAndSettle();
+
+    final karim = await EmployeeRepository(db).employee(EmployeeIds.karim);
+    expect(karim!.archivedAt, isNotNull);
+  });
+
+  testApp("a retired employee's card says Retiré and offers Restaurer", (
+    tester,
+  ) async {
+    await _open(tester);
+    await tester.tap(find.byType(FilterPill)); // show the retired
+    await tester.pumpAndSettle();
+
+    final retired = find.byWidgetPredicate(
+      (w) =>
+          w is LabelChip &&
+          w.key == const ValueKey('employee-card-status') &&
+          w.label == 'Retiré',
+    );
+    expect(retired, findsWidgets);
+    final card = find.ancestor(
+      of: retired.first,
+      matching: find.byType(EmployeeCard),
+    );
+    await tester.tap(
+      find.descendant(
+        of: card,
+        matching: find.byKey(const ValueKey('employee-card-menu')),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Restaurer'), findsOneWidget);
+    expect(find.text('Retirer'), findsNothing);
+  });
+
   testApp('the toggle switches to the table and back', (tester) async {
     await _open(tester);
     await _toList(tester);
@@ -238,7 +341,14 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.byType(DetailDrawer), findsOneWidget);
     expect(find.text('Coordonnées'), findsOneWidget);
-    expect(find.text('karim.haddouch@brasserie-sablon.be'), findsOneWidget);
+    // In the drawer (the card behind shows the email too).
+    expect(
+      find.descendant(
+        of: find.byType(DetailDrawer),
+        matching: find.text('karim.haddouch@brasserie-sablon.be'),
+      ),
+      findsOneWidget,
+    );
     // Still on the roster underneath.
     expect(
       appRouter.routerDelegate.currentConfiguration.uri.toString(),

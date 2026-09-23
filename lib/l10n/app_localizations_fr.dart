@@ -2416,6 +2416,21 @@ class AppLocalizationsFr extends AppLocalizations {
   String get employeesShowArchived => 'Afficher les personnels retirés';
 
   @override
+  String get employeeStatusActive => 'Actif';
+
+  @override
+  String get employeeCardHourlyRate => 'Salaire horaire';
+
+  @override
+  String get employeeCardHiredOn => 'Embauché le';
+
+  @override
+  String get employeeCardPosition => 'Poste';
+
+  @override
+  String get employeeCardActions => 'Actions';
+
+  @override
   String get employeesArchivedPill => 'Retiré';
 
   @override

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../l10n/app_localizations.dart';
@@ -22,6 +23,11 @@ class EmployeeRoleBadge extends StatelessWidget {
 
     return LabelChip(
       label: employeeRoleLabel(l10n, role),
+      icon: switch (role) {
+        EmployeeRole.owner => LucideIcons.crown,
+        EmployeeRole.manager => LucideIcons.shieldCheck,
+        EmployeeRole.staff => LucideIcons.user,
+      },
       background: isOwner
           ? AppColors.primaryContainer
           : AppColors.surfaceVariant,

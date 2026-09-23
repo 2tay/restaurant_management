@@ -3988,6 +3988,36 @@ abstract class AppLocalizations {
   /// **'Afficher les personnels retirés'**
   String get employeesShowArchived;
 
+  /// Staff card: status chip of an employee still on the roster.
+  ///
+  /// In fr, this message translates to:
+  /// **'Actif'**
+  String get employeeStatusActive;
+
+  /// Staff card: caption under the hourly rate.
+  ///
+  /// In fr, this message translates to:
+  /// **'Salaire horaire'**
+  String get employeeCardHourlyRate;
+
+  /// Staff card: caption of the hire date.
+  ///
+  /// In fr, this message translates to:
+  /// **'Embauché le'**
+  String get employeeCardHiredOn;
+
+  /// Staff card: caption of the role.
+  ///
+  /// In fr, this message translates to:
+  /// **'Poste'**
+  String get employeeCardPosition;
+
+  /// Tooltip of the ⋮ menu on a staff card.
+  ///
+  /// In fr, this message translates to:
+  /// **'Actions'**
+  String get employeeCardActions;
+
   /// Badge on an archived employee's row.
   ///
   /// In fr, this message translates to:

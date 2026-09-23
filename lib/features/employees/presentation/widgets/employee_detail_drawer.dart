@@ -12,6 +12,7 @@ import '../../../../data/providers.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
+import 'employee_actions.dart';
 import 'employee_wizard_dialog.dart';
 
 /// How many of the most recent days the drawer lists — enough to see how the
@@ -159,14 +160,15 @@ class EmployeeDetailBody extends ConsumerWidget {
               SecondaryButton(
                 label: l10n.employeeRestore,
                 icon: LucideIcons.userCheck,
-                onPressed: () => _restore(context, ref, employee),
+                onPressed: () => restoreEmployee(context, ref, employee),
               )
             else
               DestructiveButton(
                 label: l10n.employeeArchiveConfirm,
                 icon: LucideIcons.userMinus,
                 filled: false,
-                onPressed: () => _confirmArchive(context, ref, employee),
+                onPressed: () =>
+                    confirmArchiveEmployee(context, ref, employee),
               ),
           ],
         ),
@@ -228,34 +230,4 @@ class EmployeeDetailBody extends ConsumerWidget {
     );
   }
 
-  Future<void> _confirmArchive(
-    BuildContext context,
-    WidgetRef ref,
-    Employee employee,
-  ) async {
-    final l10n = AppLocalizations.of(context);
-
-    final confirmed = await ConfirmDialog.show(
-      context,
-      title: l10n.employeeArchiveTitle('« ${employeeDisplayName(employee)} »'),
-      message: l10n.employeeArchiveBody,
-      confirmLabel: l10n.employeeArchiveConfirm,
-    );
-    if (!confirmed || !context.mounted) return;
-
-    await ref.read(employeeRepositoryProvider).archive(employee.id);
-    if (!context.mounted) return;
-    AppSnackBar.success(context, l10n.employeeArchived);
-  }
-
-  Future<void> _restore(
-    BuildContext context,
-    WidgetRef ref,
-    Employee employee,
-  ) async {
-    final l10n = AppLocalizations.of(context);
-    await ref.read(employeeRepositoryProvider).restore(employee.id);
-    if (!context.mounted) return;
-    AppSnackBar.success(context, l10n.employeeRestored);
-  }
 }

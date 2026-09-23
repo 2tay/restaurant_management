@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/employee_status.dart';
 import '../../../../core/utils/formatters.dart';
@@ -11,6 +10,8 @@ import '../../../../data/providers.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
+import '../widgets/employee_actions.dart';
+import '../widgets/employee_card.dart';
 import '../widgets/employee_detail_drawer.dart';
 import '../widgets/employee_wizard_dialog.dart';
 
@@ -153,7 +154,18 @@ class _EmployeesListPageState extends ConsumerState<EmployeesListPage> {
         else if (_viewMode == CollectionViewMode.list)
           _EmployeeTable(employees: filtered, onOpen: _open)
         else
-          _EmployeeGrid(employees: filtered, onOpen: _open),
+          _EmployeeGrid(
+            employees: filtered,
+            onOpen: _open,
+            onEdit: (employee) => showEmployeeWizard(
+              context,
+              storeId: widget.storeId,
+              employee: employee,
+            ),
+            onArchive: (employee) =>
+                confirmArchiveEmployee(context, ref, employee),
+            onRestore: (employee) => restoreEmployee(context, ref, employee),
+          ),
       ],
     );
   }
@@ -267,23 +279,33 @@ class _ArchivedFilterPill extends StatelessWidget {
   }
 }
 
-/// The roster as a grid of cards — as many per line as the available width
-/// allows, rather than one full-width row per employee, which wastes most of
-/// a tablet or desktop screen on a two-line card. Uses the same
-/// [cardGridColumns] sizing as the pointage and payroll history cards, and
-/// [AdaptiveRow] inside each card stacks its own content at that width, so a
-/// card reads the same whether there is 1 column or 4.
+/// The roster as a grid of vertical [EmployeeCard]s — as many per line as
+/// the width allows (narrow cards, so up to five on a wide window), sized by
+/// the same [cardGridColumns] as the pointage and payroll history cards.
 class _EmployeeGrid extends StatelessWidget {
-  const _EmployeeGrid({required this.employees, required this.onOpen});
+  const _EmployeeGrid({
+    required this.employees,
+    required this.onOpen,
+    required this.onEdit,
+    required this.onArchive,
+    required this.onRestore,
+  });
 
   final List<Employee> employees;
   final ValueChanged<Employee> onOpen;
+  final ValueChanged<Employee> onEdit;
+  final ValueChanged<Employee> onArchive;
+  final ValueChanged<Employee> onRestore;
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final columns = cardGridColumns(constraints.maxWidth);
+        final columns = cardGridColumns(
+          constraints.maxWidth,
+          minCardWidth: 260,
+          maxColumns: 5,
+        );
         const spacing = AppSpacing.lg;
         final cardWidth = columns == 1
             ? constraints.maxWidth
@@ -296,98 +318,18 @@ class _EmployeeGrid extends StatelessWidget {
             for (final employee in employees)
               SizedBox(
                 width: cardWidth,
-                child: _EmployeeCard(
+                child: EmployeeCard(
+                  key: ValueKey('employee-card-${employee.id}'),
                   employee: employee,
                   onTap: () => onOpen(employee),
+                  onEdit: () => onEdit(employee),
+                  onArchive: () => onArchive(employee),
+                  onRestore: () => onRestore(employee),
                 ),
               ),
           ],
         );
       },
-    );
-  }
-}
-
-class _EmployeeCard extends StatelessWidget {
-  const _EmployeeCard({required this.employee, required this.onTap});
-
-  final Employee employee;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-    final archived = !isEmployeeActive(employee);
-
-    return AppCard(
-      onTap: onTap,
-      // Avatar and identity stay together; the role badge drops to its own
-      // line on a phone, where the name alone fills the row.
-      child: AdaptiveRow(
-        cells: [
-          AdaptiveCell(
-            flex: 1,
-            child: Row(
-              children: [
-                EmployeeAvatar(employee: employee, dimmed: archived),
-                const SizedBox(width: AppSpacing.lg),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Row(
-                        children: [
-                          Flexible(
-                            child: Text(
-                              employeeDisplayName(employee),
-                              style: theme.textTheme.titleSmall,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          if (archived) ...[
-                            const SizedBox(width: AppSpacing.sm),
-                            LabelChip(
-                              label: l10n.employeesArchivedPill,
-                              dense: true,
-                            ),
-                          ],
-                        ],
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        l10n.employeePinLabel(employee.pin),
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: AppColors.textSecondary,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          AdaptiveCell(
-            child: Wrap(
-              spacing: AppSpacing.sm,
-              runSpacing: AppSpacing.xs,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                EmployeeRoleBadge(role: employee.role),
-                const Icon(
-                  LucideIcons.chevronRight,
-                  size: AppSizing.iconMd,
-                  color: AppColors.textDisabled,
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

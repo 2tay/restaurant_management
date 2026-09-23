@@ -35,6 +35,7 @@ export 'filter_pill.dart';
 export 'filter_sheet.dart';
 export 'form_scaffold.dart';
 export 'identity_prompt_dialog.dart';
+export 'info_line.dart';
 export 'loading_state.dart';
 export 'notice_banner.dart';
 export 'offline_banner.dart';
