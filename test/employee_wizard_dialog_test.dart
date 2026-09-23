@@ -190,35 +190,6 @@ void main() {
     expect(find.text('Mot de passe'), findsOneWidget);
   });
 
-  testApp('editing the owner keeps Propriétaire as the only role', (
-    tester,
-  ) async {
-    // No card for the owner: through the table row instead.
-    await _roster(tester);
-    await tester.tap(find.byTooltip('Vue liste'));
-    await tester.pumpAndSettle();
-    await tester.tap(
-      find.descendant(
-        of: find.byType(DataTable),
-        matching: find.text('Marc Delvaux'),
-      ),
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(
-      find.descendant(
-        of: find.byType(DetailDrawer),
-        matching: find.widgetWithText(SecondaryButton, 'Modifier'),
-      ),
-    );
-    await tester.pumpAndSettle();
-    await _tap(tester, 'Suivant');
-    await _tap(tester, 'Suivant');
-
-    expect(find.byKey(_owner), findsOneWidget);
-    expect(find.byKey(_manager), findsNothing);
-    expect(find.byKey(_staff), findsNothing);
-  });
-
   testApp('Gérant → Employé: saving removes their password', (tester) async {
     final db = await _roster(tester);
     expect(await CredentialRepository(db).forEmployee(EmployeeIds.amelie),

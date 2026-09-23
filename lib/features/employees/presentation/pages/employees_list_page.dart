@@ -160,11 +160,19 @@ class _EmployeesListPageState extends ConsumerState<EmployeesListPage> {
                   ),
           )
         else if (_viewMode == CollectionViewMode.list)
-          _EmployeeTable(employees: filtered, onOpen: _open)
+          _EmployeeTable(
+            // The owner is the account, not staff to manage here — neither a
+            // card nor a row.
+            employees: [
+              for (final e in filtered)
+                if (e.role != EmployeeRole.owner) e,
+            ],
+            onOpen: _open,
+          )
         else
           _EmployeeGrid(
             // The owner is the account, not a member of staff to manage from
-            // here — no card for them (the table still lists everyone).
+            // here — no card for them (nor a table row).
             employees: [
               for (final e in filtered)
                 if (e.role != EmployeeRole.owner) e,
@@ -389,6 +397,14 @@ class _EmployeeTable extends StatelessWidget {
 
     return DataRow(
       key: ValueKey('employee-row-${employee.id}'),
+      // A retired person's row hovers red, like their card and badge.
+      color: archived
+          ? WidgetStateProperty.resolveWith(
+              (states) => states.contains(WidgetState.hovered)
+                  ? AppColors.error.withValues(alpha: 0.08)
+                  : null,
+            )
+          : null,
       onSelectChanged: (_) => onOpen(employee),
       cells: [
         DataCell(
@@ -403,7 +419,13 @@ class _EmployeeTable extends StatelessWidget {
               ),
               if (archived) ...[
                 const SizedBox(width: AppSpacing.sm),
-                LabelChip(label: l10n.employeesArchivedPill, dense: true),
+                LabelChip(
+                  key: const ValueKey('employee-row-retired'),
+                  label: l10n.employeesArchivedPill,
+                  background: AppColors.outOfStock.container,
+                  foreground: AppColors.outOfStock.foreground,
+                  dense: true,
+                ),
               ],
             ],
           ),

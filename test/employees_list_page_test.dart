@@ -275,7 +275,7 @@ void main() {
     expect(gaps.map((box) => box.width), [12]);
   });
 
-  testApp('no card for the owner — the table still lists them', (
+  testApp('the owner is neither a card nor a table row', (
     tester,
   ) async {
     await _open(tester);
@@ -290,12 +290,40 @@ void main() {
 
     await _toList(tester);
     final table = tester.widget<DataTable>(find.byType(DataTable));
+    final keys = table.rows.map((r) => r.key);
     expect(
-      table.rows.any(
-        (r) => r.key == const ValueKey('employee-row-${EmployeeIds.marc}'),
-      ),
-      isTrue,
+      keys,
+      isNot(contains(const ValueKey('employee-row-${EmployeeIds.marc}'))),
     );
+    expect(keys, contains(const ValueKey('employee-row-${EmployeeIds.amelie}')));
+  });
+
+  testApp("a retired person's row: red badge, red hover", (tester) async {
+    final db = await _open(tester);
+    await tester.tap(find.byType(FilterPill)); // show the retired
+    await tester.pumpAndSettle();
+    await _toList(tester);
+
+    final chip = tester.widget<LabelChip>(
+      find.byKey(const ValueKey('employee-row-retired')).first,
+    );
+    expect(chip.foreground, const Color(0xFF8E1B1B));
+
+    final all = await EmployeeRepository(db).employees(StoreIds.sablon);
+    final table = tester.widget<DataTable>(find.byType(DataTable));
+    for (final row in table.rows) {
+      final id = (row.key! as ValueKey<String>).value.replaceFirst(
+        'employee-row-',
+        '',
+      );
+      final retired = all.firstWhere((e) => e.id == id).archivedAt != null;
+      final hover = row.color?.resolve(const {WidgetState.hovered});
+      if (retired) {
+        expect(hover!.withValues(alpha: 1), const Color(0xFFC62828));
+      } else {
+        expect(hover, isNull, reason: id);
+      }
+    }
   });
 
   testApp('the ⋮ is green; its menu is white, an icon beside each action', (
@@ -580,6 +608,15 @@ void main() {
     final decoration = frame.decoration! as BoxDecoration;
     expect(decoration.borderRadius, isNull);
     expect((decoration.border! as Border).top.width, 0.5);
+
+    // No rule under the heading: covered right at the heading's height.
+    final cover = find.byKey(const ValueKey('table-heading-rule-cover'));
+    expect(cover, findsOneWidget);
+    final tableTop = tester.getTopLeft(find.byType(DataTable)).dy;
+    final headingHeight = Theme.of(
+      tester.element(find.byType(DataTable)),
+    ).dataTableTheme.headingRowHeight!;
+    expect(tester.getTopLeft(cover).dy - tableTop, headingHeight);
   });
 
   testApp('a card opens the detail drawer, not a page', (tester) async {

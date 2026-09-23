@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_spacing.dart';
 
 /// A bordered, horizontally scrollable container for a [DataTable].
 ///
@@ -90,16 +91,36 @@ class _DataTableWrapperState extends State<DataTableWrapper> {
 
           final table = ConstrainedBox(
             constraints: BoxConstraints(minWidth: floor),
-            child: DataTable(
-              columns: columns,
-              rows: rows,
-              sortColumnIndex: sortColumnIndex,
-              sortAscending: sortAscending,
-              headingRowColor: const WidgetStatePropertyAll(
-                AppColors.tableHeader,
-              ),
-              dividerThickness: _rule,
-              showCheckboxColumn: false,
+            child: Stack(
+              children: [
+                DataTable(
+                  columns: columns,
+                  rows: rows,
+                  sortColumnIndex: sortColumnIndex,
+                  sortAscending: sortAscending,
+                  headingRowColor: const WidgetStatePropertyAll(
+                    AppColors.tableHeader,
+                  ),
+                  dividerThickness: _rule,
+                  showCheckboxColumn: false,
+                ),
+                // No rule under the heading: DataTable draws it as the first
+                // row's top border and offers no way to drop that one alone,
+                // so a strip of the row colour covers it — the grey heading
+                // then meets the white rows edge to edge.
+                const Positioned(
+                  top: AppSizing.tableHeaderHeight,
+                  left: 0,
+                  right: 0,
+                  height: _rule,
+                  child: IgnorePointer(
+                    child: ColoredBox(
+                      key: ValueKey('table-heading-rule-cover'),
+                      color: AppColors.surface,
+                    ),
+                  ),
+                ),
+              ],
             ),
           );
 
