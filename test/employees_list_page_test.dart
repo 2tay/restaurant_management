@@ -263,13 +263,24 @@ void main() {
     expect(y(amelie.phone), greaterThan(y('Amélie Vandenberghe')));
     expect(y('Salaire horaire'), greaterThan(y(amelie.email)));
     expect(tester.getTopLeft(hired).dy, greaterThan(y('Salaire horaire')));
-    // Outlined on hover.
+    // No hover effect on the card.
     expect(
       tester.widget<AppCard>(
         find.descendant(of: card, matching: find.byType(AppCard)).first,
-      ).outlineOnHover,
-      isTrue,
+      ).hoverFeedback,
+      isFalse,
     );
+    // A little room between each icon and its text.
+    final phoneLine = find
+        .ancestor(of: inCard(amelie.phone), matching: find.byType(InfoLine))
+        .first;
+    // The spacer between them (not the icon's own box): no height, 12 wide.
+    final gaps = tester
+        .widgetList<SizedBox>(
+          find.descendant(of: phoneLine, matching: find.byType(SizedBox)),
+        )
+        .where((box) => box.height == null && box.child == null);
+    expect(gaps.map((box) => box.width), [12]);
   });
 
   testApp('no card for the owner — the table still lists them', (
@@ -312,6 +323,16 @@ void main() {
       tester.widget<PopupMenuButton<Object?>>(menu).color,
       Colors.white,
     );
+
+    // Rounded, with the rate block's green wash on hover.
+    final button = tester.widget<PopupMenuButton<Object?>>(menu);
+    expect(
+      (button.shape! as RoundedRectangleBorder).borderRadius,
+      BorderRadius.circular(12),
+    );
+    final menuTheme = Theme.of(tester.element(menu));
+    expect(menuTheme.hoverColor.a, lessThan(0.2));
+    expect(menuTheme.hoverColor.withValues(alpha: 1), const Color(0xFF0F766E));
 
     await tester.tap(menu);
     await tester.pumpAndSettle();
@@ -416,6 +437,45 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Restaurer'), findsOneWidget);
     expect(find.text('Retirer'), findsNothing);
+  });
+
+  testApp("a retired employee's card: red dashed outline, red badge", (
+    tester,
+  ) async {
+    await _open(tester);
+    await tester.tap(find.byType(FilterPill)); // show the retired
+    await tester.pumpAndSettle();
+
+    final retiredChip = tester.widget<LabelChip>(
+      find
+          .byWidgetPredicate(
+            (w) =>
+                w is LabelChip &&
+                w.key == const ValueKey('employee-card-status') &&
+                w.label == 'Retiré',
+          )
+          .first,
+    );
+    const red = Color(0xFF8E1B1B);
+    expect(retiredChip.foreground, red);
+
+    final cards = tester.widgetList<EmployeeCard>(find.byType(EmployeeCard));
+    for (final card in cards) {
+      final appCard = tester.widget<AppCard>(
+        find
+            .descendant(
+              of: find.byWidget(card),
+              matching: find.byType(AppCard),
+            )
+            .first,
+      );
+      final retired = card.employee.archivedAt != null;
+      expect(
+        appCard.dashedBorderColor,
+        retired ? const Color(0xFFC62828) : isNull,
+        reason: card.employee.id,
+      );
+    }
   });
 
   testApp('the toggle switches to the table and back', (tester) async {

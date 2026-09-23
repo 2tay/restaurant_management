@@ -20,8 +20,9 @@ enum _CardAction { edit, archive, restore }
 /// - the hire date (the position is already the role badge).
 ///
 /// Tapping the card opens the detail drawer ([onTap]); the ⋮ menu edits,
-/// retires or restores without opening it. Outlined in green on hover, and
-/// while its drawer is open ([selected]).
+/// retires or restores without opening it. Outlined in green while its drawer
+/// is open ([selected]); a retired employee's card has a red dashed outline
+/// and a red Retiré badge.
 class EmployeeCard extends StatelessWidget {
   const EmployeeCard({
     required this.employee,
@@ -50,8 +51,9 @@ class EmployeeCard extends StatelessWidget {
 
     return AppCard(
       onTap: onTap,
-      outlineOnHover: true,
+      hoverFeedback: false,
       selected: selected,
+      dashedBorderColor: archived ? AppColors.error : null,
       padding: const EdgeInsets.all(AppSpacing.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -93,10 +95,10 @@ class EmployeeCard extends StatelessWidget {
                               ? l10n.employeesArchivedPill
                               : l10n.employeeStatusActive,
                           background: archived
-                              ? AppColors.surfaceVariant
+                              ? AppColors.outOfStock.container
                               : AppColors.inStock.container,
                           foreground: archived
-                              ? AppColors.textSecondary
+                              ? AppColors.outOfStock.foreground
                               : AppColors.inStock.foreground,
                           dense: true,
                         ),
@@ -163,11 +165,20 @@ class _CardMenu extends StatelessWidget {
     );
   }
 
+  /// The rate block's green wash — the menu's hover, so the two read as one
+  /// family.
+  static final Color _hover = AppColors.primary600.withValues(alpha: 0.08);
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
 
-    return PopupMenuButton<_CardAction>(
+    // The menu route captures the themes around its button, so the hover
+    // colour set here reaches the items.
+    return Theme(
+      data: theme.copyWith(hoverColor: _hover, highlightColor: _hover),
+      child: PopupMenuButton<_CardAction>(
       key: const ValueKey('employee-card-menu'),
       tooltip: l10n.employeeCardActions,
       // The brand green of the rate, so the menu reads as part of the card.
@@ -178,6 +189,7 @@ class _CardMenu extends StatelessWidget {
       ),
       color: AppColors.surface,
       surfaceTintColor: Colors.transparent,
+      shape: const RoundedRectangleBorder(borderRadius: AppRadius.mdAll),
       onSelected: onSelected,
       itemBuilder: (_) => [
         _item(
@@ -201,6 +213,7 @@ class _CardMenu extends StatelessWidget {
             AppColors.error,
           ),
       ],
+      ),
     );
   }
 }

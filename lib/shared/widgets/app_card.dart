@@ -21,7 +21,8 @@ class AppCard extends StatefulWidget {
     this.selected = false,
     this.accentColor,
     this.bordered = true,
-    this.outlineOnHover = false,
+    this.hoverFeedback = true,
+    this.dashedBorderColor,
     super.key,
   });
 
@@ -43,10 +44,13 @@ class AppCard extends StatefulWidget {
   /// KPI tiles). Selection and keyboard focus still draw their outline.
   final bool bordered;
 
-  /// Draws the selection outline while the pointer is over an interactive
-  /// card — for a grid of records (the staff cards), where the outline says
-  /// "this one" more clearly than the lift alone.
-  final bool outlineOnHover;
+  /// False keeps an interactive card still under the pointer — no lift. It
+  /// stays tappable, and selection / focus still show.
+  final bool hoverFeedback;
+
+  /// Draws a dashed outline in this colour instead of the resting hairline —
+  /// a record that is no longer active (a retired employee).
+  final Color? dashedBorderColor;
 
   /// The hairline a resting card is drawn with.
   static const double borderWidth = 1;
@@ -83,9 +87,14 @@ class _AppCardState extends State<AppCard> {
       child: widget.child,
     );
 
-    final lifted = _isInteractive && (_hovered || widget.selected || _focused);
+    final lifted =
+        _isInteractive &&
+        ((widget.hoverFeedback && _hovered) || widget.selected || _focused);
 
-    return MouseRegion(
+    final dashed = widget.dashedBorderColor;
+    final showDashes = dashed != null && !widget.selected && !_focused;
+
+    final card = MouseRegion(
       cursor: _isInteractive ? SystemMouseCursors.click : MouseCursor.defer,
       onEnter: _isInteractive ? (_) => setState(() => _hovered = true) : null,
       onExit: _isInteractive ? (_) => setState(() => _hovered = false) : null,
@@ -99,15 +108,12 @@ class _AppCardState extends State<AppCard> {
           // means the same thing to the person looking at it: this is the card
           // you are about to act on. Without it, tabbing through a list on a
           // desktop window moved an invisible cursor.
-          border:
-              widget.selected ||
-                  _focused ||
-                  (widget.outlineOnHover && _isInteractive && _hovered)
+          border: widget.selected || _focused
               ? Border.all(
                   color: AppColors.primary600,
                   width: AppCard.selectedBorderWidth,
                 )
-              : widget.bordered
+              : widget.bordered && widget.dashedBorderColor == null
               ? Border.all(
                   color: AppColors.hairline,
                   width: AppCard.borderWidth,
@@ -168,5 +174,40 @@ class _AppCardState extends State<AppCard> {
         ),
       ),
     );
+    if (!showDashes) return card;
+    return CustomPaint(
+      foregroundPainter: _DashedRRectPainter(color: dashed),
+      child: card,
+    );
   }
+}
+
+/// A dashed rounded-rectangle outline — see [AppCard.dashedBorderColor].
+class _DashedRRectPainter extends CustomPainter {
+  const _DashedRRectPainter({required this.color});
+
+  final Color color;
+
+  static const double _dash = 6;
+  static const double _gap = 4;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5;
+    final rect = (Offset.zero & size).deflate(0.75);
+    final path = Path()
+      ..addRRect(AppRadius.lgAll.toRRect(rect));
+    for (final metric in path.computeMetrics()) {
+      for (var d = 0.0; d < metric.length; d += _dash + _gap) {
+        canvas.drawPath(metric.extractPath(d, d + _dash), paint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(_DashedRRectPainter oldDelegate) =>
+      color != oldDelegate.color;
 }

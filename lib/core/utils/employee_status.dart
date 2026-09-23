@@ -10,9 +10,19 @@ import '../../models/models.dart';
 /// Active unless soft-removed. The one source of truth is [Employee.archivedAt].
 bool isEmployeeActive(Employee employee) => employee.archivedAt == null;
 
-/// "Prénom Nom", trimmed. The display name every screen shows.
+/// "Prénom Nom", trimmed, each word starting with a capital — "amélie
+/// vandenberghe" as typed still reads "Amélie Vandenberghe". Only the first
+/// letter of a word is touched, so "McKenna" or "Jean-Baptiste" keep their
+/// own casing. The display name every screen shows.
 String employeeDisplayName(Employee employee) =>
-    '${employee.firstName} ${employee.lastName}'.trim();
+    '${employee.firstName} ${employee.lastName}'
+        .trim()
+        .split(RegExp(r'\s+'))
+        .map(_capitalised)
+        .join(' ');
+
+String _capitalised(String word) =>
+    word.isEmpty ? word : word[0].toUpperCase() + word.substring(1);
 
 /// First letter of the first and last name — "Amélie Vandenberghe" → "AV".
 /// Falls back to a single initial when only one name part is present.

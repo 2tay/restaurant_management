@@ -27,7 +27,7 @@ class InfoLine extends StatelessWidget {
     return Row(
       children: [
         Icon(icon, size: AppSizing.iconSm, color: AppColors.textSecondary),
-        const SizedBox(width: AppSpacing.sm),
+        const SizedBox(width: AppSpacing.md),
         Expanded(
           child: Text.rich(
             TextSpan(
