@@ -838,6 +838,24 @@ abstract class AppLocalizations {
   /// **'Précédent'**
   String get wizardPrevious;
 
+  /// Wizard: put the form back to where it started.
+  ///
+  /// In fr, this message translates to:
+  /// **'Réinitialiser'**
+  String get wizardReset;
+
+  /// Confirmation title before resetting a wizard.
+  ///
+  /// In fr, this message translates to:
+  /// **'Réinitialiser le formulaire ?'**
+  String get wizardResetTitle;
+
+  /// Confirmation body before resetting a wizard.
+  ///
+  /// In fr, this message translates to:
+  /// **'Les informations saisies seront effacées et vous reviendrez à la première étape.'**
+  String get wizardResetBody;
+
   /// Wizard step indicator on a phone.
   ///
   /// In fr, this message translates to:

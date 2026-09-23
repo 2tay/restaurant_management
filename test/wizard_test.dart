@@ -36,6 +36,7 @@ class _Wizard extends StatefulWidget {
     this.freeNavigation = false,
     this.isDirty = false,
     this.stepChild,
+    this.onReset,
   });
 
   final List<bool> valid;
@@ -43,6 +44,7 @@ class _Wizard extends StatefulWidget {
   final bool freeNavigation;
   final bool isDirty;
   final Widget? stepChild;
+  final VoidCallback? onReset;
 
   @override
   State<_Wizard> createState() => _WizardState();
@@ -60,6 +62,12 @@ class _WizardState extends State<_Wizard> {
       onStepChanged: (i) => setState(() => _step = i),
       freeNavigation: widget.freeNavigation,
       isDirty: widget.isDirty,
+      onReset: widget.onReset == null
+          ? null
+          : () {
+              widget.onReset!();
+              setState(() => _step = 0);
+            },
       submitLabel: 'Enregistrer',
       onSubmit: widget.onSubmit,
       steps: [
@@ -84,6 +92,7 @@ Future<void> _open(
   bool freeNavigation = false,
   bool isDirty = false,
   Widget? stepChild,
+  VoidCallback? onReset,
   Size size = const Size(1440, 900),
 }) async {
   _size(tester, size);
@@ -99,6 +108,7 @@ Future<void> _open(
               freeNavigation: freeNavigation,
               isDirty: isDirty,
               stepChild: stepChild,
+              onReset: onReset,
             ),
           ),
           child: const Text('open'),
@@ -274,7 +284,7 @@ void main() {
       expect(find.byType(Dialog), findsNothing);
     });
 
-    testWidgets('asks before discarding typed input — close and Annuler', (
+    testWidgets('asks before discarding typed input on close', (
       tester,
     ) async {
       await _open(tester, isDirty: true);
@@ -287,11 +297,36 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('wizard-close')), findsOneWidget);
 
-      await _tap(tester, 'Annuler');
-      expect(find.text('Abandonner les modifications ?'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('wizard-close')));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Abandonner'));
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('wizard-close')), findsNothing);
+    });
+
+    testWidgets('no Annuler: Réinitialiser, offered once something was typed, '
+        'asks, then returns to step 1', (tester) async {
+      var resets = 0;
+      await _open(tester, isDirty: true, onReset: () => resets++);
+      expect(find.text('Annuler'), findsNothing);
+
+      await _tap(tester, 'Suivant');
+      expect(find.text('page 1'), findsOneWidget);
+
+      await _tap(tester, 'Réinitialiser');
+      expect(find.text('Réinitialiser le formulaire ?'), findsOneWidget);
+      await tester.tap(find.text('Réinitialiser').last);
+      await tester.pumpAndSettle();
+
+      expect(resets, 1);
+      expect(find.text('page 0'), findsOneWidget);
+    });
+
+    testWidgets('Réinitialiser is disabled until something was typed', (
+      tester,
+    ) async {
+      await _open(tester, onReset: () {});
+      expect(_enabled(tester, 'Réinitialiser'), isFalse);
     });
 
     testWidgets('fields inside a step are white, borderless, green on focus', (
@@ -328,9 +363,9 @@ void main() {
       );
     });
 
-    testWidgets('button tones: quiet Annuler, white Précédent, tonal '
+    testWidgets('button tones: quiet Réinitialiser, white Précédent, tonal '
         'Suivant, solid Enregistrer', (tester) async {
-      await _open(tester);
+      await _open(tester, isDirty: true, onReset: () {});
       ButtonStyle? styleOf(String label) =>
           tester.widget<ButtonStyleButton>(_button(label).first).style;
 
@@ -338,7 +373,7 @@ void main() {
           lessThan(0.5));
 
       await _tap(tester, 'Suivant');
-      final cancel = styleOf('Annuler')!;
+      final cancel = styleOf('Réinitialiser')!;
       expect(cancel.foregroundColor?.resolve(_none), const Color(0xFF777777));
       expect(cancel.side?.resolve(_none), BorderSide.none);
       expect(cancel.backgroundColor?.resolve(_none), Colors.transparent);
@@ -366,6 +401,29 @@ void main() {
       expect(find.text('Étape 1 sur 3 · Infos'), findsOneWidget);
       final dialog = tester.getRect(find.byType(Dialog));
       expect(dialog.width, 390);
+    });
+
+    testWidgets('on a phone every action stays on one line', (tester) async {
+      await _open(
+        tester,
+        size: const Size(390, 844),
+        isDirty: true,
+        freeNavigation: true,
+        onReset: () {},
+      );
+      // Step 2, so Précédent is there too (the compact indicator on a phone
+      // has no steps to tap).
+      await tester.tap(find.byKey(const ValueKey('wizard-next')));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      // Réinitialiser, Précédent, Suivant, Enregistrer — one row.
+      final ys = [
+        for (final key in ['wizard-reset', 'wizard-previous', 'wizard-next'])
+          tester.getCenter(find.byKey(ValueKey(key))).dy,
+        tester.getCenter(_button('Enregistrer').first).dy,
+      ];
+      expect(ys.every((y) => (y - ys.first).abs() < 1), isTrue);
     });
   });
 }

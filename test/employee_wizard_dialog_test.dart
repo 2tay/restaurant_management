@@ -207,5 +207,30 @@ void main() {
       find.text('Étape 1 sur 3 · Information professionnelle'),
       findsOneWidget,
     );
+    // One field per line: Prénom above Nom, not beside it.
+    final first = tester.getRect(_fields.at(0));
+    final last = tester.getRect(_fields.at(1));
+    expect(last.top, greaterThan(first.bottom));
+    expect(last.left, first.left);
+  });
+
+  testApp('Réinitialiser empties the fields and returns to step 1', (
+    tester,
+  ) async {
+    await _openAdd(tester);
+    await _fillIdentity(tester);
+    await _tap(tester, 'Suivant');
+
+    await _tap(tester, 'Réinitialiser');
+    await tester.tap(find.text('Réinitialiser').last);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('wizard-page-0')), findsOneWidget);
+    for (var i = 0; i < 5; i++) {
+      expect(
+        tester.widget<TextField>(_fields.at(i)).controller!.text,
+        isEmpty,
+      );
+    }
   });
 }

@@ -208,6 +208,22 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
     });
   }
 
+  /// Puts every field back to what the form opened with — blank when
+  /// creating, the saved values when editing — and returns to step 1.
+  void _reset() {
+    setState(() {
+      for (final entry in _initialText.entries) {
+        entry.key.text = entry.value;
+      }
+      _role = _initialRole;
+      _pickedPhotoPath = null;
+      _photoCleared = false;
+      _pinTaken = false;
+      _emailTaken = false;
+      _step = 0;
+    });
+  }
+
   void _removePhoto() {
     setState(() {
       _pickedPhotoPath = null;
@@ -232,6 +248,7 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
       submitIcon: LucideIcons.check,
       onSubmit: _submit,
       isDirty: _isDirty,
+      onReset: _reset,
       steps: [
         WizardStep(
           label: l10n.employeeWizardStepInfo,
@@ -257,11 +274,14 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
   Widget _identityStep(AppLocalizations l10n) {
     return Column(
       children: [
-        Row(
+        AdaptiveRow(
+          spacing: AppSpacing.xl,
+          runSpacing: AppSpacing.xl,
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: AppTextField(
+          stackedCrossAxisAlignment: CrossAxisAlignment.stretch,
+          cells: [
+            AdaptiveCell.expand(
+              AppTextField(
                 label: l10n.employeeFormFirstName,
                 hint: l10n.employeeFormFirstNameHint,
                 controller: _firstName,
@@ -270,9 +290,8 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
                 onChanged: (_) => setState(() {}),
               ),
             ),
-            const SizedBox(width: AppSpacing.xl),
-            Expanded(
-              child: AppTextField(
+            AdaptiveCell.expand(
+              AppTextField(
                 label: l10n.employeeFormLastName,
                 hint: l10n.employeeFormLastNameHint,
                 controller: _lastName,
@@ -291,11 +310,14 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
           onChanged: (_) => setState(() => _pinTaken = false),
         ),
         const SizedBox(height: AppSpacing.xl),
-        Row(
+        AdaptiveRow(
+          spacing: AppSpacing.xl,
+          runSpacing: AppSpacing.xl,
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: AppTextField(
+          stackedCrossAxisAlignment: CrossAxisAlignment.stretch,
+          cells: [
+            AdaptiveCell.expand(
+              AppTextField(
                 label: l10n.employeeFormPhone,
                 hint: l10n.employeeFormPhoneHint,
                 controller: _phone,
@@ -304,9 +326,8 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
                 onChanged: (_) => setState(() {}),
               ),
             ),
-            const SizedBox(width: AppSpacing.xl),
-            Expanded(
-              child: AppTextField(
+            AdaptiveCell.expand(
+              AppTextField(
                 label: l10n.employeeFormEmail,
                 hint: l10n.employeeFormEmailHint,
                 controller: _email,
@@ -414,11 +435,14 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
   Widget _passwordCard(AppLocalizations l10n) {
     return Column(
       children: [
-        Row(
+        AdaptiveRow(
+          spacing: AppSpacing.xl,
+          runSpacing: AppSpacing.xl,
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: AppTextField(
+          stackedCrossAxisAlignment: CrossAxisAlignment.stretch,
+          cells: [
+            AdaptiveCell.expand(
+              AppTextField(
                 label: l10n.employeeFormPassword,
                 hint: l10n.loginPasswordHint,
                 controller: _password,
@@ -432,9 +456,8 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
                 onChanged: (_) => setState(() {}),
               ),
             ),
-            const SizedBox(width: AppSpacing.xl),
-            Expanded(
-              child: AppTextField(
+            AdaptiveCell.expand(
+              AppTextField(
                 label: l10n.employeeFormPasswordConfirm,
                 hint: l10n.employeeFormPasswordConfirmHint,
                 controller: _passwordConfirm,

@@ -435,6 +435,16 @@ class AppLocalizationsFr extends AppLocalizations {
   String get wizardPrevious => 'Précédent';
 
   @override
+  String get wizardReset => 'Réinitialiser';
+
+  @override
+  String get wizardResetTitle => 'Réinitialiser le formulaire ?';
+
+  @override
+  String get wizardResetBody =>
+      'Les informations saisies seront effacées et vous reviendrez à la première étape.';
+
+  @override
   String wizardStepOf(int current, int total) {
     return 'Étape $current sur $total';
   }

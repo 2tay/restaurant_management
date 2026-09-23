@@ -5,6 +5,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/utils/responsive.dart';
 import '../../l10n/app_localizations.dart';
+import 'action_density.dart';
 import 'app_text_field.dart';
 import 'confirm_dialog.dart';
 import 'primary_button.dart';
@@ -36,11 +37,13 @@ class WizardStep {
 /// - **Body:** the [WizardStepIndicator], then the current step, scrolling on
 ///   its own when it is taller than the dialog. Fields in a step are the
 ///   plain (white, borderless) variant, on the dialog's page-grey surface.
-/// - **Actions:** Annuler on the left; Précédent, then Suivant — or
-///   [submitLabel] on the last step — on the right.
+/// - **Actions:** Réinitialiser on the left (the close button is the way
+///   out); Précédent, then Suivant — or [submitLabel] on the last step — on
+///   the right.
 ///
-/// On a phone the dialog is full screen and the actions stack, the
-/// constructive one on top.
+/// On a phone the dialog is full screen and the actions stay on one line:
+/// the secondary ones collapse to icons, the primary keeps its words and
+/// takes the rest of the width.
 ///
 /// Controlled: the parent holds [currentStep] and moves it in
 /// [onStepChanged], so it can also send the user back to a step (a field
@@ -65,6 +68,7 @@ class WizardDialog extends StatelessWidget {
     this.submitIcon,
     this.isDirty = false,
     this.freeNavigation = false,
+    this.onReset,
     this.maxWidth = 880,
     super.key,
   }) : assert(steps.length > 1, 'a wizard has at least two steps');
@@ -84,6 +88,11 @@ class WizardDialog extends StatelessWidget {
 
   final bool isDirty;
   final bool freeNavigation;
+
+  /// Puts the form back to where it started. Asked for first, and only
+  /// offered once something has been typed ([isDirty]).
+  final VoidCallback? onReset;
+
   final double maxWidth;
 
   /// Opens the dialog [builder] returns. A tap outside it closes it — through
@@ -101,6 +110,17 @@ class WizardDialog extends StatelessWidget {
 
   bool _stepsBeforeValid(int index) =>
       steps.take(index).every((s) => s.isValid);
+
+  Future<void> _confirmReset(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
+    final reset = await ConfirmDialog.show(
+      context,
+      title: l10n.wizardResetTitle,
+      message: l10n.wizardResetBody,
+      confirmLabel: l10n.wizardReset,
+    );
+    if (reset) onReset?.call();
+  }
 
   Future<bool> _confirmDiscard(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -183,11 +203,14 @@ class WizardDialog extends StatelessWidget {
     final showSubmit = _isLast || freeNavigation;
     final goNext = step.isValid ? () => onStepChanged(currentStep + 1) : null;
 
-    final cancel = SecondaryButton(
-      key: const ValueKey('wizard-cancel'),
-      label: l10n.actionCancel,
+    final reset = SecondaryButton(
+      key: const ValueKey('wizard-reset'),
+      label: l10n.wizardReset,
+      icon: LucideIcons.rotateCcw,
       tone: SecondaryButtonTone.quiet,
-      onPressed: () => Navigator.of(context).maybePop(),
+      onPressed: onReset != null && isDirty
+          ? () => _confirmReset(context)
+          : null,
     );
     final previous = currentStep == 0
         ? null
@@ -225,14 +248,24 @@ class WizardDialog extends StatelessWidget {
     final forward = [?previous, ?secondaryNext, primary];
 
     if (phone) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          for (final (i, action) in [...forward.reversed, cancel].indexed) ...[
-            if (i > 0) const SizedBox(height: AppSpacing.sm),
-            action,
+      // One line: the secondary buttons as icons (their names move to
+      // tooltips — see ActionDensity.iconOnly), the primary keeps its words
+      // and takes whatever width is left.
+      return ActionDensityScope(
+        density: ActionDensity.iconOnly,
+        child: Row(
+          children: [
+            if (onReset != null) ...[
+              reset,
+              const SizedBox(width: AppSpacing.sm),
+            ],
+            ?previous,
+            if (previous != null) const SizedBox(width: AppSpacing.sm),
+            ?secondaryNext,
+            if (secondaryNext != null) const SizedBox(width: AppSpacing.sm),
+            Expanded(child: primary),
           ],
-        ],
+        ),
       );
     }
     // Editing carries four buttons; when their French labels do not fit one
@@ -241,7 +274,7 @@ class WizardDialog extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        cancel,
+        if (onReset != null) reset,
         const SizedBox(width: AppSpacing.md),
         Expanded(
           child: Wrap(
