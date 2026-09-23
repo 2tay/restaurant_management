@@ -4000,11 +4000,11 @@ abstract class AppLocalizations {
   /// **'Embauches ce mois'**
   String get employeesKpiHiredThisMonth;
 
-  /// Photo section label on the employee form.
+  /// Employee form: heading of the card holding the photo, name, PIN and contact details.
   ///
   /// In fr, this message translates to:
-  /// **'Photo'**
-  String get employeeFormPhoto;
+  /// **'Identité'**
+  String get employeeFormIdentity;
 
   /// Button under the employee photo tile when no photo is set yet.
   ///
@@ -4081,7 +4081,7 @@ abstract class AppLocalizations {
   /// Employment section header on the employee form and detail page.
   ///
   /// In fr, this message translates to:
-  /// **'Contrat et rémunération'**
+  /// **'Rémunération'**
   String get employeeFormEmployment;
 
   /// Pay field label when the contract is extra.

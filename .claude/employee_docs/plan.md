@@ -123,7 +123,7 @@ décision.
 - Mise à jour de tous les tests qui référencent `cin` / `pin` par leur nom.
 - Schema v9 (rename colonne).
 
-## Phase 7 — Formulaire d'ajout/édition employé
+## Phase 7 — Formulaire d'ajout/édition employé ✅
 
 - Retirer l'option de rôle "Propriétaire" de `_RoleOption` (seuls Gérant / Employé restent
   sélectionnables).

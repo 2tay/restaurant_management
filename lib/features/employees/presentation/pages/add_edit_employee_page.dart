@@ -18,11 +18,11 @@ import '../../../../shared/widgets/widgets.dart';
 
 /// Create or edit a member of staff.
 ///
-/// One form for both modes, same shape as `add_edit_supplier_page.dart`. The
-/// pay label switches between "Salaire mensuel (€)" and "Tarif horaire (€/h)"
-/// as the contract type changes — reactive form state, not two fields, since
-/// exactly one applies. The role picker shows what each role can do rather
-/// than just its name.
+/// One form for both modes, same shape as `add_edit_supplier_page.dart`: an
+/// identity card (photo, name, PIN, contact), the role, the hourly rate, and
+/// the login password. The role picker shows what each role can do rather
+/// than just its name, and only offers Gérant / Employé — nobody is made
+/// Propriétaire from here. An existing owner keeps the role, shown alone.
 ///
 /// Split in two, like the other forms whose fields fill from a query: this
 /// resolves the employee being edited, and [_EmployeeForm] owns the
@@ -90,6 +90,13 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
   bool _emailTaken = false;
 
   bool get _isEditing => widget.employee != null;
+
+  /// The roles the picker offers. Propriétaire is never assignable from the
+  /// form; an owner being edited keeps it, as the only choice, rather than
+  /// being silently demoted by a save.
+  List<EmployeeRole> get _selectableRoles => _initialRole == EmployeeRole.owner
+      ? const [EmployeeRole.owner]
+      : const [EmployeeRole.manager, EmployeeRole.staff];
 
   Employee? get _employee => widget.employee;
 
@@ -226,49 +233,46 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          SectionHeader(title: l10n.employeeFormPhoto),
-          AppCard(
-            child: Row(
-              children: [
-                _PhotoTile(
-                  image: _photoPreview,
-                  firstName: _firstName.text,
-                  lastName: _lastName.text,
-                ),
-                const SizedBox(width: AppSpacing.lg),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      SecondaryButton(
-                        label: _hasPhoto
-                            ? l10n.employeeFormPhotoReplace
-                            : l10n.employeeFormPhotoAction,
-                        icon: LucideIcons.camera,
-                        onPressed: _pickPhoto,
-                      ),
-                      if (_hasPhoto) ...[
-                        const SizedBox(height: AppSpacing.sm),
-                        TextButton.icon(
-                          onPressed: _removePhoto,
-                          icon: const Icon(
-                            LucideIcons.trash2,
-                            size: AppSizing.iconSm,
-                          ),
-                          label: Text(l10n.employeeFormPhotoRemove),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-
+          SectionHeader(title: l10n.employeeFormIdentity),
           AppCard(
             child: Column(
               children: [
+                Row(
+                  children: [
+                    _PhotoTile(
+                      image: _photoPreview,
+                      firstName: _firstName.text,
+                      lastName: _lastName.text,
+                    ),
+                    const SizedBox(width: AppSpacing.lg),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          SecondaryButton(
+                            label: _hasPhoto
+                                ? l10n.employeeFormPhotoReplace
+                                : l10n.employeeFormPhotoAction,
+                            icon: LucideIcons.camera,
+                            onPressed: _pickPhoto,
+                          ),
+                          if (_hasPhoto) ...[
+                            const SizedBox(height: AppSpacing.sm),
+                            TextButton.icon(
+                              onPressed: _removePhoto,
+                              icon: const Icon(
+                                LucideIcons.trash2,
+                                size: AppSizing.iconSm,
+                              ),
+                              label: Text(l10n.employeeFormPhotoRemove),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.lg),
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -333,15 +337,11 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
           const SizedBox(height: AppSpacing.lg),
 
           SectionHeader(title: l10n.employeeFormRole),
-          for (final role in EmployeeRole.values)
-            Padding(
-              padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-              child: _RoleOption(
-                role: role,
-                selected: _role == role,
-                onTap: () => setState(() => _role = role),
-              ),
-            ),
+          _RolePicker(
+            roles: _selectableRoles,
+            selected: _role,
+            onChanged: (role) => setState(() => _role = role),
+          ),
           const SizedBox(height: AppSpacing.lg),
 
           SectionHeader(title: l10n.employeeFormEmployment),
@@ -563,6 +563,59 @@ class _PhotoTile extends StatelessWidget {
   }
 }
 
+/// The role choices: side by side when there is room for two readable cards,
+/// stacked on a phone.
+class _RolePicker extends StatelessWidget {
+  const _RolePicker({
+    required this.roles,
+    required this.selected,
+    required this.onChanged,
+  });
+
+  final List<EmployeeRole> roles;
+  final EmployeeRole selected;
+  final ValueChanged<EmployeeRole> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final options = [
+      for (final role in roles)
+        _RoleOption(
+          key: ValueKey('role-option-${role.name}'),
+          role: role,
+          selected: selected == role,
+          onTap: () => onChanged(role),
+        ),
+    ];
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (options.length < 2 || constraints.maxWidth < 560) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (final (i, option) in options.indexed) ...[
+                if (i > 0) const SizedBox(height: AppSpacing.sm),
+                option,
+              ],
+            ],
+          );
+        }
+        return IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (final (i, option) in options.indexed) ...[
+                if (i > 0) const SizedBox(width: AppSpacing.md),
+                Expanded(child: option),
+              ],
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
 /// A role choice showing name and description together — "Gérant" means
 /// nothing on its own, and picking the wrong one is how someone ends up
 /// unable to do their job.
@@ -571,6 +624,7 @@ class _RoleOption extends StatelessWidget {
     required this.role,
     required this.selected,
     required this.onTap,
+    super.key,
   });
 
   final EmployeeRole role;

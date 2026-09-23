@@ -2422,7 +2422,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get employeesKpiHiredThisMonth => 'Embauches ce mois';
 
   @override
-  String get employeeFormPhoto => 'Photo';
+  String get employeeFormIdentity => 'Identité';
 
   @override
   String get employeeFormPhotoAction => 'Choisir une photo';
@@ -2462,7 +2462,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get employeeFormRole => 'Rôle et accès';
 
   @override
-  String get employeeFormEmployment => 'Contrat et rémunération';
+  String get employeeFormEmployment => 'Rémunération';
 
   @override
   String get employeeFormPayHourly => 'Tarif horaire (€/h)';
