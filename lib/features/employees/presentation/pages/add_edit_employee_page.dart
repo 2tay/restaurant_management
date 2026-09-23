@@ -295,7 +295,7 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
                 onChanged: (_) => setState(() {}),
               ),
             ),
-            const SizedBox(width: AppSpacing.lg),
+            const SizedBox(width: AppSpacing.xl),
             Expanded(
               child: AppTextField(
                 label: l10n.employeeFormLastName,
@@ -306,7 +306,7 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
             ),
           ],
         ),
-        const SizedBox(height: AppSpacing.lg),
+        const SizedBox(height: AppSpacing.xl),
         AppTextField(
           label: l10n.employeeFormPin,
           hint: l10n.loginPinHint,
@@ -315,7 +315,7 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
           errorText: _pinTaken ? l10n.employeePinTaken : null,
           onChanged: (_) => setState(() => _pinTaken = false),
         ),
-        const SizedBox(height: AppSpacing.lg),
+        const SizedBox(height: AppSpacing.xl),
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -329,7 +329,7 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
                 onChanged: (_) => setState(() {}),
               ),
             ),
-            const SizedBox(width: AppSpacing.lg),
+            const SizedBox(width: AppSpacing.xl),
             Expanded(
               child: AppTextField(
                 label: l10n.employeeFormEmail,
@@ -348,36 +348,19 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
           children: [
             _PhotoTile(
               image: _photoPreview,
-              firstName: _firstName.text,
-              lastName: _lastName.text,
+              onTap: _pickPhoto,
+              tooltip: _hasPhoto
+                  ? l10n.employeeFormPhotoReplace
+                  : l10n.employeeFormPhotoAction,
             ),
-            const SizedBox(width: AppSpacing.lg),
+            const SizedBox(width: AppSpacing.xl),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Wrap(
-                    spacing: AppSpacing.sm,
-                    runSpacing: AppSpacing.sm,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      SecondaryButton(
-                        label: _hasPhoto
-                            ? l10n.employeeFormPhotoReplace
-                            : l10n.employeeFormPhotoAction,
-                        icon: LucideIcons.camera,
-                        onPressed: _pickPhoto,
-                      ),
-                      if (_hasPhoto)
-                        TextButton.icon(
-                          onPressed: _removePhoto,
-                          icon: const Icon(
-                            LucideIcons.trash2,
-                            size: AppSizing.iconSm,
-                          ),
-                          label: Text(l10n.employeeFormPhotoRemove),
-                        ),
-                    ],
+                  Text(
+                    l10n.employeeFormPhoto,
+                    style: Theme.of(context).textTheme.labelMedium,
                   ),
                   const SizedBox(height: AppSpacing.xs),
                   Text(
@@ -386,6 +369,15 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
                       color: AppColors.textSecondary,
                     ),
                   ),
+                  if (_hasPhoto)
+                    TextButton.icon(
+                      onPressed: _removePhoto,
+                      icon: const Icon(
+                        LucideIcons.trash2,
+                        size: AppSizing.iconSm,
+                      ),
+                      label: Text(l10n.employeeFormPhotoRemove),
+                    ),
                 ],
               ),
             ),
@@ -465,7 +457,7 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
                 onChanged: (_) => setState(() {}),
               ),
             ),
-            const SizedBox(width: AppSpacing.lg),
+            const SizedBox(width: AppSpacing.xl),
             Expanded(
               child: AppTextField(
                 label: l10n.employeeFormPasswordConfirm,
@@ -593,52 +585,58 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
       : value.toString().replaceAll('.', ',');
 }
 
-/// The photo tile on the form — the chosen / current picture, or an initials
-/// avatar when there is none.
+/// The photo tile on the form — and the picker: a grey circle with an upload
+/// icon until a photo is chosen, then the photo. Tapping it opens the file
+/// picker either way.
 class _PhotoTile extends StatelessWidget {
   const _PhotoTile({
     required this.image,
-    required this.firstName,
-    required this.lastName,
+    required this.onTap,
+    required this.tooltip,
   });
 
+  static const double _size = 80;
+
   final ImageProvider? image;
-  final String firstName;
-  final String lastName;
+  final VoidCallback onTap;
+  final String tooltip;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final letters = [
-      if (firstName.trim().isNotEmpty) firstName.trim()[0],
-      if (lastName.trim().isNotEmpty) lastName.trim()[0],
-    ].join().toUpperCase();
-
-    final initials = Text(
-      letters.isEmpty ? '?' : letters,
-      style: theme.textTheme.titleLarge?.copyWith(
-        color: AppColors.onPrimaryContainer,
-      ),
+    const upload = Icon(
+      LucideIcons.upload,
+      size: AppSizing.iconLg,
+      color: AppColors.placeholder,
     );
 
-    return Container(
-      width: 64,
-      height: 64,
-      alignment: Alignment.center,
-      clipBehavior: Clip.antiAlias,
-      decoration: const BoxDecoration(
-        color: AppColors.primaryContainer,
-        shape: BoxShape.circle,
-      ),
-      child: image == null
-          ? initials
-          : Image(
-              image: image!,
-              width: 64,
-              height: 64,
-              fit: BoxFit.cover,
-              errorBuilder: (_, _, _) => initials,
+    return Tooltip(
+      message: tooltip,
+      child: Semantics(
+        button: true,
+        label: tooltip,
+        child: Material(
+          key: const ValueKey('employee-photo-picker'),
+          color: AppColors.surfaceVariant,
+          shape: const CircleBorder(),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: onTap,
+            child: SizedBox(
+              width: _size,
+              height: _size,
+              child: image == null
+                  ? const Center(child: upload)
+                  : Image(
+                      image: image!,
+                      width: _size,
+                      height: _size,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, _, _) => const Center(child: upload),
+                    ),
             ),
+          ),
+        ),
+      ),
     );
   }
 }

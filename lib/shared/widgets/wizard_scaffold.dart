@@ -58,7 +58,7 @@ class WizardScaffold extends StatelessWidget {
     this.submitIcon,
     this.isDirty = false,
     this.freeNavigation = false,
-    this.maxWidth = 1080,
+    this.maxWidth = 1280,
     super.key,
   }) : assert(steps.length > 1, 'a wizard has at least two steps');
 
@@ -102,6 +102,7 @@ class WizardScaffold extends StatelessWidget {
       key: const ValueKey('wizard-next'),
       label: l10n.wizardNext,
       icon: LucideIcons.arrowRight,
+      tone: SecondaryButtonTone.surface,
       onPressed: step.isValid ? () => onStepChanged(currentStep + 1) : null,
     );
 
@@ -112,6 +113,7 @@ class WizardScaffold extends StatelessWidget {
       back: back,
       headerBackLinkLabel: backLinkLabel,
       centered: true,
+      centerVertically: true,
       inlineActions: true,
       isDirty: isDirty,
       maxWidth: maxWidth,
@@ -121,6 +123,7 @@ class WizardScaffold extends StatelessWidget {
             key: const ValueKey('wizard-previous'),
             label: l10n.wizardPrevious,
             icon: LucideIcons.arrowLeft,
+            tone: SecondaryButtonTone.surface,
             onPressed: () => onStepChanged(currentStep - 1),
           ),
         // Not last and not free: Suivant *is* the primary action, below.
@@ -134,9 +137,6 @@ class WizardScaffold extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // A little more air between the page header and the steps than a
-          // root screen leaves before its content.
-          const SizedBox(height: AppSpacing.lg),
           WizardStepIndicator(
             labels: [for (final s in steps) s.label],
             current: currentStep,

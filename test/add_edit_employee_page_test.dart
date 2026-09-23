@@ -86,7 +86,7 @@ void main() {
     expect(_enabled(tester, 'Suivant'), isFalse);
   });
 
-  testApp('step 1: no card behind the fields, and the photo comes last', (
+  testApp('step 1: no card behind the fields; the photo picker comes last', (
     tester,
   ) async {
     await _open(tester, Routes.toAddEmployee(StoreIds.sablon));
@@ -97,8 +97,11 @@ void main() {
       findsNothing,
     );
     final emailY = tester.getTopLeft(find.byType(TextField).last).dy;
-    final photoY = tester.getTopLeft(find.text('Choisir une photo')).dy;
-    expect(photoY, greaterThan(emailY));
+    // The grey circle is the picker; there is no separate photo button.
+    final picker = find.byKey(const ValueKey('employee-photo-picker'));
+    expect(picker, findsOneWidget);
+    expect(find.text('Choisir une photo'), findsNothing);
+    expect(tester.getTopLeft(picker).dy, greaterThan(emailY));
   });
 
   testApp('the back link returns to Personnel', (tester) async {

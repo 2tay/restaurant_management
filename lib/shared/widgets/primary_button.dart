@@ -78,6 +78,20 @@ class PrimaryButton extends StatelessWidget {
 }
 
 /// A supporting action — "Annuler", "Voir tout", a secondary form path.
+/// How a [SecondaryButton] is drawn.
+enum SecondaryButtonTone {
+  /// Outlined — the default everywhere.
+  outlined,
+
+  /// No border, no fill, placeholder-grey text — a way out (Annuler) that
+  /// should not compete with the actions around it.
+  quiet,
+
+  /// No border on a white fill — a secondary step (Précédent) sitting on the
+  /// page's grey background.
+  surface,
+}
+
 class SecondaryButton extends StatelessWidget {
   const SecondaryButton({
     required this.label,
@@ -85,6 +99,7 @@ class SecondaryButton extends StatelessWidget {
     this.shortLabel,
     this.icon,
     this.fullWidth = false,
+    this.tone = SecondaryButtonTone.outlined,
     super.key,
   });
 
@@ -96,17 +111,33 @@ class SecondaryButton extends StatelessWidget {
   final VoidCallback? onPressed;
   final IconData? icon;
   final bool fullWidth;
+  final SecondaryButtonTone tone;
 
   @override
   Widget build(BuildContext context) {
+    final ButtonStyle? toneStyle = switch (tone) {
+      SecondaryButtonTone.outlined => null,
+      SecondaryButtonTone.quiet => OutlinedButton.styleFrom(
+        foregroundColor: AppColors.placeholder,
+        side: BorderSide.none,
+      ),
+      SecondaryButtonTone.surface => OutlinedButton.styleFrom(
+        foregroundColor: AppColors.textPrimary,
+        backgroundColor: AppColors.surface,
+        side: BorderSide.none,
+      ),
+    };
     return _collapsible(
       context: context,
       label: label,
       shortLabel: shortLabel,
       icon: icon,
       fullWidth: fullWidth,
-      builder: (child, style) =>
-          OutlinedButton(onPressed: onPressed, style: style, child: child),
+      builder: (child, style) => OutlinedButton(
+        onPressed: onPressed,
+        style: toneStyle == null ? style : toneStyle.merge(style),
+        child: child,
+      ),
     );
   }
 }

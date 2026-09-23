@@ -296,7 +296,8 @@ void main() {
       );
       // Body: the step content is a centred column, not pinned left.
       final page = tester.getRect(find.byKey(const ValueKey('wizard-page-0')));
-      expect(page.left, greaterThan(300));
+      // (1800 − 2×24 padding − 1280) / 2 + 24 = 260.
+      expect(page.left, greaterThan(200));
       expect((page.center.dx - 900).abs(), lessThan(40));
     });
 
@@ -317,8 +318,48 @@ void main() {
       expect(next.top - pageBottom, lessThan(80));
       expect(next.bottom, lessThan(1000 - 200));
       // …and inside the wizard's column, Annuler left, Suivant right.
-      expect(cancel.left, greaterThan(300));
-      expect(next.right, lessThan(1800 - 300));
+      expect(cancel.left, greaterThan(200));
+      expect(next.right, lessThan(1800 - 200));
+    });
+
+    testWidgets('the steps sit centred in the height under the header', (
+      tester,
+    ) async {
+      _size(tester, const Size(1800, 1000));
+      await tester.pumpWidget(
+        _host(_Harness(valid: const [true, true, true], onSubmit: () {})),
+      );
+
+      final headerBottom = tester.getRect(find.text('Trois étapes.')).bottom;
+      final top = tester.getRect(find.byType(WizardStepIndicator)).top;
+      final bottom = tester.getRect(_button('Suivant').first).bottom;
+      final above = top - headerBottom;
+      final below = 1000 - bottom;
+      // Roughly equal room above and below (page padding aside).
+      expect(above, greaterThan(100));
+      expect((above - below).abs(), lessThan(80));
+    });
+
+    testWidgets('Annuler is quiet (#777, no border); Précédent is white, '
+        'no border', (tester) async {
+      _size(tester, const Size(1800, 1000));
+      await tester.pumpWidget(
+        _host(_Harness(valid: const [true, true, true], onSubmit: () {})),
+      );
+      await tester.tap(_button('Suivant').first);
+      await tester.pumpAndSettle();
+
+      ButtonStyle styleOf(String label) =>
+          tester.widget<ButtonStyleButton>(_button(label).first).style!;
+      const none = <WidgetState>{};
+
+      final cancel = styleOf('Annuler');
+      expect(cancel.foregroundColor?.resolve(none), const Color(0xFF777777));
+      expect(cancel.side?.resolve(none), BorderSide.none);
+
+      final previous = styleOf('Précédent');
+      expect(previous.backgroundColor?.resolve(none), Colors.white);
+      expect(previous.side?.resolve(none), BorderSide.none);
     });
 
     testWidgets('plain fields show their placeholder in #777', (tester) async {

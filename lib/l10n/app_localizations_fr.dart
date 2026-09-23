@@ -2487,7 +2487,11 @@ class AppLocalizationsFr extends AppLocalizations {
   String get employeeFormPasswordConfirmHint => 'Répétez les 4 chiffres';
 
   @override
-  String get employeeFormPhotoHelp => 'Facultatif · JPG ou PNG';
+  String get employeeFormPhoto => 'Photo';
+
+  @override
+  String get employeeFormPhotoHelp =>
+      'Facultatif · cliquez sur le cercle pour choisir un JPG ou PNG';
 
   @override
   String get employeeFormPayHelp =>

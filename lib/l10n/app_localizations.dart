@@ -4120,10 +4120,16 @@ abstract class AppLocalizations {
   /// **'Répétez les 4 chiffres'**
   String get employeeFormPasswordConfirmHint;
 
+  /// Label beside the photo picker circle on the employee form.
+  ///
+  /// In fr, this message translates to:
+  /// **'Photo'**
+  String get employeeFormPhoto;
+
   /// Help line beside the photo button on the employee form.
   ///
   /// In fr, this message translates to:
-  /// **'Facultatif · JPG ou PNG'**
+  /// **'Facultatif · cliquez sur le cercle pour choisir un JPG ou PNG'**
   String get employeeFormPhotoHelp;
 
   /// Employee wizard, pay step: how the hourly rate is applied.

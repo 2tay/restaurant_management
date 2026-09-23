@@ -41,6 +41,7 @@ class FormScaffold extends StatelessWidget {
     this.forwardActions = const [],
     this.headerBackLinkLabel,
     this.centered = false,
+    this.centerVertically = false,
     this.inlineActions = false,
     this.maxWidth = 760,
     super.key,
@@ -92,6 +93,10 @@ class FormScaffold extends StatelessWidget {
   /// in the window, instead of holding it to the left edge.
   final bool centered;
 
+  /// Centres the form in the height left under the header — a short, focused
+  /// form (a wizard) instead of hugging the top of a tall window.
+  final bool centerVertically;
+
   /// Puts the actions right under the form, in its column, instead of a bar
   /// pinned to the bottom of the window — for a short form (a wizard step)
   /// where the buttons belong with the fields they act on.
@@ -112,6 +117,11 @@ class FormScaffold extends StatelessWidget {
       leading: [
         SecondaryButton(
           label: l10n.actionCancel,
+          // Inline, under the fields: a quiet way out rather than an outlined
+          // button competing with the steps.
+          tone: inlineActions
+              ? SecondaryButtonTone.quiet
+              : SecondaryButtonTone.outlined,
           onPressed: () => _leave(context),
         ),
         ?secondaryAction,
@@ -155,6 +165,7 @@ class FormScaffold extends StatelessWidget {
         // A centred form keeps a root-screen header: title left, the way back
         // at the page's right edge (see Personnel and its Ajouter button).
         fullWidthHeader: centered,
+        centerContentVertically: centerVertically,
         footer: inlineActions ? null : actionBar,
         child: inlineActions
             ? Column(

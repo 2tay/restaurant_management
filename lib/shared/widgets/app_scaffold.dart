@@ -334,6 +334,7 @@ class ShellPage extends StatelessWidget {
     this.maxContentWidth,
     this.centerContent = false,
     this.fullWidthHeader = false,
+    this.centerContentVertically = false,
     super.key,
   });
 
@@ -390,6 +391,11 @@ class ShellPage extends StatelessWidget {
   /// screen's header reads exactly like a root screen's, its action at the
   /// page's right edge, while the content stays a comfortable column.
   final bool fullWidthHeader;
+
+  /// With [fullWidthHeader] on a scrolling page: when the content is shorter
+  /// than the window, it sits centred in the space under the header (the
+  /// header stays at the top); when taller, the page scrolls as usual.
+  final bool centerContentVertically;
 
   @override
   Widget build(BuildContext context) {
@@ -466,6 +472,33 @@ class ShellPage extends StatelessWidget {
     // window, and this is dense content that needs the room more than the
     // margin needs the air.
     final insets = padding ?? context.pageInsets;
+
+    if (centerContentVertically && fullWidthHeader && scrollable) {
+      // A min-height column: `spaceBetween` over [header, content, nothing]
+      // puts the content in the middle of what the header leaves, and a
+      // content taller than the window simply makes the column taller and
+      // scrolls. No intrinsic measuring, so LayoutBuilders inside are fine.
+      final resolved = insets.resolve(Directionality.of(context));
+      final centred = LayoutBuilder(
+        builder: (context, viewport) => SingleChildScrollView(
+          padding: insets,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minHeight: (viewport.maxHeight - resolved.vertical)
+                  .clamp(0, double.infinity),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [header, constrain(child), const SizedBox.shrink()],
+            ),
+          ),
+        ),
+      );
+      if (footer == null) return centred;
+      return Column(children: [Expanded(child: centred), footer!]);
+    }
 
     final content = scrollable
         ? SingleChildScrollView(padding: insets, child: body)
