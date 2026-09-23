@@ -1453,29 +1453,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'Tous vos produits sont au-dessus de leur seuil d\'alerte.';
 
   @override
-  String alertsShortfall(String quantity) {
-    return 'Il manque $quantity pour atteindre le seuil';
-  }
+  String get alertsSeverityOutOfStock => 'Ruptures';
 
   @override
-  String alertsOrderFrom(String supplier) {
-    return 'Commander chez $supplier';
-  }
-
-  @override
-  String get alertsKpiOutOfStock => 'Ruptures';
-
-  @override
-  String get alertsKpiLowStock => 'Stock bas';
-
-  @override
-  String get alertsKpiOnOrder => 'Déjà commandés';
-
-  @override
-  String get alertsKpiSuppliers => 'Fournisseurs';
-
-  @override
-  String get alertsFilterSeverity => 'Gravité';
+  String get alertsSeverityLowStock => 'Stock bas';
 
   @override
   String get alertsFilterCoverage => 'Couverture';
@@ -1511,24 +1492,20 @@ class AppLocalizationsFr extends AppLocalizations {
   String get alertsNoSupplier => 'Sans fournisseur';
 
   @override
-  String alertsCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count produits',
-      one: '1 produit',
-      zero: 'Aucun produit',
-    );
-    return '$_temp0';
-  }
-
-  @override
   String alertsLevel(String quantity, String threshold) {
     return '$quantity sur $threshold';
   }
 
   @override
   String get alertsSelectAll => 'Tout sélectionner';
+
+  @override
+  String alertsShortfallShort(String quantity) {
+    return 'manque $quantity';
+  }
+
+  @override
+  String get alertsOrder => 'Commander';
 
   @override
   String alertsSelectionSummary(int items, int suppliers) {
@@ -2620,11 +2597,8 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String alertsOnOrder(String quantity) {
-    return '$quantity en commande';
+    return '$quantity en route';
   }
-
-  @override
-  String get alertsNothingOnOrder => 'Rien en commande';
 
   @override
   String get alertsCreateOrders => 'Créer les commandes';

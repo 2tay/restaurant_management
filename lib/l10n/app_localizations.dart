@@ -2404,47 +2404,17 @@ abstract class AppLocalizations {
   /// **'Tous vos produits sont au-dessus de leur seuil d\'alerte.'**
   String get alertsEmptyBody;
 
-  /// How far below its threshold an item is.
-  ///
-  /// In fr, this message translates to:
-  /// **'Il manque {quantity} pour atteindre le seuil'**
-  String alertsShortfall(String quantity);
-
-  /// Action suggesting the item's default supplier.
-  ///
-  /// In fr, this message translates to:
-  /// **'Commander chez {supplier}'**
-  String alertsOrderFrom(String supplier);
-
-  /// KPI tile counting articles at zero.
+  /// Severity tab and section heading for articles at zero.
   ///
   /// In fr, this message translates to:
   /// **'Ruptures'**
-  String get alertsKpiOutOfStock;
+  String get alertsSeverityOutOfStock;
 
-  /// KPI tile counting articles at or under their threshold but not yet at zero.
+  /// Severity tab and section heading for articles at or under their threshold but not yet at zero.
   ///
   /// In fr, this message translates to:
   /// **'Stock bas'**
-  String get alertsKpiLowStock;
-
-  /// KPI tile counting alerted articles that already have stock on its way.
-  ///
-  /// In fr, this message translates to:
-  /// **'Déjà commandés'**
-  String get alertsKpiOnOrder;
-
-  /// KPI tile counting the distinct suppliers who would fill the current alerts.
-  ///
-  /// In fr, this message translates to:
-  /// **'Fournisseurs'**
-  String get alertsKpiSuppliers;
-
-  /// Label of the severity filter on the alerts screen.
-  ///
-  /// In fr, this message translates to:
-  /// **'Gravité'**
-  String get alertsFilterSeverity;
+  String get alertsSeverityLowStock;
 
   /// Label of the filter separating alerts that already have stock coming from those that do not.
   ///
@@ -2512,12 +2482,6 @@ abstract class AppLocalizations {
   /// **'Sans fournisseur'**
   String get alertsNoSupplier;
 
-  /// How many articles the current filters leave.
-  ///
-  /// In fr, this message translates to:
-  /// **'{count, plural, =0{Aucun produit} =1{1 produit} other{{count} produits}}'**
-  String alertsCount(int count);
-
   /// An article's stock against its threshold, e.g. "4 kg sur 10 kg".
   ///
   /// In fr, this message translates to:
@@ -2529,6 +2493,18 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Tout sélectionner'**
   String get alertsSelectAll;
+
+  /// The shortfall as it appears on a list row, where the full sentence repeats on every line.
+  ///
+  /// In fr, this message translates to:
+  /// **'manque {quantity}'**
+  String alertsShortfallShort(String quantity);
+
+  /// Row action. The supplier is already named on the row, so the button does not repeat it.
+  ///
+  /// In fr, this message translates to:
+  /// **'Commander'**
+  String get alertsOrder;
 
   /// What the selection action bar counts before the create-orders button.
   ///
@@ -4285,14 +4261,8 @@ abstract class AppLocalizations {
   /// Shown on a low stock alert row when the item is already on an open order.
   ///
   /// In fr, this message translates to:
-  /// **'{quantity} en commande'**
+  /// **'{quantity} en route'**
   String alertsOnOrder(String quantity);
-
-  /// Shown on a low stock alert row when nobody has ordered the item yet. The contrast with the previous string is the entire point of showing on-order here.
-  ///
-  /// In fr, this message translates to:
-  /// **'Rien en commande'**
-  String get alertsNothingOnOrder;
 
   /// Action on the low stock alerts screen that starts drafts grouped by supplier.
   ///

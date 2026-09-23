@@ -17,8 +17,6 @@ class StatTile extends StatelessWidget {
     required this.value,
     required this.icon,
     this.accent,
-    this.onTap,
-    this.selected = false,
     super.key,
   });
 
@@ -30,24 +28,12 @@ class StatTile extends StatelessWidget {
   /// (late breaks, unpaid periods) rather than a neutral statistic.
   final StockStatusColors? accent;
 
-  /// Makes the tile apply what it counts — the alerts screen uses it so
-  /// "3 ruptures" narrows the list to those three. A figure the user can act on
-  /// beats a figure they have to translate into a filter themselves.
-  final VoidCallback? onTap;
-
-  /// Outlines the tile, for when [onTap] has been used and this is the filter
-  /// currently narrowing the list. Without it the list changes and nothing on
-  /// screen says which tile did it.
-  final bool selected;
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final foreground = accent?.foreground ?? AppColors.textPrimary;
 
     return AppCard(
-      onTap: onTap,
-      selected: selected,
       child: LayoutBuilder(
         builder: (context, constraints) {
           // The icon medallion is 52dp of the tile's width including its gap.
