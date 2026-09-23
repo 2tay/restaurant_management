@@ -11,6 +11,7 @@ import '../../../../app/routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/credential_status.dart';
+import '../../../../core/utils/employee_status.dart';
 import '../../../../data/providers.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../models/models.dart';
@@ -18,11 +19,20 @@ import '../../../../shared/widgets/widgets.dart';
 
 /// Create or edit a member of staff.
 ///
-/// One form for both modes, same shape as `add_edit_supplier_page.dart`: an
-/// identity card (photo, name, PIN, contact), the role, the hourly rate, and
-/// the login password. The role picker shows what each role can do rather
-/// than just its name, and only offers Gérant / Employé — nobody is made
-/// Propriétaire from here. An existing owner keeps the role, shown alone.
+/// One [WizardScaffold] for both modes, in three steps:
+///
+/// 1. **Information professionnelle** — photo, name, PIN, phone, email.
+/// 2. **Rémunération** — the hourly rate.
+/// 3. **Rôle et sécurité** — the role, and the login password for a role that
+///    signs in. An Employé never signs in (their pointage is done at the
+///    kiosk with their PIN), so the password fields are not shown and nothing
+///    is saved for one.
+///
+/// Creating walks the steps in order; editing may jump to any step and save
+/// from each ([WizardScaffold.freeNavigation]). The role picker shows what
+/// each role can do rather than just its name, and only offers Gérant /
+/// Employé — nobody is made Propriétaire from here. An existing owner keeps
+/// the role, shown alone.
 ///
 /// Split in two, like the other forms whose fields fill from a query: this
 /// resolves the employee being edited, and [_EmployeeForm] owns the
@@ -77,6 +87,9 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
 
   EmployeeRole _role = EmployeeRole.staff;
 
+  /// The wizard step on screen.
+  int _step = 0;
+
   /// A photo file just chosen from disk, not yet copied into the store. Null
   /// until the user picks one.
   String? _pickedPhotoPath;
@@ -90,6 +103,9 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
   bool _emailTaken = false;
 
   bool get _isEditing => widget.employee != null;
+
+  /// Whether the chosen role signs in to the app, and so has a password.
+  bool get _needsPassword => _role != EmployeeRole.staff;
 
   /// The roles the picker offers. Propriétaire is never assignable from the
   /// form; an owner being edited keeps it, as the only choice, rather than
@@ -153,22 +169,29 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
   bool get _passwordComplete =>
       isValidPassword(_password.text) && _password.text.trim() == _passwordConfirm.text.trim();
 
-  /// Required when creating; optional when editing (blank keeps the old code).
-  bool get _passwordValid =>
-      _isEditing ? (!_passwordTouched || _passwordComplete) : _passwordComplete;
+  /// Not asked for an Employé. Otherwise required when creating, optional when
+  /// editing (blank keeps the current password).
+  bool get _passwordValid {
+    if (!_needsPassword) return true;
+    return _isEditing
+        ? (!_passwordTouched || _passwordComplete)
+        : _passwordComplete;
+  }
 
   bool get _passwordMismatch =>
       _passwordConfirm.text.trim().isNotEmpty &&
       _password.text.trim() != _passwordConfirm.text.trim();
 
-  bool get _canSubmit =>
+  bool get _identityValid =>
       _firstName.text.trim().isNotEmpty &&
       _lastName.text.trim().isNotEmpty &&
       _pin.text.trim().isNotEmpty &&
       _phone.text.trim().isNotEmpty &&
       _email.text.trim().isNotEmpty &&
-      _parsedPay != null &&
-      _passwordValid;
+      !_pinTaken &&
+      !_emailTaken;
+
+  bool get _payValid => _parsedPay != null;
 
   bool get _isDirty =>
       _initialText.entries.any((e) => e.key.text.trim() != e.value.trim()) ||
@@ -214,204 +237,249 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final existing = _employee;
 
-    return FormScaffold(
+    return WizardScaffold(
       title: _isEditing ? l10n.editEmployeeTitle : l10n.addEmployeeTitle,
+      description: existing == null
+          ? l10n.employeeFormDescription
+          : l10n.employeeFormEditDescription(employeeDisplayName(existing)),
       back: BackDestination(
         label: l10n.employeesTitle,
         path: Routes.toEmployees(widget.storeId),
       ),
-      crumbs: [
-        Crumb(l10n.employeesTitle, Routes.toEmployees(widget.storeId)),
-        Crumb(_isEditing ? l10n.editEmployeeTitle : l10n.addEmployeeTitle),
-      ],
+      backLinkLabel: l10n.employeeFormBackHome,
+      currentStep: _step,
+      onStepChanged: (step) => setState(() => _step = step),
+      freeNavigation: _isEditing,
       submitLabel: l10n.actionSave,
       submitIcon: LucideIcons.check,
-      onSubmit: _canSubmit ? () => _submit() : null,
+      onSubmit: _submit,
       isDirty: _isDirty,
       maxWidth: 720,
+      steps: [
+        WizardStep(
+          label: l10n.employeeWizardStepInfo,
+          isValid: _identityValid,
+          child: _identityStep(l10n),
+        ),
+        WizardStep(
+          label: l10n.employeeWizardStepPay,
+          isValid: _payValid,
+          child: _payStep(l10n),
+        ),
+        WizardStep(
+          label: l10n.employeeWizardStepRole,
+          isValid: _passwordValid,
+          child: _roleStep(l10n),
+        ),
+      ],
+    );
+  }
+
+  /// Step 1 — who the person is and how to reach them.
+  Widget _identityStep(AppLocalizations l10n) {
+    return AppCard(
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          SectionHeader(title: l10n.employeeFormIdentity),
-          AppCard(
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    _PhotoTile(
-                      image: _photoPreview,
-                      firstName: _firstName.text,
-                      lastName: _lastName.text,
-                    ),
-                    const SizedBox(width: AppSpacing.lg),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          SecondaryButton(
-                            label: _hasPhoto
-                                ? l10n.employeeFormPhotoReplace
-                                : l10n.employeeFormPhotoAction,
-                            icon: LucideIcons.camera,
-                            onPressed: _pickPhoto,
-                          ),
-                          if (_hasPhoto) ...[
-                            const SizedBox(height: AppSpacing.sm),
-                            TextButton.icon(
-                              onPressed: _removePhoto,
-                              icon: const Icon(
-                                LucideIcons.trash2,
-                                size: AppSizing.iconSm,
-                              ),
-                              label: Text(l10n.employeeFormPhotoRemove),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: AppTextField(
-                        label: l10n.employeeFormFirstName,
-                        controller: _firstName,
-                        prefixIcon: LucideIcons.user,
-                        autofocus: !_isEditing,
-                        onChanged: (_) => setState(() {}),
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.lg),
-                    Expanded(
-                      child: AppTextField(
-                        label: l10n.employeeFormLastName,
-                        controller: _lastName,
-                        onChanged: (_) => setState(() {}),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                AppTextField(
-                  label: l10n.employeeFormPin,
-                  controller: _pin,
-                  prefixIcon: LucideIcons.idCard,
-                  errorText: _pinTaken ? l10n.employeePinTaken : null,
-                  onChanged: (_) => setState(() => _pinTaken = false),
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: AppTextField(
-                        label: l10n.employeeFormPhone,
-                        controller: _phone,
-                        prefixIcon: LucideIcons.phone,
-                        keyboardType: TextInputType.phone,
-                        onChanged: (_) => setState(() {}),
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.lg),
-                    Expanded(
-                      child: AppTextField(
-                        label: l10n.employeeFormEmail,
-                        controller: _email,
-                        prefixIcon: LucideIcons.mail,
-                        keyboardType: TextInputType.emailAddress,
-                        errorText: _emailTaken
-                            ? l10n.employeeEmailTaken
-                            : null,
-                        onChanged: (_) => setState(() => _emailTaken = false),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-
-          SectionHeader(title: l10n.employeeFormRole),
-          _RolePicker(
-            roles: _selectableRoles,
-            selected: _role,
-            onChanged: (role) => setState(() => _role = role),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-
-          SectionHeader(title: l10n.employeeFormEmployment),
-          AppCard(
-            child: AppTextField(
-              label: l10n.employeeFormPayHourly,
-              controller: _pay,
-              prefixIcon: LucideIcons.wallet,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
+          Row(
+            children: [
+              _PhotoTile(
+                image: _photoPreview,
+                firstName: _firstName.text,
+                lastName: _lastName.text,
               ),
-              onChanged: (_) => setState(() {}),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-
-          SectionHeader(title: l10n.employeeFormCredentials),
-          AppCard(
-            child: Column(
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              const SizedBox(width: AppSpacing.lg),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Expanded(
-                      child: AppTextField(
-                        label: l10n.employeeFormPassword,
-                        controller: _password,
-                        prefixIcon: LucideIcons.lock,
-                        obscureText: true,
-                        keyboardType: TextInputType.number,
-                        inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly,
-                          LengthLimitingTextInputFormatter(AuthRules.passwordLength),
-                        ],
-                        onChanged: (_) => setState(() {}),
-                      ),
+                    SecondaryButton(
+                      label: _hasPhoto
+                          ? l10n.employeeFormPhotoReplace
+                          : l10n.employeeFormPhotoAction,
+                      icon: LucideIcons.camera,
+                      onPressed: _pickPhoto,
                     ),
-                    const SizedBox(width: AppSpacing.lg),
-                    Expanded(
-                      child: AppTextField(
-                        label: l10n.employeeFormPasswordConfirm,
-                        controller: _passwordConfirm,
-                        prefixIcon: LucideIcons.lock,
-                        obscureText: true,
-                        keyboardType: TextInputType.number,
-                        inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly,
-                          LengthLimitingTextInputFormatter(AuthRules.passwordLength),
-                        ],
-                        errorText: _passwordMismatch
-                            ? l10n.employeeFormPasswordMismatch
-                            : null,
-                        onChanged: (_) => setState(() {}),
+                    if (_hasPhoto) ...[
+                      const SizedBox(height: AppSpacing.sm),
+                      TextButton.icon(
+                        onPressed: _removePhoto,
+                        icon: const Icon(
+                          LucideIcons.trash2,
+                          size: AppSizing.iconSm,
+                        ),
+                        label: Text(l10n.employeeFormPhotoRemove),
                       ),
-                    ),
+                    ],
                   ],
                 ),
-                const SizedBox(height: AppSpacing.sm),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    _isEditing
-                        ? l10n.employeeFormPasswordEditHelp
-                        : l10n.employeeFormPasswordHelp,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: AppTextField(
+                  label: l10n.employeeFormFirstName,
+                  controller: _firstName,
+                  prefixIcon: LucideIcons.user,
+                  autofocus: !_isEditing,
+                  onChanged: (_) => setState(() {}),
                 ),
-              ],
+              ),
+              const SizedBox(width: AppSpacing.lg),
+              Expanded(
+                child: AppTextField(
+                  label: l10n.employeeFormLastName,
+                  controller: _lastName,
+                  onChanged: (_) => setState(() {}),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          AppTextField(
+            label: l10n.employeeFormPin,
+            controller: _pin,
+            prefixIcon: LucideIcons.idCard,
+            errorText: _pinTaken ? l10n.employeePinTaken : null,
+            onChanged: (_) => setState(() => _pinTaken = false),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: AppTextField(
+                  label: l10n.employeeFormPhone,
+                  controller: _phone,
+                  prefixIcon: LucideIcons.phone,
+                  keyboardType: TextInputType.phone,
+                  onChanged: (_) => setState(() {}),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.lg),
+              Expanded(
+                child: AppTextField(
+                  label: l10n.employeeFormEmail,
+                  controller: _email,
+                  prefixIcon: LucideIcons.mail,
+                  keyboardType: TextInputType.emailAddress,
+                  errorText: _emailTaken ? l10n.employeeEmailTaken : null,
+                  onChanged: (_) => setState(() => _emailTaken = false),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Step 2 — the hourly rate.
+  Widget _payStep(AppLocalizations l10n) {
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          AppTextField(
+            label: l10n.employeeFormPayHourly,
+            controller: _pay,
+            prefixIcon: LucideIcons.wallet,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            onChanged: (_) => setState(() {}),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            l10n.employeeFormPayHelp,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Step 3 — the role, and the password only for a role that signs in.
+  Widget _roleStep(AppLocalizations l10n) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SectionHeader(title: l10n.employeeFormRole),
+        _RolePicker(
+          roles: _selectableRoles,
+          selected: _role,
+          onChanged: (role) => setState(() => _role = role),
+        ),
+        const SizedBox(height: AppSpacing.lg),
+        if (_needsPassword) ...[
+          SectionHeader(title: l10n.employeeFormCredentials),
+          _passwordCard(l10n),
+        ] else
+          NoticeBanner(
+            key: const ValueKey('staff-no-password'),
+            icon: LucideIcons.info,
+            title: l10n.employeeFormStaffNoPassword,
+          ),
+      ],
+    );
+  }
+
+  Widget _passwordCard(AppLocalizations l10n) {
+    return AppCard(
+      child: Column(
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: AppTextField(
+                  label: l10n.employeeFormPassword,
+                  controller: _password,
+                  prefixIcon: LucideIcons.lock,
+                  obscureText: true,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(AuthRules.passwordLength),
+                  ],
+                  onChanged: (_) => setState(() {}),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.lg),
+              Expanded(
+                child: AppTextField(
+                  label: l10n.employeeFormPasswordConfirm,
+                  controller: _passwordConfirm,
+                  prefixIcon: LucideIcons.lock,
+                  obscureText: true,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(AuthRules.passwordLength),
+                  ],
+                  errorText: _passwordMismatch
+                      ? l10n.employeeFormPasswordMismatch
+                      : null,
+                  onChanged: (_) => setState(() {}),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              _isEditing
+                  ? l10n.employeeFormPasswordEditHelp
+                  : l10n.employeeFormPasswordHelp,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: AppColors.textSecondary,
+              ),
             ),
           ),
         ],
@@ -442,7 +510,7 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
       // The password, when the fields were filled — a nested write, not part of the
       // update transaction, but a refused password there is only a validation miss
       // and the details have already saved.
-      if (result != null && _passwordTouched) {
+      if (result != null && _needsPassword && _passwordTouched) {
         await ref
             .read(credentialRepositoryProvider)
             .setPassword(result.id, _password.text);
@@ -457,7 +525,7 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
         email: _email.text,
         role: _role,
         pay: pay,
-        password: _password.text,
+        password: _needsPassword ? _password.text : null,
       );
     }
 
@@ -477,6 +545,7 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
       setState(() {
         _pinTaken = byPin != null;
         _emailTaken = byEmail != null;
+        if (_pinTaken || _emailTaken) _step = 0;
       });
       return;
     }

@@ -129,7 +129,7 @@ void main() {
     // The edit form is pushed on top of the roster (a push keeps the base
     // location, so the form is checked for rather than the URL).
     expect(find.byType(AddEditEmployeePage), findsOneWidget);
-    expect(find.byKey(const ValueKey('role-option-staff')), findsOneWidget);
+    expect(find.byType(WizardScaffold), findsOneWidget);
   });
 
   testApp('Retirer in the drawer archives, and the drawer follows', (

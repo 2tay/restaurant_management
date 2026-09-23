@@ -4048,11 +4048,53 @@ abstract class AppLocalizations {
   /// **'Voir tout l\'historique'**
   String get employeeHistorySeeAll;
 
-  /// Employee form: heading of the card holding the photo, name, PIN and contact details.
+  /// Employee wizard, step 1: photo, name, PIN and contact details.
   ///
   /// In fr, this message translates to:
-  /// **'Identité'**
-  String get employeeFormIdentity;
+  /// **'Information professionnelle'**
+  String get employeeWizardStepInfo;
+
+  /// Employee wizard, step 2: the hourly rate.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rémunération'**
+  String get employeeWizardStepPay;
+
+  /// Employee wizard, step 3: the role and, for a role that signs in, the password.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rôle et sécurité'**
+  String get employeeWizardStepRole;
+
+  /// Paragraph under the add-employee title.
+  ///
+  /// In fr, this message translates to:
+  /// **'Renseignez la fiche en trois étapes : les informations professionnelles, la rémunération, puis le rôle et les accès.'**
+  String get employeeFormDescription;
+
+  /// Paragraph under the edit-employee title.
+  ///
+  /// In fr, this message translates to:
+  /// **'Modifiez la fiche de {name}. Chaque étape peut être enregistrée directement.'**
+  String employeeFormEditDescription(String name);
+
+  /// Employee wizard: link on the title row back to the staff roster.
+  ///
+  /// In fr, this message translates to:
+  /// **'Retour à l\'accueil'**
+  String get employeeFormBackHome;
+
+  /// Employee wizard, pay step: how the hourly rate is applied.
+  ///
+  /// In fr, this message translates to:
+  /// **'Payé à l\'heure réellement travaillée, pauses déduites.'**
+  String get employeeFormPayHelp;
+
+  /// Employee wizard, role step: shown instead of the password fields for the Employé role.
+  ///
+  /// In fr, this message translates to:
+  /// **'Un employé pointe avec son numéro PIN et n\'a pas accès à l\'application : aucun mot de passe n\'est demandé.'**
+  String get employeeFormStaffNoPassword;
 
   /// Button under the employee photo tile when no photo is set yet.
   ///

@@ -2448,7 +2448,33 @@ class AppLocalizationsFr extends AppLocalizations {
   String get employeeHistorySeeAll => 'Voir tout l\'historique';
 
   @override
-  String get employeeFormIdentity => 'Identité';
+  String get employeeWizardStepInfo => 'Information professionnelle';
+
+  @override
+  String get employeeWizardStepPay => 'Rémunération';
+
+  @override
+  String get employeeWizardStepRole => 'Rôle et sécurité';
+
+  @override
+  String get employeeFormDescription =>
+      'Renseignez la fiche en trois étapes : les informations professionnelles, la rémunération, puis le rôle et les accès.';
+
+  @override
+  String employeeFormEditDescription(String name) {
+    return 'Modifiez la fiche de $name. Chaque étape peut être enregistrée directement.';
+  }
+
+  @override
+  String get employeeFormBackHome => 'Retour à l\'accueil';
+
+  @override
+  String get employeeFormPayHelp =>
+      'Payé à l\'heure réellement travaillée, pauses déduites.';
+
+  @override
+  String get employeeFormStaffNoPassword =>
+      'Un employé pointe avec son numéro PIN et n\'a pas accès à l\'application : aucun mot de passe n\'est demandé.';
 
   @override
   String get employeeFormPhotoAction => 'Choisir une photo';

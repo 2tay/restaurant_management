@@ -42,10 +42,35 @@ class WizardStepIndicator extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) =>
-          constraints.maxWidth < AppBreakpoints.compact
+          constraints.maxWidth < AppBreakpoints.compact ||
+              _fullWidthNeeded(context) > constraints.maxWidth
           ? _compact(context)
           : _full(context),
     );
+  }
+
+  /// What the full row needs to show every label unclipped: each chip (dot,
+  /// gap, label, padding) plus a minimum length of connecting line. Measured
+  /// rather than assumed — French labels run long, and a row that clips them
+  /// reads worse than the compact form.
+  double _fullWidthNeeded(BuildContext context) {
+    final style = Theme.of(context).textTheme.titleSmall?.copyWith(
+      fontWeight: FontWeight.w600,
+    );
+    final scaler = MediaQuery.textScalerOf(context);
+    var total = 0.0;
+    for (final label in labels) {
+      final painter = TextPainter(
+        text: TextSpan(text: label, style: style),
+        textDirection: Directionality.of(context),
+        textScaler: scaler,
+        maxLines: 1,
+      )..layout();
+      total += 32 + AppSpacing.sm + painter.width + AppSpacing.xs * 2;
+      painter.dispose();
+    }
+    const minConnector = 24 + AppSpacing.md * 2;
+    return total + (labels.length - 1) * minConnector;
   }
 
   Widget _compact(BuildContext context) {
