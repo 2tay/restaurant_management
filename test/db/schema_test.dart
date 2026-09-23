@@ -129,7 +129,6 @@ void main() {
             email: email,
             hireDate: DateTime(2026),
             role: EmployeeRole.staff,
-            contractType: ContractType.fixed,
             pay: 2000,
             createdAt: DateTime(2026),
           ),
@@ -163,7 +162,6 @@ void main() {
             endDate: DateTime(2026, 7, 1),
             workedDays: 1,
             totalWorkedHours: 8,
-            totalOvertimeHours: 0,
             appliedRate: 2000,
             computedAmount: 76.92,
             status: PayrollStatus.paid,
@@ -176,6 +174,7 @@ void main() {
     test('with every table the app needs', () async {
       expect(await tableNames(), <String>[
         'attendance_pauses',
+        'attendance_sessions',
         'attendances',
         'categories',
         'employee_credentials',
@@ -197,8 +196,8 @@ void main() {
       ]);
     });
 
-    test('at schema version 5', () {
-      expect(db.schemaVersion, 5);
+    test('at schema version 7', () {
+      expect(db.schemaVersion, 7);
     });
 
     test('with foreign keys switched on', () async {
@@ -404,10 +403,18 @@ void main() {
             ),
           );
       await insertAttendance(id: 'att-1');
+      await db.into(db.attendanceSessions).insert(
+            AttendanceSessionsCompanion.insert(
+              id: 'session-1',
+              attendanceId: 'att-1',
+              position: 0,
+              clockInAt: DateTime(2026, 7, 1, 8),
+            ),
+          );
       await db.into(db.attendancePauses).insert(
             AttendancePausesCompanion.insert(
               id: 'pause-1',
-              attendanceId: 'att-1',
+              sessionId: 'session-1',
               position: 0,
               startAt: DateTime(2026, 7, 1, 12),
             ),
@@ -417,6 +424,7 @@ void main() {
 
       expect(await db.select(db.employeeCredentials).get(), isEmpty);
       expect(await db.select(db.attendances).get(), isEmpty);
+      expect(await db.select(db.attendanceSessions).get(), isEmpty);
       expect(await db.select(db.attendancePauses).get(), isEmpty);
     });
 
@@ -437,26 +445,21 @@ void main() {
     test('an attendance row can be written without an evaluation context', () async {
       await seedMinimalStore();
       await insertEmployee();
-      // The three v3 columns are nullable — a row from before the backfill,
-      // and the fallback path in `evaluationContext`, both rely on it.
+      // The v3 break-allowance column is nullable — a row from before the
+      // backfill, and the fallback path in `resolvedMaxBreakMinutes`, both
+      // rely on it.
       await insertAttendance(id: 'att-1');
       final row = await db.select(db.attendances).getSingle();
-      expect(row.scheduledStartMinutes, null);
-      expect(row.scheduledEndMinutes, null);
       expect(row.maxBreakMinutes, null);
     });
 
-    test('the pointage / paie settings default to the core constants', () async {
+    test('the pause settings default to the core constant', () async {
       await seedMinimalStore();
       final store = await (db.select(
         db.stores,
       )..where((s) => s.id.equals('store-1'))).getSingle();
 
-      expect(store.openMinutes, 8 * 60);
-      expect(store.closeMinutes, 17 * 60);
       expect(store.maxBreakMinutes, 30);
-      expect(store.overtimeMultiplier, 1.25);
-      expect(store.workingDaysPerMonth, 26);
     });
   });
 

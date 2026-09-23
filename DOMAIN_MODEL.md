@@ -733,8 +733,7 @@ pointage, paie, CIN + PIN auth) owns it in full; see
 | `firstName`, `lastName`, `cin`, `email` | who; `cin` and `email` are unique account-wide, `cin` is the login id |
 | `storeId` | the one store this person belongs to |
 | `role` | `owner`, `manager` or `staff` |
-| `contractType` | `fixed` (Salarié fixe) or `extra` |
-| `pay` | monthly salary (fixed) or hourly rate (extra) |
+| `pay` | hourly rate in euros — every hour actually worked is paid at this rate |
 | `scheduledStartMinutes` / `scheduledEndMinutes` | a personal schedule override, null = use store hours |
 | `archivedAt` | soft delete — the only delete; history is left untouched |
 

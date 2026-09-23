@@ -104,11 +104,8 @@ class EmployeeRepository {
     required String phone,
     required String email,
     required EmployeeRole role,
-    required ContractType contractType,
     required double pay,
     DateTime? hireDate,
-    int? scheduledStartMinutes,
-    int? scheduledEndMinutes,
     String? photoAsset,
     String? pin,
   }) async {
@@ -143,10 +140,7 @@ class EmployeeRepository {
         photoAsset: photoAsset,
         hireDate: hireDate ?? now,
         role: role,
-        contractType: contractType,
         pay: pay,
-        scheduledStartMinutes: scheduledStartMinutes,
-        scheduledEndMinutes: scheduledEndMinutes,
         createdAt: now,
       );
 
@@ -174,8 +168,7 @@ class EmployeeRepository {
   /// **`archivedAt` is not a parameter** — archiving is [archive] / [restore],
   /// the same reasoning that keeps quantity off the item edit form: an
   /// audit-relevant transition should not be reachable by a field on a routine
-  /// form. [clearSchedule] wipes a custom start/end back to "use the store's
-  /// hours"; [clearPhoto] removes the photo.
+  /// form. [clearPhoto] removes the photo.
   ///
   /// Returns null, writing nothing, when the id is unknown, a supplied text
   /// field is blank, or the CIN / email would now collide with another
@@ -188,11 +181,7 @@ class EmployeeRepository {
     String? phone,
     String? email,
     EmployeeRole? role,
-    ContractType? contractType,
     double? pay,
-    int? scheduledStartMinutes,
-    int? scheduledEndMinutes,
-    bool clearSchedule = false,
     String? photoAsset,
     bool clearPhoto = false,
   }) async {
@@ -231,14 +220,7 @@ class EmployeeRepository {
         photoAsset: clearPhoto ? null : photoAsset ?? existing.photoAsset,
         hireDate: existing.hireDate,
         role: role ?? existing.role,
-        contractType: contractType ?? existing.contractType,
         pay: pay ?? existing.pay,
-        scheduledStartMinutes: clearSchedule
-            ? null
-            : scheduledStartMinutes ?? existing.scheduledStartMinutes,
-        scheduledEndMinutes: clearSchedule
-            ? null
-            : scheduledEndMinutes ?? existing.scheduledEndMinutes,
         createdAt: existing.createdAt,
         archivedAt: existing.archivedAt,
       );

@@ -12,6 +12,7 @@
 // what the demo path relies on.
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:stock_inventory/core/utils/attendance_status.dart';
 import 'package:stock_inventory/data/database/app_database.dart';
 import 'package:stock_inventory/data/mappers/mappers.dart';
 import 'package:stock_inventory/data/seed/dataset/dataset.dart';
@@ -31,12 +32,21 @@ void main() {
 
   Future<List<Attendance>> attendances() async {
     final rows = await db.select(db.attendances).get();
+    final sessions = await db.select(db.attendanceSessions).get();
     final pauses = await db.select(db.attendancePauses).get();
     return rows
         .map(
           (row) => attendanceFromRows(
             row,
-            pauses.where((p) => p.attendanceId == row.id).toList(),
+            sessions
+                .where((s) => s.attendanceId == row.id)
+                .map(
+                  (s) => attendanceSessionFromRow(
+                    s,
+                    pauses.where((p) => p.sessionId == s.id).toList(),
+                  ),
+                )
+                .toList(),
           ),
         )
         .toList();
@@ -164,24 +174,15 @@ void main() {
       expect(await employeesForStore(StoreIds.saintGilles), isEmpty);
     });
 
-    test('the flagship roster covers every role, both contracts, an archived '
-        'record and a custom schedule', () async {
+    test('the flagship roster covers every role and an archived record',
+        () async {
       final sablon = await employeesForStore(StoreIds.sablon);
 
       expect(sablon.map((e) => e.role).toSet(), containsAll(EmployeeRole.values));
       expect(
-        sablon.map((e) => e.contractType).toSet(),
-        containsAll(ContractType.values),
-      );
-      expect(
         sablon.where((e) => e.archivedAt != null),
         isNotEmpty,
         reason: 'needs a retired record to demo the "retiré" state',
-      );
-      expect(
-        sablon.where((e) => e.scheduledStartMinutes != null),
-        isNotEmpty,
-        reason: 'needs a custom-schedule employee to demo lateness',
       );
     });
 
@@ -192,12 +193,14 @@ void main() {
           .toList();
 
       expect(
-        sablon.where((a) => a.pauses.length >= 2),
+        sablon.where((a) => totalPauseCount(a) >= 2),
         isNotEmpty,
         reason: 'several pauses in one day',
       );
       expect(
-        sablon.where((a) => a.pauses.any((p) => p.endAt == null)),
+        sablon.where(
+          (a) => a.sessions.expand((s) => s.pauses).any((p) => p.endAt == null),
+        ),
         isNotEmpty,
         reason: 'a break still running (today)',
       );
@@ -214,11 +217,14 @@ void main() {
     test('the pauses of a day come back oldest first', () async {
       // Fatima today: one ended pause then one running.
       final fatimaToday = (await attendances()).firstWhere(
-        (a) => a.pauses.length >= 2 && a.pauses.any((p) => p.endAt == null),
+        (a) =>
+            totalPauseCount(a) >= 2 &&
+            a.sessions.expand((s) => s.pauses).any((p) => p.endAt == null),
       );
-      final starts = fatimaToday.pauses.map((p) => p.startAt).toList();
+      final pauses = fatimaToday.sessions.expand((s) => s.pauses).toList();
+      final starts = pauses.map((p) => p.startAt).toList();
       expect(starts, orderedEquals([...starts]..sort()));
-      expect(fatimaToday.pauses.last.endAt, isNull);
+      expect(pauses.last.endAt, isNull);
     });
 
     test('TestCalcul has its two people and a July history, part paid', () async {
@@ -254,11 +260,8 @@ void main() {
 
       final sablon = await row(StoreIds.sablon);
       expect(sablon.maxBreakMinutes, 45);
-      expect(sablon.overtimeMultiplier, 1.5);
 
       final testCalcul = await row(StoreIds.testCalcul);
-      expect(testCalcul.openMinutes, 8 * 60);
-      expect(testCalcul.closeMinutes, 22 * 60);
       expect(testCalcul.maxBreakMinutes, 60);
 
       final liege = await row(StoreIds.liege);
@@ -282,9 +285,18 @@ void main() {
         hasLength(mockAttendances.length),
       );
       expect(
+        await db.select(db.attendanceSessions).get(),
+        hasLength(
+          mockAttendances.fold<int>(0, (n, a) => n + a.sessions.length),
+        ),
+      );
+      expect(
         await db.select(db.attendancePauses).get(),
         hasLength(
-          mockAttendances.fold<int>(0, (n, a) => n + a.pauses.length),
+          mockAttendances.fold<int>(
+            0,
+            (n, a) => n + totalPauseCount(a),
+          ),
         ),
       );
     });

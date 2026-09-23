@@ -2382,17 +2382,11 @@ class AppLocalizationsFr extends AppLocalizations {
       'Aucun accès à l\'application. Son pointage est fait au tableau de bord partagé.';
 
   @override
-  String get contractTypeFixed => 'Salarié fixe';
-
-  @override
-  String get contractTypeExtra => 'Extra';
-
-  @override
   String get employeesTitle => 'Personnel';
 
   @override
   String get employeesSubtitle =>
-      'Le personnel de cet établissement — coordonnées, contrat et rôle.';
+      'Le personnel de cet établissement — coordonnées, rémunération et rôle.';
 
   @override
   String get employeesAdd => 'Ajouter un employé';
@@ -2423,14 +2417,6 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get employeesKpiActive => 'Personnel actif';
-
-  @override
-  String get employeesKpiContractSplit => 'Fixes / Extras';
-
-  @override
-  String employeesKpiContractSplitValue(int fixed, int extra) {
-    return '$fixed fixes · $extra extras';
-  }
 
   @override
   String get employeesKpiManagers => 'Gérants';
@@ -2483,29 +2469,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get employeeFormEmployment => 'Contrat et rémunération';
 
   @override
-  String get employeeFormContractType => 'Type de contrat';
-
-  @override
-  String get employeeFormPayMonthly => 'Salaire mensuel (€)';
-
-  @override
   String get employeeFormPayHourly => 'Tarif horaire (€/h)';
-
-  @override
-  String get employeeFormSchedule => 'Horaires';
-
-  @override
-  String get employeeFormScheduleStart => 'Heure d\'arrivée';
-
-  @override
-  String get employeeFormScheduleEnd => 'Heure de départ';
-
-  @override
-  String get employeeFormScheduleInvalid => 'Format attendu : HH:MM';
-
-  @override
-  String get employeeFormScheduleHelp =>
-      'Laissez vide pour utiliser les horaires de l\'établissement.';
 
   @override
   String get employeeCreated => 'Employé ajouté';
@@ -2520,9 +2484,6 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get employeeDetailContact => 'Coordonnées';
-
-  @override
-  String get employeeScheduleStoreHours => 'Horaires de l\'établissement';
 
   @override
   String get employeeHistoryTitle => 'Historique de pointage';
@@ -2570,9 +2531,6 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get attendanceStatusDone => 'Terminé';
-
-  @override
-  String get attendanceLate => 'En retard';
 
   @override
   String get attendanceBreakOverrun => 'Pause dépassée';
@@ -2658,25 +2616,14 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String timeclockOvertimeMark(String duration) {
-    return '+$duration sup.';
-  }
-
-  @override
-  String get storeSettingsHours => 'Horaires de l\'établissement';
-
-  @override
-  String get storeSettingsOpenTime => 'Ouverture';
-
-  @override
-  String get storeSettingsCloseTime => 'Fermeture';
+  String get storeSettingsHours => 'Pauses';
 
   @override
   String get storeSettingsMaxBreak => 'Pause max (minutes)';
 
   @override
   String get storeSettingsHoursHelp =>
-      'Les horaires servent de base au calcul du retard et des heures supplémentaires (pour un employé sans horaire personnel). Une pause plus longue que le maximum est signalée « Pause dépassée ».';
+      'Une pause plus longue que le maximum est signalée « Pause dépassée ».';
 
   @override
   String paginatorRange(int first, int last, int total) {
@@ -2744,10 +2691,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get attendanceStatWorked => 'Heures travaillées';
 
   @override
-  String get attendanceStatLate => 'Retards';
-
-  @override
-  String get attendanceStatOvertime => 'Heures supplémentaires';
+  String get attendanceStatLateBreaks => 'Pauses dépassées';
 
   @override
   String get attendanceColumnDate => 'Date';
@@ -2762,13 +2706,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get attendanceColumnDeparture => 'Départ';
 
   @override
-  String get attendanceColumnBreaks => 'Pauses';
-
-  @override
   String get attendanceColumnWorked => 'Durée travail';
-
-  @override
-  String get attendanceColumnOvertime => 'Heures sup';
 
   @override
   String get attendanceColumnStatus => 'Statut';
@@ -2784,18 +2722,6 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get attendanceDetailTitle => 'Détail du pointage';
-
-  @override
-  String attendanceDetailBreaks(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count pauses',
-      one: '1 pause',
-      zero: 'Aucune pause',
-    );
-    return '$_temp0';
-  }
 
   @override
   String get attendanceColumnSchedule => 'Horaires';
@@ -2815,17 +2741,6 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get attendanceDetailBreakTotal => 'Total pauses';
-
-  @override
-  String get attendanceDetailWorkTime => 'Temps de travail';
-
-  @override
-  String attendanceDetailOvertimeInfo(String duration) {
-    return '$duration (informatif)';
-  }
-
-  @override
   String get attendanceDetailTimeline => 'Chronologie';
 
   @override
@@ -2834,26 +2749,7 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get attendanceDetailLate => 'Retard';
-
-  @override
   String get attendanceCardBreakLabel => 'Pause';
-
-  @override
-  String get attendanceCardOvertimeLabel => 'Heures supplémentaires';
-
-  @override
-  String get storeSettingsPayroll => 'Paie';
-
-  @override
-  String get storeSettingsOvertimeMultiplier => 'Majoration heures sup.';
-
-  @override
-  String get storeSettingsWorkingDays => 'Jours ouvrés / mois';
-
-  @override
-  String get storeSettingsPayrollHelp =>
-      'Un salarié fixe est payé son taux journalier (salaire ÷ jours ouvrés) par jour travaillé ; les heures supplémentaires sont payées à ce taux fois la majoration.';
 
   @override
   String get payrollHistoryTitle => 'Historique de paiement';
@@ -2915,9 +2811,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get payrollStatWorkedHours => 'Heures travaillées';
 
   @override
-  String get payrollStatOvertimeHours => 'Heures supplémentaires';
-
-  @override
   String get payrollColumnEmployee => 'Employé';
 
   @override
@@ -2931,9 +2824,6 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get payrollColumnWorked => 'Durée travaillée';
-
-  @override
-  String get payrollColumnOvertime => 'Heures sup';
 
   @override
   String get payrollColumnAmount => 'Montant';
@@ -3005,18 +2895,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get payrollDetailWorked => 'Temps travaillé';
 
   @override
-  String payrollDetailOvertimeInfo(String duration) {
-    return '$duration (informatif)';
-  }
-
-  @override
   String get payrollDetailRate => 'Taux horaire';
-
-  @override
-  String get payrollDetailBase => 'Montant de base';
-
-  @override
-  String get payrollDetailPremium => 'Prime heures sup.';
 
   @override
   String get payrollDetailTotal => 'Total';
@@ -3232,24 +3111,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String receiptDocFooter(String date) {
     return 'Document généré le $date — ne constitue pas une facture.';
   }
-
-  @override
-  String get storeSettingsRetroWarningTitle =>
-      'Des journées ne sont pas encore payées';
-
-  @override
-  String storeSettingsRetroWarningBody(int days) {
-    String _temp0 = intl.Intl.pluralLogic(
-      days,
-      locale: localeName,
-      other: '$days journées terminées n\'\'ont pas encore été payées',
-      one: '1 journée terminée n\'\'a pas encore été payée',
-    );
-    return '$_temp0. Changer les horaires ou les coefficients modifiera le retard, les heures supplémentaires et le montant estimé de ces journées. Payez-les d\'\'abord pour figer leurs chiffres.';
-  }
-
-  @override
-  String get storeSettingsRetroWarningConfirm => 'Changer quand même';
 
   @override
   String get identityPromptTitle => 'Confirmation d\'identité';

@@ -13,12 +13,9 @@ Employee employeeFromRow(EmployeeRow row) => Employee(
   email: row.email,
   hireDate: row.hireDate,
   role: row.role,
-  contractType: row.contractType,
   pay: row.pay,
   createdAt: row.createdAt,
   photoAsset: row.photoAsset,
-  scheduledStartMinutes: row.scheduledStartMinutes,
-  scheduledEndMinutes: row.scheduledEndMinutes,
   archivedAt: row.archivedAt,
 );
 
@@ -38,11 +35,8 @@ EmployeesCompanion employeeToRow(Employee employee) => EmployeesCompanion.insert
   email: employee.email,
   hireDate: employee.hireDate,
   role: employee.role,
-  contractType: employee.contractType,
   pay: employee.pay,
   createdAt: employee.createdAt,
   photoAsset: Value(employee.photoAsset),
-  scheduledStartMinutes: Value(employee.scheduledStartMinutes),
-  scheduledEndMinutes: Value(employee.scheduledEndMinutes),
   archivedAt: Value(employee.archivedAt),
 );

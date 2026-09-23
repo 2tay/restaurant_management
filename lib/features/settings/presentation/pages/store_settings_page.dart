@@ -6,7 +6,6 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../app/routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
-import '../../../../core/utils/formatters.dart';
 import '../../../../core/utils/order_status.dart';
 import '../../../../core/utils/permissions.dart';
 import '../../../../data/current_employee.dart';
@@ -132,20 +131,8 @@ class _StoreSettingsFormState extends ConsumerState<_StoreSettingsForm> {
   late final _staleDays = TextEditingController(
     text: '${widget.settings.stalePartialOrderDays}',
   );
-  late final _openTime = TextEditingController(
-    text: Formatters.minutesToClock(widget.settings.openMinutes),
-  );
-  late final _closeTime = TextEditingController(
-    text: Formatters.minutesToClock(widget.settings.closeMinutes),
-  );
   late final _maxBreak = TextEditingController(
     text: '${widget.settings.maxBreakMinutes}',
-  );
-  late final _overtimeMultiplier = TextEditingController(
-    text: _formatMultiplier(widget.settings.overtimeMultiplier),
-  );
-  late final _workingDays = TextEditingController(
-    text: '${widget.settings.workingDaysPerMonth}',
   );
 
   /// Which unit a new article starts with. Local to this screen: there is no
@@ -154,11 +141,6 @@ class _StoreSettingsFormState extends ConsumerState<_StoreSettingsForm> {
   late String? _defaultUnitId = widget.units.isEmpty
       ? null
       : widget.units.first.id;
-
-  static String _formatMultiplier(double value) =>
-      value == value.roundToDouble()
-      ? value.toStringAsFixed(0)
-      : value.toString().replaceAll('.', ',');
 
   @override
   void dispose() {
@@ -169,11 +151,7 @@ class _StoreSettingsFormState extends ConsumerState<_StoreSettingsForm> {
       _city,
       _phone,
       _staleDays,
-      _openTime,
-      _closeTime,
       _maxBreak,
-      _overtimeMultiplier,
-      _workingDays,
     ]) {
       controller.dispose();
     }
@@ -300,29 +278,6 @@ class _StoreSettingsFormState extends ConsumerState<_StoreSettingsForm> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: AppTextField(
-                          label: l10n.storeSettingsOpenTime,
-                          controller: _openTime,
-                          hint: '08:00',
-                          prefixIcon: LucideIcons.sunrise,
-                        ),
-                      ),
-                      const SizedBox(width: AppSpacing.lg),
-                      Expanded(
-                        child: AppTextField(
-                          label: l10n.storeSettingsCloseTime,
-                          controller: _closeTime,
-                          hint: '17:00',
-                          prefixIcon: LucideIcons.sunset,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: AppSpacing.lg),
                   SizedBox(
                     width: 260,
                     child: AppTextField(
@@ -343,101 +298,19 @@ class _StoreSettingsFormState extends ConsumerState<_StoreSettingsForm> {
                 ],
               ),
             ),
-            const SizedBox(height: AppSpacing.xl),
-
-            SectionHeader(title: l10n.storeSettingsPayroll),
-            AppCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: AppTextField(
-                          label: l10n.storeSettingsOvertimeMultiplier,
-                          controller: _overtimeMultiplier,
-                          hint: '1,25',
-                          keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true,
-                          ),
-                          prefixIcon: LucideIcons.trendingUp,
-                        ),
-                      ),
-                      const SizedBox(width: AppSpacing.lg),
-                      Expanded(
-                        child: AppTextField(
-                          label: l10n.storeSettingsWorkingDays,
-                          controller: _workingDays,
-                          hint: '26',
-                          keyboardType: TextInputType.number,
-                          inputFormatters: [
-                            FilteringTextInputFormatter.digitsOnly,
-                          ],
-                          prefixIcon: LucideIcons.calendarDays,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-                  Text(
-                    l10n.storeSettingsPayrollHelp,
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ],
-              ),
-            ),
           ],
         ),
       ),
     );
   }
 
-  /// Saves the establishment, the stale-order threshold and the pointage /
-  /// payroll settings. Each survives closing the app now — which is the only
-  /// way the dashboard warning, the pointage lateness mark and the payroll
-  /// arithmetic they drive can be demonstrated properly.
+  /// Saves the establishment, the stale-order threshold and the break
+  /// allowance. Each survives closing the app now — which is the only way
+  /// the dashboard warning and the "pause dépassée" mark it drives can be
+  /// demonstrated properly.
   Future<void> _save() async {
     final l10n = AppLocalizations.of(context);
     final stores = ref.read(storeRepositoryProvider);
-
-    // Parse the pointage / payroll fields up front. A change to any of them
-    // re-figures every unpaid finished day — its retard, heures supp. and
-    // montant estimé are measured against these — so warn before saving while
-    // such days exist. A day only stops moving once it is paid.
-    final openMinutes = Formatters.clockToMinutes(_openTime.text);
-    final closeMinutes = Formatters.clockToMinutes(_closeTime.text);
-    final maxBreak = int.tryParse(_maxBreak.text.trim());
-    final overtimeMultiplier = double.tryParse(
-      _overtimeMultiplier.text.replaceAll(',', '.').trim(),
-    );
-    final workingDays = int.tryParse(_workingDays.text.trim());
-
-    final current = widget.settings;
-    final pointagePayrollChanged =
-        (openMinutes != null && openMinutes != current.openMinutes) ||
-        (closeMinutes != null && closeMinutes != current.closeMinutes) ||
-        (maxBreak != null && maxBreak != current.maxBreakMinutes) ||
-        (overtimeMultiplier != null &&
-            overtimeMultiplier != current.overtimeMultiplier) ||
-        (workingDays != null && workingDays != current.workingDaysPerMonth);
-
-    if (pointagePayrollChanged) {
-      final unpaid = await ref
-          .read(payrollRepositoryProvider)
-          .unpaidFinishedDayCount(widget.store.id);
-      if (unpaid > 0) {
-        if (!mounted) return;
-        final ok = await ConfirmDialog.show(
-          context,
-          title: l10n.storeSettingsRetroWarningTitle,
-          message: l10n.storeSettingsRetroWarningBody(unpaid),
-          confirmLabel: l10n.storeSettingsRetroWarningConfirm,
-          isDestructive: false,
-        );
-        if (!ok || !mounted) return;
-      }
-    }
 
     await stores.updateStore(
       widget.store.id,
@@ -461,23 +334,16 @@ class _StoreSettingsFormState extends ConsumerState<_StoreSettingsForm> {
       _staleDays.text = '${OrderRules.defaultStalePartialDays}';
     }
 
-    // The pointage hours and payroll coefficients. A nonsense value is ignored
-    // here rather than refused, so a half-typed field does not block the rest.
+    // The break allowance. A nonsense value is ignored here rather than
+    // refused, so a half-typed field does not block the rest.
+    final maxBreak = int.tryParse(_maxBreak.text.trim());
     final updated = await stores.updateStoreSettings(
       widget.store.id,
-      openMinutes: openMinutes,
-      closeMinutes: closeMinutes,
       maxBreakMinutes: maxBreak,
-      overtimeMultiplier: overtimeMultiplier,
-      workingDaysPerMonth: workingDays,
     );
 
     // Reflect what actually stuck.
-    _openTime.text = Formatters.minutesToClock(updated.openMinutes);
-    _closeTime.text = Formatters.minutesToClock(updated.closeMinutes);
     _maxBreak.text = '${updated.maxBreakMinutes}';
-    _overtimeMultiplier.text = _formatMultiplier(updated.overtimeMultiplier);
-    _workingDays.text = '${updated.workingDaysPerMonth}';
 
     if (!mounted) return;
     AppSnackBar.success(context, l10n.storeSettingsSaved);

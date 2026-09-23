@@ -2,31 +2,23 @@ import '../../models/models.dart';
 
 /// Constants the pointage rules are written against.
 ///
-/// The opening hours and the break allowance are a per-store setting
-/// ([StoreSettings], edited on the store settings screen) — these are only
-/// the defaults a brand-new store starts from. `standardWorkDay` is the
-/// baseline Phase 5's payroll measures a fixed-salary day against.
+/// The break allowance is a per-store setting ([StoreSettings], edited on the
+/// store settings screen) — this is only the default a brand-new store starts
+/// from.
 abstract final class AttendanceRules {
-  /// 08:00, in minutes since midnight.
-  static const int defaultOpenMinutes = 8 * 60;
-
-  /// 17:00, in minutes since midnight.
-  static const int defaultCloseMinutes = 17 * 60;
-
   /// A single break longer than this is flagged "pause dépassée".
   static const int defaultMaxBreakMinutes = 30;
-
-  /// Arriving within this of the scheduled start is not counted as late.
-  static const Duration lateGrace = Duration(minutes: 5);
-
-  /// A full working day, for the fixed-salary daily-rate maths in Phase 5.
-  static const Duration standardWorkDay = Duration(hours: 8);
 }
 
-/// Total time spent on breaks — only counts breaks that have ended.
+/// Every pause across every session of the day, in session order.
+Iterable<AttendancePause> _allPauses(Attendance entry) =>
+    entry.sessions.expand((s) => s.pauses);
+
+/// Total time spent on breaks across every session — only counts breaks that
+/// have ended.
 Duration totalBreak(Attendance entry) {
   var total = Duration.zero;
-  for (final pause in entry.pauses) {
+  for (final pause in _allPauses(entry)) {
     final end = pause.endAt;
     if (end == null) continue;
     total += end.difference(pause.startAt);
@@ -34,8 +26,12 @@ Duration totalBreak(Attendance entry) {
   return total;
 }
 
+/// The number of pauses taken across every session of the day.
+int totalPauseCount(Attendance entry) => _allPauses(entry).length;
+
 /// Whether a break is currently open (the employee is `onBreak`).
-bool hasOpenBreak(Attendance entry) => entry.pauses.any((p) => p.endAt == null);
+bool hasOpenBreak(Attendance entry) =>
+    _allPauses(entry).any((p) => p.endAt == null);
 
 /// How far a single **ended** break ran past [maxBreakMinutes]. Zero while it
 /// is within the allowance or still running.
@@ -49,96 +45,54 @@ Duration breakOverrun(AttendancePause pause, int maxBreakMinutes) {
 
 /// True when any one break segment ran past the store's allowance — the
 /// single place the "pause dépassée" mark is decided.
-bool hasLateBreak(Attendance entry, int maxBreakMinutes) => entry.pauses.any(
-  (p) => breakOverrun(p, maxBreakMinutes) > Duration.zero,
-);
+bool hasLateBreak(Attendance entry, int maxBreakMinutes) => _allPauses(
+  entry,
+).any((p) => breakOverrun(p, maxBreakMinutes) > Duration.zero);
 
 /// Total time all breaks together ran past the allowance — for the history
 /// and payroll figures.
 Duration totalBreakOverrun(Attendance entry, int maxBreakMinutes) {
   var total = Duration.zero;
-  for (final pause in entry.pauses) {
+  for (final pause in _allPauses(entry)) {
     total += breakOverrun(pause, maxBreakMinutes);
   }
   return total;
 }
 
-/// Hours actually worked, excluding every break. Null until [clockOutAt] is
-/// set; floored at zero rather than going negative.
+/// Hours actually worked across every **finished** session, excluding every
+/// break. Null while none has finished yet; a currently open session (if any)
+/// does not count until it closes. Floored at zero rather than going
+/// negative.
 Duration? workedDuration(Attendance entry) {
-  final clockIn = entry.clockInAt;
-  final clockOut = entry.clockOutAt;
-  if (clockIn == null || clockOut == null) return null;
+  final closed = entry.sessions.where((s) => s.clockOutAt != null);
+  if (closed.isEmpty) return null;
 
-  final worked = clockOut.difference(clockIn) - totalBreak(entry);
-  return worked.isNegative ? Duration.zero : worked;
+  var total = Duration.zero;
+  for (final session in closed) {
+    var sessionBreak = Duration.zero;
+    for (final pause in session.pauses) {
+      final end = pause.endAt;
+      if (end == null) continue;
+      sessionBreak += end.difference(pause.startAt);
+    }
+    final worked = session.clockOutAt!.difference(session.clockInAt) - sessionBreak;
+    total += worked.isNegative ? Duration.zero : worked;
+  }
+  return total;
 }
 
-/// The start / end of day this employee is measured against — their own
-/// override, or the store's opening hours. Both in minutes since midnight.
-({int startMinutes, int endMinutes}) resolvedSchedule(
-  Employee employee, {
-  required int storeOpenMinutes,
-  required int storeCloseMinutes,
-}) => (
-  startMinutes: employee.scheduledStartMinutes ?? storeOpenMinutes,
-  endMinutes: employee.scheduledEndMinutes ?? storeCloseMinutes,
-);
-
-/// The schedule and break allowance one [entry] is judged against — `en
-/// retard`, `heures supp.` and `pause dépassée` all measure against this.
+/// The break allowance one [entry] is judged against — `pause dépassée`
+/// measures against this.
 ///
-/// Prefers the values frozen on the row when it was created — so a later
-/// change to the store hours or this employee's schedule cannot rewrite a
-/// past day's figures. Falls back to the caller-supplied live values for a row
-/// from before schema v3, or one the writer could not stamp: pass them from
-/// `resolvedSchedule(employee, ...)` and the store's `maxBreakMinutes`.
-({int startMinutes, int endMinutes, int maxBreakMinutes}) evaluationContext(
-  Attendance entry, {
-  required int fallbackStartMinutes,
-  required int fallbackEndMinutes,
-  required int fallbackMaxBreakMinutes,
-}) => (
-  startMinutes: entry.scheduledStartMinutes ?? fallbackStartMinutes,
-  endMinutes: entry.scheduledEndMinutes ?? fallbackEndMinutes,
-  maxBreakMinutes: entry.maxBreakMinutes ?? fallbackMaxBreakMinutes,
-);
+/// Prefers the value frozen on the row when it was created — so a later
+/// change to the store's setting cannot rewrite a past day's figure. Falls
+/// back to the caller-supplied live value for a row from before schema v3, or
+/// one the writer could not stamp: pass the store's live `maxBreakMinutes`.
+int resolvedMaxBreakMinutes(Attendance entry, {required int fallback}) =>
+    entry.maxBreakMinutes ?? fallback;
 
-int _minutesOfDay(DateTime at) => at.hour * 60 + at.minute;
-
-/// How late the arrival was against [scheduledStartMinutes], past the grace
-/// window. Null until clocked in; zero when on time or early.
-Duration? lateBy(Attendance entry, int scheduledStartMinutes) {
-  final clockIn = entry.clockInAt;
-  if (clockIn == null) return null;
-
-  final lateMinutes = _minutesOfDay(clockIn) - scheduledStartMinutes;
-  final over = Duration(minutes: lateMinutes) - AttendanceRules.lateGrace;
-  return over.isNegative ? Duration.zero : over;
-}
-
-/// True once the arrival is late enough to flag — the single place the "en
-/// retard" mark is decided.
-bool isLate(Attendance entry, int scheduledStartMinutes) =>
-    (lateBy(entry, scheduledStartMinutes) ?? Duration.zero) > Duration.zero;
-
-/// How far past [scheduledEndMinutes] the employee clocked out. Null until
-/// clocked out; zero when they left on time or early.
-Duration? overtimeBy(Attendance entry, int scheduledEndMinutes) {
-  final clockOut = entry.clockOutAt;
-  if (clockOut == null) return null;
-
-  final overMinutes = _minutesOfDay(clockOut) - scheduledEndMinutes;
-  final over = Duration(minutes: overMinutes);
-  return over.isNegative ? Duration.zero : over;
-}
-
-/// A real attendance anomaly — something a manager should look at. **Never
-/// overtime**: working past the scheduled end is a payroll fact, not a problem.
+/// A real attendance anomaly — something a manager should look at.
 enum AttendanceAnomaly {
-  /// Clocked in late, past the grace window.
-  retard,
-
   /// One break ran past the store's allowance.
   pauseDepassee,
 
@@ -148,26 +102,25 @@ enum AttendanceAnomaly {
 
 DateTime _dayOnly(DateTime v) => DateTime(v.year, v.month, v.day);
 
-/// The anomalies of one day, in display order. Purely derived from the existing
-/// rules ([isLate], [hasLateBreak], the clock timestamps) — no new state, no
-/// "absent" concept. Overtime is deliberately absent from the list.
+/// The anomalies of one day, in display order. Purely derived from the
+/// existing rules ([hasLateBreak], the clock timestamps) — no new state, no
+/// "absent" concept.
 ///
 /// [now] defaults to the wall clock; a test pins it. A day that is still today
 /// and legitimately open (someone is working) is not [oubliDePointage].
 List<AttendanceAnomaly> attendanceAnomalies(
   Attendance entry, {
-  required int startMinutes,
   required int maxBreakMinutes,
   DateTime? now,
 }) {
   final result = <AttendanceAnomaly>[];
-  if (isLate(entry, startMinutes)) result.add(AttendanceAnomaly.retard);
   if (hasLateBreak(entry, maxBreakMinutes)) {
     result.add(AttendanceAnomaly.pauseDepassee);
   }
   final today = _dayOnly(now ?? DateTime.now());
-  if (entry.clockInAt != null &&
-      entry.clockOutAt == null &&
+  final last = entry.sessions.lastOrNull;
+  if (last != null &&
+      last.clockOutAt == null &&
       _dayOnly(entry.date).isBefore(today)) {
     result.add(AttendanceAnomaly.oubliDePointage);
   }

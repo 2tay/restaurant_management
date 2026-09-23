@@ -11,7 +11,6 @@ import '../../../../app/routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/credential_status.dart';
-import '../../../../core/utils/formatters.dart';
 import '../../../../data/providers.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../models/models.dart';
@@ -73,13 +72,10 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
   final _phone = TextEditingController();
   final _email = TextEditingController();
   final _pay = TextEditingController();
-  final _scheduleStart = TextEditingController();
-  final _scheduleEnd = TextEditingController();
   final _pin = TextEditingController();
   final _pinConfirm = TextEditingController();
 
   EmployeeRole _role = EmployeeRole.staff;
-  ContractType _contract = ContractType.fixed;
 
   /// A photo file just chosen from disk, not yet copied into the store. Null
   /// until the user picks one.
@@ -99,7 +95,6 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
 
   late final Map<TextEditingController, String> _initialText;
   late EmployeeRole _initialRole;
-  late ContractType _initialContract;
 
   @override
   void initState() {
@@ -114,24 +109,12 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
       _email.text = existing.email;
       _pay.text = _formatPay(existing.pay);
       _role = existing.role;
-      _contract = existing.contractType;
-      if (existing.scheduledStartMinutes != null) {
-        _scheduleStart.text = Formatters.minutesToClock(
-          existing.scheduledStartMinutes!,
-        );
-      }
-      if (existing.scheduledEndMinutes != null) {
-        _scheduleEnd.text = Formatters.minutesToClock(
-          existing.scheduledEndMinutes!,
-        );
-      }
     }
 
     _initialText = {
       for (final c in _controllers) c: c.text,
     };
     _initialRole = _role;
-    _initialContract = _contract;
   }
 
   List<TextEditingController> get _controllers => [
@@ -141,8 +124,6 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
     _phone,
     _email,
     _pay,
-    _scheduleStart,
-    _scheduleEnd,
     _pin,
     _pinConfirm,
   ];
@@ -157,17 +138,6 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
 
   double? get _parsedPay =>
       double.tryParse(_pay.text.replaceAll(',', '.').trim());
-
-  /// Null when the field is blank (→ use store hours); a value when it parses;
-  /// the sentinel -1 when it is filled but invalid (→ block submit).
-  int? _parsedTime(TextEditingController c) {
-    final text = c.text.trim();
-    if (text.isEmpty) return null;
-    return Formatters.clockToMinutes(text) ?? -1;
-  }
-
-  bool get _scheduleValid =>
-      _parsedTime(_scheduleStart) != -1 && _parsedTime(_scheduleEnd) != -1;
 
   bool get _pinTouched =>
       _pin.text.trim().isNotEmpty || _pinConfirm.text.trim().isNotEmpty;
@@ -191,13 +161,11 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
       _phone.text.trim().isNotEmpty &&
       _email.text.trim().isNotEmpty &&
       _parsedPay != null &&
-      _scheduleValid &&
       _pinValid;
 
   bool get _isDirty =>
       _initialText.entries.any((e) => e.key.text.trim() != e.value.trim()) ||
       _role != _initialRole ||
-      _contract != _initialContract ||
       _pickedPhotoPath != null ||
       _photoCleared;
 
@@ -378,83 +346,14 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
 
           SectionHeader(title: l10n.employeeFormEmployment),
           AppCard(
-            child: Column(
-              children: [
-                AppDropdown<ContractType>(
-                  label: l10n.employeeFormContractType,
-                  value: _contract,
-                  options: [
-                    for (final t in ContractType.values)
-                      DropdownOption(
-                        value: t,
-                        label: contractTypeLabel(l10n, t),
-                      ),
-                  ],
-                  onChanged: (value) =>
-                      setState(() => _contract = value ?? _contract),
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                AppTextField(
-                  label: _contract == ContractType.fixed
-                      ? l10n.employeeFormPayMonthly
-                      : l10n.employeeFormPayHourly,
-                  controller: _pay,
-                  prefixIcon: LucideIcons.wallet,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
-                  onChanged: (_) => setState(() {}),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-
-          SectionHeader(title: l10n.employeeFormSchedule),
-          AppCard(
-            child: Column(
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: AppTextField(
-                        label: l10n.employeeFormScheduleStart,
-                        controller: _scheduleStart,
-                        hint: '08:00',
-                        prefixIcon: LucideIcons.sunrise,
-                        errorText: _parsedTime(_scheduleStart) == -1
-                            ? l10n.employeeFormScheduleInvalid
-                            : null,
-                        onChanged: (_) => setState(() {}),
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.lg),
-                    Expanded(
-                      child: AppTextField(
-                        label: l10n.employeeFormScheduleEnd,
-                        controller: _scheduleEnd,
-                        hint: '17:00',
-                        prefixIcon: LucideIcons.sunset,
-                        errorText: _parsedTime(_scheduleEnd) == -1
-                            ? l10n.employeeFormScheduleInvalid
-                            : null,
-                        onChanged: (_) => setState(() {}),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    l10n.employeeFormScheduleHelp,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ),
-              ],
+            child: AppTextField(
+              label: l10n.employeeFormPayHourly,
+              controller: _pay,
+              prefixIcon: LucideIcons.wallet,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              onChanged: (_) => setState(() {}),
             ),
           ),
           const SizedBox(height: AppSpacing.lg),
@@ -525,10 +424,6 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
     final pay = _parsedPay;
     if (pay == null) return;
 
-    final start = _parsedTime(_scheduleStart);
-    final end = _parsedTime(_scheduleEnd);
-    if (start == -1 || end == -1) return;
-
     final employees = ref.read(employeeRepositoryProvider);
     final existingId = widget.employee?.id;
 
@@ -542,11 +437,7 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
         phone: _phone.text,
         email: _email.text,
         role: _role,
-        contractType: _contract,
         pay: pay,
-        scheduledStartMinutes: start,
-        scheduledEndMinutes: end,
-        clearSchedule: start == null && end == null,
       );
       // The PIN, when the fields were filled — a nested write, not part of the
       // update transaction, but a refused PIN there is only a validation miss
@@ -565,10 +456,7 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
         phone: _phone.text,
         email: _email.text,
         role: _role,
-        contractType: _contract,
         pay: pay,
-        scheduledStartMinutes: start,
-        scheduledEndMinutes: end,
         pin: _pin.text,
       );
     }

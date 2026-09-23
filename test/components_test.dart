@@ -801,7 +801,6 @@ void main() {
       email: '$first@x.c',
       hireDate: DateTime(2026),
       role: EmployeeRole.staff,
-      contractType: ContractType.fixed,
       pay: 2000,
       createdAt: DateTime(2026),
     );

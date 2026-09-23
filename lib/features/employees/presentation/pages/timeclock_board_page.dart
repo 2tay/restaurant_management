@@ -339,26 +339,26 @@ class _TimestampLog extends StatelessWidget {
       chips.add(_LogChip(time: at, label: label, color: color));
     }
 
-    if (entry.clockInAt != null) {
-      add(entry.clockInAt!, l10n.timeclockLogArrival, AppColors.inStock.solid);
-    }
-    for (final pause in entry.pauses) {
-      add(pause.startAt, l10n.timeclockLogBreak, AppColors.onBreak.solid);
-      if (pause.endAt != null) {
-        final over = breakOverrun(pause, maxBreakMinutes) > Duration.zero;
+    for (final session in entry.sessions) {
+      add(session.clockInAt, l10n.timeclockLogArrival, AppColors.inStock.solid);
+      for (final pause in session.pauses) {
+        add(pause.startAt, l10n.timeclockLogBreak, AppColors.onBreak.solid);
+        if (pause.endAt != null) {
+          final over = breakOverrun(pause, maxBreakMinutes) > Duration.zero;
+          add(
+            pause.endAt!,
+            l10n.timeclockLogResume,
+            over ? AppColors.lowStock.solid : AppColors.inStock.solid,
+          );
+        }
+      }
+      if (session.clockOutAt != null) {
         add(
-          pause.endAt!,
-          l10n.timeclockLogResume,
-          over ? AppColors.lowStock.solid : AppColors.inStock.solid,
+          session.clockOutAt!,
+          l10n.timeclockLogDeparture,
+          AppColors.textSecondary,
         );
       }
-    }
-    if (entry.clockOutAt != null) {
-      add(
-        entry.clockOutAt!,
-        l10n.timeclockLogDeparture,
-        AppColors.textSecondary,
-      );
     }
 
     return Wrap(
@@ -523,10 +523,25 @@ class _ActionArea extends ConsumerWidget {
         );
 
       case AttendanceStatus.done:
-        return _DoneSummary(
-          entry: current,
-          employee: employee,
-          settings: settings,
+        // The day's cycle is closed, but not the day itself — `Pointer`
+        // starts another one, for the employee who steps out and comes back.
+        return Column(
+          children: [
+            _DoneSummary(entry: current, employee: employee, settings: settings),
+            const SizedBox(height: AppSpacing.md),
+            _BigButton(
+              label: l10n.timeclockClockIn,
+              icon: LucideIcons.circle,
+              outlined: true,
+              onPressed: () => _run(
+                context,
+                ref,
+                l10n.timeclockClockIn,
+                () => repo.clockIn(employee.id, storeId),
+                l10n.timeclockClockInDone,
+              ),
+            ),
+          ],
         );
     }
   }
@@ -617,14 +632,7 @@ class _DoneSummary extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final schedule = resolvedSchedule(
-      employee,
-      storeOpenMinutes: settings.openMinutes,
-      storeCloseMinutes: settings.closeMinutes,
-    );
     final worked = workedDuration(entry);
-    final over = overtimeBy(entry, schedule.endMinutes) ?? Duration.zero;
-    final late = isLate(entry, schedule.startMinutes);
     final lateBreak = hasLateBreak(entry, settings.maxBreakMinutes);
 
     return Column(
@@ -638,37 +646,6 @@ class _DoneSummary extends StatelessWidget {
               color: AppColors.textSecondary,
             ),
           ),
-        if (over > Duration.zero || late) ...[
-          const SizedBox(height: 2),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              if (late) ...[
-                Icon(
-                  LucideIcons.triangleAlert,
-                  size: AppSizing.iconSm,
-                  color: AppColors.lowStock.foreground,
-                ),
-                const SizedBox(width: AppSpacing.xs),
-              ],
-              if (over > Duration.zero)
-                Text(
-                  l10n.timeclockOvertimeMark(Formatters.duration(over)),
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              if (late && over <= Duration.zero)
-                Text(
-                  l10n.attendanceLate,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-            ],
-          ),
-        ],
         if (lateBreak) ...[
           const SizedBox(height: 2),
           Text(

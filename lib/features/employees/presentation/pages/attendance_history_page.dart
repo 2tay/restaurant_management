@@ -123,13 +123,7 @@ class _AttendanceHistoryPageState extends ConsumerState<AttendanceHistoryPage> {
         }
         final stats =
             statsAsync.value ??
-            (
-              days: 0,
-              worked: Duration.zero,
-              lateArrivals: 0,
-              overtime: Duration.zero,
-              lateBreaks: 0,
-            );
+            (days: 0, worked: Duration.zero, lateBreaks: 0);
         final storeEmpty = !_hasActiveFilters && result.totalCount == 0;
 
         return _content(
@@ -263,22 +257,11 @@ class _AttendanceHistoryPageState extends ConsumerState<AttendanceHistoryPage> {
     Employee? employee,
     StoreSettings settings,
   ) {
-    final schedule = employee == null
-        ? (startMinutes: settings.openMinutes, endMinutes: settings.closeMinutes)
-        : resolvedSchedule(
-            employee,
-            storeOpenMinutes: settings.openMinutes,
-            storeCloseMinutes: settings.closeMinutes,
-          );
-    final ctx = evaluationContext(
+    final maxBreak = resolvedMaxBreakMinutes(
       a,
-      fallbackStartMinutes: schedule.startMinutes,
-      fallbackEndMinutes: schedule.endMinutes,
-      fallbackMaxBreakMinutes: settings.maxBreakMinutes,
+      fallback: settings.maxBreakMinutes,
     );
     final worked = workedDuration(a);
-    final overtime = overtimeBy(a, ctx.endMinutes) ?? Duration.zero;
-    final late = lateBy(a, ctx.startMinutes) ?? Duration.zero;
 
     return DetailDrawer.show(
       context,
@@ -336,16 +319,11 @@ class _AttendanceHistoryPageState extends ConsumerState<AttendanceHistoryPage> {
         const SizedBox(height: AppSpacing.xxxl),
         _drawerSectionTitle(LucideIcons.triangleAlert, l10n.attendanceColumnFlags),
         const SizedBox(height: AppSpacing.md),
-        AttendanceAlerts(
-          entry: a,
-          startMinutes: ctx.startMinutes,
-          maxBreakMinutes: ctx.maxBreakMinutes,
-          detailed: true,
-        ),
+        AttendanceAlerts(entry: a, maxBreakMinutes: maxBreak, detailed: true),
         const SizedBox(height: AppSpacing.xxxl),
         _drawerSectionTitle(LucideIcons.clock, l10n.attendanceDetailTimeline),
         const SizedBox(height: AppSpacing.md),
-        AttendanceTimeline(entry: a, maxBreakMinutes: ctx.maxBreakMinutes),
+        AttendanceTimeline(entry: a, maxBreakMinutes: maxBreak),
         const SizedBox(height: AppSpacing.xxxl),
         Divider(height: 1, color: AppColors.border.withValues(alpha: 0.5)),
         const SizedBox(height: AppSpacing.lg),
@@ -355,27 +333,8 @@ class _AttendanceHistoryPageState extends ConsumerState<AttendanceHistoryPage> {
         ),
         const SizedBox(height: AppSpacing.xs),
         DrawerRow(
-          label: l10n.attendanceColumnOvertime,
-          value: overtime == Duration.zero
-              ? '—'
-              : l10n.attendanceDetailOvertimeInfo(
-                  Formatters.duration(overtime),
-                ),
-        ),
-        const SizedBox(height: AppSpacing.xs),
-        DrawerRow(
-          label: l10n.attendanceDetailPauseCount(a.pauses.length),
+          label: l10n.attendanceDetailPauseCount(totalPauseCount(a)),
           value: Formatters.duration(totalBreak(a)),
-        ),
-        const SizedBox(height: AppSpacing.xs),
-        DrawerRow(
-          label: l10n.attendanceDetailLate,
-          valueWidget: Text(
-            late == Duration.zero ? '—' : Formatters.duration(late),
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: late == Duration.zero ? null : AppColors.lowStock.foreground,
-            ),
-          ),
         ),
       ],
     );
@@ -422,14 +381,7 @@ class _AttendanceHistoryPageState extends ConsumerState<AttendanceHistoryPage> {
 class _StatRow extends StatelessWidget {
   const _StatRow({required this.stats});
 
-  final ({
-    int days,
-    Duration worked,
-    int lateArrivals,
-    Duration overtime,
-    int lateBreaks,
-  })
-  stats;
+  final ({int days, Duration worked, int lateBreaks}) stats;
 
   @override
   Widget build(BuildContext context) {
@@ -448,15 +400,10 @@ class _StatRow extends StatelessWidget {
           icon: LucideIcons.clock,
         ),
         StatTile(
-          label: l10n.attendanceStatLate,
-          value: '${stats.lateArrivals}',
-          icon: LucideIcons.triangleAlert,
-          accent: stats.lateArrivals == 0 ? null : AppColors.lowStock,
-        ),
-        StatTile(
-          label: l10n.attendanceStatOvertime,
-          value: Formatters.duration(stats.overtime),
-          icon: LucideIcons.hourglass,
+          label: l10n.attendanceStatLateBreaks,
+          value: '${stats.lateBreaks}',
+          icon: LucideIcons.coffee,
+          accent: stats.lateBreaks == 0 ? null : AppColors.lowStock,
         ),
       ],
     );
@@ -670,10 +617,10 @@ class _HistoryTable extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text('${data.arrival} → ${data.departure}'),
-              if (a.pauses.isNotEmpty)
+              if (totalPauseCount(a) > 0)
                 Text(
                   l10n.attendanceBreakSummary(
-                    a.pauses.length,
+                    totalPauseCount(a),
                     Formatters.duration(data.totalPause),
                   ),
                   style: theme.textTheme.bodySmall?.copyWith(
@@ -688,11 +635,7 @@ class _HistoryTable extends StatelessWidget {
         ),
         DataCell(AttendanceStatusBadge(status: a.status)),
         DataCell(
-          AttendanceAlerts(
-            entry: a,
-            startMinutes: data.startMinutes,
-            maxBreakMinutes: data.maxBreakMinutes,
-          ),
+          AttendanceAlerts(entry: a, maxBreakMinutes: data.maxBreakMinutes),
         ),
         DataCell(
           IconButton(
@@ -711,11 +654,9 @@ class _HistoryTable extends StatelessWidget {
 typedef _AttendanceRowData = ({
   Employee? employee,
   Duration? worked,
-  Duration overtime,
   Duration totalPause,
   String arrival,
   String departure,
-  int startMinutes,
   int maxBreakMinutes,
 });
 
@@ -725,28 +666,21 @@ _AttendanceRowData _attendanceRowData(
   StoreSettings settings,
 ) {
   final employee = employeesById[a.employeeId];
-  final schedule = employee == null
-      ? (startMinutes: settings.openMinutes, endMinutes: settings.closeMinutes)
-      : resolvedSchedule(
-          employee,
-          storeOpenMinutes: settings.openMinutes,
-          storeCloseMinutes: settings.closeMinutes,
-        );
-  final ctx = evaluationContext(
+  final maxBreak = resolvedMaxBreakMinutes(
     a,
-    fallbackStartMinutes: schedule.startMinutes,
-    fallbackEndMinutes: schedule.endMinutes,
-    fallbackMaxBreakMinutes: settings.maxBreakMinutes,
+    fallback: settings.maxBreakMinutes,
   );
   return (
     employee: employee,
     worked: workedDuration(a),
-    overtime: overtimeBy(a, ctx.endMinutes) ?? Duration.zero,
     totalPause: totalBreak(a),
-    arrival: a.clockInAt == null ? '—' : Formatters.time(a.clockInAt!),
-    departure: a.clockOutAt == null ? '…' : Formatters.time(a.clockOutAt!),
-    startMinutes: ctx.startMinutes,
-    maxBreakMinutes: ctx.maxBreakMinutes,
+    arrival: a.sessions.firstOrNull?.clockInAt == null
+        ? '—'
+        : Formatters.time(a.sessions.first.clockInAt),
+    departure: a.sessions.lastOrNull?.clockOutAt == null
+        ? '…'
+        : Formatters.time(a.sessions.last.clockOutAt!),
+    maxBreakMinutes: maxBreak,
   );
 }
 
@@ -825,7 +759,6 @@ class _AttendanceCard extends StatelessWidget {
     final employee = data.employee;
     final anomalies = attendanceAnomalies(
       attendance,
-      startMinutes: data.startMinutes,
       maxBreakMinutes: data.maxBreakMinutes,
     );
 
@@ -914,45 +847,19 @@ class _AttendanceCard extends StatelessWidget {
               color: AppColors.surfaceVariant,
               borderRadius: AppRadius.mdAll,
             ),
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        l10n.attendanceCardBreakLabel,
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                      Text(
-                        Formatters.duration(data.totalPause),
-                        style: theme.textTheme.titleSmall,
-                      ),
-                    ],
+                Text(
+                  l10n.attendanceCardBreakLabel,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: AppColors.textSecondary,
                   ),
                 ),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        l10n.attendanceCardOvertimeLabel,
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                      Text(
-                        data.overtime == Duration.zero
-                            ? '—'
-                            : '+${Formatters.duration(data.overtime)}',
-                        style: theme.textTheme.titleSmall,
-                      ),
-                    ],
-                  ),
+                Text(
+                  Formatters.duration(data.totalPause),
+                  style: theme.textTheme.titleSmall,
                 ),
               ],
             ),
@@ -960,15 +867,13 @@ class _AttendanceCard extends StatelessWidget {
           const SizedBox(height: AppSpacing.md),
           AttendanceStatusBadge(status: attendance.status),
           // Alerts get their own line rather than sharing the status badge's —
-          // squeezed next to it, two anomaly chips ("En retard" and "Oubli de
-          // pointage") have to fight the badge for width and end up
-          // ellipsized. Full card width lets the alerts' own `Wrap` arrange
-          // chips across as many lines as it needs instead.
+          // squeezed next to it, an anomaly chip has to fight the badge for
+          // width and ends up ellipsized. Full card width lets the alerts'
+          // own `Wrap` arrange chips across as many lines as it needs instead.
           if (anomalies.isNotEmpty) ...[
             const SizedBox(height: AppSpacing.sm),
             AttendanceAlerts(
               entry: attendance,
-              startMinutes: data.startMinutes,
               maxBreakMinutes: data.maxBreakMinutes,
             ),
           ],

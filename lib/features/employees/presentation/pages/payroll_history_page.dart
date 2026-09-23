@@ -318,13 +318,6 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
           value: Formatters.duration(data.worked),
           icon: LucideIcons.clock,
         ),
-        StatTile(
-          label: l10n.payrollStatOvertimeHours,
-          value: data.overtime == Duration.zero
-              ? '—'
-              : Formatters.duration(data.overtime),
-          icon: LucideIcons.timer,
-        ),
       ],
     );
   }
@@ -350,29 +343,9 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
     Map<String, DateTime> paidAtByPeriod,
     StoreSettings settings,
   ) {
-    final schedule = employee == null
-        ? (startMinutes: settings.openMinutes, endMinutes: settings.closeMinutes)
-        : resolvedSchedule(
-            employee,
-            storeOpenMinutes: settings.openMinutes,
-            storeCloseMinutes: settings.closeMinutes,
-          );
-    final ctx = evaluationContext(
-      a,
-      fallbackStartMinutes: schedule.startMinutes,
-      fallbackEndMinutes: schedule.endMinutes,
-      fallbackMaxBreakMinutes: settings.maxBreakMinutes,
-    );
     final worked = workedDuration(a);
-    final overtime = overtimeBy(a, ctx.endMinutes) ?? Duration.zero;
-    final money = employee == null
-        ? const (rate: 0.0, base: 0.0, premium: 0.0, total: 0.0)
-        : dayAmountBreakdown(
-            a,
-            employee,
-            settings,
-            scheduledEndMinutes: ctx.endMinutes,
-          );
+    final rate = employee?.pay ?? 0.0;
+    final total = employee == null ? 0.0 : dayAmount(a, employee, settings);
     final paidAt = a.payrollPeriodId == null
         ? null
         : paidAtByPeriod[a.payrollPeriodId!];
@@ -469,13 +442,17 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
         const SizedBox(height: AppSpacing.md),
         DrawerRow(
           label: l10n.payrollColumnClockIn,
-          value: a.clockInAt == null ? '—' : Formatters.time(a.clockInAt!),
+          value: a.sessions.firstOrNull?.clockInAt == null
+              ? '—'
+              : Formatters.time(a.sessions.first.clockInAt),
         ),
         DrawerRow(
           label: l10n.payrollColumnClockOut,
-          value: a.clockOutAt == null ? '—' : Formatters.time(a.clockOutAt!),
+          value: a.sessions.lastOrNull?.clockOutAt == null
+              ? '—'
+              : Formatters.time(a.sessions.last.clockOutAt!),
         ),
-        if (a.pauses.isNotEmpty)
+        if (totalPauseCount(a) > 0)
           DrawerRow(
             label: l10n.payrollDetailBreakTotal,
             value: Formatters.duration(totalBreak(a)),
@@ -487,32 +464,17 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
           label: l10n.payrollDetailWorked,
           value: worked == null ? '—' : Formatters.duration(worked),
         ),
-        DrawerRow(
-          label: l10n.payrollColumnOvertime,
-          value: overtime == Duration.zero
-              ? '—'
-              : l10n.payrollDetailOvertimeInfo(Formatters.duration(overtime)),
-        ),
         const SizedBox(height: AppSpacing.xxxl),
         _drawerSectionTitle(LucideIcons.wallet, l10n.payrollColumnAmount),
         const SizedBox(height: AppSpacing.md),
         DrawerRow(
           label: l10n.payrollDetailRate,
-          value: '${Formatters.price(money.rate)} / h',
+          value: '${Formatters.price(rate)} / h',
         ),
-        DrawerRow(
-          label: l10n.payrollDetailBase,
-          value: Formatters.price(money.base),
-        ),
-        if (money.premium > 0)
-          DrawerRow(
-            label: l10n.payrollDetailPremium,
-            value: Formatters.price(money.premium),
-          ),
         DrawerRow(
           label: l10n.payrollDetailTotal,
           valueWidget: Text(
-            Formatters.price(money.total),
+            Formatters.price(total),
             style: Theme.of(context).textTheme.titleSmall,
           ),
         ),
@@ -774,7 +736,6 @@ class _DaysTable extends StatelessWidget {
         DataColumn(label: Text(l10n.payrollColumnDate)),
         DataColumn(label: Text(l10n.payrollColumnHours)),
         DataColumn(label: Text(l10n.payrollColumnWorked)),
-        DataColumn(label: Text(l10n.payrollColumnOvertime)),
         DataColumn(label: Text(l10n.payrollColumnAmount), numeric: true),
         DataColumn(label: Text(l10n.payrollColumnStatus)),
         DataColumn(label: Text(l10n.payrollColumnPaidAt)),
@@ -789,10 +750,12 @@ class _DaysTable extends StatelessWidget {
     final data = _payrollRowData(a, employeesById, paidAtByPeriod, settings);
     final employee = data.employee;
 
-    final arrival = a.clockInAt == null ? '—' : Formatters.time(a.clockInAt!);
-    final departure = a.clockOutAt == null
+    final arrival = a.sessions.firstOrNull?.clockInAt == null
+        ? '—'
+        : Formatters.time(a.sessions.first.clockInAt);
+    final departure = a.sessions.lastOrNull?.clockOutAt == null
         ? '…'
-        : Formatters.time(a.clockOutAt!);
+        : Formatters.time(a.sessions.last.clockOutAt!);
 
     return DataRow(
       onSelectChanged: (_) => onOpen(a),
@@ -821,10 +784,10 @@ class _DaysTable extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text('$arrival → $departure'),
-              if (a.pauses.isNotEmpty)
+              if (totalPauseCount(a) > 0)
                 Text(
                   l10n.payrollBreakSummary(
-                    a.pauses.length,
+                    totalPauseCount(a),
                     Formatters.duration(totalBreak(a)),
                   ),
                   style: theme.textTheme.bodySmall?.copyWith(
@@ -836,13 +799,6 @@ class _DaysTable extends StatelessWidget {
         ),
         DataCell(
           Text(data.worked == null ? '—' : Formatters.duration(data.worked!)),
-        ),
-        DataCell(
-          Text(
-            data.overtime == Duration.zero
-                ? '—'
-                : Formatters.duration(data.overtime),
-          ),
         ),
         DataCell(NumericCell(Formatters.price(data.amount), emphasis: true)),
         DataCell(PaymentStatusBadge(status: a.paymentStatus)),
@@ -867,7 +823,6 @@ class _DaysTable extends StatelessWidget {
 typedef _PayrollRowData = ({
   Employee? employee,
   Duration? worked,
-  Duration overtime,
   double amount,
   DateTime? paidAt,
 });
@@ -879,27 +834,11 @@ _PayrollRowData _payrollRowData(
   StoreSettings settings,
 ) {
   final employee = employeesById[a.employeeId];
-  final schedule = employee == null
-      ? (startMinutes: settings.openMinutes, endMinutes: settings.closeMinutes)
-      : resolvedSchedule(
-          employee,
-          storeOpenMinutes: settings.openMinutes,
-          storeCloseMinutes: settings.closeMinutes,
-        );
-  final ctx = evaluationContext(
-    a,
-    fallbackStartMinutes: schedule.startMinutes,
-    fallbackEndMinutes: schedule.endMinutes,
-    fallbackMaxBreakMinutes: settings.maxBreakMinutes,
-  );
 
   return (
     employee: employee,
     worked: workedDuration(a),
-    overtime: overtimeBy(a, ctx.endMinutes) ?? Duration.zero,
-    amount: employee == null
-        ? 0.0
-        : dayAmount(a, employee, settings, scheduledEndMinutes: ctx.endMinutes),
+    amount: employee == null ? 0.0 : dayAmount(a, employee, settings),
     paidAt: a.payrollPeriodId == null
         ? null
         : paidAtByPeriod[a.payrollPeriodId!],
@@ -1036,14 +975,6 @@ class _PayrollDayCard extends StatelessWidget {
                   value: data.worked == null
                       ? '—'
                       : Formatters.duration(data.worked!),
-                ),
-              ),
-              Expanded(
-                child: _Figure(
-                  label: l10n.payrollColumnOvertime,
-                  value: data.overtime == Duration.zero
-                      ? '—'
-                      : Formatters.duration(data.overtime),
                 ),
               ),
               _Figure(

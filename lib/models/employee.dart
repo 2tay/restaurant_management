@@ -18,17 +18,6 @@ enum EmployeeRole {
   staff,
 }
 
-/// How a person is engaged, which decides how [Employee.pay] is read.
-enum ContractType {
-  /// Salarié fixe — a monthly [Employee.pay]. An unjustified absence is a
-  /// deduction against it.
-  fixed,
-
-  /// Extra — an hourly [Employee.pay]. Paid only for hours actually worked;
-  /// absence does not apply.
-  extra,
-}
-
 /// A member of staff at one store.
 ///
 /// This is the single "person" model for the app: it carries both the
@@ -53,12 +42,9 @@ class Employee {
     required this.email,
     required this.hireDate,
     required this.role,
-    required this.contractType,
     required this.pay,
     required this.createdAt,
     this.photoAsset,
-    this.scheduledStartMinutes,
-    this.scheduledEndMinutes,
     this.archivedAt,
   });
 
@@ -85,18 +71,9 @@ class Employee {
   final DateTime hireDate;
 
   final EmployeeRole role;
-  final ContractType contractType;
 
-  /// Read per [contractType] — a monthly amount in euros when `fixed`, an
-  /// hourly rate in euros per hour when `extra`.
+  /// Hourly rate in euros — every hour actually worked is paid at this rate.
   final double pay;
-
-  /// Minutes since midnight for this person's own start / end of day. Null
-  /// means "use the store's opening hours" — the resolved schedule is what
-  /// lateness and overtime are measured against (Phase 3). Stored as an int
-  /// rather than a `TimeOfDay` so the model stays pure Dart.
-  final int? scheduledStartMinutes;
-  final int? scheduledEndMinutes;
 
   final DateTime createdAt;
 

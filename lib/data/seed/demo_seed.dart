@@ -1,7 +1,6 @@
 import 'package:drift/drift.dart';
 
 import '../../core/utils/employee_status.dart';
-import '../../models/models.dart';
 import 'dataset/dataset.dart';
 import '../database/app_database.dart';
 import '../database/meta_keys.dart';
@@ -143,30 +142,41 @@ Future<void> seedDemoData(AppDatabase db, {DateTime? at}) async {
     batch.insertAll(db.attendances, [
       for (final attendance in mockAttendances)
         attendanceToRow(attendance).copyWith(
-          date: Value(movedDay(attendance.clockInAt ?? attendance.date)),
-          clockInAt: movedByDaysValue(attendance.clockInAt),
-          clockOutAt: movedByDaysValue(attendance.clockOutAt),
-          // Freeze the evaluation context the same way `clockIn` does, so demo
+          date: Value(
+            movedDay(attendance.sessions.first.clockInAt),
+          ),
+          // Freeze the break allowance the same way `clockIn` does, so demo
           // rows exercise the real path and a settings change in-session does
           // not rewrite the seeded history.
-          scheduledStartMinutes: Value(_seedScheduledStart(attendance)),
-          scheduledEndMinutes: Value(_seedScheduledEnd(attendance)),
           maxBreakMinutes: Value(
             storeSettingsOrDefault(attendance.storeId).maxBreakMinutes,
           ),
         ),
     ]);
-    batch.insertAll(db.attendancePauses, [
+    batch.insertAll(db.attendanceSessions, [
       for (final attendance in mockAttendances)
-        for (final (int index, pause) in attendance.pauses.indexed)
-          pauseToRow(
-            pause,
+        for (final (int index, session) in attendance.sessions.indexed)
+          sessionToRow(
+            session,
             attendanceId: attendance.id,
             position: index,
           ).copyWith(
-            startAt: Value(movedByDays(pause.startAt)),
-            endAt: movedByDaysValue(pause.endAt),
+            clockInAt: Value(movedByDays(session.clockInAt)),
+            clockOutAt: movedByDaysValue(session.clockOutAt),
           ),
+    ]);
+    batch.insertAll(db.attendancePauses, [
+      for (final attendance in mockAttendances)
+        for (final (int sessionIndex, session) in attendance.sessions.indexed)
+          for (final (int pauseIndex, pause) in session.pauses.indexed)
+            pauseToRow(
+              pause,
+              sessionId: '${attendance.id}-session-$sessionIndex',
+              position: pauseIndex,
+            ).copyWith(
+              startAt: Value(movedByDays(pause.startAt)),
+              endAt: movedByDaysValue(pause.endAt),
+            ),
     ]);
 
     batch.insertAll(db.notifications, [
@@ -196,24 +206,6 @@ Future<void> seedDemoData(AppDatabase db, {DateTime? at}) async {
   });
 }
 
-/// The resolved start / end of day a seeded attendance row is judged against —
-/// the employee's own schedule if set, else the store's opening hours. Mirrors
-/// `resolvedSchedule` without importing the whole helper.
-int _seedScheduledStart(Attendance attendance) {
-  final employee = mockEmployees.firstWhere(
-    (e) => e.id == attendance.employeeId,
-  );
-  return employee.scheduledStartMinutes ??
-      storeSettingsOrDefault(attendance.storeId).openMinutes;
-}
-
-int _seedScheduledEnd(Attendance attendance) {
-  final employee = mockEmployees.firstWhere(
-    (e) => e.id == attendance.employeeId,
-  );
-  return employee.scheduledEndMinutes ??
-      storeSettingsOrDefault(attendance.storeId).closeMinutes;
-}
 
 /// Empties every table, in reverse foreign-key order.
 ///
@@ -226,10 +218,11 @@ Future<void> clearAllData(AppDatabase db) async {
     batch.deleteAll(db.meta);
     batch.deleteAll(db.notifications);
 
-    // Gestion Employée, reverse foreign-key order: a pause before its day, the
-    // attendance rows before the payroll period they point at, a credential
-    // before its employee.
+    // Gestion Employée, reverse foreign-key order: a pause before its
+    // session, a session before its day, the attendance rows before the
+    // payroll period they point at, a credential before its employee.
     batch.deleteAll(db.attendancePauses);
+    batch.deleteAll(db.attendanceSessions);
     batch.deleteAll(db.attendances);
     batch.deleteAll(db.payrollPeriods);
     batch.deleteAll(db.employeeCredentials);

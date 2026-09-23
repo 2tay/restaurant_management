@@ -17,8 +17,8 @@ enum AttendanceStatus {
 /// Whether a day's hours have been settled by a payroll run.
 enum PaymentStatus { unpaid, paid }
 
-/// One break segment inside a day. There can be several — the button offers
-/// `Pause` again after every `Reprendre`, up to `Fin de journée`.
+/// One break segment inside a session. There can be several — the button
+/// offers `Pause` again after every `Reprendre`, up to `Fin de journée`.
 class AttendancePause {
   const AttendancePause({required this.startAt, this.endAt});
 
@@ -28,14 +28,35 @@ class AttendancePause {
   final DateTime? endAt;
 }
 
+/// One Pointer → Fin de journée cycle inside a day. There can be several — an
+/// employee may clock out for a few hours and come back the same day, so a
+/// day is a list of these rather than a single clock-in/clock-out pair.
+class AttendanceSession {
+  const AttendanceSession({
+    required this.clockInAt,
+    this.clockOutAt,
+    this.pauses = const [],
+  });
+
+  final DateTime clockInAt;
+
+  /// Null while this cycle is still running.
+  final DateTime? clockOutAt;
+
+  /// Oldest first. Empty until the first `Pause` of this cycle.
+  final List<AttendancePause> pauses;
+}
+
 /// One employee's attendance for one calendar day.
 ///
 /// Created lazily on the first `Pointer` of the day — a day with no row
 /// simply means not clocked in yet, which needs no row. One row per employee
-/// per day: `(storeId, employeeId, date)` is unique.
+/// per day: `(storeId, employeeId, date)` is unique — but that one row can
+/// hold several [sessions], since an employee may clock in, clock out for a
+/// few hours, and clock back in the same day.
 ///
 /// Immutable, no logic — see `core/utils/attendance_status.dart` for the
-/// durations derived from these timestamps. The pauses are embedded here
+/// durations derived from these timestamps. The sessions are embedded here
 /// rather than a separate list, the same way `PurchaseOrder` embeds its
 /// lines.
 class Attendance {
@@ -45,13 +66,9 @@ class Attendance {
     required this.employeeId,
     required this.date,
     required this.status,
-    required this.pauses,
+    required this.sessions,
     required this.paymentStatus,
-    this.clockInAt,
-    this.clockOutAt,
     this.payrollPeriodId,
-    this.scheduledStartMinutes,
-    this.scheduledEndMinutes,
     this.maxBreakMinutes,
   });
 
@@ -65,11 +82,8 @@ class Attendance {
 
   final AttendanceStatus status;
 
-  final DateTime? clockInAt;
-  final DateTime? clockOutAt;
-
-  /// Oldest first. Empty until the first `Pause`.
-  final List<AttendancePause> pauses;
+  /// Oldest first. Empty means not clocked in yet today.
+  final List<AttendanceSession> sessions;
 
   final PaymentStatus paymentStatus;
 
@@ -77,17 +91,12 @@ class Attendance {
   /// is immutable — `AttendanceMutations` refuses every write against it.
   final String? payrollPeriodId;
 
-  /// The schedule and break allowance this day is judged against, frozen when
-  /// the row was created so a later change to the store hours or this
-  /// employee's schedule never rewrites what "en retard" / "heures supp." /
-  /// "pause dépassée" meant for it. All in minutes since midnight, except
-  /// [maxBreakMinutes] which is a duration.
+  /// The break allowance this day is judged against, frozen when the row was
+  /// created so a later change to the store's setting never rewrites what
+  /// "pause dépassée" meant for it.
   ///
   /// Null on rows from before schema v3 that predate the backfill, and
-  /// whenever the writer could not resolve one — see
-  /// `evaluationContext` in `core/utils/attendance_status.dart`, which falls
-  /// back to the live resolved schedule.
-  final int? scheduledStartMinutes;
-  final int? scheduledEndMinutes;
+  /// whenever the writer could not resolve one — callers fall back to the
+  /// store's live `maxBreakMinutes`.
   final int? maxBreakMinutes;
 }

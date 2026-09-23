@@ -43,18 +43,9 @@ class Employees extends Table {
   DateTimeColumn get hireDate => dateTime()();
 
   TextColumn get role => textEnum<EmployeeRole>()();
-  TextColumn get contractType => textEnum<ContractType>()();
 
-  /// Monthly EUR when `fixed`, EUR per hour when `extra` — read per
-  /// [contractType].
+  /// EUR per hour — every hour actually worked is paid at this rate.
   RealColumn get pay => real()();
-
-  /// Minutes since midnight for this person's own start / end of day. Null means
-  /// "use the establishment's opening hours" — the resolved schedule is what
-  /// lateness and overtime are measured against. Stored as an int, not a
-  /// `DateTime`: these are times of day, not instants.
-  IntColumn get scheduledStartMinutes => integer().nullable()();
-  IntColumn get scheduledEndMinutes => integer().nullable()();
 
   DateTimeColumn get createdAt => dateTime()();
 

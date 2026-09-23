@@ -22,25 +22,25 @@ class AttendanceTimeline extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final events = <_Event>[];
 
-    if (entry.clockInAt != null) {
-      events.add(_Event(entry.clockInAt!, l10n.timeclockLogArrival, AppColors.inStock.solid));
-    }
-    for (final pause in entry.pauses) {
-      events.add(_Event(pause.startAt, l10n.timeclockLogBreak, AppColors.onBreak.solid));
-      if (pause.endAt != null) {
-        final over = maxBreakMinutes != null &&
-            breakOverrun(pause, maxBreakMinutes!) > Duration.zero;
-        events.add(
-          _Event(
-            pause.endAt!,
-            l10n.timeclockLogResume,
-            over ? AppColors.lowStock.solid : AppColors.inStock.solid,
-          ),
-        );
+    for (final session in entry.sessions) {
+      events.add(_Event(session.clockInAt, l10n.timeclockLogArrival, AppColors.inStock.solid));
+      for (final pause in session.pauses) {
+        events.add(_Event(pause.startAt, l10n.timeclockLogBreak, AppColors.onBreak.solid));
+        if (pause.endAt != null) {
+          final over = maxBreakMinutes != null &&
+              breakOverrun(pause, maxBreakMinutes!) > Duration.zero;
+          events.add(
+            _Event(
+              pause.endAt!,
+              l10n.timeclockLogResume,
+              over ? AppColors.lowStock.solid : AppColors.inStock.solid,
+            ),
+          );
+        }
       }
-    }
-    if (entry.clockOutAt != null) {
-      events.add(_Event(entry.clockOutAt!, l10n.timeclockLogDeparture, AppColors.textSecondary));
+      if (session.clockOutAt != null) {
+        events.add(_Event(session.clockOutAt!, l10n.timeclockLogDeparture, AppColors.textSecondary));
+      }
     }
 
     if (events.isEmpty) return const SizedBox.shrink();

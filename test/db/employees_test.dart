@@ -34,7 +34,6 @@ void main() {
     String phone = '+32 400 00 00 00',
     String email = 'test.personne@example.be',
     EmployeeRole role = EmployeeRole.staff,
-    ContractType contractType = ContractType.fixed,
     double pay = 2000,
     String? pin,
   }) => employees.create(
@@ -45,7 +44,6 @@ void main() {
     phone: phone,
     email: email,
     role: role,
-    contractType: contractType,
     pay: pay,
     pin: pin,
   );
@@ -138,14 +136,6 @@ void main() {
       );
     });
 
-    test('clearSchedule wipes a custom start/end back to store hours', () async {
-      final elise = (await employees.employee(EmployeeIds.elise))!;
-      expect(elise.scheduledStartMinutes, isNotNull);
-
-      final updated = await employees.update(elise.id, clearSchedule: true);
-      expect(updated!.scheduledStartMinutes, isNull);
-      expect(updated.scheduledEndMinutes, isNull);
-    });
   });
 
   group('archive and restore', () {

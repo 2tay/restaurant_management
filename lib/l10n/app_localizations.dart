@@ -3928,18 +3928,6 @@ abstract class AppLocalizations {
   /// **'Aucun accès à l\'application. Son pointage est fait au tableau de bord partagé.'**
   String get employeeRoleStaffBody;
 
-  /// Contract type: a monthly salary.
-  ///
-  /// In fr, this message translates to:
-  /// **'Salarié fixe'**
-  String get contractTypeFixed;
-
-  /// Contract type: an hourly rate, paid only for hours worked.
-  ///
-  /// In fr, this message translates to:
-  /// **'Extra'**
-  String get contractTypeExtra;
-
   /// Staff roster page heading.
   ///
   /// In fr, this message translates to:
@@ -3949,7 +3937,7 @@ abstract class AppLocalizations {
   /// Supporting line on the roster page.
   ///
   /// In fr, this message translates to:
-  /// **'Le personnel de cet établissement — coordonnées, contrat et rôle.'**
+  /// **'Le personnel de cet établissement — coordonnées, rémunération et rôle.'**
   String get employeesSubtitle;
 
   /// Primary action on the roster page.
@@ -4005,18 +3993,6 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Personnel actif'**
   String get employeesKpiActive;
-
-  /// Roster KPI label: split between fixed and extra contracts.
-  ///
-  /// In fr, this message translates to:
-  /// **'Fixes / Extras'**
-  String get employeesKpiContractSplit;
-
-  /// Roster KPI value: the fixed/extra split.
-  ///
-  /// In fr, this message translates to:
-  /// **'{fixed} fixes · {extra} extras'**
-  String employeesKpiContractSplitValue(int fixed, int extra);
 
   /// Roster KPI: count of owners and managers.
   ///
@@ -4114,53 +4090,11 @@ abstract class AppLocalizations {
   /// **'Contrat et rémunération'**
   String get employeeFormEmployment;
 
-  /// Contract type dropdown label.
-  ///
-  /// In fr, this message translates to:
-  /// **'Type de contrat'**
-  String get employeeFormContractType;
-
-  /// Pay field label when the contract is fixed.
-  ///
-  /// In fr, this message translates to:
-  /// **'Salaire mensuel (€)'**
-  String get employeeFormPayMonthly;
-
   /// Pay field label when the contract is extra.
   ///
   /// In fr, this message translates to:
   /// **'Tarif horaire (€/h)'**
   String get employeeFormPayHourly;
-
-  /// Schedule section header on the employee form and detail page.
-  ///
-  /// In fr, this message translates to:
-  /// **'Horaires'**
-  String get employeeFormSchedule;
-
-  /// Scheduled start-of-day field label.
-  ///
-  /// In fr, this message translates to:
-  /// **'Heure d\'arrivée'**
-  String get employeeFormScheduleStart;
-
-  /// Scheduled end-of-day field label.
-  ///
-  /// In fr, this message translates to:
-  /// **'Heure de départ'**
-  String get employeeFormScheduleEnd;
-
-  /// Inline error when a schedule time does not parse.
-  ///
-  /// In fr, this message translates to:
-  /// **'Format attendu : HH:MM'**
-  String get employeeFormScheduleInvalid;
-
-  /// Helper text under the schedule fields.
-  ///
-  /// In fr, this message translates to:
-  /// **'Laissez vide pour utiliser les horaires de l\'établissement.'**
-  String get employeeFormScheduleHelp;
 
   /// Snackbar confirming a new employee was created.
   ///
@@ -4185,12 +4119,6 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Coordonnées'**
   String get employeeDetailContact;
-
-  /// Shown for the schedule when the employee has no custom start/end.
-  ///
-  /// In fr, this message translates to:
-  /// **'Horaires de l\'établissement'**
-  String get employeeScheduleStoreHours;
 
   /// Section heading for one employee's attendance history.
   ///
@@ -4275,12 +4203,6 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Terminé'**
   String get attendanceStatusDone;
-
-  /// Marker on a day where the arrival was past the scheduled start.
-  ///
-  /// In fr, this message translates to:
-  /// **'En retard'**
-  String get attendanceLate;
 
   /// Marker on a day where a single break ran longer than the store's allowance.
   ///
@@ -4414,29 +4336,11 @@ abstract class AppLocalizations {
   /// **'Travaillé : {duration}'**
   String timeclockWorked(String duration);
 
-  /// Overtime marker on a finished card.
+  /// Store settings section header for the break allowance.
   ///
   /// In fr, this message translates to:
-  /// **'+{duration} sup.'**
-  String timeclockOvertimeMark(String duration);
-
-  /// Store settings section header for opening hours.
-  ///
-  /// In fr, this message translates to:
-  /// **'Horaires de l\'établissement'**
+  /// **'Pauses'**
   String get storeSettingsHours;
-
-  /// Store opening time field label.
-  ///
-  /// In fr, this message translates to:
-  /// **'Ouverture'**
-  String get storeSettingsOpenTime;
-
-  /// Store closing time field label.
-  ///
-  /// In fr, this message translates to:
-  /// **'Fermeture'**
-  String get storeSettingsCloseTime;
 
   /// Store setting — the longest a single break may run before it is flagged.
   ///
@@ -4444,10 +4348,10 @@ abstract class AppLocalizations {
   /// **'Pause max (minutes)'**
   String get storeSettingsMaxBreak;
 
-  /// Helper text under the store hours / break fields.
+  /// Helper text under the break allowance field.
   ///
   /// In fr, this message translates to:
-  /// **'Les horaires servent de base au calcul du retard et des heures supplémentaires (pour un employé sans horaire personnel). Une pause plus longue que le maximum est signalée « Pause dépassée ».'**
+  /// **'Une pause plus longue que le maximum est signalée « Pause dépassée ».'**
   String get storeSettingsHoursHelp;
 
   /// Which slice of a paged list is shown.
@@ -4546,17 +4450,11 @@ abstract class AppLocalizations {
   /// **'Heures travaillées'**
   String get attendanceStatWorked;
 
-  /// History KPI — number of late arrivals in the period.
+  /// History KPI — number of days with a break that ran past the allowance in the period.
   ///
   /// In fr, this message translates to:
-  /// **'Retards'**
-  String get attendanceStatLate;
-
-  /// History KPI — total overtime in the period.
-  ///
-  /// In fr, this message translates to:
-  /// **'Heures supplémentaires'**
-  String get attendanceStatOvertime;
+  /// **'Pauses dépassées'**
+  String get attendanceStatLateBreaks;
 
   /// History table column — the work day.
   ///
@@ -4582,23 +4480,11 @@ abstract class AppLocalizations {
   /// **'Départ'**
   String get attendanceColumnDeparture;
 
-  /// History table column — number of breaks.
-  ///
-  /// In fr, this message translates to:
-  /// **'Pauses'**
-  String get attendanceColumnBreaks;
-
   /// History table column — worked duration.
   ///
   /// In fr, this message translates to:
   /// **'Durée travail'**
   String get attendanceColumnWorked;
-
-  /// History table column — overtime.
-  ///
-  /// In fr, this message translates to:
-  /// **'Heures sup'**
-  String get attendanceColumnOvertime;
 
   /// History table column — the day's status.
   ///
@@ -4630,12 +4516,6 @@ abstract class AppLocalizations {
   /// **'Détail du pointage'**
   String get attendanceDetailTitle;
 
-  /// Break count heading in the detail panel.
-  ///
-  /// In fr, this message translates to:
-  /// **'{count, plural, =0{Aucune pause} =1{1 pause} other{{count} pauses}}'**
-  String attendanceDetailBreaks(int count);
-
   /// History table column — arrival → departure, grouped.
   ///
   /// In fr, this message translates to:
@@ -4654,24 +4534,6 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{1 pause · {duration}} other{{count} pauses · {duration}}}'**
   String attendanceBreakSummary(int count, String duration);
 
-  /// Drawer row — total break time.
-  ///
-  /// In fr, this message translates to:
-  /// **'Total pauses'**
-  String get attendanceDetailBreakTotal;
-
-  /// Drawer section header for worked hours and overtime.
-  ///
-  /// In fr, this message translates to:
-  /// **'Temps de travail'**
-  String get attendanceDetailWorkTime;
-
-  /// Overtime value in the drawer, marked as informational — never an alert.
-  ///
-  /// In fr, this message translates to:
-  /// **'{duration} (informatif)'**
-  String attendanceDetailOvertimeInfo(String duration);
-
   /// Drawer section header for the event timeline.
   ///
   /// In fr, this message translates to:
@@ -4684,47 +4546,11 @@ abstract class AppLocalizations {
   /// **'Pause({count})'**
   String attendanceDetailPauseCount(int count);
 
-  /// Drawer summary row label — how late the arrival was, paired with the duration as its value.
-  ///
-  /// In fr, this message translates to:
-  /// **'Retard'**
-  String get attendanceDetailLate;
-
   /// Compact break-duration label on the mobile/tablet attendance card.
   ///
   /// In fr, this message translates to:
   /// **'Pause'**
   String get attendanceCardBreakLabel;
-
-  /// Compact overtime-duration label on the mobile/tablet attendance card.
-  ///
-  /// In fr, this message translates to:
-  /// **'Heures supplémentaires'**
-  String get attendanceCardOvertimeLabel;
-
-  /// Store settings section header for payroll coefficients.
-  ///
-  /// In fr, this message translates to:
-  /// **'Paie'**
-  String get storeSettingsPayroll;
-
-  /// Overtime multiplier field label (e.g. 1,25).
-  ///
-  /// In fr, this message translates to:
-  /// **'Majoration heures sup.'**
-  String get storeSettingsOvertimeMultiplier;
-
-  /// Working-days-per-month field label (turns a monthly salary into a daily rate).
-  ///
-  /// In fr, this message translates to:
-  /// **'Jours ouvrés / mois'**
-  String get storeSettingsWorkingDays;
-
-  /// Helper text under the payroll fields.
-  ///
-  /// In fr, this message translates to:
-  /// **'Un salarié fixe est payé son taux journalier (salaire ÷ jours ouvrés) par jour travaillé ; les heures supplémentaires sont payées à ce taux fois la majoration.'**
-  String get storeSettingsPayrollHelp;
 
   /// Heading of the payroll history page.
   ///
@@ -4822,12 +4648,6 @@ abstract class AppLocalizations {
   /// **'Heures travaillées'**
   String get payrollStatWorkedHours;
 
-  /// Payroll KPI — total overtime hours in the window.
-  ///
-  /// In fr, this message translates to:
-  /// **'Heures supplémentaires'**
-  String get payrollStatOvertimeHours;
-
   /// Payroll table column — the employee (shown when every employee is listed).
   ///
   /// In fr, this message translates to:
@@ -4857,12 +4677,6 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Durée travaillée'**
   String get payrollColumnWorked;
-
-  /// Payroll table column — overtime hours.
-  ///
-  /// In fr, this message translates to:
-  /// **'Heures sup'**
-  String get payrollColumnOvertime;
 
   /// Payroll table column — the amount for the day.
   ///
@@ -4954,7 +4768,7 @@ abstract class AppLocalizations {
   /// **'Total pauses'**
   String get payrollDetailBreakTotal;
 
-  /// Payroll drawer section header for worked hours and overtime.
+  /// Payroll drawer section header for worked hours.
   ///
   /// In fr, this message translates to:
   /// **'Temps de travail'**
@@ -4966,29 +4780,11 @@ abstract class AppLocalizations {
   /// **'Temps travaillé'**
   String get payrollDetailWorked;
 
-  /// Overtime value in the payroll drawer, marked informational — never an alert.
-  ///
-  /// In fr, this message translates to:
-  /// **'{duration} (informatif)'**
-  String payrollDetailOvertimeInfo(String duration);
-
-  /// Payroll drawer row — the employee's effective hourly rate.
+  /// Payroll drawer row — the employee's hourly rate.
   ///
   /// In fr, this message translates to:
   /// **'Taux horaire'**
   String get payrollDetailRate;
-
-  /// Payroll drawer row — worked hours at the normal rate, before any overtime premium.
-  ///
-  /// In fr, this message translates to:
-  /// **'Montant de base'**
-  String get payrollDetailBase;
-
-  /// Payroll drawer row — the extra paid on the overtime hours, above the base.
-  ///
-  /// In fr, this message translates to:
-  /// **'Prime heures sup.'**
-  String get payrollDetailPremium;
 
   /// Payroll drawer row — the day's total amount.
   ///
@@ -5356,24 +5152,6 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Document généré le {date} — ne constitue pas une facture.'**
   String receiptDocFooter(String date);
-
-  /// Title of the dialog shown before saving pointage / payroll settings while unpaid finished days exist.
-  ///
-  /// In fr, this message translates to:
-  /// **'Des journées ne sont pas encore payées'**
-  String get storeSettingsRetroWarningTitle;
-
-  /// Body of the dialog warning that changing pointage / payroll settings retroactively affects unpaid days.
-  ///
-  /// In fr, this message translates to:
-  /// **'{days, plural, =1{1 journée terminée n\'\'a pas encore été payée} other{{days} journées terminées n\'\'ont pas encore été payées}}. Changer les horaires ou les coefficients modifiera le retard, les heures supplémentaires et le montant estimé de ces journées. Payez-les d\'\'abord pour figer leurs chiffres.'**
-  String storeSettingsRetroWarningBody(int days);
-
-  /// Confirm button on the retroactive-settings warning dialog.
-  ///
-  /// In fr, this message translates to:
-  /// **'Changer quand même'**
-  String get storeSettingsRetroWarningConfirm;
 
   /// Title of the dialog that asks for a CIN before an action goes through.
   ///

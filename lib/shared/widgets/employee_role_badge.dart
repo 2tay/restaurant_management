@@ -48,10 +48,3 @@ String employeeRoleDescription(AppLocalizations l10n, EmployeeRole role) =>
       EmployeeRole.manager => l10n.employeeRoleManagerBody,
       EmployeeRole.staff => l10n.employeeRoleStaffBody,
     };
-
-/// Shared contract-type naming.
-String contractTypeLabel(AppLocalizations l10n, ContractType type) =>
-    switch (type) {
-      ContractType.fixed => l10n.contractTypeFixed,
-      ContractType.extra => l10n.contractTypeExtra,
-    };

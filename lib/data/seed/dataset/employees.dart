@@ -22,9 +22,7 @@ abstract final class EmployeeIds {
 /// Brasserie du Sablon carries the full roster:
 /// - one **owner** (Marc — also `mockCurrentEmployee`), one **manager**
 ///   (Amélie), the rest **staff**
-/// - both contract types: `fixed` (monthly pay) and `extra` (hourly)
-/// - Élise carries an explicit start/end time; everyone else falls back to
-///   the store's opening hours
+/// - every employee is paid an hourly rate
 /// - one **archived** record (Camille) so the "retiré" state is demoable
 ///
 /// Taverne Saint-Gilles stays **empty** — it is the README's every-empty-state
@@ -42,8 +40,7 @@ final List<Employee> mockEmployees = [
     email: 'marc.delvaux@brasserie-sablon.be',
     hireDate: monthsAgo(38),
     role: EmployeeRole.owner,
-    contractType: ContractType.fixed,
-    pay: 4200,
+    pay: 20,
     createdAt: monthsAgo(38),
   ),
   Employee(
@@ -56,8 +53,7 @@ final List<Employee> mockEmployees = [
     email: 'amelie.v@brasserie-sablon.be',
     hireDate: monthsAgo(22),
     role: EmployeeRole.manager,
-    contractType: ContractType.fixed,
-    pay: 2900,
+    pay: 16,
     createdAt: monthsAgo(22),
   ),
   Employee(
@@ -70,8 +66,7 @@ final List<Employee> mockEmployees = [
     email: 'karim.haddouch@brasserie-sablon.be',
     hireDate: monthsAgo(30),
     role: EmployeeRole.staff,
-    contractType: ContractType.fixed,
-    pay: 2400,
+    pay: 13,
     createdAt: monthsAgo(30),
   ),
   Employee(
@@ -84,8 +79,7 @@ final List<Employee> mockEmployees = [
     email: 'fatima.ezzahra@brasserie-sablon.be',
     hireDate: monthsAgo(18),
     role: EmployeeRole.staff,
-    contractType: ContractType.fixed,
-    pay: 2200,
+    pay: 12.5,
     createdAt: monthsAgo(18),
   ),
   Employee(
@@ -98,12 +92,7 @@ final List<Employee> mockEmployees = [
     email: 'elise.dupont@brasserie-sablon.be',
     hireDate: monthsAgo(6),
     role: EmployeeRole.staff,
-    contractType: ContractType.extra,
     pay: 14.5,
-    // Comes in for the evening service — 16h00 to 23h30 — not the store's
-    // default opening hours.
-    scheduledStartMinutes: 16 * 60,
-    scheduledEndMinutes: 23 * 60 + 30,
     createdAt: monthsAgo(6),
   ),
   Employee(
@@ -116,7 +105,6 @@ final List<Employee> mockEmployees = [
     email: 'noah.vandamme@brasserie-sablon.be',
     hireDate: monthsAgo(2),
     role: EmployeeRole.staff,
-    contractType: ContractType.extra,
     pay: 13.5,
     createdAt: monthsAgo(2),
   ),
@@ -130,7 +118,6 @@ final List<Employee> mockEmployees = [
     email: 'julien.mertens@brasserie-sablon.be',
     hireDate: monthsAgo(4),
     role: EmployeeRole.staff,
-    contractType: ContractType.extra,
     pay: 13,
     createdAt: monthsAgo(4),
   ),
@@ -147,7 +134,6 @@ final List<Employee> mockEmployees = [
     email: 'camille.rousseau@brasserie-sablon.be',
     hireDate: monthsAgo(10),
     role: EmployeeRole.staff,
-    contractType: ContractType.extra,
     pay: 13.5,
     createdAt: monthsAgo(10),
     archivedAt: daysAgo(20),
@@ -168,8 +154,7 @@ final List<Employee> mockEmployees = [
     email: 'ayoub.aittaleb@testcalcul.be',
     hireDate: DateTime(2026, 6, 1),
     role: EmployeeRole.staff,
-    contractType: ContractType.fixed,
-    pay: 2000,
+    pay: 12.5,
     // No personal schedule — inherits the store's 08:00–22:00 day.
     createdAt: DateTime(2026, 6, 1),
   ),
@@ -183,11 +168,7 @@ final List<Employee> mockEmployees = [
     email: 'hakim.toutay@testcalcul.be',
     hireDate: DateTime(2026, 6, 1),
     role: EmployeeRole.staff,
-    contractType: ContractType.extra,
     pay: 15,
-    // Extra: own hours, 10:00 → 20:00.
-    scheduledStartMinutes: 10 * 60,
-    scheduledEndMinutes: 20 * 60,
     createdAt: DateTime(2026, 6, 1),
   ),
 ];

@@ -6,7 +6,6 @@ import '../../../../app/navigation.dart';
 import '../../../../app/routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
-import '../../../../core/utils/attendance_status.dart';
 import '../../../../core/utils/employee_status.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../data/providers.dart';
@@ -84,11 +83,6 @@ class EmployeeDetailPage extends ConsumerWidget {
     StoreSettings settings,
   ) {
     final archived = !isEmployeeActive(employee);
-    final schedule = resolvedSchedule(
-      employee,
-      storeOpenMinutes: settings.openMinutes,
-      storeCloseMinutes: settings.closeMinutes,
-    );
 
     return ShellPage(
       back: BackDestination(
@@ -189,25 +183,9 @@ class EmployeeDetailPage extends ConsumerWidget {
             child: Column(
               children: [
                 _InfoRow(
-                  icon: LucideIcons.briefcase,
-                  label: l10n.employeeFormContractType,
-                  value: contractTypeLabel(l10n, employee.contractType),
-                ),
-                const Divider(height: AppSpacing.xl),
-                _InfoRow(
                   icon: LucideIcons.wallet,
-                  label: employee.contractType == ContractType.fixed
-                      ? l10n.employeeFormPayMonthly
-                      : l10n.employeeFormPayHourly,
-                  value: employee.contractType == ContractType.fixed
-                      ? Formatters.price(employee.pay)
-                      : '${Formatters.price(employee.pay)} / h',
-                ),
-                const Divider(height: AppSpacing.xl),
-                _InfoRow(
-                  icon: LucideIcons.clock,
-                  label: l10n.employeeFormSchedule,
-                  value: _scheduleText(l10n, employee),
+                  label: l10n.employeeFormPayHourly,
+                  value: '${Formatters.price(employee.pay)} / h',
                 ),
               ],
             ),
@@ -220,7 +198,6 @@ class EmployeeDetailPage extends ConsumerWidget {
           ),
           _AttendanceHistoryCard(
             attendances: attendances,
-            scheduledStartMinutes: schedule.startMinutes,
             maxBreakMinutes: settings.maxBreakMinutes,
           ),
           const SizedBox(height: AppSpacing.xl),
@@ -230,15 +207,6 @@ class EmployeeDetailPage extends ConsumerWidget {
         ],
       ),
     );
-  }
-
-  String _scheduleText(AppLocalizations l10n, Employee employee) {
-    final start = employee.scheduledStartMinutes;
-    final end = employee.scheduledEndMinutes;
-    if (start == null && end == null) return l10n.employeeScheduleStoreHours;
-    final from = start == null ? '—' : Formatters.minutesToClock(start);
-    final to = end == null ? '—' : Formatters.minutesToClock(end);
-    return '$from – $to';
   }
 
   Future<void> _confirmArchive(
@@ -281,12 +249,10 @@ class EmployeeDetailPage extends ConsumerWidget {
 class _AttendanceHistoryCard extends StatelessWidget {
   const _AttendanceHistoryCard({
     required this.attendances,
-    required this.scheduledStartMinutes,
     required this.maxBreakMinutes,
   });
 
   final List<Attendance> attendances;
-  final int scheduledStartMinutes;
   final int maxBreakMinutes;
 
   @override
@@ -311,7 +277,6 @@ class _AttendanceHistoryCard extends StatelessWidget {
           for (final entry in attendances)
             AttendanceRow(
               attendance: entry,
-              scheduledStartMinutes: scheduledStartMinutes,
               maxBreakMinutes: maxBreakMinutes,
             ),
         ],

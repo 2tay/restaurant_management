@@ -135,10 +135,6 @@ class _KpiRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final active = employees.where(isEmployeeActive).toList();
-    final fixed = active
-        .where((e) => e.contractType == ContractType.fixed)
-        .length;
-    final extra = active.length - fixed;
     final managers = active
         .where(
           (e) => e.role == EmployeeRole.manager || e.role == EmployeeRole.owner,
@@ -157,11 +153,6 @@ class _KpiRow extends StatelessWidget {
           label: l10n.employeesKpiActive,
           value: '${active.length}',
           icon: LucideIcons.users,
-        ),
-        StatTile(
-          label: l10n.employeesKpiContractSplit,
-          value: l10n.employeesKpiContractSplitValue(fixed, extra),
-          icon: LucideIcons.briefcase,
         ),
         StatTile(
           label: l10n.employeesKpiManagers,
@@ -309,18 +300,12 @@ class _EmployeeRow extends StatelessWidget {
             ),
           ),
           AdaptiveCell(
-            // A Wrap, not a Row: "Gérant" and "Contrat fixe" together are
-            // wider than a 360dp card even on their own line, so the two
-            // badges have to be able to stack as well as move.
             child: Wrap(
               spacing: AppSpacing.sm,
               runSpacing: AppSpacing.xs,
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 EmployeeRoleBadge(role: employee.role),
-                LabelChip(
-                  label: contractTypeLabel(l10n, employee.contractType),
-                ),
                 const Icon(
                   LucideIcons.chevronRight,
                   size: AppSizing.iconMd,

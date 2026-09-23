@@ -56,7 +56,6 @@ Employee fakeOwner({String storeId = 'store-sablon'}) => Employee(
   email: 'test.owner@example.test',
   hireDate: DateTime(2020),
   role: EmployeeRole.owner,
-  contractType: ContractType.fixed,
   pay: 0,
   createdAt: DateTime(2020),
 );
