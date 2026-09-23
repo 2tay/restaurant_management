@@ -376,9 +376,14 @@ void main() {
       final cancel = styleOf('Réinitialiser')!;
       expect(cancel.foregroundColor?.resolve(_none), const Color(0xFF777777));
       expect(cancel.side?.resolve(_none), BorderSide.none);
-      expect(cancel.backgroundColor?.resolve(_none), Colors.transparent);
+      // White from the start — at rest, on hover, and while disabled.
+      expect(cancel.backgroundColor?.resolve(_none), Colors.white);
       expect(
         cancel.backgroundColor?.resolve(const {WidgetState.hovered}),
+        Colors.white,
+      );
+      expect(
+        cancel.backgroundColor?.resolve(const {WidgetState.disabled}),
         Colors.white,
       );
       final previous = styleOf('Précédent')!;

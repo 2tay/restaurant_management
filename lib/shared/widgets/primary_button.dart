@@ -95,8 +95,10 @@ enum SecondaryButtonTone {
   /// Outlined — the default everywhere.
   outlined,
 
-  /// No border, no fill, placeholder-grey text — a way out (Annuler) that
-  /// should not compete with the actions around it.
+  /// No border, a white fill and placeholder-grey text — a side action
+  /// (Réinitialiser) that should not compete with the steps around it. The
+  /// fill is there from the start, enabled or not, so the button reads as a
+  /// button before the pointer finds it.
   quiet,
 
   /// No border on a white fill — a secondary step (Précédent) sitting on the
@@ -131,18 +133,9 @@ class SecondaryButton extends StatelessWidget {
       SecondaryButtonTone.outlined => null,
       SecondaryButtonTone.quiet => OutlinedButton.styleFrom(
         foregroundColor: AppColors.placeholder,
+        backgroundColor: AppColors.surface,
+        disabledBackgroundColor: AppColors.surface,
         side: BorderSide.none,
-      ).copyWith(
-        // Transparent at rest, the white of the surface buttons on hover /
-        // focus / press — so it reads as a button once the pointer is on it.
-        backgroundColor: WidgetStateProperty.resolveWith(
-          (states) =>
-              states.contains(WidgetState.hovered) ||
-                  states.contains(WidgetState.focused) ||
-                  states.contains(WidgetState.pressed)
-              ? AppColors.surface
-              : Colors.transparent,
-        ),
       ),
       SecondaryButtonTone.surface => OutlinedButton.styleFrom(
         foregroundColor: AppColors.textPrimary,
