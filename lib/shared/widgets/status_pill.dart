@@ -30,6 +30,7 @@ class StatusPill extends StatelessWidget {
     required this.label,
     this.compact = false,
     this.outlined = false,
+    this.borderRadius = AppRadius.pillAll,
     super.key,
   });
 
@@ -49,6 +50,10 @@ class StatusPill extends StatelessWidget {
   /// pill that sits on a coloured surface, where the container tint would
   /// disappear into it.
   final bool outlined;
+
+  /// A full pill by default. The employee screens pass [AppRadius.smAll] so
+  /// their badges match the square-ish toolbar controls beside them.
+  final BorderRadius borderRadius;
 
   @override
   Widget build(BuildContext context) {
@@ -76,7 +81,7 @@ class StatusPill extends StatelessWidget {
       decoration: BoxDecoration(
         color: outlined ? null : colors.container,
         border: outlined ? Border.all(color: colors.foreground) : null,
-        borderRadius: AppRadius.pillAll,
+        borderRadius: borderRadius,
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -123,6 +128,7 @@ class LabelChip extends StatelessWidget {
     this.foreground,
     this.icon,
     this.dense = false,
+    this.borderRadius = AppRadius.pillAll,
     super.key,
   });
 
@@ -139,6 +145,9 @@ class LabelChip extends StatelessWidget {
   /// already dense.
   final bool dense;
 
+  /// See [StatusPill.borderRadius].
+  final BorderRadius borderRadius;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -151,7 +160,7 @@ class LabelChip extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         color: background ?? AppColors.surfaceVariant,
-        borderRadius: AppRadius.pillAll,
+        borderRadius: borderRadius,
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

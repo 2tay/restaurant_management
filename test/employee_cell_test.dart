@@ -1,10 +1,13 @@
 // EmployeeCell and Formatters.dateShortWeekday: the "Employé" column and the
-// date column shared by the Personnel, Pointage and Paiement tables.
+// date column shared by the Personnel, Pointage and Paiement tables — and the
+// employee badges, whose corners match the "retirés" toggle (8dp, not a pill).
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:stock_inventory/core/theme/app_spacing.dart';
 import 'package:stock_inventory/core/utils/formatters.dart';
+import 'package:stock_inventory/l10n/app_localizations.dart';
 import 'package:stock_inventory/models/models.dart';
 import 'package:stock_inventory/shared/widgets/widgets.dart';
 
@@ -23,7 +26,12 @@ final _amelie = Employee(
 );
 
 Future<void> _pump(WidgetTester tester, Widget child) => tester.pumpWidget(
-  MaterialApp(home: Scaffold(body: Center(child: child))),
+  MaterialApp(
+    locale: const Locale('fr'),
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
+    home: Scaffold(body: Center(child: child)),
+  ),
 );
 
 void main() {
@@ -73,5 +81,33 @@ void main() {
     await _pump(tester, const EmployeeCell(employee: null));
     expect(find.text('—'), findsOneWidget);
     expect(find.byType(EmployeeAvatar), findsNothing);
+  });
+
+  testWidgets('employee badges use the toggle radius (8dp), stock keeps the '
+      'pill', (tester) async {
+    BorderRadiusGeometry? radiusOf(Finder badge) {
+      final box = tester.widget<Container>(
+        find.descendant(of: badge, matching: find.byType(Container)).first,
+      );
+      return (box.decoration as BoxDecoration?)?.borderRadius;
+    }
+
+    await _pump(
+      tester,
+      const Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          AttendanceStatusBadge(status: AttendanceStatus.working),
+          PaymentStatusBadge(status: PaymentStatus.paid),
+          EmployeeRoleBadge(role: EmployeeRole.staff),
+          StockStatusBadge(status: StockStatus.lowStock),
+        ],
+      ),
+    );
+
+    expect(radiusOf(find.byType(AttendanceStatusBadge)), AppRadius.smAll);
+    expect(radiusOf(find.byType(PaymentStatusBadge)), AppRadius.smAll);
+    expect(radiusOf(find.byType(EmployeeRoleBadge)), AppRadius.smAll);
+    expect(radiusOf(find.byType(StockStatusBadge)), AppRadius.pillAll);
   });
 }

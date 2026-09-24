@@ -421,6 +421,7 @@ class _EmployeeTable extends StatelessWidget {
                     background: AppColors.outOfStock.container,
                     foreground: AppColors.outOfStock.foreground,
                     dense: true,
+                    borderRadius: AppRadius.smAll,
                   )
                 : null,
           ),

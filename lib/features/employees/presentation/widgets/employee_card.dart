@@ -95,6 +95,7 @@ class EmployeeCard extends StatelessWidget {
                               ? AppColors.outOfStock.foreground
                               : AppColors.inStock.foreground,
                           dense: true,
+                          borderRadius: AppRadius.smAll,
                         ),
                         EmployeeRoleBadge(role: employee.role),
                       ],
