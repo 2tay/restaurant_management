@@ -1065,4 +1065,87 @@ void main() {
       expect(spans.last.style, isNull);
     });
   });
+
+  group('AttendanceSessions', () {
+    DateTime at(int h, int m) => DateTime(2026, 10, 24, h, m);
+    Attendance day(List<AttendanceSession> sessions) => Attendance(
+      id: 'a',
+      storeId: 's',
+      employeeId: 'e',
+      date: DateTime(2026, 10, 24),
+      status: AttendanceStatus.done,
+      sessions: sessions,
+      paymentStatus: PaymentStatus.unpaid,
+    );
+
+    Future<void> pump(WidgetTester tester, Attendance entry) async {
+      await initializeDateFormatting(Formatters.locale);
+      await tester.pumpWidget(
+        _host(
+          SizedBox(
+            width: 400,
+            child: AttendanceSessions(entry: entry, maxBreakMinutes: 30),
+          ),
+        ),
+      );
+    }
+
+    testWidgets('one session: the timeline straight away, no heading', (
+      tester,
+    ) async {
+      await pump(
+        tester,
+        day([
+          AttendanceSession(
+            clockInAt: at(8, 0),
+            clockOutAt: at(16, 0),
+            pauses: [AttendancePause(startAt: at(9, 30), endAt: at(10, 0))],
+          ),
+        ]),
+      );
+      expect(find.textContaining('Session'), findsNothing);
+      expect(find.text('08:00'), findsOneWidget);
+      expect(find.text('16:00'), findsOneWidget);
+      // A 30-minute break against a 30-minute allowance: no alert.
+      expect(find.textContaining('dépassée'), findsNothing);
+    });
+
+    testWidgets('two sessions: a numbered heading each, and a pause alert '
+        'only under the session that ran over', (tester) async {
+      await pump(
+        tester,
+        day([
+          AttendanceSession(
+            clockInAt: at(8, 0),
+            clockOutAt: at(16, 0),
+            pauses: [
+              AttendancePause(startAt: at(9, 30), endAt: at(10, 0)),
+              AttendancePause(startAt: at(13, 15), endAt: at(14, 0)),
+            ],
+          ),
+          AttendanceSession(
+            clockInAt: at(18, 0),
+            clockOutAt: at(23, 0),
+            pauses: [AttendancePause(startAt: at(19, 30), endAt: at(20, 0))],
+          ),
+        ]),
+      );
+
+      final first = find.text('Session N° 1');
+      final second = find.text('Session N° 2');
+      expect(first, findsOneWidget);
+      expect(second, findsOneWidget);
+      final alert = find.text('Pause de 13:15 dépassée de 15 min');
+      expect(alert, findsOneWidget);
+      expect(find.textContaining('dépassée'), findsOneWidget);
+      // Order: heading 1, its events and alert, then heading 2, 18:00…
+      final alertY = tester.getTopLeft(alert).dy;
+      expect(alertY, greaterThan(tester.getTopLeft(first).dy));
+      expect(alertY, lessThan(tester.getTopLeft(second).dy));
+      expect(
+        tester.getTopLeft(find.text('18:00')).dy,
+        greaterThan(tester.getTopLeft(second).dy),
+      );
+    });
+  });
 }

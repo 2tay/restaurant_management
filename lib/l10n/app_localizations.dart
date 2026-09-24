@@ -4450,6 +4450,54 @@ abstract class AppLocalizations {
   /// **'Fin de journée enregistrée pour {name}.'**
   String timeclockClockOutDone(String name);
 
+  /// Label before today's date in the pointage board header and drawer.
+  ///
+  /// In fr, this message translates to:
+  /// **'Date'**
+  String get liveDateLabel;
+
+  /// Label before the live clock in the pointage board header and drawer.
+  ///
+  /// In fr, this message translates to:
+  /// **'Heure'**
+  String get liveTimeLabel;
+
+  /// Link at the top right of a pointage board card; opens the drawer.
+  ///
+  /// In fr, this message translates to:
+  /// **'Voir détails'**
+  String get timeclockViewDetail;
+
+  /// Section title in the pointage board drawer.
+  ///
+  /// In fr, this message translates to:
+  /// **'Informations personnelles'**
+  String get timeclockPersonalInfo;
+
+  /// Section title for the day's timestamps in the pointage board drawer.
+  ///
+  /// In fr, this message translates to:
+  /// **'Horaires'**
+  String get timeclockSchedule;
+
+  /// Drawer body when the employee has no punch today.
+  ///
+  /// In fr, this message translates to:
+  /// **'Pas encore pointé aujourd\'hui.'**
+  String get timeclockNoPunchYet;
+
+  /// Divider above one session of a multi-session day.
+  ///
+  /// In fr, this message translates to:
+  /// **'Session N° {number}'**
+  String timeclockSessionTitle(int number);
+
+  /// Alert under a session for a break that ran past the allowance.
+  ///
+  /// In fr, this message translates to:
+  /// **'Pause de {start} dépassée de {duration}'**
+  String timeclockPauseOverrun(String start, String duration);
+
   /// Timestamp log label — clock-in.
   ///
   /// In fr, this message translates to:
@@ -4473,12 +4521,6 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Départ'**
   String get timeclockLogDeparture;
-
-  /// Worked-duration line on a finished card.
-  ///
-  /// In fr, this message translates to:
-  /// **'Travaillé : {duration}'**
-  String timeclockWorked(String duration);
 
   /// Store settings section header for the break allowance.
   ///

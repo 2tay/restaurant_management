@@ -2673,6 +2673,34 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String get liveDateLabel => 'Date';
+
+  @override
+  String get liveTimeLabel => 'Heure';
+
+  @override
+  String get timeclockViewDetail => 'Voir détails';
+
+  @override
+  String get timeclockPersonalInfo => 'Informations personnelles';
+
+  @override
+  String get timeclockSchedule => 'Horaires';
+
+  @override
+  String get timeclockNoPunchYet => 'Pas encore pointé aujourd\'hui.';
+
+  @override
+  String timeclockSessionTitle(int number) {
+    return 'Session N° $number';
+  }
+
+  @override
+  String timeclockPauseOverrun(String start, String duration) {
+    return 'Pause de $start dépassée de $duration';
+  }
+
+  @override
   String get timeclockLogArrival => 'Arrivée';
 
   @override
@@ -2683,11 +2711,6 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get timeclockLogDeparture => 'Départ';
-
-  @override
-  String timeclockWorked(String duration) {
-    return 'Travaillé : $duration';
-  }
 
   @override
   String get storeSettingsHours => 'Pauses';

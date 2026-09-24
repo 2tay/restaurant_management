@@ -13,15 +13,25 @@ import 'adaptive_row.dart';
 /// ~440px on a desktop, near full-width below 600. Dismissed by the close
 /// button, the scrim, or Échap.
 class DetailDrawer extends StatelessWidget {
-  const DetailDrawer({required this.title, required this.children, super.key});
+  const DetailDrawer({
+    required this.title,
+    required this.children,
+    this.header,
+    super.key,
+  });
 
   final String title;
   final List<Widget> children;
+
+  /// Under the title, above the divider — context that belongs to the panel
+  /// rather than to its content (the board's live date and time).
+  final Widget? header;
 
   static Future<void> show(
     BuildContext context, {
     required String title,
     required List<Widget> children,
+    Widget? header,
   }) {
     return showGeneralDialog<void>(
       context: context,
@@ -30,7 +40,7 @@ class DetailDrawer extends StatelessWidget {
       barrierColor: Colors.black.withValues(alpha: 0.25),
       transitionDuration: AppMotion.duration(context, AppMotion.page),
       pageBuilder: (context, _, _) =>
-          DetailDrawer(title: title, children: children),
+          DetailDrawer(title: title, header: header, children: children),
       transitionBuilder: (context, animation, _, child) => SlideTransition(
         position: Tween<Offset>(
           begin: const Offset(1, 0),
@@ -72,7 +82,17 @@ class DetailDrawer extends StatelessWidget {
                   child: Row(
                     children: [
                       Expanded(
-                        child: Text(title, style: theme.textTheme.titleMedium),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(title, style: theme.textTheme.titleMedium),
+                            if (header != null) ...[
+                              const SizedBox(height: AppSpacing.xs),
+                              header!,
+                            ],
+                          ],
+                        ),
                       ),
                       IconButton(
                         onPressed: () => Navigator.of(context).pop(),
