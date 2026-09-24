@@ -177,20 +177,14 @@ class _AttendanceHistoryPageState extends ConsumerState<AttendanceHistoryPage> {
           from: _from,
           to: _to,
           status: _status,
-          canReset: _hasActiveFilters,
-          onReset: _clearFilters,
+          dateIsDefault: _dateRangeIsDefault,
           onEmployee: (e) => setState(() {
             _selectedEmployee = e;
             _page = 0;
           }),
-          onFrom: (d) => setState(() {
-            _from = _dayOnly(d);
-            if (_to.isBefore(_from)) _to = _from;
-            _page = 0;
-          }),
-          onTo: (d) => setState(() {
-            _to = _dayOnly(d);
-            if (_from.isAfter(_to)) _from = _to;
+          onRange: (r) => setState(() {
+            _from = _dayOnly(r.start);
+            _to = _dayOnly(r.end);
             _page = 0;
           }),
           onStatus: (s) => setState(() {
@@ -430,6 +424,8 @@ class _StatRow extends StatelessWidget {
   }
 }
 
+/// Search on the left, période and statut at the right edge — the same strip
+/// as the Personnel page and the payroll history.
 class _Filters extends StatelessWidget {
   const _Filters({
     required this.selectedEmployee,
@@ -437,11 +433,9 @@ class _Filters extends StatelessWidget {
     required this.from,
     required this.to,
     required this.status,
-    required this.canReset,
-    required this.onReset,
+    required this.dateIsDefault,
     required this.onEmployee,
-    required this.onFrom,
-    required this.onTo,
+    required this.onRange,
     required this.onStatus,
   });
 
@@ -450,75 +444,48 @@ class _Filters extends StatelessWidget {
   final DateTime from;
   final DateTime to;
   final AttendanceStatus? status;
-  final bool canReset;
-  final VoidCallback onReset;
+  final bool dateIsDefault;
   final ValueChanged<Employee?> onEmployee;
-  final ValueChanged<DateTime> onFrom;
-  final ValueChanged<DateTime> onTo;
+  final ValueChanged<DateTimeRange> onRange;
   final ValueChanged<AttendanceStatus?> onStatus;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final today = _dayOnly(DateTime.now());
-    final floor = DateTime(2000);
 
-    return FilterBar(
-      reset: canReset
-          ? FilterResetButton(
-              label: l10n.attendanceFilterReset,
-              onPressed: onReset,
-            )
-          : null,
-      fields: [
-        FilterField(
-          label: l10n.attendanceFilterEmployee,
-          child: EmployeeSelector(
-            employees: employees,
-            value: selectedEmployee,
-            showPin: true,
-            hint: l10n.attendanceFilterAllEmployees,
-            onChanged: onEmployee,
-          ),
+    return FilterToolbar(
+      search: EmployeeSelector(
+        employees: employees,
+        value: selectedEmployee,
+        showPin: true,
+        searchBar: true,
+        hint: l10n.employeesSearchHint,
+        onChanged: onEmployee,
+      ),
+      filters: [
+        DateRangeFilter(
+          from: from,
+          to: to,
+          firstDate: DateTime(2000),
+          lastDate: _dayOnly(DateTime.now()),
+          isDefault: dateIsDefault,
+          onChanged: onRange,
         ),
-        FilterField.date(
-          label: l10n.attendanceFilterFrom,
-          child: DateField(
-            value: from,
-            compact: true,
-            firstDate: floor,
-            lastDate: to,
-            onChanged: onFrom,
-          ),
-        ),
-        FilterField.date(
-          label: l10n.attendanceFilterTo,
-          child: DateField(
-            value: to,
-            compact: true,
-            firstDate: from,
-            lastDate: today,
-            onChanged: onTo,
-          ),
-        ),
-        FilterField.auto(
+        FilterMenu<AttendanceStatus?>(
           label: l10n.ordersFilterStatus,
-          child: FilterMenu<AttendanceStatus?>(
-            label: l10n.ordersFilterStatus,
-            selectedLabel: status == null
-                ? null
-                : attendanceStatusLabel(l10n, status!),
-            entries: {
-              null: l10n.ordersFilterAllStatuses,
-              for (final s in const [
-                AttendanceStatus.working,
-                AttendanceStatus.onBreak,
-                AttendanceStatus.done,
-              ])
-                s: attendanceStatusLabel(l10n, s),
-            },
-            onSelected: onStatus,
-          ),
+          selectedLabel: status == null
+              ? null
+              : attendanceStatusLabel(l10n, status!),
+          entries: {
+            null: l10n.ordersFilterAllStatuses,
+            for (final s in const [
+              AttendanceStatus.working,
+              AttendanceStatus.onBreak,
+              AttendanceStatus.done,
+            ])
+              s: attendanceStatusLabel(l10n, s),
+          },
+          onSelected: onStatus,
         ),
       ],
     );

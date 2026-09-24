@@ -78,29 +78,9 @@ class _SearchFieldState extends State<SearchField> {
             // Rebuilds only to show or hide the clear button.
             setState(() {});
           },
-          decoration: InputDecoration(
-            hintText: widget.hint ?? l10n.actionSearch,
-            // White and borderless at rest, like the wizard fields; the brand
-            // green on focus, for the outline and the magnifier alike.
-            hintStyle: Theme.of(
-              context,
-            ).textTheme.bodyLarge?.copyWith(color: AppColors.placeholder),
-            filled: true,
-            fillColor: AppColors.surface,
-            enabledBorder: const OutlineInputBorder(
-              borderRadius: AppRadius.mdAll,
-              borderSide: BorderSide.none,
-            ),
-            focusedBorder: const OutlineInputBorder(
-              borderRadius: AppRadius.mdAll,
-              borderSide: BorderSide(color: AppColors.primary600, width: 2),
-            ),
-            prefixIcon: const Icon(LucideIcons.search),
-            prefixIconColor: WidgetStateColor.resolveWith(
-              (states) => states.contains(WidgetState.focused)
-                  ? AppColors.primary600
-                  : AppColors.placeholder,
-            ),
+          decoration: searchFieldDecoration(
+            context,
+            hint: widget.hint ?? l10n.actionSearch,
             suffixIcon: hasText
                 ? IconButton(
                     onPressed: _clear,
@@ -108,18 +88,52 @@ class _SearchFieldState extends State<SearchField> {
                     tooltip: l10n.actionClose,
                   )
                 : null,
-            // Tighter than the form-field rhythm on purpose. A search box is
-            // not part of a column of inputs the eye reads down; it sits in a
-            // control bar beside filter pills, and matching their 48dp height
-            // is what makes that bar read as one row rather than as an input
-            // with some chips next to it.
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.lg,
-              vertical: AppSpacing.md,
-            ),
           ),
         ),
       ),
     );
   }
 }
+
+/// The look of [SearchField], for any other input that should read as the
+/// same search bar — the employee search on the two history pages is an
+/// [EmployeeSelector] rather than a [SearchField], but must not look like one
+/// designed separately.
+///
+/// White and borderless at rest, like the wizard fields; the brand green on
+/// focus, for the outline and the magnifier alike.
+InputDecoration searchFieldDecoration(
+  BuildContext context, {
+  required String hint,
+  Widget? suffixIcon,
+}) => InputDecoration(
+  hintText: hint,
+  hintStyle: Theme.of(
+    context,
+  ).textTheme.bodyLarge?.copyWith(color: AppColors.placeholder),
+  filled: true,
+  fillColor: AppColors.surface,
+  enabledBorder: const OutlineInputBorder(
+    borderRadius: AppRadius.mdAll,
+    borderSide: BorderSide.none,
+  ),
+  focusedBorder: const OutlineInputBorder(
+    borderRadius: AppRadius.mdAll,
+    borderSide: BorderSide(color: AppColors.primary600, width: 2),
+  ),
+  prefixIcon: const Icon(LucideIcons.search),
+  prefixIconColor: WidgetStateColor.resolveWith(
+    (states) => states.contains(WidgetState.focused)
+        ? AppColors.primary600
+        : AppColors.placeholder,
+  ),
+  suffixIcon: suffixIcon,
+  // Tighter than the form-field rhythm on purpose. A search box is not part
+  // of a column of inputs the eye reads down; it sits in a control bar beside
+  // filter pills, and matching their height is what makes that bar read as
+  // one row rather than as an input with some chips next to it.
+  contentPadding: const EdgeInsets.symmetric(
+    horizontal: AppSpacing.lg,
+    vertical: AppSpacing.md,
+  ),
+);

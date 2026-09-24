@@ -94,53 +94,21 @@ class _EmployeesListPageState extends ConsumerState<EmployeesListPage> {
       children: [
         _KpiRow(employees: all),
         const SizedBox(height: AppSpacing.lg),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final search = SearchField(
-              hint: l10n.employeesSearchHint,
-              onChanged: (value) => setState(() => _query = value),
-            );
-            final pill = _ArchivedFilterPill(
+        FilterToolbar(
+          search: SearchField(
+            hint: l10n.employeesSearchHint,
+            onChanged: (value) => setState(() => _query = value),
+          ),
+          filters: [
+            _ArchivedFilterPill(
               active: _showArchived,
               onTap: () => setState(() => _showArchived = !_showArchived),
-            );
-            final toggle = ViewModeToggle(
+            ),
+            ViewModeToggle(
               mode: _viewMode,
               onSelected: (mode) => setState(() => _viewMode = mode),
-            );
-            // One line: the search on the left, the two controls at the right
-            // edge — under the last KPI. On a phone they do not fit one line;
-            // the search takes its own, the two controls sit under it.
-            if (constraints.maxWidth < AppBreakpoints.compact) {
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  search,
-                  const SizedBox(height: AppSpacing.sm),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      // Flexible only here, where the line is short: beside
-                      // an Expanded search it would split the free space and
-                      // leave the controls short of the right edge.
-                      Flexible(child: pill),
-                      const SizedBox(width: AppSpacing.md),
-                      toggle,
-                    ],
-                  ),
-                ],
-              );
-            }
-            return Row(
-              children: [
-                Expanded(child: search),
-                const SizedBox(width: AppSpacing.md),
-                pill,
-                const SizedBox(width: AppSpacing.md),
-                toggle,
-              ],
-            );
-          },
+            ),
+          ],
         ),
         const SizedBox(height: AppSpacing.md),
         if (filtered.isEmpty)

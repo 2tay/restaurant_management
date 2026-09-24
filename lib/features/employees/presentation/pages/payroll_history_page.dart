@@ -203,17 +203,11 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
           to: _to,
           status: _statusFilter,
           floor: _pickerFloor(employees),
-          canReset: _hasActiveFilters,
-          onReset: _clearFilters,
+          dateIsDefault: _dateRangeIsDefault,
           onEmployee: _onEmployeeChanged,
-          onFrom: (d) => setState(() {
-            _from = _dayOnly(d);
-            if (_to.isBefore(_from)) _to = _from;
-            _page = 0;
-          }),
-          onTo: (d) => setState(() {
-            _to = _dayOnly(d);
-            if (_from.isAfter(_to)) _from = _to;
+          onRange: (r) => setState(() {
+            _from = _dayOnly(r.start);
+            _to = _dayOnly(r.end);
             _page = 0;
           }),
           onStatus: (s) => setState(() {
@@ -280,7 +274,7 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
                 data.paidAtByPeriod,
                 settings,
               );
-              return constraints.maxWidth >= (showEmployee ? 1080 : 940)
+              return constraints.maxWidth >= _daysTableMinWidth(showEmployee)
                   ? _DaysTable(
                       rows: data.rows,
                       employeesById: data.employeesById,
@@ -594,6 +588,8 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
 
 // -----------------------------------------------------------------------------
 
+/// Search on the left, période and statut at the right edge — the same strip
+/// as the Personnel page and the attendance history.
 class _Filters extends StatelessWidget {
   const _Filters({
     required this.selectedEmployee,
@@ -602,11 +598,9 @@ class _Filters extends StatelessWidget {
     required this.to,
     required this.status,
     required this.floor,
-    required this.canReset,
-    required this.onReset,
+    required this.dateIsDefault,
     required this.onEmployee,
-    required this.onFrom,
-    required this.onTo,
+    required this.onRange,
     required this.onStatus,
   });
 
@@ -616,70 +610,44 @@ class _Filters extends StatelessWidget {
   final DateTime to;
   final PaymentStatus? status;
   final DateTime floor;
-  final bool canReset;
-  final VoidCallback onReset;
+  final bool dateIsDefault;
   final ValueChanged<Employee?> onEmployee;
-  final ValueChanged<DateTime> onFrom;
-  final ValueChanged<DateTime> onTo;
+  final ValueChanged<DateTimeRange> onRange;
   final ValueChanged<PaymentStatus?> onStatus;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final today = _dayOnly(DateTime.now());
 
-    return FilterBar(
-      reset: canReset
-          ? FilterResetButton(
-              label: l10n.payrollFilterReset,
-              onPressed: onReset,
-            )
-          : null,
-      fields: [
-        FilterField(
-          label: l10n.payrollFilterEmployee,
-          child: EmployeeSelector(
-            employees: employees,
-            value: selectedEmployee,
-            showPin: true,
-            hint: l10n.payrollFilterAllEmployees,
-            onChanged: onEmployee,
-          ),
+    return FilterToolbar(
+      search: EmployeeSelector(
+        employees: employees,
+        value: selectedEmployee,
+        showPin: true,
+        searchBar: true,
+        hint: l10n.employeesSearchHint,
+        onChanged: onEmployee,
+      ),
+      filters: [
+        DateRangeFilter(
+          from: from,
+          to: to,
+          firstDate: floor,
+          lastDate: _dayOnly(DateTime.now()),
+          isDefault: dateIsDefault,
+          onChanged: onRange,
         ),
-        FilterField.date(
-          label: l10n.payrollFilterFrom,
-          child: DateField(
-            value: from,
-            compact: true,
-            firstDate: floor,
-            lastDate: to,
-            onChanged: onFrom,
-          ),
-        ),
-        FilterField.date(
-          label: l10n.payrollFilterTo,
-          child: DateField(
-            value: to,
-            compact: true,
-            firstDate: from,
-            lastDate: today,
-            onChanged: onTo,
-          ),
-        ),
-        FilterField.auto(
+        FilterMenu<PaymentStatus?>(
           label: l10n.payrollFilterStatus,
-          child: FilterMenu<PaymentStatus?>(
-            label: l10n.payrollFilterStatus,
-            selectedLabel: status == null
-                ? null
-                : paymentStatusLabel(l10n, status!),
-            entries: {
-              null: l10n.payrollStatusAll,
-              PaymentStatus.paid: l10n.payrollStatusPaid,
-              PaymentStatus.unpaid: l10n.payrollStatusUnpaid,
-            },
-            onSelected: onStatus,
-          ),
+          selectedLabel: status == null
+              ? null
+              : paymentStatusLabel(l10n, status!),
+          entries: {
+            null: l10n.payrollStatusAll,
+            PaymentStatus.paid: l10n.payrollStatusPaid,
+            PaymentStatus.unpaid: l10n.payrollStatusUnpaid,
+          },
+          onSelected: onStatus,
         ),
       ],
     );
@@ -735,6 +703,10 @@ class _ActiveFilters extends StatelessWidget {
   }
 }
 
+/// Below this the day list switches from the table to cards. The table's own
+/// minimum width, so the two can never disagree.
+double _daysTableMinWidth(bool showEmployee) => showEmployee ? 1000 : 860;
+
 class _DaysTable extends StatelessWidget {
   const _DaysTable({
     required this.rows,
@@ -757,7 +729,7 @@ class _DaysTable extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
 
     return DataTableWrapper(
-      minWidth: showEmployee ? 1000 : 860,
+      minWidth: _daysTableMinWidth(showEmployee),
       columns: [
         if (showEmployee) DataColumn(label: Text(l10n.payrollColumnEmployee)),
         DataColumn(label: Text(l10n.payrollColumnDate)),

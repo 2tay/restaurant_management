@@ -4558,29 +4558,11 @@ abstract class AppLocalizations {
   /// **'Aucun pointage n\'a encore été enregistré dans cet établissement.'**
   String get attendanceHistoryEmptyBody;
 
-  /// Label of the employee dropdown on the attendance history page.
+  /// Tooltip on the period (date range) filter pill of the history pages.
   ///
   /// In fr, this message translates to:
-  /// **'Employé'**
-  String get attendanceFilterEmployee;
-
-  /// Employee dropdown option that shows every employee at once.
-  ///
-  /// In fr, this message translates to:
-  /// **'Tous les employés'**
-  String get attendanceFilterAllEmployees;
-
-  /// Label of the period start-date field on the attendance history page.
-  ///
-  /// In fr, this message translates to:
-  /// **'Du'**
-  String get attendanceFilterFrom;
-
-  /// Label of the period end-date field on the attendance history page.
-  ///
-  /// In fr, this message translates to:
-  /// **'Au'**
-  String get attendanceFilterTo;
+  /// **'Période'**
+  String get historyFilterPeriod;
 
   /// Active-filter chip showing the selected date range.
   ///
@@ -4666,12 +4648,6 @@ abstract class AppLocalizations {
   /// **'Horaires'**
   String get attendanceColumnSchedule;
 
-  /// Button in the filter bar that clears every filter.
-  ///
-  /// In fr, this message translates to:
-  /// **'Réinitialiser'**
-  String get attendanceFilterReset;
-
   /// Secondary line under the Horaires cell — break count and total.
   ///
   /// In fr, this message translates to:
@@ -4707,30 +4683,6 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'L\'historique de paiement d\'un employé, jour par jour.'**
   String get payrollHistorySubtitle;
-
-  /// Label of the employee dropdown on the payroll history page.
-  ///
-  /// In fr, this message translates to:
-  /// **'Employé'**
-  String get payrollFilterEmployee;
-
-  /// Employee dropdown option that shows every active employee at once.
-  ///
-  /// In fr, this message translates to:
-  /// **'Tous les employés'**
-  String get payrollFilterAllEmployees;
-
-  /// Label of the period start-date field on the payroll history page.
-  ///
-  /// In fr, this message translates to:
-  /// **'Du'**
-  String get payrollFilterFrom;
-
-  /// Label of the period end-date field on the payroll history page.
-  ///
-  /// In fr, this message translates to:
-  /// **'Au'**
-  String get payrollFilterTo;
 
   /// Label of the payment-status filter.
   ///
@@ -4881,12 +4833,6 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'{count, plural, =1{1 pause · {duration}} other{{count} pauses · {duration}}}'**
   String payrollBreakSummary(int count, String duration);
-
-  /// Button in the payroll filter bar that clears every filter.
-  ///
-  /// In fr, this message translates to:
-  /// **'Réinitialiser'**
-  String get payrollFilterReset;
 
   /// Heading of the payroll detail side panel.
   ///

@@ -71,11 +71,20 @@ Future<void> _confirmPay(WidgetTester tester) async {
 }
 
 Future<void> _pickKarim(WidgetTester tester) async {
-  // The employee picker is the shared EmployeeSelector combobox: open it,
-  // filter to Karim, then tap his keyed option row.
-  await tester.tap(find.byType(EmployeeSelector));
+  // The employee picker is the shared EmployeeSelector in its search-bar
+  // form: type into the bar, then tap his keyed option row.
+  // A pick that survived a re-pump shows in place of the bar: clear it first.
+  final selected = find.byKey(const ValueKey('employee-selector-selected'));
+  if (selected.evaluate().isNotEmpty) {
+    await tester.tap(
+      find.descendant(of: selected, matching: find.byTooltip('Effacer')),
+    );
+    await tester.pumpAndSettle();
+  }
+  final search = find.byKey(const ValueKey('employee-selector-search'));
+  await tester.tap(search);
   await tester.pumpAndSettle();
-  await tester.enterText(find.byType(TextField).last, 'Karim');
+  await tester.enterText(search, 'Karim');
   await tester.pumpAndSettle();
   await tester.tap(
     find.byKey(const ValueKey('employee-option-${EmployeeIds.karim}')),
@@ -92,7 +101,10 @@ void main() {
     // KPIs and the day table are shown straight away, aggregated over the store.
     expect(find.text('Jours payés'), findsOneWidget);
     expect(find.text('Jours non payés'), findsOneWidget);
-    expect(find.byType(DateField), findsNWidgets(2));
+    // One période pill instead of a Du / Au pair, and no labels above.
+    expect(find.byType(DateRangeFilter), findsOneWidget);
+    expect(find.byType(DateField), findsNothing);
+    expect(find.byType(FilterToolbar), findsOneWidget);
     expect(find.byType(PaymentStatusBadge), findsWidgets);
     // Paying is per employee — no button while showing everyone.
     expect(find.widgetWithText(PrimaryButton, 'Payer'), findsNothing);
@@ -153,7 +165,7 @@ void main() {
 
       expect(tester.takeException(), isNull, reason: '$size');
       expect(find.text('Jours payés'), findsOneWidget, reason: '$size');
-      expect(find.byType(DateField), findsNWidgets(2), reason: '$size');
+      expect(find.byType(DateRangeFilter), findsOneWidget, reason: '$size');
     }
   });
 

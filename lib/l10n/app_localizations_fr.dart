@@ -2747,16 +2747,7 @@ class AppLocalizationsFr extends AppLocalizations {
       'Aucun pointage n\'a encore été enregistré dans cet établissement.';
 
   @override
-  String get attendanceFilterEmployee => 'Employé';
-
-  @override
-  String get attendanceFilterAllEmployees => 'Tous les employés';
-
-  @override
-  String get attendanceFilterFrom => 'Du';
-
-  @override
-  String get attendanceFilterTo => 'Au';
+  String get historyFilterPeriod => 'Période';
 
   @override
   String attendanceFilterDateRange(String from, String to) {
@@ -2803,9 +2794,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get attendanceColumnSchedule => 'Horaires';
 
   @override
-  String get attendanceFilterReset => 'Réinitialiser';
-
-  @override
   String attendanceBreakSummary(int count, String duration) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -2833,18 +2821,6 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get payrollHistorySubtitle =>
       'L\'historique de paiement d\'un employé, jour par jour.';
-
-  @override
-  String get payrollFilterEmployee => 'Employé';
-
-  @override
-  String get payrollFilterAllEmployees => 'Tous les employés';
-
-  @override
-  String get payrollFilterFrom => 'Du';
-
-  @override
-  String get payrollFilterTo => 'Au';
 
   @override
   String get payrollFilterStatus => 'Statut de paiement';
@@ -2948,9 +2924,6 @@ class AppLocalizationsFr extends AppLocalizations {
     );
     return '$_temp0';
   }
-
-  @override
-  String get payrollFilterReset => 'Réinitialiser';
 
   @override
   String get payrollDetailTitle => 'Détail du paiement';

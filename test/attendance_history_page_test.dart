@@ -64,13 +64,41 @@ void main() {
     expect(find.byType(DetailDrawer), findsNothing);
   });
 
+  testApp('the filter strip: search bar left, période and statut at the right '
+      'edge, no field labels', (tester) async {
+    await _open(tester);
+
+    final strip = find.byType(FilterToolbar);
+    expect(strip, findsOneWidget);
+    final search = find.byKey(const ValueKey('employee-selector-search'));
+    final period = find.byType(DateRangeFilter);
+    final status = find.descendant(
+      of: strip,
+      matching: find.byWidgetPredicate((w) => w is FilterMenu),
+    );
+    expect(period, findsOneWidget);
+    expect(status, findsOneWidget);
+    // One line, search first, the status pill flush with the strip's end.
+    expect(tester.getCenter(search).dy, closeTo(tester.getCenter(period).dy, 6));
+    expect(tester.getRect(search).right, lessThan(tester.getRect(period).left));
+    expect(tester.getRect(status).right, closeTo(tester.getRect(strip).right, 0.5));
+    // The old stacked labels are gone.
+    expect(find.descendant(of: strip, matching: find.text('Du')), findsNothing);
+    expect(find.descendant(of: strip, matching: find.text('Au')), findsNothing);
+    // Same look as the Personnel search: white, borderless at rest.
+    final field = tester.widget<TextField>(search);
+    expect(field.decoration?.fillColor, Colors.white);
+    expect(field.decoration?.enabledBorder?.borderSide, BorderSide.none);
+  });
+
   testApp('the employee selector filters the table', (tester) async {
     await _open(tester);
 
     final karim = mockEmployees.firstWhere((e) => e.id == EmployeeIds.karim);
-    await tester.tap(find.byType(EmployeeSelector));
+    final search = find.byKey(const ValueKey('employee-selector-search'));
+    await tester.tap(search);
     await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextField).last, karim.firstName);
+    await tester.enterText(search, karim.firstName);
     await tester.pumpAndSettle();
     await tester.tap(
       find.byKey(const ValueKey('employee-option-${EmployeeIds.karim}')),

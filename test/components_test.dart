@@ -6,9 +6,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:stock_inventory/core/theme/app_colors.dart';
 import 'package:stock_inventory/core/theme/app_theme.dart';
+import 'package:stock_inventory/core/utils/formatters.dart';
 import 'package:stock_inventory/l10n/app_localizations.dart';
 import 'package:stock_inventory/models/models.dart';
 import 'package:stock_inventory/shared/widgets/widgets.dart';
@@ -870,6 +872,186 @@ void main() {
       expect(
         find.text('Rechercher ou sélectionner un employé…'),
         findsOneWidget,
+      );
+    });
+
+    group('searchBar', () {
+      Future<void> pumpBar(WidgetTester tester) async {
+        Employee? picked;
+        await tester.pumpWidget(
+          _host(
+            StatefulBuilder(
+              builder: (context, setState) => SizedBox(
+                width: 360,
+                child: EmployeeSelector(
+                  employees: roster,
+                  value: picked,
+                  showPin: true,
+                  searchBar: true,
+                  hint: 'Rechercher (nom, PIN)',
+                  onChanged: (e) => setState(() => picked = e),
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+      }
+
+      final bar = find.byKey(const ValueKey('employee-selector-search'));
+
+      testWidgets('typing into the bar drops the matches beneath it, with no '
+          'second search box', (tester) async {
+        await pumpBar(tester);
+        expect(find.byType(TextField), findsOneWidget);
+        expect(find.text('Amélie Vandenberghe'), findsNothing);
+
+        await tester.tap(bar);
+        await tester.pumpAndSettle();
+        expect(find.text('Amélie Vandenberghe'), findsOneWidget);
+        expect(find.byType(TextField), findsOneWidget);
+
+        await tester.enterText(bar, 'karim');
+        await tester.pumpAndSettle();
+        expect(find.text('Amélie Vandenberghe'), findsNothing);
+        expect(find.text('Karim Haddouch'), findsOneWidget);
+        // The bare PIN, no "PIN" word before it.
+        expect(find.text('01.02.03-004.05'), findsOneWidget);
+        expect(find.textContaining('PIN 01'), findsNothing);
+      });
+
+      testWidgets('picking shows the person in the bar; ✕ gives the empty '
+          'search back', (tester) async {
+        await pumpBar(tester);
+        await tester.tap(bar);
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Karim Haddouch'));
+        await tester.pumpAndSettle();
+
+        final selected = find.byKey(
+          const ValueKey('employee-selector-selected'),
+        );
+        expect(selected, findsOneWidget);
+        expect(
+          find.descendant(of: selected, matching: find.text('Karim Haddouch')),
+          findsOneWidget,
+        );
+        expect(bar, findsNothing);
+
+        await tester.tap(find.byTooltip('Effacer'));
+        await tester.pumpAndSettle();
+        expect(selected, findsNothing);
+        expect(bar, findsOneWidget);
+        expect(find.text('Rechercher (nom, PIN)'), findsOneWidget);
+      });
+
+      testWidgets('a click outside closes the list', (tester) async {
+        await pumpBar(tester);
+        await tester.tap(bar);
+        await tester.pumpAndSettle();
+        expect(find.text('Amélie Vandenberghe'), findsOneWidget);
+
+        await tester.tapAt(const Offset(5, 590));
+        await tester.pumpAndSettle();
+        expect(find.text('Amélie Vandenberghe'), findsNothing);
+      });
+    });
+  });
+
+  group('FilterToolbar', () {
+    Future<void> pumpToolbar(WidgetTester tester, double width) async {
+      tester.view.physicalSize = const Size(1400, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(
+        _host(
+          SizedBox(
+            width: width,
+            child: FilterToolbar(
+              search: SearchField(onChanged: (_) {}),
+              filters: const [
+                FilterPill(
+                  key: ValueKey('a'),
+                  label: 'Période',
+                  selectedLabel: null,
+                ),
+                FilterPill(
+                  key: ValueKey('b'),
+                  label: 'Statut',
+                  selectedLabel: null,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('wide: one line, the controls flush with the right edge', (
+      tester,
+    ) async {
+      await pumpToolbar(tester, 1200);
+      final strip = tester.getRect(find.byType(FilterToolbar));
+      final a = tester.getRect(find.byKey(const ValueKey('a')));
+      final b = tester.getRect(find.byKey(const ValueKey('b')));
+      final search = tester.getRect(find.byType(TextField));
+      expect(b.right, closeTo(strip.right, 0.5));
+      expect(a.right, lessThan(b.left));
+      expect(search.left, closeTo(strip.left, 0.5));
+      expect(search.center.dy, closeTo(a.center.dy, 6));
+      // The free space sits between the search and the controls.
+      expect(a.left - search.right, greaterThan(100));
+    });
+
+    testWidgets('phone: the search on its own line, the controls below', (
+      tester,
+    ) async {
+      await pumpToolbar(tester, 360);
+      expect(tester.takeException(), isNull);
+      final a = tester.getRect(find.byKey(const ValueKey('a')));
+      final search = tester.getRect(find.byType(TextField));
+      expect(a.top, greaterThan(search.bottom));
+    });
+  });
+
+  group('DateRangeFilter', () {
+    setUpAll(() => initializeDateFormatting(Formatters.locale));
+
+    test('label: short start in the same year, full years otherwise', () {
+      expect(
+        DateRangeFilter.label(DateTime(2026, 9, 1), DateTime(2026, 9, 24)),
+        '01/09 – 24/09/2026',
+      );
+      expect(
+        DateRangeFilter.label(DateTime(2025, 12, 20), DateTime(2026, 1, 5)),
+        '20/12/2025 – 05/01/2026',
+      );
+    });
+
+    testWidgets('tinted only once the range is not the default', (
+      tester,
+    ) async {
+      Future<FilterPill> pill({required bool isDefault}) async {
+        await tester.pumpWidget(
+          _host(
+            DateRangeFilter(
+              from: DateTime(2026, 9, 1),
+              to: DateTime(2026, 9, 24),
+              firstDate: DateTime(2000),
+              lastDate: DateTime(2026, 12, 31),
+              isDefault: isDefault,
+              onChanged: (_) {},
+            ),
+          ),
+        );
+        return tester.widget<FilterPill>(find.byType(FilterPill));
+      }
+
+      expect((await pill(isDefault: true)).selectedLabel, isNull);
+      expect(
+        (await pill(isDefault: false)).selectedLabel,
+        '01/09 – 24/09/2026',
       );
     });
   });
