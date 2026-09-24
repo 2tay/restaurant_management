@@ -3994,6 +3994,42 @@ abstract class AppLocalizations {
   /// **'En commande'**
   String get itemOnOrderLabel;
 
+  /// Header figure on the product page: what the stock on hand is worth, quantity times average cost.
+  ///
+  /// In fr, this message translates to:
+  /// **'Valeur du stock'**
+  String get itemStockValueLabel;
+
+  /// Replaces the stock value when the article has no average cost yet, so no value can be worked out. Shown instead of a zero, which would be a claim rather than an absence.
+  ///
+  /// In fr, this message translates to:
+  /// **'Coût inconnu'**
+  String get itemStockValueUnknown;
+
+  /// Label for the product's declared stock range on the details card. Same wording as the products table column.
+  ///
+  /// In fr, this message translates to:
+  /// **'Stock min/max'**
+  String get itemStockRangeLabel;
+
+  /// Under the stock gauge on the product page: how much a commande would order to refill to the declared maximum. A statement, not a button.
+  ///
+  /// In fr, this message translates to:
+  /// **'Pour remonter au maximum : {quantity}'**
+  String itemTopUpSuggestion(String quantity);
+
+  /// Section heading over the product's reference fields — category, unit, stock range, barcode, note, last updated.
+  ///
+  /// In fr, this message translates to:
+  /// **'Détails'**
+  String get itemDetailsTitle;
+
+  /// Supporting line under the details heading, marking the section as reference rather than as something to act on.
+  ///
+  /// In fr, this message translates to:
+  /// **'Fiche du produit'**
+  String get itemDetailsSubtitle;
+
   /// Section on the item detail listing the open orders containing this item.
   ///
   /// In fr, this message translates to:

@@ -17,15 +17,24 @@ import '../../core/theme/app_spacing.dart';
 /// proportion, and the notch is what keeps "am I under the line" readable,
 /// which is the question the alerts screen asks.
 ///
-/// The notch, rather than recolouring the fill below the minimum: status is
-/// already carried in words and a dot beside every one of these, and a second
-/// colour-only signal would be a third telling of it.
+/// The fill is **red under the minimum, amber between the bounds, and green at
+/// the maximum** — a traffic light against the range the product declares, and
+/// the one thing on the bar that is colour rather than geometry.
+///
+/// That is deliberately not `stockStatusOf`, which keys red to *zero*: by that
+/// rule an article one gram above nothing and an article one gram under its
+/// minimum are both merely "low", and a full shelf and a nearly empty one are
+/// both "in stock". Against a declared range the question is how full, and the
+/// three colours answer it.
+///
+/// The gauge works the colour out itself rather than taking one, so the four
+/// places that draw it cannot drift apart — which is exactly what had already
+/// happened between the alerts rows, the catalogue table and the dashboard.
 class StockGauge extends StatelessWidget {
   const StockGauge({
     required this.quantity,
     required this.minimum,
     required this.maximum,
-    required this.color,
     this.onOrder = 0,
     this.height = 6,
     super.key,
@@ -44,10 +53,14 @@ class StockGauge extends StatelessWidget {
   /// What is on its way across every open commande.
   final double onOrder;
 
-  /// The product's status colour, from `StockStatusBadge.colorsFor`.
-  final Color color;
-
   final double height;
+
+  /// Red under the minimum, amber up to the maximum, green at or above it.
+  StockStatusColors get _colors {
+    if (quantity < minimum) return AppColors.outOfStock;
+    if (quantity < maximum) return AppColors.lowStock;
+    return AppColors.inStock;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -56,6 +69,7 @@ class StockGauge extends StatelessWidget {
     // row that predates it rather than a case the app produces.
     if (maximum <= 0) return const SizedBox.shrink();
 
+    final colors = _colors;
     final held = (quantity / maximum).clamp(0.0, 1.0);
     // Stacked on top of what is held and capped together at full, so a
     // delivery that overshoots fills the bar rather than overflowing it.
@@ -85,12 +99,12 @@ class StockGauge extends StatelessWidget {
                     if (covered > 0)
                       FractionallySizedBox(
                         widthFactor: covered,
-                        child: ColoredBox(color: color.withValues(alpha: 0.32)),
+                        child: ColoredBox(color: colors.solid.withValues(alpha: 0.32)),
                       ),
                     if (held > 0)
                       FractionallySizedBox(
                         widthFactor: held,
-                        child: ColoredBox(color: color),
+                        child: ColoredBox(color: colors.solid),
                       ),
                   ],
                 ),

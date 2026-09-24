@@ -696,7 +696,6 @@ class _AlertCard extends ConsumerWidget {
           minimum: item.lowStockThreshold,
           maximum: item.maxStock,
           onOrder: view.onOrderQuantity,
-          color: colors.solid,
         ),
         if (notes.isNotEmpty) ...[
           const SizedBox(height: AppSpacing.xs),

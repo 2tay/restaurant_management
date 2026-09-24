@@ -2415,6 +2415,26 @@ class AppLocalizationsFr extends AppLocalizations {
   String get itemOnOrderLabel => 'En commande';
 
   @override
+  String get itemStockValueLabel => 'Valeur du stock';
+
+  @override
+  String get itemStockValueUnknown => 'Coût inconnu';
+
+  @override
+  String get itemStockRangeLabel => 'Stock min/max';
+
+  @override
+  String itemTopUpSuggestion(String quantity) {
+    return 'Pour remonter au maximum : $quantity';
+  }
+
+  @override
+  String get itemDetailsTitle => 'Détails';
+
+  @override
+  String get itemDetailsSubtitle => 'Fiche du produit';
+
+  @override
   String get itemOpenOrdersTitle => 'Commandes en cours';
 
   @override

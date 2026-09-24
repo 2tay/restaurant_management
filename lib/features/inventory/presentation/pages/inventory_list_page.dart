@@ -836,11 +836,6 @@ class _LevelBar extends StatelessWidget {
       quantity: item.quantity,
       minimum: item.lowStockThreshold,
       maximum: item.maxStock,
-      // A product sitting comfortably in range is not news; the bar is there
-      // to be read, not to colour a column of healthy rows.
-      color: status == StockStatus.inStock
-          ? AppColors.neutral400
-          : StockStatusBadge.colorsFor(status).solid,
     );
   }
 }

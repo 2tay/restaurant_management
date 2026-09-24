@@ -122,7 +122,6 @@ class ItemDetailView extends ConsumerWidget {
 
     final item = row.item;
     final unit = row.unitAbbreviation;
-    final status = stockStatusOf(item);
     final prices = pricing.prices;
     final cheapest = pricing.cheapest;
     final defaultPrice = pricing.defaultPrice;
@@ -136,35 +135,26 @@ class ItemDetailView extends ConsumerWidget {
       primary: scrollsItself ? null : false,
       physics: scrollsItself ? null : const NeverScrollableScrollPhysics(),
       children: [
-        if (showTitle) ...[
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // The photo, at the top of the pane, so the product being read
-              // about is the product the user tapped and not a name that could
-              // be any of forty.
-              ProductImage(imagePath: item.imagePath, size: 64),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(item.name, style: theme.textTheme.headlineSmall),
-                    const SizedBox(height: AppSpacing.xs),
-                    StockStatusBadge(status: status),
-                  ],
-                ),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              IconButton(
-                onPressed: onClose,
-                tooltip: l10n.actionClose,
-                icon: const Icon(LucideIcons.x),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.md),
+        // --- Header -----------------------------------------------------------
+        //
+        // The photo, the name, and the three figures somebody opens a product
+        // to check: how much is there, what it is worth, and whether anything
+        // is coming. They were spread down an eight-row fact table that gave
+        // the category and the last-updated date exactly as much weight.
+        //
+        // The photo is here for the page as well as the pane now. It used to
+        // be inside `showTitle`, so the full page — which has the name in its
+        // own header and therefore passes false — showed no picture at all,
+        // and the same product looked like two different screens.
+        _Header(
+          row: row,
+          onOrder: onOrder,
+          showName: showTitle,
+          onClose: onClose,
+        ),
+        const SizedBox(height: AppSpacing.lg),
 
+        if (showTitle) ...[
           // The two things you came here to do, on the screen you are already
           // on. Editing used to mean leaving the split view for the full page,
           // which is the long way round to a form the pane could have opened.
@@ -198,95 +188,6 @@ class ItemDetailView extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: AppSpacing.lg),
-        ],
-
-        // --- Facts -----------------------------------------------------------
-        AppCard(
-          child: Column(
-            children: [
-              _FactRow(
-                label: l10n.itemOnHandLabel,
-                value: Formatters.quantityWithUnit(item.quantity, unit),
-                emphasis: true,
-              ),
-              // Only when something is actually coming. A permanent "En
-              // commande : 0" row would be four words of noise on every item in
-              // the catalogue.
-              if (onOrder > 0) ...[
-                const Divider(height: AppSpacing.xl),
-                _FactRow(
-                  label: l10n.itemOnOrderLabel,
-                  value: Formatters.quantityWithUnit(onOrder, unit),
-                ),
-              ],
-              const Divider(height: AppSpacing.xl),
-              // Sits with the quantity rather than with the supplier prices
-              // below, because it is a fact about the stock on hand — what it
-              // cost — and not an offer from anybody. Seeing the two apart is
-              // what stops them being read as the same number disagreeing with
-              // itself.
-              _FactRow(
-                label: l10n.itemAverageCost,
-                value: item.averageCost == null
-                    ? l10n.itemAverageCostUnknown
-                    : '${Formatters.price(item.averageCost!)} / $unit',
-              ),
-              const Divider(height: AppSpacing.xl),
-              _FactRow(
-                label: l10n.itemThresholdLabel,
-                value: Formatters.quantityWithUnit(
-                  item.lowStockThreshold,
-                  unit,
-                ),
-              ),
-              const Divider(height: AppSpacing.xl),
-              _FactRow(label: l10n.itemCategoryLabel, value: row.categoryName),
-              const Divider(height: AppSpacing.xl),
-              _FactRow(
-                label: l10n.itemUpdatedLabel,
-                value: Formatters.relative(item.updatedAt),
-              ),
-              // Shown only when the item has one. A dash-filled "Code-barres :
-              // —" row on the thirty items that will never have a barcode
-              // would make the absence look like missing data rather than a
-              // fact about produce.
-              if (item.barcode != null) ...[
-                const Divider(height: AppSpacing.xl),
-                _BarcodeRow(barcode: item.barcode!),
-              ],
-              if (item.note != null) ...[
-                const Divider(height: AppSpacing.xl),
-                _FactRow(label: l10n.itemNoteLabel, value: item.note!),
-              ],
-            ],
-          ),
-        ),
-        const SizedBox(height: AppSpacing.xl),
-
-        // --- Open orders -----------------------------------------------------
-        //
-        // Present only when something is on its way. This is the answer to
-        // "stock is low, has anybody done anything about it?", and it is the
-        // question a manager asks right before ordering the same thing twice.
-        if (openOrders.isNotEmpty) ...[
-          SectionHeader(
-            title: l10n.itemOpenOrdersTitle,
-            count: openOrders.length,
-          ),
-          AppCard(
-            padding: EdgeInsets.zero,
-            child: Column(
-              children: [
-                for (final view in openOrders)
-                  _OpenOrderLine(
-                    view: view,
-                    storeId: storeId,
-                    unitAbbreviation: unit,
-                  ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppSpacing.xl),
         ],
 
         // --- Suppliers and prices --------------------------------------------
@@ -359,6 +260,36 @@ class ItemDetailView extends ConsumerWidget {
           ),
         const SizedBox(height: AppSpacing.xl),
 
+        // --- Open orders -----------------------------------------------------
+        //
+        // Present only when something is on its way. This is the answer to
+        // "stock is low, has anybody done anything about it?", and it is the
+        // question a manager asks right before ordering the same thing twice.
+        //
+        // It sits under the suppliers rather than above them: both are about
+        // buying, and the prices are what a decision is made from while this is
+        // what has already been decided.
+        if (openOrders.isNotEmpty) ...[
+          SectionHeader(
+            title: l10n.itemOpenOrdersTitle,
+            count: openOrders.length,
+          ),
+          AppCard(
+            padding: EdgeInsets.zero,
+            child: Column(
+              children: [
+                for (final view in openOrders)
+                  _OpenOrderLine(
+                    view: view,
+                    storeId: storeId,
+                    unitAbbreviation: unit,
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(height: AppSpacing.xl),
+        ],
+
         // --- Recent movements ------------------------------------------------
         SectionHeader(
           title: l10n.itemMovementsTitle,
@@ -389,6 +320,58 @@ class ItemDetailView extends ConsumerWidget {
               ],
             ),
           ),
+        const SizedBox(height: AppSpacing.xl),
+
+        // --- Details ---------------------------------------------------------
+        //
+        // Reference, and last. Every one of these was a row in the fact table
+        // at the top, weighted the same as the quantity on hand — which is the
+        // one number the screen exists to show. They are worth having and not
+        // worth reading first.
+        SectionHeader(
+          title: l10n.itemDetailsTitle,
+          subtitle: l10n.itemDetailsSubtitle,
+        ),
+        AppCard(
+          child: Column(
+            children: [
+              _FactRow(
+                label: l10n.itemStockRangeLabel,
+                value:
+                    '${Formatters.quantity(item.lowStockThreshold)} / '
+                    '${Formatters.quantityWithUnit(item.maxStock, unit)}',
+              ),
+              const Divider(height: AppSpacing.xl),
+              _FactRow(
+                label: l10n.itemAverageCost,
+                value: item.averageCost == null
+                    ? l10n.itemAverageCostUnknown
+                    : '${Formatters.price(item.averageCost!)} / $unit',
+              ),
+              const Divider(height: AppSpacing.xl),
+              _FactRow(label: l10n.itemCategoryLabel, value: row.categoryName),
+              const Divider(height: AppSpacing.xl),
+              _FactRow(label: l10n.itemUnitLabel, value: unit),
+              const Divider(height: AppSpacing.xl),
+              _FactRow(
+                label: l10n.itemUpdatedLabel,
+                value: Formatters.relative(item.updatedAt),
+              ),
+              // Shown only when the item has one. A dash-filled "Code-barres :
+              // —" row on the thirty items that will never have a barcode
+              // would make the absence look like missing data rather than a
+              // fact about produce.
+              if (item.barcode != null) ...[
+                const Divider(height: AppSpacing.xl),
+                _BarcodeRow(barcode: item.barcode!),
+              ],
+              if (item.note != null) ...[
+                const Divider(height: AppSpacing.xl),
+                _FactRow(label: l10n.itemNoteLabel, value: item.note!),
+              ],
+            ],
+          ),
+        ),
         const SizedBox(height: AppSpacing.xxl),
       ],
     );
@@ -624,16 +607,199 @@ class _OpenOrderLine extends StatelessWidget {
   }
 }
 
-class _FactRow extends StatelessWidget {
-  const _FactRow({
+/// The photo and the three figures a product is opened to check.
+///
+/// [showName] is false on the full page, whose own header already carries the
+/// name, the category and the status badge. The photo is drawn either way —
+/// that is the point of it living here rather than inside the name block.
+class _Header extends StatelessWidget {
+  const _Header({
+    required this.row,
+    required this.onOrder,
+    required this.showName,
+    this.onClose,
+  });
+
+  final ItemRowView row;
+  final double onOrder;
+  final bool showName;
+  final VoidCallback? onClose;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final item = row.item;
+    final unit = row.unitAbbreviation;
+    final status = stockStatusOf(item);
+
+    final figures = <Widget>[
+      _Figure(
+        label: l10n.itemOnHandLabel,
+        value: Formatters.quantityWithUnit(item.quantity, unit),
+        emphasis: true,
+        below: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            StockGauge(
+              quantity: item.quantity,
+              minimum: item.lowStockThreshold,
+              maximum: item.maxStock,
+              onOrder: onOrder,
+            ),
+            Text(
+              '${Formatters.quantity(item.lowStockThreshold)} / '
+              '${Formatters.quantityWithUnit(item.maxStock, unit)}',
+              style: theme.textTheme.bodySmall,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      ),
+      _Figure(
+        label: l10n.itemStockValueLabel,
+        // No average cost means no value can be worked out. A zero here would
+        // be a claim about the stock rather than an absence of information.
+        value: item.averageCost == null
+            ? l10n.itemStockValueUnknown
+            : Formatters.price(item.quantity * item.averageCost!),
+        emphasis: item.averageCost != null,
+      ),
+      // Only when something is actually coming. A permanent "En commande : 0"
+      // would be a column of noise on every product in the catalogue.
+      if (onOrder > 0)
+        _Figure(
+          label: l10n.itemOnOrderLabel,
+          value: Formatters.quantityWithUnit(onOrder, unit),
+          emphasis: true,
+        ),
+    ];
+
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // The product being read about is the product that was tapped,
+              // and not a name that could be any of forty.
+              ProductImage(imagePath: item.imagePath, size: 72),
+              const SizedBox(width: AppSpacing.lg),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (showName) ...[
+                      Text(item.name, style: theme.textTheme.headlineSmall),
+                      const SizedBox(height: AppSpacing.xs),
+                      StockStatusBadge(status: status),
+                      const SizedBox(height: AppSpacing.md),
+                    ],
+                    // The figures wrap rather than squeeze: in the split pane
+                    // three of them across 380dp would each be a column one
+                    // word wide.
+                    Wrap(
+                      spacing: AppSpacing.xxl,
+                      runSpacing: AppSpacing.md,
+                      children: figures,
+                    ),
+                  ],
+                ),
+              ),
+              if (onClose != null) ...[
+                const SizedBox(width: AppSpacing.sm),
+                IconButton(
+                  onPressed: onClose,
+                  tooltip: l10n.actionClose,
+                  icon: const Icon(LucideIcons.x),
+                ),
+              ],
+            ],
+          ),
+          // What a commande would put on the line, stated rather than offered:
+          // ordering happens on the Achats screens, and this is the figure that
+          // tells you whether it is worth going there.
+          if (item.quantity < item.maxStock) ...[
+            const SizedBox(height: AppSpacing.md),
+            Text(
+              l10n.itemTopUpSuggestion(
+                Formatters.quantityWithUnit(topUpQuantity(item), unit),
+              ),
+              style: theme.textTheme.bodySmall,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// One figure in the header: a quiet label with the number under it.
+class _Figure extends StatelessWidget {
+  const _Figure({
     required this.label,
     required this.value,
     this.emphasis = false,
+    this.below,
   });
 
   final String label;
   final String value;
+
+  /// Numeric type for a figure, ordinary body type for a phrase like
+  /// "Coût inconnu", which in numeric type reads as a broken number.
   final bool emphasis;
+
+  final Widget? below;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return ConstrainedBox(
+      // Wide enough for a five-figure price, narrow enough that three fit
+      // across a split pane before the Wrap breaks them onto two lines.
+      constraints: const BoxConstraints(minWidth: 120, maxWidth: 220),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label.toUpperCase(),
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: AppColors.textSecondary,
+              letterSpacing: 0.6,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: AppSpacing.xxs),
+          Text(
+            value,
+            style: emphasis
+                ? AppTypography.numericMedium
+                : theme.textTheme.titleMedium,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          if (below != null) ...[
+            const SizedBox(height: AppSpacing.xs),
+            below!,
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _FactRow extends StatelessWidget {
+  const _FactRow({required this.label, required this.value});
+
+  final String label;
+  final String value;
 
   @override
   Widget build(BuildContext context) {
@@ -657,9 +823,7 @@ class _FactRow extends StatelessWidget {
           child: Text(
             value,
             textAlign: TextAlign.right,
-            style: emphasis
-                ? AppTypography.numericMedium
-                : theme.textTheme.bodyLarge,
+            style: theme.textTheme.bodyLarge,
           ),
         ),
       ],

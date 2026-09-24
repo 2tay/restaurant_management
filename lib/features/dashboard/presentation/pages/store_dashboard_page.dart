@@ -602,7 +602,7 @@ class _AlertsPanel extends StatelessWidget {
                 b.item,
               ).index.compareTo(stockStatusOf(a.item).index);
               if (byStatus != 0) return byStatus;
-              return _level(a.item).compareTo(_level(b.item));
+              return _fill(a.item).compareTo(_fill(b.item));
             }))
             .take(6)
             .toList();
@@ -626,9 +626,15 @@ class _AlertsPanel extends StatelessWidget {
 }
 
 /// How far into its alert zone a product is: its stock over its threshold.
-double _level(Item item) => item.lowStockThreshold <= 0
+/// How full an article is against its declared maximum.
+///
+/// The alerts panel's tie-breaker, not a drawing figure — [StockGauge] works
+/// its own out. Keyed to the maximum rather than to the threshold so the order
+/// down the panel matches the length of the bars beside it; against the
+/// threshold an article at 2 of 8 and one at 2 of 80 sorted the same.
+double _fill(Item item) => item.maxStock <= 0
     ? 0
-    : (item.quantity / item.lowStockThreshold).clamp(0.0, 1.0);
+    : (item.quantity / item.maxStock).clamp(0.0, 1.0);
 
 /// The products under their threshold as a compact table: photo and name,
 /// stock against threshold with a gauge, and the status. Each row opens the
@@ -707,14 +713,13 @@ class _AlertsTable extends StatelessWidget {
               ),
             ],
           ),
-          2 => ClipRRect(
-            borderRadius: AppRadius.pillAll,
-            child: LinearProgressIndicator(
-              value: _level(item),
-              minHeight: 6,
-              color: colors.solid,
-              backgroundColor: colors.container,
-            ),
+          // The shared gauge: it fills to the declared maximum and marks the
+          // minimum, where this filled at the minimum and so showed every
+          // alerted product as a nearly empty bar of the same length.
+          2 => StockGauge(
+            quantity: item.quantity,
+            minimum: item.lowStockThreshold,
+            maximum: item.maxStock,
           ),
           _ => StatusDot(
             color: colors.solid,
