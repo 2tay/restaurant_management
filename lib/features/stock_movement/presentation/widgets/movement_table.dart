@@ -14,6 +14,7 @@ import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 import 'movement_labels.dart';
 import 'movement_type_badge.dart';
+import '../../../inventory/presentation/widgets/product_drawer.dart';
 
 /// How the movement history is shown.
 enum MovementsViewMode { list, table }
@@ -58,8 +59,11 @@ class MovementTable extends StatelessWidget {
     return AppTable<MovementRowView>(
       rows: movements,
       shrinkWrap: true,
-      onRowTap: (view) =>
-          context.pushScreen(Routes.toItem(storeId, view.movement.itemId)),
+      onRowTap: (view) => openProductDrawer(
+        context,
+        storeId: storeId,
+        itemId: view.movement.itemId,
+      ),
       columns: [
         AppTableColumn(label: l10n.tableColDate, width: 150),
         AppTableColumn(label: l10n.tableColProduct, flex: 3),

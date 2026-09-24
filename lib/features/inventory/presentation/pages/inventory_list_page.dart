@@ -17,8 +17,8 @@ import '../../../../data/view_models/view_models.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
-import '../widgets/item_detail_view.dart';
 import '../widgets/item_card.dart';
+import '../widgets/product_drawer.dart';
 
 /// How the visible products are ordered.
 ///
@@ -305,16 +305,10 @@ class _ListPane extends ConsumerWidget {
     final notifier = ref.read(inventoryFilterProvider.notifier);
 
     return (itemId) async {
+      // The selection outline is this screen's own: it marks which card the
+      // open panel belongs to, and no other list has a card to mark.
       notifier.select(itemId);
-      await DetailDrawer.showCustom(
-        context,
-        width: 560,
-        builder: (drawerContext) => ItemDetailView(
-          itemId: itemId,
-          storeId: storeId,
-          onClose: () => Navigator.of(drawerContext).pop(),
-        ),
-      );
+      await openProductDrawer(context, storeId: storeId, itemId: itemId);
       notifier.clearSelection();
     };
   }

@@ -16,6 +16,7 @@ import '../../../../shared/widgets/widgets.dart';
 import '../widgets/movement_labels.dart';
 import '../widgets/movement_row.dart';
 import '../widgets/movement_table.dart';
+import '../../../inventory/presentation/widgets/product_drawer.dart';
 
 /// A date range for the history filter.
 enum HistoryPeriod {
@@ -352,8 +353,10 @@ class _StockHistoryPageState extends ConsumerState<StockHistoryPage> {
                         rowBuilder: (view) => MovementRow(
                           view: view,
                           storeId: widget.storeId,
-                          onTap: () => context.pushScreen(
-                            Routes.toItem(widget.storeId, view.movement.itemId),
+                          onTap: () => openProductDrawer(
+                            context,
+                            storeId: widget.storeId,
+                            itemId: view.movement.itemId,
                           ),
                         ),
                       ),

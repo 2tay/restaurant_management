@@ -12,6 +12,7 @@ import '../../../../l10n/app_localizations.dart';
 import '../../../../data/providers.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
+import '../../../inventory/presentation/widgets/product_drawer.dart';
 
 /// Which kinds the feed is narrowed to.
 ///
@@ -236,11 +237,18 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
     await ref.read(accountRepositoryProvider).markRead(notification.id);
     if (!mounted) return;
 
-    // Deep-links to whatever the notification is about, so it is actionable
-    // rather than merely informative.
+    // Opens whatever the notification is about, so it is actionable rather
+    // than merely informative.
+    //
+    // A product opens as a panel over the feed, so clearing a run of
+    // notifications does not mean navigating away and back for each one. A
+    // supplier still navigates: there is no supplier panel, and a notification
+    // that led nowhere would be worse than one that changes screen.
     if (notification.relatedItemId != null) {
-      context.pushScreen(
-        Routes.toItem(widget.storeId, notification.relatedItemId!),
+      await openProductDrawer(
+        context,
+        storeId: widget.storeId,
+        itemId: notification.relatedItemId!,
       );
     } else if (notification.relatedSupplierId != null) {
       context.pushScreen(

@@ -21,6 +21,7 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../stock_movement/presentation/widgets/movement_labels.dart';
 import '../../../stock_movement/presentation/widgets/movement_type_badge.dart';
 import '../widgets/summary_tile.dart';
+import '../../../inventory/presentation/widgets/product_drawer.dart';
 
 /// The store dashboard.
 ///
@@ -519,8 +520,14 @@ class _ActivityTable extends StatelessWidget {
       bordered: false,
       headerColor: AppColors.surface,
       rowHeight: 52,
-      onRowTap: (view) =>
-          context.pushScreen(Routes.toItem(storeId, view.movement.itemId)),
+      // The product, not the movement: a row here names an article, and the
+      // panel answers everything about it — this movement included, in its own
+      // recent history.
+      onRowTap: (view) => openProductDrawer(
+        context,
+        storeId: storeId,
+        itemId: view.movement.itemId,
+      ),
       columns: [
         AppTableColumn(label: l10n.tableColProduct, flex: 3),
         AppTableColumn(
@@ -656,8 +663,11 @@ class _AlertsTable extends StatelessWidget {
       bordered: false,
       headerColor: AppColors.surface,
       rowHeight: 52,
-      onRowTap: (view) =>
-          context.pushScreen(Routes.toItem(storeId, view.item.id)),
+      onRowTap: (view) => openProductDrawer(
+        context,
+        storeId: storeId,
+        itemId: view.item.id,
+      ),
       columns: [
         AppTableColumn(label: l10n.tableColProduct, flex: 3),
         AppTableColumn(label: l10n.tableColStock, width: 112, numeric: true),

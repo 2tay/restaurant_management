@@ -16,6 +16,7 @@ import '../../../../data/view_models/view_models.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 import '../alerts_filter.dart';
+import '../../../inventory/presentation/widgets/product_drawer.dart';
 
 /// Everything at or below its threshold, worst first.
 ///
@@ -719,7 +720,8 @@ class _AlertCard extends ConsumerWidget {
           );
 
     return AppCard(
-      onTap: () => context.pushScreen(Routes.toItem(storeId, item.id)),
+      onTap: () =>
+          openProductDrawer(context, storeId: storeId, itemId: item.id),
       // Tighter than the default card: this is a list to work down, not a panel
       // to read, and sixteen points of padding a side turned fifteen rows into
       // two screens of scrolling.
@@ -798,7 +800,11 @@ class _AlertsTable extends StatelessWidget {
     return AppTable<LowStockAlertView>(
       rows: alerts,
       shrinkWrap: true,
-      onRowTap: (v) => context.pushScreen(Routes.toItem(storeId, v.row.item.id)),
+      onRowTap: (v) => openProductDrawer(
+        context,
+        storeId: storeId,
+        itemId: v.row.item.id,
+      ),
       // As on the cards: only the articles at zero are edged, so the eye can
       // find them down a column of otherwise identical rows.
       rowAccent: (v) => stockStatusOf(v.row.item) == StockStatus.outOfStock
