@@ -14,7 +14,11 @@ import '../../l10n/app_localizations.dart';
 /// Its own stateful widget so the once-a-second tick redraws this line only,
 /// never the grid of cards around it.
 class LiveDateTime extends StatefulWidget {
-  const LiveDateTime({super.key});
+  const LiveDateTime({this.showLabels = true, super.key});
+
+  /// False → just the icons and the values (`📅 Mar 24/10/2026  🕐 12:01`),
+  /// for the drawer, where the icons say enough.
+  final bool showLabels;
 
   @override
   State<LiveDateTime> createState() => _LiveDateTimeState();
@@ -68,7 +72,8 @@ class _LiveDateTimeState extends State<LiveDateTime> {
                   ),
                 ),
               ),
-              TextSpan(text: '$label : ', style: labelStyle),
+              if (widget.showLabels)
+                TextSpan(text: '$label : ', style: labelStyle),
               TextSpan(style: valueStyle, children: value),
             ],
           ),

@@ -14,24 +14,31 @@ import 'adaptive_row.dart';
 /// button, the scrim, or Échap.
 class DetailDrawer extends StatelessWidget {
   const DetailDrawer({
-    required this.title,
     required this.children,
+    this.title,
     this.header,
+    this.dashedRule = false,
     super.key,
-  });
+  }) : assert(title != null || header != null);
 
-  final String title;
+  /// The panel's heading. Null when [header] takes its place.
+  final String? title;
   final List<Widget> children;
 
-  /// Under the title, above the divider — context that belongs to the panel
-  /// rather than to its content (the board's live date and time).
+  /// Under the title — or, with no [title], in its place: context that
+  /// belongs to the panel rather than to its content (the board's live date
+  /// and time).
   final Widget? header;
+
+  /// A dashed rule under the heading instead of the solid hairline.
+  final bool dashedRule;
 
   static Future<void> show(
     BuildContext context, {
-    required String title,
     required List<Widget> children,
+    String? title,
     Widget? header,
+    bool dashedRule = false,
   }) {
     return showGeneralDialog<void>(
       context: context,
@@ -40,7 +47,12 @@ class DetailDrawer extends StatelessWidget {
       barrierColor: Colors.black.withValues(alpha: 0.25),
       transitionDuration: AppMotion.duration(context, AppMotion.page),
       pageBuilder: (context, _, _) =>
-          DetailDrawer(title: title, header: header, children: children),
+          DetailDrawer(
+            title: title,
+            header: header,
+            dashedRule: dashedRule,
+            children: children,
+          ),
       transitionBuilder: (context, animation, _, child) => SlideTransition(
         position: Tween<Offset>(
           begin: const Offset(1, 0),
@@ -86,11 +98,11 @@ class DetailDrawer extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text(title, style: theme.textTheme.titleMedium),
-                            if (header != null) ...[
+                            if (title != null)
+                              Text(title!, style: theme.textTheme.titleMedium),
+                            if (title != null && header != null)
                               const SizedBox(height: AppSpacing.xs),
-                              header!,
-                            ],
+                            ?header,
                           ],
                         ),
                       ),
@@ -102,7 +114,13 @@ class DetailDrawer extends StatelessWidget {
                     ],
                   ),
                 ),
-                Divider(height: 1, color: AppColors.border.withValues(alpha: 0.5)),
+                if (dashedRule)
+                  const _DashedRule()
+                else
+                  Divider(
+                    height: 1,
+                    color: AppColors.border.withValues(alpha: 0.5),
+                  ),
                 Expanded(
                   child: ListView(
                     padding: const EdgeInsets.all(AppSpacing.xl),
@@ -116,6 +134,46 @@ class DetailDrawer extends StatelessWidget {
       ),
     );
   }
+}
+
+/// A 1dp dashed line across the panel — [DetailDrawer.dashedRule].
+class _DashedRule extends StatelessWidget {
+  const _DashedRule();
+
+  @override
+  Widget build(BuildContext context) => const SizedBox(
+    key: ValueKey('detail-drawer-dashed-rule'),
+    height: 1,
+    width: double.infinity,
+    child: CustomPaint(painter: _DashPainter(AppColors.border)),
+  );
+}
+
+class _DashPainter extends CustomPainter {
+  const _DashPainter(this.color);
+
+  final Color color;
+
+  static const double _dash = 5;
+  static const double _gap = 4;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = size.height;
+    final y = size.height / 2;
+    for (var x = 0.0; x < size.width; x += _dash + _gap) {
+      canvas.drawLine(
+        Offset(x, y),
+        Offset((x + _dash).clamp(0, size.width), y),
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_DashPainter old) => old.color != color;
 }
 
 /// A `label — value` line for the drawer body. `value` may be a string or,

@@ -208,11 +208,12 @@ class _EmployeeCard extends StatelessWidget {
   final String storeId;
 
   void _openDetail(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
     DetailDrawer.show(
       context,
-      title: l10n.attendanceDetailTitle,
-      header: const LiveDateTime(),
+      // The live date and time as the heading — icons, no labels — over a
+      // dashed rule.
+      header: const LiveDateTime(showLabels: false),
+      dashedRule: true,
       children: [_BoardDetail(storeId: storeId, employeeId: employee.id)],
     );
   }
@@ -281,7 +282,7 @@ class _EmployeeCard extends StatelessWidget {
 }
 
 /// The drawer behind "Voir détails": who this is, where their day stands,
-/// and its timestamps session by session.
+/// its timestamps session by session, and the time worked.
 ///
 /// Watches the board itself rather than taking a snapshot, so a punch made
 /// while the drawer is open shows up in it. No PIN: this is the shared kiosk,
@@ -345,29 +346,6 @@ class _BoardDetail extends ConsumerWidget {
           ],
         ),
         const SizedBox(height: AppSpacing.xxl),
-        sectionTitle(LucideIcons.user, l10n.timeclockPersonalInfo),
-        const SizedBox(height: AppSpacing.md),
-        DrawerRow(
-          label: l10n.employeesColumnRole,
-          valueWidget: Align(
-            alignment: Alignment.centerLeft,
-            child: EmployeeRoleBadge(role: employee.role),
-          ),
-        ),
-        DrawerRow(
-          label: l10n.employeeFormPhone,
-          value: employee.phone.isEmpty ? null : employee.phone,
-        ),
-        DrawerRow(
-          label: l10n.employeeFormEmail,
-          value: employee.email.isEmpty ? null : employee.email,
-        ),
-        if (worked != null)
-          DrawerRow(
-            label: l10n.attendanceColumnWorked,
-            value: Formatters.duration(worked),
-          ),
-        const SizedBox(height: AppSpacing.xxl),
         sectionTitle(LucideIcons.clock, l10n.timeclockSchedule),
         const SizedBox(height: AppSpacing.md),
         if (entry == null || entry.sessions.isEmpty)
@@ -385,6 +363,29 @@ class _BoardDetail extends ConsumerWidget {
               fallback: settings.maxBreakMinutes,
             ),
           ),
+        // The day's total closes the Horaires section.
+        if (worked != null) ...[
+          const SizedBox(height: AppSpacing.lg),
+          Divider(height: 1, color: AppColors.border.withValues(alpha: 0.5)),
+          const SizedBox(height: AppSpacing.md),
+          Row(
+            key: const ValueKey('timeclock-detail-worked'),
+            children: [
+              Expanded(
+                child: Text(
+                  l10n.attendanceColumnWorked,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ),
+              Text(
+                Formatters.duration(worked),
+                style: theme.textTheme.titleSmall,
+              ),
+            ],
+          ),
+        ],
       ],
     );
   }

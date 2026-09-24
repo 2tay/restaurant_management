@@ -2682,9 +2682,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get timeclockViewDetail => 'Voir détails';
 
   @override
-  String get timeclockPersonalInfo => 'Informations personnelles';
-
-  @override
   String get timeclockSchedule => 'Horaires';
 
   @override

@@ -4468,12 +4468,6 @@ abstract class AppLocalizations {
   /// **'Voir détails'**
   String get timeclockViewDetail;
 
-  /// Section title in the pointage board drawer.
-  ///
-  /// In fr, this message translates to:
-  /// **'Informations personnelles'**
-  String get timeclockPersonalInfo;
-
   /// Section title for the day's timestamps in the pointage board drawer.
   ///
   /// In fr, this message translates to:

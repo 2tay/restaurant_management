@@ -148,8 +148,9 @@ void main() {
     expect(link.top, closeTo(card.top, 24));
   });
 
-  testApp('Voir détails opens the drawer: live date and time in its header, '
-      'personal info, one session shown without a "Session" heading', (
+  testApp('Voir détails opens the drawer: date and time as its heading (icons, '
+      'no labels, dashed rule), one session without a "Session" heading, the '
+      'time worked last', (
     tester,
   ) async {
     final db = await _openBoard(tester, size: const Size(1280, 1400));
@@ -173,9 +174,27 @@ void main() {
     expect(tester.takeException(), isNull);
     Finder inDrawer(Finder f) => find.descendant(of: drawer, matching: f);
 
-    expect(inDrawer(find.byType(LiveDateTime)), findsOneWidget);
-    expect(inDrawer(find.text('Informations personnelles')), findsOneWidget);
-    expect(inDrawer(find.text(amelie.email)), findsOneWidget);
+    // No "Détail du pointage": the date and time are the heading, icons and
+    // values only, over a dashed rule.
+    expect(inDrawer(find.text('Détail du pointage')), findsNothing);
+    final clock = inDrawer(find.byType(LiveDateTime));
+    expect(clock, findsOneWidget);
+    expect(
+      find.descendant(of: clock, matching: find.textContaining('Date : ')),
+      findsNothing,
+    );
+    expect(
+      find.descendant(of: clock, matching: find.textContaining('Heure : ')),
+      findsNothing,
+    );
+    expect(
+      inDrawer(find.byKey(const ValueKey('detail-drawer-dashed-rule'))),
+      findsOneWidget,
+    );
+    // No personal-information section any more.
+    expect(inDrawer(find.text('Informations personnelles')), findsNothing);
+    expect(inDrawer(find.text(amelie.email)), findsNothing);
+    expect(inDrawer(find.text(_name(EmployeeIds.amelie))), findsOneWidget);
     // The kiosk never shows the PIN.
     expect(inDrawer(find.textContaining(amelie.pin)), findsNothing);
     // One session — Arrivée, Pause, Reprise; no heading, no alert.
@@ -186,6 +205,11 @@ void main() {
     expect(inDrawer(find.text('Reprise')), findsOneWidget);
     expect(inDrawer(find.textContaining('Session N°')), findsNothing);
     expect(inDrawer(find.textContaining('dépassée')), findsNothing);
+    // No session finished yet → no time worked to show.
+    expect(
+      inDrawer(find.byKey(const ValueKey('timeclock-detail-worked'))),
+      findsNothing,
+    );
   });
 
   testApp('two sessions in the day: a Session N° heading each, the pause '
@@ -221,6 +245,24 @@ void main() {
     expect(
       tester.getTopLeft(inDrawer(find.text('18:00'))).dy,
       greaterThan(tester.getTopLeft(second).dy),
+    );
+    // The time worked closes the Horaires section, under the last session:
+    // 08:00–12:00 less the two-hour break.
+    final worked = inDrawer(
+      find.byKey(const ValueKey('timeclock-detail-worked')),
+    );
+    expect(worked, findsOneWidget);
+    expect(
+      find.descendant(of: worked, matching: find.text('Durée travail')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: worked, matching: find.text('2 h 00')),
+      findsOneWidget,
+    );
+    expect(
+      tester.getTopLeft(worked).dy,
+      greaterThan(tester.getTopLeft(inDrawer(find.text('18:00'))).dy),
     );
   });
 
