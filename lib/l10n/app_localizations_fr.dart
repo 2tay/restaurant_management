@@ -504,7 +504,7 @@ class AppLocalizationsFr extends AppLocalizations {
       'Choisissez un produit dans la liste pour voir son détail, ses fournisseurs et ses prix.';
 
   @override
-  String get itemQuantityLabel => 'Quantité en stock';
+  String get itemQuantityLabel => 'Quantité';
 
   @override
   String get itemThresholdLabel => 'Stock minimum';
@@ -2413,6 +2413,11 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get itemOnOrderLabel => 'En commande';
+
+  @override
+  String itemRangeInline(String minimum, String maximum) {
+    return 'min $minimum · max $maximum';
+  }
 
   @override
   String get itemStockValueLabel => 'Valeur du stock';

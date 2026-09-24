@@ -129,66 +129,24 @@ class ItemDetailView extends ConsumerWidget {
     final onOrder = onOrderData.quantity;
     final openOrders = onOrderData.orders;
 
-    return ListView(
+    final content = ListView(
       padding: EdgeInsets.zero,
       shrinkWrap: !scrollsItself,
       primary: scrollsItself ? null : false,
       physics: scrollsItself ? null : const NeverScrollableScrollPhysics(),
       children: [
-        // --- Header -----------------------------------------------------------
+        // --- The figures ------------------------------------------------------
         //
-        // The photo, the name, and the three figures somebody opens a product
-        // to check: how much is there, what it is worth, and whether anything
-        // is coming. They were spread down an eight-row fact table that gave
-        // the category and the last-updated date exactly as much weight.
+        // The three numbers somebody opens a product to check: how much is
+        // there, what it is worth, and whether anything is coming. They were
+        // spread down an eight-row fact table that gave the category and the
+        // last-updated date exactly as much weight.
         //
-        // The photo is here for the page as well as the pane now. It used to
-        // be inside `showTitle`, so the full page — which has the name in its
-        // own header and therefore passes false — showed no picture at all,
-        // and the same product looked like two different screens.
-        _Header(
-          row: row,
-          onOrder: onOrder,
-          showName: showTitle,
-          onClose: onClose,
-        ),
+        // The photo rides here on the *page*, whose own header carries the name
+        // but no picture. In the panel it is up in the bar that stays put, so
+        // it is not drawn twice.
+        _StatsCard(row: row, onOrder: onOrder, showPhoto: !showTitle),
         const SizedBox(height: AppSpacing.lg),
-
-        if (showTitle) ...[
-          // The two things you came here to do, on the screen you are already
-          // on. Editing used to mean leaving the split view for the full page,
-          // which is the long way round to a form the pane could have opened.
-          Row(
-            children: [
-              Expanded(
-                child: SecondaryButton(
-                  label: l10n.actionEdit,
-                  icon: LucideIcons.pencil,
-                  onPressed: () =>
-                      context.pushScreen(Routes.toEditItem(storeId, item.id)),
-                ),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              DestructiveButton(
-                label: l10n.actionDelete,
-                icon: LucideIcons.trash2,
-                filled: false,
-                onPressed: () async {
-                  final deleted = await confirmDeleteItem(
-                    context,
-                    ref,
-                    storeId,
-                    item,
-                  );
-                  // The pane was showing a product that is gone. Closing it is
-                  // the only honest thing left to do.
-                  if (deleted) onClose?.call();
-                },
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.lg),
-        ],
 
         // --- Suppliers and prices --------------------------------------------
         //
@@ -373,6 +331,23 @@ class ItemDetailView extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: AppSpacing.xxl),
+      ],
+    );
+
+    // The page scrolls as a whole — its title and buttons go up with the
+    // content — so there is nothing to pin and the caller owns the scrolling.
+    if (!showTitle) return content;
+
+    // The panel is its own scrolling box, and a 560dp column holding the
+    // figures, the suppliers, the open commandes, the movements and the details
+    // is a long one. Which product you are reading, and the way out, must not
+    // scroll away from you halfway down it.
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _IdentityBar(row: row, storeId: storeId, onClose: onClose),
+        const Divider(height: AppSpacing.lg, color: AppColors.hairline),
+        Expanded(child: content),
       ],
     );
   }
@@ -607,23 +582,102 @@ class _OpenOrderLine extends StatelessWidget {
   }
 }
 
-/// The photo and the three figures a product is opened to check.
+/// Who this is and the way out, pinned above the panel's scrolling body.
 ///
-/// [showName] is false on the full page, whose own header already carries the
-/// name, the category and the status badge. The photo is drawn either way —
-/// that is the point of it living here rather than inside the name block.
-class _Header extends StatelessWidget {
-  const _Header({
+/// Photo, name, status, and the three things that act on the product: edit,
+/// delete, close. Edit and delete were a full-width button row inside the
+/// scroll, which cost a line of a narrow panel and scrolled out of reach
+/// exactly when a long product page made them hardest to get back to. As icons
+/// on the bar they are always there and take no room of their own.
+class _IdentityBar extends ConsumerWidget {
+  const _IdentityBar({
     required this.row,
-    required this.onOrder,
-    required this.showName,
+    required this.storeId,
     this.onClose,
   });
 
   final ItemRowView row;
-  final double onOrder;
-  final bool showName;
+  final String storeId;
   final VoidCallback? onClose;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final item = row.item;
+
+    return Row(
+      children: [
+        ProductImage(imagePath: item.imagePath, size: 48, radius: 10),
+        const SizedBox(width: AppSpacing.md),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                item.name,
+                style: theme.textTheme.titleMedium,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: AppSpacing.xxs),
+              Text(
+                row.categoryName,
+                style: theme.textTheme.bodySmall,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: AppSpacing.sm),
+        IconButton(
+          onPressed: () =>
+              context.pushScreen(Routes.toEditItem(storeId, item.id)),
+          tooltip: l10n.actionEdit,
+          icon: const Icon(LucideIcons.pencil, size: AppSizing.iconMd),
+        ),
+        IconButton(
+          onPressed: () async {
+            final deleted = await confirmDeleteItem(context, ref, storeId, item);
+            // The panel was showing a product that is gone. Closing it is the
+            // only honest thing left to do.
+            if (deleted) onClose?.call();
+          },
+          tooltip: l10n.actionDelete,
+          color: AppColors.error,
+          icon: const Icon(LucideIcons.trash2, size: AppSizing.iconMd),
+        ),
+        if (onClose != null)
+          IconButton(
+            onPressed: onClose,
+            tooltip: l10n.actionClose,
+            icon: const Icon(LucideIcons.x, size: AppSizing.iconMd),
+          ),
+      ],
+    );
+  }
+}
+
+/// The three figures, and the gauge across the full width under them.
+///
+/// The gauge used to sit inside the first figure's column, so it was as wide as
+/// the words "50 kg" — a bar too short to read a proportion off. It spans the
+/// card now, which is the only width at which a proportion is worth drawing.
+class _StatsCard extends StatelessWidget {
+  const _StatsCard({
+    required this.row,
+    required this.onOrder,
+    required this.showPhoto,
+  });
+
+  final ItemRowView row;
+  final double onOrder;
+
+  /// True on the page, whose own header names the product but shows no picture.
+  /// False in the panel, where the bar above already has one.
+  final bool showPhoto;
 
   @override
   Widget build(BuildContext context) {
@@ -631,31 +685,14 @@ class _Header extends StatelessWidget {
     final theme = Theme.of(context);
     final item = row.item;
     final unit = row.unitAbbreviation;
-    final status = stockStatusOf(item);
 
     final figures = <Widget>[
       _Figure(
-        label: l10n.itemOnHandLabel,
+        // "Quantité", not "En stock": the status badge a few pixels away says
+        // "En stock" and means something else entirely.
+        label: l10n.itemQuantityLabel,
         value: Formatters.quantityWithUnit(item.quantity, unit),
         emphasis: true,
-        below: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            StockGauge(
-              quantity: item.quantity,
-              minimum: item.lowStockThreshold,
-              maximum: item.maxStock,
-            ),
-            Text(
-              '${Formatters.quantity(item.lowStockThreshold)} / '
-              '${Formatters.quantityWithUnit(item.maxStock, unit)}',
-              style: theme.textTheme.bodySmall,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
-        ),
       ),
       _Figure(
         label: l10n.itemStockValueLabel,
@@ -683,53 +720,79 @@ class _Header extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // The product being read about is the product that was tapped,
-              // and not a name that could be any of forty.
-              ProductImage(imagePath: item.imagePath, size: 72),
-              const SizedBox(width: AppSpacing.lg),
+              if (showPhoto) ...[
+                ProductImage(imagePath: item.imagePath, size: 72),
+                const SizedBox(width: AppSpacing.lg),
+              ],
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (showName) ...[
-                      Text(item.name, style: theme.textTheme.headlineSmall),
-                      const SizedBox(height: AppSpacing.xs),
-                      StockStatusBadge(status: status),
-                      const SizedBox(height: AppSpacing.md),
-                    ],
-                    // The figures wrap rather than squeeze: in the split pane
-                    // three of them across 380dp would each be a column one
-                    // word wide.
-                    Wrap(
-                      spacing: AppSpacing.xxl,
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    // Three figures need about 110dp each before the numbers
+                    // start wrapping under their own labels. Below that they
+                    // stack two-up instead of being squeezed.
+                    final perFigure = constraints.maxWidth / figures.length;
+                    if (perFigure >= 110) {
+                      return Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          for (final figure in figures)
+                            Expanded(child: figure),
+                        ],
+                      );
+                    }
+                    return Wrap(
+                      spacing: AppSpacing.xl,
                       runSpacing: AppSpacing.md,
                       children: figures,
-                    ),
-                  ],
+                    );
+                  },
                 ),
               ),
-              if (onClose != null) ...[
-                const SizedBox(width: AppSpacing.sm),
-                IconButton(
-                  onPressed: onClose,
-                  tooltip: l10n.actionClose,
-                  icon: const Icon(LucideIcons.x),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          StockGauge(
+            quantity: item.quantity,
+            minimum: item.lowStockThreshold,
+            maximum: item.maxStock,
+            height: 8,
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  // Named bounds, not "8 / 20": that shape directly under a
+                  // filled bar reads as "8 out of 20", which is the current
+                  // level — and the figure above already said it.
+                  l10n.itemRangeInline(
+                    Formatters.quantityWithUnit(item.lowStockThreshold, unit),
+                    Formatters.quantityWithUnit(item.maxStock, unit),
+                  ),
+                  style: theme.textTheme.bodySmall,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              // What a commande would put on the line, stated rather than
+              // offered: ordering happens on the Achats screens, and this is
+              // the figure that says whether it is worth going there.
+              if (item.quantity < item.maxStock) ...[
+                const SizedBox(width: AppSpacing.md),
+                Flexible(
+                  child: Text(
+                    l10n.itemTopUpSuggestion(
+                      Formatters.quantityWithUnit(topUpQuantity(item), unit),
+                    ),
+                    style: theme.textTheme.bodySmall,
+                    textAlign: TextAlign.right,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
               ],
             ],
           ),
-          // What a commande would put on the line, stated rather than offered:
-          // ordering happens on the Achats screens, and this is the figure that
-          // tells you whether it is worth going there.
-          if (item.quantity < item.maxStock) ...[
-            const SizedBox(height: AppSpacing.md),
-            Text(
-              l10n.itemTopUpSuggestion(
-                Formatters.quantityWithUnit(topUpQuantity(item), unit),
-              ),
-              style: theme.textTheme.bodySmall,
-            ),
-          ],
         ],
       ),
     );
@@ -742,7 +805,6 @@ class _Figure extends StatelessWidget {
     required this.label,
     required this.value,
     this.emphasis = false,
-    this.below,
   });
 
   final String label;
@@ -751,8 +813,6 @@ class _Figure extends StatelessWidget {
   /// Numeric type for a figure, ordinary body type for a phrase like
   /// "Coût inconnu", which in numeric type reads as a broken number.
   final bool emphasis;
-
-  final Widget? below;
 
   @override
   Widget build(BuildContext context) {
@@ -784,10 +844,6 @@ class _Figure extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
-          if (below != null) ...[
-            const SizedBox(height: AppSpacing.xs),
-            below!,
-          ],
         ],
       ),
     );

@@ -958,10 +958,10 @@ abstract class AppLocalizations {
   /// **'Choisissez un produit dans la liste pour voir son détail, ses fournisseurs et ses prix.'**
   String get inventorySelectPromptBody;
 
-  /// Label above an item's current quantity.
+  /// Header figure on the product view: how much is on the shelf. Not "En stock", which is the status badge sitting a few pixels away and means something else entirely.
   ///
   /// In fr, this message translates to:
-  /// **'Quantité en stock'**
+  /// **'Quantité'**
   String get itemQuantityLabel;
 
   /// Label for the low-stock threshold. Named as the floor of the stock range rather than as an abstract threshold, because it is always shown beside the maximum.
@@ -3993,6 +3993,12 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'En commande'**
   String get itemOnOrderLabel;
+
+  /// The declared stock range under the gauge. Written with its two labels because "8 / 20" directly below a filled bar reads as "8 out of 20" — the current level — which is what the figure above it already says.
+  ///
+  /// In fr, this message translates to:
+  /// **'min {minimum} · max {maximum}'**
+  String itemRangeInline(String minimum, String maximum);
 
   /// Header figure on the product page: what the stock on hand is worth, quantity times average cost.
   ///

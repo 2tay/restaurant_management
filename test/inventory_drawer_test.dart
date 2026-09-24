@@ -76,6 +76,8 @@ void main() {
     expect(find.byType(ItemDetailView), findsNothing);
   });
 
+  // Modifier, Supprimer and Fermer are icons on the bar that stays put, so
+  // they are always reachable however far down a long product you have read.
   testApp('"Modifier" closes the drawer and opens the form in view', (
     tester,
   ) async {
@@ -85,7 +87,7 @@ void main() {
     await tester.tap(
       find.descendant(
         of: find.byType(ItemDetailView),
-        matching: find.text('Modifier'),
+        matching: find.byTooltip('Modifier'),
       ),
     );
     await tester.pumpAndSettle();
