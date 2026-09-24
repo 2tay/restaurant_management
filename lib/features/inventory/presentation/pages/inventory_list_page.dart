@@ -718,7 +718,7 @@ class _ProductTable extends StatelessWidget {
         ),
         AppTableColumn(
           label: l10n.tableColThreshold,
-          width: 96,
+          width: 132,
           numeric: true,
           minTableWidth: 720,
         ),
@@ -781,11 +781,18 @@ class _ProductTable extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
+          // Both bounds in one cell rather than a column each: the table
+          // already drops columns below 860dp, and a seventh would compete for
+          // room with the gauge that reads them. The unit is on the Stock
+          // column two cells left, so it is not repeated here.
           2 => Text(
-            Formatters.quantity(item.lowStockThreshold),
+            '${Formatters.quantity(item.lowStockThreshold)} / '
+            '${Formatters.quantity(item.maxStock)}',
             style: AppTypography.numeric.copyWith(
               color: AppColors.textSecondary,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
           3 => _LevelBar(item: item, status: status),
           4 => Text(

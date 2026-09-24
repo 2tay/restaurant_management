@@ -868,10 +868,10 @@ abstract class AppLocalizations {
   /// **'Stock'**
   String get tableColStock;
 
-  /// Table column header: alert threshold.
+  /// Table column header: the product's declared stock range, minimum and maximum in one cell. Both bounds are required, so the column states a range rather than a single threshold.
   ///
   /// In fr, this message translates to:
-  /// **'Seuil'**
+  /// **'Stock min/max'**
   String get tableColThreshold;
 
   /// Table column header: stock level gauge.

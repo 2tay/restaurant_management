@@ -458,7 +458,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get tableColStock => 'Stock';
 
   @override
-  String get tableColThreshold => 'Seuil';
+  String get tableColThreshold => 'Stock min/max';
 
   @override
   String get tableColLevel => 'Niveau';
