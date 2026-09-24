@@ -8,6 +8,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/formatters.dart';
+import '../../../../core/utils/stock_status.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../data/providers.dart';
 import '../../../../models/models.dart';
@@ -149,6 +150,15 @@ class _ItemFormState extends ConsumerState<_ItemForm> {
   /// the barcode conflict, and for the same reason: a form that complains
   /// while the number is still being typed complains about every number.
   bool _maxBelowThreshold = false;
+
+  /// Set at save time when the minimum is still zero.
+  ///
+  /// Both bounds are required. They were optional, and a maximum of zero meant
+  /// "no ceiling" — which left the stock gauge with no range to draw and the
+  /// ordering screen guessing a top-up from the threshold alone. A product
+  /// without a floor and a ceiling cannot be reasoned about, so the form asks
+  /// for both rather than inventing either.
+  bool _thresholdMissing = false;
 
   String? _categoryId;
   String? _unitId;
@@ -461,12 +471,19 @@ class _ItemFormState extends ConsumerState<_ItemForm> {
                   onChanged: (value) => setState(() {
                     _threshold = value;
                     _maxBelowThreshold = false;
+                    _thresholdMissing = false;
                   }),
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 Text(
-                  l10n.itemFormThresholdHelp,
-                  style: Theme.of(context).textTheme.bodySmall,
+                  _thresholdMissing
+                      ? l10n.itemFormThresholdRequired
+                      : l10n.itemFormThresholdHelp,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: _thresholdMissing
+                        ? Theme.of(context).colorScheme.error
+                        : null,
+                  ),
                 ),
 
                 // The ceiling, immediately under the floor it has to clear.
@@ -548,12 +565,27 @@ class _ItemFormState extends ConsumerState<_ItemForm> {
     final l10n = AppLocalizations.of(context);
     final items = ref.read(itemRepositoryProvider);
 
-    // A maximum at or below the alert line is not a ceiling, it is a
-    // contradiction: the ordering screen would suggest zero or a negative
-    // top-up for a product that is already flagged as low. Zero is the
-    // exception and means no maximum has been set at all.
-    if (_maxStock > 0 && _maxStock <= _threshold) {
-      setState(() => _maxBelowThreshold = true);
+    // Both bounds are required, and the maximum has to clear the minimum.
+    //
+    // Zero used to be allowed on both and meant "not set". That made the pair
+    // unusable everywhere they are read: a gauge cannot draw a range with no
+    // ceiling, and the ordering screen fell back to guessing a top-up from the
+    // minimum alone. A maximum at or below the minimum is worse than unset —
+    // it is a contradiction, and would have a commande suggest a zero or
+    // negative top-up for a product already flagged as low.
+    //
+    // Both are checked before either returns, so somebody who left the whole
+    // section alone sees what is wrong with it in one pass rather than being
+    // sent back twice.
+    final problems = stockRangeProblems(
+      minimum: _threshold,
+      maximum: _maxStock,
+    );
+    if (problems.minimumMissing || problems.maximumTooLow) {
+      setState(() {
+        _thresholdMissing = problems.minimumMissing;
+        _maxBelowThreshold = problems.maximumTooLow;
+      });
       return;
     }
 

@@ -964,10 +964,10 @@ abstract class AppLocalizations {
   /// **'Quantité en stock'**
   String get itemQuantityLabel;
 
-  /// Label for the low-stock threshold.
+  /// Label for the low-stock threshold. Named as the floor of the stock range rather than as an abstract threshold, because it is always shown beside the maximum.
   ///
   /// In fr, this message translates to:
-  /// **'Seuil d\'alerte'**
+  /// **'Stock minimum'**
   String get itemThresholdLabel;
 
   /// Label of the product photo field on the product form.
@@ -1168,17 +1168,23 @@ abstract class AppLocalizations {
   /// **'Stock maximum'**
   String get itemMaxStockLabel;
 
-  /// Helper under the max stock stepper. States both what the figure does on the ordering screen and what zero means, because a stepper has no other way to say "not set".
+  /// Helper under the max stock stepper. States what the figure does on the ordering screen. It no longer explains what zero means, because zero is no longer accepted — both bounds are required.
   ///
   /// In fr, this message translates to:
-  /// **'La quantité visée quand le stock est complet. Une commande propose de remonter à ce niveau. Laissez à 0 si ce produit n\'a pas de maximum.'**
+  /// **'La quantité visée quand le stock est complet. Une commande propose de remonter à ce niveau.'**
   String get itemFormMaxStockHelp;
 
   /// Replaces the max stock helper when the entered maximum is at or below the alert threshold. Shown in the error colour at save time rather than on every keystroke.
   ///
   /// In fr, this message translates to:
-  /// **'Le stock maximum doit être supérieur au seuil d\'alerte.'**
+  /// **'Le stock maximum doit être supérieur au stock minimum.'**
   String get itemFormMaxStockInvalid;
+
+  /// Replaces the minimum-stock helper when the field is still zero at save time. Both bounds are required so the stock gauge has a real range to draw.
+  ///
+  /// In fr, this message translates to:
+  /// **'Indiquez un stock minimum supérieur à 0.'**
+  String get itemFormThresholdRequired;
 
   /// Heading of the note explaining why the item form has no cost field.
   ///

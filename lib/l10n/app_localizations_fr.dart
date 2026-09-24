@@ -507,7 +507,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get itemQuantityLabel => 'Quantité en stock';
 
   @override
-  String get itemThresholdLabel => 'Seuil d\'alerte';
+  String get itemThresholdLabel => 'Stock minimum';
 
   @override
   String get itemImageLabel => 'Photo du produit';
@@ -619,11 +619,15 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get itemFormMaxStockHelp =>
-      'La quantité visée quand le stock est complet. Une commande propose de remonter à ce niveau. Laissez à 0 si ce produit n\'a pas de maximum.';
+      'La quantité visée quand le stock est complet. Une commande propose de remonter à ce niveau.';
 
   @override
   String get itemFormMaxStockInvalid =>
-      'Le stock maximum doit être supérieur au seuil d\'alerte.';
+      'Le stock maximum doit être supérieur au stock minimum.';
+
+  @override
+  String get itemFormThresholdRequired =>
+      'Indiquez un stock minimum supérieur à 0.';
 
   @override
   String get itemFormNoCostTitle => 'Pas de prix sur cette page';

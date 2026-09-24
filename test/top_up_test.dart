@@ -81,4 +81,49 @@ void main() {
       expect(topUpQuantity(item(quantity: 0, threshold: 0)), 1);
     });
   });
+
+  // The rule the product form enforces, kept here beside `topUpQuantity`
+  // because the fallback branch in that function is exactly what requiring a
+  // range retires.
+  group('a stock range needs a floor and a ceiling', () {
+    test('both bounds are required', () {
+      final problems = stockRangeProblems(minimum: 0, maximum: 0);
+
+      expect(problems.minimumMissing, isTrue);
+      expect(problems.maximumTooLow, isTrue);
+    });
+
+    test('a maximum equal to the minimum is not a range', () {
+      // Equal would have a commande suggest a zero top-up for a product that
+      // is already flagged as low.
+      expect(
+        stockRangeProblems(minimum: 8, maximum: 8).maximumTooLow,
+        isTrue,
+      );
+    });
+
+    test('a maximum below the minimum is refused', () {
+      expect(
+        stockRangeProblems(minimum: 8, maximum: 5).maximumTooLow,
+        isTrue,
+      );
+    });
+
+    test('a real range passes', () {
+      final problems = stockRangeProblems(minimum: 8, maximum: 20);
+
+      expect(problems.minimumMissing, isFalse);
+      expect(problems.maximumTooLow, isFalse);
+      expect(isValidStockRange(minimum: 8, maximum: 20), isTrue);
+    });
+
+    // Both answers at once, so a form can report everything wrong in one pass
+    // rather than sending somebody back twice.
+    test('a missing minimum and a bad maximum are reported together', () {
+      final problems = stockRangeProblems(minimum: 0, maximum: -1);
+
+      expect(problems.minimumMissing, isTrue);
+      expect(problems.maximumTooLow, isTrue);
+    });
+  });
 }
