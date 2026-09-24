@@ -103,9 +103,8 @@ screen, paste it into the inventory search, and it finds the item.
 
 ### Fonts
 
-The type scale expects **Inter**, which is not committed. Download the `.ttf` files
-(Regular / Medium / SemiBold / Bold) into `fonts/` and uncomment the `fonts:` block in
-`pubspec.yaml`. Without them the app falls back to Roboto and looks noticeably more generic.
+The app uses **Montserrat**, bundled in `fonts/` (Regular / Medium / SemiBold / Bold,
+SIL OFL 1.1) and declared under `fonts:` in `pubspec.yaml`.
 
 `google_fonts` is deliberately not used — it fetches over the network at runtime, which is
 wrong for an app whose whole premise is working offline in a kitchen.

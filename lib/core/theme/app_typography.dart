@@ -13,10 +13,9 @@ import 'app_colors.dart';
 /// must wrap rather than clip. Anything that lays out against a fixed width
 /// needs checking against real French strings, not placeholders.
 abstract final class AppTypography {
-  /// Falls back silently to the platform default until the Inter `.ttf` files
-  /// are placed in `fonts/` and the `fonts:` block in `pubspec.yaml` is
-  /// uncommented. See the README.
-  static const String fontFamily = 'Inter';
+  /// Bundled in `fonts/` (400/500/600/700) and declared under `fonts:` in
+  /// `pubspec.yaml`. See `fonts/README.md`.
+  static const String fontFamily = 'Montserrat';
 
   /// Nothing in the app may be smaller than this. A rushed user at arm's
   /// length cannot read 11pt.

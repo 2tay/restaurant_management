@@ -239,8 +239,7 @@ class _TypographySection extends StatelessWidget {
     return _Section(
       title: 'Typographie',
       note:
-          'Police Inter (repli automatique tant que les .ttf ne sont pas '
-          'dans fonts/). Rien en dessous de 13pt.',
+          'Police Montserrat (fournie dans fonts/). Rien en dessous de 13pt.',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
