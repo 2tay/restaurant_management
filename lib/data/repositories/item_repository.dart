@@ -355,7 +355,7 @@ class ItemRepository {
         unitId: unitId,
         quantity: 0,
         lowStockThreshold: lowStockThreshold,
-        maxStock: maxStock,
+        maxStock: _usableMaximum(lowStockThreshold, maxStock),
         updatedAt: DateTime.now(),
         defaultSupplierId: defaultSupplierId,
         barcode: cleanBarcode,
@@ -511,6 +511,21 @@ class ItemRepository {
 
   /// Empty input stores as null rather than as an empty string, so "no barcode"
   /// is one value rather than two.
+  /// A ceiling that actually clears the floor.
+  ///
+  /// **Normalisation, not validation.** The product form is where the rule is
+  /// enforced and where somebody is told to fix it, because a maximum is a
+  /// judgement about the product and a silent default is a worse answer than
+  /// asking. This is the floor under that: the seed and the test suites create
+  /// articles without naming a ceiling, and a stored zero used to mean "no
+  /// maximum" — which left the stock gauge with no range to draw.
+  ///
+  /// Twice the minimum, the same figure `topUpQuantity` has always fallen back
+  /// to, so nothing about ordering changes — the guess simply becomes a stored,
+  /// editable number instead of a branch.
+  static double _usableMaximum(double minimum, double maximum) =>
+      maximum > minimum ? maximum : minimum * 2;
+
   String? _clean(String? value) {
     final trimmed = value?.trim();
     return (trimmed == null || trimmed.isEmpty) ? null : trimmed;
