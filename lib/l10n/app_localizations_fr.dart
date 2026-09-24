@@ -550,10 +550,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get itemSuppliersTitle => 'Fournisseurs et prix';
 
   @override
-  String get itemSuppliersSubtitle =>
-      'Un même produit peut avoir plusieurs fournisseurs, chacun avec son prix.';
-
-  @override
   String get itemNoSuppliersTitle => 'Aucun fournisseur associé';
 
   @override
@@ -2610,22 +2606,8 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String dashboardStaleOrdersTitle(int count, int days) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count commandes partielles ouvertes depuis plus de $days jours',
-      one: '1 commande partielle ouverte depuis plus de $days jours',
-    );
-    return '$_temp0';
-  }
-
-  @override
   String get dashboardStaleOrdersBody =>
       'Une commande laissée ouverte gonfle la quantité « en commande » et fausse l\'alerte de double commande.';
-
-  @override
-  String get dashboardStaleOrdersAction => 'Voir les commandes';
 
   @override
   String alertsOnOrder(String quantity) {

@@ -10,7 +10,6 @@ import '../../../../core/utils/formatters.dart';
 import '../../../../core/utils/responsive.dart';
 import '../../../../core/utils/stock_status.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../../core/utils/order_status.dart';
 import '../../../../data/current_employee.dart';
 import '../../../../data/providers.dart';
 import '../../../../data/repositories/repositories.dart';
@@ -112,9 +111,6 @@ class StoreDashboardPage extends ConsumerWidget {
     // Watched separately because a Future cannot join the fold above, and
     // because an empty answer is the right thing to draw while it is out: no
     // warning is better than a warning that appears and then retracts.
-    final staleOrders =
-        ref.watch(staleOrdersProvider(storeId)).value ??
-        const <PurchaseOrder>[];
 
     // The greeting names whoever is signed in; blank until it knows, which
     // reads as a plain "Bonjour" rather than as a missing name.
@@ -159,15 +155,6 @@ class StoreDashboardPage extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // The real defence against orders left half-open. Whatever anybody
-          // tapped at receiving time, an order sitting in `partial` past the
-          // store's threshold keeps inflating the "on order" quantity — which
-          // makes the double-order indicator lie — until somebody closes it.
-          if (staleOrders.isNotEmpty) ...[
-            _StaleOrdersWarning(storeId: storeId, count: staleOrders.length),
-            const SizedBox(height: AppSpacing.lg),
-          ],
-
           // The figures — one row, always. Equal cards when they fit; a
           // sideways scroll with the next card peeking in when they do not.
           CardRow(
@@ -306,45 +293,6 @@ class StoreDashboardPage extends ConsumerWidget {
           else
             _TabbedPanels(storeId: storeId, activity: activity, alerts: alerts),
         ],
-      ),
-    );
-  }
-}
-
-/// Orders left half-received for longer than the store's threshold.
-///
-/// Stated on the dashboard rather than left to the orders list because nobody
-/// goes looking for a problem they do not know they have. An order stuck in
-/// `partial` is invisible by nature: the goods that did arrive were booked in
-/// and everything looked fine.
-class _StaleOrdersWarning extends ConsumerWidget {
-  const _StaleOrdersWarning({required this.storeId, required this.count});
-
-  final String storeId;
-  final int count;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context);
-
-    // The establishment's own threshold, a column since this phase rather than
-    // the mutable global it was in Phase 1. Falls back to the default while the
-    // query is out, which is the number the settings form falls back to too.
-    final days =
-        ref.watch(stalePartialOrderDaysProvider(storeId)).value ??
-        OrderRules.defaultStalePartialDays;
-
-    return NoticeBanner(
-      icon: LucideIcons.clock,
-      colors: AppColors.lowStock,
-      title: l10n.dashboardStaleOrdersTitle(count, days),
-      message: l10n.dashboardStaleOrdersBody,
-      action: SecondaryButton(
-        label: l10n.dashboardStaleOrdersAction,
-        icon: LucideIcons.clipboardList,
-        // Réceptions lists the late orders first, each with its button to
-        // receive what came or close it.
-        onPressed: () => context.goSection(Routes.toReceptions(storeId)),
       ),
     );
   }

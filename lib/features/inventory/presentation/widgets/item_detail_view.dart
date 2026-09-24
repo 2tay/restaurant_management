@@ -124,8 +124,6 @@ class ItemDetailView extends ConsumerWidget {
     final unit = row.unitAbbreviation;
     final prices = pricing.prices;
     final cheapest = pricing.cheapest;
-    final defaultPrice = pricing.defaultPrice;
-    final overpay = pricing.overpayPerUnit;
     final onOrder = onOrderData.quantity;
     final openOrders = onOrderData.orders;
 
@@ -147,76 +145,6 @@ class ItemDetailView extends ConsumerWidget {
         // it is not drawn twice.
         _StatsCard(row: row, onOrder: onOrder, showPhoto: !showTitle),
         const SizedBox(height: AppSpacing.lg),
-
-        // --- Suppliers and prices --------------------------------------------
-        //
-        // The heart of the screen. Not a single "cost" field, because a cost
-        // field would be a lie about how this restaurant actually buys.
-        SectionHeader(
-          title: l10n.itemSuppliersTitle,
-          subtitle: l10n.itemSuppliersSubtitle,
-          count: prices.isEmpty ? null : prices.length,
-          trailing: SecondaryButton(
-            label: l10n.itemLinkSupplier,
-            icon: LucideIcons.plus,
-            onPressed: () =>
-                context.pushScreen(Routes.toLinkSupplier(storeId, item.id)),
-          ),
-        ),
-
-        if (overpay > 0 && defaultPrice != null && cheapest != null)
-          Padding(
-            padding: const EdgeInsets.only(bottom: AppSpacing.lg),
-            child: _OverpayNotice(
-              amount: Formatters.price(overpay),
-              unit: unit,
-              cheapestSupplier: cheapest.supplierName,
-            ),
-          ),
-
-        if (prices.isEmpty)
-          AppCard(
-            child: EmptyState(
-              icon: LucideIcons.truck,
-              title: l10n.itemNoSuppliersTitle,
-              message: l10n.itemNoSuppliersBody,
-              actionLabel: l10n.itemLinkSupplier,
-              actionIcon: LucideIcons.plus,
-              onAction: () =>
-                  context.pushScreen(Routes.toLinkSupplier(storeId, item.id)),
-            ),
-          )
-        else
-          Container(
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: AppRadius.lgAll,
-              border: Border.all(color: AppColors.border),
-            ),
-            clipBehavior: Clip.antiAlias,
-            child: Column(
-              children: [
-                for (final entry in prices)
-                  SupplierPriceRow(
-                    view: entry,
-                    unitAbbreviation: unit,
-                    isCheapest:
-                        prices.length > 1 &&
-                        entry.price.id == cheapest?.price.id,
-                    onViewHistory: () => context.pushScreen(
-                      Routes.toPriceHistory(
-                        storeId,
-                        item.id,
-                        entry.price.supplierId,
-                      ),
-                    ),
-                    onRemove: () =>
-                        _confirmRemoveSupplier(context, ref, pricing, entry),
-                  ),
-              ],
-            ),
-          ),
-        const SizedBox(height: AppSpacing.xl),
 
         // --- Open orders -----------------------------------------------------
         //
@@ -330,6 +258,66 @@ class ItemDetailView extends ConsumerWidget {
             ],
           ),
         ),
+        const SizedBox(height: AppSpacing.xl),
+
+        // --- Suppliers and prices --------------------------------------------
+        //
+        // The heart of the screen. Not a single "cost" field, because a cost
+        // field would be a lie about how this restaurant actually buys.
+        SectionHeader(
+          title: l10n.itemSuppliersTitle,
+          count: prices.isEmpty ? null : prices.length,
+          trailing: IconButton(
+            onPressed: () =>
+                context.pushScreen(Routes.toLinkSupplier(storeId, item.id)),
+            tooltip: l10n.itemLinkSupplier,
+            icon: const Icon(LucideIcons.plus, size: AppSizing.iconMd),
+          ),
+        ),
+
+        if (prices.isEmpty)
+          AppCard(
+            child: EmptyState(
+              icon: LucideIcons.truck,
+              title: l10n.itemNoSuppliersTitle,
+              message: l10n.itemNoSuppliersBody,
+              actionLabel: l10n.itemLinkSupplier,
+              actionIcon: LucideIcons.plus,
+              onAction: () =>
+                  context.pushScreen(Routes.toLinkSupplier(storeId, item.id)),
+            ),
+          )
+        else
+          Container(
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: AppRadius.lgAll,
+              border: Border.all(color: AppColors.border),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: Column(
+              children: [
+                for (final entry in prices)
+                  SupplierPriceRow(
+                    view: entry,
+                    unitAbbreviation: unit,
+                    isCheapest:
+                        prices.length > 1 &&
+                        entry.price.id == cheapest?.price.id,
+                    onViewHistory: () => context.pushScreen(
+                      Routes.toPriceHistory(
+                        storeId,
+                        item.id,
+                        entry.price.supplierId,
+                      ),
+                    ),
+                    onRemove: () =>
+                        _confirmRemoveSupplier(context, ref, pricing, entry),
+                  ),
+              ],
+            ),
+          ),
+        const SizedBox(height: AppSpacing.xl),
         const SizedBox(height: AppSpacing.xxl),
       ],
     );
@@ -397,54 +385,6 @@ class ItemDetailView extends ConsumerWidget {
         l10n.supplierPromotedToDefault(promoted.supplierName),
       );
     }
-  }
-}
-
-/// The overpaying callout.
-///
-/// The single most valuable thing this app can tell a restaurant owner, so it
-/// is stated in euros per unit and names the cheaper supplier rather than
-/// leaving them to work it out from the table below.
-class _OverpayNotice extends StatelessWidget {
-  const _OverpayNotice({
-    required this.amount,
-    required this.unit,
-    required this.cheapestSupplier,
-  });
-
-  final String amount;
-  final String unit;
-  final String cheapestSupplier;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      decoration: BoxDecoration(
-        color: AppColors.lowStock.container,
-        borderRadius: AppRadius.mdAll,
-      ),
-      child: Row(
-        children: [
-          Icon(
-            LucideIcons.trendingUp,
-            color: AppColors.lowStock.foreground,
-            size: AppSizing.iconLg,
-          ),
-          const SizedBox(width: AppSpacing.md),
-          Expanded(
-            child: Text(
-              l10n.itemOverpayWarning(amount, unit, cheapestSupplier),
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                color: AppColors.lowStock.foreground,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }
 

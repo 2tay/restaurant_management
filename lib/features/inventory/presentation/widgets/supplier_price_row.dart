@@ -17,7 +17,9 @@ import '../../../../l10n/app_localizations.dart';
 ///
 /// Two badges do the analytical work — which supplier is used by default, and
 /// which is cheapest. When those are not the same supplier, the store is
-/// overpaying, and the screen above this row says so in euros.
+/// overpaying, and the two tags sitting on different rows are what say so.
+/// There was an amber callout above the list spelling it out in euros; the
+/// tags carry it without a block of warning colour on a reference screen.
 class SupplierPriceRow extends StatelessWidget {
   const SupplierPriceRow({
     required this.view,
@@ -41,12 +43,15 @@ class SupplierPriceRow extends StatelessWidget {
     final price = view.price;
 
     return Container(
+      // Tighter than it was: this is a list to work down, and the section sits
+      // at the foot of a long product page where the rows are counted more
+      // often than they are read one by one.
       padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.lg,
-        vertical: AppSpacing.md,
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.sm,
       ),
       decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: AppColors.border)),
+        border: Border(bottom: BorderSide(color: AppColors.hairline)),
       ),
       child: Row(
         children: [
@@ -89,7 +94,10 @@ class SupplierPriceRow extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  l10n.itemPriceUpdated(Formatters.date(price.effectiveDate)),
+                  // The date alone. "Prix mis à jour le 12/03/2026" on every
+                  // row is five words of scaffolding around the one that
+                  // changes, in a column already headed by a price.
+                  Formatters.date(price.effectiveDate),
                   style: theme.textTheme.bodySmall,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -111,18 +119,25 @@ class SupplierPriceRow extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(width: AppSpacing.sm),
+          const SizedBox(width: AppSpacing.xs),
+          // Compact: two default-sized icon buttons took 96dp of a row whose
+          // supplier name is the part that needs the width.
           IconButton(
             onPressed: onViewHistory,
-            icon: const Icon(LucideIcons.chartLine),
+            icon: const Icon(LucideIcons.chartLine, size: AppSizing.iconSm),
             tooltip: l10n.itemViewPriceHistory,
+            visualDensity: VisualDensity.compact,
           ),
           if (onRemove != null)
             IconButton(
               onPressed: onRemove,
-              icon: const Icon(LucideIcons.unlink),
+              // A cross, not a broken link: `unlink` reads as a chain and
+              // needed explaining. Removing an offer is the same gesture as
+              // closing anything else.
+              icon: const Icon(LucideIcons.x, size: AppSizing.iconSm),
               tooltip: l10n.actionDelete,
               color: AppColors.error,
+              visualDensity: VisualDensity.compact,
             ),
         ],
       ),

@@ -1048,12 +1048,6 @@ abstract class AppLocalizations {
   /// **'Fournisseurs et prix'**
   String get itemSuppliersTitle;
 
-  /// States the core domain rule on the item detail screen: price belongs to the item-supplier link, not to the item.
-  ///
-  /// In fr, this message translates to:
-  /// **'Un même produit peut avoir plusieurs fournisseurs, chacun avec son prix.'**
-  String get itemSuppliersSubtitle;
-
   /// Empty state when an item has no supplier links.
   ///
   /// In fr, this message translates to:
@@ -4294,23 +4288,11 @@ abstract class AppLocalizations {
   /// **'{count, plural, =0{Rien en cours} =1{1 commande ouverte} other{{count} commandes ouvertes}}'**
   String dashboardOnOrderCaption(int count);
 
-  /// Dashboard warning about orders left half-received. The real protection against stale open orders, independent of what anyone chose at receiving time.
-  ///
-  /// In fr, this message translates to:
-  /// **'{count, plural, =1{1 commande partielle ouverte depuis plus de {days} jours} other{{count} commandes partielles ouvertes depuis plus de {days} jours}}'**
-  String dashboardStaleOrdersTitle(int count, int days);
-
   /// Explains why a stale partial order matters.
   ///
   /// In fr, this message translates to:
   /// **'Une commande laissée ouverte gonfle la quantité « en commande » et fausse l\'alerte de double commande.'**
   String get dashboardStaleOrdersBody;
-
-  /// Opens the orders list filtered to open orders.
-  ///
-  /// In fr, this message translates to:
-  /// **'Voir les commandes'**
-  String get dashboardStaleOrdersAction;
 
   /// Shown on a low stock alert row when the item is already on an open order.
   ///
