@@ -4006,6 +4006,12 @@ abstract class AppLocalizations {
   /// **'Coût inconnu'**
   String get itemStockValueUnknown;
 
+  /// Tooltip on the mark at the end of a full stock gauge, when the quantity on hand exceeds the declared maximum. A full bar cannot tell "exactly at the maximum" from "far past it".
+  ///
+  /// In fr, this message translates to:
+  /// **'Au-dessus du stock maximum'**
+  String get stockGaugeOverMaximum;
+
   /// Label for the product's declared stock range on the details card. Same wording as the products table column.
   ///
   /// In fr, this message translates to:

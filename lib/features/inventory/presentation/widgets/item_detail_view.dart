@@ -646,7 +646,6 @@ class _Header extends StatelessWidget {
               quantity: item.quantity,
               minimum: item.lowStockThreshold,
               maximum: item.maxStock,
-              onOrder: onOrder,
             ),
             Text(
               '${Formatters.quantity(item.lowStockThreshold)} / '

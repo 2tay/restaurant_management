@@ -1505,6 +1505,8 @@
   "@itemStockValueLabel": {"description": "Header figure on the product page: what the stock on hand is worth, quantity times average cost."},
   "itemStockValueUnknown": "Coût inconnu",
   "@itemStockValueUnknown": {"description": "Replaces the stock value when the article has no average cost yet, so no value can be worked out. Shown instead of a zero, which would be a claim rather than an absence."},
+  "stockGaugeOverMaximum": "Au-dessus du stock maximum",
+  "@stockGaugeOverMaximum": {"description": "Tooltip on the mark at the end of a full stock gauge, when the quantity on hand exceeds the declared maximum. A full bar cannot tell \"exactly at the maximum\" from \"far past it\"."},
   "itemStockRangeLabel": "Stock min/max",
   "@itemStockRangeLabel": {"description": "Label for the product's declared stock range on the details card. Same wording as the products table column."},
   "itemTopUpSuggestion": "Pour remonter au maximum : {quantity}",

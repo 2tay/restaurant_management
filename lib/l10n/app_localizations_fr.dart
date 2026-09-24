@@ -2421,6 +2421,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get itemStockValueUnknown => 'Coût inconnu';
 
   @override
+  String get stockGaugeOverMaximum => 'Au-dessus du stock maximum';
+
+  @override
   String get itemStockRangeLabel => 'Stock min/max';
 
   @override
