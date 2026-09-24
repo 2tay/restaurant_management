@@ -2794,9 +2794,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get attendanceColumnFlags => 'Alertes';
 
   @override
-  String get attendanceColumnActions => 'Détail';
-
-  @override
   String get attendanceViewDetail => 'Voir le détail';
 
   @override
@@ -2942,9 +2939,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get payrollColumnHours => 'Horaires';
 
   @override
-  String get payrollColumnDetail => 'Détail';
-
-  @override
   String payrollBreakSummary(int count, String duration) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -2957,9 +2951,6 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get payrollFilterReset => 'Réinitialiser';
-
-  @override
-  String get payrollViewDetail => 'Voir le détail';
 
   @override
   String get payrollDetailTitle => 'Détail du paiement';

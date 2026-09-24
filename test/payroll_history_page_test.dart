@@ -102,10 +102,22 @@ void main() {
     await _openPayroll(tester, size: const Size(1440, 900));
     await _pickKarim(tester);
 
-    final detailButton =
-        find.widgetWithIcon(IconButton, LucideIcons.eye).first;
-    await tester.ensureVisible(detailButton);
-    await tester.tap(detailButton);
+    // No Détail column: the row itself is the way in.
+    final table = find.byType(DataTable);
+    expect(
+      find.descendant(of: table, matching: find.byIcon(LucideIcons.eye)),
+      findsNothing,
+    );
+    final headers = [
+      for (final c in tester.widget<DataTable>(table).columns)
+        (c.label as Text).data,
+    ];
+    expect(headers, isNot(contains('Détail')));
+    final row = find
+        .descendant(of: table, matching: find.byType(PaymentStatusBadge))
+        .first;
+    await tester.ensureVisible(row);
+    await tester.tap(row);
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);

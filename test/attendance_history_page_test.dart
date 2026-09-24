@@ -30,17 +30,27 @@ void main() {
     expect(find.text('Exporter'), findsNothing);
   });
 
-  testApp('clicking a row opens the detail drawer, Échap-free close works', (
+  testApp('clicking a row (no Détail column) opens the detail drawer', (
     tester,
   ) async {
     await _open(tester);
 
-    // The row's detail button → drawer.
-    final detailButton =
-        find.widgetWithIcon(IconButton, LucideIcons.eye).first;
-    expect(detailButton, findsOneWidget);
-    await tester.ensureVisible(detailButton);
-    await tester.tap(detailButton);
+    // No Détail column: the row itself is the way in.
+    final table = find.byType(DataTable);
+    expect(
+      find.descendant(of: table, matching: find.byIcon(LucideIcons.eye)),
+      findsNothing,
+    );
+    final headers = [
+      for (final c in tester.widget<DataTable>(table).columns)
+        (c.label as Text).data,
+    ];
+    expect(headers, isNot(contains('Détail')));
+    final row = find
+        .descendant(of: table, matching: find.byType(AttendanceStatusBadge))
+        .first;
+    await tester.ensureVisible(row);
+    await tester.tap(row);
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
 

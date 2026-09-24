@@ -22,7 +22,7 @@ const int _defaultRangeDays = 30;
 /// Below this width the table would have to scroll horizontally to show its
 /// six columns — a card per day reads better on a touch screen than a
 /// sideways-scrolling table, so the history switches to cards instead.
-const double _tableMinWidth = 820;
+const double _tableMinWidth = 740;
 
 DateTime _dayOnly(DateTime value) =>
     DateTime(value.year, value.month, value.day);
@@ -574,7 +574,8 @@ class _ActiveFilters extends StatelessWidget {
   }
 }
 
-/// One line per day: Date / Employé / Travaillé / Statut / Alertes / Détail.
+/// One line per day: Date / Employé / Travaillé / Statut / Alertes. Clicking
+/// the row opens the detail drawer — there is no separate Détail column.
 /// The arrival → départ times and the pauses are deliberately not here — a day
 /// can hold several sessions, which no single cell reads well; the drawer's
 /// timeline shows them all.
@@ -603,7 +604,6 @@ class _HistoryTable extends StatelessWidget {
         DataColumn(label: Text(l10n.attendanceColumnWorked)),
         DataColumn(label: Text(l10n.attendanceColumnStatus)),
         DataColumn(label: Text(l10n.attendanceColumnFlags)),
-        DataColumn(label: Text(l10n.attendanceColumnActions)),
       ],
       rows: [for (final a in rows) _row(context, l10n, a)],
     );
@@ -624,13 +624,6 @@ class _HistoryTable extends StatelessWidget {
         DataCell(AttendanceStatusBadge(status: a.status)),
         DataCell(
           AttendanceAlerts(entry: a, maxBreakMinutes: data.maxBreakMinutes),
-        ),
-        DataCell(
-          IconButton(
-            tooltip: l10n.attendanceViewDetail,
-            icon: const Icon(LucideIcons.eye, size: AppSizing.iconSm),
-            onPressed: () => onOpen(a),
-          ),
         ),
       ],
     );

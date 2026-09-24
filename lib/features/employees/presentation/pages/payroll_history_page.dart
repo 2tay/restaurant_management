@@ -757,7 +757,7 @@ class _DaysTable extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
 
     return DataTableWrapper(
-      minWidth: showEmployee ? 1080 : 940,
+      minWidth: showEmployee ? 1000 : 860,
       columns: [
         if (showEmployee) DataColumn(label: Text(l10n.payrollColumnEmployee)),
         DataColumn(label: Text(l10n.payrollColumnDate)),
@@ -766,7 +766,6 @@ class _DaysTable extends StatelessWidget {
         DataColumn(label: Text(l10n.payrollColumnAmount), numeric: true),
         DataColumn(label: Text(l10n.payrollColumnStatus)),
         DataColumn(label: Text(l10n.payrollColumnPaidAt)),
-        DataColumn(label: Text(l10n.payrollColumnDetail)),
       ],
       rows: [for (final a in rows) _row(context, l10n, a)],
     );
@@ -819,13 +818,6 @@ class _DaysTable extends StatelessWidget {
             data.paidAt == null
               ? '—'
               : Formatters.dateShortWeekday(data.paidAt!),
-          ),
-        ),
-        DataCell(
-          IconButton(
-            tooltip: l10n.payrollViewDetail,
-            icon: const Icon(LucideIcons.eye, size: AppSizing.iconSm),
-            onPressed: () => onOpen(a),
           ),
         ),
       ],

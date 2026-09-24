@@ -4648,12 +4648,6 @@ abstract class AppLocalizations {
   /// **'Alertes'**
   String get attendanceColumnFlags;
 
-  /// History table column — the row detail button.
-  ///
-  /// In fr, this message translates to:
-  /// **'Détail'**
-  String get attendanceColumnActions;
-
   /// Tooltip on the row detail button.
   ///
   /// In fr, this message translates to:
@@ -4882,12 +4876,6 @@ abstract class AppLocalizations {
   /// **'Horaires'**
   String get payrollColumnHours;
 
-  /// Payroll table column — the row detail button.
-  ///
-  /// In fr, this message translates to:
-  /// **'Détail'**
-  String get payrollColumnDetail;
-
   /// Secondary line under the Horaires cell — break count and total.
   ///
   /// In fr, this message translates to:
@@ -4899,12 +4887,6 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Réinitialiser'**
   String get payrollFilterReset;
-
-  /// Tooltip on the payroll row detail button.
-  ///
-  /// In fr, this message translates to:
-  /// **'Voir le détail'**
-  String get payrollViewDetail;
 
   /// Heading of the payroll detail side panel.
   ///
