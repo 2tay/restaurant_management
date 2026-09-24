@@ -821,23 +821,19 @@ class _LevelBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ceiling = item.maxStock > 0
-        ? item.maxStock
-        : item.lowStockThreshold * 2;
-    final level = ceiling <= 0
-        ? 0.0
-        : (item.quantity / ceiling).clamp(0.0, 1.0);
-
-    return ClipRRect(
-      borderRadius: AppRadius.pillAll,
-      child: LinearProgressIndicator(
-        value: level,
-        minHeight: 6,
-        color: status == StockStatus.inStock
-            ? AppColors.neutral400
-            : StockStatusBadge.colorsFor(status).solid,
-        backgroundColor: AppColors.neutral100,
-      ),
+    // The shared gauge, so a level means the same thing in this column as it
+    // does on an alert row and on the product page. It drew its own bar here
+    // with a `maxStock > 0 ? maxStock : threshold * 2` fallback, which is the
+    // guess the repository now stores instead.
+    return StockGauge(
+      quantity: item.quantity,
+      minimum: item.lowStockThreshold,
+      maximum: item.maxStock,
+      // A product sitting comfortably in range is not news; the bar is there
+      // to be read, not to colour a column of healthy rows.
+      color: status == StockStatus.inStock
+          ? AppColors.neutral400
+          : StockStatusBadge.colorsFor(status).solid,
     );
   }
 }

@@ -16,7 +16,6 @@ import '../../../../data/view_models/view_models.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 import '../alerts_filter.dart';
-import '../widgets/coverage_bar.dart';
 
 /// Everything at or below its threshold, worst first.
 ///
@@ -692,10 +691,11 @@ class _AlertCard extends ConsumerWidget {
           overflow: TextOverflow.ellipsis,
         ),
         const SizedBox(height: AppSpacing.xs),
-        CoverageBar(
+        StockGauge(
           quantity: item.quantity,
+          minimum: item.lowStockThreshold,
+          maximum: item.maxStock,
           onOrder: view.onOrderQuantity,
-          threshold: item.lowStockThreshold,
           color: colors.solid,
         ),
         if (notes.isNotEmpty) ...[
