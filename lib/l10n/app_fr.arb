@@ -447,8 +447,6 @@
   "@inventoryViewList": {"description": "Tooltip on the button switching the product list to compact rows."},
   "inventoryStockCurrent": "Stock actuel",
   "@inventoryStockCurrent": {"description": "Caption above the quantity on a product card. Says the figure is what is on the shelf now, not an order or a threshold."},
-  "inventoryOpenItem": "Voir le produit",
-  "@inventoryOpenItem": {"description": "Tooltip on the arrow button of a product card. It does the same thing as tapping the card."},
   "inventorySelectPrompt": "Sélectionnez un produit",
   "@inventorySelectPrompt": {"description": "Placeholder in the detail pane of the inventory split view."},
   "inventorySelectPromptBody": "Choisissez un produit dans la liste pour voir son détail, ses fournisseurs et ses prix.",

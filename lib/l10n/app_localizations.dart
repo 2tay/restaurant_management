@@ -940,12 +940,6 @@ abstract class AppLocalizations {
   /// **'Stock actuel'**
   String get inventoryStockCurrent;
 
-  /// Tooltip on the arrow button of a product card. It does the same thing as tapping the card.
-  ///
-  /// In fr, this message translates to:
-  /// **'Voir le produit'**
-  String get inventoryOpenItem;
-
   /// Placeholder in the detail pane of the inventory split view.
   ///
   /// In fr, this message translates to:

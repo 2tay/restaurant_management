@@ -494,9 +494,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get inventoryStockCurrent => 'Stock actuel';
 
   @override
-  String get inventoryOpenItem => 'Voir le produit';
-
-  @override
   String get inventorySelectPrompt => 'Sélectionnez un produit';
 
   @override

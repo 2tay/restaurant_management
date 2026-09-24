@@ -13,6 +13,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:stock_inventory/shared/widgets/widgets.dart';
 import 'package:stock_inventory/core/theme/app_spacing.dart';
 import 'package:stock_inventory/app/router.dart';
 import 'package:stock_inventory/app/routes.dart';
@@ -121,9 +122,16 @@ void main() {
   // can see past. These two functions are the whole of the grid's responsive
   // behaviour, and they are what the phone case is actually about.
   group('the grid sizes itself', () {
-    test('one column on a phone, more as the window grows', () {
-      expect(inventoryGridColumns(390), 1);
-      expect(inventoryGridColumns(430), 1);
+    test('two on a phone, more as the window grows', () {
+      // A phone shows two. It showed one until the card lost its "Stock
+      // actuel" caption and its arrow button: a 360dp screen leaves about
+      // 180dp a card, which was not enough for a name, a category and a
+      // quantity and now is.
+      expect(inventoryGridColumns(360), 2);
+      expect(inventoryGridColumns(390), 2);
+      expect(inventoryGridColumns(430), 2);
+      // Only a genuinely tiny window falls back to one.
+      expect(inventoryGridColumns(300), 1);
       expect(inventoryGridColumns(640), 3);
       expect(inventoryGridColumns(800), 4);
       expect(inventoryGridColumns(1100), 5);
@@ -292,6 +300,75 @@ void main() {
       final built = tester.widgetList<ItemCard>(find.byType(ItemCard));
       expect(built, isNotEmpty);
       expect(built.every((card) => needsAttention(card.view.item)), isTrue);
+    });
+  });
+
+  // A catalogue is walked by section — you go looking for a vegetable among
+  // the vegetables — but only while the screen is choosing the order. The
+  // moment the user picks one, blocks would contradict it.
+  group('the grid groups by category', () {
+    /// The category names shown as section headings, top to bottom.
+    List<String> headings(WidgetTester tester) => [
+      for (final header in tester.widgetList<CategoryHeader>(
+        find.byType(CategoryHeader),
+      ))
+        header.title,
+    ];
+
+    testApp('in the default order, one block per category', (tester) async {
+      await _openInventory(tester, _tablet);
+
+      final shown = headings(tester);
+      expect(shown.length, greaterThan(1));
+      // Alphabetical, so the blocks sit in the same place every visit.
+      final sorted = [...shown]
+        ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+      expect(shown, sorted);
+    });
+
+    testApp('every card on screen belongs to a block', (tester) async {
+      await _openInventory(tester, _tablet);
+
+      final categories = headings(tester).toSet();
+      for (final card in tester.widgetList<ItemCard>(find.byType(ItemCard))) {
+        expect(categories, contains(card.view.categoryName));
+      }
+    });
+
+    // Eight categories of twenty products is a long page to scroll past to
+    // reach the one section you came for.
+    testApp('a block folds away and still says how many it hides', (
+      tester,
+    ) async {
+      await _openInventory(tester, _tablet);
+      final first = headings(tester).first;
+      final before = _namesInOrder(tester).length;
+
+      await tester.tap(find.byType(CategoryHeader).first);
+      await tester.pumpAndSettle();
+
+      // Fewer cards, but the heading and its count stay put.
+      expect(_namesInOrder(tester).length, lessThan(before));
+      expect(headings(tester).first, first);
+
+      await tester.tap(find.byType(CategoryHeader).first);
+      await tester.pumpAndSettle();
+
+      expect(_namesInOrder(tester).length, before);
+    });
+
+    testApp('choosing a sort flattens it', (tester) async {
+      await _openInventory(tester, _tablet);
+      expect(headings(tester), isNotEmpty);
+
+      await _sortBy(tester, 'Nom A → Z');
+
+      // No blocks left, and the names run in one alphabetical sequence.
+      expect(headings(tester), isEmpty);
+      final names = _namesInOrder(tester);
+      final sorted = [...names]
+        ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+      expect(names, sorted);
     });
   });
 }

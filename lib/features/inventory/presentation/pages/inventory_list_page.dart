@@ -284,7 +284,12 @@ class _ListPane extends ConsumerWidget {
                   onClearFilters: notifier.clear,
                 )
               : viewMode == InventoryViewMode.grid
-              ? _ProductGrid(rows: rows, onTap: onTap, selectedId: selectedId)
+              ? _CatalogueGrid(
+                  rows: rows,
+                  onTap: onTap,
+                  selectedId: selectedId,
+                  sort: filter.sort,
+                )
               : _ProductTable(
                   rows: rows,
                   onTap: onTap,
@@ -574,6 +579,173 @@ class _ListControls extends StatelessWidget {
 }
 
 /// The products as cards.
+/// The catalogue as cards, in one block per category.
+///
+/// A catalogue is walked by section — you go looking for a vegetable among the
+/// vegetables — so the blocks are the natural shape for it, in alphabetical
+/// order so they sit in the same place every visit.
+///
+/// **Only in the default order.** Somebody who asked for "Nom A → Z" wants one
+/// alphabetical list; that same list cut into category blocks is not sorted by
+/// name, it is sorted by category. The alerts screen makes the same bargain
+/// with its severity sections.
+///
+/// A single block means the list is already one category, usually because the
+/// category filter is on, and a heading naming what every card on screen is
+/// would be a line saying nothing. It falls back to a plain grid.
+///
+/// Blocks collapse. Eight categories of twenty products is a long page to
+/// scroll past to reach the one section you came for, and a collapsed block
+/// still states how many it is hiding.
+class _CatalogueGrid extends StatefulWidget {
+  const _CatalogueGrid({
+    required this.rows,
+    required this.onTap,
+    required this.selectedId,
+    required this.sort,
+  });
+
+  final List<ItemRowView> rows;
+  final ValueChanged<String> onTap;
+  final String? selectedId;
+
+  /// Whether the cards are in the order the screen chose or in one the user
+  /// asked for.
+  final ItemSort sort;
+
+  @override
+  State<_CatalogueGrid> createState() => _CatalogueGridState();
+}
+
+class _CatalogueGridState extends State<_CatalogueGrid> {
+  /// Folded away by category name. Kept on the state rather than in a provider
+  /// because it is a reading position, not a filter: it should survive a
+  /// rebuild and not survive leaving the screen.
+  final Set<String> _collapsed = {};
+
+  @override
+  Widget build(BuildContext context) {
+    final grouped = <String, List<ItemRowView>>{};
+    for (final row in widget.rows) {
+      grouped.putIfAbsent(row.categoryName, () => []).add(row);
+    }
+    final categories = grouped.keys.toList()
+      ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+
+    if (widget.sort != ItemSort.status || categories.length < 2) {
+      return _ProductGrid(
+        rows: widget.rows,
+        onTap: widget.onTap,
+        selectedId: widget.selectedId,
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (final (i, category) in categories.indexed) ...[
+          if (i > 0) const SizedBox(height: AppSpacing.lg),
+          CategoryHeader(
+            title: category,
+            count: grouped[category]!.length,
+            collapsed: _collapsed.contains(category),
+            onToggle: () => setState(
+              () => _collapsed.contains(category)
+                  ? _collapsed.remove(category)
+                  : _collapsed.add(category),
+            ),
+          ),
+          if (!_collapsed.contains(category)) ...[
+            const SizedBox(height: AppSpacing.sm),
+            _ProductGrid(
+              rows: grouped[category]!,
+              onTap: widget.onTap,
+              selectedId: widget.selectedId,
+            ),
+          ],
+        ],
+      ],
+    );
+  }
+}
+
+/// One category's heading: its name, how many, and a rule to the edge.
+///
+/// A [SectionHeader] was the obvious thing and the wrong one. It is built for a
+/// section with an action beside it and costs about fifty points of height;
+/// eight of them is four hundred points of heading above a grid whose cards
+/// were just made smaller to fit more on screen. This is a single line that
+/// separates rather than announces — the rule does the separating, so the words
+/// can be small.
+class CategoryHeader extends StatelessWidget {
+  const CategoryHeader({
+    required this.title,
+    required this.count,
+    required this.collapsed,
+    required this.onToggle,
+    super.key,
+  });
+
+  final String title;
+  final int count;
+  final bool collapsed;
+  final VoidCallback onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return InkWell(
+      onTap: onToggle,
+      borderRadius: AppRadius.smAll,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+        child: Row(
+          children: [
+            AnimatedRotation(
+              duration: AppMotion.duration(context, AppMotion.fast),
+              turns: collapsed ? -0.25 : 0,
+              child: const Icon(
+                LucideIcons.chevronDown,
+                size: AppSizing.iconSm,
+                color: AppColors.textSecondary,
+              ),
+            ),
+            const SizedBox(width: AppSpacing.xs),
+            Flexible(
+              child: Text(
+                title.toUpperCase(),
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: AppColors.textSecondary,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.8,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Text(
+              '$count',
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: AppColors.textDisabled,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            // The rule runs to the edge, which is what makes the line read as
+            // a divider carrying a label rather than a title floating above a
+            // grid.
+            const Expanded(
+              child: Divider(height: 1, color: AppColors.hairline),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _ProductGrid extends StatelessWidget {
   const _ProductGrid({
     required this.rows,
@@ -987,7 +1159,14 @@ int inventoryGridColumns(double width) {
 const double _columnTarget = 190;
 
 /// Below this width the grid drops to a single column.
-const double _singleColumn = 440;
+///
+/// 320, down from 440 — which meant a phone showed one product per row. Two
+/// across a 360dp screen once left about 180dp for a name, a category and a
+/// quantity, and that was not enough for any of them. The card has since lost
+/// its "Stock actuel" caption and its arrow button, and gained a narrower
+/// picture, so the same 180dp now carries all three. Only a genuinely tiny
+/// window falls back to one.
+const double _singleColumn = 320;
 
 /// How tall the picture on a card is, for a column this wide.
 ///

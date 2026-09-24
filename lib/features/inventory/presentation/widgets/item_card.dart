@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
@@ -15,20 +14,20 @@ import '../../../../shared/widgets/widgets.dart';
 ///
 /// Stated rather than derived, and the grid adds it to the image height to size
 /// each tile — see [ItemCard]. It covers the name, the category, the rule under
-/// them, and the quantity sharing a row with the arrow.
+/// them, and the quantity sharing a row with the stock range.
 ///
-/// 120dp, measured rather than estimated: the padding, the name, the category,
-/// the rule and the figure come to 119 at the default type size. It was 126
-/// with a "Stock actuel" caption above the figure — a label that said the same
-/// thing on every card in a grid of products, where a quantity with its unit
-/// needs no introduction. Dropping it takes a line off every tile, and the
-/// bigger saving is next door in the picture.
+/// 108dp. It was 120 while a 40dp arrow button sat on the quantity's line and
+/// set that row's height; the card opens on a tap anywhere, so the arrow was
+/// an affordance pretending to be an action, and its twelve points went with
+/// it. Before that it was 126 with a "Stock actuel" caption above the figure —
+/// a label repeating on every card in a grid of products, where a quantity
+/// with its unit needs no introduction.
 ///
 /// It scales with the user's type size: a fixed height clips the last line at
 /// 150%, which is where this grid overflowed for anyone who had turned the text
 /// up. Capped at 2x so an extreme accessibility setting makes the tiles tall
 /// rather than making them a page each.
-const double itemCardTextHeight = 120;
+const double itemCardTextHeight = 108;
 
 /// [itemCardTextHeight] grown for the user's current type size.
 double itemCardTextHeightFor(BuildContext context) {
@@ -73,6 +72,7 @@ class ItemCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final item = view.item;
     final status = stockStatusOf(item);
 
@@ -161,11 +161,36 @@ class ItemCard extends StatelessWidget {
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      Expanded(
+                      // Both flexible, both ellipsizing: on the narrowest card
+                      // a long quantity and a long range each give way rather
+                      // than one of them pushing the other off the card.
+                      Flexible(
                         child: ItemStockQuantity(view: view, status: status),
                       ),
-                      const SizedBox(width: AppSpacing.sm),
-                      ItemActionArrow(onTap: onTap),
+                      const SizedBox(width: AppSpacing.xs),
+                      // What the quantity is measured against, at the far end
+                      // of its own line. Without it the figure is a number
+                      // with no scale — 6 kg is comfortable for one product
+                      // and a rupture for the next.
+                      //
+                      // The bounds alone, unlabelled. "Seuil" in front of them
+                      // is a word repeated on every card in the grid to
+                      // introduce two numbers that sit beside the quantity
+                      // they bound; the tooltip carries it for anyone who
+                      // needs it spelled out.
+                      Tooltip(
+                        message: l10n.itemStockRangeLabel,
+                        child: Text(
+                          '${Formatters.quantity(item.lowStockThreshold)}'
+                          ' / '
+                          '${Formatters.quantity(item.maxStock)}',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
                     ],
                   ),
                 ],
@@ -209,68 +234,6 @@ class ItemStockQuantity extends StatelessWidget {
       ),
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
-    );
-  }
-}
-
-/// The arrow at the corner of a product card or row.
-///
-/// It does exactly what tapping the card does — it is an affordance, not a
-/// second action. The card is the tap target that matters, so this is allowed
-/// to be smaller than [AppSizing.minTapTarget]: missing it hits the card and
-/// opens the same product.
-class ItemActionArrow extends StatefulWidget {
-  const ItemActionArrow({required this.onTap, super.key});
-
-  final VoidCallback onTap;
-
-  static const double _side = 40;
-
-  @override
-  State<ItemActionArrow> createState() => _ItemActionArrowState();
-}
-
-class _ItemActionArrowState extends State<ItemActionArrow> {
-  bool _hovered = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final label = AppLocalizations.of(context).inventoryOpenItem;
-
-    return Semantics(
-      button: true,
-      label: label,
-      child: Tooltip(
-        message: label,
-        child: MouseRegion(
-          cursor: SystemMouseCursors.click,
-          onEnter: (_) => setState(() => _hovered = true),
-          onExit: (_) => setState(() => _hovered = false),
-          child: GestureDetector(
-            onTap: widget.onTap,
-            child: AnimatedContainer(
-              duration: AppMotion.duration(context, AppMotion.fast),
-              curve: AppMotion.standard,
-              width: ItemActionArrow._side,
-              height: ItemActionArrow._side,
-              decoration: BoxDecoration(
-                color: _hovered
-                    ? AppColors.primaryContainer
-                    : AppColors.surface,
-                borderRadius: AppRadius.mdAll,
-                border: Border.all(
-                  color: _hovered ? AppColors.primary600 : AppColors.border,
-                ),
-              ),
-              child: const Icon(
-                LucideIcons.arrowRight,
-                size: AppSizing.iconSm,
-                color: AppColors.primary600,
-              ),
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

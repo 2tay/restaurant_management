@@ -65,7 +65,7 @@ class MovementTable extends StatelessWidget {
         itemId: view.movement.itemId,
       ),
       columns: [
-        AppTableColumn(label: l10n.tableColDate, width: 150),
+        AppTableColumn(label: l10n.tableColDate, width: 112),
         AppTableColumn(label: l10n.tableColProduct, flex: 3),
         AppTableColumn(label: l10n.tableColType, width: 140),
         AppTableColumn(label: l10n.tableColQuantity, width: 120, numeric: true),
@@ -83,13 +83,34 @@ class MovementTable extends StatelessWidget {
         final unit = view.unitAbbreviation;
 
         return switch (column) {
-          0 => Text(
-            Formatters.dateTime(movement.occurredAt),
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: AppColors.textSecondary,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+          // Two lines, not one. "22/08/2026 à 14:32" is eighteen characters of
+          // grey squeezed into a 150dp cell, where the date and the time run
+          // together and neither is scannable down a column. The date leads in
+          // the body colour; the hour sits under it, quieter, because a column
+          // of movements is read by day first and by hour only once you are on
+          // the right day.
+          0 => Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                Formatters.date(movement.occurredAt),
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              Text(
+                Formatters.time(movement.occurredAt),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
           ),
           1 => Row(
             children: [
