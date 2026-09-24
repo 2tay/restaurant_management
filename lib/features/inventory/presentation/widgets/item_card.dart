@@ -15,18 +15,20 @@ import '../../../../shared/widgets/widgets.dart';
 ///
 /// Stated rather than derived, and the grid adds it to the image height to size
 /// each tile — see [ItemCard]. It covers the name, the category, the rule under
-/// them, and the stock line sharing a row with the arrow.
+/// them, and the quantity sharing a row with the arrow.
 ///
-/// 126dp, not the 140 it started at. Those four lines need about 120 including
-/// the padding, so the rest was slack — and slack multiplied by every tile is
-/// what made a card 376dp tall and left a phone showing one and a half
-/// products.
+/// 120dp, measured rather than estimated: the padding, the name, the category,
+/// the rule and the figure come to 119 at the default type size. It was 126
+/// with a "Stock actuel" caption above the figure — a label that said the same
+/// thing on every card in a grid of products, where a quantity with its unit
+/// needs no introduction. Dropping it takes a line off every tile, and the
+/// bigger saving is next door in the picture.
 ///
-/// It scales with the user's type size: 126 clips the last line at 150%, which
-/// is where this grid overflowed for anyone who had turned the text up. Capped
-/// at 2x so an extreme accessibility setting makes the tiles tall rather than
-/// making them a page each.
-const double itemCardTextHeight = 126;
+/// It scales with the user's type size: a fixed height clips the last line at
+/// 150%, which is where this grid overflowed for anyone who had turned the text
+/// up. Capped at 2x so an extreme accessibility setting makes the tiles tall
+/// rather than making them a page each.
+const double itemCardTextHeight = 120;
 
 /// [itemCardTextHeight] grown for the user's current type size.
 double itemCardTextHeightFor(BuildContext context) {
@@ -71,7 +73,6 @@ class ItemCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final l10n = AppLocalizations.of(context);
     final item = view.item;
     final status = stockStatusOf(item);
 
@@ -161,21 +162,7 @@ class ItemCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              l10n.inventoryStockCurrent,
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: AppColors.textSecondary,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            ItemStockQuantity(view: view, status: status),
-                          ],
-                        ),
+                        child: ItemStockQuantity(view: view, status: status),
                       ),
                       const SizedBox(width: AppSpacing.sm),
                       ItemActionArrow(onTap: onTap),

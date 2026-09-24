@@ -616,7 +616,7 @@ class _ProductGrid extends StatelessWidget {
         // `AppCard` draws one inside its own box and lays the card out in what
         // is left, which is two pixels less than the tile — the amount every
         // card in this grid was overflowing by before the allowance was added.
-        final spacing = AppSpacing.md * (columns - 1);
+        final spacing = AppSpacing.sm * (columns - 1);
         final cellWidth = (constraints.maxWidth - spacing) / columns;
         final imageHeight = inventoryImageHeight(cellWidth);
 
@@ -627,8 +627,8 @@ class _ProductGrid extends StatelessWidget {
           physics: const NeverScrollableScrollPhysics(),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: columns,
-            mainAxisSpacing: AppSpacing.md,
-            crossAxisSpacing: AppSpacing.md,
+            mainAxisSpacing: AppSpacing.sm,
+            crossAxisSpacing: AppSpacing.sm,
             mainAxisExtent:
                 imageHeight +
                 itemCardTextHeightFor(context) +
@@ -978,33 +978,41 @@ void afterFrame(VoidCallback change) =>
 int inventoryGridColumns(double width) {
   if (width < _singleColumn) return 1;
   final columns = (width / _columnTarget).floor();
-  return columns.clamp(2, 5);
+  return columns.clamp(2, 6);
 }
 
 /// Roughly how wide a card wants to be.
 ///
-/// 230dp rather than the 260 it started at, and the ceiling is five columns
-/// rather than four. Both spend the same currency: a 1280dp window drew three
-/// cards across at 309dp each, which is a large photograph of a bag of flour
-/// and six products on screen. At 230 it draws four, and a 1600dp desktop five.
-const double _columnTarget = 230;
+/// 190dp, down from 230 and originally 260, with the ceiling now six columns.
+/// Every step spends the same currency: photograph size for how many products
+/// are on screen at once. A catalogue of two hundred articles is navigated by
+/// scanning, and scanning wants more cards per screen far more than it wants a
+/// bigger picture of a bag of flour. At 190 a 1280dp window draws five across
+/// where it drew three at the start.
+///
+/// The floor is the product name: below about 170dp French names ellipsize into
+/// uselessness, which is the thing this may not trade away.
+const double _columnTarget = 190;
 
 /// Below this width the grid drops to a single column.
 const double _singleColumn = 440;
 
 /// How tall the picture on a card is, for a column this wide.
 ///
-/// Three fifths of the column's width, which keeps the picture a little over
-/// half the card once [itemCardTextHeight] is added under it. Bounded at both
-/// ends: a single-column phone layout would otherwise draw a poster, and a
-/// five-column pane on a small tablet a postage stamp.
+/// Just under three fifths of the column's width, which keeps the picture a
+/// little over half the card once [itemCardTextHeight] is added under it.
+/// Bounded at both ends: a single-column phone layout would otherwise draw a
+/// poster, and a six-column pane on a small tablet a postage stamp.
 ///
-/// The ratio was three quarters and the ceiling 240, which is where most of a
-/// 376dp card came from. A product photograph is there to be recognised at a
-/// glance, not studied — 190dp is plenty for that, and the difference is a
-/// phone showing three cards instead of one.
+/// The ceiling came down from 190 to 136 with the same reasoning as
+/// [_columnTarget]: a photograph here is there to be recognised at a glance,
+/// not studied, and the ceiling only binds on a wide single-column phone card
+/// that would otherwise draw a poster. The floor of 100 is about where a plate
+/// of food stops being identifiable — and it is also what keeps the picture
+/// above the 45% of the card the tests pin, since the text block under it does
+/// not shrink with the column.
 double inventoryImageHeight(double cellWidth) =>
-    (cellWidth * 0.6).clamp(110, 190);
+    (cellWidth * 0.58).clamp(100, 136);
 
 /// Distinguishes "this store has nothing yet" from "your filters matched
 /// nothing". They need different words and a different button.

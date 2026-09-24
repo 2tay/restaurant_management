@@ -13,6 +13,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:stock_inventory/core/theme/app_spacing.dart';
 import 'package:stock_inventory/app/router.dart';
 import 'package:stock_inventory/app/routes.dart';
 import 'package:stock_inventory/core/utils/stock_status.dart';
@@ -123,12 +124,13 @@ void main() {
     test('one column on a phone, more as the window grows', () {
       expect(inventoryGridColumns(390), 1);
       expect(inventoryGridColumns(430), 1);
-      expect(inventoryGridColumns(640), 2);
-      expect(inventoryGridColumns(800), 3);
-      expect(inventoryGridColumns(1100), 4);
-      // Never a sixth column, however wide the window. Five is already a lot
-      // of photographs across a desktop.
-      expect(inventoryGridColumns(2400), 5);
+      expect(inventoryGridColumns(640), 3);
+      expect(inventoryGridColumns(800), 4);
+      expect(inventoryGridColumns(1100), 5);
+      // Never a seventh column, however wide the window. A catalogue is
+      // navigated by scanning, but past six across the names are the first
+      // thing to go, and the name is what is being scanned.
+      expect(inventoryGridColumns(2400), 6);
     });
 
     test('the picture stays about half the card at every column width', () {
@@ -145,19 +147,38 @@ void main() {
     });
 
     test('and is bounded at both ends', () {
-      expect(inventoryImageHeight(120), 110);
-      expect(inventoryImageHeight(900), 190);
+      expect(inventoryImageHeight(120), 100);
+      expect(inventoryImageHeight(900), 136);
     });
 
     test('a card is not taller than it needs to be', () {
-      // The regression this guards: the picture was three quarters of the
-      // column width with a 240dp ceiling and the text block was 140dp, which
-      // made a card 376dp tall — one and a half products on a phone, six on
-      // the 1280dp design baseline.
+      // The regression this guards, and how far it has come: the picture was
+      // three quarters of the column width with a 240dp ceiling and the text
+      // block was 140dp, which made a card 376dp tall — one and a half
+      // products on a phone, six on the 1280dp design baseline. It is now
+      // under 260 at every width, which is what makes a long catalogue
+      // navigable by scrolling rather than by searching.
       for (final cellWidth in [440.0, 300.0, 230.0]) {
         final tile = inventoryImageHeight(cellWidth) + itemCardTextHeight;
-        expect(tile, lessThan(320), reason: 'at a $cellWidth column');
+        expect(tile, lessThan(260), reason: 'at a $cellWidth column');
       }
+    });
+
+    test('a 1280dp window shows more than twice the products it used to', () {
+      // The design baseline, minus the sidebar and the page insets. Three
+      // cards across at 376dp tall was six products before a scroll; the
+      // assertion is about how many fit now, because that is the whole point
+      // of every number in this group.
+      const pane = 1280.0 - AppSizing.sidebarWidthExpanded - AppSpacing.xl * 2;
+      final columns = inventoryGridColumns(pane);
+      final cellWidth =
+          (pane - AppSpacing.sm * (columns - 1)) / columns;
+      final tile = inventoryImageHeight(cellWidth) + itemCardTextHeight;
+
+      expect(columns, 5);
+      // Three full rows in an 800dp window, where three cards across at 376dp
+      // tall managed one and the top of a second.
+      expect(tile, lessThan(240));
     });
   });
 
