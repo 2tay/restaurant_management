@@ -788,23 +788,8 @@ class _DaysTable extends StatelessWidget {
       onSelectChanged: (_) => onOpen(a),
       cells: [
         if (showEmployee)
-          DataCell(
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(employee == null ? '—' : employeeDisplayName(employee)),
-                if (employee != null)
-                  Text(
-                    l10n.employeePinLabel(employee.pin),
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        DataCell(Text(Formatters.date(a.date))),
+          DataCell(EmployeeCell(employee: employee)),
+        DataCell(Text(Formatters.dateShortWeekday(a.date))),
         DataCell(
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -830,7 +815,11 @@ class _DaysTable extends StatelessWidget {
         DataCell(NumericCell(Formatters.price(data.amount), emphasis: true)),
         DataCell(PaymentStatusBadge(status: a.paymentStatus)),
         DataCell(
-          Text(data.paidAt == null ? '—' : Formatters.date(data.paidAt!)),
+          Text(
+            data.paidAt == null
+              ? '—'
+              : Formatters.dateShortWeekday(data.paidAt!),
+          ),
         ),
         DataCell(
           IconButton(

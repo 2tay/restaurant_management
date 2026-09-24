@@ -129,6 +129,18 @@ abstract final class Formatters {
     return '$capitalized : ${_dateNoPad.format(value)}';
   }
 
+  static final DateFormat _weekdayShort = DateFormat('EEE', locale);
+
+  /// `Lun 22/10/2026` — the date column of every employee table. The
+  /// abbreviated weekday lets a manager scan a week without counting days.
+  static String dateShortWeekday(DateTime value) {
+    final weekday = _weekdayShort.format(value).replaceAll('.', '');
+    final capitalized = weekday.isEmpty
+        ? weekday
+        : weekday[0].toUpperCase() + weekday.substring(1);
+    return '$capitalized ${date(value)}';
+  }
+
   /// `14:32` — Belgium uses a 24-hour clock.
   static String time(DateTime value) => _time.format(value);
 

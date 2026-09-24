@@ -381,7 +381,6 @@ class _EmployeeTable extends StatelessWidget {
       minWidth: 960,
       columns: [
         DataColumn(label: Text(l10n.employeesColumnName)),
-        DataColumn(label: Text(l10n.employeeFormPin)),
         DataColumn(label: Text(l10n.employeesColumnRole)),
         DataColumn(label: Text(l10n.employeeFormPhone)),
         DataColumn(label: Text(l10n.employeeFormEmail)),
@@ -394,7 +393,6 @@ class _EmployeeTable extends StatelessWidget {
   }
 
   DataRow _row(BuildContext context, AppLocalizations l10n, Employee employee) {
-    final theme = Theme.of(context);
     final archived = !isEmployeeActive(employee);
 
     return DataRow(
@@ -413,34 +411,25 @@ class _EmployeeTable extends StatelessWidget {
       mouseCursor: const WidgetStatePropertyAll(SystemMouseCursors.basic),
       cells: [
         DataCell(
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              EmployeeAvatar(employee: employee, size: 32, dimmed: archived),
-              const SizedBox(width: AppSpacing.md),
-              Text(
-                employeeDisplayName(employee),
-                style: theme.textTheme.bodyMedium,
-              ),
-              if (archived) ...[
-                const SizedBox(width: AppSpacing.sm),
-                LabelChip(
-                  key: const ValueKey('employee-row-retired'),
-                  label: l10n.employeesArchivedPill,
-                  background: AppColors.outOfStock.container,
-                  foreground: AppColors.outOfStock.foreground,
-                  dense: true,
-                ),
-              ],
-            ],
+          EmployeeCell(
+            employee: employee,
+            dimmed: archived,
+            trailing: archived
+                ? LabelChip(
+                    key: const ValueKey('employee-row-retired'),
+                    label: l10n.employeesArchivedPill,
+                    background: AppColors.outOfStock.container,
+                    foreground: AppColors.outOfStock.foreground,
+                    dense: true,
+                  )
+                : null,
           ),
         ),
-        DataCell(Text(employee.pin)),
         DataCell(EmployeeRoleBadge(role: employee.role)),
         DataCell(Text(employee.phone)),
         DataCell(Text(employee.email)),
         DataCell(Text('${Formatters.price(employee.pay)} / h')),
-        DataCell(Text(Formatters.date(employee.hireDate))),
+        DataCell(Text(Formatters.dateShortWeekday(employee.hireDate))),
         DataCell(
           Row(
             mainAxisSize: MainAxisSize.min,

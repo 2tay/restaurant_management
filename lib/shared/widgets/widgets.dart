@@ -26,6 +26,7 @@ export 'date_field.dart';
 export 'detail_drawer.dart';
 export 'empty_state.dart';
 export 'employee_avatar.dart';
+export 'employee_cell.dart';
 export 'employee_role_badge.dart';
 export 'employee_selector.dart';
 export 'error_state.dart';

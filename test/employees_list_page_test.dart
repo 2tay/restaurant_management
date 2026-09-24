@@ -610,7 +610,8 @@ void main() {
     expect(find.byType(DataTable), findsNothing);
   });
 
-  testApp('the table: no Détail column, a hire-date column, rows are not '
+  testApp('the table: no Détail or PIN column, PIN under the name, a '
+      'weekday hire date, rows are not '
       'links', (tester) async {
     final db = await _open(tester);
     await _toList(tester);
@@ -621,13 +622,30 @@ void main() {
       for (final c in table.columns) (c.label as Text).data,
     ];
     expect(headers, isNot(contains('Détail')));
+    expect(headers, isNot(contains('PIN')));
     expect(headers[headers.length - 2], 'Embauché le');
     expect(
       find.descendant(
         of: find.byType(DataTable),
-        matching: find.text(Formatters.date(karim.hireDate)),
+        matching: find.text(Formatters.dateShortWeekday(karim.hireDate)),
       ),
       findsWidgets,
+    );
+    // The PIN sits under the name, bare — no "PIN" prefix.
+    final cell = find.ancestor(
+      of: find.text(_karim),
+      matching: find.byType(EmployeeCell),
+    );
+    expect(
+      find.descendant(of: cell, matching: find.text(karim.pin)),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byType(DataTable),
+        matching: find.textContaining('PIN '),
+      ),
+      findsNothing,
     );
     expect(
       find.descendant(

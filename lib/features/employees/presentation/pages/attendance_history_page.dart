@@ -610,30 +610,14 @@ class _HistoryTable extends StatelessWidget {
   }
 
   DataRow _row(BuildContext context, AppLocalizations l10n, Attendance a) {
-    final theme = Theme.of(context);
     final data = _attendanceRowData(a, employeesById, settings);
     final employee = data.employee;
 
     return DataRow(
       onSelectChanged: (_) => onOpen(a),
       cells: [
-        DataCell(Text(Formatters.date(a.date))),
-        DataCell(
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(employee == null ? '—' : employeeDisplayName(employee)),
-              if (employee != null)
-                Text(
-                  l10n.employeePinLabel(employee.pin),
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-            ],
-          ),
-        ),
+        DataCell(Text(Formatters.dateShortWeekday(a.date))),
+        DataCell(EmployeeCell(employee: employee)),
         DataCell(
           Text(data.worked == null ? '—' : Formatters.duration(data.worked!)),
         ),
