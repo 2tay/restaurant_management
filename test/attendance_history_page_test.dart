@@ -11,8 +11,11 @@ import 'package:stock_inventory/shared/widgets/widgets.dart';
 
 import 'support/app_harness.dart';
 
-Future<void> _open(WidgetTester tester) async {
-  await pumpApp(tester, size: const Size(1400, 900));
+Future<void> _open(
+  WidgetTester tester, {
+  Size size = const Size(1400, 900),
+}) async {
+  await pumpApp(tester, size: size);
   appRouter.go(Routes.toAttendanceHistory(StoreIds.sablon));
   await tester.pumpAndSettle();
 }
@@ -64,20 +67,33 @@ void main() {
     expect(find.byType(DetailDrawer), findsNothing);
   });
 
-  testApp('the filter strip: search bar left, période and statut at the right '
-      'edge, no field labels', (tester) async {
-    await _open(tester);
+  testApp('the filter strip: search bar left, début, fin and statut at the '
+      'right edge, no field labels', (tester) async {
+    // Wide: the test font draws every glyph a full em, so the pills are far
+    // wider here than in Montserrat — at 1400 they would (rightly) wrap.
+    await _open(tester, size: const Size(2000, 900));
 
     final strip = find.byType(FilterToolbar);
     expect(strip, findsOneWidget);
     final search = find.byKey(const ValueKey('employee-selector-search'));
-    final period = find.byType(DateRangeFilter);
+    final period = find.byKey(const ValueKey('date-filter-from'));
+    final end = find.byKey(const ValueKey('date-filter-to'));
     final status = find.descendant(
       of: strip,
       matching: find.byWidgetPredicate((w) => w is FilterMenu),
     );
-    expect(period, findsOneWidget);
+    expect(find.byType(DateFilter), findsNWidgets(2));
     expect(status, findsOneWidget);
+    // Two separate pills, each naming its end of the period.
+    expect(
+      find.descendant(of: period, matching: find.textContaining('Début : ')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: end, matching: find.textContaining('Fin : ')),
+      findsOneWidget,
+    );
+    expect(tester.getRect(period).right, lessThan(tester.getRect(end).left));
     // One line, search first, the status pill flush with the strip's end.
     expect(tester.getCenter(search).dy, closeTo(tester.getCenter(period).dy, 6));
     expect(tester.getRect(search).right, lessThan(tester.getRect(period).left));
@@ -85,6 +101,21 @@ void main() {
     // The old stacked labels are gone.
     expect(find.descendant(of: strip, matching: find.text('Du')), findsNothing);
     expect(find.descendant(of: strip, matching: find.text('Au')), findsNothing);
+    // The status menu is white and drops under its pill.
+    await tester.tap(status);
+    await tester.pumpAndSettle();
+    final menu = tester.widget<PopupMenuButton<int>>(
+      find.descendant(of: strip, matching: find.byType(PopupMenuButton<int>)),
+    );
+    expect(menu.color, Colors.white);
+    expect(menu.position, PopupMenuPosition.under);
+    final firstEntry = find.byType(PopupMenuItem<int>).first;
+    expect(
+      tester.getRect(firstEntry).top,
+      greaterThanOrEqualTo(tester.getRect(status).bottom),
+    );
+    await tester.tapAt(const Offset(5, 5));
+    await tester.pumpAndSettle();
     // Same look as the Personnel search: white, borderless at rest.
     final field = tester.widget<TextField>(search);
     expect(field.decoration?.fillColor, Colors.white);

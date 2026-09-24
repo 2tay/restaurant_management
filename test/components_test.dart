@@ -1015,29 +1015,18 @@ void main() {
     });
   });
 
-  group('DateRangeFilter', () {
+  group('DateFilter', () {
     setUpAll(() => initializeDateFormatting(Formatters.locale));
 
-    test('label: short start in the same year, full years otherwise', () {
-      expect(
-        DateRangeFilter.label(DateTime(2026, 9, 1), DateTime(2026, 9, 24)),
-        '01/09 – 24/09/2026',
-      );
-      expect(
-        DateRangeFilter.label(DateTime(2025, 12, 20), DateTime(2026, 1, 5)),
-        '20/12/2025 – 05/01/2026',
-      );
-    });
-
-    testWidgets('tinted only once the range is not the default', (
+    testWidgets('names its end of the period; tinted only off its default', (
       tester,
     ) async {
       Future<FilterPill> pill({required bool isDefault}) async {
         await tester.pumpWidget(
           _host(
-            DateRangeFilter(
-              from: DateTime(2026, 9, 1),
-              to: DateTime(2026, 9, 24),
+            DateFilter(
+              label: 'Début',
+              value: DateTime(2026, 9, 1),
               firstDate: DateTime(2000),
               lastDate: DateTime(2026, 12, 31),
               isDefault: isDefault,
@@ -1048,11 +1037,32 @@ void main() {
         return tester.widget<FilterPill>(find.byType(FilterPill));
       }
 
-      expect((await pill(isDefault: true)).selectedLabel, isNull);
+      final idle = await pill(isDefault: true);
+      expect(idle.label, 'Début : 01/09/2026');
+      expect(idle.selectedLabel, isNull);
       expect(
         (await pill(isDefault: false)).selectedLabel,
-        '01/09 – 24/09/2026',
+        'Début : 01/09/2026',
       );
+    });
+  });
+
+  group('WeekdayDate', () {
+    setUpAll(() => initializeDateFormatting(Formatters.locale));
+
+    testWidgets('reads "Mar 12/10/2024", the weekday a size smaller', (
+      tester,
+    ) async {
+      await tester.pumpWidget(_host(WeekdayDate(DateTime(2024, 10, 12))));
+      final text = tester.widget<Text>(find.byType(Text));
+      final spans = (text.textSpan! as TextSpan).children!.cast<TextSpan>();
+      expect(text.textSpan!.toPlainText(), 'Sam 12/10/2024');
+      expect(spans.first.text, 'Sam');
+      final base = DefaultTextStyle.of(
+        tester.element(find.byType(Text)),
+      ).style.fontSize!;
+      expect(spans.first.style!.fontSize, lessThan(base));
+      expect(spans.last.style, isNull);
     });
   });
 }

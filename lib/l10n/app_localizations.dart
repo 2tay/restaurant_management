@@ -4036,12 +4036,6 @@ abstract class AppLocalizations {
   /// **'Ajoutez les membres de votre personnel pour suivre leur pointage et leur paie.'**
   String get employeesEmptyBody;
 
-  /// Compact PIN label shown under an employee's name.
-  ///
-  /// In fr, this message translates to:
-  /// **'PIN {pin}'**
-  String employeePinLabel(String pin);
-
   /// Roster KPI: count of active employees.
   ///
   /// In fr, this message translates to:
@@ -4558,11 +4552,17 @@ abstract class AppLocalizations {
   /// **'Aucun pointage n\'a encore été enregistré dans cet établissement.'**
   String get attendanceHistoryEmptyBody;
 
-  /// Tooltip on the period (date range) filter pill of the history pages.
+  /// Start-date filter pill on the history pages (followed by the date).
   ///
   /// In fr, this message translates to:
-  /// **'Période'**
-  String get historyFilterPeriod;
+  /// **'Début'**
+  String get historyFilterFrom;
+
+  /// End-date filter pill on the history pages (followed by the date).
+  ///
+  /// In fr, this message translates to:
+  /// **'Fin'**
+  String get historyFilterTo;
 
   /// Active-filter chip showing the selected date range.
   ///

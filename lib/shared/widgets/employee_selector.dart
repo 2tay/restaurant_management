@@ -209,6 +209,8 @@ class _EmployeeSelectorState extends State<EmployeeSelector> {
                 groupId: this,
                 child: Material(
                   elevation: 8,
+                  color: AppColors.surface,
+                  surfaceTintColor: Colors.transparent,
                   borderRadius: AppRadius.mdAll,
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxHeight: 360),

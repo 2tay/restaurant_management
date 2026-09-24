@@ -101,8 +101,8 @@ void main() {
     // KPIs and the day table are shown straight away, aggregated over the store.
     expect(find.text('Jours payés'), findsOneWidget);
     expect(find.text('Jours non payés'), findsOneWidget);
-    // One période pill instead of a Du / Au pair, and no labels above.
-    expect(find.byType(DateRangeFilter), findsOneWidget);
+    // A Début and a Fin pill, and no labels above them.
+    expect(find.byType(DateFilter), findsNWidgets(2));
     expect(find.byType(DateField), findsNothing);
     expect(find.byType(FilterToolbar), findsOneWidget);
     expect(find.byType(PaymentStatusBadge), findsWidgets);
@@ -165,7 +165,7 @@ void main() {
 
       expect(tester.takeException(), isNull, reason: '$size');
       expect(find.text('Jours payés'), findsOneWidget, reason: '$size');
-      expect(find.byType(DateRangeFilter), findsOneWidget, reason: '$size');
+      expect(find.byType(DateFilter), findsNWidgets(2), reason: '$size');
     }
   });
 

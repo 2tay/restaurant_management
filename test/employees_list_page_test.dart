@@ -213,7 +213,9 @@ void main() {
         find.descendant(of: card, matching: find.text(text));
 
     expect(inCard('Amélie Vandenberghe'), findsOneWidget);
-    expect(inCard('PIN ${amelie.pin}'), findsOneWidget);
+    // The bare number — no "PIN" word before it.
+    expect(inCard(amelie.pin), findsOneWidget);
+    expect(inCard('PIN ${amelie.pin}'), findsNothing);
     expect(inCard('Actif'), findsOneWidget);
     expect(inCard('Gérant'), findsOneWidget); // the badge — no « Poste »
     expect(inCard('Poste'), findsNothing);

@@ -71,7 +71,7 @@ class EmployeeCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                     Text(
-                      l10n.employeePinLabel(employee.pin),
+                      employee.pin,
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: AppColors.textSecondary,
                       ),

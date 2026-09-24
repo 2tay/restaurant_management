@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import 'filter_pill.dart';
 
@@ -26,6 +27,12 @@ class FilterMenu<T> extends StatelessWidget {
   Widget build(BuildContext context) {
     return PopupMenuButton<int>(
       tooltip: label,
+      // White, and dropped straight under the pill rather than laid over it,
+      // like a select's list.
+      color: AppColors.surface,
+      surfaceTintColor: Colors.transparent,
+      position: PopupMenuPosition.under,
+      offset: const Offset(0, AppSpacing.xs),
       shape: const RoundedRectangleBorder(borderRadius: AppRadius.mdAll),
       onSelected: (index) => onSelected(entries.keys.elementAt(index)),
       itemBuilder: (context) => [

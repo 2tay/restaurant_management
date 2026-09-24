@@ -4,7 +4,6 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/utils/formatters.dart';
-import '../../l10n/app_localizations.dart';
 import 'filter_pill.dart';
 
 /// The control strip above an employee list — Personnel, Historique de
@@ -59,16 +58,15 @@ class FilterToolbar extends StatelessWidget {
   }
 }
 
-/// The period filter: one pill showing the range, which opens the range
-/// calendar. Replaces a pair of "Du" / "Au" fields — one control, and the
-/// picker keeps the start before the end by construction.
+/// One end of a period — "Début" or "Fin" — as a pill that opens the
+/// calendar. Two of these sit side by side in the [FilterToolbar]; with no
+/// label above them, the pill carries its own ("Début : 01/09/2026").
 ///
-/// Tinted like any other active [FilterPill] once the range is not
-/// [isDefault].
-class DateRangeFilter extends StatelessWidget {
-  const DateRangeFilter({
-    required this.from,
-    required this.to,
+/// Tinted like any other active [FilterPill] once [value] is not [isDefault].
+class DateFilter extends StatelessWidget {
+  const DateFilter({
+    required this.label,
+    required this.value,
     required this.firstDate,
     required this.lastDate,
     required this.isDefault,
@@ -76,44 +74,33 @@ class DateRangeFilter extends StatelessWidget {
     super.key,
   });
 
-  final DateTime from;
-  final DateTime to;
+  /// "Début" / "Fin".
+  final String label;
+  final DateTime value;
   final DateTime firstDate;
   final DateTime lastDate;
   final bool isDefault;
-  final ValueChanged<DateTimeRange> onChanged;
-
-  /// `01/09 – 24/09/2026`, or both years in full when they differ.
-  static String label(DateTime from, DateTime to) {
-    final start = from.year == to.year
-        ? Formatters.date(from).substring(0, 5)
-        : Formatters.date(from);
-    return '$start – ${Formatters.date(to)}';
-  }
+  final ValueChanged<DateTime> onChanged;
 
   @override
   Widget build(BuildContext context) {
-    final text = label(from, to);
-    return Tooltip(
-      message: AppLocalizations.of(context).historyFilterPeriod,
-      child: InkWell(
-        key: const ValueKey('date-range-filter'),
-        borderRadius: AppRadius.smAll,
-        onTap: () async {
-          final picked = await showDateRangePicker(
-            context: context,
-            initialDateRange: DateTimeRange(start: from, end: to),
-            firstDate: firstDate,
-            lastDate: lastDate,
-            locale: const Locale('fr', 'BE'),
-          );
-          if (picked != null) onChanged(picked);
-        },
-        child: FilterPill(
-          label: text,
-          selectedLabel: isDefault ? null : text,
-          icon: LucideIcons.calendar,
-        ),
+    final text = '$label : ${Formatters.date(value)}';
+    return InkWell(
+      borderRadius: AppRadius.smAll,
+      onTap: () async {
+        final picked = await showDatePicker(
+          context: context,
+          initialDate: value,
+          firstDate: firstDate,
+          lastDate: lastDate,
+          locale: const Locale('fr', 'BE'),
+        );
+        if (picked != null) onChanged(picked);
+      },
+      child: FilterPill(
+        label: text,
+        selectedLabel: isDefault ? null : text,
+        icon: LucideIcons.calendar,
       ),
     );
   }

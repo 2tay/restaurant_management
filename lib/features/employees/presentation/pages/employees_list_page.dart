@@ -398,7 +398,7 @@ class _EmployeeTable extends StatelessWidget {
         DataCell(Text(employee.phone)),
         DataCell(Text(employee.email)),
         DataCell(Text('${Formatters.price(employee.pay)} / h')),
-        DataCell(Text(Formatters.dateShortWeekday(employee.hireDate))),
+        DataCell(WeekdayDate(employee.hireDate)),
         DataCell(
           Row(
             mainAxisSize: MainAxisSize.min,

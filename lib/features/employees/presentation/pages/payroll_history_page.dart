@@ -203,11 +203,17 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
           to: _to,
           status: _statusFilter,
           floor: _pickerFloor(employees),
-          dateIsDefault: _dateRangeIsDefault,
+          defaultFrom: _defaultFrom,
+          defaultTo: _defaultTo,
           onEmployee: _onEmployeeChanged,
-          onRange: (r) => setState(() {
-            _from = _dayOnly(r.start);
-            _to = _dayOnly(r.end);
+          onFrom: (d) => setState(() {
+            _from = _dayOnly(d);
+            if (_to.isBefore(_from)) _to = _from;
+            _page = 0;
+          }),
+          onTo: (d) => setState(() {
+            _to = _dayOnly(d);
+            if (_from.isAfter(_to)) _from = _to;
             _page = 0;
           }),
           onStatus: (s) => setState(() {
@@ -389,7 +395,7 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
                       style: Theme.of(context).textTheme.titleSmall,
                     ),
                     Text(
-                      l10n.employeePinLabel(employee.pin),
+                      employee.pin,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: AppColors.textSecondary,
                       ),
@@ -588,7 +594,7 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
 
 // -----------------------------------------------------------------------------
 
-/// Search on the left, période and statut at the right edge — the same strip
+/// Search on the left, début, fin and statut at the right edge — the same strip
 /// as the Personnel page and the attendance history.
 class _Filters extends StatelessWidget {
   const _Filters({
@@ -598,9 +604,11 @@ class _Filters extends StatelessWidget {
     required this.to,
     required this.status,
     required this.floor,
-    required this.dateIsDefault,
+    required this.defaultFrom,
+    required this.defaultTo,
     required this.onEmployee,
-    required this.onRange,
+    required this.onFrom,
+    required this.onTo,
     required this.onStatus,
   });
 
@@ -610,9 +618,11 @@ class _Filters extends StatelessWidget {
   final DateTime to;
   final PaymentStatus? status;
   final DateTime floor;
-  final bool dateIsDefault;
+  final DateTime defaultFrom;
+  final DateTime defaultTo;
   final ValueChanged<Employee?> onEmployee;
-  final ValueChanged<DateTimeRange> onRange;
+  final ValueChanged<DateTime> onFrom;
+  final ValueChanged<DateTime> onTo;
   final ValueChanged<PaymentStatus?> onStatus;
 
   @override
@@ -629,13 +639,23 @@ class _Filters extends StatelessWidget {
         onChanged: onEmployee,
       ),
       filters: [
-        DateRangeFilter(
-          from: from,
-          to: to,
+        DateFilter(
+          key: const ValueKey('date-filter-from'),
+          label: l10n.historyFilterFrom,
+          value: from,
           firstDate: floor,
+          lastDate: to,
+          isDefault: from == defaultFrom,
+          onChanged: onFrom,
+        ),
+        DateFilter(
+          key: const ValueKey('date-filter-to'),
+          label: l10n.historyFilterTo,
+          value: to,
+          firstDate: from,
           lastDate: _dayOnly(DateTime.now()),
-          isDefault: dateIsDefault,
-          onChanged: onRange,
+          isDefault: to == defaultTo,
+          onChanged: onTo,
         ),
         FilterMenu<PaymentStatus?>(
           label: l10n.payrollFilterStatus,
@@ -760,7 +780,7 @@ class _DaysTable extends StatelessWidget {
       cells: [
         if (showEmployee)
           DataCell(EmployeeCell(employee: employee)),
-        DataCell(Text(Formatters.dateShortWeekday(a.date))),
+        DataCell(WeekdayDate(a.date)),
         DataCell(
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -786,11 +806,7 @@ class _DaysTable extends StatelessWidget {
         DataCell(NumericCell(Formatters.price(data.amount), emphasis: true)),
         DataCell(PaymentStatusBadge(status: a.paymentStatus)),
         DataCell(
-          Text(
-            data.paidAt == null
-              ? '—'
-              : Formatters.dateShortWeekday(data.paidAt!),
-          ),
+          data.paidAt == null ? const Text('—') : WeekdayDate(data.paidAt!),
         ),
       ],
     );
@@ -931,7 +947,7 @@ class _PayrollDayCard extends StatelessWidget {
                           ? Formatters.date(attendance.date)
                           : (employee == null
                                 ? '—'
-                                : l10n.employeePinLabel(employee.pin)),
+                                : employee.pin),
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: AppColors.textSecondary,
                       ),

@@ -2441,11 +2441,6 @@ class AppLocalizationsFr extends AppLocalizations {
       'Ajoutez les membres de votre personnel pour suivre leur pointage et leur paie.';
 
   @override
-  String employeePinLabel(String pin) {
-    return 'PIN $pin';
-  }
-
-  @override
   String get employeesKpiActive => 'Personnel actif';
 
   @override
@@ -2747,7 +2742,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'Aucun pointage n\'a encore été enregistré dans cet établissement.';
 
   @override
-  String get historyFilterPeriod => 'Période';
+  String get historyFilterFrom => 'Début';
+
+  @override
+  String get historyFilterTo => 'Fin';
 
   @override
   String attendanceFilterDateRange(String from, String to) {
