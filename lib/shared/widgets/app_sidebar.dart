@@ -98,10 +98,7 @@ class _AppSidebarState extends ConsumerState<AppSidebar> {
       width: collapsed
           ? AppSizing.sidebarWidthCollapsed
           : AppSizing.sidebarWidthExpanded,
-      decoration: const BoxDecoration(
-        color: AppColors.white,
-        border: Border(right: BorderSide(color: AppColors.border)),
-      ),
+      color: AppColors.white,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
