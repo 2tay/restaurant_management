@@ -16,6 +16,7 @@ export 'app_snackbar.dart';
 export 'app_text_field.dart';
 export 'async_content.dart';
 export 'attendance_alerts.dart';
+export 'attendance_day_detail.dart';
 export 'attendance_row.dart';
 export 'attendance_status_badge.dart';
 export 'attendance_timeline.dart';

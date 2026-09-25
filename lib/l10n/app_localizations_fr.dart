@@ -2693,11 +2693,6 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String timeclockPauseOverrun(String start, String duration) {
-    return 'Pause de $start dépassée de $duration';
-  }
-
-  @override
   String get timeclockLogArrival => 'Arrivée';
 
   @override
@@ -2798,13 +2793,21 @@ class AppLocalizationsFr extends AppLocalizations {
   String get attendanceColumnStatus => 'Statut';
 
   @override
+  String get attendanceDaySummary => 'Résumé de la journée';
+
+  @override
+  String get attendanceTotalWorked => 'Durée totale travaillée';
+
+  @override
+  String attendancePausesCount(int count) {
+    return 'Pauses ($count)';
+  }
+
+  @override
   String get attendanceColumnFlags => 'Alertes';
 
   @override
   String get attendanceViewDetail => 'Voir le détail';
-
-  @override
-  String get attendanceDetailTitle => 'Détail du pointage';
 
   @override
   String get attendanceColumnSchedule => 'Horaires';
@@ -2818,14 +2821,6 @@ class AppLocalizationsFr extends AppLocalizations {
       one: '1 pause · $duration',
     );
     return '$_temp0';
-  }
-
-  @override
-  String get attendanceDetailTimeline => 'Chronologie';
-
-  @override
-  String attendanceDetailPauseCount(int count) {
-    return 'Pause($count)';
   }
 
   @override

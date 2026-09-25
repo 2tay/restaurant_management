@@ -1110,8 +1110,8 @@ void main() {
       expect(find.textContaining('dépassée'), findsNothing);
     });
 
-    testWidgets('two sessions: a numbered heading each, and a pause alert '
-        'only under the session that ran over', (tester) async {
+    testWidgets('two sessions: a centred Session N° each, no rules, no '
+        'alert lines under them', (tester) async {
       await pump(
         tester,
         day([
@@ -1135,17 +1135,131 @@ void main() {
       final second = find.text('Session N° 2');
       expect(first, findsOneWidget);
       expect(second, findsOneWidget);
-      final alert = find.text('Pause de 13:15 dépassée de 15 min');
-      expect(alert, findsOneWidget);
-      expect(find.textContaining('dépassée'), findsOneWidget);
-      // Order: heading 1, its events and alert, then heading 2, 18:00…
-      final alertY = tester.getTopLeft(alert).dy;
-      expect(alertY, greaterThan(tester.getTopLeft(first).dy));
-      expect(alertY, lessThan(tester.getTopLeft(second).dy));
+      // Centred in the 400dp column, with no hairline either side.
+      expect(tester.getCenter(first).dx, closeTo(tester.getCenter(find.byType(AttendanceSessions)).dx, 1));
+      expect(
+        find.descendant(
+          of: find.byType(AttendanceSessions),
+          matching: find.byWidgetPredicate(
+            (w) => w is Container && w.constraints?.maxHeight == 1,
+          ),
+        ),
+        findsNothing,
+      );
+      // The overrun is the drawer's Alertes section's business now.
+      expect(find.textContaining('dépassée'), findsNothing);
       expect(
         tester.getTopLeft(find.text('18:00')).dy,
         greaterThan(tester.getTopLeft(second).dy),
       );
+    });
+  });
+
+  group('AttendanceDayDetail', () {
+    DateTime at(int h, int m) => DateTime(2026, 10, 24, h, m);
+    final amelie = Employee(
+      id: 'e',
+      storeId: 's',
+      firstName: 'Amélie',
+      lastName: 'Laurent',
+      pin: '4821',
+      phone: '0',
+      email: 'a@x.c',
+      hireDate: DateTime(2026),
+      role: EmployeeRole.staff,
+      pay: 2000,
+      createdAt: DateTime(2026),
+    );
+    Attendance day({bool overrun = false}) => Attendance(
+      id: 'a',
+      storeId: 's',
+      employeeId: 'e',
+      date: DateTime(2026, 10, 24),
+      status: AttendanceStatus.done,
+      sessions: [
+        AttendanceSession(
+          clockInAt: at(8, 0),
+          clockOutAt: at(12, 0),
+          pauses: [
+            AttendancePause(
+              startAt: at(10, 0),
+              endAt: overrun ? at(10, 45) : at(10, 20),
+            ),
+          ],
+        ),
+        AttendanceSession(clockInAt: at(14, 0), clockOutAt: at(18, 0)),
+      ],
+      paymentStatus: PaymentStatus.unpaid,
+    );
+
+    Future<void> pump(
+      WidgetTester tester,
+      Attendance entry, {
+      bool showPin = true,
+    }) async {
+      await initializeDateFormatting(Formatters.locale);
+      await tester.pumpWidget(
+        _host(
+          SizedBox(
+            width: 400,
+            child: SingleChildScrollView(
+              child: AttendanceDayDetail(
+                entry: entry,
+                employee: amelie,
+                maxBreakMinutes: 30,
+                showPin: showPin,
+                now: DateTime(2026, 10, 30),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    testWidgets('identity, day, sessions, summary, alerts — in that order', (
+      tester,
+    ) async {
+      await pump(tester, day(overrun: true));
+      final name = find.text('Amélie Laurent');
+      final pin = find.text('4821');
+      final date = find.text('Samedi 24/10/2026');
+      final session = find.text('Session N° 1');
+      final summary = find.text('Résumé de la journée');
+      final alerts = find.text('Alertes');
+      for (final f in [name, pin, date, session, summary, alerts]) {
+        expect(f, findsOneWidget);
+      }
+      expect(find.text('PIN'), findsNothing);
+      expect(find.byType(AttendanceStatusBadge), findsOneWidget);
+      double y(Finder f) => tester.getTopLeft(f).dy;
+      expect(y(pin), greaterThan(y(name)));
+      expect(y(date), greaterThan(y(pin)));
+      expect(y(session), greaterThan(y(date)));
+      expect(y(summary), greaterThan(y(find.text('18:00'))));
+      expect(y(alerts), greaterThan(y(summary)));
+      // 4 h + 4 h, minus the 45-min break; one break.
+      expect(
+        tester
+            .widget<Text>(find.byKey(const ValueKey('attendance-day-worked')))
+            .textSpan!
+            .toPlainText(),
+        'Durée totale travaillée : 7 h 15',
+      );
+      expect(find.textContaining('Pauses (1) : 45 min'), findsOneWidget);
+      expect(find.text('Pause dépassée de 15 min'), findsOneWidget);
+    });
+
+    testWidgets('no alert: no Alertes section at all', (tester) async {
+      await pump(tester, day());
+      expect(find.text('Alertes'), findsNothing);
+      expect(find.byKey(const ValueKey('attendance-day-alerts')), findsNothing);
+      expect(find.text('Résumé de la journée'), findsOneWidget);
+    });
+
+    testWidgets('showPin false: the name alone', (tester) async {
+      await pump(tester, day(), showPin: false);
+      expect(find.text('Amélie Laurent'), findsOneWidget);
+      expect(find.text('4821'), findsNothing);
     });
   });
 

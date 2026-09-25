@@ -58,9 +58,28 @@ void main() {
     expect(tester.takeException(), isNull);
 
     expect(find.byType(DetailDrawer), findsOneWidget);
-    expect(find.text('Détail du pointage'), findsOneWidget);
-    expect(find.text('Chronologie'), findsOneWidget);
+    // A bare panel: no title, no rule under it, no Chronologie heading —
+    // the day detail (identity, date, sessions, summary) is the content.
+    final drawer = find.byType(DetailDrawer);
+    expect(find.text('Détail du pointage'), findsNothing);
+    expect(find.text('Chronologie'), findsNothing);
+    expect(
+      find.descendant(of: drawer, matching: find.byType(Divider)),
+      findsNothing,
+    );
+    expect(find.byType(AttendanceDayDetail), findsOneWidget);
     expect(find.byType(AttendanceSessions), findsOneWidget);
+    expect(
+      find.descendant(
+        of: drawer,
+        matching: find.byKey(const ValueKey('attendance-day-date')),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: drawer, matching: find.text('Résumé de la journée')),
+      findsOneWidget,
+    );
 
     await tester.tap(find.byTooltip('Fermer'));
     await tester.pumpAndSettle();

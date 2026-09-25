@@ -129,6 +129,15 @@ abstract final class Formatters {
     return '$capitalized : ${_dateNoPad.format(value)}';
   }
 
+  /// `Jeudi 24/12/2026` — the day line of the pointage drawers.
+  static String dateLongWeekday(DateTime value) {
+    final weekday = _weekday.format(value);
+    final capitalized = weekday.isEmpty
+        ? weekday
+        : weekday[0].toUpperCase() + weekday.substring(1);
+    return '$capitalized ${date(value)}';
+  }
+
   static final DateFormat _weekdayShort = DateFormat('EEE', locale);
 
   /// `Lun` — capitalised, no abbreviation dot.

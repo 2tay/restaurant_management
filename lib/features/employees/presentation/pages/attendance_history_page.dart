@@ -238,7 +238,6 @@ class _AttendanceHistoryPageState extends ConsumerState<AttendanceHistoryPage> {
           LayoutBuilder(
             builder: (context, constraints) {
               void onOpen(Attendance a) => _openDrawer(
-                l10n,
                 a,
                 employeesById[a.employeeId],
                 settings,
@@ -275,104 +274,26 @@ class _AttendanceHistoryPageState extends ConsumerState<AttendanceHistoryPage> {
     );
   }
 
+  /// Bare panel: the day itself is the heading — see [AttendanceDayDetail].
   Future<void> _openDrawer(
-    AppLocalizations l10n,
     Attendance a,
     Employee? employee,
     StoreSettings settings,
   ) {
-    final maxBreak = resolvedMaxBreakMinutes(
-      a,
-      fallback: settings.maxBreakMinutes,
-    );
-    final worked = workedDuration(a);
-
     return DetailDrawer.show(
       context,
-      title: l10n.attendanceDetailTitle,
       children: [
-        Row(
-          children: [
-            const Icon(
-              LucideIcons.calendar,
-              size: AppSizing.iconSm,
-              color: AppColors.textSecondary,
-            ),
-            const SizedBox(width: AppSpacing.xs),
-            Text(
-              Formatters.dateWithWeekday(a.date),
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
-            ),
-          ],
-        ),
-        const SizedBox(height: AppSpacing.xl),
-        if (employee != null) ...[
-          Row(
-            children: [
-              EmployeeAvatar(employee: employee),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      employeeDisplayName(employee),
-                      style: Theme.of(context).textTheme.titleSmall,
-                    ),
-                    Text(
-                      employee.pin,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: AppSpacing.md),
-              AttendanceStatusBadge(status: a.status),
-            ],
+        AttendanceDayDetail(
+          entry: a,
+          employee: employee,
+          maxBreakMinutes: resolvedMaxBreakMinutes(
+            a,
+            fallback: settings.maxBreakMinutes,
           ),
-        ] else ...[
-          Align(
-            alignment: Alignment.centerRight,
-            child: AttendanceStatusBadge(status: a.status),
-          ),
-        ],
-        const SizedBox(height: AppSpacing.xxxl),
-        _drawerSectionTitle(LucideIcons.triangleAlert, l10n.attendanceColumnFlags),
-        const SizedBox(height: AppSpacing.md),
-        AttendanceAlerts(entry: a, maxBreakMinutes: maxBreak, detailed: true),
-        const SizedBox(height: AppSpacing.xxxl),
-        _drawerSectionTitle(LucideIcons.clock, l10n.attendanceDetailTimeline),
-        const SizedBox(height: AppSpacing.md),
-        AttendanceSessions(entry: a, maxBreakMinutes: maxBreak),
-        const SizedBox(height: AppSpacing.xxxl),
-        Divider(height: 1, color: AppColors.border.withValues(alpha: 0.5)),
-        const SizedBox(height: AppSpacing.lg),
-        DrawerRow(
-          label: l10n.attendanceColumnWorked,
-          value: worked == null ? '—' : Formatters.duration(worked),
-        ),
-        const SizedBox(height: AppSpacing.xs),
-        DrawerRow(
-          label: l10n.attendanceDetailPauseCount(totalPauseCount(a)),
-          value: Formatters.duration(totalBreak(a)),
         ),
       ],
     );
   }
-
-  /// A drawer section title matching the drawer header's own text style —
-  /// bigger than the shared [SectionHeader], with a leading icon.
-  Widget _drawerSectionTitle(IconData icon, String title) => Row(
-    children: [
-      Icon(icon, size: AppSizing.iconSm, color: AppColors.textSecondary),
-      const SizedBox(width: AppSpacing.xs),
-      Text(title, style: Theme.of(context).textTheme.titleMedium),
-    ],
-  );
 
   bool get _dateRangeIsDefault => _from == _defaultFrom && _to == _defaultTo;
 

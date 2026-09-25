@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
@@ -12,9 +11,9 @@ import '../../models/models.dart';
 /// de pointage and historique).
 ///
 /// One session reads as a plain timeline — no "Session" heading for a day
-/// that only has the one. Two or more each get a `Session N° x` divider. Under
-/// each session, a line per break that ran past the allowance; nothing at all
-/// when every break was within it.
+/// that only has the one. Two or more each get a centred `Session N° x`. The
+/// day's alerts (a break over the allowance) live in the drawer's own Alertes
+/// section, not under the sessions; a late Reprise dot still turns amber.
 class AttendanceSessions extends StatelessWidget {
   const AttendanceSessions({
     required this.entry,
@@ -31,40 +30,26 @@ class AttendanceSessions extends StatelessWidget {
     final sessions = entry.sessions;
     if (sessions.isEmpty) return const SizedBox.shrink();
 
-    Widget block(AttendanceSession session) => Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _EventRail(sessions: [session], maxBreakMinutes: maxBreakMinutes),
-        for (final pause in session.pauses)
-          if (breakOverrun(pause, maxBreakMinutes) > Duration.zero)
-            _PauseAlert(
-              text: l10n.timeclockPauseOverrun(
-                Formatters.time(pause.startAt),
-                Formatters.duration(breakOverrun(pause, maxBreakMinutes)),
-              ),
-            ),
-      ],
-    );
-
-    if (sessions.length == 1) return block(sessions.single);
+    if (sessions.length == 1) {
+      return _EventRail(sessions: sessions, maxBreakMinutes: maxBreakMinutes);
+    }
 
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
         for (var i = 0; i < sessions.length; i++) ...[
           if (i > 0) const SizedBox(height: AppSpacing.lg),
           _SessionHeading(label: l10n.timeclockSessionTitle(i + 1)),
           const SizedBox(height: AppSpacing.md),
-          block(sessions[i]),
+          _EventRail(sessions: [sessions[i]], maxBreakMinutes: maxBreakMinutes),
         ],
       ],
     );
   }
 }
 
-/// `──── Session N° 1 ────`
+/// `Session N° 1`, centred — no rules around it.
 class _SessionHeading extends StatelessWidget {
   const _SessionHeading({required this.label});
 
@@ -72,60 +57,12 @@ class _SessionHeading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final line = Expanded(
-      child: Container(height: 1, color: AppColors.border),
-    );
-    return Row(
-      children: [
-        line,
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-          child: Text(
-            label,
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: AppColors.textSecondary,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ),
-        line,
-      ],
-    );
-  }
-}
-
-class _PauseAlert extends StatelessWidget {
-  const _PauseAlert({required this.text});
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(top: AppSpacing.sm),
-      padding: const EdgeInsets.all(AppSpacing.sm),
-      decoration: BoxDecoration(
-        color: AppColors.lowStock.foreground.withValues(alpha: 0.1),
-        borderRadius: AppRadius.smAll,
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(
-            LucideIcons.triangleAlert,
-            size: AppSizing.iconSm,
-            color: AppColors.lowStock.foreground,
-          ),
-          const SizedBox(width: AppSpacing.xs),
-          Expanded(
-            child: Text(
-              text,
-              style: Theme.of(
-                context,
-              ).textTheme.bodySmall?.copyWith(color: AppColors.textPrimary),
-            ),
-          ),
-        ],
+    return Text(
+      label,
+      textAlign: TextAlign.center,
+      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+        color: AppColors.textSecondary,
+        fontWeight: FontWeight.w500,
       ),
     );
   }

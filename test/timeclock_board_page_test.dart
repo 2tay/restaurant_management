@@ -236,12 +236,8 @@ void main() {
     final second = inDrawer(find.text('Session N° 2'));
     expect(first, findsOneWidget);
     expect(second, findsOneWidget);
-    final alert = inDrawer(find.textContaining('Pause de 09:00 dépassée'));
-    expect(alert, findsOneWidget);
-    expect(
-      tester.getTopLeft(alert).dy,
-      lessThan(tester.getTopLeft(second).dy),
-    );
+    // The overrun no longer sits under its session.
+    expect(inDrawer(find.textContaining('Pause de 09:00 dépassée')), findsNothing);
     expect(
       tester.getTopLeft(inDrawer(find.text('18:00'))).dy,
       greaterThan(tester.getTopLeft(second).dy),

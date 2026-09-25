@@ -12,6 +12,10 @@ import 'adaptive_row.dart';
 ///
 /// ~440px on a desktop, near full-width below 600. Dismissed by the close
 /// button, the scrim, or Échap.
+///
+/// With neither [title] nor [header] the panel is bare: the close button
+/// alone at the top right, no rule under it — the content is its own heading
+/// (the pointage drawers).
 class DetailDrawer extends StatelessWidget {
   const DetailDrawer({
     required this.children,
@@ -19,9 +23,10 @@ class DetailDrawer extends StatelessWidget {
     this.header,
     this.dashedRule = false,
     super.key,
-  }) : assert(title != null || header != null);
+  });
 
-  /// The panel's heading. Null when [header] takes its place.
+  /// The panel's heading. Null when [header] takes its place, or for a bare
+  /// panel.
   final String? title;
   final List<Widget> children;
 
@@ -71,6 +76,7 @@ class DetailDrawer extends StatelessWidget {
     final panelWidth = screenWidth < AppBreakpoints.compact
         ? screenWidth
         : 440.0;
+    final bare = title == null && header == null;
 
     return Align(
       alignment: Alignment.centerRight,
@@ -85,11 +91,11 @@ class DetailDrawer extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(
+                  padding: EdgeInsets.fromLTRB(
                     AppSpacing.xl,
-                    AppSpacing.md,
+                    bare ? AppSpacing.sm : AppSpacing.md,
                     AppSpacing.sm,
-                    AppSpacing.md,
+                    bare ? 0 : AppSpacing.md,
                   ),
                   child: Row(
                     children: [
@@ -114,7 +120,9 @@ class DetailDrawer extends StatelessWidget {
                     ],
                   ),
                 ),
-                if (dashedRule)
+                if (bare)
+                  const SizedBox.shrink()
+                else if (dashedRule)
                   const _DashedRule()
                 else
                   Divider(
@@ -123,7 +131,14 @@ class DetailDrawer extends StatelessWidget {
                   ),
                 Expanded(
                   child: ListView(
-                    padding: const EdgeInsets.all(AppSpacing.xl),
+                    padding: bare
+                        ? const EdgeInsets.fromLTRB(
+                            AppSpacing.xl,
+                            0,
+                            AppSpacing.xl,
+                            AppSpacing.xl,
+                          )
+                        : const EdgeInsets.all(AppSpacing.xl),
                     children: children,
                   ),
                 ),

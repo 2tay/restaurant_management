@@ -4486,12 +4486,6 @@ abstract class AppLocalizations {
   /// **'Session N° {number}'**
   String timeclockSessionTitle(int number);
 
-  /// Alert under a session for a break that ran past the allowance.
-  ///
-  /// In fr, this message translates to:
-  /// **'Pause de {start} dépassée de {duration}'**
-  String timeclockPauseOverrun(String start, String duration);
-
   /// Timestamp log label — clock-in.
   ///
   /// In fr, this message translates to:
@@ -4660,6 +4654,24 @@ abstract class AppLocalizations {
   /// **'Statut'**
   String get attendanceColumnStatus;
 
+  /// Heading of the day's totals in the pointage drawers.
+  ///
+  /// In fr, this message translates to:
+  /// **'Résumé de la journée'**
+  String get attendanceDaySummary;
+
+  /// Label of the day's worked time in the pointage drawers.
+  ///
+  /// In fr, this message translates to:
+  /// **'Durée totale travaillée'**
+  String get attendanceTotalWorked;
+
+  /// Label of the day's total break time, with the number of breaks.
+  ///
+  /// In fr, this message translates to:
+  /// **'Pauses ({count})'**
+  String attendancePausesCount(int count);
+
   /// History table column — late / break-overrun icons.
   ///
   /// In fr, this message translates to:
@@ -4672,12 +4684,6 @@ abstract class AppLocalizations {
   /// **'Voir le détail'**
   String get attendanceViewDetail;
 
-  /// Heading of the attendance detail side panel.
-  ///
-  /// In fr, this message translates to:
-  /// **'Détail du pointage'**
-  String get attendanceDetailTitle;
-
   /// History table column — arrival → departure, grouped.
   ///
   /// In fr, this message translates to:
@@ -4689,18 +4695,6 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'{count, plural, =1{1 pause · {duration}} other{{count} pauses · {duration}}}'**
   String attendanceBreakSummary(int count, String duration);
-
-  /// Drawer section header for the event timeline.
-  ///
-  /// In fr, this message translates to:
-  /// **'Chronologie'**
-  String get attendanceDetailTimeline;
-
-  /// Drawer summary row label — break count, paired with the total break duration as its value.
-  ///
-  /// In fr, this message translates to:
-  /// **'Pause({count})'**
-  String attendanceDetailPauseCount(int count);
 
   /// Compact break-duration label on the mobile/tablet attendance card.
   ///
