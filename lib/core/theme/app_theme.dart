@@ -153,7 +153,7 @@ abstract final class AppTheme {
         shape: const Border(bottom: BorderSide(color: AppColors.border)),
       ),
 
-      // The navigation sidebar draws its own steel chrome — see
+      // The navigation sidebar draws its own white chrome — see
       // `app_sidebar.dart`. It is a plain widget, not a `NavigationRail`, so
       // there is no rail theme to set here.
 

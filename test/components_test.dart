@@ -1448,4 +1448,46 @@ void main() {
     expect(box.boxShadow, isNotEmpty);
     expect(theme.textStyle!.color, AppColors.primary600);
   });
+
+  testWidgets('sidebar row: the active page on the hourly-rate tile wash, '
+      'green text; the others grey on white', (tester) async {
+    await tester.pumpWidget(
+      _host(
+        const SizedBox(
+          width: 260,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SidebarNavTile(
+                icon: LucideIcons.store,
+                label: 'Actif',
+                active: true,
+                collapsed: false,
+                onTap: _noop,
+              ),
+              SidebarNavTile(
+                icon: LucideIcons.store,
+                label: 'Autre',
+                active: false,
+                collapsed: false,
+                onTap: _noop,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    Material fill(String label) => tester.widget<Material>(
+      find
+          .ancestor(of: find.text(label), matching: find.byType(Material))
+          .first,
+    );
+    Color? ink(String label) => tester.widget<Text>(find.text(label)).style?.color;
+    expect(fill('Actif').color, AppColors.primary600.withValues(alpha: 0.08));
+    expect(ink('Actif'), AppColors.primary600);
+    expect(fill('Autre').color, Colors.transparent);
+    expect(ink('Autre'), AppColors.textSecondary);
+  });
 }
+
+void _noop() {}
