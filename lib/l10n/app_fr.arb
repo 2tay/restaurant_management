@@ -1746,6 +1746,8 @@
   "@attendanceColumnWorked": {"description": "History table column — worked duration."},
   "attendanceColumnStatus": "Statut",
   "@attendanceColumnStatus": {"description": "History table column — the day's status."},
+  "attendanceDayIntro": "Les pointages de la journée, session par session, puis le temps travaillé, les pauses et les alertes éventuelles.",
+  "@attendanceDayIntro": {"description": "Line under the date in the pointage drawers, saying what the rest of the drawer shows."},
   "attendanceDaySummary": "Résumé de la journée : le temps travaillé et les pauses prises.",
   "@attendanceDaySummary": {"description": "Short line introducing the day's totals table in the pointage drawers."},
   "attendanceTotalWorked": "Durée totale travaillée",

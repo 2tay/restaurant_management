@@ -11,9 +11,9 @@ import '../../models/models.dart';
 /// de pointage and historique).
 ///
 /// One session reads as a plain timeline — no "Session" heading for a day
-/// that only has the one. Two or more each get a centred `- - Session N° x - -`
-/// between short dashes, with room between sessions. A short dashed stroke
-/// closes the list. The day's alerts (a break over the allowance) live in the
+/// that only has the one. Two or more each get a centred `Session N° x` on a
+/// full-width dashed rule, with room between sessions. A full-width dashed
+/// rule closes the list. The day's alerts (a break over the allowance) live in the
 /// drawer's own Alertes section; a late Reprise dot still turns amber.
 class AttendanceSessions extends StatelessWidget {
   const AttendanceSessions({
@@ -45,18 +45,13 @@ class AttendanceSessions extends StatelessWidget {
           _EventRail(sessions: [sessions[i]], maxBreakMinutes: maxBreakMinutes),
         ],
         const SizedBox(height: AppSpacing.xl),
-        const Center(
-          child: _DashStroke(
-            key: ValueKey('attendance-sessions-end'),
-            width: 96,
-          ),
-        ),
+        const _DashStroke(key: ValueKey('attendance-sessions-end')),
       ],
     );
   }
 }
 
-/// `- - - Session N° 1 - - -`, centred.
+/// `- - - - Session N° 1 - - - -`, the dashes running to both edges.
 class _SessionHeading extends StatelessWidget {
   const _SessionHeading({required this.label});
 
@@ -67,7 +62,7 @@ class _SessionHeading extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const _DashStroke(width: 32),
+        const Expanded(child: _DashStroke()),
         const SizedBox(width: AppSpacing.sm),
         Text(
           label,
@@ -77,23 +72,21 @@ class _SessionHeading extends StatelessWidget {
           ),
         ),
         const SizedBox(width: AppSpacing.sm),
-        const _DashStroke(width: 32),
+        const Expanded(child: _DashStroke()),
       ],
     );
   }
 }
 
-/// A short 1dp dashed stroke.
+/// A 1dp dashed stroke, as wide as its parent allows.
 class _DashStroke extends StatelessWidget {
-  const _DashStroke({required this.width, super.key});
-
-  final double width;
+  const _DashStroke({super.key});
 
   @override
-  Widget build(BuildContext context) => SizedBox(
-    width: width,
+  Widget build(BuildContext context) => const SizedBox(
+    width: double.infinity,
     height: 1,
-    child: const CustomPaint(painter: _DashPainter(AppColors.borderStrong)),
+    child: CustomPaint(painter: _DashPainter(AppColors.borderStrong)),
   );
 }
 

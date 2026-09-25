@@ -18,7 +18,7 @@ import 'employee_avatar.dart';
 ///
 /// 1. who (avatar, name, the bare PIN when [showPin]) with the day's status;
 /// 2. the day ([date], or whatever [dateLine] puts in its place — the board's
-///    ticking date and time);
+///    ticking date and time), and a line saying what the rest shows;
 /// 3. the sessions, untitled;
 /// 4. a line introducing the day's summary, then a two-by-two table — time
 ///    worked, and the breaks;
@@ -91,6 +91,14 @@ class AttendanceDayDetail extends StatelessWidget {
         ),
         const SizedBox(height: AppSpacing.xl),
         dateLine ?? AttendanceDayDate(date: entry.date),
+        const SizedBox(height: AppSpacing.xs),
+        Text(
+          l10n.attendanceDayIntro,
+          key: const ValueKey('attendance-day-intro'),
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: AppColors.textSecondary,
+          ),
+        ),
         const SizedBox(height: AppSpacing.xxl),
         AttendanceSessions(entry: entry, maxBreakMinutes: maxBreakMinutes),
         const SizedBox(height: AppSpacing.xxl),

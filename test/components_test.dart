@@ -1146,16 +1146,20 @@ void main() {
         ),
         findsNothing,
       );
-      // Short dashes either side of each label, and one closing the list,
-      // under the last event.
+      // Dashes either side of each label, out to both edges, and a
+      // full-width one closing the list, under the last event.
+      final column = tester.getRect(find.byType(AttendanceSessions));
       final heading = find.ancestor(of: first, matching: find.byType(Row)).first;
-      expect(
-        find.descendant(of: heading, matching: find.byType(CustomPaint)),
-        findsNWidgets(2),
+      final dashes = find.descendant(
+        of: heading,
+        matching: find.byType(CustomPaint),
       );
+      expect(dashes, findsNWidgets(2));
+      expect(tester.getRect(dashes.first).left, closeTo(column.left, 0.5));
+      expect(tester.getRect(dashes.last).right, closeTo(column.right, 0.5));
       final end = find.byKey(const ValueKey('attendance-sessions-end'));
       expect(end, findsOneWidget);
-      expect(tester.getSize(end).width, lessThan(120));
+      expect(tester.getSize(end).width, closeTo(column.width, 0.5));
       expect(
         tester.getTopLeft(end).dy,
         greaterThan(tester.getTopLeft(find.text('23:00')).dy),
@@ -1254,7 +1258,11 @@ void main() {
       double y(Finder f) => tester.getTopLeft(f).dy;
       expect(y(pin), greaterThan(y(name)));
       expect(y(date), greaterThan(y(pin)));
-      expect(y(session), greaterThan(y(date)));
+      // A line under the date saying what follows.
+      final intro = find.textContaining('Les pointages de la journée');
+      expect(intro, findsOneWidget);
+      expect(y(intro), greaterThan(y(date)));
+      expect(y(session), greaterThan(y(intro)));
       expect(y(summary), greaterThan(y(find.text('18:00'))));
       expect(y(alerts), greaterThan(y(summary)));
       // 4 h + 4 h, minus the 45-min break; one break.

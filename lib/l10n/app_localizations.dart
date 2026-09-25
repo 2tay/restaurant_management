@@ -4648,6 +4648,12 @@ abstract class AppLocalizations {
   /// **'Statut'**
   String get attendanceColumnStatus;
 
+  /// Line under the date in the pointage drawers, saying what the rest of the drawer shows.
+  ///
+  /// In fr, this message translates to:
+  /// **'Les pointages de la journée, session par session, puis le temps travaillé, les pauses et les alertes éventuelles.'**
+  String get attendanceDayIntro;
+
   /// Short line introducing the day's totals table in the pointage drawers.
   ///
   /// In fr, this message translates to:

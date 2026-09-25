@@ -2792,6 +2792,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String get attendanceColumnStatus => 'Statut';
 
   @override
+  String get attendanceDayIntro =>
+      'Les pointages de la journée, session par session, puis le temps travaillé, les pauses et les alertes éventuelles.';
+
+  @override
   String get attendanceDaySummary =>
       'Résumé de la journée : le temps travaillé et les pauses prises.';
 
