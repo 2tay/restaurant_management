@@ -13,37 +13,20 @@ import 'adaptive_row.dart';
 /// ~440px on a desktop, near full-width below 600. Dismissed by the close
 /// button, the scrim, or Échap.
 ///
-/// With neither [title] nor [header] the panel is bare: the close button
-/// alone at the top right, no rule under it — the content is its own heading
-/// (the pointage drawers).
+/// With no [title] the panel is bare: the close button alone at the top
+/// right, no rule under it — the content is its own heading (the pointage
+/// drawers).
 class DetailDrawer extends StatelessWidget {
-  const DetailDrawer({
-    required this.children,
-    this.title,
-    this.header,
-    this.dashedRule = false,
-    super.key,
-  });
+  const DetailDrawer({required this.children, this.title, super.key});
 
-  /// The panel's heading. Null when [header] takes its place, or for a bare
-  /// panel.
+  /// The panel's heading, over a hairline. Null for a bare panel.
   final String? title;
   final List<Widget> children;
-
-  /// Under the title — or, with no [title], in its place: context that
-  /// belongs to the panel rather than to its content (the board's live date
-  /// and time).
-  final Widget? header;
-
-  /// A dashed rule under the heading instead of the solid hairline.
-  final bool dashedRule;
 
   static Future<void> show(
     BuildContext context, {
     required List<Widget> children,
     String? title,
-    Widget? header,
-    bool dashedRule = false,
   }) {
     return showGeneralDialog<void>(
       context: context,
@@ -52,12 +35,7 @@ class DetailDrawer extends StatelessWidget {
       barrierColor: Colors.black.withValues(alpha: 0.25),
       transitionDuration: AppMotion.duration(context, AppMotion.page),
       pageBuilder: (context, _, _) =>
-          DetailDrawer(
-            title: title,
-            header: header,
-            dashedRule: dashedRule,
-            children: children,
-          ),
+          DetailDrawer(title: title, children: children),
       transitionBuilder: (context, animation, _, child) => SlideTransition(
         position: Tween<Offset>(
           begin: const Offset(1, 0),
@@ -76,7 +54,7 @@ class DetailDrawer extends StatelessWidget {
     final panelWidth = screenWidth < AppBreakpoints.compact
         ? screenWidth
         : 440.0;
-    final bare = title == null && header == null;
+    final bare = title == null;
 
     return Align(
       alignment: Alignment.centerRight,
@@ -100,17 +78,9 @@ class DetailDrawer extends StatelessWidget {
                   child: Row(
                     children: [
                       Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            if (title != null)
-                              Text(title!, style: theme.textTheme.titleMedium),
-                            if (title != null && header != null)
-                              const SizedBox(height: AppSpacing.xs),
-                            ?header,
-                          ],
-                        ),
+                        child: bare
+                            ? const SizedBox.shrink()
+                            : Text(title!, style: theme.textTheme.titleMedium),
                       ),
                       IconButton(
                         onPressed: () => Navigator.of(context).pop(),
@@ -120,11 +90,7 @@ class DetailDrawer extends StatelessWidget {
                     ],
                   ),
                 ),
-                if (bare)
-                  const SizedBox.shrink()
-                else if (dashedRule)
-                  const _DashedRule()
-                else
+                if (!bare)
                   Divider(
                     height: 1,
                     color: AppColors.border.withValues(alpha: 0.5),
@@ -149,46 +115,6 @@ class DetailDrawer extends StatelessWidget {
       ),
     );
   }
-}
-
-/// A 1dp dashed line across the panel — [DetailDrawer.dashedRule].
-class _DashedRule extends StatelessWidget {
-  const _DashedRule();
-
-  @override
-  Widget build(BuildContext context) => const SizedBox(
-    key: ValueKey('detail-drawer-dashed-rule'),
-    height: 1,
-    width: double.infinity,
-    child: CustomPaint(painter: _DashPainter(AppColors.border)),
-  );
-}
-
-class _DashPainter extends CustomPainter {
-  const _DashPainter(this.color);
-
-  final Color color;
-
-  static const double _dash = 5;
-  static const double _gap = 4;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = size.height;
-    final y = size.height / 2;
-    for (var x = 0.0; x < size.width; x += _dash + _gap) {
-      canvas.drawLine(
-        Offset(x, y),
-        Offset((x + _dash).clamp(0, size.width), y),
-        paint,
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(_DashPainter old) => old.color != color;
 }
 
 /// A `label — value` line for the drawer body. `value` may be a string or,

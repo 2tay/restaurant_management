@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stock_inventory/app/router.dart';
 import 'package:stock_inventory/app/routes.dart';
+import 'package:stock_inventory/core/utils/formatters.dart';
 import 'package:stock_inventory/data/database/app_database.dart';
 import 'package:stock_inventory/data/repositories/repositories.dart';
 import 'package:stock_inventory/data/seed/dataset/dataset.dart';
@@ -148,11 +149,9 @@ void main() {
     expect(link.top, closeTo(card.top, 24));
   });
 
-  testApp('Voir détails opens the drawer: date and time as its heading (icons, '
-      'no labels, dashed rule), one session without a "Session" heading, the '
-      'time worked last', (
-    tester,
-  ) async {
+  testApp('Voir détails opens a bare drawer: identity without PIN, the date '
+      'with the live time, one session without heading, the day summary, no '
+      'Alertes when there is none', (tester) async {
     final db = await _openBoard(tester, size: const Size(1280, 1400));
     final repo = AttendanceRepository(db);
     final day = await repo.clockIn(
@@ -174,46 +173,39 @@ void main() {
     expect(tester.takeException(), isNull);
     Finder inDrawer(Finder f) => find.descendant(of: drawer, matching: f);
 
-    // No "Détail du pointage": the date and time are the heading, icons and
-    // values only, over a dashed rule.
+    // Bare: no title, no rule, no Horaires / Chronologie heading.
     expect(inDrawer(find.text('Détail du pointage')), findsNothing);
-    final clock = inDrawer(find.byType(LiveDateTime));
-    expect(clock, findsOneWidget);
+    expect(inDrawer(find.byType(Divider)), findsNothing);
+    expect(inDrawer(find.text('Horaires')), findsNothing);
+    expect(inDrawer(find.byType(LiveDateTime)), findsNothing);
+    // Identity: the name, never the PIN (the kiosk).
+    expect(inDrawer(find.text(_name(EmployeeIds.amelie))), findsOneWidget);
+    expect(inDrawer(find.textContaining(amelie.pin)), findsNothing);
+    // The date, the live time right beside it.
+    final date = inDrawer(find.byKey(const ValueKey('attendance-day-date')));
+    expect(date, findsOneWidget);
     expect(
-      find.descendant(of: clock, matching: find.textContaining('Date : ')),
-      findsNothing,
-    );
-    expect(
-      find.descendant(of: clock, matching: find.textContaining('Heure : ')),
-      findsNothing,
-    );
-    expect(
-      inDrawer(find.byKey(const ValueKey('detail-drawer-dashed-rule'))),
+      find.descendant(of: date, matching: find.byType(LiveTime)),
       findsOneWidget,
     );
-    // No personal-information section any more.
-    expect(inDrawer(find.text('Informations personnelles')), findsNothing);
-    expect(inDrawer(find.text(amelie.email)), findsNothing);
-    expect(inDrawer(find.text(_name(EmployeeIds.amelie))), findsOneWidget);
-    // The kiosk never shows the PIN.
-    expect(inDrawer(find.textContaining(amelie.pin)), findsNothing);
-    // One session — Arrivée, Pause, Reprise; no heading, no alert.
-    expect(inDrawer(find.text('Horaires')), findsOneWidget);
+    // One session — no heading.
     expect(inDrawer(find.text('Arrivée')), findsOneWidget);
     expect(inDrawer(find.text('08:00')), findsOneWidget);
-    expect(inDrawer(find.text('Pause')), findsOneWidget);
     expect(inDrawer(find.text('Reprise')), findsOneWidget);
     expect(inDrawer(find.textContaining('Session N°')), findsNothing);
-    expect(inDrawer(find.textContaining('dépassée')), findsNothing);
-    // No session finished yet → no time worked to show.
+    // Summary under the sessions; nothing to alert.
+    final summary = inDrawer(find.text('Résumé de la journée'));
+    expect(summary, findsOneWidget);
     expect(
-      inDrawer(find.byKey(const ValueKey('timeclock-detail-worked'))),
-      findsNothing,
+      tester.getTopLeft(summary).dy,
+      greaterThan(tester.getTopLeft(inDrawer(find.text('Reprise'))).dy),
     );
+    expect(inDrawer(find.textContaining('Pauses (1) : 5 min')), findsOneWidget);
+    expect(inDrawer(find.text('Alertes')), findsNothing);
   });
 
-  testApp('two sessions in the day: a Session N° heading each, the pause '
-      'alert under the one that ran over', (tester) async {
+  testApp('two sessions: a Session N° each, the overrun in the Alertes '
+      'section at the end', (tester) async {
     final db = await _openBoard(tester, size: const Size(1280, 1600));
     final repo = AttendanceRepository(db);
     final day = await repo.clockIn(
@@ -236,35 +228,67 @@ void main() {
     final second = inDrawer(find.text('Session N° 2'));
     expect(first, findsOneWidget);
     expect(second, findsOneWidget);
-    // The overrun no longer sits under its session.
-    expect(inDrawer(find.textContaining('Pause de 09:00 dépassée')), findsNothing);
     expect(
       tester.getTopLeft(inDrawer(find.text('18:00'))).dy,
       greaterThan(tester.getTopLeft(second).dy),
     );
-    // The time worked closes the Horaires section, under the last session:
     // 08:00–12:00 less the two-hour break.
-    final worked = inDrawer(
-      find.byKey(const ValueKey('timeclock-detail-worked')),
-    );
-    expect(worked, findsOneWidget);
     expect(
-      find.descendant(of: worked, matching: find.text('Durée travail')),
+      inDrawer(find.textContaining('Durée totale travaillée : 2 h 00')),
       findsOneWidget,
     );
+    final alerts = inDrawer(find.text('Alertes'));
+    expect(alerts, findsOneWidget);
+    final overrun = inDrawer(find.textContaining('Pause dépassée de'));
+    expect(overrun, findsOneWidget);
     expect(
-      find.descendant(of: worked, matching: find.text('2 h 00')),
-      findsOneWidget,
+      tester.getTopLeft(alerts).dy,
+      greaterThan(
+        tester.getTopLeft(inDrawer(find.text('Résumé de la journée'))).dy,
+      ),
     );
     expect(
-      tester.getTopLeft(worked).dy,
-      greaterThan(tester.getTopLeft(inDrawer(find.text('18:00'))).dy),
+      tester.getTopLeft(overrun).dy,
+      greaterThan(tester.getTopLeft(alerts).dy),
     );
   });
 
-  testApp('a card with no punch yet: the drawer says so', (tester) async {
+  testApp('no punch yet: avatar, name and a dated invitation, POINTER — '
+      'centred; POINTER asks for the PIN', (tester) async {
     await _openBoard(tester);
     await _openDetail(tester, EmployeeIds.noah);
-    expect(find.text("Pas encore pointé aujourd'hui."), findsOneWidget);
+    final drawer = find.byType(DetailDrawer);
+    Finder inDrawer(Finder f) => find.descendant(of: drawer, matching: f);
+    expect(tester.takeException(), isNull);
+
+    final prompt = inDrawer(
+      find.byKey(const ValueKey('timeclock-start-day')),
+    );
+    expect(prompt, findsOneWidget);
+    expect(inDrawer(find.byType(EmployeeAvatar)), findsOneWidget);
+    expect(inDrawer(find.text(_name(EmployeeIds.noah))), findsOneWidget);
+    final noah = mockEmployees.firstWhere((e) => e.id == EmployeeIds.noah);
+    expect(inDrawer(find.textContaining(noah.pin)), findsNothing);
+    final today = Formatters.date(DateTime.now());
+    expect(
+      inDrawer(find.textContaining('pas encore commencé votre journée')),
+      findsOneWidget,
+    );
+    expect(inDrawer(find.textContaining(today)), findsOneWidget);
+    expect(inDrawer(find.text('Résumé de la journée')), findsNothing);
+    // Centred in the panel, both ways.
+    final panel = tester.getRect(inDrawer(find.byType(ListView)));
+    final avatar = tester.getCenter(inDrawer(find.byType(EmployeeAvatar)));
+    expect(avatar.dx, closeTo(panel.center.dx, 2));
+    final block = tester.getRect(
+      find.descendant(of: prompt, matching: find.byType(Column)).first,
+    );
+    expect(block.center.dy, closeTo(panel.center.dy, 48));
+
+    final pointer = inDrawer(find.widgetWithText(OutlinedButton, 'POINTER'));
+    expect(pointer, findsOneWidget);
+    await tester.tap(pointer);
+    await tester.pumpAndSettle();
+    expect(find.byType(IdentityPromptDialog), findsOneWidget);
   });
 }

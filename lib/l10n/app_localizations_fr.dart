@@ -2682,10 +2682,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get timeclockViewDetail => 'Voir détails';
 
   @override
-  String get timeclockSchedule => 'Horaires';
-
-  @override
-  String get timeclockNoPunchYet => 'Pas encore pointé aujourd\'hui.';
+  String timeclockStartDayPrompt(String date) {
+    return 'Vous n\'avez pas encore commencé votre journée du $date. Pointez pour la démarrer.';
+  }
 
   @override
   String timeclockSessionTitle(int number) {

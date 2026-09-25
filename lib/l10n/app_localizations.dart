@@ -4468,17 +4468,11 @@ abstract class AppLocalizations {
   /// **'Voir détails'**
   String get timeclockViewDetail;
 
-  /// Section title for the day's timestamps in the pointage board drawer.
+  /// Board drawer, before the day's first punch. {date} is e.g. 'jeudi 24/12/2026'.
   ///
   /// In fr, this message translates to:
-  /// **'Horaires'**
-  String get timeclockSchedule;
-
-  /// Drawer body when the employee has no punch today.
-  ///
-  /// In fr, this message translates to:
-  /// **'Pas encore pointé aujourd\'hui.'**
-  String get timeclockNoPunchYet;
+  /// **'Vous n\'avez pas encore commencé votre journée du {date}. Pointez pour la démarrer.'**
+  String timeclockStartDayPrompt(String date);
 
   /// Divider above one session of a multi-session day.
   ///

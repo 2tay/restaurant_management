@@ -208,12 +208,9 @@ class _EmployeeCard extends StatelessWidget {
   final String storeId;
 
   void _openDetail(BuildContext context) {
+    // Bare: the day detail — date and live time included — is the heading.
     DetailDrawer.show(
       context,
-      // The live date and time as the heading — icons, no labels — over a
-      // dashed rule.
-      header: const LiveDateTime(showLabels: false),
-      dashedRule: true,
       children: [_BoardDetail(storeId: storeId, employeeId: employee.id)],
     );
   }
@@ -281,8 +278,10 @@ class _EmployeeCard extends StatelessWidget {
   }
 }
 
-/// The drawer behind "Voir détails": who this is, where their day stands,
-/// its timestamps session by session, and the time worked.
+/// The drawer behind "Voir détails" — the same day detail as the history's
+/// ([AttendanceDayDetail]), with the live time beside the date. Before the
+/// first punch of the day: the employee, centred, asked to start their day,
+/// with the card's own `Pointer` (PIN first).
 ///
 /// Watches the board itself rather than taking a snapshot, so a punch made
 /// while the drawer is open shows up in it. No PIN: this is the shared kiosk,
@@ -295,8 +294,6 @@ class _BoardDetail extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
     final employee = ref
         .watch(activeEmployeesProvider(storeId))
         .value
@@ -306,87 +303,89 @@ class _BoardDetail extends ConsumerWidget {
     final settings = ref.watch(storeSettingsProvider(storeId)).value;
     if (employee == null || settings == null) return const SizedBox.shrink();
 
-    final status = entry?.status ?? AttendanceStatus.notClockedIn;
-    final worked = entry == null ? null : workedDuration(entry);
+    if (entry == null || entry.sessions.isEmpty) {
+      return _StartDayPrompt(
+        employee: employee,
+        settings: settings,
+        storeId: storeId,
+      );
+    }
 
-    Widget sectionTitle(IconData icon, String text) => Row(
-      children: [
-        Icon(icon, size: AppSizing.iconSm, color: AppColors.textSecondary),
-        const SizedBox(width: AppSpacing.xs),
-        Flexible(child: Text(text, style: theme.textTheme.titleSmall)),
-      ],
+    return AttendanceDayDetail(
+      entry: entry,
+      employee: employee,
+      showPin: false,
+      maxBreakMinutes: resolvedMaxBreakMinutes(
+        entry,
+        fallback: settings.maxBreakMinutes,
+      ),
+      dateLine: AttendanceDayDate(date: entry.date, trailing: const LiveTime()),
     );
+  }
+}
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Row(
+/// Not clocked in yet: avatar, name, a line inviting them to start the day
+/// (dated), and `Pointer` — centred in the drawer.
+class _StartDayPrompt extends StatelessWidget {
+  const _StartDayPrompt({
+    required this.employee,
+    required this.settings,
+    required this.storeId,
+  });
+
+  final Employee employee;
+  final StoreSettings settings;
+  final String storeId;
+
+  /// The bare drawer's close bar and bottom padding — what the body's
+  /// height leaves for this block to centre in.
+  static const double _drawerChrome = 88;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final media = MediaQuery.of(context);
+    final day = Formatters.dateLongWeekday(DateTime.now());
+    final dayLower = day.isEmpty ? day : day[0].toLowerCase() + day.substring(1);
+
+    return ConstrainedBox(
+      key: const ValueKey('timeclock-start-day'),
+      constraints: BoxConstraints(
+        minHeight: media.size.height - media.padding.vertical - _drawerChrome,
+      ),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            EmployeeAvatar(employee: employee),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    employeeDisplayName(employee),
-                    style: theme.textTheme.titleSmall,
-                  ),
-                  Text(
-                    employeeRoleLabel(l10n, employee.role),
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ],
+            EmployeeAvatar(employee: employee, size: 72),
+            const SizedBox(height: AppSpacing.md),
+            Text(
+              employeeDisplayName(employee),
+              style: theme.textTheme.titleMedium,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            Text(
+              l10n.timeclockStartDayPrompt(dayLower),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: AppColors.textSecondary,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: AppSpacing.xl),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 240),
+              child: _ActionArea(
+                entry: null,
+                employee: employee,
+                settings: settings,
+                storeId: storeId,
               ),
             ),
-            const SizedBox(width: AppSpacing.md),
-            AttendanceStatusBadge(status: status),
           ],
         ),
-        const SizedBox(height: AppSpacing.xxl),
-        sectionTitle(LucideIcons.clock, l10n.timeclockSchedule),
-        const SizedBox(height: AppSpacing.md),
-        if (entry == null || entry.sessions.isEmpty)
-          Text(
-            l10n.timeclockNoPunchYet,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: AppColors.textSecondary,
-            ),
-          )
-        else
-          AttendanceSessions(
-            entry: entry,
-            maxBreakMinutes: resolvedMaxBreakMinutes(
-              entry,
-              fallback: settings.maxBreakMinutes,
-            ),
-          ),
-        // The day's total closes the Horaires section.
-        if (worked != null) ...[
-          const SizedBox(height: AppSpacing.lg),
-          Divider(height: 1, color: AppColors.border.withValues(alpha: 0.5)),
-          const SizedBox(height: AppSpacing.md),
-          Row(
-            key: const ValueKey('timeclock-detail-worked'),
-            children: [
-              Expanded(
-                child: Text(
-                  l10n.attendanceColumnWorked,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              ),
-              Text(
-                Formatters.duration(worked),
-                style: theme.textTheme.titleSmall,
-              ),
-            ],
-          ),
-        ],
-      ],
+      ),
     );
   }
 }

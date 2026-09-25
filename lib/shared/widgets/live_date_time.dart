@@ -9,16 +9,12 @@ import '../../core/utils/formatters.dart';
 import '../../l10n/app_localizations.dart';
 
 /// `Date : Mar 24/10/2026 · Heure : 12:01`, ticking — the pointage board's
-/// header and its detail drawer.
+/// header.
 ///
 /// Its own stateful widget so the once-a-second tick redraws this line only,
 /// never the grid of cards around it.
 class LiveDateTime extends StatefulWidget {
-  const LiveDateTime({this.showLabels = true, super.key});
-
-  /// False → just the icons and the values (`📅 Mar 24/10/2026  🕐 12:01`),
-  /// for the drawer, where the icons say enough.
-  final bool showLabels;
+  const LiveDateTime({super.key});
 
   @override
   State<LiveDateTime> createState() => _LiveDateTimeState();
@@ -72,8 +68,7 @@ class _LiveDateTimeState extends State<LiveDateTime> {
                   ),
                 ),
               ),
-              if (widget.showLabels)
-                TextSpan(text: '$label : ', style: labelStyle),
+              TextSpan(text: '$label : ', style: labelStyle),
               TextSpan(style: valueStyle, children: value),
             ],
           ),
@@ -97,6 +92,58 @@ class _LiveDateTimeState extends State<LiveDateTime> {
         part(LucideIcons.clock, l10n.liveTimeLabel, [
           TextSpan(text: Formatters.time(_now)),
         ]),
+      ],
+    );
+  }
+}
+
+/// `🕐 15:30`, ticking — beside the day's date in the board's drawer
+/// (`AttendanceDayDate.trailing`), in the same weight as the date.
+class LiveTime extends StatefulWidget {
+  const LiveTime({super.key});
+
+  @override
+  State<LiveTime> createState() => _LiveTimeState();
+}
+
+class _LiveTimeState extends State<LiveTime> {
+  late DateTime _now = DateTime.now();
+  Timer? _ticker;
+
+  @override
+  void initState() {
+    super.initState();
+    _ticker = Timer.periodic(
+      const Duration(seconds: 1),
+      (_) => setState(() => _now = DateTime.now()),
+    );
+  }
+
+  @override
+  void dispose() {
+    _ticker?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      key: const ValueKey('live-time'),
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Icon(
+          LucideIcons.clock,
+          size: AppSizing.iconSm,
+          color: AppColors.textSecondary,
+        ),
+        const SizedBox(width: AppSpacing.xs),
+        Text(
+          Formatters.time(_now),
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            color: AppColors.textPrimary,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
       ],
     );
   }
