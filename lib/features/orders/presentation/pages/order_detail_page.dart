@@ -19,6 +19,7 @@ import '../../documents/receipt_document_button.dart';
 import '../widgets/order_actions.dart';
 import '../widgets/order_status_badge.dart';
 import '../widgets/order_summary_card.dart';
+import '../widgets/order_visuals.dart';
 
 /// One commande: what was ordered, what has arrived, and what can still be done
 /// to it.
@@ -214,7 +215,8 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
           PrimaryButton(
             label: l10n.orderActionDuplicate,
             icon: LucideIcons.copy,
-            onPressed: () => duplicateOrder(context, ref, widget.storeId, order),
+            onPressed: () =>
+                duplicateOrder(context, ref, widget.storeId, order),
           ),
         ];
     }
@@ -450,54 +452,211 @@ class _LockedNotice extends StatelessWidget {
   }
 }
 
+/// What was ordered, line by line.
+///
+/// A table where there is room for one. Below [_stacksBelow] the six columns
+/// would have to be panned sideways, so each line becomes a stacked row in
+/// the same frame: product and total on top, quantities underneath, where it
+/// stands along the bottom.
 class _LinesTable extends StatelessWidget {
   const _LinesTable({required this.lines});
 
   final List<OrderLineView> lines;
 
+  static const double _stacksBelow = 640;
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final figure = theme.textTheme.bodyMedium?.copyWith(
+      fontFeatures: const [FontFeature.tabularFigures()],
+    );
 
-    return DataTableWrapper(
-      minWidth: 820,
-      columns: [
-        DataColumn(label: Text(l10n.orderColumnItem)),
-        DataColumn(label: Text(l10n.orderColumnOrdered), numeric: true),
-        DataColumn(label: Text(l10n.orderColumnReceived), numeric: true),
-        DataColumn(label: Text(l10n.orderColumnUnitPrice), numeric: true),
-        DataColumn(label: Text(l10n.orderColumnLineTotal), numeric: true),
-        DataColumn(label: Text(l10n.orderTabReceipts)),
-      ],
-      rows: [for (final line in lines) _row(context, l10n, line)],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < _stacksBelow) {
+          return Container(
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: AppRadius.lgAll,
+              border: Border.all(color: AppColors.border),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (final (i, line) in lines.indexed) ...[
+                  if (i > 0)
+                    const Divider(height: 1, color: AppColors.hairline),
+                  _StackedLine(view: line),
+                ],
+              ],
+            ),
+          );
+        }
+
+        return AppTable<OrderLineView>(
+          rows: lines,
+          shrinkWrap: true,
+          rowHeight: 56,
+          columns: [
+            AppTableColumn(label: l10n.orderColumnItem, flex: 3),
+            AppTableColumn(
+              label: l10n.orderColumnOrdered,
+              width: 120,
+              numeric: true,
+            ),
+            AppTableColumn(
+              label: l10n.orderColumnReceived,
+              width: 120,
+              numeric: true,
+            ),
+            AppTableColumn(
+              label: l10n.orderColumnUnitPrice,
+              width: 124,
+              numeric: true,
+              minTableWidth: 900,
+            ),
+            AppTableColumn(
+              label: l10n.orderColumnLineTotal,
+              width: 124,
+              numeric: true,
+            ),
+            AppTableColumn(label: l10n.tableColStatus, width: 200),
+          ],
+          cell: (context, view, column) {
+            final line = view.line;
+            final unit = view.unitAbbreviation;
+            return switch (column) {
+              0 => Text(
+                view.itemName,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              1 => Text(
+                Formatters.quantityWithUnit(line.quantityOrdered, unit),
+                style: figure,
+                maxLines: 1,
+              ),
+              2 => Text(
+                Formatters.quantityWithUnit(line.quantityReceived, unit),
+                style: line.quantityReceived > 0
+                    ? figure?.copyWith(fontWeight: FontWeight.w600)
+                    : figure?.copyWith(color: AppColors.textSecondary),
+                maxLines: 1,
+              ),
+              3 => Text(
+                Formatters.price(line.unitPrice),
+                style: figure,
+                maxLines: 1,
+              ),
+              4 => Text(
+                Formatters.price(lineTotal(line)),
+                style: figure?.copyWith(fontWeight: FontWeight.w700),
+                maxLines: 1,
+              ),
+              _ => _LineState(
+                line: line,
+                outstanding: lineOutstanding(line),
+                unit: unit,
+              ),
+            };
+          },
+        );
+      },
     );
   }
+}
 
-  DataRow _row(
-    BuildContext context,
-    AppLocalizations l10n,
-    OrderLineView view,
-  ) {
+/// One order line on a phone.
+class _StackedLine extends StatelessWidget {
+  const _StackedLine({required this.view});
+
+  final OrderLineView view;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
     final line = view.line;
     final unit = view.unitAbbreviation;
-    final outstanding = lineOutstanding(line);
 
-    return DataRow(
-      cells: [
-        DataCell(Text(view.itemName)),
-        DataCell(
-          NumericCell(Formatters.quantityWithUnit(line.quantityOrdered, unit)),
-        ),
-        DataCell(
-          NumericCell(
-            Formatters.quantityWithUnit(line.quantityReceived, unit),
-            emphasis: line.quantityReceived > 0,
+    return Padding(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Text(
+                  view.itemName,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Text(
+                Formatters.price(lineTotal(line)),
+                style: AppTypography.numeric.copyWith(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
           ),
-        ),
-        DataCell(NumericCell(Formatters.price(line.unitPrice))),
-        DataCell(NumericCell(Formatters.price(lineTotal(line)))),
-        DataCell(_LineState(line: line, outstanding: outstanding, unit: unit)),
-      ],
+          const SizedBox(height: AppSpacing.xs),
+          Wrap(
+            spacing: AppSpacing.md,
+            runSpacing: AppSpacing.xxs,
+            children: [
+              Text(
+                '${l10n.orderColumnOrdered} '
+                '${Formatters.quantityWithUnit(line.quantityOrdered, unit)}',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              Text(
+                '${l10n.orderColumnReceived} '
+                '${Formatters.quantityWithUnit(line.quantityReceived, unit)}',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: line.quantityReceived > 0
+                      ? AppColors.textPrimary
+                      : AppColors.textSecondary,
+                  fontWeight: line.quantityReceived > 0
+                      ? FontWeight.w600
+                      : null,
+                ),
+              ),
+              Text(
+                '× ${Formatters.price(line.unitPrice)}',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: _LineState(
+              line: line,
+              outstanding: lineOutstanding(line),
+              unit: unit,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -565,11 +724,15 @@ class _Pill extends StatelessWidget {
         children: [
           Icon(icon, size: AppSizing.iconSm, color: colors.foreground),
           const SizedBox(width: AppSpacing.xs),
-          Text(
-            label,
-            style: Theme.of(
-              context,
-            ).textTheme.labelSmall?.copyWith(color: colors.foreground),
+          Flexible(
+            child: Text(
+              label,
+              style: Theme.of(
+                context,
+              ).textTheme.labelSmall?.copyWith(color: colors.foreground),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
         ],
       ),
@@ -616,6 +779,9 @@ class _Receipts extends StatelessWidget {
 }
 
 /// One delivery against the commande.
+///
+/// One line with room; on a phone the value and the lines count move under
+/// the reference so nothing is pushed off the edge.
 class _ReceiptCard extends StatelessWidget {
   const _ReceiptCard({required this.storeId, required this.view});
 
@@ -627,6 +793,70 @@ class _ReceiptCard extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final receipt = view.receipt;
+    final muted = theme.textTheme.bodySmall?.copyWith(
+      color: AppColors.textSecondary,
+    );
+
+    final medallion = Container(
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(
+        color: AppColors.inStock.container,
+        borderRadius: AppRadius.mdAll,
+      ),
+      child: Icon(
+        LucideIcons.packageCheck,
+        size: AppSizing.iconMd,
+        color: AppColors.inStock.foreground,
+      ),
+    );
+
+    // The document reference leads rather than the date: a three-delivery
+    // order shows three rows that otherwise differ only by timestamp, and the
+    // reference is what staff and the supplier actually name them by.
+    final reference = Text(
+      view.reference,
+      style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+    );
+
+    final meta = Wrap(
+      spacing: AppSpacing.md,
+      runSpacing: AppSpacing.xxs,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        MetaItem(
+          icon: LucideIcons.calendar,
+          label: Formatters.dateTime(receipt.receivedAt),
+        ),
+        EmployeeNameTag(
+          name: l10n.receiptReceivedBy(receipt.receivedByName),
+          employeeId: receipt.receivedByEmployeeId,
+          style: muted,
+          avatarSize: 18,
+        ),
+      ],
+    );
+
+    final value = Text(
+      Formatters.price(receiptValue(receipt)),
+      style: AppTypography.numeric.copyWith(
+        fontSize: 15,
+        fontWeight: FontWeight.w700,
+      ),
+      maxLines: 1,
+    );
+    final lines = Text(
+      l10n.ordersColumnLines(receipt.lines.length),
+      style: muted,
+      maxLines: 1,
+    );
+
+    // Straight from the list: the partial delivery somebody needs to send on
+    // is usually one of several on the order, and making them open each one
+    // to find it is how the feature ends up unused.
+    final document = ReceiptDocumentButton(receipt: receipt, compact: true);
 
     return AppCard(
       onTap: () => context.pushScreen(Routes.toReceipt(storeId, receipt.id)),
@@ -634,77 +864,69 @@ class _ReceiptCard extends StatelessWidget {
         horizontal: AppSpacing.lg,
         vertical: AppSpacing.md,
       ),
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: AppColors.inStock.container,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              LucideIcons.packageCheck,
-              size: AppSizing.iconMd,
-              color: AppColors.inStock.foreground,
-            ),
-          ),
-          const SizedBox(width: AppSpacing.md),
-          Expanded(
-            child: Column(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          if (constraints.maxWidth < 560) {
+            return Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // The document reference leads rather than the date: a
-                // three-delivery order shows three rows that otherwise
-                // differ only by timestamp, and the reference is what
-                // staff and the supplier actually name them by.
-                Text(
-                  view.reference,
-                  style: theme.textTheme.titleSmall,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                Row(
-                  children: [
-                    Text(
-                      '${Formatters.dateTime(receipt.receivedAt)} · ',
-                      style: theme.textTheme.bodySmall,
-                    ),
-                    Flexible(
-                      child: EmployeeNameTag(
-                        name: l10n.receiptReceivedBy(receipt.receivedByName),
-                        employeeId: receipt.receivedByEmployeeId,
-                        style: theme.textTheme.bodySmall,
-                        avatarSize: 18,
+                medallion,
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(child: reference),
+                          const SizedBox(width: AppSpacing.sm),
+                          value,
+                        ],
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: AppSpacing.xs),
+                      meta,
+                      const SizedBox(height: AppSpacing.xs),
+                      Row(
+                        children: [
+                          Expanded(child: lines),
+                          document,
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ],
-            ),
-          ),
-          const SizedBox(width: AppSpacing.md),
-          Text(
-            l10n.ordersColumnLines(receipt.lines.length),
-            style: theme.textTheme.bodySmall,
-          ),
-          const SizedBox(width: AppSpacing.lg),
-          Text(
-            Formatters.price(receiptValue(receipt)),
-            style: AppTypography.numeric,
-          ),
-          const SizedBox(width: AppSpacing.sm),
-          // Straight from the list: the partial delivery somebody needs
-          // to send on is usually one of several on the order, and
-          // making them open each one to find it is how the feature
-          // ends up unused.
-          ReceiptDocumentButton(receipt: receipt, compact: true),
-          const Icon(
-            LucideIcons.chevronRight,
-            size: AppSizing.iconSm,
-            color: AppColors.textDisabled,
-          ),
-        ],
+            );
+          }
+
+          return Row(
+            children: [
+              medallion,
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    reference,
+                    const SizedBox(height: AppSpacing.xxs),
+                    meta,
+                  ],
+                ),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              lines,
+              const SizedBox(width: AppSpacing.lg),
+              value,
+              const SizedBox(width: AppSpacing.sm),
+              document,
+              const Icon(
+                LucideIcons.chevronRight,
+                size: AppSizing.iconSm,
+                color: AppColors.textDisabled,
+              ),
+            ],
+          );
+        },
       ),
     );
   }

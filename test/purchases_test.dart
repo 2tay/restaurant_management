@@ -14,7 +14,6 @@ import 'package:stock_inventory/data/repositories/repositories.dart';
 import 'package:stock_inventory/data/seed/dataset/dataset.dart';
 import 'package:stock_inventory/data/view_models/view_models.dart';
 import 'package:stock_inventory/features/orders/presentation/pages/receive_order_page.dart';
-import 'package:stock_inventory/features/orders/presentation/widgets/order_row.dart';
 import 'package:stock_inventory/models/models.dart';
 import 'package:stock_inventory/shared/widgets/widgets.dart';
 
@@ -89,10 +88,12 @@ void main() {
     await tester.tap(find.textContaining('Brouillons').first);
     await tester.pumpAndSettle();
 
-    final rows = tester.widgetList<OrderRow>(find.byType(OrderRow));
+    final rows = tester
+        .widget<AppTable<OrderRowView>>(find.byType(AppTable<OrderRowView>))
+        .rows;
     expect(rows, isNotEmpty);
-    for (final row in rows) {
-      expect(row.view.order.status, PurchaseOrderStatus.draft);
+    for (final view in rows) {
+      expect(view.order.status, PurchaseOrderStatus.draft);
     }
   });
 

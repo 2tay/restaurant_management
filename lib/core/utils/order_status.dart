@@ -84,6 +84,20 @@ double orderOutstanding(PurchaseOrder order) {
   return total;
 }
 
+/// How much of what was ordered has arrived, as a share between 0 and 1.
+///
+/// Over-delivery on one line does not make up for another line still owed,
+/// so each line counts at most what was ordered on it.
+double orderReceivedShare(PurchaseOrder order) {
+  var ordered = 0.0;
+  var received = 0.0;
+  for (final line in order.lines) {
+    ordered += line.quantityOrdered;
+    received += line.quantityReceived.clamp(0, line.quantityOrdered);
+  }
+  return ordered <= 0 ? 0 : (received / ordered).clamp(0.0, 1.0);
+}
+
 /// Sent or partial: the supplier has the document and goods may still arrive.
 ///
 /// This is the definition "on order" counts against, so it is written once.
@@ -219,5 +233,6 @@ int receiptDiscrepancyCount(GoodsReceipt receipt) => receipt.lines
 /// percentage to move by, and dividing by it would flag every first delivery.
 bool priceMovedSignificantly(double oldPrice, double newPrice) {
   if (oldPrice <= 0) return false;
-  return (newPrice - oldPrice).abs() / oldPrice > OrderRules.significantPriceChange;
+  return (newPrice - oldPrice).abs() / oldPrice >
+      OrderRules.significantPriceChange;
 }

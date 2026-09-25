@@ -17,8 +17,8 @@ import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 import '../../documents/order_document_button.dart';
 import '../widgets/order_actions.dart';
-import '../widgets/order_row.dart';
 import '../widgets/order_status_badge.dart';
+import '../widgets/order_visuals.dart';
 
 /// How many days back a date filter reaches. Null means no date filter.
 enum OrderDateRange { last7, last30, last90 }
@@ -101,20 +101,31 @@ class OrdersFilterNotifier extends Notifier<OrdersFilter> {
   void clear() => state = OrdersFilter(tab: state.tab);
 }
 
-/// Cards or a table — kept for the session.
-enum OrdersViewMode { list, table }
+/// A table column the orders can be sorted by.
+enum OrdersSortKey { date, reference, supplier, status, amount, received }
 
-class OrdersViewModeNotifier extends Notifier<OrdersViewMode> {
-  @override
-  OrdersViewMode build() => OrdersViewMode.list;
+/// The table's sort — null [key] keeps the newest-first order the list comes
+/// in with.
+class OrdersSort {
+  const OrdersSort({this.key, this.ascending = true});
 
-  void select(OrdersViewMode mode) => state = mode;
+  final OrdersSortKey? key;
+  final bool ascending;
 }
 
-final ordersViewModeProvider =
-    NotifierProvider<OrdersViewModeNotifier, OrdersViewMode>(
-      OrdersViewModeNotifier.new,
-    );
+class OrdersSortNotifier extends Notifier<OrdersSort> {
+  @override
+  OrdersSort build() => const OrdersSort();
+
+  /// A new column sorts ascending; the same column again flips direction.
+  void toggle(OrdersSortKey key) => state = state.key == key
+      ? OrdersSort(key: key, ascending: !state.ascending)
+      : OrdersSort(key: key);
+}
+
+final ordersSortProvider = NotifierProvider<OrdersSortNotifier, OrdersSort>(
+  OrdersSortNotifier.new,
+);
 
 final ordersFilterProvider =
     NotifierProvider<OrdersFilterNotifier, OrdersFilter>(
@@ -176,14 +187,7 @@ class OrdersListPage extends ConsumerWidget {
             for (final tab in OrdersTab.values)
               tab: beforeTab.where((view) => tab.matches(view.order)).length,
           };
-          final viewMode = ref.watch(ordersViewModeProvider);
-          final showTable =
-              viewMode == OrdersViewMode.table && !context.isPhone;
-
-          final count = Text(
-            l10n.ordersCount(orders.length),
-            style: Theme.of(context).textTheme.bodySmall,
-          );
+          final count = _Summary(orders: orders);
 
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -234,48 +238,18 @@ class OrdersListPage extends ConsumerWidget {
                   ],
                 )
               else ...[
-                // Filters on the left, how to show them on the right.
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                Wrap(
+                  spacing: AppSpacing.sm,
+                  runSpacing: AppSpacing.sm,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    Expanded(
-                      child: Wrap(
-                        spacing: AppSpacing.sm,
-                        runSpacing: AppSpacing.sm,
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        children: [
-                          ...filters,
-                          if (filter.hasActiveFilters)
-                            TextButton.icon(
-                              onPressed: notifier.clear,
-                              icon: const Icon(
-                                LucideIcons.x,
-                                size: AppSizing.iconSm,
-                              ),
-                              label: Text(l10n.inventoryClearFilters),
-                            ),
-                        ],
+                    ...filters,
+                    if (filter.hasActiveFilters)
+                      TextButton.icon(
+                        onPressed: notifier.clear,
+                        icon: const Icon(LucideIcons.x, size: AppSizing.iconSm),
+                        label: Text(l10n.inventoryClearFilters),
                       ),
-                    ),
-                    const SizedBox(width: AppSpacing.md),
-                    ViewModeToggle<OrdersViewMode>(
-                      value: viewMode,
-                      onSelected: ref
-                          .read(ordersViewModeProvider.notifier)
-                          .select,
-                      options: [
-                        ViewModeOption(
-                          value: OrdersViewMode.list,
-                          icon: LucideIcons.list,
-                          label: l10n.movementsViewList,
-                        ),
-                        ViewModeOption(
-                          value: OrdersViewMode.table,
-                          icon: LucideIcons.table,
-                          label: l10n.movementsViewTable,
-                        ),
-                      ],
-                    ),
                   ],
                 ),
                 const SizedBox(height: AppSpacing.md),
@@ -292,27 +266,10 @@ class OrdersListPage extends ConsumerWidget {
                         storeHasOrders: all.isNotEmpty,
                         onClearFilters: notifier.clear,
                       )
-                    : showTable
-                    ? _OrdersTable(storeId: storeId, orders: orders)
-                    : ListView.separated(
-                        shrinkWrap: true,
-                        primary: false,
-                        physics: const NeverScrollableScrollPhysics(),
-                        padding: EdgeInsets.zero,
-                        itemCount: orders.length,
-                        separatorBuilder: (_, _) =>
-                            const SizedBox(height: AppSpacing.sm),
-                        itemBuilder: (context, index) {
-                          final view = orders[index];
-                          return OrderRow(
-                            view: view,
-                            stalePartialDays: staleDays,
-                            onTap: () => context.pushScreen(
-                              Routes.toOrder(storeId, view.order.id),
-                            ),
-                            action: _QuickAction(storeId: storeId, view: view),
-                          );
-                        },
+                    : _OrdersTable(
+                        storeId: storeId,
+                        orders: orders,
+                        stalePartialDays: staleDays,
                       ),
               ),
             ],
@@ -570,154 +527,566 @@ class _StatusTabs extends StatelessWidget {
 
 /// The one thing to do next with an order, on its row: send a draft, receive
 /// a sent or partial one, reorder a finished one.
+///
+/// [compact] draws it as an icon button with the label in a tooltip, for a
+/// table too narrow to give a worded button its column.
 class _QuickAction extends ConsumerWidget {
-  const _QuickAction({required this.storeId, required this.view});
+  const _QuickAction({
+    required this.storeId,
+    required this.view,
+    this.compact = false,
+  });
 
   final String storeId;
   final OrderRowView view;
+  final bool compact;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final order = view.order;
 
-    return switch (order.status) {
-      PurchaseOrderStatus.draft => SecondaryButton(
-        label: l10n.orderActionSend,
-        icon: LucideIcons.send,
-        onPressed: () =>
-            confirmSendOrder(context, ref, order, view.supplierName),
+    final (label, icon, primary, onPressed) = switch (order.status) {
+      PurchaseOrderStatus.draft => (
+        l10n.orderActionSend,
+        LucideIcons.send,
+        false,
+        () => confirmSendOrder(context, ref, order, view.supplierName),
       ),
-      PurchaseOrderStatus.sent || PurchaseOrderStatus.partial => PrimaryButton(
-        label: l10n.receptionsReceive,
-        icon: LucideIcons.packageCheck,
-        onPressed: () =>
-            context.pushScreen(Routes.toReceiveOrder(storeId, order.id)),
+      PurchaseOrderStatus.sent || PurchaseOrderStatus.partial => (
+        l10n.receptionsReceive,
+        LucideIcons.packageCheck,
+        true,
+        () => context.pushScreen(Routes.toReceiveOrder(storeId, order.id)),
       ),
-      PurchaseOrderStatus.received ||
-      PurchaseOrderStatus.cancelled => SecondaryButton(
-        label: l10n.orderActionDuplicate,
-        icon: LucideIcons.copy,
-        onPressed: () => duplicateOrder(context, ref, storeId, order),
+      PurchaseOrderStatus.received || PurchaseOrderStatus.cancelled => (
+        l10n.orderActionDuplicate,
+        LucideIcons.copy,
+        false,
+        () => duplicateOrder(context, ref, storeId, order),
       ),
     };
+
+    if (compact) {
+      final glyph = Icon(icon, size: AppSizing.iconSm);
+      return primary
+          ? IconButton.filled(onPressed: onPressed, tooltip: label, icon: glyph)
+          : IconButton.outlined(
+              onPressed: onPressed,
+              tooltip: label,
+              icon: glyph,
+            );
+    }
+
+    return primary
+        ? PrimaryButton(label: label, icon: icon, onPressed: onPressed)
+        : SecondaryButton(label: label, icon: icon, onPressed: onPressed);
   }
 }
 
-/// How much of what was ordered has arrived, as a share — the Reçu column.
-double _receivedShare(PurchaseOrder order) {
-  var ordered = 0.0;
-  var received = 0.0;
-  for (final line in order.lines) {
-    ordered += line.quantityOrdered;
-    received += line.quantityReceived.clamp(0, line.quantityOrdered);
-  }
-  return ordered <= 0 ? 0 : (received / ordered).clamp(0.0, 1.0);
-}
+/// "12 commandes · 4 520,00 €" — how many rows the filters left, and what
+/// they commit the store to.
+class _Summary extends StatelessWidget {
+  const _Summary({required this.orders});
 
-/// The orders as a table: reference and date, supplier, status, lines,
-/// amount, how much has arrived, and the next action.
-class _OrdersTable extends StatelessWidget {
-  const _OrdersTable({required this.storeId, required this.orders});
-
-  final String storeId;
   final List<OrderRowView> orders;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    var total = 0.0;
+    for (final view in orders) {
+      total += orderTotal(view.order);
+    }
 
-    return AppTable<OrderRowView>(
-      rows: orders,
-      shrinkWrap: true,
-      onRowTap: (view) =>
-          context.pushScreen(Routes.toOrder(storeId, view.order.id)),
-      columns: [
-        AppTableColumn(label: l10n.tableColReference, width: 170),
-        AppTableColumn(label: l10n.tableColSupplier, flex: 3),
-        AppTableColumn(label: l10n.tableColStatus, width: 150),
-        AppTableColumn(
-          label: l10n.tableColLines,
-          width: 80,
-          numeric: true,
-          minTableWidth: 980,
-        ),
-        AppTableColumn(label: l10n.tableColAmount, width: 112, numeric: true),
-        AppTableColumn(
-          label: l10n.tableColReceived,
-          width: 120,
-          minTableWidth: 860,
-        ),
-        const AppTableColumn(label: '', width: 220),
-      ],
-      cell: (context, view, column) {
-        final order = view.order;
-        return switch (column) {
-          0 => Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
+    return Text.rich(
+      TextSpan(
+        children: [
+          TextSpan(
+            text: l10n.ordersCount(orders.length),
+            style: const TextStyle(
+              color: AppColors.textPrimary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          if (orders.isNotEmpty) ...[
+            const TextSpan(text: '  ·  '),
+            TextSpan(
+              text: Formatters.price(total),
+              style: const TextStyle(
+                fontFeatures: [FontFeature.tabularFigures()],
+              ),
+            ),
+          ],
+        ],
+      ),
+      style: theme.textTheme.bodyMedium?.copyWith(
+        color: AppColors.textSecondary,
+      ),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+    );
+  }
+}
+
+/// The orders, as the page's one view: date and time, reference, supplier,
+/// status, lines, amount, how much has arrived, and the next action.
+///
+/// Sortable by every column worth comparing. Shapes itself to the room it is
+/// given rather than to the screen, dropping columns in order of how rarely
+/// they are read — lines, then progress, then the reference — while action
+/// buttons fold to icons and the status pill to its glyph. What a dropped
+/// column said moves under the supplier's name.
+///
+/// Below [_stacksBelow] — a phone — there is no room left for columns at all,
+/// and each order becomes a stacked row inside the same frame instead: every
+/// figure still there, none of it panned off the side.
+class _OrdersTable extends ConsumerWidget {
+  const _OrdersTable({
+    required this.storeId,
+    required this.orders,
+    required this.stalePartialDays,
+  });
+
+  final String storeId;
+  final List<OrderRowView> orders;
+  final int stalePartialDays;
+
+  // The widths each column needs to be shown at.
+  static const double _showsLines = 1180;
+  static const double _showsReceived = 1000;
+  static const double _showsReference = 700;
+  static const double _stacksBelow = 600;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final sort = ref.watch(ordersSortProvider);
+    final rows = _sorted(orders, sort);
+    final muted = theme.textTheme.bodySmall?.copyWith(
+      color: AppColors.textSecondary,
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        if (width < _stacksBelow) {
+          return _StackedOrders(
+            storeId: storeId,
+            orders: rows,
+            stalePartialDays: stalePartialDays,
+          );
+        }
+        final compactStatus = width < _showsReference;
+        final compactActions = width < 900;
+        final showsReference = width >= _showsReference;
+
+        return AppTable<OrderRowView>(
+          rows: rows,
+          shrinkWrap: true,
+          rowHeight: 64,
+          sortKey: sort.key,
+          sortAscending: sort.ascending,
+          onSort: (key) => ref
+              .read(ordersSortProvider.notifier)
+              .toggle(key as OrdersSortKey),
+          // Only the orders that need chasing get an edge, so a long table
+          // still shows at a glance which deliveries are overdue.
+          rowAccent: (view) => orderIsStale(view.order, stalePartialDays)
+              ? AppColors.lowStock.solid
+              : null,
+          onRowTap: (view) =>
+              context.pushScreen(Routes.toOrder(storeId, view.order.id)),
+          columns: [
+            AppTableColumn(
+              label: l10n.tableColDate,
+              width: 124,
+              sortKey: OrdersSortKey.date,
+            ),
+            AppTableColumn(
+              label: l10n.tableColReference,
+              width: 150,
+              minTableWidth: _showsReference,
+              sortKey: OrdersSortKey.reference,
+            ),
+            AppTableColumn(
+              label: l10n.tableColSupplier,
+              flex: 3,
+              sortKey: OrdersSortKey.supplier,
+            ),
+            AppTableColumn(
+              label: l10n.tableColStatus,
+              width: compactStatus ? 60 : 144,
+              sortKey: compactStatus ? null : OrdersSortKey.status,
+            ),
+            AppTableColumn(
+              label: l10n.tableColLines,
+              width: 84,
+              numeric: true,
+              minTableWidth: _showsLines,
+            ),
+            AppTableColumn(
+              label: l10n.tableColAmount,
+              width: 128,
+              numeric: true,
+              sortKey: OrdersSortKey.amount,
+            ),
+            AppTableColumn(
+              label: l10n.tableColReceived,
+              width: 150,
+              minTableWidth: _showsReceived,
+              sortKey: OrdersSortKey.received,
+            ),
+            AppTableColumn(label: '', width: compactActions ? 128 : 228),
+          ],
+          cell: (context, view, column) {
+            final order = view.order;
+            final at = order.sentAt ?? order.createdAt;
+            return switch (column) {
+              0 => Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    Formatters.date(at),
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.textPrimary,
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
+                    maxLines: 1,
+                  ),
+                  const SizedBox(height: AppSpacing.xxs),
+                  Text(Formatters.time(at), style: muted, maxLines: 1),
+                ],
+              ),
+              1 => Text(
                 order.reference,
-                style: theme.textTheme.titleSmall,
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
-              Text(
-                Formatters.date(order.sentAt ?? order.createdAt),
-                style: theme.textTheme.bodySmall,
+              2 => _SupplierCell(
+                view: view,
+                // What the hidden reference column would have said.
+                subtitle: showsReference ? '' : order.reference,
+              ),
+              3 => Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Flexible(
+                    child: OrderStatusBadge(
+                      status: order.status,
+                      compact: compactStatus,
+                    ),
+                  ),
+                  if (!compactStatus &&
+                      orderIsStale(order, stalePartialDays)) ...[
+                    const SizedBox(width: AppSpacing.xs),
+                    Tooltip(
+                      message: l10n.dashboardStaleOrdersBody,
+                      child: Icon(
+                        LucideIcons.clock,
+                        size: AppSizing.iconSm,
+                        color: AppColors.lowStock.foreground,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              4 => Text(
+                '${order.lines.length}',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+              ),
+              5 => Text(
+                Formatters.price(orderTotal(order)),
+                style: AppTypography.numeric.copyWith(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                ),
                 maxLines: 1,
               ),
-            ],
+              6 =>
+                order.status == PurchaseOrderStatus.draft ||
+                        order.status == PurchaseOrderStatus.cancelled
+                    ? Text(
+                        '—',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: AppColors.textDisabled,
+                        ),
+                      )
+                    : ReceivedProgress(share: orderReceivedShare(order)),
+              _ => Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  OrderDocumentButton(order: order, compact: true),
+                  const SizedBox(width: AppSpacing.xs),
+                  Flexible(
+                    child: _QuickAction(
+                      storeId: storeId,
+                      view: view,
+                      compact: compactActions,
+                    ),
+                  ),
+                ],
+              ),
+            };
+          },
+        );
+      },
+    );
+  }
+
+  static List<OrderRowView> _sorted(
+    List<OrderRowView> orders,
+    OrdersSort sort,
+  ) {
+    final key = sort.key;
+    if (key == null) return orders;
+
+    int compare(OrderRowView a, OrderRowView b) => switch (key) {
+      OrdersSortKey.date => (a.order.sentAt ?? a.order.createdAt).compareTo(
+        b.order.sentAt ?? b.order.createdAt,
+      ),
+      OrdersSortKey.reference => a.order.reference.compareTo(b.order.reference),
+      OrdersSortKey.supplier => a.supplierName.toLowerCase().compareTo(
+        b.supplierName.toLowerCase(),
+      ),
+      OrdersSortKey.status => a.order.status.index.compareTo(
+        b.order.status.index,
+      ),
+      OrdersSortKey.amount => orderTotal(
+        a.order,
+      ).compareTo(orderTotal(b.order)),
+      OrdersSortKey.received => orderReceivedShare(
+        a.order,
+      ).compareTo(orderReceivedShare(b.order)),
+    };
+
+    return [...orders]
+      ..sort((a, b) => sort.ascending ? compare(a, b) : compare(b, a));
+  }
+}
+
+/// The supplier with its initials, and underneath it whatever the narrower
+/// table had to leave out.
+class _SupplierCell extends StatelessWidget {
+  const _SupplierCell({required this.view, required this.subtitle});
+
+  final OrderRowView view;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final text = Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          view.supplierName,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            fontWeight: FontWeight.w600,
+            color: AppColors.textPrimary,
           ),
-          1 => Text(
-            view.supplierName,
-            style: theme.textTheme.bodyMedium,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        if (subtitle.isNotEmpty) ...[
+          const SizedBox(height: AppSpacing.xxs),
+          Text(
+            subtitle,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: AppColors.textSecondary,
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
-          2 => OrderStatusBadge(status: order.status),
-          3 => Text('${order.lines.length}', style: AppTypography.numeric),
-          4 => Text(
-            Formatters.price(orderTotal(order)),
-            style: AppTypography.numeric,
-            maxLines: 1,
+        ],
+      ],
+    );
+
+    return Row(
+      children: [
+        SupplierMonogram(name: view.supplierName, size: 32),
+        const SizedBox(width: AppSpacing.md),
+        Expanded(child: text),
+      ],
+    );
+  }
+}
+
+/// The orders on a phone: the table's frame and its rows, each row stacked
+/// rather than split into columns.
+///
+/// Supplier and amount on top, reference and date underneath, status beside
+/// them, and — for an order still expecting goods — how much has arrived with
+/// the button to receive the rest. Every row keeps a full-size, worded action:
+/// a thumb needs a target, and an unlabelled icon asks it to guess.
+class _StackedOrders extends StatelessWidget {
+  const _StackedOrders({
+    required this.storeId,
+    required this.orders,
+    required this.stalePartialDays,
+  });
+
+  final String storeId;
+  final List<OrderRowView> orders;
+  final int stalePartialDays;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: AppRadius.lgAll,
+        border: Border.all(color: AppColors.border),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (final (i, view) in orders.indexed) ...[
+            if (i > 0) const Divider(height: 1, color: AppColors.hairline),
+            _StackedOrderRow(
+              storeId: storeId,
+              view: view,
+              stale: orderIsStale(view.order, stalePartialDays),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _StackedOrderRow extends StatelessWidget {
+  const _StackedOrderRow({
+    required this.storeId,
+    required this.view,
+    required this.stale,
+  });
+
+  final String storeId;
+  final OrderRowView view;
+  final bool stale;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final order = view.order;
+    final at = order.sentAt ?? order.createdAt;
+    final open =
+        order.status == PurchaseOrderStatus.sent ||
+        order.status == PurchaseOrderStatus.partial;
+
+    return Material(
+      color: AppColors.surface,
+      child: InkWell(
+        onTap: () => context.pushScreen(Routes.toOrder(storeId, order.id)),
+        hoverColor: AppColors.neutral50,
+        child: Container(
+          decoration: BoxDecoration(
+            border: Border(
+              left: BorderSide(
+                width: 3,
+                color: stale ? AppColors.lowStock.solid : Colors.transparent,
+              ),
+            ),
           ),
-          5 =>
-            order.status == PurchaseOrderStatus.draft
-                ? Text('—', style: theme.textTheme.bodySmall)
-                : Row(
-                    children: [
-                      Expanded(
-                        child: ClipRRect(
-                          borderRadius: AppRadius.pillAll,
-                          child: LinearProgressIndicator(
-                            value: _receivedShare(order),
-                            minHeight: 6,
-                            color: AppColors.primary600,
-                            backgroundColor: AppColors.neutral100,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: AppSpacing.sm),
-                      Text(
-                        Formatters.percent(_receivedShare(order)),
-                        style: theme.textTheme.bodySmall,
-                      ),
-                    ],
-                  ),
-          _ => Row(
-            mainAxisAlignment: MainAxisAlignment.end,
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.md,
+            AppSpacing.md,
+            AppSpacing.lg,
+            AppSpacing.md,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              OrderDocumentButton(order: order, compact: true),
-              const SizedBox(width: AppSpacing.xs),
-              Flexible(
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SupplierMonogram(name: view.supplierName, size: 36),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          view.supplierName,
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: AppSpacing.xxs),
+                        Wrap(
+                          spacing: AppSpacing.md,
+                          runSpacing: AppSpacing.xxs,
+                          children: [
+                            MetaItem(
+                              icon: LucideIcons.hash,
+                              label: order.reference,
+                            ),
+                            MetaItem(
+                              icon: LucideIcons.calendar,
+                              label:
+                                  '${Formatters.date(at)} · '
+                                  '${Formatters.time(at)}',
+                            ),
+                            if (stale)
+                              MetaItem(
+                                icon: LucideIcons.clock,
+                                label: l10n.receptionsLate,
+                                color: AppColors.lowStock.foreground,
+                                emphasis: true,
+                              ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  Text(
+                    Formatters.price(orderTotal(order)),
+                    style: AppTypography.numeric.copyWith(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                    ),
+                    maxLines: 1,
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.md),
+              Row(
+                children: [
+                  Flexible(child: OrderStatusBadge(status: order.status)),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: open
+                        ? ReceivedProgress(share: orderReceivedShare(order))
+                        : const SizedBox.shrink(),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.md),
+              SizedBox(
+                width: double.infinity,
                 child: _QuickAction(storeId: storeId, view: view),
               ),
             ],
           ),
-        };
-      },
+        ),
+      ),
     );
   }
 }

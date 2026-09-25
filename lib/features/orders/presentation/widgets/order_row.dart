@@ -8,14 +8,22 @@ import '../../../../core/utils/formatters.dart';
 import '../../../../core/utils/order_status.dart';
 import '../../../../data/view_models/view_models.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 import 'order_status_badge.dart';
+import 'order_visuals.dart';
 
 /// One commande in the orders list.
 ///
 /// Ordered so the eye lands on the supplier first — that is how people refer to
-/// an order out loud ("the Boucherie one") — with the reference underneath for
-/// when they have the paperwork in hand.
+/// an order out loud ("the Boucherie one") — with the reference, date and line
+/// count underneath for when they have the paperwork in hand.
+///
+/// Two layouts from one set of parts. With room, everything sits on one line
+/// in fixed columns so amounts and statuses line up from row to row. Narrower
+/// — a phone, a portrait tablet, a detail pane — the row becomes a small card:
+/// identity and amount on top, progress in the middle, status and the next
+/// action along the bottom.
 class OrderRow extends StatelessWidget {
   const OrderRow({
     required this.view,
@@ -39,133 +47,213 @@ class OrderRow extends StatelessWidget {
   final bool selected;
 
   /// The next thing to do with this order — Envoyer, Réceptionner,
-  /// Dupliquer. At the end of the row with room; under it on a phone.
+  /// Dupliquer. At the end of the row with room; along its bottom otherwise.
   final Widget? action;
+
+  /// Below this the one-line layout's fixed columns leave the supplier name
+  /// too little room — more of it with an action button on the end.
+  double get _wideFrom => action == null ? 760 : 940;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      onTap: onTap,
+      selected: selected,
+      padding: EdgeInsets.zero,
+      child: LayoutBuilder(
+        builder: (context, constraints) => constraints.maxWidth >= _wideFrom
+            ? _wide(context)
+            : _narrow(context),
+      ),
+    );
+  }
+
+  bool get _showsProgress =>
+      view.order.status == PurchaseOrderStatus.sent ||
+      view.order.status == PurchaseOrderStatus.partial;
+
+  Widget _wide(BuildContext context) {
+    final order = view.order;
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.lg,
+        vertical: AppSpacing.md,
+      ),
+      child: Row(
+        children: [
+          SupplierMonogram(name: view.supplierName),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: _Identity(view: view, stale: _stale),
+          ),
+          const SizedBox(width: AppSpacing.lg),
+          SizedBox(
+            width: 140,
+            child: _showsProgress
+                ? ReceivedProgress(share: orderReceivedShare(order))
+                : const SizedBox.shrink(),
+          ),
+          const SizedBox(width: AppSpacing.lg),
+          SizedBox(
+            width: 116,
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: _Amount(order: order),
+            ),
+          ),
+          const SizedBox(width: AppSpacing.lg),
+          SizedBox(
+            width: 128,
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: OrderStatusBadge(status: order.status),
+            ),
+          ),
+          if (action != null) ...[
+            const SizedBox(width: AppSpacing.md),
+            action!,
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _narrow(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final order = view.order;
+    final status = OrderStatusBadge(status: order.status);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SupplierMonogram(name: view.supplierName, size: 40),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: _Identity(view: view, stale: _stale),
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  _Amount(order: order),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.md),
+              // Where the order stands, and how far along its delivery is.
+              Row(
+                children: [
+                  Flexible(child: status),
+                  if (_showsProgress) ...[
+                    const SizedBox(width: AppSpacing.lg),
+                    Expanded(
+                      child: ReceivedProgress(
+                        share: orderReceivedShare(order),
+                        label: l10n.tableColReceived,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ],
+          ),
+        ),
+        // The next step as a footer band across the whole card: a full-width
+        // target for a thumb, and never squeezed against the status beside it.
+        if (action != null)
+          Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md,
+              vertical: AppSpacing.sm,
+            ),
+            decoration: const BoxDecoration(
+              color: AppColors.neutral50,
+              border: Border(top: BorderSide(color: AppColors.hairline)),
+            ),
+            child: SizedBox(width: double.infinity, child: action),
+          ),
+      ],
+    );
+  }
+
+  bool get _stale => orderIsStale(view.order, stalePartialDays);
+}
+
+/// Supplier on top; reference, date and line count underneath.
+class _Identity extends StatelessWidget {
+  const _Identity({required this.view, required this.stale});
+
+  final OrderRowView view;
+  final bool stale;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final order = view.order;
-    final colors = OrderStatusBadge.colorsFor(order.status);
-    final stale = orderIsStale(order, stalePartialDays);
 
-    return AppCard(
-      onTap: onTap,
-      selected: selected,
-      accentColor: colors.solid,
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.lg,
-        vertical: AppSpacing.md,
-      ),
-      child: _withAction(
-        context,
-        Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          view.supplierName,
+          style: theme.textTheme.titleSmall?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        const SizedBox(height: AppSpacing.xs),
+        Wrap(
+          spacing: AppSpacing.md,
+          runSpacing: AppSpacing.xxs,
           children: [
-            Expanded(
-              flex: 4,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    view.supplierName,
-                    style: theme.textTheme.titleSmall,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  Text(
-                    order.reference,
-                    style: theme.textTheme.bodySmall,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
+            MetaItem(icon: LucideIcons.hash, label: order.reference),
+            MetaItem(
+              icon: LucideIcons.calendar,
+              label: Formatters.date(order.sentAt ?? order.createdAt),
             ),
-            const SizedBox(width: AppSpacing.md),
-
-            Expanded(
-              flex: 3,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    Formatters.date(order.sentAt ?? order.createdAt),
-                    style: theme.textTheme.bodyMedium,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  Text(
-                    l10n.ordersColumnLines(order.lines.length),
-                    style: theme.textTheme.bodySmall,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
+            MetaItem(
+              icon: LucideIcons.listChecks,
+              label: l10n.ordersColumnLines(order.lines.length),
             ),
-            const SizedBox(width: AppSpacing.md),
-
             // Flagged here as well as on the dashboard: somebody scanning the
             // list should not have to do the date arithmetic themselves.
-            if (stale) ...[
+            if (stale)
               Tooltip(
                 message: l10n.dashboardStaleOrdersBody,
-                child: const Icon(
-                  LucideIcons.clock,
-                  size: AppSizing.iconMd,
-                  color: AppColors.warning,
+                child: MetaItem(
+                  icon: LucideIcons.clock,
+                  label: l10n.receptionsLate,
+                  color: AppColors.lowStock.foreground,
+                  emphasis: true,
                 ),
               ),
-              const SizedBox(width: AppSpacing.md),
-            ],
-
-            Expanded(
-              flex: 2,
-              child: Align(
-                alignment: Alignment.centerRight,
-                child: Text(
-                  Formatters.price(orderTotal(order)),
-                  style: AppTypography.numeric,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.right,
-                ),
-              ),
-            ),
-            const SizedBox(width: AppSpacing.md),
-
-            SizedBox(width: 132, child: OrderStatusBadge(status: order.status)),
           ],
         ),
-      ),
+      ],
     );
   }
+}
 
-  Widget _withAction(BuildContext context, Widget row) {
-    if (action == null) return row;
-    // Beside the row only with room for both; the row's own columns need
-    // about five hundred pixels, and squeezed any narrower they overflow.
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        if (constraints.maxWidth < 760) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              row,
-              const SizedBox(height: AppSpacing.sm),
-              Align(alignment: Alignment.centerRight, child: action),
-            ],
-          );
-        }
-        return Row(
-          children: [
-            Expanded(child: row),
-            const SizedBox(width: AppSpacing.md),
-            action!,
-          ],
-        );
-      },
+class _Amount extends StatelessWidget {
+  const _Amount({required this.order});
+
+  final PurchaseOrder order;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      Formatters.price(orderTotal(order)),
+      style: AppTypography.numeric.copyWith(fontWeight: FontWeight.w700),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      textAlign: TextAlign.right,
     );
   }
 }
