@@ -151,6 +151,10 @@ class _ItemFormState extends ConsumerState<_ItemForm> {
   /// while the number is still being typed complains about every number.
   bool _maxBelowThreshold = false;
 
+  /// Set at save time when an explicit busy-week minimum does not clear the
+  /// ordinary one, which would make it useless.
+  bool _holidayBelowThreshold = false;
+
   /// Set at save time when the minimum is still zero.
   ///
   /// Both bounds are required. They were optional, and a maximum of zero meant
@@ -182,6 +186,10 @@ class _ItemFormState extends ConsumerState<_ItemForm> {
   double _threshold = 0;
   double _maxStock = 0;
 
+  /// Zero means "not set", and is stored as null — see `holidayMinimumOf`.
+  /// The stepper has no other way to say "leave it to follow the minimum".
+  double _holidayMinimum = 0;
+
   // Snapshot taken in initState. The dirty check compares against these rather
   // than tracking a flag, so undoing an edit back to its original value
   // correctly stops counting as unsaved.
@@ -194,6 +202,7 @@ class _ItemFormState extends ConsumerState<_ItemForm> {
   String? _initialImagePath;
   double _initialThreshold = 0;
   double _initialMaxStock = 0;
+  double _initialHolidayMinimum = 0;
 
   bool get _isEditing => widget.existing != null;
 
@@ -212,6 +221,7 @@ class _ItemFormState extends ConsumerState<_ItemForm> {
       _quantity = existing.quantity;
       _threshold = existing.lowStockThreshold;
       _maxStock = existing.maxStock;
+      _holidayMinimum = existing.holidayLowStockThreshold ?? 0;
       _defaultSupplierId = existing.defaultSupplierId;
       _imagePath = existing.imagePath;
     }
@@ -223,6 +233,7 @@ class _ItemFormState extends ConsumerState<_ItemForm> {
     _initialUnitId = _unitId;
     _initialThreshold = _threshold;
     _initialMaxStock = _maxStock;
+    _initialHolidayMinimum = _holidayMinimum;
     _initialDefaultSupplierId = _defaultSupplierId;
     _initialImagePath = _imagePath;
   }
@@ -249,6 +260,7 @@ class _ItemFormState extends ConsumerState<_ItemForm> {
       _unitId != _initialUnitId ||
       _threshold != _initialThreshold ||
       _maxStock != _initialMaxStock ||
+      _holidayMinimum != _initialHolidayMinimum ||
       _defaultSupplierId != _initialDefaultSupplierId ||
       _imagePath != _initialImagePath;
 
@@ -295,10 +307,13 @@ class _ItemFormState extends ConsumerState<_ItemForm> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          AppCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
+          // Four blocks instead of one run of ten fields. The stock rules in
+          // particular were lost between a barcode and a note; they decide when
+          // the product is flagged and how much a commande orders, and they
+          // deserve to be findable as a group.
+          _FormSection(
+            title: l10n.itemFormSectionIdentity,
+            children: [
                 // First, because it is the only field somebody can answer
                 // without reading a label, and because the product grid is now
                 // mostly photographs — a form that buried this under six text
@@ -316,6 +331,51 @@ class _ItemFormState extends ConsumerState<_ItemForm> {
                   onChanged: (_) => setState(() {}),
                 ),
                 const SizedBox(height: AppSpacing.lg),
+
+                // Optional, and the label says so. Most restaurant stock —
+                // produce, meat, fish, bread — arrives loose with nothing to
+                // scan, so a field that looked required would be wrong far more
+                // often than it was right.
+                //
+                // It sits with the name because that is what it is: another way
+                // of naming this exact product.
+                AppTextField(
+                  label: l10n.itemBarcodeLabel,
+                  controller: _barcodeController,
+                  hint: l10n.itemBarcodeHint,
+                  helperText: _barcodeConflictName == null
+                      ? l10n.itemBarcodeHelp
+                      : null,
+                  errorText: _barcodeConflictName == null
+                      ? null
+                      : l10n.itemBarcodeDuplicate(_barcodeConflictName!),
+                  // Numeric by default because most barcodes are digits, but
+                  // input is *not* restricted to them: internal and regional
+                  // codes contain letters, and a field that silently refuses a
+                  // real barcode is worse than one that accepts a wrong one.
+                  keyboardType: TextInputType.number,
+                  suffixIcon: IconButton(
+                    // The scan button's seat, kept warm. Disabled rather than
+                    // absent so adding the camera later is a swap rather than a
+                    // reflow of the field around a control that appeared.
+                    onPressed: null,
+                    tooltip: l10n.itemBarcodeScanTooltip,
+                    icon: const Icon(LucideIcons.scanLine),
+                  ),
+                  onChanged: (_) => setState(() {
+                    // Clearing on edit rather than on save: leaving a stale
+                    // error under a field the user has already fixed is how a
+                    // form starts feeling broken.
+                    _barcodeConflictName = null;
+                  }),
+                ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.lg),
+
+          _FormSection(
+            title: l10n.itemFormSectionClassification,
+            children: [
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -383,52 +443,14 @@ class _ItemFormState extends ConsumerState<_ItemForm> {
                           : value,
                     ),
                   ),
-                  const SizedBox(height: AppSpacing.lg),
                 ],
-
-                // Optional, and the label says so. Most restaurant stock —
-                // produce, meat, fish, bread — arrives loose with nothing to
-                // scan, so a field that looked required would be wrong far more
-                // often than it was right.
-                AppTextField(
-                  label: l10n.itemBarcodeLabel,
-                  controller: _barcodeController,
-                  hint: l10n.itemBarcodeHint,
-                  helperText: _barcodeConflictName == null
-                      ? l10n.itemBarcodeHelp
-                      : null,
-                  errorText: _barcodeConflictName == null
-                      ? null
-                      : l10n.itemBarcodeDuplicate(_barcodeConflictName!),
-                  // Numeric by default because most barcodes are digits, but
-                  // input is *not* restricted to them: internal and regional
-                  // codes contain letters, and a field that silently refuses a
-                  // real barcode is worse than one that accepts a wrong one.
-                  keyboardType: TextInputType.number,
-                  suffixIcon: IconButton(
-                    // The scan button's seat, kept warm. Disabled rather than
-                    // absent so adding the camera later is a swap rather than a
-                    // reflow of the field around a control that appeared.
-                    onPressed: null,
-                    tooltip: l10n.itemBarcodeScanTooltip,
-                    icon: const Icon(LucideIcons.scanLine),
-                  ),
-                  onChanged: (_) => setState(() {
-                    // Clearing on edit rather than on save: leaving a stale
-                    // error under a field the user has already fixed is how a
-                    // form starts feeling broken.
-                    _barcodeConflictName = null;
-                  }),
-                ),
-              ],
-            ),
+            ],
           ),
           const SizedBox(height: AppSpacing.lg),
 
-          AppCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+          _FormSection(
+            title: l10n.itemFormSectionLevels,
+            children: [
                 // The quantity appears here on an edit and nowhere on a create,
                 // because this form describes the product rather than its
                 // stock.
@@ -516,21 +538,61 @@ class _ItemFormState extends ConsumerState<_ItemForm> {
                         : null,
                   ),
                 ),
-              ],
-            ),
+
+                // The busy-week minimum: a holiday, a festival, the run-up to
+                // a long weekend. Optional, and left alone it follows twice the
+                // ordinary minimum rather than being written down — so raising
+                // the minimum later raises this too.
+                //
+                // Nothing reads it yet. It is captured now so the figure is
+                // already there when the app starts using it.
+                const SizedBox(height: AppSpacing.xl),
+                Text(
+                  l10n.itemHolidayMinLabel,
+                  style: Theme.of(context).textTheme.labelMedium,
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                QuantityStepper(
+                  value: _holidayMinimum,
+                  unitAbbreviation: unitAbbreviation,
+                  onChanged: (value) => setState(() {
+                    _holidayMinimum = value;
+                    _holidayBelowThreshold = false;
+                  }),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                Text(
+                  _holidayBelowThreshold
+                      ? l10n.itemHolidayMinInvalid
+                      // Names the figure it falls back to, worked out from the
+                      // minimum currently typed above — so the default is
+                      // visible without being written into the field, where
+                      // nobody would remember they had not chosen it.
+                      : l10n.itemHolidayMinHelp(
+                          Formatters.quantityWithUnit(
+                            _threshold * 2,
+                            unitAbbreviation,
+                          ),
+                        ),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: _holidayBelowThreshold
+                        ? Theme.of(context).colorScheme.error
+                        : null,
+                  ),
+                ),
+            ],
           ),
           const SizedBox(height: AppSpacing.lg),
 
-          // The explanation for the missing cost field.
-          _NoCostNotice(),
-          const SizedBox(height: AppSpacing.lg),
-
-          AppCard(
-            child: AppTextField(
-              label: l10n.itemNoteLabel,
-              controller: _noteController,
-              maxLines: 3,
-            ),
+          _FormSection(
+            title: l10n.itemFormSectionNote,
+            children: [
+              AppTextField(
+                label: l10n.itemNoteLabel,
+                controller: _noteController,
+                maxLines: 3,
+              ),
+            ],
           ),
         ],
       ),
@@ -581,10 +643,16 @@ class _ItemFormState extends ConsumerState<_ItemForm> {
       minimum: _threshold,
       maximum: _maxStock,
     );
-    if (problems.minimumMissing || problems.maximumTooLow) {
+    // A busy week needs more than an ordinary one, so an explicit figure that
+    // does not clear the ordinary minimum is not a busy-week minimum. Zero is
+    // the exception and means "not set", which is the field's default state.
+    final holidayTooLow =
+        _holidayMinimum > 0 && _holidayMinimum <= _threshold;
+    if (problems.minimumMissing || problems.maximumTooLow || holidayTooLow) {
       setState(() {
         _thresholdMissing = problems.minimumMissing;
         _maxBelowThreshold = problems.maximumTooLow;
+        _holidayBelowThreshold = holidayTooLow;
       });
       return;
     }
@@ -619,6 +687,10 @@ class _ItemFormState extends ConsumerState<_ItemForm> {
         unitId: _unitId,
         lowStockThreshold: _threshold,
         maxStock: _maxStock,
+        holidayLowStockThreshold: _holidayMinimum > 0 ? _holidayMinimum : null,
+        // Emptying the field puts the product back to following twice its
+        // ordinary minimum, rather than leaving the last figure behind.
+        clearHolidayMinimum: _holidayMinimum <= 0,
         barcode: barcode,
         clearBarcode: barcode.isEmpty,
         note: note,
@@ -640,6 +712,7 @@ class _ItemFormState extends ConsumerState<_ItemForm> {
         // a movement behind saying where the stock came from and what it cost.
         lowStockThreshold: _threshold,
         maxStock: _maxStock,
+        holidayLowStockThreshold: _holidayMinimum > 0 ? _holidayMinimum : null,
         barcode: barcode.isEmpty ? null : barcode,
         note: note.isEmpty ? null : note,
         // No default supplier: the field is edit-only, because a product being
@@ -699,49 +772,47 @@ class _QuantityFact extends StatelessWidget {
   }
 }
 
-class _NoCostNotice extends StatelessWidget {
+/// One block of the product form: a small heading over a card of fields.
+///
+/// The form was a single card of ten fields, where a barcode and a note sat
+/// between the rules that decide when a product is flagged and how much a
+/// commande orders. Blocks make those rules findable as a group, and give the
+/// eye somewhere to rest on a form long enough to scroll.
+///
+/// The heading is outside the card rather than inside it, so it reads as a
+/// label on the group rather than as a first field.
+class _FormSection extends StatelessWidget {
+  const _FormSection({required this.title, required this.children});
+
+  final String title;
+  final List<Widget> children;
+
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      decoration: const BoxDecoration(
-        color: AppColors.primaryContainer,
-        borderRadius: AppRadius.mdAll,
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Icon(
-            LucideIcons.info,
-            color: AppColors.onPrimaryContainer,
-            size: AppSizing.iconLg,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(
+            left: AppSpacing.xs,
+            bottom: AppSpacing.sm,
           ),
-          const SizedBox(width: AppSpacing.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  l10n.itemFormNoCostTitle,
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    color: AppColors.onPrimaryContainer,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.xs),
-                Text(
-                  l10n.itemFormNoCostBody,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: AppColors.onPrimaryContainer,
-                  ),
-                ),
-              ],
+          child: Text(
+            title.toUpperCase(),
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+              color: AppColors.textSecondary,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.8,
             ),
           ),
-        ],
-      ),
+        ),
+        AppCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: children,
+          ),
+        ),
+      ],
     );
   }
 }

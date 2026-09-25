@@ -2024,6 +2024,17 @@ class $ItemsTable extends Items with TableInfo<$ItemsTable, ItemRow> {
     requiredDuringInsert: false,
     defaultValue: const Constant(0),
   );
+  static const VerificationMeta _holidayLowStockThresholdMeta =
+      const VerificationMeta('holidayLowStockThreshold');
+  @override
+  late final GeneratedColumn<double> holidayLowStockThreshold =
+      GeneratedColumn<double>(
+        'holiday_low_stock_threshold',
+        aliasedName,
+        true,
+        type: DriftSqlType.double,
+        requiredDuringInsert: false,
+      );
   static const VerificationMeta _updatedAtMeta = const VerificationMeta(
     'updatedAt',
   );
@@ -2099,6 +2110,7 @@ class $ItemsTable extends Items with TableInfo<$ItemsTable, ItemRow> {
     quantity,
     lowStockThreshold,
     maxStock,
+    holidayLowStockThreshold,
     updatedAt,
     averageCost,
     defaultSupplierId,
@@ -2178,6 +2190,15 @@ class $ItemsTable extends Items with TableInfo<$ItemsTable, ItemRow> {
       context.handle(
         _maxStockMeta,
         maxStock.isAcceptableOrUnknown(data['max_stock']!, _maxStockMeta),
+      );
+    }
+    if (data.containsKey('holiday_low_stock_threshold')) {
+      context.handle(
+        _holidayLowStockThresholdMeta,
+        holidayLowStockThreshold.isAcceptableOrUnknown(
+          data['holiday_low_stock_threshold']!,
+          _holidayLowStockThresholdMeta,
+        ),
       );
     }
     if (data.containsKey('updated_at')) {
@@ -2265,6 +2286,10 @@ class $ItemsTable extends Items with TableInfo<$ItemsTable, ItemRow> {
         DriftSqlType.double,
         data['${effectivePrefix}max_stock'],
       )!,
+      holidayLowStockThreshold: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}holiday_low_stock_threshold'],
+      ),
       updatedAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}updated_at'],
@@ -2329,6 +2354,16 @@ class ItemRow extends DataClass implements Insertable<ItemRow> {
   /// so the sentinel cannot collide with a real value. Defaulted rather than
   /// backfilled, so a database upgraded in place reads what a fresh one would.
   final double maxStock;
+
+  /// The minimum to hold when the place is busy — a holiday week, a festival,
+  /// the run-up to a long weekend.
+  ///
+  /// **Nullable, and null is not zero.** Null means "nobody has set one", which
+  /// is what lets `holidayMinimumOf` answer with twice the ordinary minimum and
+  /// keep answering correctly after that minimum is edited. A stored figure
+  /// would freeze the doubling at whatever the minimum happened to be the day
+  /// the product was saved.
+  final double? holidayLowStockThreshold;
   final DateTime updatedAt;
 
   /// Weighted average cost (CUMP) of the stock on hand, in EUR.
@@ -2373,6 +2408,7 @@ class ItemRow extends DataClass implements Insertable<ItemRow> {
     required this.quantity,
     required this.lowStockThreshold,
     required this.maxStock,
+    this.holidayLowStockThreshold,
     required this.updatedAt,
     this.averageCost,
     this.defaultSupplierId,
@@ -2391,6 +2427,11 @@ class ItemRow extends DataClass implements Insertable<ItemRow> {
     map['quantity'] = Variable<double>(quantity);
     map['low_stock_threshold'] = Variable<double>(lowStockThreshold);
     map['max_stock'] = Variable<double>(maxStock);
+    if (!nullToAbsent || holidayLowStockThreshold != null) {
+      map['holiday_low_stock_threshold'] = Variable<double>(
+        holidayLowStockThreshold,
+      );
+    }
     map['updated_at'] = Variable<DateTime>(updatedAt);
     if (!nullToAbsent || averageCost != null) {
       map['average_cost'] = Variable<double>(averageCost);
@@ -2420,6 +2461,9 @@ class ItemRow extends DataClass implements Insertable<ItemRow> {
       quantity: Value(quantity),
       lowStockThreshold: Value(lowStockThreshold),
       maxStock: Value(maxStock),
+      holidayLowStockThreshold: holidayLowStockThreshold == null && nullToAbsent
+          ? const Value.absent()
+          : Value(holidayLowStockThreshold),
       updatedAt: Value(updatedAt),
       averageCost: averageCost == null && nullToAbsent
           ? const Value.absent()
@@ -2451,6 +2495,9 @@ class ItemRow extends DataClass implements Insertable<ItemRow> {
       quantity: serializer.fromJson<double>(json['quantity']),
       lowStockThreshold: serializer.fromJson<double>(json['lowStockThreshold']),
       maxStock: serializer.fromJson<double>(json['maxStock']),
+      holidayLowStockThreshold: serializer.fromJson<double?>(
+        json['holidayLowStockThreshold'],
+      ),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       averageCost: serializer.fromJson<double?>(json['averageCost']),
       defaultSupplierId: serializer.fromJson<String?>(
@@ -2473,6 +2520,9 @@ class ItemRow extends DataClass implements Insertable<ItemRow> {
       'quantity': serializer.toJson<double>(quantity),
       'lowStockThreshold': serializer.toJson<double>(lowStockThreshold),
       'maxStock': serializer.toJson<double>(maxStock),
+      'holidayLowStockThreshold': serializer.toJson<double?>(
+        holidayLowStockThreshold,
+      ),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'averageCost': serializer.toJson<double?>(averageCost),
       'defaultSupplierId': serializer.toJson<String?>(defaultSupplierId),
@@ -2491,6 +2541,7 @@ class ItemRow extends DataClass implements Insertable<ItemRow> {
     double? quantity,
     double? lowStockThreshold,
     double? maxStock,
+    Value<double?> holidayLowStockThreshold = const Value.absent(),
     DateTime? updatedAt,
     Value<double?> averageCost = const Value.absent(),
     Value<String?> defaultSupplierId = const Value.absent(),
@@ -2506,6 +2557,9 @@ class ItemRow extends DataClass implements Insertable<ItemRow> {
     quantity: quantity ?? this.quantity,
     lowStockThreshold: lowStockThreshold ?? this.lowStockThreshold,
     maxStock: maxStock ?? this.maxStock,
+    holidayLowStockThreshold: holidayLowStockThreshold.present
+        ? holidayLowStockThreshold.value
+        : this.holidayLowStockThreshold,
     updatedAt: updatedAt ?? this.updatedAt,
     averageCost: averageCost.present ? averageCost.value : this.averageCost,
     defaultSupplierId: defaultSupplierId.present
@@ -2529,6 +2583,9 @@ class ItemRow extends DataClass implements Insertable<ItemRow> {
           ? data.lowStockThreshold.value
           : this.lowStockThreshold,
       maxStock: data.maxStock.present ? data.maxStock.value : this.maxStock,
+      holidayLowStockThreshold: data.holidayLowStockThreshold.present
+          ? data.holidayLowStockThreshold.value
+          : this.holidayLowStockThreshold,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       averageCost: data.averageCost.present
           ? data.averageCost.value
@@ -2553,6 +2610,7 @@ class ItemRow extends DataClass implements Insertable<ItemRow> {
           ..write('quantity: $quantity, ')
           ..write('lowStockThreshold: $lowStockThreshold, ')
           ..write('maxStock: $maxStock, ')
+          ..write('holidayLowStockThreshold: $holidayLowStockThreshold, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('averageCost: $averageCost, ')
           ..write('defaultSupplierId: $defaultSupplierId, ')
@@ -2573,6 +2631,7 @@ class ItemRow extends DataClass implements Insertable<ItemRow> {
     quantity,
     lowStockThreshold,
     maxStock,
+    holidayLowStockThreshold,
     updatedAt,
     averageCost,
     defaultSupplierId,
@@ -2592,6 +2651,7 @@ class ItemRow extends DataClass implements Insertable<ItemRow> {
           other.quantity == this.quantity &&
           other.lowStockThreshold == this.lowStockThreshold &&
           other.maxStock == this.maxStock &&
+          other.holidayLowStockThreshold == this.holidayLowStockThreshold &&
           other.updatedAt == this.updatedAt &&
           other.averageCost == this.averageCost &&
           other.defaultSupplierId == this.defaultSupplierId &&
@@ -2609,6 +2669,7 @@ class ItemsCompanion extends UpdateCompanion<ItemRow> {
   final Value<double> quantity;
   final Value<double> lowStockThreshold;
   final Value<double> maxStock;
+  final Value<double?> holidayLowStockThreshold;
   final Value<DateTime> updatedAt;
   final Value<double?> averageCost;
   final Value<String?> defaultSupplierId;
@@ -2625,6 +2686,7 @@ class ItemsCompanion extends UpdateCompanion<ItemRow> {
     this.quantity = const Value.absent(),
     this.lowStockThreshold = const Value.absent(),
     this.maxStock = const Value.absent(),
+    this.holidayLowStockThreshold = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.averageCost = const Value.absent(),
     this.defaultSupplierId = const Value.absent(),
@@ -2642,6 +2704,7 @@ class ItemsCompanion extends UpdateCompanion<ItemRow> {
     required double quantity,
     required double lowStockThreshold,
     this.maxStock = const Value.absent(),
+    this.holidayLowStockThreshold = const Value.absent(),
     required DateTime updatedAt,
     this.averageCost = const Value.absent(),
     this.defaultSupplierId = const Value.absent(),
@@ -2666,6 +2729,7 @@ class ItemsCompanion extends UpdateCompanion<ItemRow> {
     Expression<double>? quantity,
     Expression<double>? lowStockThreshold,
     Expression<double>? maxStock,
+    Expression<double>? holidayLowStockThreshold,
     Expression<DateTime>? updatedAt,
     Expression<double>? averageCost,
     Expression<String>? defaultSupplierId,
@@ -2683,6 +2747,8 @@ class ItemsCompanion extends UpdateCompanion<ItemRow> {
       if (quantity != null) 'quantity': quantity,
       if (lowStockThreshold != null) 'low_stock_threshold': lowStockThreshold,
       if (maxStock != null) 'max_stock': maxStock,
+      if (holidayLowStockThreshold != null)
+        'holiday_low_stock_threshold': holidayLowStockThreshold,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (averageCost != null) 'average_cost': averageCost,
       if (defaultSupplierId != null) 'default_supplier_id': defaultSupplierId,
@@ -2702,6 +2768,7 @@ class ItemsCompanion extends UpdateCompanion<ItemRow> {
     Value<double>? quantity,
     Value<double>? lowStockThreshold,
     Value<double>? maxStock,
+    Value<double?>? holidayLowStockThreshold,
     Value<DateTime>? updatedAt,
     Value<double?>? averageCost,
     Value<String?>? defaultSupplierId,
@@ -2719,6 +2786,8 @@ class ItemsCompanion extends UpdateCompanion<ItemRow> {
       quantity: quantity ?? this.quantity,
       lowStockThreshold: lowStockThreshold ?? this.lowStockThreshold,
       maxStock: maxStock ?? this.maxStock,
+      holidayLowStockThreshold:
+          holidayLowStockThreshold ?? this.holidayLowStockThreshold,
       updatedAt: updatedAt ?? this.updatedAt,
       averageCost: averageCost ?? this.averageCost,
       defaultSupplierId: defaultSupplierId ?? this.defaultSupplierId,
@@ -2756,6 +2825,11 @@ class ItemsCompanion extends UpdateCompanion<ItemRow> {
     if (maxStock.present) {
       map['max_stock'] = Variable<double>(maxStock.value);
     }
+    if (holidayLowStockThreshold.present) {
+      map['holiday_low_stock_threshold'] = Variable<double>(
+        holidayLowStockThreshold.value,
+      );
+    }
     if (updatedAt.present) {
       map['updated_at'] = Variable<DateTime>(updatedAt.value);
     }
@@ -2791,6 +2865,7 @@ class ItemsCompanion extends UpdateCompanion<ItemRow> {
           ..write('quantity: $quantity, ')
           ..write('lowStockThreshold: $lowStockThreshold, ')
           ..write('maxStock: $maxStock, ')
+          ..write('holidayLowStockThreshold: $holidayLowStockThreshold, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('averageCost: $averageCost, ')
           ..write('defaultSupplierId: $defaultSupplierId, ')

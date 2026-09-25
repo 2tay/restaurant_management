@@ -328,6 +328,7 @@ class ItemRepository {
     required String unitId,
     required double lowStockThreshold,
     double maxStock = 0,
+    double? holidayLowStockThreshold,
     double quantity = 0,
     double? openingUnitCost,
     String? barcode,
@@ -356,6 +357,7 @@ class ItemRepository {
         quantity: 0,
         lowStockThreshold: lowStockThreshold,
         maxStock: _usableMaximum(lowStockThreshold, maxStock),
+        holidayLowStockThreshold: holidayLowStockThreshold,
         updatedAt: DateTime.now(),
         defaultSupplierId: defaultSupplierId,
         barcode: cleanBarcode,
@@ -397,11 +399,17 @@ class ItemRepository {
     String? unitId,
     double? lowStockThreshold,
     double? maxStock,
+    double? holidayLowStockThreshold,
     String? barcode,
     String? note,
     String? defaultSupplierId,
     String? imagePath,
     bool clearBarcode = false,
+
+    /// Clears the busy-week minimum, so it goes back to following twice the
+    /// ordinary one. Needed because null already means "leave as it is" for
+    /// every other optional parameter here.
+    bool clearHolidayMinimum = false,
     bool clearNote = false,
     bool clearDefaultSupplier = false,
     bool clearImage = false,
@@ -434,6 +442,11 @@ class ItemRepository {
             lowStockThreshold ?? existing.lowStockThreshold,
           ),
           maxStock: Value(maxStock ?? existing.maxStock),
+          holidayLowStockThreshold: Value(
+            clearHolidayMinimum
+                ? null
+                : holidayLowStockThreshold ?? existing.holidayLowStockThreshold,
+          ),
           updatedAt: Value(DateTime.now()),
           defaultSupplierId: Value(
             clearDefaultSupplier

@@ -84,7 +84,7 @@ class AppDatabase extends _$AppDatabase {
   static const String databaseName = 'stock_inventory';
 
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -208,6 +208,14 @@ class AppDatabase extends _$AppDatabase {
         ]) {
           await m.addColumn(stores, column);
         }
+      }
+
+      // v8 → v9: `items.holidayLowStockThreshold`, the minimum to hold in a
+      // busy week. Nullable with no default and no backfill, because null is
+      // the meaningful state: it means nobody has set one, and the figure is
+      // then derived as twice the ordinary minimum rather than stored.
+      if (from < 9) {
+        await m.addColumn(items, items.holidayLowStockThreshold);
       }
     },
 

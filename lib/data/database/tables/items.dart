@@ -52,6 +52,16 @@ class Items extends Table {
   /// backfilled, so a database upgraded in place reads what a fresh one would.
   RealColumn get maxStock => real().withDefault(const Constant(0))();
 
+  /// The minimum to hold when the place is busy — a holiday week, a festival,
+  /// the run-up to a long weekend.
+  ///
+  /// **Nullable, and null is not zero.** Null means "nobody has set one", which
+  /// is what lets `holidayMinimumOf` answer with twice the ordinary minimum and
+  /// keep answering correctly after that minimum is edited. A stored figure
+  /// would freeze the doubling at whatever the minimum happened to be the day
+  /// the product was saved.
+  RealColumn get holidayLowStockThreshold => real().nullable()();
+
   DateTimeColumn get updatedAt => dateTime()();
 
   /// Weighted average cost (CUMP) of the stock on hand, in EUR.

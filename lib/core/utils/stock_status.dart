@@ -41,6 +41,21 @@ bool needsAttention(Item item) => stockStatusOf(item) != StockStatus.inStock;
 /// for the same article will each suggest the full top-up. `onOrderQuantity`
 /// is the figure that would fix it, and wiring it in is deliberately left for
 /// its own change.
+/// The minimum to hold when the place is busy — a holiday week, a festival, a
+/// long weekend — which is not the minimum that suits an ordinary Tuesday.
+///
+/// Twice the ordinary minimum unless somebody has set a figure. Derived rather
+/// than stored, and that is the whole point: a product whose ordinary minimum
+/// is raised from 8 to 10 should want 20 in a busy week, not the 16 that was
+/// written down the day it was created. Only an explicit figure is kept, and
+/// only an explicit figure stops following.
+///
+/// Doubling because it is the simplest honest guess. It is a placeholder for a
+/// number this establishment has not thought about yet, not a claim that busy
+/// weeks take exactly twice the stock.
+double holidayMinimumOf(Item item) =>
+    item.holidayLowStockThreshold ?? item.lowStockThreshold * 2;
+
 /// What is wrong with a product's stock range, if anything.
 ///
 /// A product declares a floor and a ceiling: the minimum it may fall to before

@@ -608,6 +608,30 @@ class AppLocalizationsFr extends AppLocalizations {
       'Vous serez alerté lorsque le stock atteindra ce niveau ou passera en dessous.';
 
   @override
+  String get itemHolidayMinLabel => 'Stock minimum en forte affluence';
+
+  @override
+  String itemHolidayMinHelp(String quantity) {
+    return 'Facultatif. Laissez vide pour le double du stock minimum, soit $quantity.';
+  }
+
+  @override
+  String get itemHolidayMinInvalid =>
+      'Le minimum en forte affluence doit dépasser le stock minimum.';
+
+  @override
+  String get itemFormSectionIdentity => 'Identité';
+
+  @override
+  String get itemFormSectionClassification => 'Classement';
+
+  @override
+  String get itemFormSectionLevels => 'Niveaux de stock';
+
+  @override
+  String get itemFormSectionNote => 'Note';
+
+  @override
   String get itemMaxStockLabel => 'Stock maximum';
 
   @override

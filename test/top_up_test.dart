@@ -126,4 +126,28 @@ void main() {
       expect(problems.maximumTooLow, isTrue);
     });
   });
+
+  // The busy-week minimum, which is derived rather than stored so it keeps
+  // following the ordinary one.
+  group('the busy-week minimum', () {
+    test('doubles the ordinary minimum when none is set', () {
+      expect(holidayMinimumOf(item(quantity: 0, threshold: 8)), 16);
+    });
+
+    test('follows the ordinary minimum when that changes', () {
+      // The whole reason it is not stored: a product whose minimum is raised
+      // from 8 to 10 should want 20 in a busy week, not the 16 that would have
+      // been written down the day it was created.
+      expect(holidayMinimumOf(item(quantity: 0, threshold: 10)), 20);
+    });
+
+    test('an explicit figure is kept, and stops following', () {
+      final explicit = item(
+        quantity: 0,
+        threshold: 8,
+      ).copyWith(holidayLowStockThreshold: 25);
+
+      expect(holidayMinimumOf(explicit), 25);
+    });
+  });
 }

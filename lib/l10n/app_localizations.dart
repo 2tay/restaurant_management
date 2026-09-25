@@ -1150,6 +1150,48 @@ abstract class AppLocalizations {
   /// **'Vous serez alerté lorsque le stock atteindra ce niveau ou passera en dessous.'**
   String get itemFormThresholdHelp;
 
+  /// Optional field: the minimum to hold during a busy period, as opposed to an ordinary week.
+  ///
+  /// In fr, this message translates to:
+  /// **'Stock minimum en forte affluence'**
+  String get itemHolidayMinLabel;
+
+  /// Helper under the busy-week minimum. Names the figure the product falls back to, worked out from the minimum currently typed above, so the default is visible without being written into the field.
+  ///
+  /// In fr, this message translates to:
+  /// **'Facultatif. Laissez vide pour le double du stock minimum, soit {quantity}.'**
+  String itemHolidayMinHelp(String quantity);
+
+  /// Shown when an explicit busy-week minimum is at or below the ordinary one, which would make it useless.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le minimum en forte affluence doit dépasser le stock minimum.'**
+  String get itemHolidayMinInvalid;
+
+  /// Product form section: the photo, the name and the barcode — what identifies this product.
+  ///
+  /// In fr, this message translates to:
+  /// **'Identité'**
+  String get itemFormSectionIdentity;
+
+  /// Product form section: category, unit and default supplier.
+  ///
+  /// In fr, this message translates to:
+  /// **'Classement'**
+  String get itemFormSectionClassification;
+
+  /// Product form section: the quantity on hand and the three stock thresholds.
+  ///
+  /// In fr, this message translates to:
+  /// **'Niveaux de stock'**
+  String get itemFormSectionLevels;
+
+  /// Product form section: free text about the product.
+  ///
+  /// In fr, this message translates to:
+  /// **'Note'**
+  String get itemFormSectionNote;
+
   /// Label for the quantity a full shelf of this product holds. Sits directly under the alert threshold on the product form, and is the figure a commande tops up to.
   ///
   /// In fr, this message translates to:

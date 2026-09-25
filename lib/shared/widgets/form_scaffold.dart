@@ -170,6 +170,11 @@ class _ActionBar extends StatelessWidget {
         horizontal: context.isPhone ? AppSpacing.lg : AppSpacing.xl,
         vertical: AppSpacing.lg,
       ),
+      // Top-left, and deliberately: `ShellPage` aligns the form's own column
+      // the same way, under the same `maxWidth` and the same page insets. The
+      // buttons therefore land under the fields they submit — Annuler under
+      // the form's left edge, Enregistrer under its right — and centring this
+      // bar would be what pulled them out of line, not what fixed it.
       child: Align(
         alignment: Alignment.topLeft,
         child: ConstrainedBox(

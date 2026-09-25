@@ -24,6 +24,7 @@ class Item {
     required this.lowStockThreshold,
     required this.updatedAt,
     this.maxStock = 0,
+    this.holidayLowStockThreshold,
     this.averageCost,
     this.defaultSupplierId,
     this.barcode,
@@ -55,6 +56,11 @@ class Item {
   /// `data/database/tables/items.dart`. The form refuses a maximum at or below
   /// [lowStockThreshold], so a non-zero value always leaves room to order into.
   final double maxStock;
+
+  /// The minimum to hold when the place is busy, or null when nobody has set
+  /// one — see `holidayMinimumOf` in `core/utils/stock_status.dart`, which is
+  /// the only thing that should read this directly.
+  final double? holidayLowStockThreshold;
 
   final DateTime updatedAt;
 
@@ -117,6 +123,7 @@ class Item {
   /// accepted rather than worked around: a cost is unknown only until the first
   /// movement that knows one, and it never becomes unknown again.
   Item copyWith({
+    double? holidayLowStockThreshold,
     String? name,
     String? categoryId,
     String? unitId,
@@ -139,6 +146,8 @@ class Item {
       quantity: quantity ?? this.quantity,
       lowStockThreshold: lowStockThreshold ?? this.lowStockThreshold,
       maxStock: maxStock ?? this.maxStock,
+      holidayLowStockThreshold:
+          holidayLowStockThreshold ?? this.holidayLowStockThreshold,
       updatedAt: updatedAt ?? this.updatedAt,
       averageCost: averageCost ?? this.averageCost,
       defaultSupplierId: defaultSupplierId ?? this.defaultSupplierId,
