@@ -103,7 +103,7 @@ screen, paste it into the inventory search, and it finds the item.
 
 ### Fonts
 
-The app uses **Montserrat**, bundled in `fonts/` (Regular / Medium / SemiBold / Bold,
+The app uses **Inter**, bundled in `fonts/` (Light / Regular / Medium / SemiBold / Bold,
 SIL OFL 1.1) and declared under `fonts:` in `pubspec.yaml`.
 
 `google_fonts` is deliberately not used — it fetches over the network at runtime, which is

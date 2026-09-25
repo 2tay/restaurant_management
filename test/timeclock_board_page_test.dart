@@ -90,7 +90,7 @@ void main() {
   testApp('header: title and paragraph left; date, time and full screen on '
       'one line at the right', (tester) async {
     // Wide: the test font draws every glyph a full em — at 1280 the title and
-    // the clock would not share a line here, though they do in Montserrat.
+    // the clock would not share a line here, though they do in Inter.
     await _openBoard(tester, size: const Size(2000, 900));
 
     final clock = find.byKey(const ValueKey('live-date-time'));

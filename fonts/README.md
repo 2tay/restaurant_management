@@ -1,9 +1,9 @@
 # Fonts
 
-## Montserrat
+## Inter
 
-`Montserrat-Regular/Medium/SemiBold/Bold.ttf` — SIL Open Font License 1.1
-(`Montserrat-OFL.txt`), © The Montserrat Project Authors.
+`Inter-Light/Regular/Medium/SemiBold/Bold.ttf` (v4.1) — SIL Open Font License
+1.1 (`Inter-OFL.txt`), © The Inter Project Authors.
 
 The app's own typeface (`AppTypography.fontFamily`), declared under `fonts:` in
 `pubspec.yaml`. Static weights rather than the variable font: Flutter picks the
