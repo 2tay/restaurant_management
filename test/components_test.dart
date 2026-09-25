@@ -1284,4 +1284,17 @@ void main() {
       expect(page, 1);
     });
   });
+
+  testWidgets('tooltips: white, brand-green text, no dark box', (tester) async {
+    await tester.pumpWidget(
+      _host(
+        const Tooltip(message: 'Aide', child: Text('?')),
+      ),
+    );
+    final theme = TooltipTheme.of(tester.element(find.text('?')));
+    final box = theme.decoration! as BoxDecoration;
+    expect(box.color, AppColors.white);
+    expect(box.boxShadow, isNotEmpty);
+    expect(theme.textStyle!.color, AppColors.primary600);
+  });
 }
