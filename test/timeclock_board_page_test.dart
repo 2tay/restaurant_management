@@ -194,13 +194,21 @@ void main() {
     expect(inDrawer(find.text('Reprise')), findsOneWidget);
     expect(inDrawer(find.textContaining('Session N°')), findsNothing);
     // Summary under the sessions; nothing to alert.
-    final summary = inDrawer(find.text('Résumé de la journée'));
+    final summary = inDrawer(find.textContaining('Résumé de la journée'));
     expect(summary, findsOneWidget);
     expect(
       tester.getTopLeft(summary).dy,
       greaterThan(tester.getTopLeft(inDrawer(find.text('Reprise'))).dy),
     );
-    expect(inDrawer(find.textContaining('Pauses (1) : 5 min')), findsOneWidget);
+    expect(inDrawer(find.text('Pauses (1)')), findsOneWidget);
+    expect(
+      tester
+          .widget<Text>(
+            inDrawer(find.byKey(const ValueKey('attendance-day-pauses'))),
+          )
+          .data,
+      '5 min',
+    );
     expect(inDrawer(find.text('Alertes')), findsNothing);
   });
 
@@ -234,8 +242,12 @@ void main() {
     );
     // 08:00–12:00 less the two-hour break.
     expect(
-      inDrawer(find.textContaining('Durée totale travaillée : 2 h 00')),
-      findsOneWidget,
+      tester
+          .widget<Text>(
+            inDrawer(find.byKey(const ValueKey('attendance-day-worked'))),
+          )
+          .data,
+      '2 h 00',
     );
     final alerts = inDrawer(find.text('Alertes'));
     expect(alerts, findsOneWidget);
@@ -244,7 +256,7 @@ void main() {
     expect(
       tester.getTopLeft(alerts).dy,
       greaterThan(
-        tester.getTopLeft(inDrawer(find.text('Résumé de la journée'))).dy,
+        tester.getTopLeft(inDrawer(find.textContaining('Résumé de la journée'))).dy,
       ),
     );
     expect(
@@ -275,7 +287,7 @@ void main() {
       findsOneWidget,
     );
     expect(inDrawer(find.textContaining(today)), findsOneWidget);
-    expect(inDrawer(find.text('Résumé de la journée')), findsNothing);
+    expect(inDrawer(find.textContaining('Résumé de la journée')), findsNothing);
     // Centred in the panel, both ways.
     final panel = tester.getRect(inDrawer(find.byType(ListView)));
     final avatar = tester.getCenter(inDrawer(find.byType(EmployeeAvatar)));

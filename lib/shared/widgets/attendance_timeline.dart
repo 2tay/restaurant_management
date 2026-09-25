@@ -11,9 +11,10 @@ import '../../models/models.dart';
 /// de pointage and historique).
 ///
 /// One session reads as a plain timeline — no "Session" heading for a day
-/// that only has the one. Two or more each get a centred `Session N° x`. The
-/// day's alerts (a break over the allowance) live in the drawer's own Alertes
-/// section, not under the sessions; a late Reprise dot still turns amber.
+/// that only has the one. Two or more each get a centred `- - Session N° x - -`
+/// between short dashes, with room between sessions. A short dashed stroke
+/// closes the list. The day's alerts (a break over the allowance) live in the
+/// drawer's own Alertes section; a late Reprise dot still turns amber.
 class AttendanceSessions extends StatelessWidget {
   const AttendanceSessions({
     required this.entry,
@@ -29,27 +30,33 @@ class AttendanceSessions extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final sessions = entry.sessions;
     if (sessions.isEmpty) return const SizedBox.shrink();
-
-    if (sessions.length == 1) {
-      return _EventRail(sessions: sessions, maxBreakMinutes: maxBreakMinutes);
-    }
+    final numbered = sessions.length > 1;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
         for (var i = 0; i < sessions.length; i++) ...[
-          if (i > 0) const SizedBox(height: AppSpacing.lg),
-          _SessionHeading(label: l10n.timeclockSessionTitle(i + 1)),
-          const SizedBox(height: AppSpacing.md),
+          if (i > 0) const SizedBox(height: AppSpacing.xxl),
+          if (numbered) ...[
+            _SessionHeading(label: l10n.timeclockSessionTitle(i + 1)),
+            const SizedBox(height: AppSpacing.lg),
+          ],
           _EventRail(sessions: [sessions[i]], maxBreakMinutes: maxBreakMinutes),
         ],
+        const SizedBox(height: AppSpacing.xl),
+        const Center(
+          child: _DashStroke(
+            key: ValueKey('attendance-sessions-end'),
+            width: 96,
+          ),
+        ),
       ],
     );
   }
 }
 
-/// `Session N° 1`, centred — no rules around it.
+/// `- - - Session N° 1 - - -`, centred.
 class _SessionHeading extends StatelessWidget {
   const _SessionHeading({required this.label});
 
@@ -57,15 +64,64 @@ class _SessionHeading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Text(
-      label,
-      textAlign: TextAlign.center,
-      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-        color: AppColors.textSecondary,
-        fontWeight: FontWeight.w500,
-      ),
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const _DashStroke(width: 32),
+        const SizedBox(width: AppSpacing.sm),
+        Text(
+          label,
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+            color: AppColors.textSecondary,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(width: AppSpacing.sm),
+        const _DashStroke(width: 32),
+      ],
     );
   }
+}
+
+/// A short 1dp dashed stroke.
+class _DashStroke extends StatelessWidget {
+  const _DashStroke({required this.width, super.key});
+
+  final double width;
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+    width: width,
+    height: 1,
+    child: const CustomPaint(painter: _DashPainter(AppColors.borderStrong)),
+  );
+}
+
+class _DashPainter extends CustomPainter {
+  const _DashPainter(this.color);
+
+  final Color color;
+
+  static const double _dash = 4;
+  static const double _gap = 3;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = size.height;
+    final y = size.height / 2;
+    for (var x = 0.0; x < size.width; x += _dash + _gap) {
+      canvas.drawLine(
+        Offset(x, y),
+        Offset((x + _dash).clamp(0, size.width), y),
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_DashPainter old) => old.color != color;
 }
 
 /// Arrivée · Pause · Reprise · … · Départ down a thin rail. A break that ran

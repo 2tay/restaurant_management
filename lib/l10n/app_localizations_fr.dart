@@ -2792,7 +2792,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get attendanceColumnStatus => 'Statut';
 
   @override
-  String get attendanceDaySummary => 'Résumé de la journée';
+  String get attendanceDaySummary =>
+      'Résumé de la journée : le temps travaillé et les pauses prises.';
 
   @override
   String get attendanceTotalWorked => 'Durée totale travaillée';

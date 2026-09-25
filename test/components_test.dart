@@ -1146,6 +1146,26 @@ void main() {
         ),
         findsNothing,
       );
+      // Short dashes either side of each label, and one closing the list,
+      // under the last event.
+      final heading = find.ancestor(of: first, matching: find.byType(Row)).first;
+      expect(
+        find.descendant(of: heading, matching: find.byType(CustomPaint)),
+        findsNWidgets(2),
+      );
+      final end = find.byKey(const ValueKey('attendance-sessions-end'));
+      expect(end, findsOneWidget);
+      expect(tester.getSize(end).width, lessThan(120));
+      expect(
+        tester.getTopLeft(end).dy,
+        greaterThan(tester.getTopLeft(find.text('23:00')).dy),
+      );
+      // Room between the sessions.
+      expect(
+        tester.getTopLeft(second).dy -
+            tester.getBottomLeft(find.text('16:00')).dy,
+        greaterThanOrEqualTo(32),
+      );
       // The overrun is the drawer's Alertes section's business now.
       expect(find.textContaining('dépassée'), findsNothing);
       expect(
@@ -1224,7 +1244,7 @@ void main() {
       final pin = find.text('4821');
       final date = find.text('Samedi 24/10/2026');
       final session = find.text('Session N° 1');
-      final summary = find.text('Résumé de la journée');
+      final summary = find.textContaining('Résumé de la journée');
       final alerts = find.text('Alertes');
       for (final f in [name, pin, date, session, summary, alerts]) {
         expect(f, findsOneWidget);
@@ -1238,14 +1258,23 @@ void main() {
       expect(y(summary), greaterThan(y(find.text('18:00'))));
       expect(y(alerts), greaterThan(y(summary)));
       // 4 h + 4 h, minus the 45-min break; one break.
-      expect(
-        tester
-            .widget<Text>(find.byKey(const ValueKey('attendance-day-worked')))
-            .textSpan!
-            .toPlainText(),
-        'Durée totale travaillée : 7 h 15',
+      // A 2 × 2 table: label | value.
+      final table = tester.widget<Table>(
+        find.byKey(const ValueKey('attendance-day-summary')),
       );
-      expect(find.textContaining('Pauses (1) : 45 min'), findsOneWidget);
+      expect(table.children, hasLength(2));
+      expect(table.children.every((r) => r.children.length == 2), isTrue);
+      String value(String key) =>
+          tester.widget<Text>(find.byKey(ValueKey(key))).data!;
+      expect(find.text('Durée totale travaillée'), findsOneWidget);
+      expect(value('attendance-day-worked'), '7 h 15');
+      expect(find.text('Pauses (1)'), findsOneWidget);
+      expect(value('attendance-day-pauses'), '45 min');
+      // The summary line is a paragraph, not a heading.
+      expect(
+        tester.widget<Text>(summary).style!.fontSize,
+        lessThan(Theme.of(tester.element(summary)).textTheme.titleSmall!.fontSize!),
+      );
       expect(find.text('Pause dépassée de 15 min'), findsOneWidget);
     });
 
@@ -1253,7 +1282,7 @@ void main() {
       await pump(tester, day());
       expect(find.text('Alertes'), findsNothing);
       expect(find.byKey(const ValueKey('attendance-day-alerts')), findsNothing);
-      expect(find.text('Résumé de la journée'), findsOneWidget);
+      expect(find.textContaining('Résumé de la journée'), findsOneWidget);
     });
 
     testWidgets('showPin false: the name alone', (tester) async {

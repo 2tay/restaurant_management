@@ -20,7 +20,8 @@ import 'employee_avatar.dart';
 /// 2. the day ([date], or whatever [dateLine] puts in its place — the board's
 ///    ticking date and time);
 /// 3. the sessions, untitled;
-/// 4. « Résumé de la journée » — time worked, and the breaks;
+/// 4. a line introducing the day's summary, then a two-by-two table — time
+///    worked, and the breaks;
 /// 5. « Alertes », only when there is at least one.
 class AttendanceDayDetail extends StatelessWidget {
   const AttendanceDayDetail({
@@ -62,15 +63,22 @@ class AttendanceDayDetail extends StatelessWidget {
     final labelStyle = theme.textTheme.bodyMedium?.copyWith(
       color: AppColors.textSecondary,
     );
-    final valueStyle = theme.textTheme.titleSmall;
-    Widget figure(Key key, String label, String value) => Text.rich(
-      key: key,
-      TextSpan(
-        children: [
-          TextSpan(text: '$label : ', style: labelStyle),
-          TextSpan(text: value, style: valueStyle),
-        ],
-      ),
+    TableRow row(Key valueKey, String label, String value) => TableRow(
+      children: [
+        Padding(
+          padding: _cellPadding,
+          child: Text(label, style: labelStyle),
+        ),
+        Padding(
+          padding: _cellPadding,
+          child: Text(
+            value,
+            key: valueKey,
+            style: theme.textTheme.titleSmall,
+            textAlign: TextAlign.right,
+          ),
+        ),
+      ],
     );
 
     return Column(
@@ -83,32 +91,39 @@ class AttendanceDayDetail extends StatelessWidget {
         ),
         const SizedBox(height: AppSpacing.xl),
         dateLine ?? AttendanceDayDate(date: entry.date),
-        const SizedBox(height: AppSpacing.xl),
+        const SizedBox(height: AppSpacing.xxl),
         AttendanceSessions(entry: entry, maxBreakMinutes: maxBreakMinutes),
         const SizedBox(height: AppSpacing.xxl),
-        _SectionTitle(l10n.attendanceDaySummary),
-        const SizedBox(height: AppSpacing.md),
-        // A Wrap, so a phone-width drawer drops the breaks under the time
-        // worked instead of squeezing both.
-        SizedBox(
-          width: double.infinity,
-          child: Wrap(
-            alignment: WrapAlignment.spaceBetween,
-            spacing: AppSpacing.lg,
-            runSpacing: AppSpacing.xs,
-            children: [
-              figure(
-                const ValueKey('attendance-day-worked'),
-                l10n.attendanceTotalWorked,
-                worked == null ? '—' : Formatters.duration(worked),
-              ),
-              figure(
-                const ValueKey('attendance-day-pauses'),
-                l10n.attendancePausesCount(totalPauseCount(entry)),
-                Formatters.duration(totalBreak(entry)),
-              ),
-            ],
+        Text(
+          l10n.attendanceDaySummary,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: AppColors.textSecondary,
           ),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        Table(
+          key: const ValueKey('attendance-day-summary'),
+          border: TableBorder.all(
+            color: AppColors.border,
+            borderRadius: AppRadius.smAll,
+          ),
+          columnWidths: const {
+            0: FlexColumnWidth(),
+            1: IntrinsicColumnWidth(),
+          },
+          defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+          children: [
+            row(
+              const ValueKey('attendance-day-worked'),
+              l10n.attendanceTotalWorked,
+              worked == null ? '—' : Formatters.duration(worked),
+            ),
+            row(
+              const ValueKey('attendance-day-pauses'),
+              l10n.attendancePausesCount(totalPauseCount(entry)),
+              Formatters.duration(totalBreak(entry)),
+            ),
+          ],
         ),
         if (hasAlerts) ...[
           const SizedBox(height: AppSpacing.xxl),
@@ -217,6 +232,11 @@ class AttendanceDayDate extends StatelessWidget {
     );
   }
 }
+
+const EdgeInsets _cellPadding = EdgeInsets.symmetric(
+  horizontal: AppSpacing.md,
+  vertical: AppSpacing.sm,
+);
 
 class _SectionTitle extends StatelessWidget {
   const _SectionTitle(this.text);

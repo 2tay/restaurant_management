@@ -4648,10 +4648,10 @@ abstract class AppLocalizations {
   /// **'Statut'**
   String get attendanceColumnStatus;
 
-  /// Heading of the day's totals in the pointage drawers.
+  /// Short line introducing the day's totals table in the pointage drawers.
   ///
   /// In fr, this message translates to:
-  /// **'Résumé de la journée'**
+  /// **'Résumé de la journée : le temps travaillé et les pauses prises.'**
   String get attendanceDaySummary;
 
   /// Label of the day's worked time in the pointage drawers.

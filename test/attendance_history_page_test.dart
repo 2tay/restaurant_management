@@ -77,7 +77,7 @@ void main() {
       findsOneWidget,
     );
     expect(
-      find.descendant(of: drawer, matching: find.text('Résumé de la journée')),
+      find.descendant(of: drawer, matching: find.textContaining('Résumé de la journée')),
       findsOneWidget,
     );
 
