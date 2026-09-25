@@ -583,6 +583,7 @@ typedef AttendanceLogKey = ({
   AttendanceStatus? status,
   String? employeeId,
   int page,
+  int pageSize,
 });
 
 final attendancePageProvider =
@@ -594,6 +595,7 @@ final attendancePageProvider =
         status: key.status,
         employeeId: key.employeeId,
         page: key.page,
+        pageSize: key.pageSize,
       ),
     );
 
@@ -624,6 +626,7 @@ typedef PayrollDaysKey = ({
   DateTime? to,
   PaymentStatus? status,
   int page,
+  int pageSize,
 });
 
 /// A `FutureProvider`: the day view is heavy and the paie flow that changes it
@@ -638,6 +641,7 @@ final payrollDaysProvider =
         to: key.to,
         status: key.status,
         page: key.page,
+        pageSize: key.pageSize,
       ),
     );
 

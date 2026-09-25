@@ -1148,4 +1148,140 @@ void main() {
       );
     });
   });
+
+  group('Paginator', () {
+    Widget paginator({
+      int page = 0,
+      int pageCount = 1,
+      int total = 3,
+      int pageSize = 10,
+      ValueChanged<int>? onChanged,
+      ValueChanged<int>? onPageSize,
+    }) => _host(
+      SizedBox(
+        width: 800,
+        child: Paginator(
+          page: page,
+          pageCount: pageCount,
+          totalCount: total,
+          pageSize: pageSize,
+          onChanged: onChanged ?? (_) {},
+          onPageSizeChanged: onPageSize,
+        ),
+      ),
+    );
+
+    testWidgets('shown on a single page, arrows disabled', (tester) async {
+      await tester.pumpWidget(paginator());
+      expect(find.text('1–3 sur 3'), findsOneWidget);
+      expect(find.text('1 / 1'), findsOneWidget);
+      for (final tooltip in ['Page précédente', 'Page suivante']) {
+        final button = tester.widget<IconButton>(
+          find.ancestor(
+            of: find.byTooltip(tooltip),
+            matching: find.byType(IconButton),
+          ),
+        );
+        expect(button.onPressed, isNull);
+      }
+    });
+
+    testWidgets('nothing at all without a row', (tester) async {
+      await tester.pumpWidget(paginator(total: 0));
+      expect(find.textContaining('sur'), findsNothing);
+    });
+
+    testWidgets('no rows-per-page menu without a handler', (tester) async {
+      await tester.pumpWidget(paginator());
+      expect(find.byKey(const ValueKey('paginator-page-size')), findsNothing);
+    });
+
+    testWidgets('the rows-per-page menu offers 10 / 25 / 50', (tester) async {
+      int? picked;
+      await tester.pumpWidget(
+        paginator(total: 40, pageCount: 4, onPageSize: (s) => picked = s),
+      );
+      final menu = find.byKey(const ValueKey('paginator-page-size'));
+      expect(
+        find.descendant(of: menu, matching: find.text('Lignes par page :')),
+        findsOneWidget,
+      );
+      await tester.tap(menu);
+      await tester.pumpAndSettle();
+      expect(find.byType(PopupMenuItem<int>), findsNWidgets(3));
+      await tester.tap(find.widgetWithText(PopupMenuItem<int>, '25'));
+      await tester.pumpAndSettle();
+      expect(picked, 25);
+    });
+
+    testWidgets('range left; rows-per-page and arrows on the right', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        paginator(total: 40, pageCount: 4, onPageSize: (_) {}),
+      );
+      final frame = tester.getRect(find.byType(Paginator));
+      final menu = tester.getRect(
+        find.byKey(const ValueKey('paginator-page-size')),
+      );
+      final next = tester.getRect(find.byTooltip('Page suivante'));
+      expect(tester.getRect(find.text('1–10 sur 40')).left, frame.left);
+      expect(next.right, closeTo(frame.right, 0.5));
+      expect(menu.right, lessThan(next.left));
+      expect(menu.center.dy, closeTo(next.center.dy, 2));
+      final chip = tester.widget<Container>(
+        find.descendant(
+          of: find.byKey(const ValueKey('paginator-page-size')),
+          matching: find.byType(Container),
+        ).first,
+      );
+      expect((chip.decoration! as BoxDecoration).color, AppColors.white);
+    });
+
+    testWidgets('white arrows with a green chevron; the page number green', (
+      tester,
+    ) async {
+      await tester.pumpWidget(paginator(page: 1, total: 40, pageCount: 4));
+      final style = tester
+          .widget<IconButton>(
+            find.ancestor(
+              of: find.byTooltip('Page suivante'),
+              matching: find.byType(IconButton),
+            ),
+          )
+          .style!;
+      expect(style.backgroundColor!.resolve({}), AppColors.white);
+      expect(style.foregroundColor!.resolve({}), AppColors.primary600);
+      expect(style.side?.resolve({}), isNull);
+      expect(
+        tester.getSize(find.byTooltip('Page suivante')),
+        const Size.square(32),
+      );
+      expect(find.text('2 / 4'), findsOneWidget);
+      final span = tester
+          .widget<RichText>(
+            find.descendant(
+              of: find.byType(Paginator),
+              matching: find.byWidgetPredicate(
+                (w) =>
+                    w is RichText && w.text.toPlainText() == '2 / 4',
+              ),
+            ),
+          )
+          .text as TextSpan;
+      final current = (span.children!.single as TextSpan).children!.first;
+      expect(current.toPlainText(), '2');
+      expect(current.style!.color, AppColors.primary600);
+    });
+
+    testWidgets('Suivant moves one page on', (tester) async {
+      int? page;
+      await tester.pumpWidget(
+        paginator(total: 40, pageCount: 4, onChanged: (p) => page = p),
+      );
+      expect(find.text('1–10 sur 40'), findsOneWidget);
+      await tester.tap(find.byTooltip('Page suivante'));
+      expect(page, 1);
+    });
+  });
 }

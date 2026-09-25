@@ -8,22 +8,8 @@ import '../../core/utils/formatters.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/models.dart';
 
-/// The day's events down a thin rail — Arrivée, Début pause, Reprise, Départ.
-/// Built straight from the timestamps already on the row; no new data.
-class AttendanceTimeline extends StatelessWidget {
-  const AttendanceTimeline({required this.entry, this.maxBreakMinutes, super.key});
-
-  final Attendance entry;
-
-  /// When given, a break that ran over the allowance is marked amber.
-  final int? maxBreakMinutes;
-
-  @override
-  Widget build(BuildContext context) =>
-      _EventRail(sessions: entry.sessions, maxBreakMinutes: maxBreakMinutes);
-}
-
-/// The day's timestamps split by session, for the pointage board's drawer.
+/// The day's timestamps split by session, for the pointage drawers (tableau
+/// de pointage and historique).
 ///
 /// One session reads as a plain timeline — no "Session" heading for a day
 /// that only has the one. Two or more each get a `Session N° x` divider. Under
@@ -96,8 +82,9 @@ class _SessionHeading extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
           child: Text(
             label,
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
               color: AppColors.textSecondary,
+              fontWeight: FontWeight.w500,
             ),
           ),
         ),
@@ -131,7 +118,12 @@ class _PauseAlert extends StatelessWidget {
           ),
           const SizedBox(width: AppSpacing.xs),
           Expanded(
-            child: Text(text, style: Theme.of(context).textTheme.bodyMedium),
+            child: Text(
+              text,
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: AppColors.textPrimary),
+            ),
           ),
         ],
       ),
@@ -235,7 +227,12 @@ class _Row extends StatelessWidget {
           const SizedBox(width: AppSpacing.md),
           Padding(
             padding: EdgeInsets.only(bottom: isLast ? 0 : AppSpacing.md),
-            child: Text(event.label, style: theme.textTheme.bodyMedium),
+            child: Text(
+              event.label,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: AppColors.textPrimary,
+              ),
+            ),
           ),
         ],
       ),

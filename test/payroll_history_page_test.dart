@@ -208,4 +208,26 @@ void main() {
       PaymentStatus.unpaid,
     );
   });
+
+  /// Picks [size] in the paginator's rows-per-page menu.
+  Future<void> pickPageSize(WidgetTester tester, int size) async {
+    final menu = find.byKey(const ValueKey('paginator-page-size'));
+    await tester.ensureVisible(menu);
+    await tester.tap(menu);
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(PopupMenuItem<int>, '$size'));
+    await tester.pumpAndSettle();
+  }
+
+  testApp('the table is paged: 10 rows by default, 25 or 50 on demand', (tester) async {
+    await _openPayroll(tester);
+    expect(find.byType(Paginator), findsOneWidget);
+    Paginator pager() => tester.widget<Paginator>(find.byType(Paginator));
+    expect(pager().pageSize, 10);
+    expect(find.textContaining(RegExp(r'^1–\d+ sur \d+$')), findsOneWidget);
+    await pickPageSize(tester, 25);
+    expect(tester.takeException(), isNull);
+    expect(pager().pageSize, 25);
+    expect(pager().page, 0);
+  });
 }

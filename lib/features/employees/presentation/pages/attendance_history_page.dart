@@ -14,8 +14,6 @@ import '../../../../l10n/app_localizations.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 
-const int _pageSize = 25;
-
 /// How far back the range picker opens on first load.
 const int _defaultRangeDays = 30;
 
@@ -56,6 +54,7 @@ class _AttendanceHistoryPageState extends ConsumerState<AttendanceHistoryPage> {
   late DateTime _to;
   AttendanceStatus? _status;
   int _page = 0;
+  int _pageSize = Paginator.defaultPageSizes.first;
 
   String? get _employeeId => _selectedEmployee?.id;
 
@@ -125,6 +124,7 @@ class _AttendanceHistoryPageState extends ConsumerState<AttendanceHistoryPage> {
       status: _status,
       employeeId: _employeeId,
       page: _page,
+      pageSize: _pageSize,
     );
     final statsAsync = ref.watch(attendanceStatsProvider(key));
     final pageAsync = ref.watch(attendancePageProvider(key));
@@ -265,6 +265,10 @@ class _AttendanceHistoryPageState extends ConsumerState<AttendanceHistoryPage> {
             totalCount: result.totalCount,
             pageSize: _pageSize,
             onChanged: (p) => setState(() => _page = p),
+            onPageSizeChanged: (size) => setState(() {
+              _pageSize = size;
+              _page = 0;
+            }),
           ),
         ],
       ],
@@ -343,7 +347,7 @@ class _AttendanceHistoryPageState extends ConsumerState<AttendanceHistoryPage> {
         const SizedBox(height: AppSpacing.xxxl),
         _drawerSectionTitle(LucideIcons.clock, l10n.attendanceDetailTimeline),
         const SizedBox(height: AppSpacing.md),
-        AttendanceTimeline(entry: a, maxBreakMinutes: maxBreak),
+        AttendanceSessions(entry: a, maxBreakMinutes: maxBreak),
         const SizedBox(height: AppSpacing.xxxl),
         Divider(height: 1, color: AppColors.border.withValues(alpha: 0.5)),
         const SizedBox(height: AppSpacing.lg),

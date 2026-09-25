@@ -4540,12 +4540,6 @@ abstract class AppLocalizations {
   /// **'{first}–{last} sur {total}'**
   String paginatorRange(int first, int last, int total);
 
-  /// Current page number out of the total.
-  ///
-  /// In fr, this message translates to:
-  /// **'{page} / {count}'**
-  String paginatorPage(int page, int count);
-
   /// Tooltip on the previous-page button.
   ///
   /// In fr, this message translates to:
@@ -4557,6 +4551,12 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Page suivante'**
   String get paginatorNext;
+
+  /// Label of the rows-per-page menu beside the paginator.
+  ///
+  /// In fr, this message translates to:
+  /// **'Lignes par page :'**
+  String get paginatorPageSize;
 
   /// Heading of the attendance history page.
   ///

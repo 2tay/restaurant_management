@@ -17,8 +17,6 @@ import '../../../../l10n/app_localizations.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 
-const int _pageSize = 25;
-
 /// How far back the range picker opens on first load.
 const int _defaultRangeDays = 90;
 
@@ -62,6 +60,7 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
   late DateTime _to;
   PaymentStatus? _statusFilter;
   int _page = 0;
+  int _pageSize = Paginator.defaultPageSizes.first;
 
   /// The roster, cached from the last build so the synchronous filter handlers
   /// can resolve a floor without a query.
@@ -167,6 +166,7 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
       to: _to,
       status: _statusFilter,
       page: _page,
+      pageSize: _pageSize,
     );
     final daysAsync = ref.watch(payrollDaysProvider(key));
 
@@ -299,16 +299,18 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
                     );
             },
           ),
-          if (data.pageCount > 1) ...[
-            const SizedBox(height: AppSpacing.sm),
-            Paginator(
-              page: data.page,
-              pageCount: data.pageCount,
-              totalCount: data.totalCount,
-              pageSize: _pageSize,
-              onChanged: (p) => setState(() => _page = p),
-            ),
-          ],
+          const SizedBox(height: AppSpacing.sm),
+          Paginator(
+            page: data.page,
+            pageCount: data.pageCount,
+            totalCount: data.totalCount,
+            pageSize: _pageSize,
+            onChanged: (p) => setState(() => _page = p),
+            onPageSizeChanged: (size) => setState(() {
+              _pageSize = size;
+              _page = 0;
+            }),
+          ),
         ],
         if (selectedEmployee != null) ...[
           const SizedBox(height: AppSpacing.lg),

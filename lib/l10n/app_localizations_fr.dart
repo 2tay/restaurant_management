@@ -2725,15 +2725,13 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String paginatorPage(int page, int count) {
-    return '$page / $count';
-  }
-
-  @override
   String get paginatorPrevious => 'Page précédente';
 
   @override
   String get paginatorNext => 'Page suivante';
+
+  @override
+  String get paginatorPageSize => 'Lignes par page :';
 
   @override
   String get attendanceHistoryTitle => 'Historique de pointage';

@@ -1709,12 +1709,12 @@
 
   "paginatorRange": "{first}–{last} sur {total}",
   "@paginatorRange": {"description": "Which slice of a paged list is shown.", "placeholders": {"first": {"type": "int"}, "last": {"type": "int"}, "total": {"type": "int"}}},
-  "paginatorPage": "{page} / {count}",
-  "@paginatorPage": {"description": "Current page number out of the total.", "placeholders": {"page": {"type": "int"}, "count": {"type": "int"}}},
   "paginatorPrevious": "Page précédente",
   "@paginatorPrevious": {"description": "Tooltip on the previous-page button."},
   "paginatorNext": "Page suivante",
   "@paginatorNext": {"description": "Tooltip on the next-page button."},
+  "paginatorPageSize": "Lignes par page :",
+  "@paginatorPageSize": {"description": "Label of the rows-per-page menu beside the paginator."},
 
   "attendanceHistoryTitle": "Historique de pointage",
   "@attendanceHistoryTitle": {"description": "Heading of the attendance history page."},

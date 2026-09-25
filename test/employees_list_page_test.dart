@@ -845,4 +845,33 @@ void main() {
     expect(find.byType(DataTable), findsOneWidget);
   });
 
+
+  /// Picks [size] in the paginator's rows-per-page menu.
+  Future<void> pickPageSize(WidgetTester tester, int size) async {
+    final menu = find.byKey(const ValueKey('paginator-page-size'));
+    await tester.ensureVisible(menu);
+    await tester.tap(menu);
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(PopupMenuItem<int>, '$size'));
+    await tester.pumpAndSettle();
+  }
+
+  testApp('the roster is paged, in the card view as in the table', (tester) async {
+    await _open(tester);
+    expect(find.byType(Paginator), findsOneWidget);
+    Paginator pager() => tester.widget<Paginator>(find.byType(Paginator));
+    expect(pager().pageSize, 10);
+    expect(find.textContaining(RegExp(r'^1–\d+ sur \d+$')), findsOneWidget);
+    await pickPageSize(tester, 25);
+    expect(tester.takeException(), isNull);
+    expect(pager().pageSize, 25);
+    expect(pager().page, 0);
+  });
+
+  testApp('the table view keeps the paginator', (tester) async {
+    await _open(tester);
+    await _toList(tester);
+    expect(find.byType(DataTable), findsOneWidget);
+    expect(find.byType(Paginator), findsOneWidget);
+  });
 }

@@ -43,6 +43,8 @@ class _EmployeesListPageState extends ConsumerState<EmployeesListPage> {
   String _query = '';
   bool _showArchived = false;
   CollectionViewMode _viewMode = CollectionViewMode.grid;
+  int _page = 0;
+  int _pageSize = Paginator.defaultPageSizes.first;
 
   void _add() => showEmployeeWizard(context, storeId: widget.storeId);
 
@@ -88,7 +90,21 @@ class _EmployeesListPageState extends ConsumerState<EmployeesListPage> {
     AppLocalizations l10n,
     List<Employee> all,
   ) {
-    final filtered = _filtered(all);
+    // The owner is the account, not staff to manage here — neither a card nor
+    // a row.
+    final filtered = [
+      for (final e in _filtered(all))
+        if (e.role != EmployeeRole.owner) e,
+    ];
+    final pageCount = filtered.isEmpty
+        ? 1
+        : (filtered.length + _pageSize - 1) ~/ _pageSize;
+    final page = _page.clamp(0, pageCount - 1);
+    final start = page * _pageSize;
+    final visible = filtered.sublist(
+      start,
+      (start + _pageSize).clamp(start, filtered.length),
+    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -97,12 +113,18 @@ class _EmployeesListPageState extends ConsumerState<EmployeesListPage> {
         FilterToolbar(
           search: SearchField(
             hint: l10n.employeesSearchHint,
-            onChanged: (value) => setState(() => _query = value),
+            onChanged: (value) => setState(() {
+              _query = value;
+              _page = 0;
+            }),
           ),
           filters: [
             _ArchivedFilterPill(
               active: _showArchived,
-              onTap: () => setState(() => _showArchived = !_showArchived),
+              onTap: () => setState(() {
+                _showArchived = !_showArchived;
+                _page = 0;
+              }),
             ),
             ViewModeToggle(
               mode: _viewMode,
@@ -114,7 +136,7 @@ class _EmployeesListPageState extends ConsumerState<EmployeesListPage> {
         if (filtered.isEmpty)
           ConstrainedBox(
             constraints: const BoxConstraints(minHeight: 360),
-            child: all.isEmpty
+            child: all.every((e) => e.role == EmployeeRole.owner)
                 ? EmptyState(
                     icon: LucideIcons.idCard,
                     title: l10n.employeesEmpty,
@@ -128,29 +150,28 @@ class _EmployeesListPageState extends ConsumerState<EmployeesListPage> {
                     onClearFilters: () => setState(() {
                       _query = '';
                       _showArchived = false;
+                      _page = 0;
                     }),
                   ),
           )
-        else if (_viewMode == CollectionViewMode.list)
-          _EmployeeTable(
-            // The owner is the account, not staff to manage here — neither a
-            // card nor a row.
-            employees: [
-              for (final e in filtered)
-                if (e.role != EmployeeRole.owner) e,
-            ],
-            actions: _actions,
-          )
-        else
-          _EmployeeGrid(
-            // The owner is the account, not a member of staff to manage from
-            // here — no card for them (nor a table row).
-            employees: [
-              for (final e in filtered)
-                if (e.role != EmployeeRole.owner) e,
-            ],
-            actions: _actions,
+        else ...[
+          if (_viewMode == CollectionViewMode.list)
+            _EmployeeTable(employees: visible, actions: _actions)
+          else
+            _EmployeeGrid(employees: visible, actions: _actions),
+          const SizedBox(height: AppSpacing.sm),
+          Paginator(
+            page: page,
+            pageCount: pageCount,
+            totalCount: filtered.length,
+            pageSize: _pageSize,
+            onChanged: (p) => setState(() => _page = p),
+            onPageSizeChanged: (size) => setState(() {
+              _pageSize = size;
+              _page = 0;
+            }),
           ),
+        ],
       ],
     );
   }
