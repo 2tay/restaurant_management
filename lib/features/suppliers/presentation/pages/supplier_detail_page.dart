@@ -15,6 +15,7 @@ import '../../../../data/view_models/view_models.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 import '../../../orders/presentation/widgets/order_row.dart';
+import '../../../inventory/presentation/widgets/product_drawer.dart';
 
 /// A supplier's contact details and everything they supply, with prices.
 ///
@@ -255,8 +256,10 @@ class _SupplierDetailPageState extends ConsumerState<SupplierDetailPage> {
     final gap = price.pricePerUnit - product.cheapestPricePerUnit;
 
     return DataRow(
+      // Opens over the price list rather than replacing it: the question here
+      // is usually asked of several products in a row.
       onSelectChanged: (_) =>
-          context.pushScreen(Routes.toItem(storeId, price.itemId)),
+          openProductDrawer(context, storeId: storeId, itemId: price.itemId),
       cells: [
         DataCell(Text(product.itemName)),
         DataCell(

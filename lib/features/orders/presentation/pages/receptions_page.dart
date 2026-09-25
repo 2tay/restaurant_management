@@ -17,6 +17,7 @@ import '../../../../shared/widgets/widgets.dart';
 import '../../documents/order_document_button.dart';
 import '../widgets/order_status_badge.dart';
 import '../widgets/order_visuals.dart';
+import '../widgets/order_detail_view.dart';
 
 /// Réceptions — what is due to arrive, and what has arrived.
 ///
@@ -243,7 +244,11 @@ class _PendingCard extends StatelessWidget {
     final sentAt = order.sentAt ?? order.createdAt;
 
     return AppCard(
-      onTap: () => context.pushScreen(Routes.toOrder(storeId, order.id)),
+      // A panel, so checking what is on a commande does not cost the place in
+      // the list. The card keeps its own Réceptionner button, which is what
+      // makes the split worth having: the button goes straight to the form,
+      // tapping the card opens the commande to look first.
+      onTap: () => openOrderPanel(context, storeId: storeId, orderId: order.id),
       accentColor: late ? AppColors.lowStock.solid : null,
       padding: EdgeInsets.zero,
       // spaceBetween rather than a Spacer: it pushes the footer to the bottom
@@ -403,8 +408,10 @@ class _History extends ConsumerWidget {
           );
         }
 
+        // A recorded réception is pure reference — there is nothing to do with
+        // it but read it — which is exactly what a panel is for.
         void open(StoreReceiptRowView row) =>
-            context.pushScreen(Routes.toReceipt(storeId, row.receipt.id));
+            openReceiptPanel(context, storeId: storeId, receiptId: row.receipt.id);
 
         // A table only where it has the width to be one; below that, a table
         // would keep three of its seven columns and read as a list anyway.

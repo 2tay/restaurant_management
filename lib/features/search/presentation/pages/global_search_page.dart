@@ -14,6 +14,7 @@ import '../../../../data/providers.dart';
 import '../../../../data/repositories/repositories.dart';
 import '../../../../data/view_models/view_models.dart';
 import '../../../../shared/widgets/widgets.dart';
+import '../../../inventory/presentation/widgets/product_drawer.dart';
 
 /// Search across items, suppliers and categories for the current store.
 ///
@@ -227,7 +228,10 @@ class _ItemResult extends StatelessWidget {
     final unit = view.unitAbbreviation;
 
     return AppCard(
-      onTap: () => context.pushScreen(Routes.toItem(storeId, item.id)),
+      // A panel, not a navigation: a search is find-and-peek, and leaving the
+      // screen throws away the query you would only have to type again.
+      onTap: () =>
+          openProductDrawer(context, storeId: storeId, itemId: item.id),
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.lg,
         vertical: AppSpacing.md,

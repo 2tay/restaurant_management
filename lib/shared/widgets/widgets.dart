@@ -27,6 +27,7 @@ export 'confirm_dialog.dart';
 export 'data_table_wrapper.dart';
 export 'date_field.dart';
 export 'detail_drawer.dart';
+export 'detail_panel.dart';
 export 'empty_state.dart';
 export 'employee_avatar.dart';
 export 'employee_name_tag.dart';

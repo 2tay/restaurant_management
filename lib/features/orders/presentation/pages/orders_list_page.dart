@@ -19,6 +19,7 @@ import '../../documents/order_document_button.dart';
 import '../widgets/order_actions.dart';
 import '../widgets/order_status_badge.dart';
 import '../widgets/order_visuals.dart';
+import '../widgets/order_detail_view.dart';
 
 /// How many days back a date filter reaches. Null means no date filter.
 enum OrderDateRange { last7, last30, last90 }
@@ -697,8 +698,12 @@ class _OrdersTable extends ConsumerWidget {
           rowAccent: (view) => orderIsStale(view.order, stalePartialDays)
               ? AppColors.lowStock.solid
               : null,
+          // A panel, as on Réceptions: a commande is read on the way through
+          // the list, and going back to the list should not be a navigation to
+          // undo. The full page stays for deep links and for the destructive
+          // actions the panel deliberately does not carry.
           onRowTap: (view) =>
-              context.pushScreen(Routes.toOrder(storeId, view.order.id)),
+              openOrderPanel(context, storeId: storeId, orderId: view.order.id),
           columns: [
             AppTableColumn(
               label: l10n.tableColDate,
@@ -991,7 +996,8 @@ class _StackedOrderRow extends StatelessWidget {
     return Material(
       color: AppColors.surface,
       child: InkWell(
-        onTap: () => context.pushScreen(Routes.toOrder(storeId, order.id)),
+        onTap: () =>
+            openOrderPanel(context, storeId: storeId, orderId: order.id),
         hoverColor: AppColors.neutral50,
         child: Container(
           decoration: BoxDecoration(

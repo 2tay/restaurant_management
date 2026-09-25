@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
-import '../../../../app/navigation.dart';
-import '../../../../app/routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
@@ -15,6 +13,7 @@ import '../../../../shared/widgets/widgets.dart';
 import 'movement_labels.dart';
 import 'movement_type_badge.dart';
 import '../../../inventory/presentation/widgets/product_drawer.dart';
+import '../../../orders/presentation/widgets/order_detail_view.dart';
 
 /// How the movement history is shown.
 enum MovementsViewMode { list, table }
@@ -170,8 +169,10 @@ class MovementTable extends StatelessWidget {
             movement.receiptId == null
                 ? const SizedBox.shrink()
                 : IconButton(
-                    onPressed: () => context.pushScreen(
-                      Routes.toReceipt(storeId, movement.receiptId!),
+                    onPressed: () => openReceiptPanel(
+                      context,
+                      storeId: storeId,
+                      receiptId: movement.receiptId!,
                     ),
                     tooltip: l10n.movementViewReceipt,
                     icon: const Icon(

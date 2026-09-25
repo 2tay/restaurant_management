@@ -3,8 +3,6 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
-import '../../../../app/navigation.dart';
-import '../../../../app/routes.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/utils/responsive.dart';
@@ -14,6 +12,7 @@ import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 import 'movement_labels.dart';
 import 'movement_type_badge.dart';
+import '../../../orders/presentation/widgets/order_detail_view.dart';
 
 /// One entry in the movement history.
 ///
@@ -67,8 +66,14 @@ class MovementRow extends StatelessWidget {
       // shelf back to the delivery, the order, and the supplier.
       receipt: movement.receiptId != null && storeId != null
           ? IconButton(
-              onPressed: () => context.pushScreen(
-                Routes.toReceipt(storeId!, movement.receiptId!),
+              // A panel: this asks "what arrived?" on the way through a
+              // movement history, and the answer should not cost the place in
+              // it. Inside the product panel it walks forward instead, with a
+              // back arrow to the product.
+              onPressed: () => openReceiptPanel(
+                context,
+                storeId: storeId!,
+                receiptId: movement.receiptId!,
               ),
               tooltip: l10n.movementViewReceipt,
               icon: const Icon(LucideIcons.receiptText),
