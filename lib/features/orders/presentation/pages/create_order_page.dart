@@ -7,6 +7,7 @@ import '../../../../app/routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../../core/utils/busy_calendar.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/utils/stock_status.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -29,6 +30,7 @@ class CreateOrderPage extends StatelessWidget {
     required this.storeId,
     this.initialSupplierId,
     this.prefillSuggested = false,
+    this.forBusyDays = false,
     super.key,
   });
 
@@ -42,12 +44,18 @@ class CreateOrderPage extends StatelessWidget {
   /// coming here from the alerts screen.
   final bool prefillSuggested;
 
+  /// Suggests against the busy-day minimum instead of the ordinary one — set
+  /// when arriving from the alerts screen's "Jours chargés" list, whose
+  /// products may not be low on an ordinary day at all.
+  final bool forBusyDays;
+
   @override
   Widget build(BuildContext context) {
     return OrderFormPage(
       storeId: storeId,
       initialSupplierId: initialSupplierId,
       prefillSuggested: prefillSuggested,
+      forBusyDays: forBusyDays,
     );
   }
 }
@@ -62,6 +70,7 @@ class OrderFormPage extends ConsumerWidget {
     this.orderId,
     this.initialSupplierId,
     this.prefillSuggested = false,
+    this.forBusyDays = false,
     super.key,
   });
 
@@ -73,6 +82,7 @@ class OrderFormPage extends ConsumerWidget {
 
   final String? initialSupplierId;
   final bool prefillSuggested;
+  final bool forBusyDays;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -82,6 +92,7 @@ class OrderFormPage extends ConsumerWidget {
         existing: null,
         initialSupplierId: initialSupplierId,
         prefillSuggested: prefillSuggested,
+        forBusyDays: forBusyDays,
       );
     }
 
@@ -107,6 +118,7 @@ class OrderFormPage extends ConsumerWidget {
       existing: existing,
       initialSupplierId: initialSupplierId,
       prefillSuggested: prefillSuggested,
+      forBusyDays: forBusyDays,
     );
   }
 }
@@ -117,6 +129,7 @@ class _OrderForm extends ConsumerStatefulWidget {
     required this.existing,
     required this.initialSupplierId,
     required this.prefillSuggested,
+    this.forBusyDays = false,
     super.key,
   });
 
@@ -127,6 +140,7 @@ class _OrderForm extends ConsumerStatefulWidget {
 
   final String? initialSupplierId;
   final bool prefillSuggested;
+  final bool forBusyDays;
 
   @override
   ConsumerState<_OrderForm> createState() => _OrderFormPageState();
@@ -279,7 +293,9 @@ class _OrderFormPageState extends ConsumerState<_OrderForm> {
           itemId: item.id,
           // Guessing a quantity beats leaving a zero the user has to notice
           // and fix on every line.
-          quantity: topUpQuantity(item),
+          quantity: widget.forBusyDays
+              ? busyTopUpQuantity(item)
+              : topUpQuantity(item),
           unitPrice: _priceFor(item.id),
         ),
       );
@@ -597,7 +613,11 @@ class _OrderFormPageState extends ConsumerState<_OrderForm> {
             .watch(
               itemRowsProvider((
                 storeId: widget.storeId,
-                filter: ItemFilter(supplierId: supplierId, lowStockOnly: true),
+                filter: ItemFilter(
+                  supplierId: supplierId,
+                  lowStockOnly: !widget.forBusyDays,
+                  belowBusyMinimumOnly: widget.forBusyDays,
+                ),
               )),
             )
             .value ??

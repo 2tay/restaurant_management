@@ -6328,6 +6328,180 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Saisissez votre numéro PIN pour valider le paiement de {name}'**
   String identityPromptPayrollSubtitle(String name);
+
+  /// Sidebar entry: the busy-day calendar.
+  ///
+  /// In fr, this message translates to:
+  /// **'Calendrier'**
+  String get navCalendar;
+
+  /// Title of the busy-day calendar screen.
+  ///
+  /// In fr, this message translates to:
+  /// **'Calendrier'**
+  String get calendarTitle;
+
+  /// Subtitle of the calendar screen.
+  ///
+  /// In fr, this message translates to:
+  /// **'Les jours de forte affluence, et quand être prévenu pour acheter le stock.'**
+  String get calendarSubtitle;
+
+  /// Card title: the weekdays that are busy every week.
+  ///
+  /// In fr, this message translates to:
+  /// **'Jours chargés chaque semaine'**
+  String get calendarWeekdaysTitle;
+
+  /// Help under the weekday chips.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ces jours reviennent toutes les semaines.'**
+  String get calendarWeekdaysBody;
+
+  /// Card title: one-off busy dates (holidays, festivals).
+  ///
+  /// In fr, this message translates to:
+  /// **'Jours spéciaux'**
+  String get calendarDatesTitle;
+
+  /// Help above the month grid.
+  ///
+  /// In fr, this message translates to:
+  /// **'Touchez un jour pour le marquer comme chargé : fête, jour férié, événement. Touchez-le à nouveau pour l\'enlever.'**
+  String get calendarDatesBody;
+
+  /// Legend: a day that is busy because its weekday is ticked.
+  ///
+  /// In fr, this message translates to:
+  /// **'Chaque semaine'**
+  String get calendarLegendWeekly;
+
+  /// Legend: a date marked busy on its own.
+  ///
+  /// In fr, this message translates to:
+  /// **'Jour spécial'**
+  String get calendarLegendSpecial;
+
+  /// Tooltip of the previous-month arrow.
+  ///
+  /// In fr, this message translates to:
+  /// **'Mois précédent'**
+  String get calendarPreviousMonth;
+
+  /// Tooltip of the next-month arrow.
+  ///
+  /// In fr, this message translates to:
+  /// **'Mois suivant'**
+  String get calendarNextMonth;
+
+  /// Card title: how early to be reminded.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rappel'**
+  String get calendarReminderTitle;
+
+  /// Help above the reminder chips.
+  ///
+  /// In fr, this message translates to:
+  /// **'Combien de jours avant d\'être prévenu, pour avoir le temps de commander.'**
+  String get calendarReminderBody;
+
+  /// One reminder choice.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =1{1 jour avant} other{{count} jours avant}}'**
+  String calendarReminderDays(int count);
+
+  /// Summary line: the next busy period and when its reminder starts.
+  ///
+  /// In fr, this message translates to:
+  /// **'Prochaine période chargée : {period}. Rappel à partir du {reminder}.'**
+  String calendarNextPeriod(String period, String reminder);
+
+  /// Summary line when nothing is busy.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun jour chargé n\'est prévu. Choisissez des jours ci-dessus.'**
+  String get calendarNoPeriod;
+
+  /// A busy period of several days.
+  ///
+  /// In fr, this message translates to:
+  /// **'du {start} au {end}'**
+  String calendarPeriodRange(String start, String end);
+
+  /// The busy period has started.
+  ///
+  /// In fr, this message translates to:
+  /// **'en cours'**
+  String get busyWhenOngoing;
+
+  /// The busy period starts tomorrow.
+  ///
+  /// In fr, this message translates to:
+  /// **'demain'**
+  String get busyWhenTomorrow;
+
+  /// The busy period starts in N days (N ≥ 2).
+  ///
+  /// In fr, this message translates to:
+  /// **'dans {days} jours'**
+  String busyWhenInDays(int days);
+
+  /// Alerts tab: products under their busy-day minimum.
+  ///
+  /// In fr, this message translates to:
+  /// **'Jours chargés'**
+  String get alertsBusyTab;
+
+  /// Banner title on the alerts screen, e.g. 'Jours chargés demain'.
+  ///
+  /// In fr, this message translates to:
+  /// **'Jours chargés {when}'**
+  String alertsBusyBannerTitle(String when);
+
+  /// Banner body: the period and how many products are short.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =0{{period} : tout le stock est prêt.} =1{{period} : 1 produit est sous le minimum de forte affluence.} other{{period} : {count} produits sont sous le minimum de forte affluence.}}'**
+  String alertsBusyBannerBody(int count, String period);
+
+  /// Banner button: switch to the busy-day tab.
+  ///
+  /// In fr, this message translates to:
+  /// **'Voir la liste'**
+  String get alertsBusyShow;
+
+  /// Empty state of the busy-day tab.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tout le stock est prêt pour les jours chargés'**
+  String get alertsBusyEmpty;
+
+  /// Empty state body of the busy-day tab.
+  ///
+  /// In fr, this message translates to:
+  /// **'Chaque produit atteint son minimum de forte affluence.'**
+  String get alertsBusyEmptyBody;
+
+  /// Notification kind: a busy period is coming.
+  ///
+  /// In fr, this message translates to:
+  /// **'Jours chargés'**
+  String get notificationsKindBusyDays;
+
+  /// Toggle: remind before busy days on the calendar.
+  ///
+  /// In fr, this message translates to:
+  /// **'Jours chargés à venir'**
+  String get notificationPrefBusyDays;
+
+  /// Describes the busy-days notification toggle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Soyez prévenu avant les jours de forte affluence du calendrier, avec les produits à commander.'**
+  String get notificationPrefBusyDaysBody;
 }
 
 class _AppLocalizationsDelegate

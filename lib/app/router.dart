@@ -6,6 +6,7 @@ import '../data/providers.dart';
 import '../dev/theme_gallery_page.dart';
 import '../features/alerts/presentation/pages/low_stock_alerts_page.dart';
 import '../features/alerts/presentation/pages/notifications_page.dart';
+import '../features/calendar/presentation/pages/calendar_page.dart';
 import '../features/dashboard/presentation/pages/store_dashboard_page.dart';
 import '../features/employees/presentation/pages/attendance_history_page.dart';
 import '../features/employees/presentation/pages/employees_list_page.dart';
@@ -321,6 +322,15 @@ final GoRouter appRouter = GoRouter(
           ),
         ),
 
+        // --- Calendar --------------------------------------------------------
+        GoRoute(
+          path: Routes.calendar,
+          pageBuilder: (context, state) => appPage(
+            key: state.pageKey,
+            child: CalendarPage(storeId: _storeId(state)),
+          ),
+        ),
+
         // --- Orders ----------------------------------------------------------
         //
         // `new` and `receipts` are declared before `:orderId` for the same
@@ -343,7 +353,11 @@ final GoRouter appRouter = GoRouter(
             child: CreateOrderPage(
               storeId: _storeId(state),
               initialSupplierId: state.uri.queryParameters['supplier'],
-              prefillSuggested: state.uri.queryParameters['prefill'] == '1',
+              prefillSuggested: const {
+                '1',
+                'busy',
+              }.contains(state.uri.queryParameters['prefill']),
+              forBusyDays: state.uri.queryParameters['prefill'] == 'busy',
             ),
           ),
         ),

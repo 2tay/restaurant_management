@@ -186,6 +186,45 @@ class $StoresTable extends Stores with TableInfo<$StoresTable, StoreRow> {
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _notifyBusyDaysMeta = const VerificationMeta(
+    'notifyBusyDays',
+  );
+  @override
+  late final GeneratedColumn<bool> notifyBusyDays = GeneratedColumn<bool>(
+    'notify_busy_days',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("notify_busy_days" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _busyWeekdaysMeta = const VerificationMeta(
+    'busyWeekdays',
+  );
+  @override
+  late final GeneratedColumn<String> busyWeekdays = GeneratedColumn<String>(
+    'busy_weekdays',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('5,6,7'),
+  );
+  static const VerificationMeta _busyReminderDaysMeta = const VerificationMeta(
+    'busyReminderDays',
+  );
+  @override
+  late final GeneratedColumn<int> busyReminderDays = GeneratedColumn<int>(
+    'busy_reminder_days',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -203,6 +242,9 @@ class $StoresTable extends Stores with TableInfo<$StoresTable, StoreRow> {
     notifyPriceChange,
     notifyLargeAdjustment,
     notifyDeliveries,
+    notifyBusyDays,
+    busyWeekdays,
+    busyReminderDays,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -338,6 +380,33 @@ class $StoresTable extends Stores with TableInfo<$StoresTable, StoreRow> {
         ),
       );
     }
+    if (data.containsKey('notify_busy_days')) {
+      context.handle(
+        _notifyBusyDaysMeta,
+        notifyBusyDays.isAcceptableOrUnknown(
+          data['notify_busy_days']!,
+          _notifyBusyDaysMeta,
+        ),
+      );
+    }
+    if (data.containsKey('busy_weekdays')) {
+      context.handle(
+        _busyWeekdaysMeta,
+        busyWeekdays.isAcceptableOrUnknown(
+          data['busy_weekdays']!,
+          _busyWeekdaysMeta,
+        ),
+      );
+    }
+    if (data.containsKey('busy_reminder_days')) {
+      context.handle(
+        _busyReminderDaysMeta,
+        busyReminderDays.isAcceptableOrUnknown(
+          data['busy_reminder_days']!,
+          _busyReminderDaysMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -407,6 +476,18 @@ class $StoresTable extends Stores with TableInfo<$StoresTable, StoreRow> {
         DriftSqlType.bool,
         data['${effectivePrefix}notify_deliveries'],
       )!,
+      notifyBusyDays: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}notify_busy_days'],
+      )!,
+      busyWeekdays: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}busy_weekdays'],
+      )!,
+      busyReminderDays: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}busy_reminder_days'],
+      )!,
     );
   }
 
@@ -446,6 +527,22 @@ class StoreRow extends DataClass implements Insertable<StoreRow> {
   final bool notifyPriceChange;
   final bool notifyLargeAdjustment;
   final bool notifyDeliveries;
+
+  /// The "jours chargés" reminder: on unless switched off, like the stock ones.
+  final bool notifyBusyDays;
+
+  /// The weekdays that are busy every week, as ISO numbers joined by commas
+  /// (`DateTime.monday` = 1 … `DateTime.sunday` = 7). Friday, Saturday and
+  /// Sunday by default — `BusyCalendarRules.defaultWeekdays`.
+  ///
+  /// Text rather than a child table: seven booleans that are always read and
+  /// written together are one value, and an empty string is a real answer
+  /// ("no weekday is busy").
+  final String busyWeekdays;
+
+  /// How many days before a busy period the reminder starts.
+  /// `BusyCalendarRules.defaultReminderDays`.
+  final int busyReminderDays;
   const StoreRow({
     required this.id,
     required this.name,
@@ -462,6 +559,9 @@ class StoreRow extends DataClass implements Insertable<StoreRow> {
     required this.notifyPriceChange,
     required this.notifyLargeAdjustment,
     required this.notifyDeliveries,
+    required this.notifyBusyDays,
+    required this.busyWeekdays,
+    required this.busyReminderDays,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -485,6 +585,9 @@ class StoreRow extends DataClass implements Insertable<StoreRow> {
     map['notify_price_change'] = Variable<bool>(notifyPriceChange);
     map['notify_large_adjustment'] = Variable<bool>(notifyLargeAdjustment);
     map['notify_deliveries'] = Variable<bool>(notifyDeliveries);
+    map['notify_busy_days'] = Variable<bool>(notifyBusyDays);
+    map['busy_weekdays'] = Variable<String>(busyWeekdays);
+    map['busy_reminder_days'] = Variable<int>(busyReminderDays);
     return map;
   }
 
@@ -509,6 +612,9 @@ class StoreRow extends DataClass implements Insertable<StoreRow> {
       notifyPriceChange: Value(notifyPriceChange),
       notifyLargeAdjustment: Value(notifyLargeAdjustment),
       notifyDeliveries: Value(notifyDeliveries),
+      notifyBusyDays: Value(notifyBusyDays),
+      busyWeekdays: Value(busyWeekdays),
+      busyReminderDays: Value(busyReminderDays),
     );
   }
 
@@ -537,6 +643,9 @@ class StoreRow extends DataClass implements Insertable<StoreRow> {
         json['notifyLargeAdjustment'],
       ),
       notifyDeliveries: serializer.fromJson<bool>(json['notifyDeliveries']),
+      notifyBusyDays: serializer.fromJson<bool>(json['notifyBusyDays']),
+      busyWeekdays: serializer.fromJson<String>(json['busyWeekdays']),
+      busyReminderDays: serializer.fromJson<int>(json['busyReminderDays']),
     );
   }
   @override
@@ -558,6 +667,9 @@ class StoreRow extends DataClass implements Insertable<StoreRow> {
       'notifyPriceChange': serializer.toJson<bool>(notifyPriceChange),
       'notifyLargeAdjustment': serializer.toJson<bool>(notifyLargeAdjustment),
       'notifyDeliveries': serializer.toJson<bool>(notifyDeliveries),
+      'notifyBusyDays': serializer.toJson<bool>(notifyBusyDays),
+      'busyWeekdays': serializer.toJson<String>(busyWeekdays),
+      'busyReminderDays': serializer.toJson<int>(busyReminderDays),
     };
   }
 
@@ -577,6 +689,9 @@ class StoreRow extends DataClass implements Insertable<StoreRow> {
     bool? notifyPriceChange,
     bool? notifyLargeAdjustment,
     bool? notifyDeliveries,
+    bool? notifyBusyDays,
+    String? busyWeekdays,
+    int? busyReminderDays,
   }) => StoreRow(
     id: id ?? this.id,
     name: name ?? this.name,
@@ -593,6 +708,9 @@ class StoreRow extends DataClass implements Insertable<StoreRow> {
     notifyPriceChange: notifyPriceChange ?? this.notifyPriceChange,
     notifyLargeAdjustment: notifyLargeAdjustment ?? this.notifyLargeAdjustment,
     notifyDeliveries: notifyDeliveries ?? this.notifyDeliveries,
+    notifyBusyDays: notifyBusyDays ?? this.notifyBusyDays,
+    busyWeekdays: busyWeekdays ?? this.busyWeekdays,
+    busyReminderDays: busyReminderDays ?? this.busyReminderDays,
   );
   StoreRow copyWithCompanion(StoresCompanion data) {
     return StoreRow(
@@ -629,6 +747,15 @@ class StoreRow extends DataClass implements Insertable<StoreRow> {
       notifyDeliveries: data.notifyDeliveries.present
           ? data.notifyDeliveries.value
           : this.notifyDeliveries,
+      notifyBusyDays: data.notifyBusyDays.present
+          ? data.notifyBusyDays.value
+          : this.notifyBusyDays,
+      busyWeekdays: data.busyWeekdays.present
+          ? data.busyWeekdays.value
+          : this.busyWeekdays,
+      busyReminderDays: data.busyReminderDays.present
+          ? data.busyReminderDays.value
+          : this.busyReminderDays,
     );
   }
 
@@ -649,7 +776,10 @@ class StoreRow extends DataClass implements Insertable<StoreRow> {
           ..write('notifyLowStock: $notifyLowStock, ')
           ..write('notifyPriceChange: $notifyPriceChange, ')
           ..write('notifyLargeAdjustment: $notifyLargeAdjustment, ')
-          ..write('notifyDeliveries: $notifyDeliveries')
+          ..write('notifyDeliveries: $notifyDeliveries, ')
+          ..write('notifyBusyDays: $notifyBusyDays, ')
+          ..write('busyWeekdays: $busyWeekdays, ')
+          ..write('busyReminderDays: $busyReminderDays')
           ..write(')'))
         .toString();
   }
@@ -671,6 +801,9 @@ class StoreRow extends DataClass implements Insertable<StoreRow> {
     notifyPriceChange,
     notifyLargeAdjustment,
     notifyDeliveries,
+    notifyBusyDays,
+    busyWeekdays,
+    busyReminderDays,
   );
   @override
   bool operator ==(Object other) =>
@@ -690,7 +823,10 @@ class StoreRow extends DataClass implements Insertable<StoreRow> {
           other.notifyLowStock == this.notifyLowStock &&
           other.notifyPriceChange == this.notifyPriceChange &&
           other.notifyLargeAdjustment == this.notifyLargeAdjustment &&
-          other.notifyDeliveries == this.notifyDeliveries);
+          other.notifyDeliveries == this.notifyDeliveries &&
+          other.notifyBusyDays == this.notifyBusyDays &&
+          other.busyWeekdays == this.busyWeekdays &&
+          other.busyReminderDays == this.busyReminderDays);
 }
 
 class StoresCompanion extends UpdateCompanion<StoreRow> {
@@ -709,6 +845,9 @@ class StoresCompanion extends UpdateCompanion<StoreRow> {
   final Value<bool> notifyPriceChange;
   final Value<bool> notifyLargeAdjustment;
   final Value<bool> notifyDeliveries;
+  final Value<bool> notifyBusyDays;
+  final Value<String> busyWeekdays;
+  final Value<int> busyReminderDays;
   final Value<int> rowid;
   const StoresCompanion({
     this.id = const Value.absent(),
@@ -726,6 +865,9 @@ class StoresCompanion extends UpdateCompanion<StoreRow> {
     this.notifyPriceChange = const Value.absent(),
     this.notifyLargeAdjustment = const Value.absent(),
     this.notifyDeliveries = const Value.absent(),
+    this.notifyBusyDays = const Value.absent(),
+    this.busyWeekdays = const Value.absent(),
+    this.busyReminderDays = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   StoresCompanion.insert({
@@ -744,6 +886,9 @@ class StoresCompanion extends UpdateCompanion<StoreRow> {
     this.notifyPriceChange = const Value.absent(),
     this.notifyLargeAdjustment = const Value.absent(),
     this.notifyDeliveries = const Value.absent(),
+    this.notifyBusyDays = const Value.absent(),
+    this.busyWeekdays = const Value.absent(),
+    this.busyReminderDays = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        name = Value(name),
@@ -768,6 +913,9 @@ class StoresCompanion extends UpdateCompanion<StoreRow> {
     Expression<bool>? notifyPriceChange,
     Expression<bool>? notifyLargeAdjustment,
     Expression<bool>? notifyDeliveries,
+    Expression<bool>? notifyBusyDays,
+    Expression<String>? busyWeekdays,
+    Expression<int>? busyReminderDays,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -788,6 +936,9 @@ class StoresCompanion extends UpdateCompanion<StoreRow> {
       if (notifyLargeAdjustment != null)
         'notify_large_adjustment': notifyLargeAdjustment,
       if (notifyDeliveries != null) 'notify_deliveries': notifyDeliveries,
+      if (notifyBusyDays != null) 'notify_busy_days': notifyBusyDays,
+      if (busyWeekdays != null) 'busy_weekdays': busyWeekdays,
+      if (busyReminderDays != null) 'busy_reminder_days': busyReminderDays,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -808,6 +959,9 @@ class StoresCompanion extends UpdateCompanion<StoreRow> {
     Value<bool>? notifyPriceChange,
     Value<bool>? notifyLargeAdjustment,
     Value<bool>? notifyDeliveries,
+    Value<bool>? notifyBusyDays,
+    Value<String>? busyWeekdays,
+    Value<int>? busyReminderDays,
     Value<int>? rowid,
   }) {
     return StoresCompanion(
@@ -828,6 +982,9 @@ class StoresCompanion extends UpdateCompanion<StoreRow> {
       notifyLargeAdjustment:
           notifyLargeAdjustment ?? this.notifyLargeAdjustment,
       notifyDeliveries: notifyDeliveries ?? this.notifyDeliveries,
+      notifyBusyDays: notifyBusyDays ?? this.notifyBusyDays,
+      busyWeekdays: busyWeekdays ?? this.busyWeekdays,
+      busyReminderDays: busyReminderDays ?? this.busyReminderDays,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -884,6 +1041,15 @@ class StoresCompanion extends UpdateCompanion<StoreRow> {
     if (notifyDeliveries.present) {
       map['notify_deliveries'] = Variable<bool>(notifyDeliveries.value);
     }
+    if (notifyBusyDays.present) {
+      map['notify_busy_days'] = Variable<bool>(notifyBusyDays.value);
+    }
+    if (busyWeekdays.present) {
+      map['busy_weekdays'] = Variable<String>(busyWeekdays.value);
+    }
+    if (busyReminderDays.present) {
+      map['busy_reminder_days'] = Variable<int>(busyReminderDays.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -908,6 +1074,9 @@ class StoresCompanion extends UpdateCompanion<StoreRow> {
           ..write('notifyPriceChange: $notifyPriceChange, ')
           ..write('notifyLargeAdjustment: $notifyLargeAdjustment, ')
           ..write('notifyDeliveries: $notifyDeliveries, ')
+          ..write('notifyBusyDays: $notifyBusyDays, ')
+          ..write('busyWeekdays: $busyWeekdays, ')
+          ..write('busyReminderDays: $busyReminderDays, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -11480,6 +11649,223 @@ class AttendancePausesCompanion extends UpdateCompanion<AttendancePauseRow> {
   }
 }
 
+class $BusyDatesTable extends BusyDates
+    with TableInfo<$BusyDatesTable, BusyDateRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $BusyDatesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _storeIdMeta = const VerificationMeta(
+    'storeId',
+  );
+  @override
+  late final GeneratedColumn<String> storeId = GeneratedColumn<String>(
+    'store_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES stores (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _dayMeta = const VerificationMeta('day');
+  @override
+  late final GeneratedColumn<String> day = GeneratedColumn<String>(
+    'day',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(
+      minTextLength: 10,
+      maxTextLength: 10,
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [storeId, day];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'busy_dates';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<BusyDateRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('store_id')) {
+      context.handle(
+        _storeIdMeta,
+        storeId.isAcceptableOrUnknown(data['store_id']!, _storeIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_storeIdMeta);
+    }
+    if (data.containsKey('day')) {
+      context.handle(
+        _dayMeta,
+        day.isAcceptableOrUnknown(data['day']!, _dayMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_dayMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {storeId, day};
+  @override
+  BusyDateRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return BusyDateRow(
+      storeId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}store_id'],
+      )!,
+      day: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}day'],
+      )!,
+    );
+  }
+
+  @override
+  $BusyDatesTable createAlias(String alias) {
+    return $BusyDatesTable(attachedDatabase, alias);
+  }
+}
+
+class BusyDateRow extends DataClass implements Insertable<BusyDateRow> {
+  final String storeId;
+  final String day;
+  const BusyDateRow({required this.storeId, required this.day});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['store_id'] = Variable<String>(storeId);
+    map['day'] = Variable<String>(day);
+    return map;
+  }
+
+  BusyDatesCompanion toCompanion(bool nullToAbsent) {
+    return BusyDatesCompanion(storeId: Value(storeId), day: Value(day));
+  }
+
+  factory BusyDateRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return BusyDateRow(
+      storeId: serializer.fromJson<String>(json['storeId']),
+      day: serializer.fromJson<String>(json['day']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'storeId': serializer.toJson<String>(storeId),
+      'day': serializer.toJson<String>(day),
+    };
+  }
+
+  BusyDateRow copyWith({String? storeId, String? day}) =>
+      BusyDateRow(storeId: storeId ?? this.storeId, day: day ?? this.day);
+  BusyDateRow copyWithCompanion(BusyDatesCompanion data) {
+    return BusyDateRow(
+      storeId: data.storeId.present ? data.storeId.value : this.storeId,
+      day: data.day.present ? data.day.value : this.day,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('BusyDateRow(')
+          ..write('storeId: $storeId, ')
+          ..write('day: $day')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(storeId, day);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is BusyDateRow &&
+          other.storeId == this.storeId &&
+          other.day == this.day);
+}
+
+class BusyDatesCompanion extends UpdateCompanion<BusyDateRow> {
+  final Value<String> storeId;
+  final Value<String> day;
+  final Value<int> rowid;
+  const BusyDatesCompanion({
+    this.storeId = const Value.absent(),
+    this.day = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  BusyDatesCompanion.insert({
+    required String storeId,
+    required String day,
+    this.rowid = const Value.absent(),
+  }) : storeId = Value(storeId),
+       day = Value(day);
+  static Insertable<BusyDateRow> custom({
+    Expression<String>? storeId,
+    Expression<String>? day,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (storeId != null) 'store_id': storeId,
+      if (day != null) 'day': day,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  BusyDatesCompanion copyWith({
+    Value<String>? storeId,
+    Value<String>? day,
+    Value<int>? rowid,
+  }) {
+    return BusyDatesCompanion(
+      storeId: storeId ?? this.storeId,
+      day: day ?? this.day,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (storeId.present) {
+      map['store_id'] = Variable<String>(storeId.value);
+    }
+    if (day.present) {
+      map['day'] = Variable<String>(day.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('BusyDatesCompanion(')
+          ..write('storeId: $storeId, ')
+          ..write('day: $day, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   late final $StoresTable stores = $StoresTable(this);
@@ -11508,6 +11894,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $AttendancePausesTable attendancePauses = $AttendancePausesTable(
     this,
   );
+  late final $BusyDatesTable busyDates = $BusyDatesTable(this);
   late final Index itemsStore = Index(
     'items_store',
     'CREATE INDEX items_store ON items (store_id)',
@@ -11657,6 +12044,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     attendances,
     attendanceSessions,
     attendancePauses,
+    busyDates,
     itemsStore,
     itemsStoreBarcode,
     itemsCategory,
@@ -11851,6 +12239,13 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('attendance_pauses', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'stores',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('busy_dates', kind: UpdateKind.delete)],
     ),
   ]);
   @override

@@ -176,6 +176,7 @@ void main() {
         'attendance_pauses',
         'attendance_sessions',
         'attendances',
+        'busy_dates',
         'categories',
         'employee_credentials',
         'employees',
@@ -196,8 +197,8 @@ void main() {
       ]);
     });
 
-    test('at schema version 13', () {
-      expect(db.schemaVersion, 13);
+    test('at schema version 14', () {
+      expect(db.schemaVersion, 14);
     });
 
     test('with foreign keys switched on', () async {

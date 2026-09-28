@@ -32,6 +32,7 @@ final _rootScreens = <String, String>{
   'units': Routes.toUnits(_store),
   'alerts': Routes.toAlerts(_store),
   'notifications': Routes.toNotifications(_store),
+  'calendar': Routes.toCalendar(_store),
   'reports': Routes.toReports(_store),
   'employees': Routes.toEmployees(_store),
   'timeclock': Routes.toTimeclock(_store),

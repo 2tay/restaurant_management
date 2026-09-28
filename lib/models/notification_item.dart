@@ -14,6 +14,10 @@ enum NotificationKind {
 
   /// A delivery was recorded.
   delivery,
+
+  /// A busy period on the calendar is coming, and some products are below
+  /// their busy-day minimum.
+  busyDays,
 }
 
 /// One entry in the notifications centre.

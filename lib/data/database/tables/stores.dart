@@ -61,6 +61,28 @@ class Stores extends Table {
   BoolColumn get notifyDeliveries =>
       boolean().withDefault(const Constant(false))();
 
+  /// The "jours chargés" reminder: on unless switched off, like the stock ones.
+  BoolColumn get notifyBusyDays => boolean().withDefault(const Constant(true))();
+
+  // --- Busy-day calendar -----------------------------------------------------
+  //
+  // The weekly half of the calendar. The one-off dates live in [BusyDates].
+
+  /// The weekdays that are busy every week, as ISO numbers joined by commas
+  /// (`DateTime.monday` = 1 … `DateTime.sunday` = 7). Friday, Saturday and
+  /// Sunday by default — `BusyCalendarRules.defaultWeekdays`.
+  ///
+  /// Text rather than a child table: seven booleans that are always read and
+  /// written together are one value, and an empty string is a real answer
+  /// ("no weekday is busy").
+  TextColumn get busyWeekdays =>
+      text().withDefault(const Constant('5,6,7'))();
+
+  /// How many days before a busy period the reminder starts.
+  /// `BusyCalendarRules.defaultReminderDays`.
+  IntColumn get busyReminderDays =>
+      integer().withDefault(const Constant(1))();
+
   @override
   Set<Column<Object>> get primaryKey => {id};
 }

@@ -8,6 +8,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/responsive.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../../core/utils/busy_calendar.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/utils/stock_status.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -16,6 +17,7 @@ import '../../../../data/view_models/view_models.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 import '../alerts_filter.dart';
+import '../../../calendar/presentation/busy_labels.dart';
 import '../../../inventory/presentation/widgets/product_drawer.dart';
 
 /// Everything at or below its threshold, worst first.
@@ -47,9 +49,16 @@ class LowStockAlertsPage extends ConsumerWidget {
     // query watches the tables both of them write to.
     final asyncAlerts = ref.watch(lowStockAlertsProvider(storeId));
     final all = asyncAlerts.value ?? const <LowStockAlertView>[];
+    // The calendar's list: under the busy-day minimum, which holds products
+    // that are fine on an ordinary day. Its own tab, and the banner's count.
+    final busyAll =
+        ref.watch(busyAlertsProvider(storeId)).value ??
+        const <LowStockAlertView>[];
+    final warning = ref.watch(busyWarningProvider(storeId));
     final filter = ref.watch(alertsFilterProvider);
     final selection = ref.watch(alertSelectionProvider);
-    final shown = filter.apply(all);
+    final busy = filter.severity == AlertSeverity.busy;
+    final shown = filter.apply(busy ? busyAll : all);
 
     // What the buttons act on: the ticked rows, or — when nothing is ticked —
     // everything currently on screen. "Create the orders" with an empty
@@ -82,7 +91,9 @@ class LowStockAlertsPage extends ConsumerWidget {
           label: l10n.alertsCreateOrders,
           shortLabel: l10n.shortCreateOrders,
           icon: LucideIcons.clipboardList,
-          onPressed: acting.isEmpty ? null : () => _startOrders(context, acting),
+          onPressed: acting.isEmpty
+              ? null
+              : () => _startOrders(context, acting, busy: busy),
         ),
       ],
       // Only while something is ticked. A bar that is always there costs a row
@@ -92,25 +103,40 @@ class LowStockAlertsPage extends ConsumerWidget {
           : _SelectionBar(
               alerts: acting,
               onClear: ref.read(alertSelectionProvider.notifier).clear,
-              onCreate: () => _startOrders(context, acting),
+              onCreate: () => _startOrders(context, acting, busy: busy),
             ),
       child: AsyncContent<List<LowStockAlertView>>(
         value: asyncAlerts,
         onRetry: () => ref.invalidate(lowStockAlertsProvider(storeId)),
-        builder: (context, _) => all.isEmpty
-            ? EmptyState(
+        builder: (context, _) => Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (warning != null) ...[
+              _BusyBanner(
+                period: warning,
+                shortCount: busyAll.length,
+                // No "see the list" on the list itself.
+                onShowList: busy
+                    ? null
+                    : () => ref
+                          .read(alertsFilterProvider.notifier)
+                          .setSeverity(AlertSeverity.busy),
+              ),
+              const SizedBox(height: AppSpacing.md),
+            ],
+            if (all.isEmpty && busyAll.isEmpty)
+              EmptyState(
                 icon: LucideIcons.circleCheck,
                 title: l10n.alertsEmpty,
                 message: l10n.alertsEmptyBody,
               )
-            : Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _Toolbar(alerts: all),
-                  const SizedBox(height: AppSpacing.md),
-                  _Results(shown: shown, storeId: storeId, filter: filter),
-                ],
-              ),
+            else ...[
+              _Toolbar(alerts: all, busyAlerts: busyAll),
+              const SizedBox(height: AppSpacing.md),
+              _Results(shown: shown, storeId: storeId, filter: filter),
+            ],
+          ],
+        ),
       ),
     );
   }
@@ -123,8 +149,9 @@ class LowStockAlertsPage extends ConsumerWidget {
   /// send. One tap per supplier is the smallest honest version of the action.
   Future<void> _startOrders(
     BuildContext context,
-    List<LowStockAlertView> alerts,
-  ) async {
+    List<LowStockAlertView> alerts, {
+    required bool busy,
+  }) async {
     final supplierId = await _SupplierGroupSheet.show(
       context,
       groupBySupplier(alerts),
@@ -134,7 +161,8 @@ class LowStockAlertsPage extends ConsumerWidget {
     // `prefill` tells the order form to add this supplier's low items straight
     // away, which is the whole point of arriving from here.
     context.pushScreen(
-      '${Routes.toNewOrder(storeId)}?supplier=$supplierId&prefill=1',
+      '${Routes.toNewOrder(storeId)}?supplier=$supplierId'
+      '&prefill=${busy ? 'busy' : '1'}',
     );
   }
 }
@@ -184,10 +212,13 @@ Map<String, ({String name, int count})> groupBySupplier(
 /// What is left reads left to right as what it does: which ones, narrowed how,
 /// then ordered and drawn how, pushed to the far end.
 class _Toolbar extends ConsumerWidget {
-  const _Toolbar({required this.alerts});
+  const _Toolbar({required this.alerts, required this.busyAlerts});
 
   /// Every alert, before any filtering.
   final List<LowStockAlertView> alerts;
+
+  /// Every product under its busy-day minimum, before any filtering.
+  final List<LowStockAlertView> busyAlerts;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -208,6 +239,11 @@ class _Toolbar extends ConsumerWidget {
         (AlertSeverity.all, l10n.alertsFilterAll, base.length),
         (AlertSeverity.outOfStock, l10n.alertsSeverityOutOfStock, out),
         (AlertSeverity.lowStock, l10n.alertsSeverityLowStock, base.length - out),
+        (
+          AlertSeverity.busy,
+          l10n.alertsBusyTab,
+          filter.copyWith(severity: AlertSeverity.busy).apply(busyAlerts).length,
+        ),
       ].indexed) ...[
         if (i > 0) const SizedBox(width: AppSpacing.xs),
         _SeverityTab(
@@ -223,7 +259,8 @@ class _Toolbar extends ConsumerWidget {
     // the establishment would be mostly dead ends.
     final suppliers = <String, String>{};
     var hasUnsupplied = false;
-    for (final alert in alerts) {
+    final current = filter.severity == AlertSeverity.busy ? busyAlerts : alerts;
+    for (final alert in current) {
       final id = alert.defaultSupplierId;
       if (id == null) {
         hasUnsupplied = true;
@@ -476,7 +513,27 @@ class _Results extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
 
+    final busy = filter.severity == AlertSeverity.busy;
+
     if (shown.isEmpty) {
+      // Nothing narrowing the list: it is genuinely empty, which is good news
+      // rather than a filter to clear.
+      final narrowed =
+          filter.coverage != AlertCoverage.all || filter.supplierId != null;
+      if (!narrowed && busy) {
+        return EmptyState(
+          icon: LucideIcons.calendarCheck,
+          title: l10n.alertsBusyEmpty,
+          message: l10n.alertsBusyEmptyBody,
+        );
+      }
+      if (!narrowed && filter.severity == AlertSeverity.all) {
+        return EmptyState(
+          icon: LucideIcons.circleCheck,
+          title: l10n.alertsEmpty,
+          message: l10n.alertsEmptyBody,
+        );
+      }
       return EmptyState.noResults(
         l10n,
         onClearFilters: ref.read(alertsFilterProvider.notifier).clear,
@@ -485,14 +542,16 @@ class _Results extends ConsumerWidget {
 
     if (ref.watch(alertsViewModeProvider) == AlertsViewMode.table &&
         !context.isPhone) {
-      return _AlertsTable(alerts: shown, storeId: storeId);
+      return _AlertsTable(alerts: shown, storeId: storeId, busy: busy);
     }
 
     // Grouped by severity only in the default order. A list the user has asked
     // to sort by name, still cut into two blocks, is not sorted by name.
     final grouped =
         filter.sort == AlertSort.urgency && filter.severity == AlertSeverity.all;
-    if (!grouped) return _AlertList(alerts: shown, storeId: storeId);
+    if (!grouped) {
+      return _AlertList(alerts: shown, storeId: storeId, busy: busy);
+    }
 
     final out = shown
         .where((v) => stockStatusOf(v.row.item) == StockStatus.outOfStock)
@@ -572,10 +631,17 @@ class _SectionBlock extends ConsumerWidget {
 }
 
 class _AlertList extends StatelessWidget {
-  const _AlertList({required this.alerts, required this.storeId});
+  const _AlertList({
+    required this.alerts,
+    required this.storeId,
+    this.busy = false,
+  });
 
   final List<LowStockAlertView> alerts;
   final String storeId;
+
+  /// Measured against the busy-day minimum rather than the ordinary one.
+  final bool busy;
 
   @override
   Widget build(BuildContext context) {
@@ -588,7 +654,7 @@ class _AlertList extends StatelessWidget {
       itemCount: alerts.length,
       separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.xs),
       itemBuilder: (context, index) =>
-          _AlertCard(view: alerts[index], storeId: storeId),
+          _AlertCard(view: alerts[index], storeId: storeId, busy: busy),
     );
   }
 }
@@ -613,10 +679,17 @@ class _AlertList extends StatelessWidget {
 /// "Rien en commande" went because it was on almost every row — silence now
 /// means nothing is coming, and only stock genuinely on its way says so.
 class _AlertCard extends ConsumerWidget {
-  const _AlertCard({required this.view, required this.storeId});
+  const _AlertCard({
+    required this.view,
+    required this.storeId,
+    this.busy = false,
+  });
 
   final LowStockAlertView view;
   final String storeId;
+
+  /// See [_AlertList.busy].
+  final bool busy;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -627,7 +700,8 @@ class _AlertCard extends ConsumerWidget {
     final status = stockStatusOf(item);
     final colors = StockStatusBadge.colorsFor(status);
     final unit = view.row.unitAbbreviation;
-    final shortfall = item.lowStockThreshold - item.quantity;
+    final minimum = busy ? holidayMinimumOf(item) : item.lowStockThreshold;
+    final shortfall = minimum - item.quantity;
     final supplierId = view.defaultSupplierId;
     final supplierName = view.defaultSupplierName;
     final selected = ref.watch(alertSelectionProvider).contains(item.id);
@@ -682,7 +756,7 @@ class _AlertCard extends ConsumerWidget {
         Text(
           l10n.alertsLevel(
             Formatters.quantityWithUnit(item.quantity, unit),
-            Formatters.quantityWithUnit(item.lowStockThreshold, unit),
+            Formatters.quantityWithUnit(minimum, unit),
           ),
           // Weight, not colour. The figure was tinted on every row, which made
           // the one thing every row has look like the alarm — and left nothing
@@ -694,7 +768,7 @@ class _AlertCard extends ConsumerWidget {
         const SizedBox(height: AppSpacing.xs),
         StockGauge(
           quantity: item.quantity,
-          minimum: item.lowStockThreshold,
+          minimum: minimum,
           maximum: item.maxStock,
         ),
         if (notes.isNotEmpty) ...[
@@ -715,7 +789,8 @@ class _AlertCard extends ConsumerWidget {
             label: l10n.alertsOrder,
             icon: LucideIcons.truck,
             onPressed: () => context.pushScreen(
-              '${Routes.toNewOrder(storeId)}?supplier=$supplierId&prefill=1',
+              '${Routes.toNewOrder(storeId)}?supplier=$supplierId'
+              '&prefill=${busy ? 'busy' : '1'}',
             ),
           );
 
@@ -784,10 +859,17 @@ class _AlertCard extends ConsumerWidget {
 // -----------------------------------------------------------------------------
 
 class _AlertsTable extends StatelessWidget {
-  const _AlertsTable({required this.alerts, required this.storeId});
+  const _AlertsTable({
+    required this.alerts,
+    required this.storeId,
+    this.busy = false,
+  });
 
   final List<LowStockAlertView> alerts;
   final String storeId;
+
+  /// See [_AlertList.busy].
+  final bool busy;
 
   @override
   Widget build(BuildContext context) {
@@ -837,7 +919,8 @@ class _AlertsTable extends StatelessWidget {
       ],
       cell: (context, v, column) {
         final item = v.row.item;
-        final gap = item.lowStockThreshold - item.quantity;
+        final minimum = busy ? holidayMinimumOf(item) : item.lowStockThreshold;
+        final gap = minimum - item.quantity;
         return switch (column) {
           0 => Text(
             item.name,
@@ -850,7 +933,7 @@ class _AlertsTable extends StatelessWidget {
             style: AppTypography.numeric.copyWith(fontWeight: FontWeight.w700),
           ),
           2 => Text(
-            quantity(v, item.lowStockThreshold),
+            quantity(v, minimum),
             style: AppTypography.numeric,
           ),
           3 => Text(
@@ -1049,6 +1132,121 @@ class _SupplierGroupSheet extends StatelessWidget {
                 ),
               ),
         ],
+      ),
+    );
+  }
+}
+
+// -----------------------------------------------------------------------------
+// The busy-day banner.
+// -----------------------------------------------------------------------------
+
+/// "Jours chargés demain": shown from the reminder day set on the calendar
+/// until the busy period is over.
+///
+/// It says when, and how many products are short of their busy-day minimum,
+/// and offers the list. The count is what makes it worth reading: zero turns
+/// it into good news rather than hiding it, so the owner knows the reminder
+/// ran and found nothing to buy.
+class _BusyBanner extends ConsumerWidget {
+  const _BusyBanner({
+    required this.period,
+    required this.shortCount,
+    required this.onShowList,
+  });
+
+  final BusyPeriod period;
+  final int shortCount;
+
+  /// Null on the busy list itself.
+  final VoidCallback? onShowList;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final today = ref.watch(todayProvider);
+    final colors = shortCount > 0 ? AppColors.lowStock : AppColors.inStock;
+
+    final text = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          l10n.alertsBusyBannerTitle(busyWhenLabel(l10n, today, period.start)),
+          style: theme.textTheme.titleSmall,
+        ),
+        const SizedBox(height: 2),
+        Text(
+          l10n.alertsBusyBannerBody(
+            shortCount,
+            busyPeriodLabel(l10n, period, capitalized: true),
+          ),
+          style: theme.textTheme.bodySmall,
+        ),
+      ],
+    );
+
+    final icon = Container(
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(
+        color: colors.container,
+        shape: BoxShape.circle,
+      ),
+      child: Icon(
+        LucideIcons.calendarClock,
+        size: AppSizing.iconMd,
+        color: colors.foreground,
+      ),
+    );
+
+    final button = onShowList == null || shortCount == 0
+        ? null
+        : SecondaryButton(
+            label: l10n.alertsBusyShow,
+            icon: LucideIcons.list,
+            onPressed: onShowList,
+          );
+
+    return AppCard(
+      accentColor: colors.solid,
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.sm,
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          if (constraints.maxWidth < 520 || context.isLargeText) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    icon,
+                    const SizedBox(width: AppSpacing.md),
+                    Expanded(child: text),
+                  ],
+                ),
+                if (button != null) ...[
+                  const SizedBox(height: AppSpacing.sm),
+                  Align(alignment: Alignment.centerLeft, child: button),
+                ],
+              ],
+            );
+          }
+          return Row(
+            children: [
+              icon,
+              const SizedBox(width: AppSpacing.md),
+              Expanded(child: text),
+              if (button != null) ...[
+                const SizedBox(width: AppSpacing.md),
+                button,
+              ],
+            ],
+          );
+        },
       ),
     );
   }

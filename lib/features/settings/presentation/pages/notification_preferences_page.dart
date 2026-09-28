@@ -79,6 +79,14 @@ class NotificationPreferencesPage extends ConsumerWidget {
                   value: settings.notifyDeliveries,
                   onChanged: (value) => _save(ref, deliveries: value),
                 ),
+                const Divider(height: 1),
+                _PreferenceRow(
+                  icon: LucideIcons.calendarDays,
+                  title: l10n.notificationPrefBusyDays,
+                  body: l10n.notificationPrefBusyDaysBody,
+                  value: settings.notifyBusyDays,
+                  onChanged: (value) => _save(ref, busyDays: value),
+                ),
               ],
             ),
           ),
@@ -95,6 +103,7 @@ class NotificationPreferencesPage extends ConsumerWidget {
     bool? priceChange,
     bool? largeAdjustment,
     bool? deliveries,
+    bool? busyDays,
   }) {
     ref
         .read(storeRepositoryProvider)
@@ -104,6 +113,7 @@ class NotificationPreferencesPage extends ConsumerWidget {
           priceChange: priceChange,
           largeAdjustment: largeAdjustment,
           deliveries: deliveries,
+          busyDays: busyDays,
         );
   }
 }

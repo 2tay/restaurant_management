@@ -27,6 +27,7 @@ StoreSettings storeSettingsFromRow(StoreRow row) => StoreSettings(
   notifyPriceChange: row.notifyPriceChange,
   notifyLargeAdjustment: row.notifyLargeAdjustment,
   notifyDeliveries: row.notifyDeliveries,
+  notifyBusyDays: row.notifyBusyDays,
 );
 
 /// [settings] is optional: when omitted the settings columns take their

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -78,6 +79,13 @@ class AppScaffold extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    return _BusyDayWatcher(
+      storeId: store.id,
+      child: _buildShell(context, ref),
+    );
+  }
+
+  Widget _buildShell(BuildContext context, WidgetRef ref) {
     final isFullScreen = ref.watch(isFullScreenProvider);
 
     if (isFullScreen) {
@@ -119,6 +127,61 @@ class AppScaffold extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// Keeps the date-driven parts of the app current while an establishment is
+/// open: moves [todayProvider] on when midnight passes, and asks for the
+/// busy-day reminder (`CalendarRepository.checkReminder`).
+///
+/// Every other notification is filed by the write that causes it. This one is
+/// caused by the calendar turning over, which no write does — so it is checked
+/// when the shell opens a store, and then every [_interval] while the app
+/// stays open. The check files at most one notification per busy period, so
+/// running it often costs a query and nothing else.
+class _BusyDayWatcher extends ConsumerStatefulWidget {
+  const _BusyDayWatcher({required this.storeId, required this.child});
+
+  final String storeId;
+  final Widget child;
+
+  @override
+  ConsumerState<_BusyDayWatcher> createState() => _BusyDayWatcherState();
+}
+
+class _BusyDayWatcherState extends ConsumerState<_BusyDayWatcher> {
+  static const Duration _interval = Duration(minutes: 15);
+
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(_interval, (_) => _check());
+    // After the first frame: the check reads providers, and a store that has
+    // just been opened should draw before it queries.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _check());
+  }
+
+  @override
+  void didUpdateWidget(_BusyDayWatcher oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.storeId != widget.storeId) _check();
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  void _check() {
+    if (!mounted) return;
+    ref.read(todayProvider.notifier).refresh();
+    unawaited(ref.read(calendarRepositoryProvider).checkReminder(widget.storeId));
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }
 
 /// The phone-only bar: open the drawer, see which establishment you are in,

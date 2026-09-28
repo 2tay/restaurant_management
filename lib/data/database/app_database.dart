@@ -14,6 +14,7 @@ import '../../models/purchase_order.dart';
 import '../../models/stock_movement.dart';
 import 'tables/account.dart';
 import 'tables/attendance.dart';
+import 'tables/busy_dates.dart';
 import 'tables/catalog.dart';
 import 'tables/employees.dart';
 import 'tables/items.dart';
@@ -63,6 +64,7 @@ part 'app_database.g.dart';
     Attendances,
     AttendanceSessions,
     AttendancePauses,
+    BusyDates,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -85,7 +87,7 @@ class AppDatabase extends _$AppDatabase {
   static const String databaseName = 'stock_inventory';
 
   @override
-  int get schemaVersion => 13;
+  int get schemaVersion => 14;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -312,6 +314,18 @@ class AppDatabase extends _$AppDatabase {
           SET password_hash = 'password:' || substr(password_hash, 5)
           WHERE password_hash LIKE 'pin:%'
         ''');
+      }
+
+      // v13 -> v14: the busy-day calendar. Three columns on `stores` (the busy
+      // weekdays, how early to remind, and the notification switch) and the
+      // table of one-off busy dates. Defaults, not backfills, so an upgraded
+      // install starts on Friday–Sunday with a one-day reminder exactly as a
+      // fresh one does.
+      if (from < 14) {
+        await m.addColumn(stores, stores.notifyBusyDays);
+        await m.addColumn(stores, stores.busyWeekdays);
+        await m.addColumn(stores, stores.busyReminderDays);
+        await m.createTable(busyDates);
       }
     },
 

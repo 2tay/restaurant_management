@@ -3864,4 +3864,124 @@ class AppLocalizationsFr extends AppLocalizations {
   String identityPromptPayrollSubtitle(String name) {
     return 'Saisissez votre numéro PIN pour valider le paiement de $name';
   }
+
+  @override
+  String get navCalendar => 'Calendrier';
+
+  @override
+  String get calendarTitle => 'Calendrier';
+
+  @override
+  String get calendarSubtitle =>
+      'Les jours de forte affluence, et quand être prévenu pour acheter le stock.';
+
+  @override
+  String get calendarWeekdaysTitle => 'Jours chargés chaque semaine';
+
+  @override
+  String get calendarWeekdaysBody =>
+      'Ces jours reviennent toutes les semaines.';
+
+  @override
+  String get calendarDatesTitle => 'Jours spéciaux';
+
+  @override
+  String get calendarDatesBody =>
+      'Touchez un jour pour le marquer comme chargé : fête, jour férié, événement. Touchez-le à nouveau pour l\'enlever.';
+
+  @override
+  String get calendarLegendWeekly => 'Chaque semaine';
+
+  @override
+  String get calendarLegendSpecial => 'Jour spécial';
+
+  @override
+  String get calendarPreviousMonth => 'Mois précédent';
+
+  @override
+  String get calendarNextMonth => 'Mois suivant';
+
+  @override
+  String get calendarReminderTitle => 'Rappel';
+
+  @override
+  String get calendarReminderBody =>
+      'Combien de jours avant d\'être prévenu, pour avoir le temps de commander.';
+
+  @override
+  String calendarReminderDays(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count jours avant',
+      one: '1 jour avant',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String calendarNextPeriod(String period, String reminder) {
+    return 'Prochaine période chargée : $period. Rappel à partir du $reminder.';
+  }
+
+  @override
+  String get calendarNoPeriod =>
+      'Aucun jour chargé n\'est prévu. Choisissez des jours ci-dessus.';
+
+  @override
+  String calendarPeriodRange(String start, String end) {
+    return 'du $start au $end';
+  }
+
+  @override
+  String get busyWhenOngoing => 'en cours';
+
+  @override
+  String get busyWhenTomorrow => 'demain';
+
+  @override
+  String busyWhenInDays(int days) {
+    return 'dans $days jours';
+  }
+
+  @override
+  String get alertsBusyTab => 'Jours chargés';
+
+  @override
+  String alertsBusyBannerTitle(String when) {
+    return 'Jours chargés $when';
+  }
+
+  @override
+  String alertsBusyBannerBody(int count, String period) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$period : $count produits sont sous le minimum de forte affluence.',
+      one: '$period : 1 produit est sous le minimum de forte affluence.',
+      zero: '$period : tout le stock est prêt.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get alertsBusyShow => 'Voir la liste';
+
+  @override
+  String get alertsBusyEmpty => 'Tout le stock est prêt pour les jours chargés';
+
+  @override
+  String get alertsBusyEmptyBody =>
+      'Chaque produit atteint son minimum de forte affluence.';
+
+  @override
+  String get notificationsKindBusyDays => 'Jours chargés';
+
+  @override
+  String get notificationPrefBusyDays => 'Jours chargés à venir';
+
+  @override
+  String get notificationPrefBusyDaysBody =>
+      'Soyez prévenu avant les jours de forte affluence du calendrier, avec les produits à commander.';
 }
