@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:drift/drift.dart';
 
 import '../../core/utils/attendance_status.dart';
@@ -31,12 +32,17 @@ typedef AttendancePage = ({
 /// locked** — a paid day is immutable.
 ///
 /// **The clock is injected.** "Today" is resolved when a query runs, and a test
-/// pins it between two calls. [clock] defaults to `DateTime.now`; the provider
+/// pins it between two calls. [clock] defaults to `clock.now()`; the provider
 /// supplies that, `db_fixture.dart` supplies a fixed function, and the
 /// today-scoped reads take an optional `now` override on top.
+/// The app-wide clock (`package:clock`), read afresh on every call so a test
+/// running under `withClock` is seen. A function of its own because the
+/// constructor's `clock` parameter hides the package's getter.
+DateTime _systemNow() => clock.now();
+
 class AttendanceRepository {
   AttendanceRepository(this._db, {DateTime Function()? clock})
-    : _clock = clock ?? DateTime.now;
+    : _clock = clock ?? _systemNow;
 
   final AppDatabase _db;
   final DateTime Function() _clock;

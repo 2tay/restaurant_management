@@ -2,6 +2,7 @@
 // the employee selector that pins the board to one card, and POINTER as a
 // colourless outline action.
 
+import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stock_inventory/app/router.dart';
@@ -24,10 +25,26 @@ Future<AppDatabase> _openBoard(
   return db;
 }
 
+/// A board test, the day after the seed.
+///
+/// `testApp` starts the clock at the moment the seed was written, and the seed
+/// gives that day punches of its own (Amélie is still clocked in). The day
+/// after has none, which is what every test here starts from.
+void _testBoard(
+  String description,
+  Future<void> Function(WidgetTester tester) body,
+) => testApp(description, (tester) {
+  final seedClock = clock;
+  return withClock(
+    Clock(() => seedClock.now().add(const Duration(days: 1))),
+    () => body(tester),
+  );
+});
+
 /// Today at [hour]:[minute] — the harness database has no punch for today,
 /// so a test that needs one makes it.
 DateTime _today(int hour, [int minute = 0]) {
-  final now = DateTime.now();
+  final now = clock.now();
   return DateTime(now.year, now.month, now.day, hour, minute);
 }
 
@@ -44,7 +61,7 @@ String _name(String id) {
 }
 
 void main() {
-  testApp('cards show the name but never the PIN', (tester) async {
+  _testBoard('cards show the name but never the PIN', (tester) async {
     await _openBoard(tester);
 
     expect(tester.takeException(), isNull);
@@ -54,14 +71,16 @@ void main() {
     expect(find.textContaining(marc.pin), findsNothing);
   });
 
-  testApp('POINTER is an outline action, not a filled colour', (tester) async {
+  _testBoard('POINTER is an outline action, not a filled colour', (
+    tester,
+  ) async {
     await _openBoard(tester);
     // Several seeded employees have not clocked in today.
     expect(find.widgetWithText(OutlinedButton, 'POINTER'), findsWidgets);
     expect(find.widgetWithText(FilledButton, 'POINTER'), findsNothing);
   });
 
-  testApp('the selector pins the board to one card, then clears back', (
+  _testBoard('the selector pins the board to one card, then clears back', (
     tester,
   ) async {
     await _openBoard(tester);
@@ -88,7 +107,7 @@ void main() {
     expect(marcCard(), findsWidgets);
   });
 
-  testApp('header: title and paragraph left; date, time and full screen on '
+  _testBoard('header: title and paragraph left; date, time and full screen on '
       'one line at the right', (tester) async {
     // Wide: the test font draws every glyph a full em — at 1280 the title and
     // the clock would not share a line here, though they do in Inter.
@@ -111,45 +130,46 @@ void main() {
     final clockRect = tester.getRect(clock);
     // Same band as the title, at the right; full screen right after it.
     expect(clockRect.left, greaterThan(tester.getRect(title).right));
-    expect(
-      tester.getCenter(fullScreen).dy,
-      closeTo(clockRect.center.dy, 12),
-    );
+    expect(tester.getCenter(fullScreen).dy, closeTo(clockRect.center.dy, 12));
     expect(tester.getRect(fullScreen).left, greaterThan(clockRect.right));
   });
 
-  testApp('cards: status and buttons only, "Voir détails" at the top right',
-      (tester) async {
-    await _openBoard(tester);
+  _testBoard(
+    'cards: status and buttons only, "Voir détails" at the top right',
+    (tester) async {
+      await _openBoard(tester);
 
-    final cards = find.byType(AppCard);
-    // No timestamp log on the cards any more.
-    for (final word in ['Arrivée', 'Reprise', 'Départ']) {
-      expect(
-        find.descendant(of: cards, matching: find.text(word)),
-        findsNothing,
-        reason: word,
+      final cards = find.byType(AppCard);
+      // No timestamp log on the cards any more.
+      for (final word in ['Arrivée', 'Reprise', 'Départ']) {
+        expect(
+          find.descendant(of: cards, matching: find.text(word)),
+          findsNothing,
+          reason: word,
+        );
+      }
+      expect(find.byType(AttendanceStatusBadge), findsWidgets);
+
+      final amelieCard = find.ancestor(
+        of: find.text(_name(EmployeeIds.amelie)),
+        matching: find.byType(AppCard),
       );
-    }
-    expect(find.byType(AttendanceStatusBadge), findsWidgets);
+      final detail = find.byKey(
+        const ValueKey('timeclock-detail-${EmployeeIds.amelie}'),
+      );
+      expect(detail, findsOneWidget);
+      expect(
+        find.descendant(of: detail, matching: find.text('Voir détails')),
+        findsOneWidget,
+      );
+      final card = tester.getRect(amelieCard);
+      final link = tester.getRect(detail);
+      expect(link.right, closeTo(card.right, 24));
+      expect(link.top, closeTo(card.top, 24));
+    },
+  );
 
-    final amelieCard = find.ancestor(
-      of: find.text(_name(EmployeeIds.amelie)),
-      matching: find.byType(AppCard),
-    );
-    final detail = find.byKey(
-      const ValueKey('timeclock-detail-${EmployeeIds.amelie}'),
-    );
-    expect(detail, findsOneWidget);
-    expect(find.descendant(of: detail, matching: find.text('Voir détails')),
-        findsOneWidget);
-    final card = tester.getRect(amelieCard);
-    final link = tester.getRect(detail);
-    expect(link.right, closeTo(card.right, 24));
-    expect(link.top, closeTo(card.top, 24));
-  });
-
-  testApp('Voir détails opens a bare drawer: identity without PIN, the date '
+  _testBoard('Voir détails opens a bare drawer: identity without PIN, the date '
       'with the live time, one session without heading, the day summary, no '
       'Alertes when there is none', (tester) async {
     final db = await _openBoard(tester, size: const Size(1280, 1400));
@@ -162,9 +182,7 @@ void main() {
     await repo.startPause(day!.id, now: _today(9, 30));
     await repo.endPause(day.id, now: _today(9, 35));
     await tester.pumpAndSettle();
-    final amelie = mockEmployees.firstWhere(
-      (e) => e.id == EmployeeIds.amelie,
-    );
+    final amelie = mockEmployees.firstWhere((e) => e.id == EmployeeIds.amelie);
 
     await _openDetail(tester, EmployeeIds.amelie);
 
@@ -212,7 +230,7 @@ void main() {
     expect(inDrawer(find.text('Alertes')), findsNothing);
   });
 
-  testApp('two sessions: a Session N° each, the overrun in the Alertes '
+  _testBoard('two sessions: a Session N° each, the overrun in the Alertes '
       'section at the end', (tester) async {
     final db = await _openBoard(tester, size: const Size(1280, 1600));
     final repo = AttendanceRepository(db);
@@ -256,7 +274,9 @@ void main() {
     expect(
       tester.getTopLeft(alerts).dy,
       greaterThan(
-        tester.getTopLeft(inDrawer(find.textContaining('Résumé de la journée'))).dy,
+        tester
+            .getTopLeft(inDrawer(find.textContaining('Résumé de la journée')))
+            .dy,
       ),
     );
     expect(
@@ -265,7 +285,7 @@ void main() {
     );
   });
 
-  testApp('no punch yet: avatar, name and a dated invitation, POINTER — '
+  _testBoard('no punch yet: avatar, name and a dated invitation, POINTER — '
       'centred; POINTER asks for the PIN', (tester) async {
     await _openBoard(tester);
     await _openDetail(tester, EmployeeIds.noah);
@@ -273,15 +293,13 @@ void main() {
     Finder inDrawer(Finder f) => find.descendant(of: drawer, matching: f);
     expect(tester.takeException(), isNull);
 
-    final prompt = inDrawer(
-      find.byKey(const ValueKey('timeclock-start-day')),
-    );
+    final prompt = inDrawer(find.byKey(const ValueKey('timeclock-start-day')));
     expect(prompt, findsOneWidget);
     expect(inDrawer(find.byType(EmployeeAvatar)), findsOneWidget);
     expect(inDrawer(find.text(_name(EmployeeIds.noah))), findsOneWidget);
     final noah = mockEmployees.firstWhere((e) => e.id == EmployeeIds.noah);
     expect(inDrawer(find.textContaining(noah.pin)), findsNothing);
-    final today = Formatters.date(DateTime.now());
+    final today = Formatters.date(clock.now());
     expect(
       inDrawer(find.textContaining('pas encore commencé votre journée')),
       findsOneWidget,

@@ -22,11 +22,7 @@ Future<AppDatabase> _open(
   WidgetTester tester, {
   Size size = const Size(1440, 900),
 }) async {
-  final db = await pumpApp(
-    tester,
-    size: size,
-    asEmployeeId: EmployeeIds.marc,
-  );
+  final db = await pumpApp(tester, size: size, asEmployeeId: EmployeeIds.marc);
   appRouter.go(Routes.toEmployees(StoreIds.sablon));
   await tester.pumpAndSettle();
   return db;
@@ -48,7 +44,7 @@ void main() {
     await _open(tester);
 
     expect(tester.takeException(), isNull);
-    expect(find.byType(ViewModeToggle), findsOneWidget);
+    expect(find.byType(ViewModeToggle<CollectionViewMode>), findsOneWidget);
     expect(find.byType(DataTable), findsNothing);
     expect(find.text(_karim), findsOneWidget);
   });
@@ -57,7 +53,9 @@ void main() {
     tester,
   ) async {
     final db = await _open(tester);
-    final active = await EmployeeRepository(db).activeEmployees(StoreIds.sablon);
+    final active = await EmployeeRepository(
+      db,
+    ).activeEmployees(StoreIds.sablon);
     final average =
         active.map((e) => e.pay).reduce((a, b) => a + b) / active.length;
 
@@ -78,7 +76,9 @@ void main() {
 
   testApp('a 5th KPI: the highest hourly rate', (tester) async {
     final db = await _open(tester);
-    final active = await EmployeeRepository(db).activeEmployees(StoreIds.sablon);
+    final active = await EmployeeRepository(
+      db,
+    ).activeEmployees(StoreIds.sablon);
     final highest = active.map((e) => e.pay).reduce((a, b) => a > b ? a : b);
 
     final tile = find.byKey(const ValueKey('kpi-max-rate'));
@@ -102,9 +102,11 @@ void main() {
     final tile = find.byKey(const ValueKey('kpi-max-rate'));
 
     expect(
-      tester.widget<AppCard>(
-        find.descendant(of: tile, matching: find.byType(AppCard)),
-      ).bordered,
+      tester
+          .widget<AppCard>(
+            find.descendant(of: tile, matching: find.byType(AppCard)),
+          )
+          .bordered,
       isFalse,
     );
     final icon = tester.widget<Icon>(
@@ -113,7 +115,8 @@ void main() {
     expect(icon.color, const Color(0xFF0F766E));
     // …on a translucent green disc.
     final disc = tester.widget<Container>(
-      find.ancestor(of: find.byWidget(icon), matching: find.byType(Container))
+      find
+          .ancestor(of: find.byWidget(icon), matching: find.byType(Container))
           .first,
     );
     final discColor = (disc.decoration! as BoxDecoration).color!;
@@ -153,11 +156,14 @@ void main() {
     tester,
   ) async {
     await _open(tester);
-    expect(tester.getSize(find.byType(ViewModeToggle)).height, 40);
+    expect(
+      tester.getSize(find.byType(ViewModeToggle<CollectionViewMode>)).height,
+      40,
+    );
     // Small icons inside the toggle.
     for (final icon in tester.widgetList<Icon>(
       find.descendant(
-        of: find.byType(ViewModeToggle),
+        of: find.byType(ViewModeToggle<CollectionViewMode>),
         matching: find.byType(Icon),
       ),
     )) {
@@ -168,7 +174,7 @@ void main() {
     final toggleBox = tester.widget<Container>(
       find
           .descendant(
-            of: find.byType(ViewModeToggle),
+            of: find.byType(ViewModeToggle<CollectionViewMode>),
             matching: find.byType(Container),
           )
           .first,
@@ -181,7 +187,9 @@ void main() {
     await _open(tester);
 
     final search = tester.getRect(find.byType(SearchField));
-    final toggle = tester.getRect(find.byType(ViewModeToggle));
+    final toggle = tester.getRect(
+      find.byType(ViewModeToggle<CollectionViewMode>),
+    );
     final kpi = tester.getRect(find.byKey(const ValueKey('kpi-max-rate')));
 
     // Same line…
@@ -198,16 +206,16 @@ void main() {
     await tester.pumpAndSettle();
 
     final search = tester.getRect(find.byType(SearchField));
-    final toggle = tester.getRect(find.byType(ViewModeToggle));
+    final toggle = tester.getRect(
+      find.byType(ViewModeToggle<CollectionViewMode>),
+    );
     expect(toggle.top, greaterThan(search.bottom));
   });
 
   testApp('the card: identity, status, role, contact, rate, hire date — '
       'stacked vertically', (tester) async {
     final db = await _open(tester);
-    final amelie = (await EmployeeRepository(db).employee(
-      EmployeeIds.amelie,
-    ))!;
+    final amelie = (await EmployeeRepository(db).employee(EmployeeIds.amelie))!;
     final card = find.byKey(ValueKey('employee-card-${amelie.id}'));
     Finder inCard(String text) =>
         find.descendant(of: card, matching: find.text(text));
@@ -233,16 +241,12 @@ void main() {
       find.descendant(
         of: hired,
         matching: find.byWidgetPredicate(
-          (w) =>
-              w is RichText && w.text.toPlainText().contains('Embauché le'),
+          (w) => w is RichText && w.text.toPlainText().contains('Embauché le'),
         ),
       ),
     );
     expect(line.text.toPlainText(), contains('Embauché le'));
-    expect(
-      line.text.toPlainText(),
-      contains(Formatters.date(amelie.hireDate)),
-    );
+    expect(line.text.toPlainText(), contains(Formatters.date(amelie.hireDate)));
     // Text.rich wraps the span in a root one: root → caption → date.
     final caption = (line.text as TextSpan).children!.single as TextSpan;
     final dateSpan = caption.children!.single as TextSpan;
@@ -255,9 +259,11 @@ void main() {
     expect(tester.getTopLeft(hired).dy, greaterThan(y('Salaire horaire')));
     // Not a button: no tap handler, so no hover effect either.
     expect(
-      tester.widget<AppCard>(
-        find.descendant(of: card, matching: find.byType(AppCard)).first,
-      ).onTap,
+      tester
+          .widget<AppCard>(
+            find.descendant(of: card, matching: find.byType(AppCard)).first,
+          )
+          .onTap,
       isNull,
     );
     // A little room between each icon and its text.
@@ -273,9 +279,7 @@ void main() {
     expect(gaps.map((box) => box.width), [12]);
   });
 
-  testApp('the owner is neither a card nor a table row', (
-    tester,
-  ) async {
+  testApp('the owner is neither a card nor a table row', (tester) async {
     await _open(tester);
     expect(
       find.byKey(const ValueKey('employee-card-${EmployeeIds.marc}')),
@@ -293,7 +297,10 @@ void main() {
       keys,
       isNot(contains(const ValueKey('employee-row-${EmployeeIds.marc}'))),
     );
-    expect(keys, contains(const ValueKey('employee-row-${EmployeeIds.amelie}')));
+    expect(
+      keys,
+      contains(const ValueKey('employee-row-${EmployeeIds.amelie}')),
+    );
   });
 
   testApp("a retired person's row: red badge, red hover", (tester) async {
@@ -340,15 +347,12 @@ void main() {
     final items = tester
         .widgetList<MenuItemButton>(find.byType(MenuItemButton))
         .toList();
-    expect(
-      items.map((i) => (i.key! as ValueKey<String>).value),
-      [
-        'employee-menu-attendance',
-        'employee-menu-payroll',
-        'employee-menu-edit',
-        'employee-menu-archive',
-      ],
-    );
+    expect(items.map((i) => (i.key! as ValueKey<String>).value), [
+      'employee-menu-attendance',
+      'employee-menu-payroll',
+      'employee-menu-edit',
+      'employee-menu-archive',
+    ]);
     expect(find.text('Voir les détails'), findsNothing);
     for (final item in items) {
       expect(item.leadingIcon, isA<Icon>());
@@ -358,9 +362,9 @@ void main() {
     expect((retire.leadingIcon! as Icon).color, red);
     expect(retire.style!.foregroundColor!.resolve(const {}), red);
     // Hover: the rate block's green wash.
-    final hover = items.first.style!.overlayColor!.resolve(
-      const {WidgetState.hovered},
-    )!;
+    final hover = items.first.style!.overlayColor!.resolve(const {
+      WidgetState.hovered,
+    })!;
     expect(hover.withValues(alpha: 1), const Color(0xFF0F766E));
     expect(hover.a, lessThan(0.2));
   });
@@ -457,7 +461,9 @@ void main() {
   });
   testApp('the card menu: Modifier opens the edit pop-up', (tester) async {
     await _open(tester);
-    final card = find.byKey(const ValueKey('employee-card-${EmployeeIds.karim}'));
+    final card = find.byKey(
+      const ValueKey('employee-card-${EmployeeIds.karim}'),
+    );
     await tester.tap(
       find.descendant(
         of: card,
@@ -474,7 +480,9 @@ void main() {
 
   testApp('the card menu: Retirer asks, then archives', (tester) async {
     final db = await _open(tester);
-    final card = find.byKey(const ValueKey('employee-card-${EmployeeIds.karim}'));
+    final card = find.byKey(
+      const ValueKey('employee-card-${EmployeeIds.karim}'),
+    );
     await tester.tap(
       find.descendant(
         of: card,
@@ -521,9 +529,7 @@ void main() {
   });
 
   testApp("a retired employee's card: red dashed outline, badge and rate; "
-      'the retirement date instead of the hire date', (
-    tester,
-  ) async {
+      'the retirement date instead of the hire date', (tester) async {
     await _open(tester);
     await tester.tap(find.byType(FilterPill)); // show the retired
     await tester.pumpAndSettle();
@@ -558,10 +564,7 @@ void main() {
     for (final card in cards) {
       final appCard = tester.widget<AppCard>(
         find
-            .descendant(
-              of: find.byWidget(card),
-              matching: find.byType(AppCard),
-            )
+            .descendant(of: find.byWidget(card), matching: find.byType(AppCard))
             .first,
       );
       final retired = card.employee.archivedAt != null;
@@ -620,9 +623,7 @@ void main() {
     final karim = (await EmployeeRepository(db).employee(EmployeeIds.karim))!;
 
     final table = tester.widget<DataTable>(find.byType(DataTable));
-    final headers = [
-      for (final c in table.columns) (c.label as Text).data,
-    ];
+    final headers = [for (final c in table.columns) (c.label as Text).data];
     expect(headers, isNot(contains('Détail')));
     expect(headers, isNot(contains('PIN')));
     expect(headers[headers.length - 2], 'Embauché le');
@@ -699,7 +700,6 @@ void main() {
     expect(tester.getTopLeft(cover).dy - tableTop, headingHeight);
   });
 
-
   testApp('a plain click on a card opens nothing', (tester) async {
     await _open(tester);
     await tester.tap(find.text(_karim));
@@ -716,7 +716,9 @@ void main() {
     tester,
   ) async {
     await _open(tester);
-    final card = find.byKey(const ValueKey('employee-card-${EmployeeIds.karim}'));
+    final card = find.byKey(
+      const ValueKey('employee-card-${EmployeeIds.karim}'),
+    );
     await tester.tap(
       find.descendant(
         of: card,
@@ -748,7 +750,9 @@ void main() {
     tester,
   ) async {
     await _open(tester);
-    final card = find.byKey(const ValueKey('employee-card-${EmployeeIds.karim}'));
+    final card = find.byKey(
+      const ValueKey('employee-card-${EmployeeIds.karim}'),
+    );
     await tester.tap(
       find.descendant(
         of: card,
@@ -786,7 +790,9 @@ void main() {
     final dataTable = tester.widget<DataTable>(find.byType(DataTable));
     expect((dataTable.columns.last.label as Text).data, 'Actions');
     expect(
-      find.byKey(const ValueKey('employee-row-attendance-${EmployeeIds.karim}')),
+      find.byKey(
+        const ValueKey('employee-row-attendance-${EmployeeIds.karim}'),
+      ),
       findsOneWidget,
     );
     expect(
@@ -845,7 +851,6 @@ void main() {
     expect(find.byType(DataTable), findsOneWidget);
   });
 
-
   /// Picks [size] in the paginator's rows-per-page menu.
   Future<void> pickPageSize(WidgetTester tester, int size) async {
     final menu = find.byKey(const ValueKey('paginator-page-size'));
@@ -856,7 +861,9 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testApp('the roster is paged, in the card view as in the table', (tester) async {
+  testApp('the roster is paged, in the card view as in the table', (
+    tester,
+  ) async {
     await _open(tester);
     expect(find.byType(Paginator), findsOneWidget);
     Paginator pager() => tester.widget<Paginator>(find.byType(Paginator));

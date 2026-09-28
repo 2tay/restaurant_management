@@ -99,7 +99,7 @@ class _AppSidebarState extends ConsumerState<AppSidebar> {
       width: collapsed
           ? AppSizing.sidebarWidthCollapsed
           : AppSizing.sidebarWidthExpanded,
-      color: AppColors.white,
+      color: _ground,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -151,15 +151,30 @@ class _SidebarDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      const Divider(height: 1, thickness: 1, color: AppColors.border);
+      Divider(height: 1, thickness: 1, color: _divider);
 }
 
-/// The active page's fill — the pale brand-green wash of the hourly-rate tile
-/// on the employee cards (`HighlightTile`), under brand-green text.
-final Color _activeFill = AppColors.primary600.withValues(alpha: 0.08);
+/// The sidebar's ground — the brand green the active entry used to be written
+/// in.
+const Color _ground = AppColors.primary600;
 
-/// Hover on the white sidebar and its menus.
-const Color _hoverFill = AppColors.neutral50;
+/// Text and icons on [_ground]: white for titles, softened for the resting
+/// entries so the active one still stands out.
+const Color _onGround = AppColors.white;
+final Color _onGroundMuted = AppColors.white.withValues(alpha: 0.78);
+
+final Color _divider = AppColors.white.withValues(alpha: 0.16);
+
+/// The active page's fill — a white pill under brand-green text, the inverse
+/// of the ground around it.
+const Color _activeFill = AppColors.white;
+
+/// Hover on the green sidebar.
+final Color _hoverFill = AppColors.white.withValues(alpha: 0.10);
+
+/// Hover in the white user menu — the pale brand-green wash of the hourly-rate
+/// tile on the employee cards (`HighlightTile`).
+final Color _menuHoverFill = AppColors.primary600.withValues(alpha: 0.08);
 
 // -----------------------------------------------------------------------------
 // Header — the active store's icon and name, and the notification shortcut.
@@ -179,7 +194,7 @@ class _SidebarHeader extends ConsumerWidget {
 
     final storeIcon = Icon(
       LucideIcons.store,
-      color: AppColors.primary600,
+      color: _onGround,
       size: collapsed ? AppSizing.iconMd : AppSizing.iconLg,
     );
 
@@ -219,9 +234,7 @@ class _SidebarHeader extends ConsumerWidget {
               store.name,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.titleSmall?.copyWith(
-                color: AppColors.textPrimary,
-              ),
+              style: theme.textTheme.titleSmall?.copyWith(color: _onGround),
             ),
           ),
           const SizedBox(width: AppSpacing.sm),
@@ -254,7 +267,7 @@ class _HeaderIconButton extends StatelessWidget {
           onPressed: onPressed,
           tooltip: tooltip,
           icon: Icon(icon, size: AppSizing.iconMd),
-          color: AppColors.textSecondary,
+          color: _onGroundMuted,
           hoverColor: _hoverFill,
         ),
         if (badgeCount > 0)
@@ -267,8 +280,8 @@ class _HeaderIconButton extends StatelessWidget {
 /// The red count pill — on the bell in the header, and on the navigation row of
 /// a section with something waiting.
 ///
-/// Ringed in white, the sidebar's own background, so it stays separated from
-/// whatever it sits on.
+/// Ringed in the sidebar's own green, so it stays separated from whatever it
+/// sits on.
 class _CountBadge extends StatelessWidget {
   const _CountBadge({required this.count});
 
@@ -285,7 +298,7 @@ class _CountBadge extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.error,
         borderRadius: AppRadius.pillAll,
-        border: Border.all(color: AppColors.white, width: 1.5),
+        border: Border.all(color: _ground, width: 1.5),
       ),
       child: Text(
         // Three digits stretch the pill past the label beside it, and the
@@ -650,11 +663,11 @@ class _NavList extends ConsumerWidget {
             top: topLeft.dy,
             child: Material(
               elevation: 8,
-              // White, the sidebar's own background — the flyout reads as an
+              // Green, the sidebar's own background — the flyout reads as an
               // extension of the rail rather than a separate popup. Square on
               // the left, where it meets the rail; a small radius only on the
               // right, the edge that actually faces open space.
-              color: AppColors.white,
+              color: _ground,
               borderRadius: const BorderRadius.only(
                 topRight: Radius.circular(AppRadius.sm),
                 bottomRight: Radius.circular(AppRadius.sm),
@@ -673,7 +686,7 @@ class _NavList extends ConsumerWidget {
                         Container(
                           width: 1,
                           height: AppSizing.iconMd + AppSpacing.sm * 2,
-                          color: AppColors.border,
+                          color: _divider,
                         ),
                       Tooltip(
                         message: items[i].label(l10n),
@@ -687,7 +700,7 @@ class _NavList extends ConsumerWidget {
                             child: Icon(
                               items[i].icon,
                               size: AppSizing.iconMd,
-                              color: AppColors.textSecondary,
+                              color: _onGround,
                             ),
                           ),
                         ),
@@ -706,7 +719,7 @@ class _NavList extends ConsumerWidget {
   }
 }
 
-/// One navigation row in the sidebar — icon, label, and a pale-green fill with
+/// One navigation row in the sidebar — icon, label, and a white fill with
 /// green text when it is the section the user is in. Reused for every
 /// destination; the Gestion Employée row passes a [trailing] chevron, and
 /// Alertes a [badgeCount].
@@ -736,7 +749,7 @@ class SidebarNavTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final foreground = active ? AppColors.primary600 : AppColors.textSecondary;
+    final foreground = active ? AppColors.primary600 : _onGroundMuted;
     final badged = badgeCount > 0;
 
     // Collapsed there is no room for a pill beside an 88dp-wide icon, so the
@@ -756,7 +769,10 @@ class SidebarNavTile extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: AppColors.error,
                     shape: BoxShape.circle,
-                    border: Border.all(color: AppColors.white, width: 1.5),
+                    border: Border.all(
+                      color: active ? _activeFill : _ground,
+                      width: 1.5,
+                    ),
                   ),
                 ),
               ),
@@ -861,7 +877,7 @@ class _ChildNavTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final foreground = active ? AppColors.primary600 : AppColors.textSecondary;
+    final foreground = active ? AppColors.primary600 : _onGroundMuted;
 
     return Material(
       color: active ? _activeFill : Colors.transparent,
@@ -881,7 +897,7 @@ class _ChildNavTile extends StatelessWidget {
                 child: CustomPaint(
                   painter: _TreeBranchPainter(
                     isLast: isLast,
-                    color: AppColors.borderStrong,
+                    color: _onGround.withValues(alpha: 0.35),
                   ),
                 ),
               ),
@@ -995,8 +1011,8 @@ class _SidebarProfile extends ConsumerWidget {
     final selected = await showMenu<String>(
       context: context,
       color: AppColors.white,
-      // A real drop shadow, not an M3 surface tint — the menu is white on a
-      // white sidebar.
+      // A real drop shadow, not an M3 surface tint, so the white menu lifts
+      // off the page as well as the green sidebar.
       elevation: 12,
       shadowColor: AppColors.neutral950.withValues(alpha: 0.35),
       surfaceTintColor: Colors.transparent,
@@ -1079,7 +1095,7 @@ class _SidebarProfile extends ConsumerWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.labelLarge?.copyWith(
-                          color: AppColors.textPrimary,
+                          color: _onGround,
                         ),
                       ),
                       if (user != null)
@@ -1088,16 +1104,16 @@ class _SidebarProfile extends ConsumerWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: theme.textTheme.bodySmall?.copyWith(
-                            color: AppColors.textSecondary,
+                            color: _onGroundMuted,
                           ),
                         ),
                     ],
                   ),
                 ),
-                const Icon(
+                Icon(
                   LucideIcons.chevronsUpDown,
                   size: AppSizing.iconSm,
-                  color: AppColors.textSecondary,
+                  color: _onGroundMuted,
                 ),
               ],
             ],
@@ -1141,7 +1157,7 @@ class _MenuRowState extends State<_MenuRow> {
           : Colors.transparent;
     } else if (_hovered) {
       foreground = iconColor = AppColors.primary600;
-      fill = _activeFill;
+      fill = _menuHoverFill;
     } else {
       foreground = AppColors.textPrimary;
       iconColor = AppColors.textSecondary;

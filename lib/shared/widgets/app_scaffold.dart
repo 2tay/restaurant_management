@@ -100,7 +100,7 @@ class AppScaffold extends ConsumerWidget {
         appBar: _PhoneAppBar(store: store),
         drawer: Drawer(
           width: AppSizing.sidebarWidthExpanded,
-          backgroundColor: AppColors.steel800,
+          backgroundColor: AppColors.primary600,
           child: AppSidebar(store: store, variant: SidebarVariant.drawer),
         ),
         body: SafeArea(top: false, child: content),
@@ -230,8 +230,7 @@ class AppScaffoldSkeleton extends StatelessWidget {
             Container(
               width: sidebarWidth,
               decoration: const BoxDecoration(
-                color: AppColors.steel800,
-                border: Border(right: BorderSide(color: AppColors.steel700)),
+                color: AppColors.primary600,
               ),
               padding: const EdgeInsets.symmetric(
                 horizontal: AppSpacing.lg,

@@ -81,11 +81,11 @@ final Provider<CredentialRepository> credentialRepositoryProvider =
       (ref) => CredentialRepository(ref.watch(databaseProvider)),
     );
 
-/// The pointage clock. `DateTime.now` in the app; a test overrides it with a
+/// The pointage clock. `clock.now()` in the app; a test overrides it with a
 /// fixed function so an employee can clock in at 07:45 and out at 17:00 without
 /// wall-clock time passing.
 final Provider<DateTime Function()> attendanceClockProvider =
-    Provider<DateTime Function()>((ref) => DateTime.now);
+    Provider<DateTime Function()>((ref) => () => clock.now());
 
 final Provider<AttendanceRepository> attendanceRepositoryProvider =
     Provider<AttendanceRepository>(

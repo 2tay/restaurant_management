@@ -1449,8 +1449,8 @@ void main() {
     expect(theme.textStyle!.color, AppColors.primary600);
   });
 
-  testWidgets('sidebar row: the active page on the hourly-rate tile wash, '
-      'green text; the others grey on white', (tester) async {
+  testWidgets('sidebar row: the active page a white pill with green text; '
+      'the others softened white on the green ground', (tester) async {
     await tester.pumpWidget(
       _host(
         const SizedBox(
@@ -1483,10 +1483,10 @@ void main() {
           .first,
     );
     Color? ink(String label) => tester.widget<Text>(find.text(label)).style?.color;
-    expect(fill('Actif').color, AppColors.primary600.withValues(alpha: 0.08));
+    expect(fill('Actif').color, AppColors.white);
     expect(ink('Actif'), AppColors.primary600);
     expect(fill('Autre').color, Colors.transparent);
-    expect(ink('Autre'), AppColors.textSecondary);
+    expect(ink('Autre'), AppColors.white.withValues(alpha: 0.78));
   });
 }
 
