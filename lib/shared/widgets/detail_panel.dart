@@ -26,6 +26,33 @@ abstract class PanelController {
   /// Whether [back] leads anywhere — which is what decides between drawing a
   /// back arrow and drawing nothing.
   bool get canGoBack;
+
+  /// The panel this context is inside, or null when it is not in one.
+  ///
+  /// This is what lets an `openXPanel` helper do the right thing from
+  /// anywhere: called from a list it opens a panel, and called from inside one
+  /// it walks that panel forward instead of stacking a second. The call site
+  /// asks for "show me this" and never has to know where it is — the same
+  /// bargain `DrawerScope` in `app/navigation.dart` makes for navigation.
+  static PanelController? maybeOf(BuildContext context) =>
+      context
+          .dependOnInheritedWidgetOfExactType<PanelScope>()
+          ?.controller;
+}
+
+/// Marks the subtree that belongs to a panel, and which panel it is.
+class PanelScope extends InheritedWidget {
+  const PanelScope({
+    required this.controller,
+    required super.child,
+    super.key,
+  });
+
+  final PanelController controller;
+
+  @override
+  bool updateShouldNotify(PanelScope oldWidget) =>
+      oldWidget.controller != controller;
 }
 
 /// A slide-in panel whose content can walk to another panel and back.
@@ -87,9 +114,12 @@ class _PanelHostState extends State<_PanelHost> implements PanelController {
   Widget build(BuildContext context) {
     // Keyed by depth so moving between panels rebuilds the subtree rather than
     // trying to reuse one view's state for the next one's content.
-    return KeyedSubtree(
-      key: ValueKey(_stack.length),
-      child: _stack.last(context, this),
+    return PanelScope(
+      controller: this,
+      child: KeyedSubtree(
+        key: ValueKey(_stack.length),
+        child: _stack.last(context, this),
+      ),
     );
   }
 }

@@ -31,13 +31,19 @@ Future<void> openProductDrawer(
   required String storeId,
   required String itemId,
 }) {
-  return DetailDrawer.showCustom(
-    context,
-    width: 560,
-    builder: (drawerContext) => ItemDetailView(
-      itemId: itemId,
-      storeId: storeId,
-      onClose: () => Navigator.of(drawerContext).pop(),
-    ),
+  PanelBuilder build() => (context, panel) => ItemDetailView(
+    itemId: itemId,
+    storeId: storeId,
+    panel: panel,
+    onClose: panel.close,
   );
+
+  // Already in a panel — a product opened from a commande's lines — walks that
+  // panel forward rather than stacking a second one.
+  final current = PanelController.maybeOf(context);
+  if (current != null) {
+    current.open(build());
+    return Future.value();
+  }
+  return showDetailPanel(context, builder: build());
 }

@@ -18,6 +18,7 @@ import '../../../orders/presentation/widgets/order_status_badge.dart';
 import '../../../stock_movement/presentation/widgets/movement_labels.dart';
 import 'delete_item.dart';
 import 'supplier_price_row.dart';
+import '../../../orders/presentation/widgets/order_detail_view.dart';
 
 /// The body of the item detail screen.
 ///
@@ -39,6 +40,7 @@ class ItemDetailView extends ConsumerWidget {
     required this.storeId,
     this.showTitle = true,
     this.onClose,
+    this.panel,
     this.scrollsItself = true,
     super.key,
   });
@@ -58,6 +60,11 @@ class ItemDetailView extends ConsumerWidget {
   /// Closes the pane. Null when the view is the whole page, which closes by
   /// going back.
   final VoidCallback? onClose;
+
+  /// The panel this is inside, when it is inside one. Only used to know
+  /// whether the panel has somewhere to go back to — a product reached from a
+  /// commande's lines — which is what decides between a back arrow and none.
+  final PanelController? panel;
 
   /// True in the drawer, which is its own scrolling box. False on the
   /// product page, which scrolls as a whole — its title and buttons going up
@@ -333,7 +340,12 @@ class ItemDetailView extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _IdentityBar(row: row, storeId: storeId, onClose: onClose),
+        _IdentityBar(
+          row: row,
+          storeId: storeId,
+          onClose: onClose,
+          panel: panel,
+        ),
         const Divider(height: AppSpacing.lg, color: AppColors.hairline),
         Expanded(child: content),
       ],
@@ -478,7 +490,10 @@ class _OpenOrderLine extends StatelessWidget {
     final outstanding = view.outstandingForItem;
 
     return InkWell(
-      onTap: () => context.pushScreen(Routes.toOrder(storeId, order.id)),
+      // Walks the panel forward when this product is itself in one, and opens
+      // a panel over the page when it is not.
+      onTap: () =>
+          openOrderPanel(context, storeId: storeId, orderId: order.id),
       child: Container(
         padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.lg,
@@ -534,11 +549,13 @@ class _IdentityBar extends ConsumerWidget {
     required this.row,
     required this.storeId,
     this.onClose,
+    this.panel,
   });
 
   final ItemRowView row;
   final String storeId;
   final VoidCallback? onClose;
+  final PanelController? panel;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -546,8 +563,21 @@ class _IdentityBar extends ConsumerWidget {
     final theme = Theme.of(context);
     final item = row.item;
 
+    final canGoBack = panel?.canGoBack ?? false;
+
     return Row(
       children: [
+        // Only once the panel has walked forward — a product opened from a
+        // commande's lines. It sits before the photo, where a back control is
+        // looked for.
+        if (canGoBack) ...[
+          IconButton(
+            onPressed: panel!.back,
+            tooltip: l10n.actionBack,
+            icon: const Icon(LucideIcons.arrowLeft, size: AppSizing.iconMd),
+          ),
+          const SizedBox(width: AppSpacing.xs),
+        ],
         ProductImage(imagePath: item.imagePath, size: 48, radius: 10),
         const SizedBox(width: AppSpacing.md),
         Expanded(

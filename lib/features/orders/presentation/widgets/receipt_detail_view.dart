@@ -4,6 +4,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/utils/order_status.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -120,19 +121,47 @@ class ReceiptDetailBody extends ConsumerWidget {
           const SizedBox(height: AppSpacing.xl),
 
           SectionHeader(title: l10n.orderTabLines, count: receipt.lines.length),
-          DataTableWrapper(
-            minWidth: 900,
-            columns: [
-              DataColumn(label: Text(l10n.orderColumnItem)),
-              DataColumn(label: Text(l10n.receiveColumnOrdered), numeric: true),
-              DataColumn(
-                label: Text(l10n.receiveColumnReceived),
-                numeric: true,
-              ),
-              DataColumn(label: Text(l10n.orderColumnUnitPrice), numeric: true),
-              DataColumn(label: Text(l10n.receiptColumnNote)),
-            ],
-            rows: [for (final line in view.lines) _row(context, l10n, line)],
+          // A table of five columns wants 900dp and a panel has 560, so on the
+          // page it stays a table and in a panel each line becomes a card.
+          // Scrolling a table sideways inside a panel that is itself a narrow
+          // column is two axes of movement to read one delivery.
+          LayoutBuilder(
+            builder: (context, constraints) {
+              if (constraints.maxWidth >= 700) {
+                return DataTableWrapper(
+                  minWidth: 900,
+                  columns: [
+                    DataColumn(label: Text(l10n.orderColumnItem)),
+                    DataColumn(
+                      label: Text(l10n.receiveColumnOrdered),
+                      numeric: true,
+                    ),
+                    DataColumn(
+                      label: Text(l10n.receiveColumnReceived),
+                      numeric: true,
+                    ),
+                    DataColumn(
+                      label: Text(l10n.orderColumnUnitPrice),
+                      numeric: true,
+                    ),
+                    DataColumn(label: Text(l10n.receiptColumnNote)),
+                  ],
+                  rows: [
+                    for (final line in view.lines) _row(context, l10n, line),
+                  ],
+                );
+              }
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  for (final (i, line) in view.lines.indexed) ...[
+                    if (i > 0) const SizedBox(height: AppSpacing.xs),
+                    _LineCard(view: line),
+                  ],
+                ],
+              );
+            },
           ),
 
           if (receipt.note != null) ...[
@@ -268,6 +297,120 @@ class _Flag extends StatelessWidget {
               context,
             ).textTheme.labelSmall?.copyWith(color: colors.foreground),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+/// One delivered line, for a column too narrow to be a table.
+///
+/// The five columns become two lines: what it is and what it cost on top,
+/// what was ordered against what arrived underneath. The ordered figure is
+/// only worth showing when it differs from what came — on a line that arrived
+/// in full it is the same number twice.
+class _LineCard extends StatelessWidget {
+  const _LineCard({required this.view});
+
+  final ReceiptLineView view;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final line = view.line;
+    final unit = view.unitAbbreviation;
+    final outcome = outcomeOf(
+      ordered: line.quantityOrdered,
+      received: line.quantityReceived,
+      wasUnordered: line.wasUnordered,
+    );
+    final settled = !isDiscrepancy(outcome);
+
+    return AppCard(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.sm,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  view.itemName,
+                  style: theme.textTheme.titleSmall,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Text(
+                Formatters.price(line.actualUnitPrice),
+                style: AppTypography.numeric,
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          Wrap(
+            spacing: AppSpacing.sm,
+            runSpacing: AppSpacing.xs,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              Text(
+                Formatters.quantityWithUnit(line.quantityReceived, unit),
+                style: AppTypography.numeric.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              // Only where the two disagree. On a line that arrived in full,
+              // "commandé 6 kg · reçu 6 kg" is the same number twice.
+              if (!settled && !line.wasUnordered)
+                Text(
+                  l10n.receiptOrderedOf(
+                    Formatters.quantityWithUnit(line.quantityOrdered, unit),
+                  ),
+                  style: theme.textTheme.bodySmall,
+                ),
+              if (line.wasUnordered)
+                _Flag(
+                  label: l10n.receiveUnorderedBadge,
+                  icon: LucideIcons.circlePlus,
+                  colors: AppColors.lowStock,
+                ),
+              if (outcome == ReceiptLineOutcome.short)
+                _Flag(
+                  label: line.closedShort
+                      ? l10n.receiptClosedShortBadge
+                      : l10n.receiptShortBadge,
+                  icon: line.closedShort
+                      ? LucideIcons.packageX
+                      : LucideIcons.clock,
+                  colors: AppColors.lowStock,
+                ),
+              if (outcome == ReceiptLineOutcome.over)
+                _Flag(
+                  label: l10n.receiveOverBadge(
+                    Formatters.quantityWithUnit(
+                      line.quantityReceived - line.quantityOrdered,
+                      unit,
+                    ),
+                  ),
+                  icon: LucideIcons.trendingUp,
+                  colors: AppColors.lowStock,
+                ),
+            ],
+          ),
+          if (line.note != null) ...[
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              line.note!,
+              style: theme.textTheme.bodySmall,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
         ],
       ),
     );

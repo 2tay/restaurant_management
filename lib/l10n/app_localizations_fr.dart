@@ -2203,6 +2203,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get orderActionCancel => 'Annuler la commande';
 
   @override
+  String get shortReceive => 'Réceptionner';
+
+  @override
   String get orderActionReceive => 'Réceptionner la livraison';
 
   @override
@@ -2507,6 +2510,17 @@ class AppLocalizationsFr extends AppLocalizations {
   String receiveOverBadge(String quantity) {
     return 'Sur-livraison de $quantity';
   }
+
+  @override
+  String receiptOrderedOf(String quantity) {
+    return 'commandé $quantity';
+  }
+
+  @override
+  String get receiptShortBadge => 'Reste dû';
+
+  @override
+  String get receiptClosedShortBadge => 'Soldée';
 
   @override
   String get receiveUnorderedBadge => 'Non commandé';

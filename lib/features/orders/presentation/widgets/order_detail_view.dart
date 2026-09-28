@@ -102,23 +102,15 @@ class OrderDetailBody extends ConsumerWidget {
               receipts: receipts,
               emptyMessage: l10n.orderReceiptsEmpty,
               // A réception here is a detail *of* the commande: you check what
-              // arrived and then go back to the lines. So it opens as a panel
-              // whether the commande is a page or a panel itself — only the
-              // way in differs. Already in a panel, it walks forward and grows
-              // a back arrow rather than stacking a second one.
-              onOpen: (receiptId) => panel == null
-                  ? openReceiptPanel(
-                      context,
-                      storeId: storeId,
-                      receiptId: receiptId,
-                    )
-                  : panel!.open(
-                      (context, panel) => ReceiptDetailBody(
-                        storeId: storeId,
-                        receiptId: receiptId,
-                        panel: panel,
-                      ),
-                    ),
+              // arrived and then go back to the lines. `openReceiptPanel`
+              // opens a panel from the page and walks this one forward when
+              // the commande is itself in a panel — the branch used to live
+              // here, and the helper is where it belongs.
+              onOpen: (receiptId) => openReceiptPanel(
+                context,
+                storeId: storeId,
+                receiptId: receiptId,
+              ),
             ),
 
           if (order.note != null) ...[
@@ -140,12 +132,16 @@ class OrderDetailBody extends ConsumerWidget {
       panel: panel!,
       title: l10n.orderDetailTitle(order.reference),
       subtitle: view.supplierName,
+      // Compact, because a panel is 560dp wide and these sit under a title
+      // that has already named the commande. Spelled out — "Bon de commande",
+      // "Réceptionner la livraison" — the three of them wrapped onto two rows
+      // and pushed the content down before it had said anything.
+      status: OrderStatusBadge(status: order.status),
       actions: [
-        OrderStatusBadge(status: order.status),
         OrderDocumentButton(order: order),
         if (orderCanReceive(order))
           PrimaryButton(
-            label: l10n.orderActionReceive,
+            label: l10n.shortReceive,
             icon: LucideIcons.packageCheck,
             // Receiving is a form, and a form in a 560dp panel is cramped —
             // so this leaves for the page. `DrawerScope` closes the panel
@@ -207,35 +203,47 @@ class _OrderDetailPanelState extends State<OrderDetailPanel> {
 }
 
 /// Opens a commande as a panel over whatever asked for it.
+///
+/// Already inside a panel — a commande reached from a product, say — it walks
+/// that panel forward instead of stacking a second one. Call sites do not have
+/// to know which; they ask for the commande and this decides.
 Future<void> openOrderPanel(
   BuildContext context, {
   required String storeId,
   required String orderId,
 }) {
-  return showDetailPanel(
-    context,
-    builder: (context, panel) => OrderDetailPanel(
-      storeId: storeId,
-      orderId: orderId,
-      panel: panel,
-    ),
+  PanelBuilder build() => (context, panel) => OrderDetailPanel(
+    storeId: storeId,
+    orderId: orderId,
+    panel: panel,
   );
+
+  final current = PanelController.maybeOf(context);
+  if (current != null) {
+    current.open(build());
+    return Future.value();
+  }
+  return showDetailPanel(context, builder: build());
 }
 
-/// Opens a réception as a panel.
+/// Opens a réception as a panel, walking forward when already in one.
 Future<void> openReceiptPanel(
   BuildContext context, {
   required String storeId,
   required String receiptId,
 }) {
-  return showDetailPanel(
-    context,
-    builder: (context, panel) => ReceiptDetailBody(
-      storeId: storeId,
-      receiptId: receiptId,
-      panel: panel,
-    ),
+  PanelBuilder build() => (context, panel) => ReceiptDetailBody(
+    storeId: storeId,
+    receiptId: receiptId,
+    panel: panel,
   );
+
+  final current = PanelController.maybeOf(context);
+  if (current != null) {
+    current.open(build());
+    return Future.value();
+  }
+  return showDetailPanel(context, builder: build());
 }
 
 /// The figures and dates at the top of the order.

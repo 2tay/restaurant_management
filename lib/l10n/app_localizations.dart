@@ -3688,6 +3688,12 @@ abstract class AppLocalizations {
   /// **'Annuler la commande'**
   String get orderActionCancel;
 
+  /// The receive action on a narrow surface — a detail panel, a phone. The full label names the delivery; here the button sits under the commande's own title, which has already said which one.
+  ///
+  /// In fr, this message translates to:
+  /// **'Réceptionner'**
+  String get shortReceive;
+
   /// Opens the receiving screen. The single most important action in the feature.
   ///
   /// In fr, this message translates to:
@@ -4149,6 +4155,24 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Sur-livraison de {quantity}'**
   String receiveOverBadge(String quantity);
+
+  /// On a réception line card, what was ordered against what arrived. Shown only where the two differ — on a line delivered in full it would be the same figure twice.
+  ///
+  /// In fr, this message translates to:
+  /// **'commandé {quantity}'**
+  String receiptOrderedOf(String quantity);
+
+  /// Line flag: less arrived than was ordered, and the rest is still expected.
+  ///
+  /// In fr, this message translates to:
+  /// **'Reste dû'**
+  String get receiptShortBadge;
+
+  /// Line flag: less arrived than was ordered and the receiver closed the line, so nothing more is expected.
+  ///
+  /// In fr, this message translates to:
+  /// **'Soldée'**
+  String get receiptClosedShortBadge;
 
   /// Badge on a line the driver brought that was not on the order. Allowed but never invisible.
   ///
