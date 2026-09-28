@@ -135,6 +135,23 @@ void main() {
     });
   });
 
+  group('isReminderDay', () {
+    test('the days before a period, as many as the reminder asks', () {
+      final calendar = _calendar(reminderDays: 2);
+      expect(isReminderDay(_day(9, 29), calendar), isFalse); // Tuesday
+      expect(isReminderDay(_day(9, 30), calendar), isTrue); // Wednesday
+      expect(isReminderDay(_day(10, 1), calendar), isTrue); // Thursday
+    });
+
+    test('a busy day is never a reminder day', () {
+      expect(isReminderDay(_day(10, 2), _calendar(reminderDays: 7)), isFalse);
+    });
+
+    test('nothing busy means no reminder days', () {
+      expect(isReminderDay(_day(10, 1), _calendar(weekdays: {})), isFalse);
+    });
+  });
+
   group('busy-day shortfall', () {
     test('an empty busy-day minimum means twice the ordinary one', () {
       final item = _item(quantity: 15, minimum: 10);

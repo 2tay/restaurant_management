@@ -3872,28 +3872,22 @@ class AppLocalizationsFr extends AppLocalizations {
   String get calendarTitle => 'Calendrier';
 
   @override
-  String get calendarSubtitle =>
-      'Les jours de forte affluence, et quand être prévenu pour acheter le stock.';
+  String get calendarSubtitle => 'Soyez prévenu avant les jours chargés.';
 
   @override
-  String get calendarWeekdaysTitle => 'Jours chargés chaque semaine';
-
-  @override
-  String get calendarWeekdaysBody =>
-      'Ces jours reviennent toutes les semaines.';
+  String get calendarWeekdaysTitle => 'Chaque semaine';
 
   @override
   String get calendarDatesTitle => 'Jours spéciaux';
 
   @override
-  String get calendarDatesBody =>
-      'Touchez un jour pour le marquer comme chargé : fête, jour férié, événement. Touchez-le à nouveau pour l\'enlever.';
+  String get calendarDatesBody => 'Touchez un jour pour l\'ajouter.';
 
   @override
   String get calendarLegendWeekly => 'Chaque semaine';
 
   @override
-  String get calendarLegendSpecial => 'Jour spécial';
+  String get calendarLegendSpecial => 'Spécial';
 
   @override
   String get calendarPreviousMonth => 'Mois précédent';
@@ -3902,11 +3896,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get calendarNextMonth => 'Mois suivant';
 
   @override
-  String get calendarReminderTitle => 'Rappel';
-
-  @override
-  String get calendarReminderBody =>
-      'Combien de jours avant d\'être prévenu, pour avoir le temps de commander.';
+  String get calendarReminderTitle => 'Me prévenir avant';
 
   @override
   String calendarReminderDays(int count) {
@@ -3918,15 +3908,6 @@ class AppLocalizationsFr extends AppLocalizations {
     );
     return '$_temp0';
   }
-
-  @override
-  String calendarNextPeriod(String period, String reminder) {
-    return 'Prochaine période chargée : $period. Rappel à partir du $reminder.';
-  }
-
-  @override
-  String get calendarNoPeriod =>
-      'Aucun jour chargé n\'est prévu. Choisissez des jours ci-dessus.';
 
   @override
   String calendarPeriodRange(String start, String end) {
@@ -3984,4 +3965,91 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get notificationPrefBusyDaysBody =>
       'Soyez prévenu avant les jours de forte affluence du calendrier, avec les produits à commander.';
+
+  @override
+  String get calendarHeroNextLabel => 'Prochains jours chargés';
+
+  @override
+  String get calendarHeroOngoingLabel => 'Jours chargés en cours';
+
+  @override
+  String get calendarHeroNoneTitle => 'Aucun jour chargé';
+
+  @override
+  String get calendarHeroNoneBody => 'Choisissez des jours ci-dessous.';
+
+  @override
+  String get calendarHeroReminderActive => 'Rappel actif';
+
+  @override
+  String calendarHeroReminderOn(String date) {
+    return 'Rappel $date';
+  }
+
+  @override
+  String calendarHeroReminderSince(String date) {
+    return 'Rappel depuis $date';
+  }
+
+  @override
+  String calendarHeroShortCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count à commander',
+      zero: 'Stock prêt',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get calendarHeroShowProducts => 'Voir';
+
+  @override
+  String calendarCountdownUnit(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'jours',
+      one: 'jour',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get calendarCountdownNow => 'En cours';
+
+  @override
+  String get calendarToday => 'Aujourd\'hui';
+
+  @override
+  String get calendarLegendReminder => 'Rappel';
+
+  @override
+  String calendarReminderShort(int days) {
+    return '$days j';
+  }
+
+  @override
+  String get calendarUpcomingTitle => 'À venir';
+
+  @override
+  String get calendarUpcomingEmpty => 'Aucun jour spécial.';
+
+  @override
+  String calendarUpcomingMore(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '+ $count autres',
+      one: '+ 1 autre',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get calendarRemoveDate => 'Retirer ce jour';
+
+  @override
+  String get calendarRelativeToday => 'aujourd\'hui';
 }

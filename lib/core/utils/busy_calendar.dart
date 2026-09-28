@@ -116,6 +116,16 @@ DateTime reminderStartOf(BusyPeriod period, BusyCalendar calendar) {
   return day;
 }
 
+/// Whether [day] falls in the reminder for the busy period after it: not busy
+/// itself, but inside that period's reminder days. The calendar marks these,
+/// so the owner sees when the warning will come as well as what it is for.
+bool isReminderDay(DateTime day, BusyCalendar calendar) {
+  if (isBusyDay(day, calendar)) return false;
+  final period = nextBusyPeriod(day, calendar);
+  if (period == null) return false;
+  return !dayOf(day).isBefore(reminderStartOf(period, calendar));
+}
+
 /// How much a product is short of its busy-day minimum, or zero.
 double busyShortfallOf(Item item) {
   final gap = holidayMinimumOf(item) - item.quantity;

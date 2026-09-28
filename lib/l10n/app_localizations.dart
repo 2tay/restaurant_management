@@ -6344,20 +6344,14 @@ abstract class AppLocalizations {
   /// Subtitle of the calendar screen.
   ///
   /// In fr, this message translates to:
-  /// **'Les jours de forte affluence, et quand être prévenu pour acheter le stock.'**
+  /// **'Soyez prévenu avant les jours chargés.'**
   String get calendarSubtitle;
 
   /// Card title: the weekdays that are busy every week.
   ///
   /// In fr, this message translates to:
-  /// **'Jours chargés chaque semaine'**
+  /// **'Chaque semaine'**
   String get calendarWeekdaysTitle;
-
-  /// Help under the weekday chips.
-  ///
-  /// In fr, this message translates to:
-  /// **'Ces jours reviennent toutes les semaines.'**
-  String get calendarWeekdaysBody;
 
   /// Card title: one-off busy dates (holidays, festivals).
   ///
@@ -6368,7 +6362,7 @@ abstract class AppLocalizations {
   /// Help above the month grid.
   ///
   /// In fr, this message translates to:
-  /// **'Touchez un jour pour le marquer comme chargé : fête, jour férié, événement. Touchez-le à nouveau pour l\'enlever.'**
+  /// **'Touchez un jour pour l\'ajouter.'**
   String get calendarDatesBody;
 
   /// Legend: a day that is busy because its weekday is ticked.
@@ -6380,7 +6374,7 @@ abstract class AppLocalizations {
   /// Legend: a date marked busy on its own.
   ///
   /// In fr, this message translates to:
-  /// **'Jour spécial'**
+  /// **'Spécial'**
   String get calendarLegendSpecial;
 
   /// Tooltip of the previous-month arrow.
@@ -6398,32 +6392,14 @@ abstract class AppLocalizations {
   /// Card title: how early to be reminded.
   ///
   /// In fr, this message translates to:
-  /// **'Rappel'**
+  /// **'Me prévenir avant'**
   String get calendarReminderTitle;
-
-  /// Help above the reminder chips.
-  ///
-  /// In fr, this message translates to:
-  /// **'Combien de jours avant d\'être prévenu, pour avoir le temps de commander.'**
-  String get calendarReminderBody;
 
   /// One reminder choice.
   ///
   /// In fr, this message translates to:
   /// **'{count, plural, =1{1 jour avant} other{{count} jours avant}}'**
   String calendarReminderDays(int count);
-
-  /// Summary line: the next busy period and when its reminder starts.
-  ///
-  /// In fr, this message translates to:
-  /// **'Prochaine période chargée : {period}. Rappel à partir du {reminder}.'**
-  String calendarNextPeriod(String period, String reminder);
-
-  /// Summary line when nothing is busy.
-  ///
-  /// In fr, this message translates to:
-  /// **'Aucun jour chargé n\'est prévu. Choisissez des jours ci-dessus.'**
-  String get calendarNoPeriod;
 
   /// A busy period of several days.
   ///
@@ -6502,6 +6478,120 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Soyez prévenu avant les jours de forte affluence du calendrier, avec les produits à commander.'**
   String get notificationPrefBusyDaysBody;
+
+  /// Summary card eyebrow: the next busy period.
+  ///
+  /// In fr, this message translates to:
+  /// **'Prochains jours chargés'**
+  String get calendarHeroNextLabel;
+
+  /// Summary card eyebrow: a busy period is running today.
+  ///
+  /// In fr, this message translates to:
+  /// **'Jours chargés en cours'**
+  String get calendarHeroOngoingLabel;
+
+  /// Summary card title when nothing is busy.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun jour chargé'**
+  String get calendarHeroNoneTitle;
+
+  /// Summary card body when nothing is busy.
+  ///
+  /// In fr, this message translates to:
+  /// **'Choisissez des jours ci-dessous.'**
+  String get calendarHeroNoneBody;
+
+  /// Badge: the reminder for the next period is on today.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rappel actif'**
+  String get calendarHeroReminderActive;
+
+  /// When the reminder will start.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rappel {date}'**
+  String calendarHeroReminderOn(String date);
+
+  /// When the reminder started.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rappel depuis {date}'**
+  String calendarHeroReminderSince(String date);
+
+  /// How many products are under their busy-day minimum.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =0{Stock prêt} other{{count} à commander}}'**
+  String calendarHeroShortCount(int count);
+
+  /// Summary card button: open the busy-day list on the alerts screen.
+  ///
+  /// In fr, this message translates to:
+  /// **'Voir'**
+  String get calendarHeroShowProducts;
+
+  /// The unit under the countdown number.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =1{jour} other{jours}}'**
+  String calendarCountdownUnit(int count);
+
+  /// The countdown when the period has started.
+  ///
+  /// In fr, this message translates to:
+  /// **'En cours'**
+  String get calendarCountdownNow;
+
+  /// Button: go back to the current month.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aujourd\'hui'**
+  String get calendarToday;
+
+  /// Legend: a day on which the reminder is on.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rappel'**
+  String get calendarLegendReminder;
+
+  /// Compact reminder choice: N days before.
+  ///
+  /// In fr, this message translates to:
+  /// **'{days} j'**
+  String calendarReminderShort(int days);
+
+  /// Card title: the one-off busy dates still to come.
+  ///
+  /// In fr, this message translates to:
+  /// **'À venir'**
+  String get calendarUpcomingTitle;
+
+  /// Empty state of the upcoming dates card.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun jour spécial.'**
+  String get calendarUpcomingEmpty;
+
+  /// More upcoming dates than shown.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =1{+ 1 autre} other{+ {count} autres}}'**
+  String calendarUpcomingMore(int count);
+
+  /// Tooltip: remove a special date.
+  ///
+  /// In fr, this message translates to:
+  /// **'Retirer ce jour'**
+  String get calendarRemoveDate;
+
+  /// A date that is today.
+  ///
+  /// In fr, this message translates to:
+  /// **'aujourd\'hui'**
+  String get calendarRelativeToday;
 }
 
 class _AppLocalizationsDelegate
