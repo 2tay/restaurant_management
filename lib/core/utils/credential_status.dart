@@ -1,3 +1,5 @@
+import 'package:clock/clock.dart';
+
 import '../../models/models.dart';
 
 /// The login rules, and the derivations over [EmployeeCredential].
@@ -45,5 +47,5 @@ bool isValidPin(String pin) {
 bool isLocked(EmployeeCredential credential, {DateTime? now}) {
   final until = credential.lockedUntil;
   if (until == null) return false;
-  return (now ?? DateTime.now()).isBefore(until);
+  return (now ?? clock.now()).isBefore(until);
 }

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_colors.dart';
@@ -64,7 +65,7 @@ class _IdentityPromptDialogState extends State<IdentityPromptDialog> {
   Timer? _ticker;
 
   bool get _locked =>
-      _lockedUntil != null && DateTime.now().isBefore(_lockedUntil!);
+      _lockedUntil != null && clock.now().isBefore(_lockedUntil!);
 
   bool get _canSubmit =>
       !_busy && !_locked && _controller.text.trim().isNotEmpty;
@@ -127,7 +128,7 @@ class _IdentityPromptDialogState extends State<IdentityPromptDialog> {
   }
 
   String _countdown() {
-    final left = _lockedUntil!.difference(DateTime.now());
+    final left = _lockedUntil!.difference(clock.now());
     final total = left.isNegative ? 0 : left.inSeconds;
     final mm = (total ~/ 60).toString().padLeft(2, '0');
     final ss = (total % 60).toString().padLeft(2, '0');

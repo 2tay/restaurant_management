@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -54,7 +55,7 @@ class _AttendanceHistoryPageState extends ConsumerState<AttendanceHistoryPage> {
   @override
   void initState() {
     super.initState();
-    _defaultTo = _dayOnly(DateTime.now());
+    _defaultTo = _dayOnly(clock.now());
     _defaultFrom = _defaultTo.subtract(const Duration(days: _defaultRangeDays));
     _from = _defaultFrom;
     _to = _defaultTo;
@@ -493,7 +494,7 @@ class _Filters extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final today = _dayOnly(DateTime.now());
+    final today = _dayOnly(clock.now());
     final floor = DateTime(2000);
 
     return FilterBar(

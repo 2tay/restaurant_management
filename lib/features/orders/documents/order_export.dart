@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:printing/printing.dart';
 
@@ -25,7 +26,7 @@ abstract final class OrderExport {
     final order = sources.order;
     final store = sources.store;
     final supplier = sources.supplier;
-    final now = generatedAt ?? DateTime.now();
+    final now = generatedAt ?? clock.now();
 
     return OrderDocument(
       labels: OrderDocumentLabels(

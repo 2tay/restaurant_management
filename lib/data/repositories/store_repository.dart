@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:drift/drift.dart';
 
 import '../../core/utils/attendance_status.dart';
@@ -177,7 +178,7 @@ class StoreRepository {
       city: city.trim(),
       phone: phone.trim(),
       vatNumber: _trimToNull(vatNumber),
-      createdAt: DateTime.now(),
+      createdAt: clock.now(),
     );
 
     await _db.into(_db.stores).insert(storeToRow(store));

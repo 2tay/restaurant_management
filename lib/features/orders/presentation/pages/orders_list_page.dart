@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -285,7 +286,7 @@ class OrdersListPage extends ConsumerWidget {
   /// Kept in Dart: this is a screen for trying one filter after another, and
   /// four optional predicates in SQL would be four shapes of query behind it.
   List<OrderRowView> _visible(List<OrderRowView> rows, OrdersFilter filter) {
-    final now = DateTime.now();
+    final now = clock.now();
 
     return rows.where((view) {
       final order = view.order;

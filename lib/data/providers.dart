@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/models.dart';
@@ -543,7 +544,7 @@ final stockValuationProvider = StreamProvider.family<double, String>(
 ///
 /// Here rather than at each call site so every report measures its window the
 /// same way — from this instant, not from midnight.
-DateTime _daysAgo(int days) => DateTime.now().subtract(Duration(days: days));
+DateTime _daysAgo(int days) => clock.now().subtract(Duration(days: days));
 
 // --- Gestion Employée ------------------------------------------------------
 

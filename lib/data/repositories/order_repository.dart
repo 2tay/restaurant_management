@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:drift/drift.dart';
 
 import '../../core/utils/order_status.dart';
@@ -531,7 +532,7 @@ class OrderRepository {
         // such protection, which was safe only because nothing was concurrent.
         reference: await _nextReference(),
         status: PurchaseOrderStatus.draft,
-        createdAt: DateTime.now(),
+        createdAt: clock.now(),
         lines: List.of(lines),
         note: note,
       );
@@ -599,7 +600,7 @@ class OrderRepository {
       )..where((o) => o.id.equals(orderId))).write(
         PurchaseOrdersCompanion(
           status: const Value(PurchaseOrderStatus.sent),
-          sentAt: Value(DateTime.now()),
+          sentAt: Value(clock.now()),
         ),
       );
       return order(orderId);
@@ -642,7 +643,7 @@ class OrderRepository {
       )..where((o) => o.id.equals(orderId))).write(
         PurchaseOrdersCompanion(
           status: const Value(PurchaseOrderStatus.cancelled),
-          closedAt: Value(DateTime.now()),
+          closedAt: Value(clock.now()),
         ),
       );
       return order(orderId);
@@ -675,7 +676,7 @@ class OrderRepository {
       )..where((o) => o.id.equals(orderId))).write(
         PurchaseOrdersCompanion(
           status: const Value(PurchaseOrderStatus.received),
-          closedAt: Value(DateTime.now()),
+          closedAt: Value(clock.now()),
         ),
       );
       return order(orderId);
@@ -740,7 +741,7 @@ class OrderRepository {
       final existing = await order(orderId);
       if (existing == null || !orderCanReceive(existing)) return null;
 
-      final now = DateTime.now();
+      final now = clock.now();
       final receiptId = newId();
 
       final receiptLines = [
@@ -995,7 +996,7 @@ class OrderRepository {
       if (value > highest) highest = value;
     }
 
-    final year = DateTime.now().year;
+    final year = clock.now().year;
     return 'CMD-$year-${(highest + 1).toString().padLeft(3, '0')}';
   }
   // ---------------------------------------------------------------------------

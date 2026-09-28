@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:drift/drift.dart';
 
 import '../../core/utils/attendance_status.dart';
@@ -333,7 +334,7 @@ class PayrollRepository {
     final employee = await EmployeeRepository(_db).employee(employeeId);
     if (employee == null) return null;
     final settings = await StoreRepository(_db).settings(storeId);
-    final at = now ?? DateTime.now();
+    final at = now ?? clock.now();
 
     try {
       return await _db.transaction(() async {
@@ -446,7 +447,7 @@ class PayrollRepository {
   }) async {
     final cutoff = withinDays == null
         ? null
-        : (now ?? DateTime.now()).subtract(Duration(days: withinDays));
+        : (now ?? clock.now()).subtract(Duration(days: withinDays));
     final needle = (employeeQuery ?? '').trim().toLowerCase();
 
     final rows = await (_db.select(_db.payrollPeriods)

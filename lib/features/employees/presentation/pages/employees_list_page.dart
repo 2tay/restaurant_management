@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -144,7 +145,7 @@ class _KpiRow extends StatelessWidget {
           (e) => e.role == EmployeeRole.manager || e.role == EmployeeRole.owner,
         )
         .length;
-    final now = DateTime.now();
+    final now = clock.now();
     final hiredThisMonth = active
         .where(
           (e) => e.hireDate.year == now.year && e.hireDate.month == now.month,

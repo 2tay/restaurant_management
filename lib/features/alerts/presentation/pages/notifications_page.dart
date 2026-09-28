@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -187,7 +188,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
 
   /// "Aujourd'hui", "Hier", or the date written out.
   String _dayLabel(AppLocalizations l10n, DateTime day) {
-    final today = DateUtils.dateOnly(DateTime.now());
+    final today = DateUtils.dateOnly(clock.now());
     final difference = today.difference(day).inDays;
     if (difference == 0) return l10n.notificationsToday;
     if (difference == 1) return l10n.notificationsYesterday;

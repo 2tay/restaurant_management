@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -179,7 +180,7 @@ class _LiveClock extends StatefulWidget {
 }
 
 class _LiveClockState extends State<_LiveClock> {
-  late DateTime _now = DateTime.now();
+  late DateTime _now = clock.now();
   Timer? _ticker;
 
   @override
@@ -187,7 +188,7 @@ class _LiveClockState extends State<_LiveClock> {
     super.initState();
     _ticker = Timer.periodic(
       const Duration(seconds: 1),
-      (_) => setState(() => _now = DateTime.now()),
+      (_) => setState(() => _now = clock.now()),
     );
   }
 

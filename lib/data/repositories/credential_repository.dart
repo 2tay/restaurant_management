@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:drift/drift.dart';
 
 import '../../core/utils/credential_status.dart';
@@ -86,7 +87,7 @@ class CinVerification {
 /// discipline as every other aggregate, and the `ux_audit.py` guard enforces
 /// it.
 ///
-/// Every method that changes wall-clock-sensitive state takes an optional [now]
+/// Every method that changes wall-clock-sensitive state takes an optional `now`
 /// so a test can pin a moment instead of waiting for a lockout to expire — the
 /// same posture `AttendanceRepository` takes for the pointage.
 class CredentialRepository {
@@ -148,7 +149,7 @@ class CredentialRepository {
       final current = await _rowFor(employeeId);
       if (current == null) return false;
 
-      final at = now ?? DateTime.now();
+      final at = now ?? clock.now();
       final attempts = current.failedAttempts + 1;
       final locks = attempts >= AuthRules.maxFailedAttempts;
 
@@ -175,7 +176,7 @@ class CredentialRepository {
           EmployeeCredentialsCompanion(
             failedAttempts: const Value(0),
             lockedUntil: const Value(null),
-            lastLoginAt: Value(now ?? DateTime.now()),
+            lastLoginAt: Value(now ?? clock.now()),
           ),
         );
   }
@@ -257,7 +258,7 @@ class CredentialRepository {
     DateTime? now,
   }) {
     return _db.transaction(() async {
-      final at = now ?? DateTime.now();
+      final at = now ?? clock.now();
       var row = await _rowFor(expectedEmployeeId);
       if (row == null) {
         // An employee created without a PIN has no credential row, and the

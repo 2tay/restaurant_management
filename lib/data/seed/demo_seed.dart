@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:drift/drift.dart';
 
 import '../../core/utils/employee_status.dart';
@@ -33,7 +34,7 @@ import '../mappers/mappers.dart';
 /// get a dataset they can assert dates against — something the list version was
 /// never able to offer.
 Future<void> seedDemoData(AppDatabase db, {DateTime? at}) async {
-  final DateTime seededAt = at ?? DateTime.now();
+  final DateTime seededAt = at ?? clock.now();
   final Duration shift = seededAt.difference(mockNow);
 
   DateTime moved(DateTime original) => original.add(shift);

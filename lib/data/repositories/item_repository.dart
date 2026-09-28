@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:drift/drift.dart';
 
 import '../../models/item.dart';
@@ -358,7 +359,7 @@ class ItemRepository {
         lowStockThreshold: lowStockThreshold,
         maxStock: _usableMaximum(lowStockThreshold, maxStock),
         holidayLowStockThreshold: holidayLowStockThreshold,
-        updatedAt: DateTime.now(),
+        updatedAt: clock.now(),
         defaultSupplierId: defaultSupplierId,
         barcode: cleanBarcode,
         note: _clean(note),
@@ -447,7 +448,7 @@ class ItemRepository {
                 ? null
                 : holidayLowStockThreshold ?? existing.holidayLowStockThreshold,
           ),
-          updatedAt: Value(DateTime.now()),
+          updatedAt: Value(clock.now()),
           defaultSupplierId: Value(
             clearDefaultSupplier
                 ? null

@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -64,7 +65,7 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
   @override
   void initState() {
     super.initState();
-    _defaultTo = _dayOnly(DateTime.now());
+    _defaultTo = _dayOnly(clock.now());
     _defaultFrom = _defaultTo.subtract(const Duration(days: _defaultRangeDays));
     _from = _defaultFrom;
     _to = _defaultTo;
@@ -83,7 +84,7 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
       if (employee == null) return;
       final hire = _dayOnly(employee.hireDate);
       if (_from.isBefore(hire)) _from = hire;
-      if (_to.isBefore(_from)) _to = _dayOnly(DateTime.now());
+      if (_to.isBefore(_from)) _to = _dayOnly(clock.now());
     });
   }
 
@@ -637,7 +638,7 @@ class _Filters extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final today = _dayOnly(DateTime.now());
+    final today = _dayOnly(clock.now());
 
     return FilterBar(
       reset: canReset

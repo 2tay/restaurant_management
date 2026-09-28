@@ -1,3 +1,5 @@
+import 'package:clock/clock.dart';
+
 import '../../models/models.dart';
 
 /// Constants the pointage rules are written against.
@@ -165,7 +167,7 @@ List<AttendanceAnomaly> attendanceAnomalies(
   if (hasLateBreak(entry, maxBreakMinutes)) {
     result.add(AttendanceAnomaly.pauseDepassee);
   }
-  final today = _dayOnly(now ?? DateTime.now());
+  final today = _dayOnly(now ?? clock.now());
   if (entry.clockInAt != null &&
       entry.clockOutAt == null &&
       _dayOnly(entry.date).isBefore(today)) {

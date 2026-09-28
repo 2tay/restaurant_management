@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:drift/drift.dart';
 
 import '../../models/notification_item.dart';
@@ -82,7 +83,7 @@ class AccountRepository {
     DateTime? createdAt,
     Duration window = const Duration(hours: 12),
   }) async {
-    final now = createdAt ?? DateTime.now();
+    final now = createdAt ?? clock.now();
 
     final since = now.subtract(window);
     final existing =

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -87,7 +88,7 @@ class _DeliveryLine {
 
 class _StockInPageState extends ConsumerState<StockInPage> {
   final List<_DeliveryLine> _lines = [];
-  DateTime _date = DateTime.now();
+  DateTime _date = clock.now();
   bool _saving = false;
 
   @override
@@ -226,15 +227,15 @@ class _StockInPageState extends ConsumerState<StockInPage> {
       initialDate: _date,
       // Deliveries are recorded on the day or shortly after, never for the
       // future — a future delivery has not arrived.
-      firstDate: DateTime.now().subtract(const Duration(days: 365)),
-      lastDate: DateTime.now(),
+      firstDate: clock.now().subtract(const Duration(days: 365)),
+      lastDate: clock.now(),
       locale: const Locale('fr', 'BE'),
     );
     if (picked != null && mounted) setState(() => _date = picked);
   }
 
   String _dateLabel(AppLocalizations l10n) {
-    final now = DateTime.now();
+    final now = clock.now();
     final day = DateTime(_date.year, _date.month, _date.day);
     final today = DateTime(now.year, now.month, now.day);
     if (day == today) return l10n.dateToday.toLowerCase();

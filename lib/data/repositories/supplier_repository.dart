@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:drift/drift.dart';
 
 import '../../core/utils/order_status.dart';
@@ -424,7 +425,7 @@ class SupplierRepository {
         itemId: itemId,
         supplierId: supplierId,
         pricePerUnit: pricePerUnit,
-        effectiveDate: effectiveDate ?? DateTime.now(),
+        effectiveDate: effectiveDate ?? clock.now(),
         isDefault: shouldDefault,
       );
 
@@ -464,7 +465,7 @@ class SupplierRepository {
         return existing;
       }
 
-      final at = changedAt ?? DateTime.now();
+      final at = changedAt ?? clock.now();
 
       await _db.into(_db.priceHistory).insert(
         priceHistoryToRow(

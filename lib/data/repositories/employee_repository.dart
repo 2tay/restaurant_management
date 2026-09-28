@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:drift/drift.dart';
 
 import '../../core/utils/credential_status.dart';
@@ -126,7 +127,7 @@ class EmployeeRepository {
     }
     if (pin != null && !isValidPin(pin)) return null;
 
-    final now = DateTime.now();
+    final now = clock.now();
 
     return _db.transaction(() async {
       if (await employeeByCin(trimmedCin) != null) return null;
@@ -255,7 +256,7 @@ class EmployeeRepository {
   /// exactly as it was, the same as a removed supplier keeping its movements.
   /// There is no hard delete.
   Future<bool> archive(String id, {DateTime? at}) =>
-      _setArchivedAt(id, at ?? DateTime.now());
+      _setArchivedAt(id, at ?? clock.now());
 
   /// Brings a retired employee back. Returns `false` if not archived.
   Future<bool> restore(String id) => _setArchivedAt(id, null);

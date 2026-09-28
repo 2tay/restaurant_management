@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:intl/intl.dart';
 
 /// Every number and date the user sees is formatted here.
@@ -166,7 +167,7 @@ abstract final class Formatters {
   /// Falls back to an absolute date beyond a month — "il y a 47 jours" is
   /// harder to reason about than the date itself.
   static String relative(DateTime value, {DateTime? now}) {
-    final reference = now ?? DateTime.now();
+    final reference = now ?? clock.now();
     final difference = reference.difference(value);
 
     if (difference.inMinutes < 1) return "à l'instant";

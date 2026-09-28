@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:drift/drift.dart';
 
 import '../../core/utils/stock_cost.dart';
@@ -172,7 +173,7 @@ class MovementRepository {
         itemId: itemId,
         type: StockMovementType.stockIn,
         quantity: quantity.abs(),
-        occurredAt: occurredAt ?? DateTime.now(),
+        occurredAt: occurredAt ?? clock.now(),
         userName: userName ?? await _defaultUserName(),
         employeeId: employeeId,
         supplierId: supplierId,
@@ -211,7 +212,7 @@ class MovementRepository {
         itemId: itemId,
         type: StockMovementType.stockOut,
         quantity: -quantity.abs(),
-        occurredAt: occurredAt ?? DateTime.now(),
+        occurredAt: occurredAt ?? clock.now(),
         userName: userName ?? await _defaultUserName(),
         employeeId: employeeId,
         reason: reason,
@@ -249,7 +250,7 @@ class MovementRepository {
         // Signed by the direction of the correction, so the movement still sums
         // correctly against the item's quantity.
         quantity: countedQuantity - systemQuantity,
-        occurredAt: occurredAt ?? DateTime.now(),
+        occurredAt: occurredAt ?? clock.now(),
         userName: userName ?? await _defaultUserName(),
         employeeId: employeeId,
         systemQuantity: systemQuantity,

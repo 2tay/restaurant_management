@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -140,7 +141,7 @@ class StoreDashboardPage extends ConsumerWidget {
       // store — information rather than description, so it stays on a phone.
       subtitle: [
         l10n.dashboardGreeting(userName ?? '').trim(),
-        Formatters.weekdayDayMonth(DateTime.now()),
+        Formatters.weekdayDayMonth(clock.now()),
         ?storeName,
       ].join(' · '),
       keepSubtitle: true,
@@ -460,7 +461,7 @@ class _ActivityTable extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final now = DateTime.now();
+    final now = clock.now();
 
     return AppTable<MovementRowView>(
       rows: activity,

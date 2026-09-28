@@ -1,3 +1,5 @@
+import 'package:clock/clock.dart';
+
 import '../../models/models.dart';
 
 /// Derivations over commandes and receipts.
@@ -141,7 +143,7 @@ PurchaseOrderStatus statusAfterReceipt(List<PurchaseOrderLine> lines) {
 /// that has been open three weeks.
 int daysOpen(PurchaseOrder order, {DateTime? now}) {
   final from = order.sentAt ?? order.createdAt;
-  return (now ?? DateTime.now()).difference(from).inDays;
+  return (now ?? clock.now()).difference(from).inDays;
 }
 
 /// Partial for longer than the store's threshold.

@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:printing/printing.dart';
 
@@ -36,7 +37,7 @@ abstract final class ReceiptExport {
     final store = sources.store;
     final supplier = sources.supplier;
 
-    final now = generatedAt ?? DateTime.now();
+    final now = generatedAt ?? clock.now();
     final lines = [
       for (final line in receipt.lines) _line(order, line, sources.items),
     ];

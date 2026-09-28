@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -437,7 +438,7 @@ class _StockHistoryPageState extends ConsumerState<StockHistoryPage> {
   List<MovementRowView> _filtered(List<MovementRowView> rows) {
     final cutoff = _period.days == null
         ? null
-        : DateTime.now().subtract(Duration(days: _period.days!));
+        : clock.now().subtract(Duration(days: _period.days!));
 
     return rows.where((row) {
       final movement = row.movement;
@@ -683,7 +684,7 @@ class _GroupedList extends StatelessWidget {
       entries.add(row);
     }
 
-    final now = DateTime.now();
+    final now = clock.now();
     final today = DateTime(now.year, now.month, now.day);
     final yesterday = DateTime(now.year, now.month, now.day - 1);
 
