@@ -1,6 +1,6 @@
 # Migrations
 
-Schema **version 2** (Phase 2 employé — the Gestion Employée module joined the database).
+Schema **version 8** (the four notification preferences joined `stores`).
 
 - `drift_schema_v1.json` / `drift_schema_v2.json` — drift's schema dumps, one per version,
   written by

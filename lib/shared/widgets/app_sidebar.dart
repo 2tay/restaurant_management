@@ -29,38 +29,77 @@ import 'employee_role_badge.dart';
 /// 7" tablet, a 10" in portrait, or a narrow landscape tablet. The Gestion
 /// Employée accordion cannot draw an indented sub-row there, so it falls back
 /// to a popup.
+///
+/// Below [AppBreakpoints.compact] even 88dp is a quarter of the screen, so
+/// [AppScaffold] moves it into a drawer instead — see [SidebarVariant.drawer].
 class AppSidebar extends ConsumerStatefulWidget {
-  const AppSidebar({required this.store, super.key});
+  const AppSidebar({required this.store, this.variant, super.key});
 
   final Store store;
+
+  /// How to render. Null means "decide from the window width", which is what
+  /// every caller wanted before the phone layout existed; [AppScaffold] passes
+  /// an explicit variant because the drawer is not a width the sidebar can see
+  /// (it is laid out at its own width inside the drawer, not the screen's).
+  final SidebarVariant? variant;
 
   @override
   ConsumerState<AppSidebar> createState() => _AppSidebarState();
 }
 
+/// How [AppSidebar] presents itself.
+enum SidebarVariant {
+  /// 280dp, labels visible. The design baseline.
+  expanded,
+
+  /// An 88dp icon strip, labels as tooltips.
+  collapsed,
+
+  /// Full labelled content inside a [Drawer], for phone widths. Navigating
+  /// closes the drawer behind the user.
+  drawer,
+}
+
 class _AppSidebarState extends ConsumerState<AppSidebar> {
-  /// Whether the Gestion Employée entry is expanded in place. A location already
-  /// inside the family forces it open — you cannot fold away the section you are
-  /// standing in — but it can still be opened manually from elsewhere.
-  bool _employeesExpanded = false;
+  /// The groups (Achats, Gestion Employée) expanded in place, by their
+  /// [_Destination.matchSegment]. A location already inside a group forces it
+  /// open — you cannot fold away the section you are standing in — but any
+  /// group can still be opened manually from elsewhere.
+  final Set<String> _expanded = {};
+
+  /// The route the sidebar was last built against, so the drawer variant can
+  /// tell that a tap actually navigated. Threading an `onNavigate` callback
+  /// down instead would mean touching all seven places in this file that call
+  /// `goSection` — including the profile menu — and missing one would leave the
+  /// drawer open over the page it had just opened.
+  String? _lastLocation;
 
   String get _storeId => widget.store.id;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final collapsed = context.isSidebarCollapsed;
+    final variant =
+        widget.variant ??
+        (context.isSidebarCollapsed
+            ? SidebarVariant.collapsed
+            : SidebarVariant.expanded);
+    final collapsed = variant == SidebarVariant.collapsed;
     final location = GoRouterState.of(context).uri.path;
     final role = ref.watch(currentEmployeeProvider)?.role ?? EmployeeRole.staff;
+
+    if (variant == SidebarVariant.drawer &&
+        _lastLocation != null &&
+        _lastLocation != location) {
+      _closeDrawerAfterFrame();
+    }
+    _lastLocation = location;
 
     return Container(
       width: collapsed
           ? AppSizing.sidebarWidthCollapsed
           : AppSizing.sidebarWidthExpanded,
-      decoration: const BoxDecoration(
-        color: AppColors.steel800,
-        border: Border(right: BorderSide(color: AppColors.steel700)),
-      ),
+      color: _ground,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -79,21 +118,31 @@ class _AppSidebarState extends ConsumerState<AppSidebar> {
                 collapsed: collapsed,
                 location: location,
                 role: role,
-                employeesExpanded: _employeesExpanded,
-                onToggleEmployees: () =>
-                    setState(() => _employeesExpanded = !_employeesExpanded),
+                expanded: _expanded,
+                onToggleGroup: (key) => setState(
+                  () => _expanded.contains(key)
+                      ? _expanded.remove(key)
+                      : _expanded.add(key),
+                ),
               ),
             ),
           ),
           const _SidebarDivider(),
-          _SidebarProfile(
-            storeId: _storeId,
-            collapsed: collapsed,
-            l10n: l10n,
-          ),
+          _SidebarProfile(storeId: _storeId, collapsed: collapsed, l10n: l10n),
         ],
       ),
     );
+  }
+
+  /// Dismisses the drawer once the frame that navigated has been laid out.
+  /// Popping during build is illegal, and popping before the new route is in
+  /// place shows a flash of the old page underneath.
+  void _closeDrawerAfterFrame() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final scaffold = Scaffold.maybeOf(context);
+      if (scaffold != null && scaffold.isDrawerOpen) scaffold.closeDrawer();
+    });
   }
 }
 
@@ -102,8 +151,30 @@ class _SidebarDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      const Divider(height: 1, thickness: 1, color: AppColors.steel700);
+      Divider(height: 1, thickness: 1, color: _divider);
 }
+
+/// The sidebar's ground — the brand green the active entry used to be written
+/// in.
+const Color _ground = AppColors.primary600;
+
+/// Text and icons on [_ground]: white for titles, softened for the resting
+/// entries so the active one still stands out.
+const Color _onGround = AppColors.white;
+final Color _onGroundMuted = AppColors.white.withValues(alpha: 0.78);
+
+final Color _divider = AppColors.white.withValues(alpha: 0.16);
+
+/// The active page's fill — a white pill under brand-green text, the inverse
+/// of the ground around it.
+const Color _activeFill = AppColors.white;
+
+/// Hover on the green sidebar.
+final Color _hoverFill = AppColors.white.withValues(alpha: 0.10);
+
+/// Hover in the white user menu — the pale brand-green wash of the hourly-rate
+/// tile on the employee cards (`HighlightTile`).
+final Color _menuHoverFill = AppColors.primary600.withValues(alpha: 0.08);
 
 // -----------------------------------------------------------------------------
 // Header — the active store's icon and name, and the notification shortcut.
@@ -123,7 +194,7 @@ class _SidebarHeader extends ConsumerWidget {
 
     final storeIcon = Icon(
       LucideIcons.store,
-      color: AppColors.white,
+      color: _onGround,
       size: collapsed ? AppSizing.iconMd : AppSizing.iconLg,
     );
 
@@ -163,9 +234,7 @@ class _SidebarHeader extends ConsumerWidget {
               store.name,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.titleSmall?.copyWith(
-                color: AppColors.white,
-              ),
+              style: theme.textTheme.titleSmall?.copyWith(color: _onGround),
             ),
           ),
           const SizedBox(width: AppSpacing.sm),
@@ -198,34 +267,49 @@ class _HeaderIconButton extends StatelessWidget {
           onPressed: onPressed,
           tooltip: tooltip,
           icon: Icon(icon, size: AppSizing.iconMd),
-          color: AppColors.neutral300,
-          hoverColor: AppColors.steel700,
+          color: _onGroundMuted,
+          hoverColor: _hoverFill,
         ),
         if (badgeCount > 0)
-          Positioned(
-            right: 4,
-            top: 4,
-            child: Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.xs,
-                vertical: 1,
-              ),
-              constraints: const BoxConstraints(minWidth: 18),
-              decoration: BoxDecoration(
-                color: AppColors.error,
-                borderRadius: AppRadius.pillAll,
-                border: Border.all(color: AppColors.steel800, width: 1.5),
-              ),
-              child: Text(
-                '$badgeCount',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: AppColors.white,
-                ),
-              ),
-            ),
-          ),
+          Positioned(right: 4, top: 4, child: _CountBadge(count: badgeCount)),
       ],
+    );
+  }
+}
+
+/// The red count pill — on the bell in the header, and on the navigation row of
+/// a section with something waiting.
+///
+/// Ringed in the sidebar's own green, so it stays separated from whatever it
+/// sits on.
+class _CountBadge extends StatelessWidget {
+  const _CountBadge({required this.count});
+
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.xs,
+        vertical: 1,
+      ),
+      constraints: const BoxConstraints(minWidth: 18),
+      decoration: BoxDecoration(
+        color: AppColors.error,
+        borderRadius: AppRadius.pillAll,
+        border: Border.all(color: _ground, width: 1.5),
+      ),
+      child: Text(
+        // Three digits stretch the pill past the label beside it, and the
+        // difference between 118 and 99+ changes nothing anybody would do.
+        count > 99 ? '99+' : '$count',
+        textAlign: TextAlign.center,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+          color: AppColors.white,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
     );
   }
 }
@@ -242,6 +326,8 @@ class _Destination {
     required this.matchSegment,
     this.pathBuilder,
     this.children,
+    this.familySegments,
+    this.showAlertBadge = false,
   });
 
   final IconData icon;
@@ -253,27 +339,53 @@ class _Destination {
 
   final String Function(String storeId)? pathBuilder;
 
-  /// Set only on Gestion Employée — the one entry that expands rather than
-  /// navigating.
+  /// Set on the groups — Achats, Gestion Employée — which expand rather than
+  /// navigate.
   final List<_ChildDestination>? children;
+
+  /// The sections a group spans, when they are not all under
+  /// [matchSegment] — Achats holds orders, receptions and suppliers.
+  final List<String>? familySegments;
+
+  /// Whether the row carries the count of articles needing a decision. Set on
+  /// Alertes, which is the first row and the one this establishment opens the
+  /// app for; nothing else in the rail has a number worth pre-empting a glance.
+  final bool showAlertBadge;
+
+  /// Whether [location] is somewhere inside this entry.
+  bool contains(String location) => (familySegments ?? [matchSegment]).any(
+    (segment) => location.contains('/$segment'),
+  );
 }
 
-/// One sub-destination under the Gestion Employée accordion.
+/// One sub-destination under a group.
 class _ChildDestination {
   const _ChildDestination({
     required this.label,
     required this.pathBuilder,
     required this.icon,
     required this.isActive,
-    required this.capability,
+    this.capability,
   });
 
   final String Function(AppLocalizations l10n) label;
   final String Function(String storeId) pathBuilder;
   final IconData icon;
-  final Capability capability;
+
+  /// Who may see it. Null for everyone.
+  final Capability? capability;
   final bool Function(String location) isActive;
 }
+
+// Achats. Receiving and the bons de réception live under /orders in the URL
+// but belong to Réceptions, which is where a delivery is dealt with.
+bool _isReceptionsActive(String location) =>
+    location.contains('/receptions') ||
+    location.contains('/orders/receipts') ||
+    location.endsWith('/receive');
+bool _isOrdersActive(String location) =>
+    location.contains('/orders') && !_isReceptionsActive(location);
+bool _isSuppliersActive(String location) => location.contains('/suppliers');
 
 bool _isTimeclockActive(String location) =>
     location.contains('/employees/timeclock');
@@ -287,7 +399,17 @@ bool _isPersonnelActive(String location) =>
     !_isAttendanceHistoryActive(location) &&
     !_isPayrollActive(location);
 
+// Alertes leads. It is the screen this establishment opens the app for — what
+// has to be ordered today — so it sits above the dashboard rather than sixth,
+// and it is the only row that carries a count.
 const List<_Destination> _destinations = [
+  _Destination(
+    icon: LucideIcons.triangleAlert,
+    label: _labelAlerts,
+    pathBuilder: Routes.toAlerts,
+    matchSegment: 'alerts',
+    showAlertBadge: true,
+  ),
   _Destination(
     icon: LucideIcons.layoutDashboard,
     label: _labelDashboard,
@@ -307,28 +429,36 @@ const List<_Destination> _destinations = [
     matchSegment: 'movements',
   ),
   _Destination(
-    icon: LucideIcons.clipboardList,
-    label: _labelOrders,
-    pathBuilder: Routes.toOrders,
-    matchSegment: 'orders',
-  ),
-  _Destination(
-    icon: LucideIcons.truck,
-    label: _labelSuppliers,
-    pathBuilder: Routes.toSuppliers,
-    matchSegment: 'suppliers',
+    icon: LucideIcons.shoppingCart,
+    label: _labelPurchases,
+    matchSegment: 'purchases',
+    familySegments: ['orders', 'receptions', 'suppliers'],
+    children: [
+      _ChildDestination(
+        label: _labelOrders,
+        pathBuilder: Routes.toOrders,
+        icon: LucideIcons.clipboardList,
+        isActive: _isOrdersActive,
+      ),
+      _ChildDestination(
+        label: _labelReceptions,
+        pathBuilder: Routes.toReceptions,
+        icon: LucideIcons.packageCheck,
+        isActive: _isReceptionsActive,
+      ),
+      _ChildDestination(
+        label: _labelSuppliers,
+        pathBuilder: Routes.toSuppliers,
+        icon: LucideIcons.truck,
+        isActive: _isSuppliersActive,
+      ),
+    ],
   ),
   _Destination(
     icon: LucideIcons.tags,
     label: _labelCatalog,
     pathBuilder: Routes.toCategories,
     matchSegment: 'catalog',
-  ),
-  _Destination(
-    icon: LucideIcons.triangleAlert,
-    label: _labelAlerts,
-    pathBuilder: Routes.toAlerts,
-    matchSegment: 'alerts',
   ),
   _Destination(
     icon: LucideIcons.chartColumn,
@@ -379,6 +509,8 @@ String _labelDashboard(AppLocalizations l) => l.navDashboard;
 String _labelInventory(AppLocalizations l) => l.navInventory;
 String _labelMovements(AppLocalizations l) => l.navStockMovement;
 String _labelOrders(AppLocalizations l) => l.navOrders;
+String _labelPurchases(AppLocalizations l) => l.navPurchases;
+String _labelReceptions(AppLocalizations l) => l.navReceptions;
 String _labelSuppliers(AppLocalizations l) => l.navSuppliers;
 String _labelCatalog(AppLocalizations l) => l.navCatalog;
 String _labelAlerts(AppLocalizations l) => l.navAlerts;
@@ -390,25 +522,25 @@ String _labelAttendanceHistory(AppLocalizations l) =>
     l.employeesNavAttendanceHistory;
 String _labelPayroll(AppLocalizations l) => l.employeesNavPayroll;
 
-class _NavList extends StatelessWidget {
+class _NavList extends ConsumerWidget {
   const _NavList({
     required this.storeId,
     required this.collapsed,
     required this.location,
     required this.role,
-    required this.employeesExpanded,
-    required this.onToggleEmployees,
+    required this.expanded,
+    required this.onToggleGroup,
   });
 
   final String storeId;
   final bool collapsed;
   final String location;
   final EmployeeRole role;
-  final bool employeesExpanded;
-  final VoidCallback onToggleEmployees;
+  final Set<String> expanded;
+  final ValueChanged<String> onToggleGroup;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final tiles = <Widget>[];
 
@@ -421,46 +553,61 @@ class _NavList extends StatelessWidget {
             label: destination.label(l10n),
             active: active,
             collapsed: collapsed,
-            onTap: () =>
-                context.goSection(destination.pathBuilder!(storeId)),
+            badgeCount: destination.showAlertBadge
+                ? ref.watch(alertsCountProvider(storeId))
+                : 0,
+            onTap: () => context.goSection(destination.pathBuilder!(storeId)),
           ),
         );
         continue;
       }
 
-      // Gestion Employée — an accordion, filtered to the children this role can
-      // reach, and hidden entirely when that leaves none.
+      // A group — Achats, Gestion Employée — as an accordion, filtered to the
+      // children this role can reach, and hidden entirely when that leaves
+      // none.
       final children = destination.children!
-          .where((child) => can(role, child.capability))
+          .where(
+            (child) => child.capability == null || can(role, child.capability!),
+          )
           .toList();
       if (children.isEmpty) continue;
 
-      final onFamily = location.contains('/${destination.matchSegment}');
-      final expanded = !collapsed && (employeesExpanded || onFamily);
+      final onFamily = destination.contains(location);
+      final isOpen =
+          !collapsed &&
+          (expanded.contains(destination.matchSegment) || onFamily);
 
       tiles.add(
-        SidebarNavTile(
-          icon: destination.icon,
-          label: destination.label(l10n),
-          active: onFamily,
-          collapsed: collapsed,
-          onTap: collapsed
-              ? () => _showFlyout(context, children)
-              : onToggleEmployees,
-          trailing: collapsed
-              ? null
-              : AnimatedRotation(
-                  duration: AppMotion.duration(context, AppMotion.fast),
-                  turns: expanded ? 0.5 : 0,
-                  child: const Icon(
-                    LucideIcons.chevronDown,
-                    size: AppSizing.iconSm,
+        // A Builder, not the outer context: `_showFlyout` positions the menu
+        // from `context.findRenderObject()`, and the outer context here is
+        // `_NavList` itself — the whole column of tiles, anchored at the top
+        // of the sidebar — not this specific tile. Without its own context
+        // the flyout opened at the sidebar's top edge regardless of which
+        // icon was tapped.
+        Builder(
+          builder: (tileContext) => SidebarNavTile(
+            icon: destination.icon,
+            label: destination.label(l10n),
+            active: onFamily,
+            collapsed: collapsed,
+            onTap: collapsed
+                ? () => _showFlyout(tileContext, children)
+                : () => onToggleGroup(destination.matchSegment),
+            trailing: collapsed
+                ? null
+                : AnimatedRotation(
+                    duration: AppMotion.duration(context, AppMotion.fast),
+                    turns: isOpen ? 0.5 : 0,
+                    child: const Icon(
+                      LucideIcons.chevronDown,
+                      size: AppSizing.iconSm,
+                    ),
                   ),
-                ),
+          ),
         ),
       );
 
-      if (expanded) {
+      if (isOpen) {
         for (var i = 0; i < children.length; i++) {
           final child = children[i];
           tiles.add(
@@ -487,50 +634,95 @@ class _NavList extends StatelessWidget {
     );
   }
 
-  Future<void> _showFlyout(
-    BuildContext context,
-    List<_ChildDestination> items,
-  ) async {
+  void _showFlyout(BuildContext context, List<_ChildDestination> items) {
     final l10n = AppLocalizations.of(context);
     final button = context.findRenderObject() as RenderBox?;
-    final overlay =
-        Overlay.of(context).context.findRenderObject() as RenderBox?;
-    if (button == null || overlay == null) return;
+    final overlayState = Overlay.of(context);
+    final overlayBox = overlayState.context.findRenderObject() as RenderBox?;
+    if (button == null || overlayBox == null) return;
 
-    final topLeft = button.localToGlobal(Offset.zero, ancestor: overlay);
-    final bottomRight = button.localToGlobal(
-      button.size.bottomRight(Offset.zero),
-      ancestor: overlay,
-    );
+    // A manual overlay rather than `showMenu`: its items always stack in a
+    // column, and this is meant to read as a horizontal strip of icons —
+    // just this tile's own destinations, with a tooltip standing in for the
+    // label instead of spelling it out.
+    final topLeft = button.localToGlobal(Offset.zero, ancestor: overlayBox);
+    late final OverlayEntry entry;
+    void dismiss() => entry.remove();
 
-    final selected = await showMenu<String>(
-      context: context,
-      position: RelativeRect.fromRect(
-        Rect.fromPoints(topLeft, bottomRight),
-        Offset.zero & overlay.size,
-      ),
-      items: [
-        for (final item in items)
-          PopupMenuItem<String>(
-            value: item.pathBuilder(storeId),
-            child: Row(
-              children: [
-                Icon(item.icon, size: AppSizing.iconMd),
-                const SizedBox(width: AppSpacing.sm),
-                Text(item.label(l10n)),
-              ],
+    entry = OverlayEntry(
+      builder: (overlayContext) => Stack(
+        children: [
+          Positioned.fill(
+            child: GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onTap: dismiss,
             ),
           ),
-      ],
+          Positioned(
+            left: topLeft.dx + button.size.width + AppSpacing.sm,
+            top: topLeft.dy,
+            child: Material(
+              elevation: 8,
+              // Green, the sidebar's own background — the flyout reads as an
+              // extension of the rail rather than a separate popup. Square on
+              // the left, where it meets the rail; a small radius only on the
+              // right, the edge that actually faces open space.
+              color: _ground,
+              borderRadius: const BorderRadius.only(
+                topRight: Radius.circular(AppRadius.sm),
+                bottomRight: Radius.circular(AppRadius.sm),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(AppSpacing.xs),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    for (var i = 0; i < items.length; i++) ...[
+                      if (i > 0)
+                        // A plain `Container`, not `VerticalDivider`: inside
+                        // this `Row` — itself inside a `Positioned` with no
+                        // bounded height — a `VerticalDivider` has nothing to
+                        // stretch to and renders with zero height.
+                        Container(
+                          width: 1,
+                          height: AppSizing.iconMd + AppSpacing.sm * 2,
+                          color: _divider,
+                        ),
+                      Tooltip(
+                        message: items[i].label(l10n),
+                        child: InkWell(
+                          onTap: () {
+                            dismiss();
+                            context.goSection(items[i].pathBuilder(storeId));
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.all(AppSpacing.sm),
+                            child: Icon(
+                              items[i].icon,
+                              size: AppSizing.iconMd,
+                              color: _onGround,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
 
-    if (selected != null && context.mounted) context.goSection(selected);
+    overlayState.insert(entry);
   }
 }
 
-/// One navigation row in the sidebar — icon, label, and a teal highlight when
-/// it is the section the user is in. Reused for every destination; the Gestion
-/// Employée row passes a [trailing] chevron.
+/// One navigation row in the sidebar — icon, label, and a white fill with
+/// green text when it is the section the user is in. Reused for every
+/// destination; the Gestion Employée row passes a [trailing] chevron, and
+/// Alertes a [badgeCount].
 ///
 /// Public so the navigation suite can read which row is [active].
 class SidebarNavTile extends StatelessWidget {
@@ -541,6 +733,7 @@ class SidebarNavTile extends StatelessWidget {
     required this.collapsed,
     required this.onTap,
     this.trailing,
+    this.badgeCount = 0,
     super.key,
   });
 
@@ -551,16 +744,48 @@ class SidebarNavTile extends StatelessWidget {
   final VoidCallback onTap;
   final Widget? trailing;
 
+  /// How many things are waiting in this section. Zero draws nothing.
+  final int badgeCount;
+
   @override
   Widget build(BuildContext context) {
-    final foreground = active ? AppColors.white : AppColors.neutral300;
+    final foreground = active ? AppColors.primary600 : _onGroundMuted;
+    final badged = badgeCount > 0;
+
+    // Collapsed there is no room for a pill beside an 88dp-wide icon, so the
+    // count becomes a dot on the icon's corner and the number is spoken by the
+    // tooltip and the semantics label below instead.
+    final Widget leading = badged && collapsed
+        ? Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Icon(icon, size: AppSizing.iconMd, color: foreground),
+              Positioned(
+                right: -2,
+                top: -2,
+                child: Container(
+                  width: 9,
+                  height: 9,
+                  decoration: BoxDecoration(
+                    color: AppColors.error,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: active ? _activeFill : _ground,
+                      width: 1.5,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          )
+        : Icon(icon, size: AppSizing.iconMd, color: foreground);
 
     final row = Row(
       mainAxisAlignment: collapsed
           ? MainAxisAlignment.center
           : MainAxisAlignment.start,
       children: [
-        Icon(icon, size: AppSizing.iconMd, color: foreground),
+        leading,
         if (!collapsed) ...[
           const SizedBox(width: AppSpacing.md),
           Expanded(
@@ -570,10 +795,16 @@ class SidebarNavTile extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.labelLarge?.copyWith(
                 color: foreground,
-                fontWeight: active ? FontWeight.w600 : FontWeight.w500,
+                fontWeight: active || badged
+                    ? FontWeight.w600
+                    : FontWeight.w500,
               ),
             ),
           ),
+          if (badged) ...[
+            const SizedBox(width: AppSpacing.sm),
+            _CountBadge(count: badgeCount),
+          ],
           if (trailing != null)
             IconTheme.merge(
               data: IconThemeData(color: foreground),
@@ -584,12 +815,12 @@ class SidebarNavTile extends StatelessWidget {
     );
 
     final tile = Material(
-      color: active ? AppColors.primary600 : Colors.transparent,
+      color: active ? _activeFill : Colors.transparent,
       borderRadius: AppRadius.mdAll,
       child: InkWell(
         onTap: onTap,
         borderRadius: AppRadius.mdAll,
-        hoverColor: AppColors.steel700,
+        hoverColor: _hoverFill,
         child: Container(
           constraints: const BoxConstraints(minHeight: AppSizing.minTapTarget),
           padding: EdgeInsets.symmetric(
@@ -601,8 +832,27 @@ class SidebarNavTile extends StatelessWidget {
       ),
     );
 
-    // Only the icon shows when collapsed, so the label becomes a tooltip.
-    return collapsed ? Tooltip(message: label, child: tile) : tile;
+    // Only the icon shows when collapsed, so the label becomes a tooltip for
+    // the eye and an explicit semantics label for the screen reader — a
+    // tooltip alone leaves the row announced as an unnamed button.
+    if (!collapsed) return tile;
+
+    // The dot on the icon says "something is waiting" and nothing more, so the
+    // count has to be in the words — it is the only place a screen reader, or
+    // anyone resting on the row, can get it.
+    final spoken = badged ? '$label ($badgeCount)' : label;
+
+    // MergeSemantics rather than a plain wrapper: the InkWell already publishes
+    // a button node with the tap action, and merging folds the name into it.
+    // Excluding it instead would name the row and take away the ability to
+    // activate it.
+    return MergeSemantics(
+      child: Semantics(
+        label: spoken,
+        selected: active,
+        child: Tooltip(message: spoken, child: tile),
+      ),
+    );
   }
 }
 
@@ -627,15 +877,15 @@ class _ChildNavTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final foreground = active ? AppColors.white : AppColors.neutral300;
+    final foreground = active ? AppColors.primary600 : _onGroundMuted;
 
     return Material(
-      color: active ? AppColors.primary600 : Colors.transparent,
+      color: active ? _activeFill : Colors.transparent,
       borderRadius: AppRadius.mdAll,
       child: InkWell(
         onTap: onTap,
         borderRadius: AppRadius.mdAll,
-        hoverColor: AppColors.steel700,
+        hoverColor: _hoverFill,
         child: Container(
           constraints: const BoxConstraints(minHeight: AppSizing.minTapTarget),
           padding: const EdgeInsets.only(right: AppSpacing.md),
@@ -647,7 +897,7 @@ class _ChildNavTile extends StatelessWidget {
                 child: CustomPaint(
                   painter: _TreeBranchPainter(
                     isLast: isLast,
-                    color: AppColors.steel500,
+                    color: _onGround.withValues(alpha: 0.35),
                   ),
                 ),
               ),
@@ -731,16 +981,16 @@ class _SidebarProfile extends ConsumerWidget {
 
   /// A touch under the sidebar's width — wide enough for "Mes établissements"
   /// without truncation, narrow enough to still read as a floating panel.
-  static const double _menuWidth = AppSizing.sidebarWidthExpanded - AppSpacing.xl;
+  static const double _menuWidth =
+      AppSizing.sidebarWidthExpanded - AppSpacing.xl;
 
   /// Roughly the menu's rendered height — three 48dp rows, the divider above
   /// "Se déconnecter", and the menu's own vertical padding. Only used to lift
   /// the menu clear of the profile row; being a few pixels off just nudges the
   /// gap.
-  static const double _menuLift =
-      3 * AppSizing.minTapTarget + AppSpacing.xxl;
+  static const double _menuLift = 3 * AppSizing.minTapTarget + AppSpacing.xxl;
 
-  /// Opens the user menu — a steel panel [_menuWidth] wide, centred on the
+  /// Opens the user menu — a white panel [_menuWidth] wide, centred on the
   /// sidebar and floating just above the profile row, with a drop shadow.
   Future<void> _open(BuildContext context, WidgetRef ref) async {
     final box = context.findRenderObject() as RenderBox?;
@@ -752,17 +1002,19 @@ class _SidebarProfile extends ConsumerWidget {
     final left = topLeft.dx + (box.size.width - _menuWidth) / 2;
     // Anchor a zero-height box just above the row so the menu grows downward
     // from there and its bottom lands a hair above the row.
-    final anchorTop = (topLeft.dy - AppSpacing.xs - _menuLift)
-        .clamp(AppSpacing.sm, overlay.size.height);
+    final anchorTop = (topLeft.dy - AppSpacing.xs - _menuLift).clamp(
+      AppSpacing.sm,
+      overlay.size.height,
+    );
     final anchor = Rect.fromLTWH(left, anchorTop, _menuWidth, 0);
 
     final selected = await showMenu<String>(
       context: context,
-      color: AppColors.steel800,
-      // A real drop shadow, not an M3 surface tint (which does nothing on this
-      // custom steel colour).
+      color: AppColors.white,
+      // A real drop shadow, not an M3 surface tint, so the white menu lifts
+      // off the page as well as the green sidebar.
       elevation: 12,
-      shadowColor: AppColors.neutral950,
+      shadowColor: AppColors.neutral950.withValues(alpha: 0.35),
       surfaceTintColor: Colors.transparent,
       constraints: const BoxConstraints.tightFor(width: _menuWidth),
       shape: const RoundedRectangleBorder(borderRadius: AppRadius.mdAll),
@@ -781,7 +1033,7 @@ class _SidebarProfile extends ConsumerWidget {
           padding: EdgeInsets.zero,
           child: _MenuRow(icon: LucideIcons.settings, label: l10n.navSettings),
         ),
-        const PopupMenuDivider(color: AppColors.steel600),
+        const PopupMenuDivider(color: AppColors.border),
         PopupMenuItem<String>(
           value: 'logout',
           padding: EdgeInsets.zero,
@@ -819,7 +1071,7 @@ class _SidebarProfile extends ConsumerWidget {
       message: l10n.topBarAccount,
       child: InkWell(
         onTap: () => _open(context, ref),
-        hoverColor: AppColors.steel700,
+        hoverColor: _hoverFill,
         child: Container(
           padding: EdgeInsets.symmetric(
             horizontal: collapsed ? AppSpacing.sm : AppSpacing.lg,
@@ -843,7 +1095,7 @@ class _SidebarProfile extends ConsumerWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.labelLarge?.copyWith(
-                          color: AppColors.white,
+                          color: _onGround,
                         ),
                       ),
                       if (user != null)
@@ -852,16 +1104,16 @@ class _SidebarProfile extends ConsumerWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: theme.textTheme.bodySmall?.copyWith(
-                            color: AppColors.neutral400,
+                            color: _onGroundMuted,
                           ),
                         ),
                     ],
                   ),
                 ),
-                const Icon(
+                Icon(
                   LucideIcons.chevronsUpDown,
                   size: AppSizing.iconSm,
-                  color: AppColors.neutral300,
+                  color: _onGroundMuted,
                 ),
               ],
             ],
@@ -872,10 +1124,9 @@ class _SidebarProfile extends ConsumerWidget {
   }
 }
 
-/// One row of the user menu — light on the steel ground it shares with the
-/// sidebar. On hover it fills with the same teal the active navigation entry
-/// uses. [destructive] paints "Se déconnecter" red, until it too goes white on
-/// the teal.
+/// One row of the user menu, on white. On hover it takes the active
+/// navigation entry's pale-green fill and green text; [destructive] keeps
+/// "Se déconnecter" red, over a pale-red fill on hover.
 class _MenuRow extends StatefulWidget {
   const _MenuRow({
     required this.icon,
@@ -897,18 +1148,21 @@ class _MenuRowState extends State<_MenuRow> {
   @override
   Widget build(BuildContext context) {
     final Color foreground;
-    if (_hovered) {
-      foreground = AppColors.white;
-    } else if (widget.destructive) {
-      foreground = AppColors.errorOnChrome;
+    final Color iconColor;
+    final Color fill;
+    if (widget.destructive) {
+      foreground = iconColor = AppColors.error;
+      fill = _hovered
+          ? AppColors.error.withValues(alpha: 0.08)
+          : Colors.transparent;
+    } else if (_hovered) {
+      foreground = iconColor = AppColors.primary600;
+      fill = _menuHoverFill;
     } else {
-      foreground = AppColors.neutral100;
+      foreground = AppColors.textPrimary;
+      iconColor = AppColors.textSecondary;
+      fill = Colors.transparent;
     }
-    final Color iconColor = _hovered
-        ? AppColors.white
-        : widget.destructive
-        ? AppColors.errorOnChrome
-        : AppColors.neutral300;
 
     return MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),
@@ -916,7 +1170,7 @@ class _MenuRowState extends State<_MenuRow> {
       child: Container(
         constraints: const BoxConstraints(minHeight: AppSizing.minTapTarget),
         alignment: Alignment.centerLeft,
-        color: _hovered ? AppColors.primary600 : Colors.transparent,
+        color: fill,
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
         child: Row(
           children: [
@@ -954,14 +1208,14 @@ class _InitialsAvatar extends StatelessWidget {
       height: 32,
       alignment: Alignment.center,
       decoration: const BoxDecoration(
-        color: AppColors.steel600,
+        color: AppColors.neutral200,
         shape: BoxShape.circle,
       ),
       child: Text(
         initials,
-        style: Theme.of(context).textTheme.labelMedium?.copyWith(
-          color: AppColors.white,
-        ),
+        style: Theme.of(
+          context,
+        ).textTheme.labelMedium?.copyWith(color: AppColors.textPrimary),
       ),
     );
   }

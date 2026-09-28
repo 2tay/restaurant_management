@@ -32,6 +32,35 @@ class ReceiptRowView {
   final String reference;
 }
 
+/// One delivery in the store's receipt history — the Réceptions page's
+/// Historique tab: the bon's number, the commande and supplier it came
+/// against, what it was worth and how many lines did not match.
+class StoreReceiptRowView {
+  const StoreReceiptRowView({
+    required this.receipt,
+    required this.reference,
+    required this.orderReference,
+    required this.supplierName,
+    required this.value,
+    required this.discrepancies,
+  });
+
+  final GoodsReceipt receipt;
+
+  /// `BR-2026-014/2`.
+  final String reference;
+
+  /// `CMD-2026-014`.
+  final String orderReference;
+  final String supplierName;
+
+  /// At the prices actually charged.
+  final double value;
+
+  /// Lines short, over, or not on the order.
+  final int discrepancies;
+}
+
 /// Everything the commande detail screen shows.
 ///
 /// One bundle rather than four watches. The screen has a header, a table of

@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:drift/drift.dart';
 
 import '../../core/utils/stock_cost.dart';
@@ -5,6 +6,7 @@ import '../../models/item.dart';
 import '../../models/stock_movement.dart';
 import '../database/app_database.dart';
 import '../mappers/mappers.dart';
+import '../notifications/notification_engine.dart';
 import '../view_models/item_detail_views.dart';
 import 'account_repository.dart';
 import 'new_id.dart';
@@ -58,7 +60,6 @@ class MovementRepository {
 
   Future<List<StockMovement>> recentActivity(String storeId, {int limit = 8}) =>
       (_forStore(storeId)..limit(limit)).get().then(_toMovements);
-
 
   // ---------------------------------------------------------------------------
   // Rows for the screens
@@ -120,6 +121,7 @@ class MovementRepository {
           MovementRowView(
             movement: movementFromRow(row.readTable(_db.stockMovements)),
             itemName: row.readTableOrNull(_db.items)?.name ?? '—',
+            itemImagePath: row.readTableOrNull(_db.items)?.imagePath,
             unitAbbreviation:
                 row.readTableOrNull(_db.units)?.abbreviation ?? '',
             supplierName: row.readTableOrNull(_db.suppliers)?.name,
@@ -132,6 +134,19 @@ class MovementRepository {
   // ---------------------------------------------------------------------------
   // Writes — the only place quantity and average cost move
   // ---------------------------------------------------------------------------
+
+  /// Runs several writes as one: all of them land, or none do.
+  ///
+  /// For the multi-line forms — a delivery of eight products, a count of a
+  /// whole shelf. Each `record*` call inside [body] still goes through
+  /// [_record], so quantity keeps exactly one writer; drift turns their own
+  /// transactions into savepoints of this one, the same way `confirmReceipt`
+  /// nests them. A failure on line six rolls back lines one to five rather
+  /// than leaving half a delivery on the shelf.
+  ///
+  /// Any other repository on the same database (a supplier price edited on a
+  /// delivery line) joins the same transaction when called inside [body].
+  Future<T> batch<T>(Future<T> Function() body) => _db.transaction(body);
 
   /// A delivery arriving.
   ///
@@ -146,6 +161,7 @@ class MovementRepository {
     double? unitPrice,
     DateTime? occurredAt,
     String? userName,
+    String? employeeId,
     String? orderId,
     String? receiptId,
     String? note,
@@ -157,8 +173,9 @@ class MovementRepository {
         itemId: itemId,
         type: StockMovementType.stockIn,
         quantity: quantity.abs(),
-        occurredAt: occurredAt ?? DateTime.now(),
+        occurredAt: occurredAt ?? clock.now(),
         userName: userName ?? await _defaultUserName(),
+        employeeId: employeeId,
         supplierId: supplierId,
         unitPrice: unitPrice,
         orderId: orderId,
@@ -185,6 +202,7 @@ class MovementRepository {
     required StockOutReason reason,
     DateTime? occurredAt,
     String? userName,
+    String? employeeId,
     String? note,
   }) async {
     return _record(
@@ -194,8 +212,9 @@ class MovementRepository {
         itemId: itemId,
         type: StockMovementType.stockOut,
         quantity: -quantity.abs(),
-        occurredAt: occurredAt ?? DateTime.now(),
+        occurredAt: occurredAt ?? clock.now(),
         userName: userName ?? await _defaultUserName(),
+        employeeId: employeeId,
         reason: reason,
         note: note,
       ),
@@ -218,6 +237,7 @@ class MovementRepository {
     required double countedQuantity,
     DateTime? occurredAt,
     String? userName,
+    String? employeeId,
     double? unitCost,
     String? note,
   }) async {
@@ -230,8 +250,9 @@ class MovementRepository {
         // Signed by the direction of the correction, so the movement still sums
         // correctly against the item's quantity.
         quantity: countedQuantity - systemQuantity,
-        occurredAt: occurredAt ?? DateTime.now(),
+        occurredAt: occurredAt ?? clock.now(),
         userName: userName ?? await _defaultUserName(),
+        employeeId: employeeId,
         systemQuantity: systemQuantity,
         countedQuantity: countedQuantity,
         unitCost: unitCost,
@@ -292,10 +313,9 @@ class MovementRepository {
   /// half-applied delivery impossible rather than merely unlikely.
   Future<StockMovement> _record(StockMovement draft) {
     return _db.transaction(() async {
-      final row =
-          await (_db.select(_db.items)
-                ..where((i) => i.id.equals(draft.itemId)))
-              .getSingleOrNull();
+      final row = await (_db.select(
+        _db.items,
+      )..where((i) => i.id.equals(draft.itemId))).getSingleOrNull();
 
       if (row == null) {
         // Phase 1 filed the movement anyway, with no cost figures, because a
@@ -335,6 +355,7 @@ class MovementRepository {
         quantity: draft.quantity,
         occurredAt: draft.occurredAt,
         userName: draft.userName,
+        employeeId: draft.employeeId,
         supplierId: draft.supplierId,
         unitPrice: draft.unitPrice,
         reason: draft.reason,
@@ -348,6 +369,24 @@ class MovementRepository {
       );
 
       await _db.into(_db.stockMovements).insert(movementToRow(recorded));
+
+      // Inside the transaction, and last: the feed describes a movement that
+      // has actually been filed. `item` is the article *before* this movement,
+      // which is exactly what the crossing rules need — the engine cannot
+      // recompute it afterwards, because by then the quantity has already
+      // moved.
+      final engine = NotificationEngine(_db);
+      await engine.stockMoved(before: item, after: item.quantity + draft.quantity);
+      if (draft.type == StockMovementType.adjustment &&
+          draft.systemQuantity != null &&
+          draft.countedQuantity != null) {
+        await engine.adjustmentRecorded(
+          before: item,
+          systemQuantity: draft.systemQuantity!,
+          countedQuantity: draft.countedQuantity!,
+        );
+      }
+
       return recorded;
     });
   }

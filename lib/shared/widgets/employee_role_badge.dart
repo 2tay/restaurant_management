@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/models.dart';
+import 'status_pill.dart';
 
 /// The Owner / Gérant / Employé chip.
 ///
@@ -20,25 +22,20 @@ class EmployeeRoleBadge extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final isOwner = role == EmployeeRole.owner;
 
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.xs,
-      ),
-      decoration: BoxDecoration(
-        color: isOwner ? AppColors.primaryContainer : AppColors.surfaceVariant,
-        borderRadius: AppRadius.pillAll,
-      ),
-      child: Text(
-        employeeRoleLabel(l10n, role),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: Theme.of(context).textTheme.labelMedium?.copyWith(
-          color: isOwner
-              ? AppColors.onPrimaryContainer
-              : AppColors.textSecondary,
-        ),
-      ),
+    return LabelChip(
+      label: employeeRoleLabel(l10n, role),
+      icon: switch (role) {
+        EmployeeRole.owner => LucideIcons.crown,
+        EmployeeRole.manager => LucideIcons.shieldCheck,
+        EmployeeRole.staff => LucideIcons.user,
+      },
+      background: isOwner
+          ? AppColors.primaryContainer
+          : AppColors.surfaceVariant,
+      foreground: isOwner
+          ? AppColors.onPrimaryContainer
+          : AppColors.textSecondary,
+      borderRadius: AppRadius.smAll,
     );
   }
 }
@@ -58,11 +55,4 @@ String employeeRoleDescription(AppLocalizations l10n, EmployeeRole role) =>
       EmployeeRole.owner => l10n.employeeRoleOwnerBody,
       EmployeeRole.manager => l10n.employeeRoleManagerBody,
       EmployeeRole.staff => l10n.employeeRoleStaffBody,
-    };
-
-/// Shared contract-type naming.
-String contractTypeLabel(AppLocalizations l10n, ContractType type) =>
-    switch (type) {
-      ContractType.fixed => l10n.contractTypeFixed,
-      ContractType.extra => l10n.contractTypeExtra,
     };

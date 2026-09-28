@@ -6,16 +6,19 @@ import '../../../../app/routes.dart';
 import '../../../../app/navigation.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/theme/app_typography.dart';
+import '../../../../core/utils/formatters.dart';
 import '../../../../core/utils/item_search.dart';
+import '../../../../core/utils/stock_status.dart';
 import '../../../../core/utils/responsive.dart';
 import '../../../../data/providers.dart';
 import '../../../../data/repositories/repositories.dart';
 import '../../../../data/view_models/view_models.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
-import '../widgets/item_detail_view.dart';
 import '../widgets/item_card.dart';
-import '../widgets/item_list_row.dart';
+import '../widgets/product_drawer.dart';
 
 /// How the visible products are ordered.
 ///
@@ -50,7 +53,7 @@ enum ItemSort {
 /// choice is per session — it lives in a provider rather than in a widget's
 /// state so it survives opening a product and coming back, and it is not
 /// written to disk because the app has no preferences store to write it to.
-enum InventoryViewMode { grid, list }
+enum InventoryViewMode { grid, table }
 
 class InventoryViewModeNotifier extends Notifier<InventoryViewMode> {
   @override
@@ -92,11 +95,17 @@ class InventoryFilter {
   /// also undo the ordering the user chose to read them in.
   final ItemSort sort;
 
-  bool get hasActiveFilters =>
-      query.isNotEmpty ||
-      categoryId != null ||
-      supplierId != null ||
-      lowStockOnly;
+  bool get hasActiveFilters => activeFilterCount > 0;
+
+  /// How many filters are narrowing the list, for the button that stands in
+  /// for them on a phone. The search box is one of them: it is on screen
+  /// beside the button, but it is still a reason the list is shorter than the
+  /// store, and a count that ignored it would be lying by omission.
+  int get activeFilterCount =>
+      (query.isNotEmpty ? 1 : 0) +
+      (categoryId != null ? 1 : 0) +
+      (supplierId != null ? 1 : 0) +
+      (lowStockOnly ? 1 : 0);
 
   /// The part of this the database can answer.
   ///
@@ -124,8 +133,9 @@ class InventoryFilter {
       categoryId: clearCategory ? null : categoryId ?? this.categoryId,
       supplierId: clearSupplier ? null : supplierId ?? this.supplierId,
       lowStockOnly: lowStockOnly ?? this.lowStockOnly,
-      selectedItemId:
-          clearSelection ? null : selectedItemId ?? this.selectedItemId,
+      selectedItemId: clearSelection
+          ? null
+          : selectedItemId ?? this.selectedItemId,
       sort: sort ?? this.sort,
     );
   }
@@ -169,10 +179,10 @@ final inventoryFilterProvider =
 
 /// The inventory list.
 ///
-/// On a wide tablet this is a master–detail split: list on the left, the
-/// selected item's detail on the right. Below the split breakpoint, tapping a
-/// row pushes the detail as its own page instead. The brief asks for exactly
-/// this — full-screen navigation for every tap wastes a tablet's width.
+/// Tapping a product slides its detail in from the right as a drawer over the
+/// list, the way the pointage history opens a day. The list keeps its whole
+/// width: a split pane used to halve the grid the moment anything was
+/// selected, and every card reflowed under the user's finger.
 class InventoryListPage extends ConsumerWidget {
   const InventoryListPage({required this.storeId, super.key});
 
@@ -190,14 +200,12 @@ class InventoryListPage extends ConsumerWidget {
     final rows = ref.watch(
       itemRowsProvider((storeId: storeId, filter: filter.itemFilter)),
     );
-    final canSplit = context.canSplitView;
-
     return ShellPage(
       title: l10n.inventoryTitle,
-      scrollable: false,
       actions: [
         PrimaryButton(
           label: l10n.actionAddItem,
+          shortLabel: l10n.shortAddItem,
           icon: LucideIcons.plus,
           onPressed: () => context.pushScreen(Routes.toAddItem(storeId)),
         ),
@@ -215,64 +223,10 @@ class InventoryListPage extends ConsumerWidget {
             for (final row in allRows)
               if (itemMatchesSearch(row.item, query)) row,
           ], filter.sort);
-          final selected = _resolveSelection(visible, filter, canSplit);
-
-          if (!canSplit || selected == null) {
-            return _ListPane(storeId: storeId, rows: visible);
-          }
-
-          // The detail pane exists only once a product has been chosen, and
-          // the grid keeps the whole width until then. A permanently reserved
-          // half-screen holding "Sélectionnez un produit" spends the most
-          // valuable space on the page saying nothing, and shrinks the grid
-          // that is the point of the screen.
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                flex: 5,
-                child: _ListPane(storeId: storeId, rows: visible),
-              ),
-              const SizedBox(width: AppSpacing.xl),
-              Expanded(
-                flex: 4,
-                child: ItemDetailView(
-                  itemId: selected.item.id,
-                  storeId: storeId,
-                  onClose: () => afterFrame(
-                    ref.read(inventoryFilterProvider.notifier).clearSelection,
-                  ),
-                ),
-              ),
-            ],
-          );
+          return _ListPane(storeId: storeId, rows: visible);
         },
       ),
     );
-  }
-
-  /// The product whose detail is open, or null for none.
-  ///
-  /// Nothing is selected until somebody selects something. This used to open
-  /// on the first row so the pane was never blank, which meant the screen
-  /// arrived having already made a choice on the user's behalf and put one
-  /// arbitrary product's detail — and its delete button — in front of them.
-  ///
-  /// A selection filtered out of the list closes the pane rather than sliding
-  /// to a neighbour: the product the user was reading is not on screen any
-  /// more, and quietly swapping in a different one is how somebody edits the
-  /// wrong thing.
-  ItemRowView? _resolveSelection(
-    List<ItemRowView> rows,
-    InventoryFilter filter,
-    bool canSplit,
-  ) {
-    if (!canSplit || filter.selectedItemId == null) return null;
-
-    for (final row in rows) {
-      if (row.item.id == filter.selectedItemId) return row;
-    }
-    return null;
   }
 }
 
@@ -284,11 +238,8 @@ class _ListPane extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context);
     final filter = ref.watch(inventoryFilterProvider);
     final notifier = ref.read(inventoryFilterProvider.notifier);
-    final canSplit = context.canSplitView;
-
     // The two filter menus. Empty while their queries are out, which draws
     // each menu with only its "toutes" entry — briefly, and better than a menu
     // that grows a frame after somebody has reached for it.
@@ -296,30 +247,21 @@ class _ListPane extends ConsumerWidget {
     final suppliers = ref.watch(suppliersProvider(storeId)).value ?? const [];
     final viewMode = ref.watch(inventoryViewModeProvider);
     final onTap = _open(context, ref);
-    final selectedId = canSplit ? filter.selectedItemId : null;
+    // The card whose drawer is open stays marked, so it is plain which
+    // product the drawer is about once it slides away again.
+    final selectedId = filter.selectedItemId;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SearchField(
-          hint: l10n.inventorySearchHint,
-          initialValue: filter.query,
-          onChanged: notifier.setQuery,
-        ),
-        const SizedBox(height: AppSpacing.md),
-
-        // The count leads the controls rather than following them: it is the
-        // answer to whatever the user just typed or picked, and reading it
-        // under the filters means reading it after having stopped looking.
-        Text(
-          l10n.inventoryCount(rows.length),
-          style: Theme.of(context).textTheme.bodySmall,
-        ),
-        const SizedBox(height: AppSpacing.sm),
-
+        // Search, filters, the result count and the display controls are one
+        // bar rather than three stacked rows. As three, they cost 373dp on a
+        // 360dp phone and 260 on the 1280dp design baseline — before a single
+        // product. The screen is the products.
         _ListControls(
           filter: filter,
           notifier: notifier,
+          count: rows.length,
           categories: {for (final c in categories) c.id: c.name},
           suppliers: {for (final s in suppliers) s.id: s.name},
           viewMode: viewMode,
@@ -327,8 +269,10 @@ class _ListPane extends ConsumerWidget {
         ),
         const SizedBox(height: AppSpacing.md),
 
-        Expanded(
-          child: rows.isEmpty
+        // Part of the page, not a box of its own: the whole page scrolls,
+        // title and filters included.
+        Builder(
+          builder: (context) => rows.isEmpty
               ? _EmptyList(
                   storeId: storeId,
                   // With no filter active, an empty result means the
@@ -340,43 +284,58 @@ class _ListPane extends ConsumerWidget {
                   onClearFilters: notifier.clear,
                 )
               : viewMode == InventoryViewMode.grid
-              ? _ProductGrid(rows: rows, onTap: onTap, selectedId: selectedId)
-              : _ProductList(rows: rows, onTap: onTap, selectedId: selectedId),
+              ? _CatalogueGrid(
+                  rows: rows,
+                  onTap: onTap,
+                  selectedId: selectedId,
+                  sort: filter.sort,
+                )
+              : _ProductTable(
+                  rows: rows,
+                  onTap: onTap,
+                  selectedId: selectedId,
+                  sort: filter.sort,
+                  onSort: notifier.setSort,
+                ),
         ),
       ],
     );
   }
 
-  /// What tapping a product does.
-  ///
-  /// On a wide screen it fills the detail pane beside the list; below the split
-  /// breakpoint there is no pane, so it pushes the product's own page. Both
-  /// views, and the arrow on every card, go through this one callback, so they
-  /// cannot drift apart.
+  /// What tapping a product does: its detail slides in as a drawer over the
+  /// list — on a phone, the drawer takes the whole screen. Both views, and
+  /// the arrow on every card, go through this one callback, so they cannot
+  /// drift apart.
   ValueChanged<String> _open(BuildContext context, WidgetRef ref) {
-    final canSplit = context.canSplitView;
     final notifier = ref.read(inventoryFilterProvider.notifier);
 
-    return (itemId) {
-      if (canSplit) {
-        notifier.select(itemId);
-      } else {
-        context.pushScreen(Routes.toItem(storeId, itemId));
-      }
+    return (itemId) async {
+      // The selection outline is this screen's own: it marks which card the
+      // open panel belongs to, and no other list has a card to mark.
+      notifier.select(itemId);
+      await openProductDrawer(context, storeId: storeId, itemId: itemId);
+      notifier.clearSelection();
     };
   }
 }
 
-/// The controls between the count and the products.
+/// Everything between the page header and the products: the search box, the
+/// filters, how many matched, and how the list is shown.
 ///
-/// Filters on the left, ordering and view mode on the right, until there is no
-/// longer room for two sides — below which the right-hand pair drops onto its
-/// own line and stays right-aligned, so it keeps reading as "how this list is
-/// shown" rather than joining the filters.
+/// One bar, not three rows. Search had its own line, the count had another and
+/// the filters a third, which on a phone stacked into 373dp of controls above a
+/// 320dp card — the screen showed two thirds of one product. They are all the
+/// same kind of thing (narrow the list down) and they belong on the same line
+/// wherever the line has room.
+///
+/// Ordering and view mode stay on the right, so they keep reading as "how this
+/// list is shown" rather than joining the filters — until the pane is too
+/// narrow for two sides, where they drop under and stay right-aligned.
 class _ListControls extends StatelessWidget {
   const _ListControls({
     required this.filter,
     required this.notifier,
+    required this.count,
     required this.categories,
     required this.suppliers,
     required this.viewMode,
@@ -385,6 +344,11 @@ class _ListControls extends StatelessWidget {
 
   final InventoryFilter filter;
   final InventoryFilterNotifier notifier;
+
+  /// How many products matched — the answer to whatever was just typed or
+  /// picked, so it sits with the controls that asked the question.
+  final int count;
+
   final Map<String, String> categories;
   final Map<String, String> suppliers;
   final InventoryViewMode viewMode;
@@ -395,9 +359,153 @@ class _ListControls extends StatelessWidget {
   /// product open and all of it without.
   static const double _twoSided = 860;
 
+  /// The search box inside the bar. Narrower than the 420dp it gets on its own
+  /// line — it is sharing now, and a product name is a short query.
+  static const double _searchWidth = 300;
+
+  /// The phone layout: two rows instead of six.
+  ///
+  /// Row one is the search box and the button the filters have moved behind.
+  /// Row two is the result count with the display controls at the right — the
+  /// answer on the left, how it is shown on the right.
+  ///
+  /// The filters are not gone, they are one tap away and the button says how
+  /// many are applied. What is gone is 240dp of stacked pills above a 320dp
+  /// card, which is what made this screen show two thirds of one product.
+  Widget _phoneBar(BuildContext context, AppLocalizations l10n) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: SearchField(
+                hint: l10n.inventorySearchHint,
+                initialValue: filter.query,
+                onChanged: notifier.setQuery,
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            FilterSheetButton(
+              activeCount: filter.activeFilterCount,
+              onPressed: () => FilterSheet.show(
+                context,
+                onClear: filter.hasActiveFilters ? notifier.clear : null,
+                // Rebuilt from the provider rather than captured, so the pills
+                // inside the sheet follow the taps made on them. Without this
+                // the sheet would show the filter state as it was when it
+                // opened and never move.
+                builder: (context) => Consumer(
+                  builder: (context, ref, _) {
+                    final live = ref.watch(inventoryFilterProvider);
+                    return _ListControls(
+                      filter: live,
+                      notifier: notifier,
+                      count: count,
+                      categories: categories,
+                      suppliers: suppliers,
+                      viewMode: viewMode,
+                      onViewMode: onViewMode,
+                    )._sheetContents(context, l10n);
+                  },
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        // A `Wrap`, not a `Row`. The sort pill takes its natural width when
+        // nothing bounds it, and "24 produits" plus "Stock prioritaire" plus
+        // the view toggle is 48dp more than a 328dp phone has — a Row
+        // overflows there rather than giving way.
+        Wrap(
+          alignment: WrapAlignment.spaceBetween,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: AppSpacing.sm,
+          runSpacing: AppSpacing.sm,
+          children: [
+            Text(
+              l10n.inventoryCount(count),
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Flexible so the sort pill gives way rather than overflowing.
+                // The view toggle beside it is two 48dp squares that cannot
+                // shrink, so the sort label is the only thing left that can —
+                // and `FilterPill` ellipsizes once something bounds it.
+                Flexible(
+                  child: _SortMenu(
+                    sort: filter.sort,
+                    onSelected: notifier.setSort,
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                _ViewModeToggle(mode: viewMode, onSelected: onViewMode),
+              ],
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  /// The filters, stacked full width for the sheet.
+  Widget _sheetContents(BuildContext context, AppLocalizations l10n) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      for (final (i, control) in _filterControls(context, l10n).indexed) ...[
+        if (i > 0) const SizedBox(height: AppSpacing.md),
+        Align(alignment: Alignment.centerLeft, child: control),
+      ],
+    ],
+  );
+
+  /// The three filter controls, as the wide bar and the phone sheet both draw
+  /// them. One definition, so the sheet cannot drift from the bar.
+  List<Widget> _filterControls(BuildContext context, AppLocalizations l10n) => [
+    _FilterMenu(
+      label: l10n.inventoryFilterCategory,
+      allLabel: l10n.inventoryFilterAll,
+      selectedId: filter.categoryId,
+      options: categories,
+      onSelected: notifier.setCategory,
+    ),
+    _FilterMenu(
+      label: l10n.inventoryFilterSupplier,
+      allLabel: l10n.inventoryFilterAllSuppliers,
+      selectedId: filter.supplierId,
+      options: suppliers,
+      onSelected: notifier.setSupplier,
+    ),
+    // A pill rather than a Material `FilterChip`: the chip drew itself 385dp
+    // wide for a three-word label, next to two 180dp pills saying the same
+    // kind of thing. Same control, same shape as its neighbours, half the
+    // width — and the roster's "afficher les retirés" toggle is built exactly
+    // this way, so the two now match.
+    Material(
+      color: Colors.transparent,
+      borderRadius: AppRadius.pillAll,
+      child: InkWell(
+        onTap: notifier.toggleLowStockOnly,
+        borderRadius: AppRadius.pillAll,
+        child: FilterPill(
+          label: l10n.inventoryFilterLowOnly,
+          selectedLabel: filter.lowStockOnly
+              ? l10n.inventoryFilterLowOnly
+              : null,
+          icon: LucideIcons.triangleAlert,
+        ),
+      ),
+    ),
+  ];
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+
+    if (context.isPhone) return _phoneBar(context, l10n);
 
     // Filters wrap rather than scroll: a hidden filter is a filter nobody
     // uses, and French category names are long.
@@ -406,40 +514,29 @@ class _ListControls extends StatelessWidget {
       runSpacing: AppSpacing.sm,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        _FilterMenu(
-          label: l10n.inventoryFilterCategory,
-          allLabel: l10n.inventoryFilterAll,
-          selectedId: filter.categoryId,
-          options: categories,
-          onSelected: notifier.setCategory,
-        ),
-        _FilterMenu(
-          label: l10n.inventoryFilterSupplier,
-          allLabel: l10n.inventoryFilterAllSuppliers,
-          selectedId: filter.supplierId,
-          options: suppliers,
-          onSelected: notifier.setSupplier,
-        ),
-        FilterChip(
-          label: Text(l10n.inventoryFilterLowOnly),
-          avatar: Icon(
-            LucideIcons.triangleAlert,
-            size: 16,
-            color: filter.lowStockOnly
-                ? AppColors.lowStock.foreground
-                : AppColors.textSecondary,
+        // A stated width, not a cap. `SearchField` fills whatever box it is
+        // given, and a `Wrap` gives its children the whole line to ask for —
+        // so an uncapped one took a run to itself and pushed all four filters
+        // onto lines of their own.
+        SizedBox(
+          width: _searchWidth,
+          child: SearchField(
+            hint: l10n.inventorySearchHint,
+            initialValue: filter.query,
+            onChanged: notifier.setQuery,
           ),
-          selected: filter.lowStockOnly,
-          onSelected: (_) => notifier.toggleLowStockOnly(),
-          selectedColor: AppColors.lowStock.container,
-          checkmarkColor: AppColors.lowStock.foreground,
         ),
+        ..._filterControls(context, l10n),
         if (filter.hasActiveFilters)
           TextButton.icon(
             onPressed: notifier.clear,
             icon: const Icon(LucideIcons.x, size: 16),
             label: Text(l10n.inventoryClearFilters),
           ),
+        Text(
+          l10n.inventoryCount(count),
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
       ],
     );
 
@@ -482,6 +579,173 @@ class _ListControls extends StatelessWidget {
 }
 
 /// The products as cards.
+/// The catalogue as cards, in one block per category.
+///
+/// A catalogue is walked by section — you go looking for a vegetable among the
+/// vegetables — so the blocks are the natural shape for it, in alphabetical
+/// order so they sit in the same place every visit.
+///
+/// **Only in the default order.** Somebody who asked for "Nom A → Z" wants one
+/// alphabetical list; that same list cut into category blocks is not sorted by
+/// name, it is sorted by category. The alerts screen makes the same bargain
+/// with its severity sections.
+///
+/// A single block means the list is already one category, usually because the
+/// category filter is on, and a heading naming what every card on screen is
+/// would be a line saying nothing. It falls back to a plain grid.
+///
+/// Blocks collapse. Eight categories of twenty products is a long page to
+/// scroll past to reach the one section you came for, and a collapsed block
+/// still states how many it is hiding.
+class _CatalogueGrid extends StatefulWidget {
+  const _CatalogueGrid({
+    required this.rows,
+    required this.onTap,
+    required this.selectedId,
+    required this.sort,
+  });
+
+  final List<ItemRowView> rows;
+  final ValueChanged<String> onTap;
+  final String? selectedId;
+
+  /// Whether the cards are in the order the screen chose or in one the user
+  /// asked for.
+  final ItemSort sort;
+
+  @override
+  State<_CatalogueGrid> createState() => _CatalogueGridState();
+}
+
+class _CatalogueGridState extends State<_CatalogueGrid> {
+  /// Folded away by category name. Kept on the state rather than in a provider
+  /// because it is a reading position, not a filter: it should survive a
+  /// rebuild and not survive leaving the screen.
+  final Set<String> _collapsed = {};
+
+  @override
+  Widget build(BuildContext context) {
+    final grouped = <String, List<ItemRowView>>{};
+    for (final row in widget.rows) {
+      grouped.putIfAbsent(row.categoryName, () => []).add(row);
+    }
+    final categories = grouped.keys.toList()
+      ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+
+    if (widget.sort != ItemSort.status || categories.length < 2) {
+      return _ProductGrid(
+        rows: widget.rows,
+        onTap: widget.onTap,
+        selectedId: widget.selectedId,
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (final (i, category) in categories.indexed) ...[
+          if (i > 0) const SizedBox(height: AppSpacing.lg),
+          CategoryHeader(
+            title: category,
+            count: grouped[category]!.length,
+            collapsed: _collapsed.contains(category),
+            onToggle: () => setState(
+              () => _collapsed.contains(category)
+                  ? _collapsed.remove(category)
+                  : _collapsed.add(category),
+            ),
+          ),
+          if (!_collapsed.contains(category)) ...[
+            const SizedBox(height: AppSpacing.sm),
+            _ProductGrid(
+              rows: grouped[category]!,
+              onTap: widget.onTap,
+              selectedId: widget.selectedId,
+            ),
+          ],
+        ],
+      ],
+    );
+  }
+}
+
+/// One category's heading: its name, how many, and a rule to the edge.
+///
+/// A [SectionHeader] was the obvious thing and the wrong one. It is built for a
+/// section with an action beside it and costs about fifty points of height;
+/// eight of them is four hundred points of heading above a grid whose cards
+/// were just made smaller to fit more on screen. This is a single line that
+/// separates rather than announces — the rule does the separating, so the words
+/// can be small.
+class CategoryHeader extends StatelessWidget {
+  const CategoryHeader({
+    required this.title,
+    required this.count,
+    required this.collapsed,
+    required this.onToggle,
+    super.key,
+  });
+
+  final String title;
+  final int count;
+  final bool collapsed;
+  final VoidCallback onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return InkWell(
+      onTap: onToggle,
+      borderRadius: AppRadius.smAll,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+        child: Row(
+          children: [
+            AnimatedRotation(
+              duration: AppMotion.duration(context, AppMotion.fast),
+              turns: collapsed ? -0.25 : 0,
+              child: const Icon(
+                LucideIcons.chevronDown,
+                size: AppSizing.iconSm,
+                color: AppColors.textSecondary,
+              ),
+            ),
+            const SizedBox(width: AppSpacing.xs),
+            Flexible(
+              child: Text(
+                title.toUpperCase(),
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: AppColors.textSecondary,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.8,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Text(
+              '$count',
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: AppColors.textDisabled,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            // The rule runs to the edge, which is what makes the line read as
+            // a divider carrying a label rather than a title floating above a
+            // grid.
+            const Expanded(
+              child: Divider(height: 1, color: AppColors.hairline),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _ProductGrid extends StatelessWidget {
   const _ProductGrid({
     required this.rows,
@@ -518,19 +782,22 @@ class _ProductGrid extends StatelessWidget {
         // `AppCard` draws one inside its own box and lays the card out in what
         // is left, which is two pixels less than the tile — the amount every
         // card in this grid was overflowing by before the allowance was added.
-        final spacing = AppSpacing.md * (columns - 1);
+        final spacing = AppSpacing.sm * (columns - 1);
         final cellWidth = (constraints.maxWidth - spacing) / columns;
         final imageHeight = inventoryImageHeight(cellWidth);
 
         return GridView.builder(
           padding: EdgeInsets.zero,
+          shrinkWrap: true,
+          primary: false,
+          physics: const NeverScrollableScrollPhysics(),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: columns,
-            mainAxisSpacing: AppSpacing.md,
-            crossAxisSpacing: AppSpacing.md,
+            mainAxisSpacing: AppSpacing.sm,
+            crossAxisSpacing: AppSpacing.sm,
             mainAxisExtent:
                 imageHeight +
-                itemCardTextHeight +
+                itemCardTextHeightFor(context) +
                 AppCard.verticalBorderAllowance,
           ),
           itemCount: rows.length,
@@ -554,31 +821,187 @@ class _ProductGrid extends StatelessWidget {
 /// Everything the card carries, on one line: thumbnail, name, category,
 /// status, quantity, and the same arrow. For the user who knows what they are
 /// looking for and wants twenty products on screen rather than six.
-class _ProductList extends StatelessWidget {
-  const _ProductList({
+/// The products as a table: what it is, how much is left against its
+/// threshold and its ceiling, what it is worth, and whether that is a problem.
+///
+/// The headers sort — name, stock, status — through the same [ItemSort] the
+/// sort menu sets, so the two can never disagree. On a narrow screen the
+/// secondary columns drop out rather than the table scrolling sideways.
+class _ProductTable extends StatelessWidget {
+  const _ProductTable({
     required this.rows,
     required this.onTap,
     required this.selectedId,
+    required this.sort,
+    required this.onSort,
   });
 
   final List<ItemRowView> rows;
   final ValueChanged<String> onTap;
   final String? selectedId;
+  final ItemSort sort;
+  final ValueChanged<ItemSort> onSort;
+
+  static const _byName = 'name';
+  static const _byStock = 'stock';
+  static const _byStatus = 'status';
 
   @override
   Widget build(BuildContext context) {
-    return ListView.separated(
-      padding: EdgeInsets.zero,
-      itemCount: rows.length,
-      separatorBuilder: (context, _) => const SizedBox(height: AppSpacing.sm),
-      itemBuilder: (context, index) {
-        final row = rows[index];
-        return ItemListRow(
-          view: row,
-          selected: selectedId == row.item.id,
-          onTap: () => onTap(row.item.id),
-        );
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+
+    final (Object? key, bool ascending) = switch (sort) {
+      ItemSort.nameAsc => (_byName, true),
+      ItemSort.nameDesc => (_byName, false),
+      ItemSort.stockAsc => (_byStock, true),
+      ItemSort.stockDesc => (_byStock, false),
+      ItemSort.status => (_byStatus, true),
+      ItemSort.recent => (null, true),
+    };
+
+    return AppTable<ItemRowView>(
+      rows: rows,
+      shrinkWrap: true,
+      sortKey: key,
+      sortAscending: ascending,
+      onSort: (column) => onSort(switch (column) {
+        _byName =>
+          sort == ItemSort.nameAsc ? ItemSort.nameDesc : ItemSort.nameAsc,
+        _byStock =>
+          sort == ItemSort.stockAsc ? ItemSort.stockDesc : ItemSort.stockAsc,
+        _ => ItemSort.status,
+      }),
+      onRowTap: (row) => onTap(row.item.id),
+      isSelected: (row) => row.item.id == selectedId,
+      columns: [
+        AppTableColumn(label: l10n.tableColProduct, flex: 4, sortKey: _byName),
+        AppTableColumn(
+          label: l10n.tableColStock,
+          width: 128,
+          numeric: true,
+          sortKey: _byStock,
+        ),
+        AppTableColumn(
+          label: l10n.tableColThreshold,
+          width: 132,
+          numeric: true,
+          minTableWidth: 720,
+        ),
+        AppTableColumn(
+          label: l10n.tableColLevel,
+          width: 140,
+          minTableWidth: 860,
+        ),
+        AppTableColumn(
+          label: l10n.tableColValue,
+          width: 112,
+          numeric: true,
+          minTableWidth: 620,
+        ),
+        AppTableColumn(
+          label: l10n.tableColStatus,
+          width: 168,
+          sortKey: _byStatus,
+          minTableWidth: 480,
+        ),
+      ],
+      cell: (context, row, column) {
+        final item = row.item;
+        final unit = row.unitAbbreviation;
+        final status = stockStatusOf(item);
+        final colors = StockStatusBadge.colorsFor(status);
+
+        return switch (column) {
+          0 => Row(
+            children: [
+              ProductImage(imagePath: item.imagePath, size: 40, radius: 8),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item.name,
+                      style: theme.textTheme.titleSmall,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      row.categoryName,
+                      style: theme.textTheme.bodySmall,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          1 => Text(
+            Formatters.quantityWithUnit(item.quantity, unit),
+            style: AppTypography.numeric.copyWith(
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          // Both bounds in one cell rather than a column each: the table
+          // already drops columns below 860dp, and a seventh would compete for
+          // room with the gauge that reads them. The unit is on the Stock
+          // column two cells left, so it is not repeated here.
+          2 => Text(
+            '${Formatters.quantity(item.lowStockThreshold)} / '
+            '${Formatters.quantity(item.maxStock)}',
+            style: AppTypography.numeric.copyWith(
+              color: AppColors.textSecondary,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          3 => _LevelBar(item: item, status: status),
+          4 => Text(
+            item.averageCost == null
+                ? '—'
+                : Formatters.price(item.quantity * item.averageCost!),
+            style: AppTypography.numeric.copyWith(
+              color: AppColors.textSecondary,
+            ),
+            maxLines: 1,
+          ),
+          _ => StatusDot(
+            color: colors.solid,
+            label: StockStatusBadge.labelFor(l10n, status),
+          ),
+        };
       },
+    );
+  }
+}
+
+/// How full the shelf is: stock against the ceiling the store orders up to,
+/// or twice the alert threshold when no ceiling is set.
+///
+/// Grey while all is well; amber or red only once the product needs
+/// attention — so a column of bars is quiet, and the ones that are not stand
+/// out.
+class _LevelBar extends StatelessWidget {
+  const _LevelBar({required this.item, required this.status});
+
+  final Item item;
+  final StockStatus status;
+
+  @override
+  Widget build(BuildContext context) {
+    // The shared gauge, so a level means the same thing in this column as it
+    // does on an alert row and on the product page. It drew its own bar here
+    // with a `maxStock > 0 ? maxStock : threshold * 2` fallback, which is the
+    // guess the repository now stores instead.
+    return StockGauge(
+      quantity: item.quantity,
+      minimum: item.lowStockThreshold,
+      maximum: item.maxStock,
     );
   }
 }
@@ -618,37 +1041,26 @@ class _SortMenu extends StatelessWidget {
       ),
     );
 
-    // On a phone the control bar is narrower than "Trier par" plus a pill at
-    // its natural width, and a Row does not shrink — it overflows. So the
-    // caption drops out first, and the pill is left flexible so its label
-    // ellipsizes into whatever is actually there. [FilterPill] only shrinks
-    // against a bounded width, which is also what [Flexible] needs.
+    // No "Trier par" caption beside it. The pill carries the sort icon and the
+    // current ordering, which says the same thing in a third of the width —
+    // and the caption was 90dp of a control bar that had none to spare. It
+    // survives as the menu's tooltip.
     return LayoutBuilder(
       builder: (context, constraints) {
-        final bounded = constraints.maxWidth.isFinite;
-        final showCaption = !bounded || constraints.maxWidth >= 340;
-
-        return Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (showCaption) ...[
-              Text(
-                l10n.inventorySortLabel,
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-            ],
-            if (bounded) Flexible(child: menu) else menu,
-          ],
-        );
+        // [FilterPill] only shrinks against a bounded width, which is also
+        // what [Flexible] needs.
+        return constraints.maxWidth.isFinite
+            ? Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [Flexible(child: menu)],
+              )
+            : menu;
       },
     );
   }
 }
 
-/// Cards or rows, as a two-button segmented control.
+/// Cards or a table, as the shared two-button toggle.
 class _ViewModeToggle extends StatelessWidget {
   const _ViewModeToggle({required this.mode, required this.onSelected});
 
@@ -658,80 +1070,21 @@ class _ViewModeToggle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-
-    return Container(
-      height: AppSizing.minTapTarget,
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: AppRadius.pillAll,
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _ViewModeButton(
-            icon: LucideIcons.layoutGrid,
-            label: l10n.inventoryViewGrid,
-            selected: mode == InventoryViewMode.grid,
-            onTap: () => onSelected(InventoryViewMode.grid),
-          ),
-          _ViewModeButton(
-            icon: LucideIcons.list,
-            label: l10n.inventoryViewList,
-            selected: mode == InventoryViewMode.list,
-            onTap: () => onSelected(InventoryViewMode.list),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ViewModeButton extends StatelessWidget {
-  const _ViewModeButton({
-    required this.icon,
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: label,
-      child: Semantics(
-        button: true,
-        selected: selected,
-        label: label,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: AppRadius.pillAll,
-          child: AnimatedContainer(
-            duration: AppMotion.duration(context, AppMotion.fast),
-            curve: AppMotion.standard,
-            // Square at the tap-target floor, even though the icon inside is
-            // small: this is a control for a wet finger on a tablet.
-            width: AppSizing.minTapTarget,
-            height: AppSizing.minTapTarget,
-            decoration: BoxDecoration(
-              color: selected ? AppColors.primaryContainer : Colors.transparent,
-              borderRadius: AppRadius.pillAll,
-            ),
-            child: Icon(
-              icon,
-              size: AppSizing.iconMd,
-              color: selected
-                  ? AppColors.onPrimaryContainer
-                  : AppColors.textSecondary,
-            ),
-          ),
+    return ViewModeToggle<InventoryViewMode>(
+      value: mode,
+      onSelected: onSelected,
+      options: [
+        ViewModeOption(
+          value: InventoryViewMode.grid,
+          icon: LucideIcons.layoutGrid,
+          label: l10n.inventoryViewGrid,
         ),
-      ),
+        ViewModeOption(
+          value: InventoryViewMode.table,
+          icon: LucideIcons.table,
+          label: l10n.inventoryViewTable,
+        ),
+      ],
     );
   }
 }
@@ -788,22 +1141,49 @@ void afterFrame(VoidCallback change) =>
 /// which is not enough for any of them; one full-width card per row is.
 int inventoryGridColumns(double width) {
   if (width < _singleColumn) return 1;
-  final columns = (width / 260).floor();
-  return columns.clamp(2, 4);
+  final columns = (width / _columnTarget).floor();
+  return columns.clamp(2, 6);
 }
 
+/// Roughly how wide a card wants to be.
+///
+/// 190dp, down from 230 and originally 260, with the ceiling now six columns.
+/// Every step spends the same currency: photograph size for how many products
+/// are on screen at once. A catalogue of two hundred articles is navigated by
+/// scanning, and scanning wants more cards per screen far more than it wants a
+/// bigger picture of a bag of flour. At 190 a 1280dp window draws five across
+/// where it drew three at the start.
+///
+/// The floor is the product name: below about 170dp French names ellipsize into
+/// uselessness, which is the thing this may not trade away.
+const double _columnTarget = 190;
+
 /// Below this width the grid drops to a single column.
-const double _singleColumn = 440;
+///
+/// 320, down from 440 — which meant a phone showed one product per row. Two
+/// across a 360dp screen once left about 180dp for a name, a category and a
+/// quantity, and that was not enough for any of them. The card has since lost
+/// its "Stock actuel" caption and its arrow button, and gained a narrower
+/// picture, so the same 180dp now carries all three. Only a genuinely tiny
+/// window falls back to one.
+const double _singleColumn = 320;
 
 /// How tall the picture on a card is, for a column this wide.
 ///
-/// Three quarters of the column's width, which leaves the picture the 55–60%
-/// of the card the design asks for once [itemCardTextHeight] is added under
-/// it. Bounded at both ends: a single-column phone layout would otherwise draw
-/// a poster, and a four-column pane on a small tablet a postage stamp — and
-/// the floor is what keeps the picture the larger half of a narrow card.
+/// Just under three fifths of the column's width, which keeps the picture a
+/// little over half the card once [itemCardTextHeight] is added under it.
+/// Bounded at both ends: a single-column phone layout would otherwise draw a
+/// poster, and a six-column pane on a small tablet a postage stamp.
+///
+/// The ceiling came down from 190 to 136 with the same reasoning as
+/// [_columnTarget]: a photograph here is there to be recognised at a glance,
+/// not studied, and the ceiling only binds on a wide single-column phone card
+/// that would otherwise draw a poster. The floor of 100 is about where a plate
+/// of food stops being identifiable — and it is also what keeps the picture
+/// above the 45% of the card the tests pin, since the text block under it does
+/// not shrink with the column.
 double inventoryImageHeight(double cellWidth) =>
-    (cellWidth * 0.75).clamp(180, 240);
+    (cellWidth * 0.58).clamp(100, 136);
 
 /// Distinguishes "this store has nothing yet" from "your filters matched
 /// nothing". They need different words and a different button.

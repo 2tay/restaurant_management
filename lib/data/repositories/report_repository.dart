@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:drift/drift.dart';
 
 import '../../models/report_figures.dart';
@@ -222,7 +223,7 @@ class ReportRepository {
     required Set<StockOutReason>? reasons,
   }) async {
     final from = _startOfWeek(
-      DateTime.now(),
+      clock.now(),
     ).subtract(Duration(days: 7 * (weeks - 1)));
 
     final movements = await (_db.select(_db.stockMovements)..where(
@@ -290,7 +291,7 @@ class ReportRepository {
           variables: [
             Variable<String>(storeId),
             Variable<DateTime>(
-              DateTime.now().subtract(const Duration(days: 365)),
+              clock.now().subtract(const Duration(days: 365)),
             ),
           ],
           readsFrom: {_db.stockMovements, _db.items, _db.supplierPrices},

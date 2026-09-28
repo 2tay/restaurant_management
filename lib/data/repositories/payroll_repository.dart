@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:drift/drift.dart';
 
 import '../../core/utils/attendance_status.dart';
@@ -23,7 +24,6 @@ class PayrollPreview {
   const PayrollPreview({
     required this.days,
     required this.workedHours,
-    required this.overtimeHours,
     required this.amount,
     required this.appliedRate,
   });
@@ -31,7 +31,6 @@ class PayrollPreview {
   /// The unpaid, finished days this run would cover, most recent first.
   final List<Attendance> days;
   final double workedHours;
-  final double overtimeHours;
   final double amount;
   final double appliedRate;
 
@@ -57,7 +56,6 @@ typedef PayrollDays = ({
   int paidDays,
   int unpaidDays,
   Duration worked,
-  Duration overtime,
   int totalCount,
   int page,
   int pageCount,
@@ -137,9 +135,8 @@ class PayrollRepository {
   /// unpaid counts and the hour totals are always over every finished day in the
   /// range, so both KPI numbers stay visible whatever the table is filtered to.
   ///
-  /// SQL fetches the `done` rows and their pauses; Dart resolves each schedule
-  /// and folds the durations with the unchanged `attendance_status.dart`. This
-  /// is the single hardest read in the phase.
+  /// SQL fetches the `done` rows and their sessions; Dart folds the durations
+  /// with the unchanged `attendance_status.dart`.
   Future<PayrollDays> days(
     String storeId, {
     String? employeeId,
@@ -149,18 +146,8 @@ class PayrollRepository {
     int page = 0,
     int pageSize = 25,
   }) async {
-    final settings = await StoreRepository(_db).settings(storeId);
-
-    // The employees in scope, and their schedules.
+    // The employees in scope.
     final employeeRows = await _scopedEmployees(storeId, employeeId);
-    final schedules = {
-      for (final e in employeeRows)
-        e.id: resolvedSchedule(
-          e,
-          storeOpenMinutes: settings.openMinutes,
-          storeCloseMinutes: settings.closeMinutes,
-        ),
-    };
     final hireFloor = {for (final e in employeeRows) e.id: _dayOf(e.hireDate)};
     final scopedIds = employeeRows.map((e) => e.id).toSet();
 
@@ -177,7 +164,6 @@ class PayrollRepository {
 
     final matched = <Attendance>[];
     var worked = Duration.zero;
-    var overtime = Duration.zero;
 
     final entries = await _assemble(
       rows.where((r) => scopedIds.contains(r.employeeId)).toList(),
@@ -193,11 +179,6 @@ class PayrollRepository {
 
       matched.add(entry);
       worked += workedDuration(entry) ?? Duration.zero;
-      final endMinutes =
-          entry.scheduledEndMinutes ??
-          schedules[entry.employeeId]?.endMinutes ??
-          settings.closeMinutes;
-      overtime += overtimeBy(entry, endMinutes) ?? Duration.zero;
     }
 
     matched.sort((a, b) {
@@ -247,7 +228,6 @@ class PayrollRepository {
       paidDays: paid,
       unpaidDays: unpaid,
       worked: worked,
-      overtime: overtime,
       totalCount: filtered.length,
       page: safePage,
       pageCount: pageCount,
@@ -299,17 +279,15 @@ class PayrollRepository {
       return PayrollPreview(
         days: days,
         workedHours: 0,
-        overtimeHours: 0,
         amount: 0,
         appliedRate: employee?.pay ?? 0,
       );
     }
 
-    final totals = periodTotals(days, employee, settings);
+    final totals = periodTotals(days);
     return PayrollPreview(
       days: days,
       workedHours: totals.workedHours,
-      overtimeHours: totals.overtimeHours,
       amount: periodAmount(days, employee, settings),
       appliedRate: employee.pay,
     );
@@ -333,7 +311,7 @@ class PayrollRepository {
     final employee = await EmployeeRepository(_db).employee(employeeId);
     if (employee == null) return null;
     final settings = await StoreRepository(_db).settings(storeId);
-    final at = now ?? DateTime.now();
+    final at = now ?? clock.now();
 
     try {
       return await _db.transaction(() async {
@@ -346,7 +324,7 @@ class PayrollRepository {
         );
         if (days.isEmpty) return null;
 
-        final totals = periodTotals(days, employee, settings);
+        final totals = periodTotals(days);
         final dates = days.map((d) => d.date).toList()..sort();
         final period = PayrollPeriod(
           id: newId(),
@@ -356,7 +334,6 @@ class PayrollRepository {
           endDate: dates.last,
           workedDays: totals.days,
           totalWorkedHours: totals.workedHours,
-          totalOvertimeHours: totals.overtimeHours,
           appliedRate: employee.pay,
           computedAmount: periodAmount(days, employee, settings),
           status: PayrollStatus.paid,
@@ -446,7 +423,7 @@ class PayrollRepository {
   }) async {
     final cutoff = withinDays == null
         ? null
-        : (now ?? DateTime.now()).subtract(Duration(days: withinDays));
+        : (now ?? clock.now()).subtract(Duration(days: withinDays));
     final needle = (employeeQuery ?? '').trim().toLowerCase();
 
     final rows = await (_db.select(_db.payrollPeriods)
@@ -505,17 +482,34 @@ class PayrollRepository {
   Future<List<Attendance>> _assemble(List<AttendanceRow> rows) async {
     if (rows.isEmpty) return const <Attendance>[];
     final ids = rows.map((r) => r.id).toList();
-    final pauseRows = await (_db.select(
-      _db.attendancePauses,
-    )..where((p) => p.attendanceId.isIn(ids))).get();
+    final sessionRows =
+        await (_db.select(_db.attendanceSessions)
+              ..where((s) => s.attendanceId.isIn(ids))
+              ..orderBy([(s) => OrderingTerm(expression: s.position)]))
+            .get();
 
-    final byAttendance = <String, List<AttendancePauseRow>>{};
+    final sessionIds = sessionRows.map((s) => s.id).toList();
+    final pauseRows = sessionIds.isEmpty
+        ? const <AttendancePauseRow>[]
+        : await (_db.select(
+            _db.attendancePauses,
+          )..where((p) => p.sessionId.isIn(sessionIds))).get();
+
+    final pausesBySession = <String, List<AttendancePauseRow>>{};
     for (final pause in pauseRows) {
-      (byAttendance[pause.attendanceId] ??= <AttendancePauseRow>[]).add(pause);
+      (pausesBySession[pause.sessionId] ??= <AttendancePauseRow>[]).add(pause);
     }
+
+    final sessionsByAttendance = <String, List<AttendanceSession>>{};
+    for (final row in sessionRows) {
+      (sessionsByAttendance[row.attendanceId] ??= <AttendanceSession>[]).add(
+        attendanceSessionFromRow(row, pausesBySession[row.id] ?? const []),
+      );
+    }
+
     return [
       for (final row in rows)
-        attendanceFromRows(row, byAttendance[row.id] ?? const []),
+        attendanceFromRows(row, sessionsByAttendance[row.id] ?? const []),
     ];
   }
 

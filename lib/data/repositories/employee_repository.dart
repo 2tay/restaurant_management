@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:drift/drift.dart';
 
 import '../../core/utils/credential_status.dart';
@@ -52,24 +53,24 @@ class EmployeeRepository {
           .getSingleOrNull()
           .then(_toEmployeeOrNull);
 
-  /// The employee already using this CIN, ignoring [excludingId].
+  /// The employee already using this PIN, ignoring [excludingId].
   ///
-  /// Account-wide — the CIN is unique across every establishment and is the
+  /// Account-wide — the PIN is unique across every establishment and is the
   /// login identifier (Phase 6). The schema enforces uniqueness; this exists for
   /// the message the add / edit form shows before it submits. The exclusion is
-  /// what lets an edit keep its own CIN unchanged.
-  Future<Employee?> employeeByCin(String cin, {String? excludingId}) async {
-    final needle = _normalise(cin);
+  /// what lets an edit keep its own PIN unchanged.
+  Future<Employee?> employeeByPin(String pin, {String? excludingId}) async {
+    final needle = _normalise(pin);
     if (needle.isEmpty) return null;
     for (final employee in await _all()) {
       if (employee.id == excludingId) continue;
-      if (_normalise(employee.cin) == needle) return employee;
+      if (_normalise(employee.pin) == needle) return employee;
     }
     return null;
   }
 
   /// The employee already using this email, ignoring [excludingId].
-  /// Account-wide, like [employeeByCin].
+  /// Account-wide, like [employeeByPin].
   Future<Employee?> employeeByEmail(String email, {String? excludingId}) async {
     final needle = _normalise(email);
     if (needle.isEmpty) return null;
@@ -84,15 +85,15 @@ class EmployeeRepository {
   // Writes
   // ---------------------------------------------------------------------------
 
-  /// Creates an employee, and — when [pin] is given — their login credential in
+  /// Creates an employee, and — when [password] is given — their login credential in
   /// the same transaction.
   ///
   /// Returns null, writing nothing, when a required text field is empty, when
-  /// the CIN or the email is already used by another employee anywhere on the
-  /// account (both are unique account-wide, and the CIN is the login
-  /// identifier), or when [pin] is set but is not [AuthRules.pinLength] digits.
+  /// the PIN or the email is already used by another employee anywhere on the
+  /// account (both are unique account-wide, and the PIN is the login
+  /// identifier), or when [password] is set but is not [AuthRules.passwordLength] digits.
   ///
-  /// The add-employee form creates the person and their PIN in one submit: an
+  /// The add-employee form creates the person and their password in one submit: an
   /// employee row with no credential is somebody who cannot sign in, which
   /// reads as a bug. Doing both here, in one transaction, makes that state
   /// unreachable rather than merely unlikely.
@@ -100,36 +101,33 @@ class EmployeeRepository {
     required String storeId,
     required String firstName,
     required String lastName,
-    required String cin,
+    required String pin,
     required String phone,
     required String email,
     required EmployeeRole role,
-    required ContractType contractType,
     required double pay,
     DateTime? hireDate,
-    int? scheduledStartMinutes,
-    int? scheduledEndMinutes,
     String? photoAsset,
-    String? pin,
+    String? password,
   }) async {
     final first = firstName.trim();
     final last = lastName.trim();
-    final trimmedCin = cin.trim();
+    final trimmedPin = pin.trim();
     final trimmedPhone = phone.trim();
     final trimmedEmail = email.trim();
     if (first.isEmpty ||
         last.isEmpty ||
-        trimmedCin.isEmpty ||
+        trimmedPin.isEmpty ||
         trimmedPhone.isEmpty ||
         trimmedEmail.isEmpty) {
       return null;
     }
-    if (pin != null && !isValidPin(pin)) return null;
+    if (password != null && !isValidPassword(password)) return null;
 
-    final now = DateTime.now();
+    final now = clock.now();
 
     return _db.transaction(() async {
-      if (await employeeByCin(trimmedCin) != null) return null;
+      if (await employeeByPin(trimmedPin) != null) return null;
       if (await employeeByEmail(trimmedEmail) != null) return null;
 
       final employee = Employee(
@@ -137,31 +135,28 @@ class EmployeeRepository {
         storeId: storeId,
         firstName: first,
         lastName: last,
-        cin: trimmedCin,
+        pin: trimmedPin,
         phone: trimmedPhone,
         email: trimmedEmail,
         photoAsset: photoAsset,
         hireDate: hireDate ?? now,
         role: role,
-        contractType: contractType,
         pay: pay,
-        scheduledStartMinutes: scheduledStartMinutes,
-        scheduledEndMinutes: scheduledEndMinutes,
         createdAt: now,
       );
 
       await _db.into(_db.employees).insert(employeeToRow(employee));
 
-      if (pin != null) {
-        // The PIN was checked above and the employee row now exists in this
+      if (password != null) {
+        // The password was checked above and the employee row now exists in this
         // transaction, so this cannot fail — but if that ever stops holding,
         // rolling the whole create back is the right answer to a credential
         // that did not take.
         final credential = await CredentialRepository(
           _db,
-        ).setPin(employee.id, pin);
+        ).setPassword(employee.id, password);
         if (credential == null) {
-          throw StateError('setPin refused a validated PIN for ${employee.id}');
+          throw StateError('setPassword refused a validated password for ${employee.id}');
         }
       }
 
@@ -174,25 +169,20 @@ class EmployeeRepository {
   /// **`archivedAt` is not a parameter** — archiving is [archive] / [restore],
   /// the same reasoning that keeps quantity off the item edit form: an
   /// audit-relevant transition should not be reachable by a field on a routine
-  /// form. [clearSchedule] wipes a custom start/end back to "use the store's
-  /// hours"; [clearPhoto] removes the photo.
+  /// form. [clearPhoto] removes the photo.
   ///
   /// Returns null, writing nothing, when the id is unknown, a supplied text
-  /// field is blank, or the CIN / email would now collide with another
+  /// field is blank, or the PIN / email would now collide with another
   /// employee.
   Future<Employee?> update(
     String id, {
     String? firstName,
     String? lastName,
-    String? cin,
+    String? pin,
     String? phone,
     String? email,
     EmployeeRole? role,
-    ContractType? contractType,
     double? pay,
-    int? scheduledStartMinutes,
-    int? scheduledEndMinutes,
-    bool clearSchedule = false,
     String? photoAsset,
     bool clearPhoto = false,
   }) async {
@@ -200,8 +190,8 @@ class EmployeeRepository {
     if (first != null && first.isEmpty) return null;
     final last = lastName?.trim();
     if (last != null && last.isEmpty) return null;
-    final trimmedCin = cin?.trim();
-    if (trimmedCin != null && trimmedCin.isEmpty) return null;
+    final trimmedPin = pin?.trim();
+    if (trimmedPin != null && trimmedPin.isEmpty) return null;
     final trimmedPhone = phone?.trim();
     if (trimmedPhone != null && trimmedPhone.isEmpty) return null;
     final trimmedEmail = email?.trim();
@@ -211,8 +201,8 @@ class EmployeeRepository {
       final existing = await employee(id);
       if (existing == null) return null;
 
-      if (trimmedCin != null &&
-          await employeeByCin(trimmedCin, excludingId: id) != null) {
+      if (trimmedPin != null &&
+          await employeeByPin(trimmedPin, excludingId: id) != null) {
         return null;
       }
       if (trimmedEmail != null &&
@@ -225,20 +215,13 @@ class EmployeeRepository {
         storeId: existing.storeId,
         firstName: first ?? existing.firstName,
         lastName: last ?? existing.lastName,
-        cin: trimmedCin ?? existing.cin,
+        pin: trimmedPin ?? existing.pin,
         phone: trimmedPhone ?? existing.phone,
         email: trimmedEmail ?? existing.email,
         photoAsset: clearPhoto ? null : photoAsset ?? existing.photoAsset,
         hireDate: existing.hireDate,
         role: role ?? existing.role,
-        contractType: contractType ?? existing.contractType,
         pay: pay ?? existing.pay,
-        scheduledStartMinutes: clearSchedule
-            ? null
-            : scheduledStartMinutes ?? existing.scheduledStartMinutes,
-        scheduledEndMinutes: clearSchedule
-            ? null
-            : scheduledEndMinutes ?? existing.scheduledEndMinutes,
         createdAt: existing.createdAt,
         archivedAt: existing.archivedAt,
       );
@@ -255,7 +238,7 @@ class EmployeeRepository {
   /// exactly as it was, the same as a removed supplier keeping its movements.
   /// There is no hard delete.
   Future<bool> archive(String id, {DateTime? at}) =>
-      _setArchivedAt(id, at ?? DateTime.now());
+      _setArchivedAt(id, at ?? clock.now());
 
   /// Brings a retired employee back. Returns `false` if not archived.
   Future<bool> restore(String id) => _setArchivedAt(id, null);

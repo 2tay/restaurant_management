@@ -6,6 +6,7 @@ import '../../../../app/routes.dart';
 import '../../../../app/navigation.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../data/providers.dart';
@@ -14,12 +15,20 @@ import '../../../../data/view_models/view_models.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 import '../widgets/movement_labels.dart';
+import '../../../../core/utils/employee_status.dart';
+import '../widgets/picker/movement_cart.dart';
+import '../widgets/picker/product_picker_sheet.dart';
 
-/// Record stock leaving: sold, used, wasted or transferred.
+/// Record stock leaving — sold, used, wasted or transferred — for several
+/// products at once.
 ///
-/// The reason is a row of large chips rather than a dropdown. This is the
-/// screen used most often mid-service, the options never change, and one tap
-/// beats open-scroll-select every time.
+/// The reason is a row of large chips rather than a dropdown, and it is chosen
+/// once for the whole form. This is the screen used most often mid-service,
+/// the options never change, and "everything that went in the bin tonight" is
+/// one reason with many products, not many forms with one.
+///
+/// Each row says what the shelf will hold afterwards, in red when that goes
+/// below zero — the warning, before the save rather than after it.
 class StockOutPage extends ConsumerStatefulWidget {
   const StockOutPage({required this.storeId, super.key});
 
@@ -29,62 +38,86 @@ class StockOutPage extends ConsumerStatefulWidget {
   ConsumerState<StockOutPage> createState() => _StockOutPageState();
 }
 
-class _StockOutPageState extends ConsumerState<StockOutPage> {
-  String? _itemId;
-  double _quantity = 1;
-  StockOutReason _reason = StockOutReason.sale;
+class _StockOutLine {
+  _StockOutLine(this.itemId);
 
-  /// The picked article, from the list the dropdown is already showing.
-  ///
-  /// Not a query of its own: the row carries the quantity and the unit, which
-  /// is everything this screen asks about it.
-  ItemRowView? _selected(List<ItemRowView> rows) {
-    for (final row in rows) {
-      if (row.item.id == _itemId) return row;
+  final String itemId;
+  final FocusNode focus = FocusNode();
+  final GlobalKey key = GlobalKey();
+  double quantity = 1;
+}
+
+class _StockOutPageState extends ConsumerState<StockOutPage> {
+  final List<_StockOutLine> _lines = [];
+  StockOutReason _reason = StockOutReason.sale;
+  bool _saving = false;
+
+  @override
+  void dispose() {
+    for (final line in _lines) {
+      line.focus.dispose();
     }
-    return null;
+    super.dispose();
   }
 
-  bool get _canSubmit => _itemId != null && _quantity > 0;
+  bool get _canSubmit =>
+      !_saving && _lines.isNotEmpty && _lines.every((l) => l.quantity > 0);
 
-  bool _exceedsStock(ItemRowView? row) =>
-      row != null && _quantity > row.item.quantity;
+  Future<void> _pick() async {
+    final picked = await ProductPickerSheet.show(
+      context,
+      storeId: widget.storeId,
+      alreadyPicked: {for (final line in _lines) line.itemId},
+      featured: recentItemIds(
+        ref.read(movementRowsForStoreProvider(widget.storeId)).value,
+        StockMovementType.stockOut,
+      ),
+      featuredTitle: AppLocalizations.of(context).pickerSectionRecent,
+    );
+    if (picked == null || picked.isEmpty || !mounted) return;
+    setState(() {
+      _lines.addAll([for (final row in picked) _StockOutLine(row.item.id)]);
+    });
+  }
 
-  bool get _isDirty => _itemId != null;
+  void _remove(_StockOutLine line) {
+    setState(() => _lines.remove(line));
+    WidgetsBinding.instance.addPostFrameCallback((_) => line.focus.dispose());
+  }
+
+  void _focusAfter(_StockOutLine line) {
+    final index = _lines.indexOf(line);
+    if (index >= 0 && index + 1 < _lines.length) {
+      _lines[index + 1].focus.requestFocus();
+    } else {
+      FocusScope.of(context).unfocus();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
+    final colors = movementColors(StockMovementType.stockOut);
 
-    // Alphabetical, not worst-first: this is a picker, and somebody looking for
-    // "Tomates" wants it where the alphabet says it is.
     final rows =
-        ref.watch(itemRowsProvider((
-              storeId: widget.storeId,
-              filter: ItemFilter.none,
-            ))).value ??
+        ref
+            .watch(
+              itemRowsProvider((
+                storeId: widget.storeId,
+                filter: ItemFilter.none,
+              )),
+            )
+            .value ??
         const <ItemRowView>[];
+    final byId = {for (final row in rows) row.item.id: row};
 
-    final row = _selected(rows);
-    final item = row?.item;
-    final unit = row?.unitAbbreviation ?? '';
-
-    final items = [
-      for (final row in rows)
-        DropdownOption(
-          value: row.item.id,
-          label: row.item.name,
-          secondaryLabel: Formatters.quantityWithUnit(
-            row.item.quantity,
-            row.unitAbbreviation,
-          ),
-        ),
+    final noQuantity = [
+      for (final line in _lines)
+        if (line.quantity <= 0) line,
     ];
 
     return FormScaffold(
       title: l10n.stockOutTitle,
-      subtitle: l10n.stockOutSubtitle,
       back: BackDestination(
         label: l10n.movementsTitle,
         path: Routes.toMovements(widget.storeId),
@@ -95,183 +128,192 @@ class _StockOutPageState extends ConsumerState<StockOutPage> {
       ],
       submitLabel: l10n.stockOutSubmit,
       submitIcon: LucideIcons.arrowUpFromLine,
+      submitSecondary: CartSummary(
+        count: _lines.length,
+        issue: noQuantity.isEmpty
+            ? null
+            : l10n.cartIssueNoQuantity(noQuantity.length),
+        onIssueTap: noQuantity.isEmpty
+            ? null
+            : () => scrollToLine(noQuantity.first.key),
+      ),
       onSubmit: _canSubmit ? _submit : null,
-      isDirty: _isDirty,
-      maxWidth: 720,
+      isDirty: _lines.isNotEmpty,
+      maxWidth: 900,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          AppCard(
-            child: AppDropdown<String>(
-              label: l10n.stockInItem,
-              value: _itemId,
-              options: items,
-              onChanged: (value) => setState(() => _itemId = value),
-            ),
+          MovementBanner(
+            colors: colors,
+            icon: LucideIcons.arrowUpFromLine,
+            message: l10n.stockOutSubtitle,
+          ),
+          const SizedBox(height: AppSpacing.md),
+
+          // The reason, once, for every row below.
+          Wrap(
+            spacing: AppSpacing.sm,
+            runSpacing: AppSpacing.sm,
+            children: [
+              for (final reason in StockOutReason.values)
+                _ReasonChip(
+                  reason: reason,
+                  selected: _reason == reason,
+                  colors: colors,
+                  onTap: () => setState(() => _reason = reason),
+                ),
+            ],
           ),
           const SizedBox(height: AppSpacing.lg),
 
-          AppCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        l10n.stockOutQuantity,
-                        style: theme.textTheme.labelMedium,
-                      ),
-                    ),
-                    if (item != null)
-                      Text(
-                        l10n.stockOutAvailable(
-                          Formatters.quantityWithUnit(item.quantity, unit),
-                        ),
-                        style: theme.textTheme.bodySmall,
-                      ),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                QuantityStepper(
-                  value: _quantity,
-                  unitAbbreviation: unit,
-                  onChanged: (value) => setState(() => _quantity = value),
-                ),
-                if (_exceedsStock(row)) ...[
-                  const SizedBox(height: AppSpacing.md),
-                  // A warning rather than a hard block: stock counts drift,
-                  // and refusing to record something that actually left the
-                  // building would make the data worse, not better.
-                  Container(
-                    padding: const EdgeInsets.all(AppSpacing.md),
-                    decoration: BoxDecoration(
-                      color: AppColors.lowStock.container,
-                      borderRadius: AppRadius.mdAll,
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          LucideIcons.triangleAlert,
-                          size: AppSizing.iconMd,
-                          color: AppColors.lowStock.foreground,
-                        ),
-                        const SizedBox(width: AppSpacing.sm),
-                        Expanded(
-                          child: Text(
-                            l10n.stockOutExceedsStock,
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: AppColors.lowStock.foreground,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ],
-            ),
+          MovementProductsCard(
+            accent: colors,
+            onPick: _pick,
+            rows: [
+              for (final line in _lines)
+                if (byId[line.itemId] != null)
+                  _stockOutRow(line, byId[line.itemId]!),
+            ],
           ),
-          const SizedBox(height: AppSpacing.lg),
-
-          AppCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(l10n.stockOutReason, style: theme.textTheme.labelMedium),
-                const SizedBox(height: AppSpacing.md),
-                Wrap(
-                  spacing: AppSpacing.md,
-                  runSpacing: AppSpacing.md,
-                  children: [
-                    for (final reason in StockOutReason.values)
-                      _ReasonChip(
-                        reason: reason,
-                        selected: _reason == reason,
-                        onTap: () => setState(() => _reason = reason),
-                      ),
-                  ],
-                ),
-              ],
-            ),
-          ),
+          const SizedBox(height: AppSpacing.xl),
         ],
+      ),
+    );
+  }
+
+  Widget _stockOutRow(_StockOutLine line, ItemRowView view) {
+    final unit = view.unitAbbreviation;
+    final stock = view.item.quantity;
+
+    return MovementLineCard(
+      key: line.key,
+      view: view,
+      onRemove: () => _remove(line),
+      inlineMinWidth: 600,
+      state: line.quantity <= 0 ? LineState.invalid : LineState.normal,
+      // Recorded as entered even when it takes the item below zero — stock
+      // counts drift, and refusing what actually left the building makes the
+      // data worse. The red "after" figure is the whole intervention.
+      subtitle: StockAfter(
+        before: stock,
+        after: stock - line.quantity,
+        unit: unit,
+      ),
+      trailing: Text(
+        Formatters.quantityDelta(-line.quantity, unit),
+        style: AppTypography.numeric.copyWith(
+          fontWeight: FontWeight.w700,
+          color: quantityDeltaColor(-line.quantity),
+        ),
+      ),
+      controls: QuantityStepper(
+        compact: true,
+        value: line.quantity,
+        unitAbbreviation: unit,
+        onChanged: (value) => setState(() => line.quantity = value),
+        focusNode: line.focus,
+        textInputAction: TextInputAction.next,
+        onSubmitted: () => _focusAfter(line),
       ),
     );
   }
 
   Future<void> _submit() async {
     final l10n = AppLocalizations.of(context);
+    final movements = ref.read(movementRepositoryProvider);
+    final lines = List.of(_lines);
 
-    // Recorded as entered even when it takes the item below zero. The warning
-    // above is the whole intervention: refusing would make staff either lie to
-    // the app or stop using it, and negative stock is itself a useful signal
-    // that a delivery went unrecorded.
-    await ref
-        .read(movementRepositoryProvider)
-        .recordStockOut(
-          storeId: widget.storeId,
-          itemId: _itemId!,
-          quantity: _quantity,
-          reason: _reason,
-        );
+    // Who is at the tablet. Asked here, at the save, so the person who
+    // confirms is the person who saves.
+    final actor = await ActorConfirmSheet.show(
+      context,
+      storeId: widget.storeId,
+      actionLabel: l10n.stockOutSubmit,
+    );
+    if (actor == null || !mounted) return;
+    final actorName = employeeDisplayName(actor);
+
+    setState(() => _saving = true);
+    try {
+      await movements.batch(() async {
+        for (final line in lines) {
+          await movements.recordStockOut(
+            storeId: widget.storeId,
+            itemId: line.itemId,
+            quantity: line.quantity,
+            reason: _reason,
+            userName: actorName,
+            employeeId: actor.id,
+          );
+        }
+      });
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
 
     if (!mounted) return;
-    AppSnackBar.success(context, l10n.stockOutRecorded);
+    AppSnackBar.success(
+      context,
+      l10n.movementsRecordedBy(lines.length, actor.firstName),
+    );
     context.goSection(Routes.toMovements(widget.storeId));
   }
 }
 
-/// A large, single-tap reason selector.
+/// A large, single-tap reason selector, in the stock-out colour when picked.
 class _ReasonChip extends StatelessWidget {
   const _ReasonChip({
     required this.reason,
     required this.selected,
+    required this.colors,
     required this.onTap,
   });
 
   final StockOutReason reason;
   final bool selected;
+  final StockStatusColors colors;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final foreground = selected ? colors.foreground : AppColors.textPrimary;
 
-    return InkWell(
-      onTap: onTap,
-      borderRadius: AppRadius.mdAll,
-      child: Container(
-        height: AppSizing.buttonHeight,
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-        decoration: BoxDecoration(
-          color: selected ? AppColors.primaryContainer : AppColors.surface,
-          borderRadius: AppRadius.mdAll,
-          border: Border.all(
-            color: selected ? AppColors.primary600 : AppColors.border,
-            width: selected ? 2 : 1,
+    return Semantics(
+      button: true,
+      selected: selected,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: AppRadius.pillAll,
+        child: AnimatedContainer(
+          duration: AppMotion.duration(context, AppMotion.fast),
+          height: AppSizing.minTapTarget,
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+          decoration: BoxDecoration(
+            color: selected ? colors.container : AppColors.surface,
+            borderRadius: AppRadius.pillAll,
+            border: Border.all(
+              color: selected ? colors.solid : AppColors.border,
+              width: selected ? 2 : 1,
+            ),
           ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              reasonIcon(reason),
-              size: AppSizing.iconMd,
-              color: selected
-                  ? AppColors.onPrimaryContainer
-                  : AppColors.textSecondary,
-            ),
-            const SizedBox(width: AppSpacing.sm),
-            Text(
-              reasonLabel(l10n, reason),
-              style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                color: selected
-                    ? AppColors.onPrimaryContainer
-                    : AppColors.textPrimary,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                selected ? LucideIcons.circleCheck : reasonIcon(reason),
+                size: AppSizing.iconSm,
+                color: selected ? colors.solid : AppColors.textSecondary,
               ),
-            ),
-          ],
+              const SizedBox(width: AppSpacing.sm),
+              Text(
+                reasonLabel(l10n, reason),
+                style: Theme.of(
+                  context,
+                ).textTheme.labelLarge?.copyWith(color: foreground),
+              ),
+            ],
+          ),
         ),
       ),
     );

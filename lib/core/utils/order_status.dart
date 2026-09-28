@@ -1,3 +1,5 @@
+import 'package:clock/clock.dart';
+
 import '../../models/models.dart';
 
 /// Derivations over commandes and receipts.
@@ -84,6 +86,20 @@ double orderOutstanding(PurchaseOrder order) {
   return total;
 }
 
+/// How much of what was ordered has arrived, as a share between 0 and 1.
+///
+/// Over-delivery on one line does not make up for another line still owed,
+/// so each line counts at most what was ordered on it.
+double orderReceivedShare(PurchaseOrder order) {
+  var ordered = 0.0;
+  var received = 0.0;
+  for (final line in order.lines) {
+    ordered += line.quantityOrdered;
+    received += line.quantityReceived.clamp(0, line.quantityOrdered);
+  }
+  return ordered <= 0 ? 0 : (received / ordered).clamp(0.0, 1.0);
+}
+
 /// Sent or partial: the supplier has the document and goods may still arrive.
 ///
 /// This is the definition "on order" counts against, so it is written once.
@@ -127,7 +143,7 @@ PurchaseOrderStatus statusAfterReceipt(List<PurchaseOrderLine> lines) {
 /// that has been open three weeks.
 int daysOpen(PurchaseOrder order, {DateTime? now}) {
   final from = order.sentAt ?? order.createdAt;
-  return (now ?? DateTime.now()).difference(from).inDays;
+  return (now ?? clock.now()).difference(from).inDays;
 }
 
 /// Partial for longer than the store's threshold.
@@ -199,11 +215,26 @@ ReceiptLineOutcome outcomeOf({
 bool isDiscrepancy(ReceiptLineOutcome outcome) =>
     outcome != ReceiptLineOutcome.complete;
 
+/// How many lines of [receipt] are discrepancies — short, over, or not on the
+/// order.
+int receiptDiscrepancyCount(GoodsReceipt receipt) => receipt.lines
+    .where(
+      (line) => isDiscrepancy(
+        outcomeOf(
+          ordered: line.quantityOrdered,
+          received: line.quantityReceived,
+          wasUnordered: line.wasUnordered,
+        ),
+      ),
+    )
+    .length;
+
 /// True when a price moved far enough to be worth confirming.
 ///
 /// Guards against a zero baseline: an item with no price on file has no
 /// percentage to move by, and dividing by it would flag every first delivery.
 bool priceMovedSignificantly(double oldPrice, double newPrice) {
   if (oldPrice <= 0) return false;
-  return (newPrice - oldPrice).abs() / oldPrice > OrderRules.significantPriceChange;
+  return (newPrice - oldPrice).abs() / oldPrice >
+      OrderRules.significantPriceChange;
 }

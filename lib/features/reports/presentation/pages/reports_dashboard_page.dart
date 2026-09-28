@@ -34,17 +34,14 @@ class ReportsDashboardPage extends ConsumerWidget {
     // ignores what you just told it is worse than no number.
     const window = 30;
     final consumed =
-        ref.watch(
-          consumptionValueProvider((storeId: storeId, days: window)),
-        ).value ??
+        ref
+            .watch(consumptionValueProvider((storeId: storeId, days: window)))
+            .value ??
         0;
     final wasted =
-        ref.watch(
-          wasteValueProvider((storeId: storeId, days: window)),
-        ).value ??
+        ref.watch(wasteValueProvider((storeId: storeId, days: window))).value ??
         0;
-    final saving =
-        ref.watch(potentialAnnualSavingProvider(storeId)).value ?? 0;
+    final saving = ref.watch(potentialAnnualSavingProvider(storeId)).value ?? 0;
     final valuation = ref.watch(stockValuationProvider(storeId)).value ?? 0;
     final wasteShare = consumed == 0 ? 0.0 : wasted / consumed;
 
@@ -111,18 +108,18 @@ class ReportsDashboardPage extends ConsumerWidget {
           ),
           const SizedBox(height: AppSpacing.xl),
 
-          GridView.count(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisCount: context.gridColumns(max: 3),
-            crossAxisSpacing: AppSpacing.lg,
-            mainAxisSpacing: AppSpacing.lg,
-            childAspectRatio: 1.6,
+          // The figures — one row, always, like the dashboard's.
+          CardRow(
+            minCardWidth: 190,
+            scrollCardWidth: 180,
+            spacing: context.isPhone ? AppSpacing.md : AppSpacing.lg,
             children: [
               SummaryTile(
                 label: l10n.dashboardTileStockValue,
                 value: Formatters.priceCompact(valuation),
                 icon: LucideIcons.wallet,
+                iconColors: AppColors.onBreak,
+                caption: l10n.valuationBasis,
                 onTap: () =>
                     context.pushScreen(Routes.toValuationReport(storeId)),
               ),
@@ -130,41 +127,55 @@ class ReportsDashboardPage extends ConsumerWidget {
                 label: l10n.reportsUsage30Days,
                 value: Formatters.priceCompact(consumed),
                 icon: LucideIcons.chartLine,
+                iconColors: AppColors.info,
                 onTap: () => context.pushScreen(Routes.toUsageReport(storeId)),
               ),
               SummaryTile(
                 label: l10n.reportsWasteShare,
                 value: Formatters.percent(wasteShare),
                 icon: LucideIcons.trash2,
-                accent: AppColors.lowStock,
+                // Amber only when something was thrown away.
+                accent: wasted > 0 ? AppColors.lowStock : null,
+                iconColors: AppColors.inStock,
                 caption: Formatters.price(wasted),
                 onTap: () => context.pushScreen(Routes.toUsageReport(storeId)),
               ),
             ],
           ),
-          const SizedBox(height: AppSpacing.xxl),
+          const SizedBox(height: AppSpacing.xl),
 
           SectionHeader(title: l10n.reportsTitle),
-          _ReportCard(
-            icon: LucideIcons.scale,
-            title: l10n.reportsComparison,
-            body: l10n.reportsComparisonBody,
-            onOpen: () =>
-                context.pushScreen(Routes.toComparisonReport(storeId)),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          _ReportCard(
-            icon: LucideIcons.wallet,
-            title: l10n.reportsValuation,
-            body: l10n.reportsValuationBody,
-            onOpen: () => context.pushScreen(Routes.toValuationReport(storeId)),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          _ReportCard(
-            icon: LucideIcons.chartColumn,
-            title: l10n.reportsUsage,
-            body: l10n.reportsUsageBody,
-            onOpen: () => context.pushScreen(Routes.toUsageReport(storeId)),
+          // The three reports, side by side — one row, scrolling sideways on
+          // a phone like the figures above.
+          CardRow(
+            minCardWidth: 220,
+            scrollCardWidth: 240,
+            spacing: context.isPhone ? AppSpacing.md : AppSpacing.lg,
+            children: [
+              _ReportCard(
+                icon: LucideIcons.scale,
+                colors: AppColors.inStock,
+                title: l10n.reportsComparison,
+                body: l10n.reportsComparisonBody,
+                onOpen: () =>
+                    context.pushScreen(Routes.toComparisonReport(storeId)),
+              ),
+              _ReportCard(
+                icon: LucideIcons.wallet,
+                colors: AppColors.onBreak,
+                title: l10n.reportsValuation,
+                body: l10n.reportsValuationBody,
+                onOpen: () =>
+                    context.pushScreen(Routes.toValuationReport(storeId)),
+              ),
+              _ReportCard(
+                icon: LucideIcons.chartColumn,
+                colors: AppColors.info,
+                title: l10n.reportsUsage,
+                body: l10n.reportsUsageBody,
+                onOpen: () => context.pushScreen(Routes.toUsageReport(storeId)),
+              ),
+            ],
           ),
         ],
       ),
@@ -172,15 +183,20 @@ class ReportsDashboardPage extends ConsumerWidget {
   }
 }
 
+/// One report, as a card in a row of three: its icon in its own colour, what
+/// it answers, and a way in. The whole card opens it; the link at the foot
+/// says so.
 class _ReportCard extends StatelessWidget {
   const _ReportCard({
     required this.icon,
+    required this.colors,
     required this.title,
     required this.body,
     required this.onOpen,
   });
 
   final IconData icon;
+  final StockStatusColors colors;
   final String title;
   final String body;
   final VoidCallback onOpen;
@@ -192,35 +208,53 @@ class _ReportCard extends StatelessWidget {
 
     return AppCard(
       onTap: onOpen,
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 48,
-            height: 48,
-            decoration: const BoxDecoration(
-              color: AppColors.primaryContainer,
-              shape: BoxShape.circle,
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: colors.container,
+              borderRadius: AppRadius.mdAll,
             ),
-            child: Icon(
-              icon,
-              size: AppSizing.iconMd,
-              color: AppColors.onPrimaryContainer,
-            ),
+            child: Icon(icon, size: AppSizing.iconMd, color: colors.foreground),
           ),
-          const SizedBox(width: AppSpacing.lg),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: theme.textTheme.titleMedium),
-                const SizedBox(height: AppSpacing.xs),
-                Text(body, style: theme.textTheme.bodyMedium),
-              ],
-            ),
+          const SizedBox(height: AppSpacing.md),
+          Text(
+            title,
+            style: theme.textTheme.titleMedium,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
           ),
-          const SizedBox(width: AppSpacing.lg),
-          Flexible(
-            child: SecondaryButton(label: l10n.reportsOpen, onPressed: onOpen),
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            body,
+            style: theme.textTheme.bodySmall,
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const Spacer(),
+          const SizedBox(height: AppSpacing.md),
+          Row(
+            children: [
+              Flexible(
+                child: Text(
+                  l10n.reportsOpen,
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    color: AppColors.primary600,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.xs),
+              const Icon(
+                LucideIcons.arrowRight,
+                size: AppSizing.iconSm,
+                color: AppColors.primary600,
+              ),
+            ],
           ),
         ],
       ),

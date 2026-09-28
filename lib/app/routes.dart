@@ -56,6 +56,9 @@ abstract final class Routes {
   static const String editOrder = '$orderDetail/edit';
   static const String receiveOrder = '$orderDetail/receive';
 
+  // Réceptions: what is due to arrive and what has arrived, under Achats.
+  static const String receptions = '$storeBase/receptions';
+
   static const String suppliers = '$storeBase/suppliers';
   static const String addSupplier = '$suppliers/new';
   static const String supplierDetail = '$suppliers/:supplierId';
@@ -74,12 +77,9 @@ abstract final class Routes {
   // their routes resolve to a "bientôt disponible" placeholder so the sidebar
   // entry can carry all four items from the start.
   static const String employees = '$storeBase/employees';
-  static const String addEmployee = '$employees/new';
   static const String timeclock = '$employees/timeclock';
   static const String attendanceHistory = '$employees/attendance-history';
   static const String payroll = '$employees/payroll';
-  static const String employeeDetail = '$employees/:employeeId';
-  static const String editEmployee = '$employeeDetail/edit';
 
   static const String storeSettings = '$storeBase/settings/store';
   static const String accountSettings = '$storeBase/settings/account';
@@ -162,6 +162,8 @@ abstract final class Routes {
   static String toReceipt(String storeId, String receiptId) =>
       '/store/$storeId/orders/receipts/$receiptId';
 
+  static String toReceptions(String storeId) => '/store/$storeId/receptions';
+
   static String toSuppliers(String storeId) => '/store/$storeId/suppliers';
 
   static String toAddSupplier(String storeId) =>
@@ -189,23 +191,18 @@ abstract final class Routes {
 
   static String toEmployees(String storeId) => '/store/$storeId/employees';
 
-  static String toAddEmployee(String storeId) =>
-      '/store/$storeId/employees/new';
-
-  static String toEmployee(String storeId, String employeeId) =>
-      '/store/$storeId/employees/$employeeId';
-
-  static String toEditEmployee(String storeId, String employeeId) =>
-      '/store/$storeId/employees/$employeeId/edit';
-
   static String toTimeclock(String storeId) =>
       '/store/$storeId/employees/timeclock';
 
-  static String toAttendanceHistory(String storeId) =>
-      '/store/$storeId/employees/attendance-history';
+  /// With [employeeId], the history opens already filtered to that person.
+  static String toAttendanceHistory(String storeId, {String? employeeId}) =>
+      '/store/$storeId/employees/attendance-history'
+      '${employeeId == null ? '' : '?employee=$employeeId'}';
 
-  static String toPayroll(String storeId) =>
-      '/store/$storeId/employees/payroll';
+  /// With [employeeId], the payroll opens already filtered to that person.
+  static String toPayroll(String storeId, {String? employeeId}) =>
+      '/store/$storeId/employees/payroll'
+      '${employeeId == null ? '' : '?employee=$employeeId'}';
 
   static String toStoreSettings(String storeId) =>
       '/store/$storeId/settings/store';

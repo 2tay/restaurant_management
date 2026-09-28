@@ -3,10 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../data/providers.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../../shared/widgets/widgets.dart';
 
 /// "This is already on its way."
 ///
@@ -55,36 +55,12 @@ class AlreadyOnOrderBadge extends ConsumerWidget {
 
     return Tooltip(
       message: l10n.orderAlreadyOnOrderDetail(formatted, orders.length),
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.sm,
-          vertical: AppSpacing.xs,
-        ),
-        decoration: const BoxDecoration(
-          color: AppColors.offlineContainer,
-          borderRadius: AppRadius.pillAll,
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(
-              LucideIcons.truck,
-              size: AppSizing.iconSm,
-              color: AppColors.steel800,
-            ),
-            const SizedBox(width: AppSpacing.xs),
-            Flexible(
-              child: Text(
-                l10n.orderAlreadyOnOrder(formatted),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(
-                  context,
-                ).textTheme.labelSmall?.copyWith(color: AppColors.steel800),
-              ),
-            ),
-          ],
-        ),
+      child: LabelChip(
+        label: l10n.orderAlreadyOnOrder(formatted),
+        icon: LucideIcons.truck,
+        background: AppColors.offlineContainer,
+        foreground: AppColors.steel800,
+        dense: true,
       ),
     );
   }

@@ -11,23 +11,17 @@ import '../../models/models.dart';
 /// The short name of one anomaly — the attendance table's "Alertes" column.
 String attendanceAnomalyLabel(AppLocalizations l10n, AttendanceAnomaly a) =>
     switch (a) {
-      AttendanceAnomaly.retard => l10n.attendanceLate,
       AttendanceAnomaly.pauseDepassee => l10n.attendanceBreakOverrun,
       AttendanceAnomaly.oubliDePointage => l10n.attendanceAnomalyMissingPunch,
     };
 
-/// The full sentence for one anomaly — the detail drawer. Carries the amount
-/// where there is one ("Retard de 20 min").
+/// The full sentence for one anomaly — the detail drawer.
 String attendanceAnomalyDetail(
   AppLocalizations l10n,
   AttendanceAnomaly a,
   Attendance entry, {
-  required int startMinutes,
   required int maxBreakMinutes,
 }) => switch (a) {
-  AttendanceAnomaly.retard => l10n.attendanceAnomalyRetardDetail(
-    Formatters.duration(lateBy(entry, startMinutes) ?? Duration.zero),
-  ),
   AttendanceAnomaly.pauseDepassee => l10n.attendanceAnomalyBreakDetail(
     Formatters.duration(totalBreakOverrun(entry, maxBreakMinutes)),
   ),
@@ -39,7 +33,6 @@ String attendanceAnomalyDetail(
 class AttendanceAlerts extends StatelessWidget {
   const AttendanceAlerts({
     required this.entry,
-    required this.startMinutes,
     required this.maxBreakMinutes,
     this.detailed = false,
     this.now,
@@ -47,7 +40,6 @@ class AttendanceAlerts extends StatelessWidget {
   });
 
   final Attendance entry;
-  final int startMinutes;
   final int maxBreakMinutes;
   final bool detailed;
   final DateTime? now;
@@ -58,7 +50,6 @@ class AttendanceAlerts extends StatelessWidget {
     final theme = Theme.of(context);
     final anomalies = attendanceAnomalies(
       entry,
-      startMinutes: startMinutes,
       maxBreakMinutes: maxBreakMinutes,
       now: now,
     );
@@ -80,28 +71,34 @@ class AttendanceAlerts extends StatelessWidget {
           for (final a in anomalies)
             Padding(
               padding: const EdgeInsets.only(bottom: AppSpacing.xs),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(
-                    LucideIcons.triangleAlert,
-                    size: AppSizing.iconSm,
-                    color: AppColors.lowStock.foreground,
-                  ),
-                  const SizedBox(width: AppSpacing.xs),
-                  Expanded(
-                    child: Text(
-                      attendanceAnomalyDetail(
-                        l10n,
-                        a,
-                        entry,
-                        startMinutes: startMinutes,
-                        maxBreakMinutes: maxBreakMinutes,
-                      ),
-                      style: theme.textTheme.bodyMedium,
+              child: Container(
+                padding: const EdgeInsets.all(AppSpacing.sm),
+                decoration: BoxDecoration(
+                  color: AppColors.lowStock.foreground.withValues(alpha: 0.1),
+                  borderRadius: AppRadius.mdAll,
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      LucideIcons.triangleAlert,
+                      size: AppSizing.iconSm,
+                      color: AppColors.lowStock.foreground,
                     ),
-                  ),
-                ],
+                    const SizedBox(width: AppSpacing.xs),
+                    Expanded(
+                      child: Text(
+                        attendanceAnomalyDetail(
+                          l10n,
+                          a,
+                          entry,
+                          maxBreakMinutes: maxBreakMinutes,
+                        ),
+                        style: theme.textTheme.bodyMedium,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
         ],
@@ -122,11 +119,26 @@ class AttendanceAlerts extends StatelessWidget {
               color: AppColors.lowStock.container,
               borderRadius: AppRadius.pillAll,
             ),
-            child: Text(
-              attendanceAnomalyLabel(l10n, a),
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: AppColors.lowStock.foreground,
-              ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  LucideIcons.triangleAlert,
+                  size: AppSizing.iconSm,
+                  color: AppColors.lowStock.foreground,
+                ),
+                const SizedBox(width: AppSpacing.xxs),
+                Flexible(
+                  child: Text(
+                    attendanceAnomalyLabel(l10n, a),
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: AppColors.lowStock.foreground,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
             ),
           ),
       ],

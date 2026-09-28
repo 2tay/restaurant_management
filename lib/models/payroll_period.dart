@@ -25,7 +25,6 @@ class PayrollPeriod {
     required this.endDate,
     required this.workedDays,
     required this.totalWorkedHours,
-    required this.totalOvertimeHours,
     required this.appliedRate,
     required this.computedAmount,
     required this.status,
@@ -44,7 +43,6 @@ class PayrollPeriod {
 
   final int workedDays;
   final double totalWorkedHours;
-  final double totalOvertimeHours;
 
   /// Snapshot of the employee's pay (monthly € for a fixed contract, €/h for
   /// an extra) at pay time — so a later raise cannot rewrite history.

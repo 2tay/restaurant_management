@@ -114,30 +114,6 @@ class $StoresTable extends Stores with TableInfo<$StoresTable, StoreRow> {
     requiredDuringInsert: false,
     defaultValue: const Constant(7),
   );
-  static const VerificationMeta _openMinutesMeta = const VerificationMeta(
-    'openMinutes',
-  );
-  @override
-  late final GeneratedColumn<int> openMinutes = GeneratedColumn<int>(
-    'open_minutes',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    defaultValue: const Constant(8 * 60),
-  );
-  static const VerificationMeta _closeMinutesMeta = const VerificationMeta(
-    'closeMinutes',
-  );
-  @override
-  late final GeneratedColumn<int> closeMinutes = GeneratedColumn<int>(
-    'close_minutes',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    defaultValue: const Constant(17 * 60),
-  );
   static const VerificationMeta _maxBreakMinutesMeta = const VerificationMeta(
     'maxBreakMinutes',
   );
@@ -150,28 +126,65 @@ class $StoresTable extends Stores with TableInfo<$StoresTable, StoreRow> {
     requiredDuringInsert: false,
     defaultValue: const Constant(30),
   );
-  static const VerificationMeta _overtimeMultiplierMeta =
-      const VerificationMeta('overtimeMultiplier');
+  static const VerificationMeta _notifyLowStockMeta = const VerificationMeta(
+    'notifyLowStock',
+  );
   @override
-  late final GeneratedColumn<double> overtimeMultiplier =
-      GeneratedColumn<double>(
-        'overtime_multiplier',
-        aliasedName,
-        false,
-        type: DriftSqlType.double,
-        requiredDuringInsert: false,
-        defaultValue: const Constant(1.25),
-      );
-  static const VerificationMeta _workingDaysPerMonthMeta =
-      const VerificationMeta('workingDaysPerMonth');
-  @override
-  late final GeneratedColumn<int> workingDaysPerMonth = GeneratedColumn<int>(
-    'working_days_per_month',
+  late final GeneratedColumn<bool> notifyLowStock = GeneratedColumn<bool>(
+    'notify_low_stock',
     aliasedName,
     false,
-    type: DriftSqlType.int,
+    type: DriftSqlType.bool,
     requiredDuringInsert: false,
-    defaultValue: const Constant(26),
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("notify_low_stock" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _notifyPriceChangeMeta = const VerificationMeta(
+    'notifyPriceChange',
+  );
+  @override
+  late final GeneratedColumn<bool> notifyPriceChange = GeneratedColumn<bool>(
+    'notify_price_change',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("notify_price_change" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _notifyLargeAdjustmentMeta =
+      const VerificationMeta('notifyLargeAdjustment');
+  @override
+  late final GeneratedColumn<bool> notifyLargeAdjustment =
+      GeneratedColumn<bool>(
+        'notify_large_adjustment',
+        aliasedName,
+        false,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("notify_large_adjustment" IN (0, 1))',
+        ),
+        defaultValue: const Constant(true),
+      );
+  static const VerificationMeta _notifyDeliveriesMeta = const VerificationMeta(
+    'notifyDeliveries',
+  );
+  @override
+  late final GeneratedColumn<bool> notifyDeliveries = GeneratedColumn<bool>(
+    'notify_deliveries',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("notify_deliveries" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
   );
   @override
   List<GeneratedColumn> get $columns => [
@@ -185,11 +198,11 @@ class $StoresTable extends Stores with TableInfo<$StoresTable, StoreRow> {
     vatNumber,
     imageAsset,
     stalePartialOrderDays,
-    openMinutes,
-    closeMinutes,
     maxBreakMinutes,
-    overtimeMultiplier,
-    workingDaysPerMonth,
+    notifyLowStock,
+    notifyPriceChange,
+    notifyLargeAdjustment,
+    notifyDeliveries,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -280,24 +293,6 @@ class $StoresTable extends Stores with TableInfo<$StoresTable, StoreRow> {
         ),
       );
     }
-    if (data.containsKey('open_minutes')) {
-      context.handle(
-        _openMinutesMeta,
-        openMinutes.isAcceptableOrUnknown(
-          data['open_minutes']!,
-          _openMinutesMeta,
-        ),
-      );
-    }
-    if (data.containsKey('close_minutes')) {
-      context.handle(
-        _closeMinutesMeta,
-        closeMinutes.isAcceptableOrUnknown(
-          data['close_minutes']!,
-          _closeMinutesMeta,
-        ),
-      );
-    }
     if (data.containsKey('max_break_minutes')) {
       context.handle(
         _maxBreakMinutesMeta,
@@ -307,21 +302,39 @@ class $StoresTable extends Stores with TableInfo<$StoresTable, StoreRow> {
         ),
       );
     }
-    if (data.containsKey('overtime_multiplier')) {
+    if (data.containsKey('notify_low_stock')) {
       context.handle(
-        _overtimeMultiplierMeta,
-        overtimeMultiplier.isAcceptableOrUnknown(
-          data['overtime_multiplier']!,
-          _overtimeMultiplierMeta,
+        _notifyLowStockMeta,
+        notifyLowStock.isAcceptableOrUnknown(
+          data['notify_low_stock']!,
+          _notifyLowStockMeta,
         ),
       );
     }
-    if (data.containsKey('working_days_per_month')) {
+    if (data.containsKey('notify_price_change')) {
       context.handle(
-        _workingDaysPerMonthMeta,
-        workingDaysPerMonth.isAcceptableOrUnknown(
-          data['working_days_per_month']!,
-          _workingDaysPerMonthMeta,
+        _notifyPriceChangeMeta,
+        notifyPriceChange.isAcceptableOrUnknown(
+          data['notify_price_change']!,
+          _notifyPriceChangeMeta,
+        ),
+      );
+    }
+    if (data.containsKey('notify_large_adjustment')) {
+      context.handle(
+        _notifyLargeAdjustmentMeta,
+        notifyLargeAdjustment.isAcceptableOrUnknown(
+          data['notify_large_adjustment']!,
+          _notifyLargeAdjustmentMeta,
+        ),
+      );
+    }
+    if (data.containsKey('notify_deliveries')) {
+      context.handle(
+        _notifyDeliveriesMeta,
+        notifyDeliveries.isAcceptableOrUnknown(
+          data['notify_deliveries']!,
+          _notifyDeliveriesMeta,
         ),
       );
     }
@@ -374,25 +387,25 @@ class $StoresTable extends Stores with TableInfo<$StoresTable, StoreRow> {
         DriftSqlType.int,
         data['${effectivePrefix}stale_partial_order_days'],
       )!,
-      openMinutes: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}open_minutes'],
-      )!,
-      closeMinutes: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}close_minutes'],
-      )!,
       maxBreakMinutes: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}max_break_minutes'],
       )!,
-      overtimeMultiplier: attachedDatabase.typeMapping.read(
-        DriftSqlType.double,
-        data['${effectivePrefix}overtime_multiplier'],
+      notifyLowStock: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}notify_low_stock'],
       )!,
-      workingDaysPerMonth: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}working_days_per_month'],
+      notifyPriceChange: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}notify_price_change'],
+      )!,
+      notifyLargeAdjustment: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}notify_large_adjustment'],
+      )!,
+      notifyDeliveries: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}notify_deliveries'],
       )!,
     );
   }
@@ -426,23 +439,13 @@ class StoreRow extends DataClass implements Insertable<StoreRow> {
   /// disagree about how long is too long.
   final int stalePartialOrderDays;
 
-  /// Opening / closing time, minutes since midnight — the baseline lateness and
-  /// overtime are measured against for an employee with no personal schedule.
-  /// `AttendanceRules.defaultOpenMinutes` / `defaultCloseMinutes` = 08:00, 17:00.
-  final int openMinutes;
-  final int closeMinutes;
-
   /// A single break segment longer than this is flagged "pause dépassée".
   /// `AttendanceRules.defaultMaxBreakMinutes`.
   final int maxBreakMinutes;
-
-  /// Overtime hours are paid at the normal rate times this coefficient.
-  /// `PayrollRules.defaultOvertimeMultiplier`.
-  final double overtimeMultiplier;
-
-  /// Divisor that turns a fixed-salary employee's monthly pay into a daily
-  /// rate. `PayrollRules.defaultWorkingDaysPerMonth`.
-  final int workingDaysPerMonth;
+  final bool notifyLowStock;
+  final bool notifyPriceChange;
+  final bool notifyLargeAdjustment;
+  final bool notifyDeliveries;
   const StoreRow({
     required this.id,
     required this.name,
@@ -454,11 +457,11 @@ class StoreRow extends DataClass implements Insertable<StoreRow> {
     this.vatNumber,
     this.imageAsset,
     required this.stalePartialOrderDays,
-    required this.openMinutes,
-    required this.closeMinutes,
     required this.maxBreakMinutes,
-    required this.overtimeMultiplier,
-    required this.workingDaysPerMonth,
+    required this.notifyLowStock,
+    required this.notifyPriceChange,
+    required this.notifyLargeAdjustment,
+    required this.notifyDeliveries,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -477,11 +480,11 @@ class StoreRow extends DataClass implements Insertable<StoreRow> {
       map['image_asset'] = Variable<String>(imageAsset);
     }
     map['stale_partial_order_days'] = Variable<int>(stalePartialOrderDays);
-    map['open_minutes'] = Variable<int>(openMinutes);
-    map['close_minutes'] = Variable<int>(closeMinutes);
     map['max_break_minutes'] = Variable<int>(maxBreakMinutes);
-    map['overtime_multiplier'] = Variable<double>(overtimeMultiplier);
-    map['working_days_per_month'] = Variable<int>(workingDaysPerMonth);
+    map['notify_low_stock'] = Variable<bool>(notifyLowStock);
+    map['notify_price_change'] = Variable<bool>(notifyPriceChange);
+    map['notify_large_adjustment'] = Variable<bool>(notifyLargeAdjustment);
+    map['notify_deliveries'] = Variable<bool>(notifyDeliveries);
     return map;
   }
 
@@ -501,11 +504,11 @@ class StoreRow extends DataClass implements Insertable<StoreRow> {
           ? const Value.absent()
           : Value(imageAsset),
       stalePartialOrderDays: Value(stalePartialOrderDays),
-      openMinutes: Value(openMinutes),
-      closeMinutes: Value(closeMinutes),
       maxBreakMinutes: Value(maxBreakMinutes),
-      overtimeMultiplier: Value(overtimeMultiplier),
-      workingDaysPerMonth: Value(workingDaysPerMonth),
+      notifyLowStock: Value(notifyLowStock),
+      notifyPriceChange: Value(notifyPriceChange),
+      notifyLargeAdjustment: Value(notifyLargeAdjustment),
+      notifyDeliveries: Value(notifyDeliveries),
     );
   }
 
@@ -527,15 +530,13 @@ class StoreRow extends DataClass implements Insertable<StoreRow> {
       stalePartialOrderDays: serializer.fromJson<int>(
         json['stalePartialOrderDays'],
       ),
-      openMinutes: serializer.fromJson<int>(json['openMinutes']),
-      closeMinutes: serializer.fromJson<int>(json['closeMinutes']),
       maxBreakMinutes: serializer.fromJson<int>(json['maxBreakMinutes']),
-      overtimeMultiplier: serializer.fromJson<double>(
-        json['overtimeMultiplier'],
+      notifyLowStock: serializer.fromJson<bool>(json['notifyLowStock']),
+      notifyPriceChange: serializer.fromJson<bool>(json['notifyPriceChange']),
+      notifyLargeAdjustment: serializer.fromJson<bool>(
+        json['notifyLargeAdjustment'],
       ),
-      workingDaysPerMonth: serializer.fromJson<int>(
-        json['workingDaysPerMonth'],
-      ),
+      notifyDeliveries: serializer.fromJson<bool>(json['notifyDeliveries']),
     );
   }
   @override
@@ -552,11 +553,11 @@ class StoreRow extends DataClass implements Insertable<StoreRow> {
       'vatNumber': serializer.toJson<String?>(vatNumber),
       'imageAsset': serializer.toJson<String?>(imageAsset),
       'stalePartialOrderDays': serializer.toJson<int>(stalePartialOrderDays),
-      'openMinutes': serializer.toJson<int>(openMinutes),
-      'closeMinutes': serializer.toJson<int>(closeMinutes),
       'maxBreakMinutes': serializer.toJson<int>(maxBreakMinutes),
-      'overtimeMultiplier': serializer.toJson<double>(overtimeMultiplier),
-      'workingDaysPerMonth': serializer.toJson<int>(workingDaysPerMonth),
+      'notifyLowStock': serializer.toJson<bool>(notifyLowStock),
+      'notifyPriceChange': serializer.toJson<bool>(notifyPriceChange),
+      'notifyLargeAdjustment': serializer.toJson<bool>(notifyLargeAdjustment),
+      'notifyDeliveries': serializer.toJson<bool>(notifyDeliveries),
     };
   }
 
@@ -571,11 +572,11 @@ class StoreRow extends DataClass implements Insertable<StoreRow> {
     Value<String?> vatNumber = const Value.absent(),
     Value<String?> imageAsset = const Value.absent(),
     int? stalePartialOrderDays,
-    int? openMinutes,
-    int? closeMinutes,
     int? maxBreakMinutes,
-    double? overtimeMultiplier,
-    int? workingDaysPerMonth,
+    bool? notifyLowStock,
+    bool? notifyPriceChange,
+    bool? notifyLargeAdjustment,
+    bool? notifyDeliveries,
   }) => StoreRow(
     id: id ?? this.id,
     name: name ?? this.name,
@@ -587,11 +588,11 @@ class StoreRow extends DataClass implements Insertable<StoreRow> {
     vatNumber: vatNumber.present ? vatNumber.value : this.vatNumber,
     imageAsset: imageAsset.present ? imageAsset.value : this.imageAsset,
     stalePartialOrderDays: stalePartialOrderDays ?? this.stalePartialOrderDays,
-    openMinutes: openMinutes ?? this.openMinutes,
-    closeMinutes: closeMinutes ?? this.closeMinutes,
     maxBreakMinutes: maxBreakMinutes ?? this.maxBreakMinutes,
-    overtimeMultiplier: overtimeMultiplier ?? this.overtimeMultiplier,
-    workingDaysPerMonth: workingDaysPerMonth ?? this.workingDaysPerMonth,
+    notifyLowStock: notifyLowStock ?? this.notifyLowStock,
+    notifyPriceChange: notifyPriceChange ?? this.notifyPriceChange,
+    notifyLargeAdjustment: notifyLargeAdjustment ?? this.notifyLargeAdjustment,
+    notifyDeliveries: notifyDeliveries ?? this.notifyDeliveries,
   );
   StoreRow copyWithCompanion(StoresCompanion data) {
     return StoreRow(
@@ -613,21 +614,21 @@ class StoreRow extends DataClass implements Insertable<StoreRow> {
       stalePartialOrderDays: data.stalePartialOrderDays.present
           ? data.stalePartialOrderDays.value
           : this.stalePartialOrderDays,
-      openMinutes: data.openMinutes.present
-          ? data.openMinutes.value
-          : this.openMinutes,
-      closeMinutes: data.closeMinutes.present
-          ? data.closeMinutes.value
-          : this.closeMinutes,
       maxBreakMinutes: data.maxBreakMinutes.present
           ? data.maxBreakMinutes.value
           : this.maxBreakMinutes,
-      overtimeMultiplier: data.overtimeMultiplier.present
-          ? data.overtimeMultiplier.value
-          : this.overtimeMultiplier,
-      workingDaysPerMonth: data.workingDaysPerMonth.present
-          ? data.workingDaysPerMonth.value
-          : this.workingDaysPerMonth,
+      notifyLowStock: data.notifyLowStock.present
+          ? data.notifyLowStock.value
+          : this.notifyLowStock,
+      notifyPriceChange: data.notifyPriceChange.present
+          ? data.notifyPriceChange.value
+          : this.notifyPriceChange,
+      notifyLargeAdjustment: data.notifyLargeAdjustment.present
+          ? data.notifyLargeAdjustment.value
+          : this.notifyLargeAdjustment,
+      notifyDeliveries: data.notifyDeliveries.present
+          ? data.notifyDeliveries.value
+          : this.notifyDeliveries,
     );
   }
 
@@ -644,11 +645,11 @@ class StoreRow extends DataClass implements Insertable<StoreRow> {
           ..write('vatNumber: $vatNumber, ')
           ..write('imageAsset: $imageAsset, ')
           ..write('stalePartialOrderDays: $stalePartialOrderDays, ')
-          ..write('openMinutes: $openMinutes, ')
-          ..write('closeMinutes: $closeMinutes, ')
           ..write('maxBreakMinutes: $maxBreakMinutes, ')
-          ..write('overtimeMultiplier: $overtimeMultiplier, ')
-          ..write('workingDaysPerMonth: $workingDaysPerMonth')
+          ..write('notifyLowStock: $notifyLowStock, ')
+          ..write('notifyPriceChange: $notifyPriceChange, ')
+          ..write('notifyLargeAdjustment: $notifyLargeAdjustment, ')
+          ..write('notifyDeliveries: $notifyDeliveries')
           ..write(')'))
         .toString();
   }
@@ -665,11 +666,11 @@ class StoreRow extends DataClass implements Insertable<StoreRow> {
     vatNumber,
     imageAsset,
     stalePartialOrderDays,
-    openMinutes,
-    closeMinutes,
     maxBreakMinutes,
-    overtimeMultiplier,
-    workingDaysPerMonth,
+    notifyLowStock,
+    notifyPriceChange,
+    notifyLargeAdjustment,
+    notifyDeliveries,
   );
   @override
   bool operator ==(Object other) =>
@@ -685,11 +686,11 @@ class StoreRow extends DataClass implements Insertable<StoreRow> {
           other.vatNumber == this.vatNumber &&
           other.imageAsset == this.imageAsset &&
           other.stalePartialOrderDays == this.stalePartialOrderDays &&
-          other.openMinutes == this.openMinutes &&
-          other.closeMinutes == this.closeMinutes &&
           other.maxBreakMinutes == this.maxBreakMinutes &&
-          other.overtimeMultiplier == this.overtimeMultiplier &&
-          other.workingDaysPerMonth == this.workingDaysPerMonth);
+          other.notifyLowStock == this.notifyLowStock &&
+          other.notifyPriceChange == this.notifyPriceChange &&
+          other.notifyLargeAdjustment == this.notifyLargeAdjustment &&
+          other.notifyDeliveries == this.notifyDeliveries);
 }
 
 class StoresCompanion extends UpdateCompanion<StoreRow> {
@@ -703,11 +704,11 @@ class StoresCompanion extends UpdateCompanion<StoreRow> {
   final Value<String?> vatNumber;
   final Value<String?> imageAsset;
   final Value<int> stalePartialOrderDays;
-  final Value<int> openMinutes;
-  final Value<int> closeMinutes;
   final Value<int> maxBreakMinutes;
-  final Value<double> overtimeMultiplier;
-  final Value<int> workingDaysPerMonth;
+  final Value<bool> notifyLowStock;
+  final Value<bool> notifyPriceChange;
+  final Value<bool> notifyLargeAdjustment;
+  final Value<bool> notifyDeliveries;
   final Value<int> rowid;
   const StoresCompanion({
     this.id = const Value.absent(),
@@ -720,11 +721,11 @@ class StoresCompanion extends UpdateCompanion<StoreRow> {
     this.vatNumber = const Value.absent(),
     this.imageAsset = const Value.absent(),
     this.stalePartialOrderDays = const Value.absent(),
-    this.openMinutes = const Value.absent(),
-    this.closeMinutes = const Value.absent(),
     this.maxBreakMinutes = const Value.absent(),
-    this.overtimeMultiplier = const Value.absent(),
-    this.workingDaysPerMonth = const Value.absent(),
+    this.notifyLowStock = const Value.absent(),
+    this.notifyPriceChange = const Value.absent(),
+    this.notifyLargeAdjustment = const Value.absent(),
+    this.notifyDeliveries = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   StoresCompanion.insert({
@@ -738,11 +739,11 @@ class StoresCompanion extends UpdateCompanion<StoreRow> {
     this.vatNumber = const Value.absent(),
     this.imageAsset = const Value.absent(),
     this.stalePartialOrderDays = const Value.absent(),
-    this.openMinutes = const Value.absent(),
-    this.closeMinutes = const Value.absent(),
     this.maxBreakMinutes = const Value.absent(),
-    this.overtimeMultiplier = const Value.absent(),
-    this.workingDaysPerMonth = const Value.absent(),
+    this.notifyLowStock = const Value.absent(),
+    this.notifyPriceChange = const Value.absent(),
+    this.notifyLargeAdjustment = const Value.absent(),
+    this.notifyDeliveries = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        name = Value(name),
@@ -762,11 +763,11 @@ class StoresCompanion extends UpdateCompanion<StoreRow> {
     Expression<String>? vatNumber,
     Expression<String>? imageAsset,
     Expression<int>? stalePartialOrderDays,
-    Expression<int>? openMinutes,
-    Expression<int>? closeMinutes,
     Expression<int>? maxBreakMinutes,
-    Expression<double>? overtimeMultiplier,
-    Expression<int>? workingDaysPerMonth,
+    Expression<bool>? notifyLowStock,
+    Expression<bool>? notifyPriceChange,
+    Expression<bool>? notifyLargeAdjustment,
+    Expression<bool>? notifyDeliveries,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -781,12 +782,12 @@ class StoresCompanion extends UpdateCompanion<StoreRow> {
       if (imageAsset != null) 'image_asset': imageAsset,
       if (stalePartialOrderDays != null)
         'stale_partial_order_days': stalePartialOrderDays,
-      if (openMinutes != null) 'open_minutes': openMinutes,
-      if (closeMinutes != null) 'close_minutes': closeMinutes,
       if (maxBreakMinutes != null) 'max_break_minutes': maxBreakMinutes,
-      if (overtimeMultiplier != null) 'overtime_multiplier': overtimeMultiplier,
-      if (workingDaysPerMonth != null)
-        'working_days_per_month': workingDaysPerMonth,
+      if (notifyLowStock != null) 'notify_low_stock': notifyLowStock,
+      if (notifyPriceChange != null) 'notify_price_change': notifyPriceChange,
+      if (notifyLargeAdjustment != null)
+        'notify_large_adjustment': notifyLargeAdjustment,
+      if (notifyDeliveries != null) 'notify_deliveries': notifyDeliveries,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -802,11 +803,11 @@ class StoresCompanion extends UpdateCompanion<StoreRow> {
     Value<String?>? vatNumber,
     Value<String?>? imageAsset,
     Value<int>? stalePartialOrderDays,
-    Value<int>? openMinutes,
-    Value<int>? closeMinutes,
     Value<int>? maxBreakMinutes,
-    Value<double>? overtimeMultiplier,
-    Value<int>? workingDaysPerMonth,
+    Value<bool>? notifyLowStock,
+    Value<bool>? notifyPriceChange,
+    Value<bool>? notifyLargeAdjustment,
+    Value<bool>? notifyDeliveries,
     Value<int>? rowid,
   }) {
     return StoresCompanion(
@@ -821,11 +822,12 @@ class StoresCompanion extends UpdateCompanion<StoreRow> {
       imageAsset: imageAsset ?? this.imageAsset,
       stalePartialOrderDays:
           stalePartialOrderDays ?? this.stalePartialOrderDays,
-      openMinutes: openMinutes ?? this.openMinutes,
-      closeMinutes: closeMinutes ?? this.closeMinutes,
       maxBreakMinutes: maxBreakMinutes ?? this.maxBreakMinutes,
-      overtimeMultiplier: overtimeMultiplier ?? this.overtimeMultiplier,
-      workingDaysPerMonth: workingDaysPerMonth ?? this.workingDaysPerMonth,
+      notifyLowStock: notifyLowStock ?? this.notifyLowStock,
+      notifyPriceChange: notifyPriceChange ?? this.notifyPriceChange,
+      notifyLargeAdjustment:
+          notifyLargeAdjustment ?? this.notifyLargeAdjustment,
+      notifyDeliveries: notifyDeliveries ?? this.notifyDeliveries,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -865,20 +867,22 @@ class StoresCompanion extends UpdateCompanion<StoreRow> {
         stalePartialOrderDays.value,
       );
     }
-    if (openMinutes.present) {
-      map['open_minutes'] = Variable<int>(openMinutes.value);
-    }
-    if (closeMinutes.present) {
-      map['close_minutes'] = Variable<int>(closeMinutes.value);
-    }
     if (maxBreakMinutes.present) {
       map['max_break_minutes'] = Variable<int>(maxBreakMinutes.value);
     }
-    if (overtimeMultiplier.present) {
-      map['overtime_multiplier'] = Variable<double>(overtimeMultiplier.value);
+    if (notifyLowStock.present) {
+      map['notify_low_stock'] = Variable<bool>(notifyLowStock.value);
     }
-    if (workingDaysPerMonth.present) {
-      map['working_days_per_month'] = Variable<int>(workingDaysPerMonth.value);
+    if (notifyPriceChange.present) {
+      map['notify_price_change'] = Variable<bool>(notifyPriceChange.value);
+    }
+    if (notifyLargeAdjustment.present) {
+      map['notify_large_adjustment'] = Variable<bool>(
+        notifyLargeAdjustment.value,
+      );
+    }
+    if (notifyDeliveries.present) {
+      map['notify_deliveries'] = Variable<bool>(notifyDeliveries.value);
     }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
@@ -899,11 +903,11 @@ class StoresCompanion extends UpdateCompanion<StoreRow> {
           ..write('vatNumber: $vatNumber, ')
           ..write('imageAsset: $imageAsset, ')
           ..write('stalePartialOrderDays: $stalePartialOrderDays, ')
-          ..write('openMinutes: $openMinutes, ')
-          ..write('closeMinutes: $closeMinutes, ')
           ..write('maxBreakMinutes: $maxBreakMinutes, ')
-          ..write('overtimeMultiplier: $overtimeMultiplier, ')
-          ..write('workingDaysPerMonth: $workingDaysPerMonth, ')
+          ..write('notifyLowStock: $notifyLowStock, ')
+          ..write('notifyPriceChange: $notifyPriceChange, ')
+          ..write('notifyLargeAdjustment: $notifyLargeAdjustment, ')
+          ..write('notifyDeliveries: $notifyDeliveries, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -1802,6 +1806,17 @@ class $ItemsTable extends Items with TableInfo<$ItemsTable, ItemRow> {
     requiredDuringInsert: false,
     defaultValue: const Constant(0),
   );
+  static const VerificationMeta _holidayLowStockThresholdMeta =
+      const VerificationMeta('holidayLowStockThreshold');
+  @override
+  late final GeneratedColumn<double> holidayLowStockThreshold =
+      GeneratedColumn<double>(
+        'holiday_low_stock_threshold',
+        aliasedName,
+        true,
+        type: DriftSqlType.double,
+        requiredDuringInsert: false,
+      );
   static const VerificationMeta _updatedAtMeta = const VerificationMeta(
     'updatedAt',
   );
@@ -1877,6 +1892,7 @@ class $ItemsTable extends Items with TableInfo<$ItemsTable, ItemRow> {
     quantity,
     lowStockThreshold,
     maxStock,
+    holidayLowStockThreshold,
     updatedAt,
     averageCost,
     defaultSupplierId,
@@ -1956,6 +1972,15 @@ class $ItemsTable extends Items with TableInfo<$ItemsTable, ItemRow> {
       context.handle(
         _maxStockMeta,
         maxStock.isAcceptableOrUnknown(data['max_stock']!, _maxStockMeta),
+      );
+    }
+    if (data.containsKey('holiday_low_stock_threshold')) {
+      context.handle(
+        _holidayLowStockThresholdMeta,
+        holidayLowStockThreshold.isAcceptableOrUnknown(
+          data['holiday_low_stock_threshold']!,
+          _holidayLowStockThresholdMeta,
+        ),
       );
     }
     if (data.containsKey('updated_at')) {
@@ -2043,6 +2068,10 @@ class $ItemsTable extends Items with TableInfo<$ItemsTable, ItemRow> {
         DriftSqlType.double,
         data['${effectivePrefix}max_stock'],
       )!,
+      holidayLowStockThreshold: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}holiday_low_stock_threshold'],
+      ),
       updatedAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}updated_at'],
@@ -2107,6 +2136,16 @@ class ItemRow extends DataClass implements Insertable<ItemRow> {
   /// so the sentinel cannot collide with a real value. Defaulted rather than
   /// backfilled, so a database upgraded in place reads what a fresh one would.
   final double maxStock;
+
+  /// The minimum to hold when the place is busy — a holiday week, a festival,
+  /// the run-up to a long weekend.
+  ///
+  /// **Nullable, and null is not zero.** Null means "nobody has set one", which
+  /// is what lets `holidayMinimumOf` answer with twice the ordinary minimum and
+  /// keep answering correctly after that minimum is edited. A stored figure
+  /// would freeze the doubling at whatever the minimum happened to be the day
+  /// the product was saved.
+  final double? holidayLowStockThreshold;
   final DateTime updatedAt;
 
   /// Weighted average cost (CUMP) of the stock on hand, in EUR.
@@ -2151,6 +2190,7 @@ class ItemRow extends DataClass implements Insertable<ItemRow> {
     required this.quantity,
     required this.lowStockThreshold,
     required this.maxStock,
+    this.holidayLowStockThreshold,
     required this.updatedAt,
     this.averageCost,
     this.defaultSupplierId,
@@ -2169,6 +2209,11 @@ class ItemRow extends DataClass implements Insertable<ItemRow> {
     map['quantity'] = Variable<double>(quantity);
     map['low_stock_threshold'] = Variable<double>(lowStockThreshold);
     map['max_stock'] = Variable<double>(maxStock);
+    if (!nullToAbsent || holidayLowStockThreshold != null) {
+      map['holiday_low_stock_threshold'] = Variable<double>(
+        holidayLowStockThreshold,
+      );
+    }
     map['updated_at'] = Variable<DateTime>(updatedAt);
     if (!nullToAbsent || averageCost != null) {
       map['average_cost'] = Variable<double>(averageCost);
@@ -2198,6 +2243,9 @@ class ItemRow extends DataClass implements Insertable<ItemRow> {
       quantity: Value(quantity),
       lowStockThreshold: Value(lowStockThreshold),
       maxStock: Value(maxStock),
+      holidayLowStockThreshold: holidayLowStockThreshold == null && nullToAbsent
+          ? const Value.absent()
+          : Value(holidayLowStockThreshold),
       updatedAt: Value(updatedAt),
       averageCost: averageCost == null && nullToAbsent
           ? const Value.absent()
@@ -2229,6 +2277,9 @@ class ItemRow extends DataClass implements Insertable<ItemRow> {
       quantity: serializer.fromJson<double>(json['quantity']),
       lowStockThreshold: serializer.fromJson<double>(json['lowStockThreshold']),
       maxStock: serializer.fromJson<double>(json['maxStock']),
+      holidayLowStockThreshold: serializer.fromJson<double?>(
+        json['holidayLowStockThreshold'],
+      ),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       averageCost: serializer.fromJson<double?>(json['averageCost']),
       defaultSupplierId: serializer.fromJson<String?>(
@@ -2251,6 +2302,9 @@ class ItemRow extends DataClass implements Insertable<ItemRow> {
       'quantity': serializer.toJson<double>(quantity),
       'lowStockThreshold': serializer.toJson<double>(lowStockThreshold),
       'maxStock': serializer.toJson<double>(maxStock),
+      'holidayLowStockThreshold': serializer.toJson<double?>(
+        holidayLowStockThreshold,
+      ),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'averageCost': serializer.toJson<double?>(averageCost),
       'defaultSupplierId': serializer.toJson<String?>(defaultSupplierId),
@@ -2269,6 +2323,7 @@ class ItemRow extends DataClass implements Insertable<ItemRow> {
     double? quantity,
     double? lowStockThreshold,
     double? maxStock,
+    Value<double?> holidayLowStockThreshold = const Value.absent(),
     DateTime? updatedAt,
     Value<double?> averageCost = const Value.absent(),
     Value<String?> defaultSupplierId = const Value.absent(),
@@ -2284,6 +2339,9 @@ class ItemRow extends DataClass implements Insertable<ItemRow> {
     quantity: quantity ?? this.quantity,
     lowStockThreshold: lowStockThreshold ?? this.lowStockThreshold,
     maxStock: maxStock ?? this.maxStock,
+    holidayLowStockThreshold: holidayLowStockThreshold.present
+        ? holidayLowStockThreshold.value
+        : this.holidayLowStockThreshold,
     updatedAt: updatedAt ?? this.updatedAt,
     averageCost: averageCost.present ? averageCost.value : this.averageCost,
     defaultSupplierId: defaultSupplierId.present
@@ -2307,6 +2365,9 @@ class ItemRow extends DataClass implements Insertable<ItemRow> {
           ? data.lowStockThreshold.value
           : this.lowStockThreshold,
       maxStock: data.maxStock.present ? data.maxStock.value : this.maxStock,
+      holidayLowStockThreshold: data.holidayLowStockThreshold.present
+          ? data.holidayLowStockThreshold.value
+          : this.holidayLowStockThreshold,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       averageCost: data.averageCost.present
           ? data.averageCost.value
@@ -2331,6 +2392,7 @@ class ItemRow extends DataClass implements Insertable<ItemRow> {
           ..write('quantity: $quantity, ')
           ..write('lowStockThreshold: $lowStockThreshold, ')
           ..write('maxStock: $maxStock, ')
+          ..write('holidayLowStockThreshold: $holidayLowStockThreshold, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('averageCost: $averageCost, ')
           ..write('defaultSupplierId: $defaultSupplierId, ')
@@ -2351,6 +2413,7 @@ class ItemRow extends DataClass implements Insertable<ItemRow> {
     quantity,
     lowStockThreshold,
     maxStock,
+    holidayLowStockThreshold,
     updatedAt,
     averageCost,
     defaultSupplierId,
@@ -2370,6 +2433,7 @@ class ItemRow extends DataClass implements Insertable<ItemRow> {
           other.quantity == this.quantity &&
           other.lowStockThreshold == this.lowStockThreshold &&
           other.maxStock == this.maxStock &&
+          other.holidayLowStockThreshold == this.holidayLowStockThreshold &&
           other.updatedAt == this.updatedAt &&
           other.averageCost == this.averageCost &&
           other.defaultSupplierId == this.defaultSupplierId &&
@@ -2387,6 +2451,7 @@ class ItemsCompanion extends UpdateCompanion<ItemRow> {
   final Value<double> quantity;
   final Value<double> lowStockThreshold;
   final Value<double> maxStock;
+  final Value<double?> holidayLowStockThreshold;
   final Value<DateTime> updatedAt;
   final Value<double?> averageCost;
   final Value<String?> defaultSupplierId;
@@ -2403,6 +2468,7 @@ class ItemsCompanion extends UpdateCompanion<ItemRow> {
     this.quantity = const Value.absent(),
     this.lowStockThreshold = const Value.absent(),
     this.maxStock = const Value.absent(),
+    this.holidayLowStockThreshold = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.averageCost = const Value.absent(),
     this.defaultSupplierId = const Value.absent(),
@@ -2420,6 +2486,7 @@ class ItemsCompanion extends UpdateCompanion<ItemRow> {
     required double quantity,
     required double lowStockThreshold,
     this.maxStock = const Value.absent(),
+    this.holidayLowStockThreshold = const Value.absent(),
     required DateTime updatedAt,
     this.averageCost = const Value.absent(),
     this.defaultSupplierId = const Value.absent(),
@@ -2444,6 +2511,7 @@ class ItemsCompanion extends UpdateCompanion<ItemRow> {
     Expression<double>? quantity,
     Expression<double>? lowStockThreshold,
     Expression<double>? maxStock,
+    Expression<double>? holidayLowStockThreshold,
     Expression<DateTime>? updatedAt,
     Expression<double>? averageCost,
     Expression<String>? defaultSupplierId,
@@ -2461,6 +2529,8 @@ class ItemsCompanion extends UpdateCompanion<ItemRow> {
       if (quantity != null) 'quantity': quantity,
       if (lowStockThreshold != null) 'low_stock_threshold': lowStockThreshold,
       if (maxStock != null) 'max_stock': maxStock,
+      if (holidayLowStockThreshold != null)
+        'holiday_low_stock_threshold': holidayLowStockThreshold,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (averageCost != null) 'average_cost': averageCost,
       if (defaultSupplierId != null) 'default_supplier_id': defaultSupplierId,
@@ -2480,6 +2550,7 @@ class ItemsCompanion extends UpdateCompanion<ItemRow> {
     Value<double>? quantity,
     Value<double>? lowStockThreshold,
     Value<double>? maxStock,
+    Value<double?>? holidayLowStockThreshold,
     Value<DateTime>? updatedAt,
     Value<double?>? averageCost,
     Value<String?>? defaultSupplierId,
@@ -2497,6 +2568,8 @@ class ItemsCompanion extends UpdateCompanion<ItemRow> {
       quantity: quantity ?? this.quantity,
       lowStockThreshold: lowStockThreshold ?? this.lowStockThreshold,
       maxStock: maxStock ?? this.maxStock,
+      holidayLowStockThreshold:
+          holidayLowStockThreshold ?? this.holidayLowStockThreshold,
       updatedAt: updatedAt ?? this.updatedAt,
       averageCost: averageCost ?? this.averageCost,
       defaultSupplierId: defaultSupplierId ?? this.defaultSupplierId,
@@ -2534,6 +2607,11 @@ class ItemsCompanion extends UpdateCompanion<ItemRow> {
     if (maxStock.present) {
       map['max_stock'] = Variable<double>(maxStock.value);
     }
+    if (holidayLowStockThreshold.present) {
+      map['holiday_low_stock_threshold'] = Variable<double>(
+        holidayLowStockThreshold.value,
+      );
+    }
     if (updatedAt.present) {
       map['updated_at'] = Variable<DateTime>(updatedAt.value);
     }
@@ -2569,6 +2647,7 @@ class ItemsCompanion extends UpdateCompanion<ItemRow> {
           ..write('quantity: $quantity, ')
           ..write('lowStockThreshold: $lowStockThreshold, ')
           ..write('maxStock: $maxStock, ')
+          ..write('holidayLowStockThreshold: $holidayLowStockThreshold, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('averageCost: $averageCost, ')
           ..write('defaultSupplierId: $defaultSupplierId, ')
@@ -4215,6 +4294,17 @@ class $StockMovementsTable extends StockMovements
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _employeeIdMeta = const VerificationMeta(
+    'employeeId',
+  );
+  @override
+  late final GeneratedColumn<String> employeeId = GeneratedColumn<String>(
+    'employee_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _supplierIdMeta = const VerificationMeta(
     'supplierId',
   );
@@ -4330,6 +4420,7 @@ class $StockMovementsTable extends StockMovements
     quantity,
     occurredAt,
     userName,
+    employeeId,
     supplierId,
     unitPrice,
     reason,
@@ -4397,6 +4488,12 @@ class $StockMovementsTable extends StockMovements
       );
     } else if (isInserting) {
       context.missing(_userNameMeta);
+    }
+    if (data.containsKey('employee_id')) {
+      context.handle(
+        _employeeIdMeta,
+        employeeId.isAcceptableOrUnknown(data['employee_id']!, _employeeIdMeta),
+      );
     }
     if (data.containsKey('supplier_id')) {
       context.handle(
@@ -4500,6 +4597,10 @@ class $StockMovementsTable extends StockMovements
         DriftSqlType.string,
         data['${effectivePrefix}user_name'],
       )!,
+      employeeId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}employee_id'],
+      ),
       supplierId: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}supplier_id'],
@@ -4577,6 +4678,15 @@ class StockMovementRow extends DataClass
   /// The name, not the id — see `price_history.changedByName`.
   final String userName;
 
+  /// The employee who recorded it, confirmed at the kitchen tablet by their
+  /// PIN — null on movements from before v6, and on those the app files on
+  /// its own behalf (a receipt against a commande, an opening balance).
+  ///
+  /// **No foreign key**, for the same reason as [supplierId]: an employee
+  /// leaving does not unmake what they recorded. [userName] keeps the name as
+  /// it was, so the row still reads right if the employee is later removed.
+  final String? employeeId;
+
   /// **No foreign key, on purpose.** Deleting a supplier keeps the movements
   /// that name them: a movement records goods that really moved, and the
   /// supplier going away does not unmake that. The row keeps their id and the
@@ -4616,6 +4726,7 @@ class StockMovementRow extends DataClass
     required this.quantity,
     required this.occurredAt,
     required this.userName,
+    this.employeeId,
     this.supplierId,
     this.unitPrice,
     this.reason,
@@ -4641,6 +4752,9 @@ class StockMovementRow extends DataClass
     map['quantity'] = Variable<double>(quantity);
     map['occurred_at'] = Variable<DateTime>(occurredAt);
     map['user_name'] = Variable<String>(userName);
+    if (!nullToAbsent || employeeId != null) {
+      map['employee_id'] = Variable<String>(employeeId);
+    }
     if (!nullToAbsent || supplierId != null) {
       map['supplier_id'] = Variable<String>(supplierId);
     }
@@ -4685,6 +4799,9 @@ class StockMovementRow extends DataClass
       quantity: Value(quantity),
       occurredAt: Value(occurredAt),
       userName: Value(userName),
+      employeeId: employeeId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(employeeId),
       supplierId: supplierId == null && nullToAbsent
           ? const Value.absent()
           : Value(supplierId),
@@ -4731,6 +4848,7 @@ class StockMovementRow extends DataClass
       quantity: serializer.fromJson<double>(json['quantity']),
       occurredAt: serializer.fromJson<DateTime>(json['occurredAt']),
       userName: serializer.fromJson<String>(json['userName']),
+      employeeId: serializer.fromJson<String?>(json['employeeId']),
       supplierId: serializer.fromJson<String?>(json['supplierId']),
       unitPrice: serializer.fromJson<double?>(json['unitPrice']),
       reason: $StockMovementsTable.$converterreasonn.fromJson(
@@ -4758,6 +4876,7 @@ class StockMovementRow extends DataClass
       'quantity': serializer.toJson<double>(quantity),
       'occurredAt': serializer.toJson<DateTime>(occurredAt),
       'userName': serializer.toJson<String>(userName),
+      'employeeId': serializer.toJson<String?>(employeeId),
       'supplierId': serializer.toJson<String?>(supplierId),
       'unitPrice': serializer.toJson<double?>(unitPrice),
       'reason': serializer.toJson<String?>(
@@ -4781,6 +4900,7 @@ class StockMovementRow extends DataClass
     double? quantity,
     DateTime? occurredAt,
     String? userName,
+    Value<String?> employeeId = const Value.absent(),
     Value<String?> supplierId = const Value.absent(),
     Value<double?> unitPrice = const Value.absent(),
     Value<StockOutReason?> reason = const Value.absent(),
@@ -4799,6 +4919,7 @@ class StockMovementRow extends DataClass
     quantity: quantity ?? this.quantity,
     occurredAt: occurredAt ?? this.occurredAt,
     userName: userName ?? this.userName,
+    employeeId: employeeId.present ? employeeId.value : this.employeeId,
     supplierId: supplierId.present ? supplierId.value : this.supplierId,
     unitPrice: unitPrice.present ? unitPrice.value : this.unitPrice,
     reason: reason.present ? reason.value : this.reason,
@@ -4827,6 +4948,9 @@ class StockMovementRow extends DataClass
           ? data.occurredAt.value
           : this.occurredAt,
       userName: data.userName.present ? data.userName.value : this.userName,
+      employeeId: data.employeeId.present
+          ? data.employeeId.value
+          : this.employeeId,
       supplierId: data.supplierId.present
           ? data.supplierId.value
           : this.supplierId,
@@ -4858,6 +4982,7 @@ class StockMovementRow extends DataClass
           ..write('quantity: $quantity, ')
           ..write('occurredAt: $occurredAt, ')
           ..write('userName: $userName, ')
+          ..write('employeeId: $employeeId, ')
           ..write('supplierId: $supplierId, ')
           ..write('unitPrice: $unitPrice, ')
           ..write('reason: $reason, ')
@@ -4881,6 +5006,7 @@ class StockMovementRow extends DataClass
     quantity,
     occurredAt,
     userName,
+    employeeId,
     supplierId,
     unitPrice,
     reason,
@@ -4903,6 +5029,7 @@ class StockMovementRow extends DataClass
           other.quantity == this.quantity &&
           other.occurredAt == this.occurredAt &&
           other.userName == this.userName &&
+          other.employeeId == this.employeeId &&
           other.supplierId == this.supplierId &&
           other.unitPrice == this.unitPrice &&
           other.reason == this.reason &&
@@ -4923,6 +5050,7 @@ class StockMovementsCompanion extends UpdateCompanion<StockMovementRow> {
   final Value<double> quantity;
   final Value<DateTime> occurredAt;
   final Value<String> userName;
+  final Value<String?> employeeId;
   final Value<String?> supplierId;
   final Value<double?> unitPrice;
   final Value<StockOutReason?> reason;
@@ -4942,6 +5070,7 @@ class StockMovementsCompanion extends UpdateCompanion<StockMovementRow> {
     this.quantity = const Value.absent(),
     this.occurredAt = const Value.absent(),
     this.userName = const Value.absent(),
+    this.employeeId = const Value.absent(),
     this.supplierId = const Value.absent(),
     this.unitPrice = const Value.absent(),
     this.reason = const Value.absent(),
@@ -4962,6 +5091,7 @@ class StockMovementsCompanion extends UpdateCompanion<StockMovementRow> {
     required double quantity,
     required DateTime occurredAt,
     required String userName,
+    this.employeeId = const Value.absent(),
     this.supplierId = const Value.absent(),
     this.unitPrice = const Value.absent(),
     this.reason = const Value.absent(),
@@ -4988,6 +5118,7 @@ class StockMovementsCompanion extends UpdateCompanion<StockMovementRow> {
     Expression<double>? quantity,
     Expression<DateTime>? occurredAt,
     Expression<String>? userName,
+    Expression<String>? employeeId,
     Expression<String>? supplierId,
     Expression<double>? unitPrice,
     Expression<String>? reason,
@@ -5008,6 +5139,7 @@ class StockMovementsCompanion extends UpdateCompanion<StockMovementRow> {
       if (quantity != null) 'quantity': quantity,
       if (occurredAt != null) 'occurred_at': occurredAt,
       if (userName != null) 'user_name': userName,
+      if (employeeId != null) 'employee_id': employeeId,
       if (supplierId != null) 'supplier_id': supplierId,
       if (unitPrice != null) 'unit_price': unitPrice,
       if (reason != null) 'reason': reason,
@@ -5030,6 +5162,7 @@ class StockMovementsCompanion extends UpdateCompanion<StockMovementRow> {
     Value<double>? quantity,
     Value<DateTime>? occurredAt,
     Value<String>? userName,
+    Value<String?>? employeeId,
     Value<String?>? supplierId,
     Value<double?>? unitPrice,
     Value<StockOutReason?>? reason,
@@ -5050,6 +5183,7 @@ class StockMovementsCompanion extends UpdateCompanion<StockMovementRow> {
       quantity: quantity ?? this.quantity,
       occurredAt: occurredAt ?? this.occurredAt,
       userName: userName ?? this.userName,
+      employeeId: employeeId ?? this.employeeId,
       supplierId: supplierId ?? this.supplierId,
       unitPrice: unitPrice ?? this.unitPrice,
       reason: reason ?? this.reason,
@@ -5089,6 +5223,9 @@ class StockMovementsCompanion extends UpdateCompanion<StockMovementRow> {
     }
     if (userName.present) {
       map['user_name'] = Variable<String>(userName.value);
+    }
+    if (employeeId.present) {
+      map['employee_id'] = Variable<String>(employeeId.value);
     }
     if (supplierId.present) {
       map['supplier_id'] = Variable<String>(supplierId.value);
@@ -5138,6 +5275,7 @@ class StockMovementsCompanion extends UpdateCompanion<StockMovementRow> {
           ..write('quantity: $quantity, ')
           ..write('occurredAt: $occurredAt, ')
           ..write('userName: $userName, ')
+          ..write('employeeId: $employeeId, ')
           ..write('supplierId: $supplierId, ')
           ..write('unitPrice: $unitPrice, ')
           ..write('reason: $reason, ')
@@ -6363,6 +6501,17 @@ class $GoodsReceiptsTable extends GoodsReceipts
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _receivedByEmployeeIdMeta =
+      const VerificationMeta('receivedByEmployeeId');
+  @override
+  late final GeneratedColumn<String> receivedByEmployeeId =
+      GeneratedColumn<String>(
+        'received_by_employee_id',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
   static const VerificationMeta _noteMeta = const VerificationMeta('note');
   @override
   late final GeneratedColumn<String> note = GeneratedColumn<String>(
@@ -6379,6 +6528,7 @@ class $GoodsReceiptsTable extends GoodsReceipts
     storeId,
     receivedAt,
     receivedByName,
+    receivedByEmployeeId,
     note,
   ];
   @override
@@ -6433,6 +6583,15 @@ class $GoodsReceiptsTable extends GoodsReceipts
     } else if (isInserting) {
       context.missing(_receivedByNameMeta);
     }
+    if (data.containsKey('received_by_employee_id')) {
+      context.handle(
+        _receivedByEmployeeIdMeta,
+        receivedByEmployeeId.isAcceptableOrUnknown(
+          data['received_by_employee_id']!,
+          _receivedByEmployeeIdMeta,
+        ),
+      );
+    }
     if (data.containsKey('note')) {
       context.handle(
         _noteMeta,
@@ -6468,6 +6627,10 @@ class $GoodsReceiptsTable extends GoodsReceipts
         DriftSqlType.string,
         data['${effectivePrefix}received_by_name'],
       )!,
+      receivedByEmployeeId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}received_by_employee_id'],
+      ),
       note: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}note'],
@@ -6495,6 +6658,12 @@ class GoodsReceiptRow extends DataClass implements Insertable<GoodsReceiptRow> {
   /// reference is a position in that order, so it has to be stable.
   final DateTime receivedAt;
   final String receivedByName;
+
+  /// The employee who checked the delivery in, confirmed at the tablet by
+  /// their PIN. Null on receipts from before v7. No foreign key, for the same
+  /// reason as `stock_movements.employeeId`: somebody leaving does not unmake
+  /// the delivery they received, and [receivedByName] keeps the name.
+  final String? receivedByEmployeeId;
   final String? note;
   const GoodsReceiptRow({
     required this.id,
@@ -6502,6 +6671,7 @@ class GoodsReceiptRow extends DataClass implements Insertable<GoodsReceiptRow> {
     required this.storeId,
     required this.receivedAt,
     required this.receivedByName,
+    this.receivedByEmployeeId,
     this.note,
   });
   @override
@@ -6512,6 +6682,9 @@ class GoodsReceiptRow extends DataClass implements Insertable<GoodsReceiptRow> {
     map['store_id'] = Variable<String>(storeId);
     map['received_at'] = Variable<DateTime>(receivedAt);
     map['received_by_name'] = Variable<String>(receivedByName);
+    if (!nullToAbsent || receivedByEmployeeId != null) {
+      map['received_by_employee_id'] = Variable<String>(receivedByEmployeeId);
+    }
     if (!nullToAbsent || note != null) {
       map['note'] = Variable<String>(note);
     }
@@ -6525,6 +6698,9 @@ class GoodsReceiptRow extends DataClass implements Insertable<GoodsReceiptRow> {
       storeId: Value(storeId),
       receivedAt: Value(receivedAt),
       receivedByName: Value(receivedByName),
+      receivedByEmployeeId: receivedByEmployeeId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(receivedByEmployeeId),
       note: note == null && nullToAbsent ? const Value.absent() : Value(note),
     );
   }
@@ -6540,6 +6716,9 @@ class GoodsReceiptRow extends DataClass implements Insertable<GoodsReceiptRow> {
       storeId: serializer.fromJson<String>(json['storeId']),
       receivedAt: serializer.fromJson<DateTime>(json['receivedAt']),
       receivedByName: serializer.fromJson<String>(json['receivedByName']),
+      receivedByEmployeeId: serializer.fromJson<String?>(
+        json['receivedByEmployeeId'],
+      ),
       note: serializer.fromJson<String?>(json['note']),
     );
   }
@@ -6552,6 +6731,7 @@ class GoodsReceiptRow extends DataClass implements Insertable<GoodsReceiptRow> {
       'storeId': serializer.toJson<String>(storeId),
       'receivedAt': serializer.toJson<DateTime>(receivedAt),
       'receivedByName': serializer.toJson<String>(receivedByName),
+      'receivedByEmployeeId': serializer.toJson<String?>(receivedByEmployeeId),
       'note': serializer.toJson<String?>(note),
     };
   }
@@ -6562,6 +6742,7 @@ class GoodsReceiptRow extends DataClass implements Insertable<GoodsReceiptRow> {
     String? storeId,
     DateTime? receivedAt,
     String? receivedByName,
+    Value<String?> receivedByEmployeeId = const Value.absent(),
     Value<String?> note = const Value.absent(),
   }) => GoodsReceiptRow(
     id: id ?? this.id,
@@ -6569,6 +6750,9 @@ class GoodsReceiptRow extends DataClass implements Insertable<GoodsReceiptRow> {
     storeId: storeId ?? this.storeId,
     receivedAt: receivedAt ?? this.receivedAt,
     receivedByName: receivedByName ?? this.receivedByName,
+    receivedByEmployeeId: receivedByEmployeeId.present
+        ? receivedByEmployeeId.value
+        : this.receivedByEmployeeId,
     note: note.present ? note.value : this.note,
   );
   GoodsReceiptRow copyWithCompanion(GoodsReceiptsCompanion data) {
@@ -6582,6 +6766,9 @@ class GoodsReceiptRow extends DataClass implements Insertable<GoodsReceiptRow> {
       receivedByName: data.receivedByName.present
           ? data.receivedByName.value
           : this.receivedByName,
+      receivedByEmployeeId: data.receivedByEmployeeId.present
+          ? data.receivedByEmployeeId.value
+          : this.receivedByEmployeeId,
       note: data.note.present ? data.note.value : this.note,
     );
   }
@@ -6594,14 +6781,22 @@ class GoodsReceiptRow extends DataClass implements Insertable<GoodsReceiptRow> {
           ..write('storeId: $storeId, ')
           ..write('receivedAt: $receivedAt, ')
           ..write('receivedByName: $receivedByName, ')
+          ..write('receivedByEmployeeId: $receivedByEmployeeId, ')
           ..write('note: $note')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, orderId, storeId, receivedAt, receivedByName, note);
+  int get hashCode => Object.hash(
+    id,
+    orderId,
+    storeId,
+    receivedAt,
+    receivedByName,
+    receivedByEmployeeId,
+    note,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -6611,6 +6806,7 @@ class GoodsReceiptRow extends DataClass implements Insertable<GoodsReceiptRow> {
           other.storeId == this.storeId &&
           other.receivedAt == this.receivedAt &&
           other.receivedByName == this.receivedByName &&
+          other.receivedByEmployeeId == this.receivedByEmployeeId &&
           other.note == this.note);
 }
 
@@ -6620,6 +6816,7 @@ class GoodsReceiptsCompanion extends UpdateCompanion<GoodsReceiptRow> {
   final Value<String> storeId;
   final Value<DateTime> receivedAt;
   final Value<String> receivedByName;
+  final Value<String?> receivedByEmployeeId;
   final Value<String?> note;
   final Value<int> rowid;
   const GoodsReceiptsCompanion({
@@ -6628,6 +6825,7 @@ class GoodsReceiptsCompanion extends UpdateCompanion<GoodsReceiptRow> {
     this.storeId = const Value.absent(),
     this.receivedAt = const Value.absent(),
     this.receivedByName = const Value.absent(),
+    this.receivedByEmployeeId = const Value.absent(),
     this.note = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -6637,6 +6835,7 @@ class GoodsReceiptsCompanion extends UpdateCompanion<GoodsReceiptRow> {
     required String storeId,
     required DateTime receivedAt,
     required String receivedByName,
+    this.receivedByEmployeeId = const Value.absent(),
     this.note = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
@@ -6650,6 +6849,7 @@ class GoodsReceiptsCompanion extends UpdateCompanion<GoodsReceiptRow> {
     Expression<String>? storeId,
     Expression<DateTime>? receivedAt,
     Expression<String>? receivedByName,
+    Expression<String>? receivedByEmployeeId,
     Expression<String>? note,
     Expression<int>? rowid,
   }) {
@@ -6659,6 +6859,8 @@ class GoodsReceiptsCompanion extends UpdateCompanion<GoodsReceiptRow> {
       if (storeId != null) 'store_id': storeId,
       if (receivedAt != null) 'received_at': receivedAt,
       if (receivedByName != null) 'received_by_name': receivedByName,
+      if (receivedByEmployeeId != null)
+        'received_by_employee_id': receivedByEmployeeId,
       if (note != null) 'note': note,
       if (rowid != null) 'rowid': rowid,
     });
@@ -6670,6 +6872,7 @@ class GoodsReceiptsCompanion extends UpdateCompanion<GoodsReceiptRow> {
     Value<String>? storeId,
     Value<DateTime>? receivedAt,
     Value<String>? receivedByName,
+    Value<String?>? receivedByEmployeeId,
     Value<String?>? note,
     Value<int>? rowid,
   }) {
@@ -6679,6 +6882,7 @@ class GoodsReceiptsCompanion extends UpdateCompanion<GoodsReceiptRow> {
       storeId: storeId ?? this.storeId,
       receivedAt: receivedAt ?? this.receivedAt,
       receivedByName: receivedByName ?? this.receivedByName,
+      receivedByEmployeeId: receivedByEmployeeId ?? this.receivedByEmployeeId,
       note: note ?? this.note,
       rowid: rowid ?? this.rowid,
     );
@@ -6702,6 +6906,11 @@ class GoodsReceiptsCompanion extends UpdateCompanion<GoodsReceiptRow> {
     if (receivedByName.present) {
       map['received_by_name'] = Variable<String>(receivedByName.value);
     }
+    if (receivedByEmployeeId.present) {
+      map['received_by_employee_id'] = Variable<String>(
+        receivedByEmployeeId.value,
+      );
+    }
     if (note.present) {
       map['note'] = Variable<String>(note.value);
     }
@@ -6719,6 +6928,7 @@ class GoodsReceiptsCompanion extends UpdateCompanion<GoodsReceiptRow> {
           ..write('storeId: $storeId, ')
           ..write('receivedAt: $receivedAt, ')
           ..write('receivedByName: $receivedByName, ')
+          ..write('receivedByEmployeeId: $receivedByEmployeeId, ')
           ..write('note: $note, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -8026,10 +8236,10 @@ class $EmployeesTable extends Employees
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _cinMeta = const VerificationMeta('cin');
+  static const VerificationMeta _pinMeta = const VerificationMeta('pin');
   @override
-  late final GeneratedColumn<String> cin = GeneratedColumn<String>(
-    'cin',
+  late final GeneratedColumn<String> pin = GeneratedColumn<String>(
+    'pin',
     aliasedName,
     false,
     type: DriftSqlType.string,
@@ -8084,15 +8294,6 @@ class $EmployeesTable extends Employees
         type: DriftSqlType.string,
         requiredDuringInsert: true,
       ).withConverter<EmployeeRole>($EmployeesTable.$converterrole);
-  @override
-  late final GeneratedColumnWithTypeConverter<ContractType, String>
-  contractType = GeneratedColumn<String>(
-    'contract_type',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  ).withConverter<ContractType>($EmployeesTable.$convertercontractType);
   static const VerificationMeta _payMeta = const VerificationMeta('pay');
   @override
   late final GeneratedColumn<double> pay = GeneratedColumn<double>(
@@ -8101,26 +8302,6 @@ class $EmployeesTable extends Employees
     false,
     type: DriftSqlType.double,
     requiredDuringInsert: true,
-  );
-  static const VerificationMeta _scheduledStartMinutesMeta =
-      const VerificationMeta('scheduledStartMinutes');
-  @override
-  late final GeneratedColumn<int> scheduledStartMinutes = GeneratedColumn<int>(
-    'scheduled_start_minutes',
-    aliasedName,
-    true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _scheduledEndMinutesMeta =
-      const VerificationMeta('scheduledEndMinutes');
-  @override
-  late final GeneratedColumn<int> scheduledEndMinutes = GeneratedColumn<int>(
-    'scheduled_end_minutes',
-    aliasedName,
-    true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
   );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
@@ -8150,16 +8331,13 @@ class $EmployeesTable extends Employees
     storeId,
     firstName,
     lastName,
-    cin,
+    pin,
     phone,
     email,
     photoAsset,
     hireDate,
     role,
-    contractType,
     pay,
-    scheduledStartMinutes,
-    scheduledEndMinutes,
     createdAt,
     archivedAt,
   ];
@@ -8204,13 +8382,13 @@ class $EmployeesTable extends Employees
     } else if (isInserting) {
       context.missing(_lastNameMeta);
     }
-    if (data.containsKey('cin')) {
+    if (data.containsKey('pin')) {
       context.handle(
-        _cinMeta,
-        cin.isAcceptableOrUnknown(data['cin']!, _cinMeta),
+        _pinMeta,
+        pin.isAcceptableOrUnknown(data['pin']!, _pinMeta),
       );
     } else if (isInserting) {
-      context.missing(_cinMeta);
+      context.missing(_pinMeta);
     }
     if (data.containsKey('phone')) {
       context.handle(
@@ -8249,24 +8427,6 @@ class $EmployeesTable extends Employees
       );
     } else if (isInserting) {
       context.missing(_payMeta);
-    }
-    if (data.containsKey('scheduled_start_minutes')) {
-      context.handle(
-        _scheduledStartMinutesMeta,
-        scheduledStartMinutes.isAcceptableOrUnknown(
-          data['scheduled_start_minutes']!,
-          _scheduledStartMinutesMeta,
-        ),
-      );
-    }
-    if (data.containsKey('scheduled_end_minutes')) {
-      context.handle(
-        _scheduledEndMinutesMeta,
-        scheduledEndMinutes.isAcceptableOrUnknown(
-          data['scheduled_end_minutes']!,
-          _scheduledEndMinutesMeta,
-        ),
-      );
     }
     if (data.containsKey('created_at')) {
       context.handle(
@@ -8307,9 +8467,9 @@ class $EmployeesTable extends Employees
         DriftSqlType.string,
         data['${effectivePrefix}last_name'],
       )!,
-      cin: attachedDatabase.typeMapping.read(
+      pin: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
-        data['${effectivePrefix}cin'],
+        data['${effectivePrefix}pin'],
       )!,
       phone: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
@@ -8333,24 +8493,10 @@ class $EmployeesTable extends Employees
           data['${effectivePrefix}role'],
         )!,
       ),
-      contractType: $EmployeesTable.$convertercontractType.fromSql(
-        attachedDatabase.typeMapping.read(
-          DriftSqlType.string,
-          data['${effectivePrefix}contract_type'],
-        )!,
-      ),
       pay: attachedDatabase.typeMapping.read(
         DriftSqlType.double,
         data['${effectivePrefix}pay'],
       )!,
-      scheduledStartMinutes: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}scheduled_start_minutes'],
-      ),
-      scheduledEndMinutes: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}scheduled_end_minutes'],
-      ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -8369,10 +8515,6 @@ class $EmployeesTable extends Employees
 
   static JsonTypeConverter2<EmployeeRole, String, String> $converterrole =
       const EnumNameConverter<EmployeeRole>(EmployeeRole.values);
-  static JsonTypeConverter2<ContractType, String, String>
-  $convertercontractType = const EnumNameConverter<ContractType>(
-    ContractType.values,
-  );
 }
 
 class EmployeeRow extends DataClass implements Insertable<EmployeeRow> {
@@ -8389,7 +8531,7 @@ class EmployeeRow extends DataClass implements Insertable<EmployeeRow> {
   /// identifier (Phase 6). Unique across the whole account, not per store; the
   /// index above makes that a constraint, and the repository keeps its own
   /// check for the message the form shows.
-  final String cin;
+  final String pin;
   final String phone;
 
   /// Unique across the whole account.
@@ -8399,18 +8541,9 @@ class EmployeeRow extends DataClass implements Insertable<EmployeeRow> {
   final String? photoAsset;
   final DateTime hireDate;
   final EmployeeRole role;
-  final ContractType contractType;
 
-  /// Monthly EUR when `fixed`, EUR per hour when `extra` — read per
-  /// [contractType].
+  /// EUR per hour — every hour actually worked is paid at this rate.
   final double pay;
-
-  /// Minutes since midnight for this person's own start / end of day. Null means
-  /// "use the establishment's opening hours" — the resolved schedule is what
-  /// lateness and overtime are measured against. Stored as an int, not a
-  /// `DateTime`: these are times of day, not instants.
-  final int? scheduledStartMinutes;
-  final int? scheduledEndMinutes;
   final DateTime createdAt;
 
   /// Null while active. The only form of removal — there is no hard delete.
@@ -8420,16 +8553,13 @@ class EmployeeRow extends DataClass implements Insertable<EmployeeRow> {
     required this.storeId,
     required this.firstName,
     required this.lastName,
-    required this.cin,
+    required this.pin,
     required this.phone,
     required this.email,
     this.photoAsset,
     required this.hireDate,
     required this.role,
-    required this.contractType,
     required this.pay,
-    this.scheduledStartMinutes,
-    this.scheduledEndMinutes,
     required this.createdAt,
     this.archivedAt,
   });
@@ -8440,7 +8570,7 @@ class EmployeeRow extends DataClass implements Insertable<EmployeeRow> {
     map['store_id'] = Variable<String>(storeId);
     map['first_name'] = Variable<String>(firstName);
     map['last_name'] = Variable<String>(lastName);
-    map['cin'] = Variable<String>(cin);
+    map['pin'] = Variable<String>(pin);
     map['phone'] = Variable<String>(phone);
     map['email'] = Variable<String>(email);
     if (!nullToAbsent || photoAsset != null) {
@@ -8452,18 +8582,7 @@ class EmployeeRow extends DataClass implements Insertable<EmployeeRow> {
         $EmployeesTable.$converterrole.toSql(role),
       );
     }
-    {
-      map['contract_type'] = Variable<String>(
-        $EmployeesTable.$convertercontractType.toSql(contractType),
-      );
-    }
     map['pay'] = Variable<double>(pay);
-    if (!nullToAbsent || scheduledStartMinutes != null) {
-      map['scheduled_start_minutes'] = Variable<int>(scheduledStartMinutes);
-    }
-    if (!nullToAbsent || scheduledEndMinutes != null) {
-      map['scheduled_end_minutes'] = Variable<int>(scheduledEndMinutes);
-    }
     map['created_at'] = Variable<DateTime>(createdAt);
     if (!nullToAbsent || archivedAt != null) {
       map['archived_at'] = Variable<DateTime>(archivedAt);
@@ -8477,7 +8596,7 @@ class EmployeeRow extends DataClass implements Insertable<EmployeeRow> {
       storeId: Value(storeId),
       firstName: Value(firstName),
       lastName: Value(lastName),
-      cin: Value(cin),
+      pin: Value(pin),
       phone: Value(phone),
       email: Value(email),
       photoAsset: photoAsset == null && nullToAbsent
@@ -8485,14 +8604,7 @@ class EmployeeRow extends DataClass implements Insertable<EmployeeRow> {
           : Value(photoAsset),
       hireDate: Value(hireDate),
       role: Value(role),
-      contractType: Value(contractType),
       pay: Value(pay),
-      scheduledStartMinutes: scheduledStartMinutes == null && nullToAbsent
-          ? const Value.absent()
-          : Value(scheduledStartMinutes),
-      scheduledEndMinutes: scheduledEndMinutes == null && nullToAbsent
-          ? const Value.absent()
-          : Value(scheduledEndMinutes),
       createdAt: Value(createdAt),
       archivedAt: archivedAt == null && nullToAbsent
           ? const Value.absent()
@@ -8510,7 +8622,7 @@ class EmployeeRow extends DataClass implements Insertable<EmployeeRow> {
       storeId: serializer.fromJson<String>(json['storeId']),
       firstName: serializer.fromJson<String>(json['firstName']),
       lastName: serializer.fromJson<String>(json['lastName']),
-      cin: serializer.fromJson<String>(json['cin']),
+      pin: serializer.fromJson<String>(json['pin']),
       phone: serializer.fromJson<String>(json['phone']),
       email: serializer.fromJson<String>(json['email']),
       photoAsset: serializer.fromJson<String?>(json['photoAsset']),
@@ -8518,16 +8630,7 @@ class EmployeeRow extends DataClass implements Insertable<EmployeeRow> {
       role: $EmployeesTable.$converterrole.fromJson(
         serializer.fromJson<String>(json['role']),
       ),
-      contractType: $EmployeesTable.$convertercontractType.fromJson(
-        serializer.fromJson<String>(json['contractType']),
-      ),
       pay: serializer.fromJson<double>(json['pay']),
-      scheduledStartMinutes: serializer.fromJson<int?>(
-        json['scheduledStartMinutes'],
-      ),
-      scheduledEndMinutes: serializer.fromJson<int?>(
-        json['scheduledEndMinutes'],
-      ),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       archivedAt: serializer.fromJson<DateTime?>(json['archivedAt']),
     );
@@ -8540,7 +8643,7 @@ class EmployeeRow extends DataClass implements Insertable<EmployeeRow> {
       'storeId': serializer.toJson<String>(storeId),
       'firstName': serializer.toJson<String>(firstName),
       'lastName': serializer.toJson<String>(lastName),
-      'cin': serializer.toJson<String>(cin),
+      'pin': serializer.toJson<String>(pin),
       'phone': serializer.toJson<String>(phone),
       'email': serializer.toJson<String>(email),
       'photoAsset': serializer.toJson<String?>(photoAsset),
@@ -8548,12 +8651,7 @@ class EmployeeRow extends DataClass implements Insertable<EmployeeRow> {
       'role': serializer.toJson<String>(
         $EmployeesTable.$converterrole.toJson(role),
       ),
-      'contractType': serializer.toJson<String>(
-        $EmployeesTable.$convertercontractType.toJson(contractType),
-      ),
       'pay': serializer.toJson<double>(pay),
-      'scheduledStartMinutes': serializer.toJson<int?>(scheduledStartMinutes),
-      'scheduledEndMinutes': serializer.toJson<int?>(scheduledEndMinutes),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'archivedAt': serializer.toJson<DateTime?>(archivedAt),
     };
@@ -8564,16 +8662,13 @@ class EmployeeRow extends DataClass implements Insertable<EmployeeRow> {
     String? storeId,
     String? firstName,
     String? lastName,
-    String? cin,
+    String? pin,
     String? phone,
     String? email,
     Value<String?> photoAsset = const Value.absent(),
     DateTime? hireDate,
     EmployeeRole? role,
-    ContractType? contractType,
     double? pay,
-    Value<int?> scheduledStartMinutes = const Value.absent(),
-    Value<int?> scheduledEndMinutes = const Value.absent(),
     DateTime? createdAt,
     Value<DateTime?> archivedAt = const Value.absent(),
   }) => EmployeeRow(
@@ -8581,20 +8676,13 @@ class EmployeeRow extends DataClass implements Insertable<EmployeeRow> {
     storeId: storeId ?? this.storeId,
     firstName: firstName ?? this.firstName,
     lastName: lastName ?? this.lastName,
-    cin: cin ?? this.cin,
+    pin: pin ?? this.pin,
     phone: phone ?? this.phone,
     email: email ?? this.email,
     photoAsset: photoAsset.present ? photoAsset.value : this.photoAsset,
     hireDate: hireDate ?? this.hireDate,
     role: role ?? this.role,
-    contractType: contractType ?? this.contractType,
     pay: pay ?? this.pay,
-    scheduledStartMinutes: scheduledStartMinutes.present
-        ? scheduledStartMinutes.value
-        : this.scheduledStartMinutes,
-    scheduledEndMinutes: scheduledEndMinutes.present
-        ? scheduledEndMinutes.value
-        : this.scheduledEndMinutes,
     createdAt: createdAt ?? this.createdAt,
     archivedAt: archivedAt.present ? archivedAt.value : this.archivedAt,
   );
@@ -8604,7 +8692,7 @@ class EmployeeRow extends DataClass implements Insertable<EmployeeRow> {
       storeId: data.storeId.present ? data.storeId.value : this.storeId,
       firstName: data.firstName.present ? data.firstName.value : this.firstName,
       lastName: data.lastName.present ? data.lastName.value : this.lastName,
-      cin: data.cin.present ? data.cin.value : this.cin,
+      pin: data.pin.present ? data.pin.value : this.pin,
       phone: data.phone.present ? data.phone.value : this.phone,
       email: data.email.present ? data.email.value : this.email,
       photoAsset: data.photoAsset.present
@@ -8612,16 +8700,7 @@ class EmployeeRow extends DataClass implements Insertable<EmployeeRow> {
           : this.photoAsset,
       hireDate: data.hireDate.present ? data.hireDate.value : this.hireDate,
       role: data.role.present ? data.role.value : this.role,
-      contractType: data.contractType.present
-          ? data.contractType.value
-          : this.contractType,
       pay: data.pay.present ? data.pay.value : this.pay,
-      scheduledStartMinutes: data.scheduledStartMinutes.present
-          ? data.scheduledStartMinutes.value
-          : this.scheduledStartMinutes,
-      scheduledEndMinutes: data.scheduledEndMinutes.present
-          ? data.scheduledEndMinutes.value
-          : this.scheduledEndMinutes,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       archivedAt: data.archivedAt.present
           ? data.archivedAt.value
@@ -8636,16 +8715,13 @@ class EmployeeRow extends DataClass implements Insertable<EmployeeRow> {
           ..write('storeId: $storeId, ')
           ..write('firstName: $firstName, ')
           ..write('lastName: $lastName, ')
-          ..write('cin: $cin, ')
+          ..write('pin: $pin, ')
           ..write('phone: $phone, ')
           ..write('email: $email, ')
           ..write('photoAsset: $photoAsset, ')
           ..write('hireDate: $hireDate, ')
           ..write('role: $role, ')
-          ..write('contractType: $contractType, ')
           ..write('pay: $pay, ')
-          ..write('scheduledStartMinutes: $scheduledStartMinutes, ')
-          ..write('scheduledEndMinutes: $scheduledEndMinutes, ')
           ..write('createdAt: $createdAt, ')
           ..write('archivedAt: $archivedAt')
           ..write(')'))
@@ -8658,16 +8734,13 @@ class EmployeeRow extends DataClass implements Insertable<EmployeeRow> {
     storeId,
     firstName,
     lastName,
-    cin,
+    pin,
     phone,
     email,
     photoAsset,
     hireDate,
     role,
-    contractType,
     pay,
-    scheduledStartMinutes,
-    scheduledEndMinutes,
     createdAt,
     archivedAt,
   );
@@ -8679,16 +8752,13 @@ class EmployeeRow extends DataClass implements Insertable<EmployeeRow> {
           other.storeId == this.storeId &&
           other.firstName == this.firstName &&
           other.lastName == this.lastName &&
-          other.cin == this.cin &&
+          other.pin == this.pin &&
           other.phone == this.phone &&
           other.email == this.email &&
           other.photoAsset == this.photoAsset &&
           other.hireDate == this.hireDate &&
           other.role == this.role &&
-          other.contractType == this.contractType &&
           other.pay == this.pay &&
-          other.scheduledStartMinutes == this.scheduledStartMinutes &&
-          other.scheduledEndMinutes == this.scheduledEndMinutes &&
           other.createdAt == this.createdAt &&
           other.archivedAt == this.archivedAt);
 }
@@ -8698,16 +8768,13 @@ class EmployeesCompanion extends UpdateCompanion<EmployeeRow> {
   final Value<String> storeId;
   final Value<String> firstName;
   final Value<String> lastName;
-  final Value<String> cin;
+  final Value<String> pin;
   final Value<String> phone;
   final Value<String> email;
   final Value<String?> photoAsset;
   final Value<DateTime> hireDate;
   final Value<EmployeeRole> role;
-  final Value<ContractType> contractType;
   final Value<double> pay;
-  final Value<int?> scheduledStartMinutes;
-  final Value<int?> scheduledEndMinutes;
   final Value<DateTime> createdAt;
   final Value<DateTime?> archivedAt;
   final Value<int> rowid;
@@ -8716,16 +8783,13 @@ class EmployeesCompanion extends UpdateCompanion<EmployeeRow> {
     this.storeId = const Value.absent(),
     this.firstName = const Value.absent(),
     this.lastName = const Value.absent(),
-    this.cin = const Value.absent(),
+    this.pin = const Value.absent(),
     this.phone = const Value.absent(),
     this.email = const Value.absent(),
     this.photoAsset = const Value.absent(),
     this.hireDate = const Value.absent(),
     this.role = const Value.absent(),
-    this.contractType = const Value.absent(),
     this.pay = const Value.absent(),
-    this.scheduledStartMinutes = const Value.absent(),
-    this.scheduledEndMinutes = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.archivedAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -8735,16 +8799,13 @@ class EmployeesCompanion extends UpdateCompanion<EmployeeRow> {
     required String storeId,
     required String firstName,
     required String lastName,
-    required String cin,
+    required String pin,
     required String phone,
     required String email,
     this.photoAsset = const Value.absent(),
     required DateTime hireDate,
     required EmployeeRole role,
-    required ContractType contractType,
     required double pay,
-    this.scheduledStartMinutes = const Value.absent(),
-    this.scheduledEndMinutes = const Value.absent(),
     required DateTime createdAt,
     this.archivedAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -8752,12 +8813,11 @@ class EmployeesCompanion extends UpdateCompanion<EmployeeRow> {
        storeId = Value(storeId),
        firstName = Value(firstName),
        lastName = Value(lastName),
-       cin = Value(cin),
+       pin = Value(pin),
        phone = Value(phone),
        email = Value(email),
        hireDate = Value(hireDate),
        role = Value(role),
-       contractType = Value(contractType),
        pay = Value(pay),
        createdAt = Value(createdAt);
   static Insertable<EmployeeRow> custom({
@@ -8765,16 +8825,13 @@ class EmployeesCompanion extends UpdateCompanion<EmployeeRow> {
     Expression<String>? storeId,
     Expression<String>? firstName,
     Expression<String>? lastName,
-    Expression<String>? cin,
+    Expression<String>? pin,
     Expression<String>? phone,
     Expression<String>? email,
     Expression<String>? photoAsset,
     Expression<DateTime>? hireDate,
     Expression<String>? role,
-    Expression<String>? contractType,
     Expression<double>? pay,
-    Expression<int>? scheduledStartMinutes,
-    Expression<int>? scheduledEndMinutes,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? archivedAt,
     Expression<int>? rowid,
@@ -8784,18 +8841,13 @@ class EmployeesCompanion extends UpdateCompanion<EmployeeRow> {
       if (storeId != null) 'store_id': storeId,
       if (firstName != null) 'first_name': firstName,
       if (lastName != null) 'last_name': lastName,
-      if (cin != null) 'cin': cin,
+      if (pin != null) 'pin': pin,
       if (phone != null) 'phone': phone,
       if (email != null) 'email': email,
       if (photoAsset != null) 'photo_asset': photoAsset,
       if (hireDate != null) 'hire_date': hireDate,
       if (role != null) 'role': role,
-      if (contractType != null) 'contract_type': contractType,
       if (pay != null) 'pay': pay,
-      if (scheduledStartMinutes != null)
-        'scheduled_start_minutes': scheduledStartMinutes,
-      if (scheduledEndMinutes != null)
-        'scheduled_end_minutes': scheduledEndMinutes,
       if (createdAt != null) 'created_at': createdAt,
       if (archivedAt != null) 'archived_at': archivedAt,
       if (rowid != null) 'rowid': rowid,
@@ -8807,16 +8859,13 @@ class EmployeesCompanion extends UpdateCompanion<EmployeeRow> {
     Value<String>? storeId,
     Value<String>? firstName,
     Value<String>? lastName,
-    Value<String>? cin,
+    Value<String>? pin,
     Value<String>? phone,
     Value<String>? email,
     Value<String?>? photoAsset,
     Value<DateTime>? hireDate,
     Value<EmployeeRole>? role,
-    Value<ContractType>? contractType,
     Value<double>? pay,
-    Value<int?>? scheduledStartMinutes,
-    Value<int?>? scheduledEndMinutes,
     Value<DateTime>? createdAt,
     Value<DateTime?>? archivedAt,
     Value<int>? rowid,
@@ -8826,17 +8875,13 @@ class EmployeesCompanion extends UpdateCompanion<EmployeeRow> {
       storeId: storeId ?? this.storeId,
       firstName: firstName ?? this.firstName,
       lastName: lastName ?? this.lastName,
-      cin: cin ?? this.cin,
+      pin: pin ?? this.pin,
       phone: phone ?? this.phone,
       email: email ?? this.email,
       photoAsset: photoAsset ?? this.photoAsset,
       hireDate: hireDate ?? this.hireDate,
       role: role ?? this.role,
-      contractType: contractType ?? this.contractType,
       pay: pay ?? this.pay,
-      scheduledStartMinutes:
-          scheduledStartMinutes ?? this.scheduledStartMinutes,
-      scheduledEndMinutes: scheduledEndMinutes ?? this.scheduledEndMinutes,
       createdAt: createdAt ?? this.createdAt,
       archivedAt: archivedAt ?? this.archivedAt,
       rowid: rowid ?? this.rowid,
@@ -8858,8 +8903,8 @@ class EmployeesCompanion extends UpdateCompanion<EmployeeRow> {
     if (lastName.present) {
       map['last_name'] = Variable<String>(lastName.value);
     }
-    if (cin.present) {
-      map['cin'] = Variable<String>(cin.value);
+    if (pin.present) {
+      map['pin'] = Variable<String>(pin.value);
     }
     if (phone.present) {
       map['phone'] = Variable<String>(phone.value);
@@ -8878,21 +8923,8 @@ class EmployeesCompanion extends UpdateCompanion<EmployeeRow> {
         $EmployeesTable.$converterrole.toSql(role.value),
       );
     }
-    if (contractType.present) {
-      map['contract_type'] = Variable<String>(
-        $EmployeesTable.$convertercontractType.toSql(contractType.value),
-      );
-    }
     if (pay.present) {
       map['pay'] = Variable<double>(pay.value);
-    }
-    if (scheduledStartMinutes.present) {
-      map['scheduled_start_minutes'] = Variable<int>(
-        scheduledStartMinutes.value,
-      );
-    }
-    if (scheduledEndMinutes.present) {
-      map['scheduled_end_minutes'] = Variable<int>(scheduledEndMinutes.value);
     }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
@@ -8913,16 +8945,13 @@ class EmployeesCompanion extends UpdateCompanion<EmployeeRow> {
           ..write('storeId: $storeId, ')
           ..write('firstName: $firstName, ')
           ..write('lastName: $lastName, ')
-          ..write('cin: $cin, ')
+          ..write('pin: $pin, ')
           ..write('phone: $phone, ')
           ..write('email: $email, ')
           ..write('photoAsset: $photoAsset, ')
           ..write('hireDate: $hireDate, ')
           ..write('role: $role, ')
-          ..write('contractType: $contractType, ')
           ..write('pay: $pay, ')
-          ..write('scheduledStartMinutes: $scheduledStartMinutes, ')
-          ..write('scheduledEndMinutes: $scheduledEndMinutes, ')
           ..write('createdAt: $createdAt, ')
           ..write('archivedAt: $archivedAt, ')
           ..write('rowid: $rowid')
@@ -8964,12 +8993,12 @@ class $EmployeeCredentialsTable extends EmployeeCredentials
       'REFERENCES employees (id) ON DELETE CASCADE',
     ),
   );
-  static const VerificationMeta _pinHashMeta = const VerificationMeta(
-    'pinHash',
+  static const VerificationMeta _passwordHashMeta = const VerificationMeta(
+    'passwordHash',
   );
   @override
-  late final GeneratedColumn<String> pinHash = GeneratedColumn<String>(
-    'pin_hash',
+  late final GeneratedColumn<String> passwordHash = GeneratedColumn<String>(
+    'password_hash',
     aliasedName,
     false,
     type: DriftSqlType.string,
@@ -9013,7 +9042,7 @@ class $EmployeeCredentialsTable extends EmployeeCredentials
   List<GeneratedColumn> get $columns => [
     id,
     employeeId,
-    pinHash,
+    passwordHash,
     failedAttempts,
     lockedUntil,
     lastLoginAt,
@@ -9043,13 +9072,16 @@ class $EmployeeCredentialsTable extends EmployeeCredentials
     } else if (isInserting) {
       context.missing(_employeeIdMeta);
     }
-    if (data.containsKey('pin_hash')) {
+    if (data.containsKey('password_hash')) {
       context.handle(
-        _pinHashMeta,
-        pinHash.isAcceptableOrUnknown(data['pin_hash']!, _pinHashMeta),
+        _passwordHashMeta,
+        passwordHash.isAcceptableOrUnknown(
+          data['password_hash']!,
+          _passwordHashMeta,
+        ),
       );
     } else if (isInserting) {
-      context.missing(_pinHashMeta);
+      context.missing(_passwordHashMeta);
     }
     if (data.containsKey('failed_attempts')) {
       context.handle(
@@ -9095,9 +9127,9 @@ class $EmployeeCredentialsTable extends EmployeeCredentials
         DriftSqlType.string,
         data['${effectivePrefix}employee_id'],
       )!,
-      pinHash: attachedDatabase.typeMapping.read(
+      passwordHash: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
-        data['${effectivePrefix}pin_hash'],
+        data['${effectivePrefix}password_hash'],
       )!,
       failedAttempts: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
@@ -9127,14 +9159,14 @@ class EmployeeCredentialRow extends DataClass
   /// `ON DELETE CASCADE` and unique — one credential per employee, and it goes
   /// when they do.
   final String employeeId;
-  final String pinHash;
+  final String passwordHash;
   final int failedAttempts;
   final DateTime? lockedUntil;
   final DateTime? lastLoginAt;
   const EmployeeCredentialRow({
     required this.id,
     required this.employeeId,
-    required this.pinHash,
+    required this.passwordHash,
     required this.failedAttempts,
     this.lockedUntil,
     this.lastLoginAt,
@@ -9144,7 +9176,7 @@ class EmployeeCredentialRow extends DataClass
     final map = <String, Expression>{};
     map['id'] = Variable<String>(id);
     map['employee_id'] = Variable<String>(employeeId);
-    map['pin_hash'] = Variable<String>(pinHash);
+    map['password_hash'] = Variable<String>(passwordHash);
     map['failed_attempts'] = Variable<int>(failedAttempts);
     if (!nullToAbsent || lockedUntil != null) {
       map['locked_until'] = Variable<DateTime>(lockedUntil);
@@ -9159,7 +9191,7 @@ class EmployeeCredentialRow extends DataClass
     return EmployeeCredentialsCompanion(
       id: Value(id),
       employeeId: Value(employeeId),
-      pinHash: Value(pinHash),
+      passwordHash: Value(passwordHash),
       failedAttempts: Value(failedAttempts),
       lockedUntil: lockedUntil == null && nullToAbsent
           ? const Value.absent()
@@ -9178,7 +9210,7 @@ class EmployeeCredentialRow extends DataClass
     return EmployeeCredentialRow(
       id: serializer.fromJson<String>(json['id']),
       employeeId: serializer.fromJson<String>(json['employeeId']),
-      pinHash: serializer.fromJson<String>(json['pinHash']),
+      passwordHash: serializer.fromJson<String>(json['passwordHash']),
       failedAttempts: serializer.fromJson<int>(json['failedAttempts']),
       lockedUntil: serializer.fromJson<DateTime?>(json['lockedUntil']),
       lastLoginAt: serializer.fromJson<DateTime?>(json['lastLoginAt']),
@@ -9190,7 +9222,7 @@ class EmployeeCredentialRow extends DataClass
     return <String, dynamic>{
       'id': serializer.toJson<String>(id),
       'employeeId': serializer.toJson<String>(employeeId),
-      'pinHash': serializer.toJson<String>(pinHash),
+      'passwordHash': serializer.toJson<String>(passwordHash),
       'failedAttempts': serializer.toJson<int>(failedAttempts),
       'lockedUntil': serializer.toJson<DateTime?>(lockedUntil),
       'lastLoginAt': serializer.toJson<DateTime?>(lastLoginAt),
@@ -9200,14 +9232,14 @@ class EmployeeCredentialRow extends DataClass
   EmployeeCredentialRow copyWith({
     String? id,
     String? employeeId,
-    String? pinHash,
+    String? passwordHash,
     int? failedAttempts,
     Value<DateTime?> lockedUntil = const Value.absent(),
     Value<DateTime?> lastLoginAt = const Value.absent(),
   }) => EmployeeCredentialRow(
     id: id ?? this.id,
     employeeId: employeeId ?? this.employeeId,
-    pinHash: pinHash ?? this.pinHash,
+    passwordHash: passwordHash ?? this.passwordHash,
     failedAttempts: failedAttempts ?? this.failedAttempts,
     lockedUntil: lockedUntil.present ? lockedUntil.value : this.lockedUntil,
     lastLoginAt: lastLoginAt.present ? lastLoginAt.value : this.lastLoginAt,
@@ -9218,7 +9250,9 @@ class EmployeeCredentialRow extends DataClass
       employeeId: data.employeeId.present
           ? data.employeeId.value
           : this.employeeId,
-      pinHash: data.pinHash.present ? data.pinHash.value : this.pinHash,
+      passwordHash: data.passwordHash.present
+          ? data.passwordHash.value
+          : this.passwordHash,
       failedAttempts: data.failedAttempts.present
           ? data.failedAttempts.value
           : this.failedAttempts,
@@ -9236,7 +9270,7 @@ class EmployeeCredentialRow extends DataClass
     return (StringBuffer('EmployeeCredentialRow(')
           ..write('id: $id, ')
           ..write('employeeId: $employeeId, ')
-          ..write('pinHash: $pinHash, ')
+          ..write('passwordHash: $passwordHash, ')
           ..write('failedAttempts: $failedAttempts, ')
           ..write('lockedUntil: $lockedUntil, ')
           ..write('lastLoginAt: $lastLoginAt')
@@ -9248,7 +9282,7 @@ class EmployeeCredentialRow extends DataClass
   int get hashCode => Object.hash(
     id,
     employeeId,
-    pinHash,
+    passwordHash,
     failedAttempts,
     lockedUntil,
     lastLoginAt,
@@ -9259,7 +9293,7 @@ class EmployeeCredentialRow extends DataClass
       (other is EmployeeCredentialRow &&
           other.id == this.id &&
           other.employeeId == this.employeeId &&
-          other.pinHash == this.pinHash &&
+          other.passwordHash == this.passwordHash &&
           other.failedAttempts == this.failedAttempts &&
           other.lockedUntil == this.lockedUntil &&
           other.lastLoginAt == this.lastLoginAt);
@@ -9269,7 +9303,7 @@ class EmployeeCredentialsCompanion
     extends UpdateCompanion<EmployeeCredentialRow> {
   final Value<String> id;
   final Value<String> employeeId;
-  final Value<String> pinHash;
+  final Value<String> passwordHash;
   final Value<int> failedAttempts;
   final Value<DateTime?> lockedUntil;
   final Value<DateTime?> lastLoginAt;
@@ -9277,7 +9311,7 @@ class EmployeeCredentialsCompanion
   const EmployeeCredentialsCompanion({
     this.id = const Value.absent(),
     this.employeeId = const Value.absent(),
-    this.pinHash = const Value.absent(),
+    this.passwordHash = const Value.absent(),
     this.failedAttempts = const Value.absent(),
     this.lockedUntil = const Value.absent(),
     this.lastLoginAt = const Value.absent(),
@@ -9286,18 +9320,18 @@ class EmployeeCredentialsCompanion
   EmployeeCredentialsCompanion.insert({
     required String id,
     required String employeeId,
-    required String pinHash,
+    required String passwordHash,
     this.failedAttempts = const Value.absent(),
     this.lockedUntil = const Value.absent(),
     this.lastLoginAt = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        employeeId = Value(employeeId),
-       pinHash = Value(pinHash);
+       passwordHash = Value(passwordHash);
   static Insertable<EmployeeCredentialRow> custom({
     Expression<String>? id,
     Expression<String>? employeeId,
-    Expression<String>? pinHash,
+    Expression<String>? passwordHash,
     Expression<int>? failedAttempts,
     Expression<DateTime>? lockedUntil,
     Expression<DateTime>? lastLoginAt,
@@ -9306,7 +9340,7 @@ class EmployeeCredentialsCompanion
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (employeeId != null) 'employee_id': employeeId,
-      if (pinHash != null) 'pin_hash': pinHash,
+      if (passwordHash != null) 'password_hash': passwordHash,
       if (failedAttempts != null) 'failed_attempts': failedAttempts,
       if (lockedUntil != null) 'locked_until': lockedUntil,
       if (lastLoginAt != null) 'last_login_at': lastLoginAt,
@@ -9317,7 +9351,7 @@ class EmployeeCredentialsCompanion
   EmployeeCredentialsCompanion copyWith({
     Value<String>? id,
     Value<String>? employeeId,
-    Value<String>? pinHash,
+    Value<String>? passwordHash,
     Value<int>? failedAttempts,
     Value<DateTime?>? lockedUntil,
     Value<DateTime?>? lastLoginAt,
@@ -9326,7 +9360,7 @@ class EmployeeCredentialsCompanion
     return EmployeeCredentialsCompanion(
       id: id ?? this.id,
       employeeId: employeeId ?? this.employeeId,
-      pinHash: pinHash ?? this.pinHash,
+      passwordHash: passwordHash ?? this.passwordHash,
       failedAttempts: failedAttempts ?? this.failedAttempts,
       lockedUntil: lockedUntil ?? this.lockedUntil,
       lastLoginAt: lastLoginAt ?? this.lastLoginAt,
@@ -9343,8 +9377,8 @@ class EmployeeCredentialsCompanion
     if (employeeId.present) {
       map['employee_id'] = Variable<String>(employeeId.value);
     }
-    if (pinHash.present) {
-      map['pin_hash'] = Variable<String>(pinHash.value);
+    if (passwordHash.present) {
+      map['password_hash'] = Variable<String>(passwordHash.value);
     }
     if (failedAttempts.present) {
       map['failed_attempts'] = Variable<int>(failedAttempts.value);
@@ -9366,7 +9400,7 @@ class EmployeeCredentialsCompanion
     return (StringBuffer('EmployeeCredentialsCompanion(')
           ..write('id: $id, ')
           ..write('employeeId: $employeeId, ')
-          ..write('pinHash: $pinHash, ')
+          ..write('passwordHash: $passwordHash, ')
           ..write('failedAttempts: $failedAttempts, ')
           ..write('lockedUntil: $lockedUntil, ')
           ..write('lastLoginAt: $lastLoginAt, ')
@@ -9467,17 +9501,6 @@ class $PayrollPeriodsTable extends PayrollPeriods
     type: DriftSqlType.double,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _totalOvertimeHoursMeta =
-      const VerificationMeta('totalOvertimeHours');
-  @override
-  late final GeneratedColumn<double> totalOvertimeHours =
-      GeneratedColumn<double>(
-        'total_overtime_hours',
-        aliasedName,
-        false,
-        type: DriftSqlType.double,
-        requiredDuringInsert: true,
-      );
   static const VerificationMeta _appliedRateMeta = const VerificationMeta(
     'appliedRate',
   );
@@ -9549,7 +9572,6 @@ class $PayrollPeriodsTable extends PayrollPeriods
     endDate,
     workedDays,
     totalWorkedHours,
-    totalOvertimeHours,
     appliedRate,
     computedAmount,
     status,
@@ -9624,17 +9646,6 @@ class $PayrollPeriodsTable extends PayrollPeriods
       );
     } else if (isInserting) {
       context.missing(_totalWorkedHoursMeta);
-    }
-    if (data.containsKey('total_overtime_hours')) {
-      context.handle(
-        _totalOvertimeHoursMeta,
-        totalOvertimeHours.isAcceptableOrUnknown(
-          data['total_overtime_hours']!,
-          _totalOvertimeHoursMeta,
-        ),
-      );
-    } else if (isInserting) {
-      context.missing(_totalOvertimeHoursMeta);
     }
     if (data.containsKey('applied_rate')) {
       context.handle(
@@ -9718,10 +9729,6 @@ class $PayrollPeriodsTable extends PayrollPeriods
         DriftSqlType.double,
         data['${effectivePrefix}total_worked_hours'],
       )!,
-      totalOvertimeHours: attachedDatabase.typeMapping.read(
-        DriftSqlType.double,
-        data['${effectivePrefix}total_overtime_hours'],
-      )!,
       appliedRate: attachedDatabase.typeMapping.read(
         DriftSqlType.double,
         data['${effectivePrefix}applied_rate'],
@@ -9771,7 +9778,6 @@ class PayrollPeriodRow extends DataClass
   final DateTime endDate;
   final int workedDays;
   final double totalWorkedHours;
-  final double totalOvertimeHours;
 
   /// Snapshot of the employee's pay (monthly EUR for `fixed`, EUR/h for
   /// `extra`) at pay time — a later raise cannot rewrite history.
@@ -9793,7 +9799,6 @@ class PayrollPeriodRow extends DataClass
     required this.endDate,
     required this.workedDays,
     required this.totalWorkedHours,
-    required this.totalOvertimeHours,
     required this.appliedRate,
     required this.computedAmount,
     required this.status,
@@ -9811,7 +9816,6 @@ class PayrollPeriodRow extends DataClass
     map['end_date'] = Variable<DateTime>(endDate);
     map['worked_days'] = Variable<int>(workedDays);
     map['total_worked_hours'] = Variable<double>(totalWorkedHours);
-    map['total_overtime_hours'] = Variable<double>(totalOvertimeHours);
     map['applied_rate'] = Variable<double>(appliedRate);
     map['computed_amount'] = Variable<double>(computedAmount);
     {
@@ -9838,7 +9842,6 @@ class PayrollPeriodRow extends DataClass
       endDate: Value(endDate),
       workedDays: Value(workedDays),
       totalWorkedHours: Value(totalWorkedHours),
-      totalOvertimeHours: Value(totalOvertimeHours),
       appliedRate: Value(appliedRate),
       computedAmount: Value(computedAmount),
       status: Value(status),
@@ -9865,9 +9868,6 @@ class PayrollPeriodRow extends DataClass
       endDate: serializer.fromJson<DateTime>(json['endDate']),
       workedDays: serializer.fromJson<int>(json['workedDays']),
       totalWorkedHours: serializer.fromJson<double>(json['totalWorkedHours']),
-      totalOvertimeHours: serializer.fromJson<double>(
-        json['totalOvertimeHours'],
-      ),
       appliedRate: serializer.fromJson<double>(json['appliedRate']),
       computedAmount: serializer.fromJson<double>(json['computedAmount']),
       status: $PayrollPeriodsTable.$converterstatus.fromJson(
@@ -9889,7 +9889,6 @@ class PayrollPeriodRow extends DataClass
       'endDate': serializer.toJson<DateTime>(endDate),
       'workedDays': serializer.toJson<int>(workedDays),
       'totalWorkedHours': serializer.toJson<double>(totalWorkedHours),
-      'totalOvertimeHours': serializer.toJson<double>(totalOvertimeHours),
       'appliedRate': serializer.toJson<double>(appliedRate),
       'computedAmount': serializer.toJson<double>(computedAmount),
       'status': serializer.toJson<String>(
@@ -9909,7 +9908,6 @@ class PayrollPeriodRow extends DataClass
     DateTime? endDate,
     int? workedDays,
     double? totalWorkedHours,
-    double? totalOvertimeHours,
     double? appliedRate,
     double? computedAmount,
     PayrollStatus? status,
@@ -9924,7 +9922,6 @@ class PayrollPeriodRow extends DataClass
     endDate: endDate ?? this.endDate,
     workedDays: workedDays ?? this.workedDays,
     totalWorkedHours: totalWorkedHours ?? this.totalWorkedHours,
-    totalOvertimeHours: totalOvertimeHours ?? this.totalOvertimeHours,
     appliedRate: appliedRate ?? this.appliedRate,
     computedAmount: computedAmount ?? this.computedAmount,
     status: status ?? this.status,
@@ -9949,9 +9946,6 @@ class PayrollPeriodRow extends DataClass
       totalWorkedHours: data.totalWorkedHours.present
           ? data.totalWorkedHours.value
           : this.totalWorkedHours,
-      totalOvertimeHours: data.totalOvertimeHours.present
-          ? data.totalOvertimeHours.value
-          : this.totalOvertimeHours,
       appliedRate: data.appliedRate.present
           ? data.appliedRate.value
           : this.appliedRate,
@@ -9977,7 +9971,6 @@ class PayrollPeriodRow extends DataClass
           ..write('endDate: $endDate, ')
           ..write('workedDays: $workedDays, ')
           ..write('totalWorkedHours: $totalWorkedHours, ')
-          ..write('totalOvertimeHours: $totalOvertimeHours, ')
           ..write('appliedRate: $appliedRate, ')
           ..write('computedAmount: $computedAmount, ')
           ..write('status: $status, ')
@@ -9997,7 +9990,6 @@ class PayrollPeriodRow extends DataClass
     endDate,
     workedDays,
     totalWorkedHours,
-    totalOvertimeHours,
     appliedRate,
     computedAmount,
     status,
@@ -10016,7 +10008,6 @@ class PayrollPeriodRow extends DataClass
           other.endDate == this.endDate &&
           other.workedDays == this.workedDays &&
           other.totalWorkedHours == this.totalWorkedHours &&
-          other.totalOvertimeHours == this.totalOvertimeHours &&
           other.appliedRate == this.appliedRate &&
           other.computedAmount == this.computedAmount &&
           other.status == this.status &&
@@ -10033,7 +10024,6 @@ class PayrollPeriodsCompanion extends UpdateCompanion<PayrollPeriodRow> {
   final Value<DateTime> endDate;
   final Value<int> workedDays;
   final Value<double> totalWorkedHours;
-  final Value<double> totalOvertimeHours;
   final Value<double> appliedRate;
   final Value<double> computedAmount;
   final Value<PayrollStatus> status;
@@ -10049,7 +10039,6 @@ class PayrollPeriodsCompanion extends UpdateCompanion<PayrollPeriodRow> {
     this.endDate = const Value.absent(),
     this.workedDays = const Value.absent(),
     this.totalWorkedHours = const Value.absent(),
-    this.totalOvertimeHours = const Value.absent(),
     this.appliedRate = const Value.absent(),
     this.computedAmount = const Value.absent(),
     this.status = const Value.absent(),
@@ -10066,7 +10055,6 @@ class PayrollPeriodsCompanion extends UpdateCompanion<PayrollPeriodRow> {
     required DateTime endDate,
     required int workedDays,
     required double totalWorkedHours,
-    required double totalOvertimeHours,
     required double appliedRate,
     required double computedAmount,
     required PayrollStatus status,
@@ -10081,7 +10069,6 @@ class PayrollPeriodsCompanion extends UpdateCompanion<PayrollPeriodRow> {
        endDate = Value(endDate),
        workedDays = Value(workedDays),
        totalWorkedHours = Value(totalWorkedHours),
-       totalOvertimeHours = Value(totalOvertimeHours),
        appliedRate = Value(appliedRate),
        computedAmount = Value(computedAmount),
        status = Value(status),
@@ -10094,7 +10081,6 @@ class PayrollPeriodsCompanion extends UpdateCompanion<PayrollPeriodRow> {
     Expression<DateTime>? endDate,
     Expression<int>? workedDays,
     Expression<double>? totalWorkedHours,
-    Expression<double>? totalOvertimeHours,
     Expression<double>? appliedRate,
     Expression<double>? computedAmount,
     Expression<String>? status,
@@ -10111,8 +10097,6 @@ class PayrollPeriodsCompanion extends UpdateCompanion<PayrollPeriodRow> {
       if (endDate != null) 'end_date': endDate,
       if (workedDays != null) 'worked_days': workedDays,
       if (totalWorkedHours != null) 'total_worked_hours': totalWorkedHours,
-      if (totalOvertimeHours != null)
-        'total_overtime_hours': totalOvertimeHours,
       if (appliedRate != null) 'applied_rate': appliedRate,
       if (computedAmount != null) 'computed_amount': computedAmount,
       if (status != null) 'status': status,
@@ -10131,7 +10115,6 @@ class PayrollPeriodsCompanion extends UpdateCompanion<PayrollPeriodRow> {
     Value<DateTime>? endDate,
     Value<int>? workedDays,
     Value<double>? totalWorkedHours,
-    Value<double>? totalOvertimeHours,
     Value<double>? appliedRate,
     Value<double>? computedAmount,
     Value<PayrollStatus>? status,
@@ -10148,7 +10131,6 @@ class PayrollPeriodsCompanion extends UpdateCompanion<PayrollPeriodRow> {
       endDate: endDate ?? this.endDate,
       workedDays: workedDays ?? this.workedDays,
       totalWorkedHours: totalWorkedHours ?? this.totalWorkedHours,
-      totalOvertimeHours: totalOvertimeHours ?? this.totalOvertimeHours,
       appliedRate: appliedRate ?? this.appliedRate,
       computedAmount: computedAmount ?? this.computedAmount,
       status: status ?? this.status,
@@ -10182,9 +10164,6 @@ class PayrollPeriodsCompanion extends UpdateCompanion<PayrollPeriodRow> {
     }
     if (totalWorkedHours.present) {
       map['total_worked_hours'] = Variable<double>(totalWorkedHours.value);
-    }
-    if (totalOvertimeHours.present) {
-      map['total_overtime_hours'] = Variable<double>(totalOvertimeHours.value);
     }
     if (appliedRate.present) {
       map['applied_rate'] = Variable<double>(appliedRate.value);
@@ -10222,7 +10201,6 @@ class PayrollPeriodsCompanion extends UpdateCompanion<PayrollPeriodRow> {
           ..write('endDate: $endDate, ')
           ..write('workedDays: $workedDays, ')
           ..write('totalWorkedHours: $totalWorkedHours, ')
-          ..write('totalOvertimeHours: $totalOvertimeHours, ')
           ..write('appliedRate: $appliedRate, ')
           ..write('computedAmount: $computedAmount, ')
           ..write('status: $status, ')
@@ -10300,48 +10278,6 @@ class $AttendancesTable extends Attendances
         type: DriftSqlType.string,
         requiredDuringInsert: true,
       ).withConverter<AttendanceStatus>($AttendancesTable.$converterstatus);
-  static const VerificationMeta _clockInAtMeta = const VerificationMeta(
-    'clockInAt',
-  );
-  @override
-  late final GeneratedColumn<DateTime> clockInAt = GeneratedColumn<DateTime>(
-    'clock_in_at',
-    aliasedName,
-    true,
-    type: DriftSqlType.dateTime,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _clockOutAtMeta = const VerificationMeta(
-    'clockOutAt',
-  );
-  @override
-  late final GeneratedColumn<DateTime> clockOutAt = GeneratedColumn<DateTime>(
-    'clock_out_at',
-    aliasedName,
-    true,
-    type: DriftSqlType.dateTime,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _scheduledStartMinutesMeta =
-      const VerificationMeta('scheduledStartMinutes');
-  @override
-  late final GeneratedColumn<int> scheduledStartMinutes = GeneratedColumn<int>(
-    'scheduled_start_minutes',
-    aliasedName,
-    true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _scheduledEndMinutesMeta =
-      const VerificationMeta('scheduledEndMinutes');
-  @override
-  late final GeneratedColumn<int> scheduledEndMinutes = GeneratedColumn<int>(
-    'scheduled_end_minutes',
-    aliasedName,
-    true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-  );
   static const VerificationMeta _maxBreakMinutesMeta = const VerificationMeta(
     'maxBreakMinutes',
   );
@@ -10374,10 +10310,6 @@ class $AttendancesTable extends Attendances
     employeeId,
     date,
     status,
-    clockInAt,
-    clockOutAt,
-    scheduledStartMinutes,
-    scheduledEndMinutes,
     maxBreakMinutes,
     payrollPeriodId,
   ];
@@ -10421,39 +10353,6 @@ class $AttendancesTable extends Attendances
       );
     } else if (isInserting) {
       context.missing(_dateMeta);
-    }
-    if (data.containsKey('clock_in_at')) {
-      context.handle(
-        _clockInAtMeta,
-        clockInAt.isAcceptableOrUnknown(data['clock_in_at']!, _clockInAtMeta),
-      );
-    }
-    if (data.containsKey('clock_out_at')) {
-      context.handle(
-        _clockOutAtMeta,
-        clockOutAt.isAcceptableOrUnknown(
-          data['clock_out_at']!,
-          _clockOutAtMeta,
-        ),
-      );
-    }
-    if (data.containsKey('scheduled_start_minutes')) {
-      context.handle(
-        _scheduledStartMinutesMeta,
-        scheduledStartMinutes.isAcceptableOrUnknown(
-          data['scheduled_start_minutes']!,
-          _scheduledStartMinutesMeta,
-        ),
-      );
-    }
-    if (data.containsKey('scheduled_end_minutes')) {
-      context.handle(
-        _scheduledEndMinutesMeta,
-        scheduledEndMinutes.isAcceptableOrUnknown(
-          data['scheduled_end_minutes']!,
-          _scheduledEndMinutesMeta,
-        ),
-      );
     }
     if (data.containsKey('max_break_minutes')) {
       context.handle(
@@ -10504,22 +10403,6 @@ class $AttendancesTable extends Attendances
           data['${effectivePrefix}status'],
         )!,
       ),
-      clockInAt: attachedDatabase.typeMapping.read(
-        DriftSqlType.dateTime,
-        data['${effectivePrefix}clock_in_at'],
-      ),
-      clockOutAt: attachedDatabase.typeMapping.read(
-        DriftSqlType.dateTime,
-        data['${effectivePrefix}clock_out_at'],
-      ),
-      scheduledStartMinutes: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}scheduled_start_minutes'],
-      ),
-      scheduledEndMinutes: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}scheduled_end_minutes'],
-      ),
       maxBreakMinutes: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}max_break_minutes'],
@@ -10549,22 +10432,15 @@ class AttendanceRow extends DataClass implements Insertable<AttendanceRow> {
   /// created.
   final DateTime date;
   final AttendanceStatus status;
-  final DateTime? clockInAt;
-  final DateTime? clockOutAt;
 
-  /// The evaluation context this day was worked in, frozen when the row is
-  /// created (schema v3): the resolved start / end of day and the break
-  /// allowance that `en retard`, `heures supp.` and `pause dépassée` are
-  /// measured against. Without it, changing the store hours or an employee's
-  /// schedule silently rewrote every past day's figures — a day that was on
-  /// time became late, real overtime vanished.
+  /// The break allowance this day was worked under, frozen when the row is
+  /// created (schema v4) so a later change to the store's setting cannot
+  /// rewrite a past day's "pause dépassée".
   ///
-  /// Null on rows created before v3 (the migration backfills them with what
+  /// Null on rows created before v4 (the migration backfills them with what
   /// they resolved to at upgrade time) and, defensively, whenever the reader
-  /// cannot resolve one — [attendance_status.dart]'s `evaluationContext` falls
-  /// back to the live resolved schedule in that case.
-  final int? scheduledStartMinutes;
-  final int? scheduledEndMinutes;
+  /// cannot resolve one — callers fall back to the store's live
+  /// `maxBreakMinutes` in that case.
   final int? maxBreakMinutes;
 
   /// Set when a [PayrollPeriods] row locks this day. While set the row is
@@ -10578,10 +10454,6 @@ class AttendanceRow extends DataClass implements Insertable<AttendanceRow> {
     required this.employeeId,
     required this.date,
     required this.status,
-    this.clockInAt,
-    this.clockOutAt,
-    this.scheduledStartMinutes,
-    this.scheduledEndMinutes,
     this.maxBreakMinutes,
     this.payrollPeriodId,
   });
@@ -10596,18 +10468,6 @@ class AttendanceRow extends DataClass implements Insertable<AttendanceRow> {
       map['status'] = Variable<String>(
         $AttendancesTable.$converterstatus.toSql(status),
       );
-    }
-    if (!nullToAbsent || clockInAt != null) {
-      map['clock_in_at'] = Variable<DateTime>(clockInAt);
-    }
-    if (!nullToAbsent || clockOutAt != null) {
-      map['clock_out_at'] = Variable<DateTime>(clockOutAt);
-    }
-    if (!nullToAbsent || scheduledStartMinutes != null) {
-      map['scheduled_start_minutes'] = Variable<int>(scheduledStartMinutes);
-    }
-    if (!nullToAbsent || scheduledEndMinutes != null) {
-      map['scheduled_end_minutes'] = Variable<int>(scheduledEndMinutes);
     }
     if (!nullToAbsent || maxBreakMinutes != null) {
       map['max_break_minutes'] = Variable<int>(maxBreakMinutes);
@@ -10625,18 +10485,6 @@ class AttendanceRow extends DataClass implements Insertable<AttendanceRow> {
       employeeId: Value(employeeId),
       date: Value(date),
       status: Value(status),
-      clockInAt: clockInAt == null && nullToAbsent
-          ? const Value.absent()
-          : Value(clockInAt),
-      clockOutAt: clockOutAt == null && nullToAbsent
-          ? const Value.absent()
-          : Value(clockOutAt),
-      scheduledStartMinutes: scheduledStartMinutes == null && nullToAbsent
-          ? const Value.absent()
-          : Value(scheduledStartMinutes),
-      scheduledEndMinutes: scheduledEndMinutes == null && nullToAbsent
-          ? const Value.absent()
-          : Value(scheduledEndMinutes),
       maxBreakMinutes: maxBreakMinutes == null && nullToAbsent
           ? const Value.absent()
           : Value(maxBreakMinutes),
@@ -10659,14 +10507,6 @@ class AttendanceRow extends DataClass implements Insertable<AttendanceRow> {
       status: $AttendancesTable.$converterstatus.fromJson(
         serializer.fromJson<String>(json['status']),
       ),
-      clockInAt: serializer.fromJson<DateTime?>(json['clockInAt']),
-      clockOutAt: serializer.fromJson<DateTime?>(json['clockOutAt']),
-      scheduledStartMinutes: serializer.fromJson<int?>(
-        json['scheduledStartMinutes'],
-      ),
-      scheduledEndMinutes: serializer.fromJson<int?>(
-        json['scheduledEndMinutes'],
-      ),
       maxBreakMinutes: serializer.fromJson<int?>(json['maxBreakMinutes']),
       payrollPeriodId: serializer.fromJson<String?>(json['payrollPeriodId']),
     );
@@ -10682,10 +10522,6 @@ class AttendanceRow extends DataClass implements Insertable<AttendanceRow> {
       'status': serializer.toJson<String>(
         $AttendancesTable.$converterstatus.toJson(status),
       ),
-      'clockInAt': serializer.toJson<DateTime?>(clockInAt),
-      'clockOutAt': serializer.toJson<DateTime?>(clockOutAt),
-      'scheduledStartMinutes': serializer.toJson<int?>(scheduledStartMinutes),
-      'scheduledEndMinutes': serializer.toJson<int?>(scheduledEndMinutes),
       'maxBreakMinutes': serializer.toJson<int?>(maxBreakMinutes),
       'payrollPeriodId': serializer.toJson<String?>(payrollPeriodId),
     };
@@ -10697,10 +10533,6 @@ class AttendanceRow extends DataClass implements Insertable<AttendanceRow> {
     String? employeeId,
     DateTime? date,
     AttendanceStatus? status,
-    Value<DateTime?> clockInAt = const Value.absent(),
-    Value<DateTime?> clockOutAt = const Value.absent(),
-    Value<int?> scheduledStartMinutes = const Value.absent(),
-    Value<int?> scheduledEndMinutes = const Value.absent(),
     Value<int?> maxBreakMinutes = const Value.absent(),
     Value<String?> payrollPeriodId = const Value.absent(),
   }) => AttendanceRow(
@@ -10709,14 +10541,6 @@ class AttendanceRow extends DataClass implements Insertable<AttendanceRow> {
     employeeId: employeeId ?? this.employeeId,
     date: date ?? this.date,
     status: status ?? this.status,
-    clockInAt: clockInAt.present ? clockInAt.value : this.clockInAt,
-    clockOutAt: clockOutAt.present ? clockOutAt.value : this.clockOutAt,
-    scheduledStartMinutes: scheduledStartMinutes.present
-        ? scheduledStartMinutes.value
-        : this.scheduledStartMinutes,
-    scheduledEndMinutes: scheduledEndMinutes.present
-        ? scheduledEndMinutes.value
-        : this.scheduledEndMinutes,
     maxBreakMinutes: maxBreakMinutes.present
         ? maxBreakMinutes.value
         : this.maxBreakMinutes,
@@ -10733,16 +10557,6 @@ class AttendanceRow extends DataClass implements Insertable<AttendanceRow> {
           : this.employeeId,
       date: data.date.present ? data.date.value : this.date,
       status: data.status.present ? data.status.value : this.status,
-      clockInAt: data.clockInAt.present ? data.clockInAt.value : this.clockInAt,
-      clockOutAt: data.clockOutAt.present
-          ? data.clockOutAt.value
-          : this.clockOutAt,
-      scheduledStartMinutes: data.scheduledStartMinutes.present
-          ? data.scheduledStartMinutes.value
-          : this.scheduledStartMinutes,
-      scheduledEndMinutes: data.scheduledEndMinutes.present
-          ? data.scheduledEndMinutes.value
-          : this.scheduledEndMinutes,
       maxBreakMinutes: data.maxBreakMinutes.present
           ? data.maxBreakMinutes.value
           : this.maxBreakMinutes,
@@ -10760,10 +10574,6 @@ class AttendanceRow extends DataClass implements Insertable<AttendanceRow> {
           ..write('employeeId: $employeeId, ')
           ..write('date: $date, ')
           ..write('status: $status, ')
-          ..write('clockInAt: $clockInAt, ')
-          ..write('clockOutAt: $clockOutAt, ')
-          ..write('scheduledStartMinutes: $scheduledStartMinutes, ')
-          ..write('scheduledEndMinutes: $scheduledEndMinutes, ')
           ..write('maxBreakMinutes: $maxBreakMinutes, ')
           ..write('payrollPeriodId: $payrollPeriodId')
           ..write(')'))
@@ -10777,10 +10587,6 @@ class AttendanceRow extends DataClass implements Insertable<AttendanceRow> {
     employeeId,
     date,
     status,
-    clockInAt,
-    clockOutAt,
-    scheduledStartMinutes,
-    scheduledEndMinutes,
     maxBreakMinutes,
     payrollPeriodId,
   );
@@ -10793,10 +10599,6 @@ class AttendanceRow extends DataClass implements Insertable<AttendanceRow> {
           other.employeeId == this.employeeId &&
           other.date == this.date &&
           other.status == this.status &&
-          other.clockInAt == this.clockInAt &&
-          other.clockOutAt == this.clockOutAt &&
-          other.scheduledStartMinutes == this.scheduledStartMinutes &&
-          other.scheduledEndMinutes == this.scheduledEndMinutes &&
           other.maxBreakMinutes == this.maxBreakMinutes &&
           other.payrollPeriodId == this.payrollPeriodId);
 }
@@ -10807,10 +10609,6 @@ class AttendancesCompanion extends UpdateCompanion<AttendanceRow> {
   final Value<String> employeeId;
   final Value<DateTime> date;
   final Value<AttendanceStatus> status;
-  final Value<DateTime?> clockInAt;
-  final Value<DateTime?> clockOutAt;
-  final Value<int?> scheduledStartMinutes;
-  final Value<int?> scheduledEndMinutes;
   final Value<int?> maxBreakMinutes;
   final Value<String?> payrollPeriodId;
   final Value<int> rowid;
@@ -10820,10 +10618,6 @@ class AttendancesCompanion extends UpdateCompanion<AttendanceRow> {
     this.employeeId = const Value.absent(),
     this.date = const Value.absent(),
     this.status = const Value.absent(),
-    this.clockInAt = const Value.absent(),
-    this.clockOutAt = const Value.absent(),
-    this.scheduledStartMinutes = const Value.absent(),
-    this.scheduledEndMinutes = const Value.absent(),
     this.maxBreakMinutes = const Value.absent(),
     this.payrollPeriodId = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -10834,10 +10628,6 @@ class AttendancesCompanion extends UpdateCompanion<AttendanceRow> {
     required String employeeId,
     required DateTime date,
     required AttendanceStatus status,
-    this.clockInAt = const Value.absent(),
-    this.clockOutAt = const Value.absent(),
-    this.scheduledStartMinutes = const Value.absent(),
-    this.scheduledEndMinutes = const Value.absent(),
     this.maxBreakMinutes = const Value.absent(),
     this.payrollPeriodId = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -10852,10 +10642,6 @@ class AttendancesCompanion extends UpdateCompanion<AttendanceRow> {
     Expression<String>? employeeId,
     Expression<DateTime>? date,
     Expression<String>? status,
-    Expression<DateTime>? clockInAt,
-    Expression<DateTime>? clockOutAt,
-    Expression<int>? scheduledStartMinutes,
-    Expression<int>? scheduledEndMinutes,
     Expression<int>? maxBreakMinutes,
     Expression<String>? payrollPeriodId,
     Expression<int>? rowid,
@@ -10866,12 +10652,6 @@ class AttendancesCompanion extends UpdateCompanion<AttendanceRow> {
       if (employeeId != null) 'employee_id': employeeId,
       if (date != null) 'date': date,
       if (status != null) 'status': status,
-      if (clockInAt != null) 'clock_in_at': clockInAt,
-      if (clockOutAt != null) 'clock_out_at': clockOutAt,
-      if (scheduledStartMinutes != null)
-        'scheduled_start_minutes': scheduledStartMinutes,
-      if (scheduledEndMinutes != null)
-        'scheduled_end_minutes': scheduledEndMinutes,
       if (maxBreakMinutes != null) 'max_break_minutes': maxBreakMinutes,
       if (payrollPeriodId != null) 'payroll_period_id': payrollPeriodId,
       if (rowid != null) 'rowid': rowid,
@@ -10884,10 +10664,6 @@ class AttendancesCompanion extends UpdateCompanion<AttendanceRow> {
     Value<String>? employeeId,
     Value<DateTime>? date,
     Value<AttendanceStatus>? status,
-    Value<DateTime?>? clockInAt,
-    Value<DateTime?>? clockOutAt,
-    Value<int?>? scheduledStartMinutes,
-    Value<int?>? scheduledEndMinutes,
     Value<int?>? maxBreakMinutes,
     Value<String?>? payrollPeriodId,
     Value<int>? rowid,
@@ -10898,11 +10674,6 @@ class AttendancesCompanion extends UpdateCompanion<AttendanceRow> {
       employeeId: employeeId ?? this.employeeId,
       date: date ?? this.date,
       status: status ?? this.status,
-      clockInAt: clockInAt ?? this.clockInAt,
-      clockOutAt: clockOutAt ?? this.clockOutAt,
-      scheduledStartMinutes:
-          scheduledStartMinutes ?? this.scheduledStartMinutes,
-      scheduledEndMinutes: scheduledEndMinutes ?? this.scheduledEndMinutes,
       maxBreakMinutes: maxBreakMinutes ?? this.maxBreakMinutes,
       payrollPeriodId: payrollPeriodId ?? this.payrollPeriodId,
       rowid: rowid ?? this.rowid,
@@ -10929,20 +10700,6 @@ class AttendancesCompanion extends UpdateCompanion<AttendanceRow> {
         $AttendancesTable.$converterstatus.toSql(status.value),
       );
     }
-    if (clockInAt.present) {
-      map['clock_in_at'] = Variable<DateTime>(clockInAt.value);
-    }
-    if (clockOutAt.present) {
-      map['clock_out_at'] = Variable<DateTime>(clockOutAt.value);
-    }
-    if (scheduledStartMinutes.present) {
-      map['scheduled_start_minutes'] = Variable<int>(
-        scheduledStartMinutes.value,
-      );
-    }
-    if (scheduledEndMinutes.present) {
-      map['scheduled_end_minutes'] = Variable<int>(scheduledEndMinutes.value);
-    }
     if (maxBreakMinutes.present) {
       map['max_break_minutes'] = Variable<int>(maxBreakMinutes.value);
     }
@@ -10963,10 +10720,6 @@ class AttendancesCompanion extends UpdateCompanion<AttendanceRow> {
           ..write('employeeId: $employeeId, ')
           ..write('date: $date, ')
           ..write('status: $status, ')
-          ..write('clockInAt: $clockInAt, ')
-          ..write('clockOutAt: $clockOutAt, ')
-          ..write('scheduledStartMinutes: $scheduledStartMinutes, ')
-          ..write('scheduledEndMinutes: $scheduledEndMinutes, ')
           ..write('maxBreakMinutes: $maxBreakMinutes, ')
           ..write('payrollPeriodId: $payrollPeriodId, ')
           ..write('rowid: $rowid')
@@ -10975,12 +10728,12 @@ class AttendancesCompanion extends UpdateCompanion<AttendanceRow> {
   }
 }
 
-class $AttendancePausesTable extends AttendancePauses
-    with TableInfo<$AttendancePausesTable, AttendancePauseRow> {
+class $AttendanceSessionsTable extends AttendanceSessions
+    with TableInfo<$AttendanceSessionsTable, AttendanceSessionRow> {
   @override
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
-  $AttendancePausesTable(this.attachedDatabase, [this._alias]);
+  $AttendanceSessionsTable(this.attachedDatabase, [this._alias]);
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
   late final GeneratedColumn<String> id = GeneratedColumn<String>(
@@ -11019,6 +10772,389 @@ class $AttendancePausesTable extends AttendancePauses
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _clockInAtMeta = const VerificationMeta(
+    'clockInAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> clockInAt = GeneratedColumn<DateTime>(
+    'clock_in_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _clockOutAtMeta = const VerificationMeta(
+    'clockOutAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> clockOutAt = GeneratedColumn<DateTime>(
+    'clock_out_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    attendanceId,
+    position,
+    clockInAt,
+    clockOutAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'attendance_sessions';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<AttendanceSessionRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('attendance_id')) {
+      context.handle(
+        _attendanceIdMeta,
+        attendanceId.isAcceptableOrUnknown(
+          data['attendance_id']!,
+          _attendanceIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_attendanceIdMeta);
+    }
+    if (data.containsKey('position')) {
+      context.handle(
+        _positionMeta,
+        position.isAcceptableOrUnknown(data['position']!, _positionMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_positionMeta);
+    }
+    if (data.containsKey('clock_in_at')) {
+      context.handle(
+        _clockInAtMeta,
+        clockInAt.isAcceptableOrUnknown(data['clock_in_at']!, _clockInAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_clockInAtMeta);
+    }
+    if (data.containsKey('clock_out_at')) {
+      context.handle(
+        _clockOutAtMeta,
+        clockOutAt.isAcceptableOrUnknown(
+          data['clock_out_at']!,
+          _clockOutAtMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  AttendanceSessionRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return AttendanceSessionRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      attendanceId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}attendance_id'],
+      )!,
+      position: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}position'],
+      )!,
+      clockInAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}clock_in_at'],
+      )!,
+      clockOutAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}clock_out_at'],
+      ),
+    );
+  }
+
+  @override
+  $AttendanceSessionsTable createAlias(String alias) {
+    return $AttendanceSessionsTable(attachedDatabase, alias);
+  }
+}
+
+class AttendanceSessionRow extends DataClass
+    implements Insertable<AttendanceSessionRow> {
+  final String id;
+  final String attendanceId;
+  final int position;
+  final DateTime clockInAt;
+  final DateTime? clockOutAt;
+  const AttendanceSessionRow({
+    required this.id,
+    required this.attendanceId,
+    required this.position,
+    required this.clockInAt,
+    this.clockOutAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['attendance_id'] = Variable<String>(attendanceId);
+    map['position'] = Variable<int>(position);
+    map['clock_in_at'] = Variable<DateTime>(clockInAt);
+    if (!nullToAbsent || clockOutAt != null) {
+      map['clock_out_at'] = Variable<DateTime>(clockOutAt);
+    }
+    return map;
+  }
+
+  AttendanceSessionsCompanion toCompanion(bool nullToAbsent) {
+    return AttendanceSessionsCompanion(
+      id: Value(id),
+      attendanceId: Value(attendanceId),
+      position: Value(position),
+      clockInAt: Value(clockInAt),
+      clockOutAt: clockOutAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(clockOutAt),
+    );
+  }
+
+  factory AttendanceSessionRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return AttendanceSessionRow(
+      id: serializer.fromJson<String>(json['id']),
+      attendanceId: serializer.fromJson<String>(json['attendanceId']),
+      position: serializer.fromJson<int>(json['position']),
+      clockInAt: serializer.fromJson<DateTime>(json['clockInAt']),
+      clockOutAt: serializer.fromJson<DateTime?>(json['clockOutAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'attendanceId': serializer.toJson<String>(attendanceId),
+      'position': serializer.toJson<int>(position),
+      'clockInAt': serializer.toJson<DateTime>(clockInAt),
+      'clockOutAt': serializer.toJson<DateTime?>(clockOutAt),
+    };
+  }
+
+  AttendanceSessionRow copyWith({
+    String? id,
+    String? attendanceId,
+    int? position,
+    DateTime? clockInAt,
+    Value<DateTime?> clockOutAt = const Value.absent(),
+  }) => AttendanceSessionRow(
+    id: id ?? this.id,
+    attendanceId: attendanceId ?? this.attendanceId,
+    position: position ?? this.position,
+    clockInAt: clockInAt ?? this.clockInAt,
+    clockOutAt: clockOutAt.present ? clockOutAt.value : this.clockOutAt,
+  );
+  AttendanceSessionRow copyWithCompanion(AttendanceSessionsCompanion data) {
+    return AttendanceSessionRow(
+      id: data.id.present ? data.id.value : this.id,
+      attendanceId: data.attendanceId.present
+          ? data.attendanceId.value
+          : this.attendanceId,
+      position: data.position.present ? data.position.value : this.position,
+      clockInAt: data.clockInAt.present ? data.clockInAt.value : this.clockInAt,
+      clockOutAt: data.clockOutAt.present
+          ? data.clockOutAt.value
+          : this.clockOutAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AttendanceSessionRow(')
+          ..write('id: $id, ')
+          ..write('attendanceId: $attendanceId, ')
+          ..write('position: $position, ')
+          ..write('clockInAt: $clockInAt, ')
+          ..write('clockOutAt: $clockOutAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, attendanceId, position, clockInAt, clockOutAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is AttendanceSessionRow &&
+          other.id == this.id &&
+          other.attendanceId == this.attendanceId &&
+          other.position == this.position &&
+          other.clockInAt == this.clockInAt &&
+          other.clockOutAt == this.clockOutAt);
+}
+
+class AttendanceSessionsCompanion
+    extends UpdateCompanion<AttendanceSessionRow> {
+  final Value<String> id;
+  final Value<String> attendanceId;
+  final Value<int> position;
+  final Value<DateTime> clockInAt;
+  final Value<DateTime?> clockOutAt;
+  final Value<int> rowid;
+  const AttendanceSessionsCompanion({
+    this.id = const Value.absent(),
+    this.attendanceId = const Value.absent(),
+    this.position = const Value.absent(),
+    this.clockInAt = const Value.absent(),
+    this.clockOutAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  AttendanceSessionsCompanion.insert({
+    required String id,
+    required String attendanceId,
+    required int position,
+    required DateTime clockInAt,
+    this.clockOutAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       attendanceId = Value(attendanceId),
+       position = Value(position),
+       clockInAt = Value(clockInAt);
+  static Insertable<AttendanceSessionRow> custom({
+    Expression<String>? id,
+    Expression<String>? attendanceId,
+    Expression<int>? position,
+    Expression<DateTime>? clockInAt,
+    Expression<DateTime>? clockOutAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (attendanceId != null) 'attendance_id': attendanceId,
+      if (position != null) 'position': position,
+      if (clockInAt != null) 'clock_in_at': clockInAt,
+      if (clockOutAt != null) 'clock_out_at': clockOutAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  AttendanceSessionsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? attendanceId,
+    Value<int>? position,
+    Value<DateTime>? clockInAt,
+    Value<DateTime?>? clockOutAt,
+    Value<int>? rowid,
+  }) {
+    return AttendanceSessionsCompanion(
+      id: id ?? this.id,
+      attendanceId: attendanceId ?? this.attendanceId,
+      position: position ?? this.position,
+      clockInAt: clockInAt ?? this.clockInAt,
+      clockOutAt: clockOutAt ?? this.clockOutAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (attendanceId.present) {
+      map['attendance_id'] = Variable<String>(attendanceId.value);
+    }
+    if (position.present) {
+      map['position'] = Variable<int>(position.value);
+    }
+    if (clockInAt.present) {
+      map['clock_in_at'] = Variable<DateTime>(clockInAt.value);
+    }
+    if (clockOutAt.present) {
+      map['clock_out_at'] = Variable<DateTime>(clockOutAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AttendanceSessionsCompanion(')
+          ..write('id: $id, ')
+          ..write('attendanceId: $attendanceId, ')
+          ..write('position: $position, ')
+          ..write('clockInAt: $clockInAt, ')
+          ..write('clockOutAt: $clockOutAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $AttendancePausesTable extends AttendancePauses
+    with TableInfo<$AttendancePausesTable, AttendancePauseRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $AttendancePausesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(
+      minTextLength: 1,
+      maxTextLength: 64,
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sessionIdMeta = const VerificationMeta(
+    'sessionId',
+  );
+  @override
+  late final GeneratedColumn<String> sessionId = GeneratedColumn<String>(
+    'session_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES attendance_sessions (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _positionMeta = const VerificationMeta(
+    'position',
+  );
+  @override
+  late final GeneratedColumn<int> position = GeneratedColumn<int>(
+    'position',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
   static const VerificationMeta _startAtMeta = const VerificationMeta(
     'startAt',
   );
@@ -11042,7 +11178,7 @@ class $AttendancePausesTable extends AttendancePauses
   @override
   List<GeneratedColumn> get $columns => [
     id,
-    attendanceId,
+    sessionId,
     position,
     startAt,
     endAt,
@@ -11064,16 +11200,13 @@ class $AttendancePausesTable extends AttendancePauses
     } else if (isInserting) {
       context.missing(_idMeta);
     }
-    if (data.containsKey('attendance_id')) {
+    if (data.containsKey('session_id')) {
       context.handle(
-        _attendanceIdMeta,
-        attendanceId.isAcceptableOrUnknown(
-          data['attendance_id']!,
-          _attendanceIdMeta,
-        ),
+        _sessionIdMeta,
+        sessionId.isAcceptableOrUnknown(data['session_id']!, _sessionIdMeta),
       );
     } else if (isInserting) {
-      context.missing(_attendanceIdMeta);
+      context.missing(_sessionIdMeta);
     }
     if (data.containsKey('position')) {
       context.handle(
@@ -11110,9 +11243,9 @@ class $AttendancePausesTable extends AttendancePauses
         DriftSqlType.string,
         data['${effectivePrefix}id'],
       )!,
-      attendanceId: attachedDatabase.typeMapping.read(
+      sessionId: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
-        data['${effectivePrefix}attendance_id'],
+        data['${effectivePrefix}session_id'],
       )!,
       position: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
@@ -11138,13 +11271,13 @@ class $AttendancePausesTable extends AttendancePauses
 class AttendancePauseRow extends DataClass
     implements Insertable<AttendancePauseRow> {
   final String id;
-  final String attendanceId;
+  final String sessionId;
   final int position;
   final DateTime startAt;
   final DateTime? endAt;
   const AttendancePauseRow({
     required this.id,
-    required this.attendanceId,
+    required this.sessionId,
     required this.position,
     required this.startAt,
     this.endAt,
@@ -11153,7 +11286,7 @@ class AttendancePauseRow extends DataClass
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<String>(id);
-    map['attendance_id'] = Variable<String>(attendanceId);
+    map['session_id'] = Variable<String>(sessionId);
     map['position'] = Variable<int>(position);
     map['start_at'] = Variable<DateTime>(startAt);
     if (!nullToAbsent || endAt != null) {
@@ -11165,7 +11298,7 @@ class AttendancePauseRow extends DataClass
   AttendancePausesCompanion toCompanion(bool nullToAbsent) {
     return AttendancePausesCompanion(
       id: Value(id),
-      attendanceId: Value(attendanceId),
+      sessionId: Value(sessionId),
       position: Value(position),
       startAt: Value(startAt),
       endAt: endAt == null && nullToAbsent
@@ -11181,7 +11314,7 @@ class AttendancePauseRow extends DataClass
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return AttendancePauseRow(
       id: serializer.fromJson<String>(json['id']),
-      attendanceId: serializer.fromJson<String>(json['attendanceId']),
+      sessionId: serializer.fromJson<String>(json['sessionId']),
       position: serializer.fromJson<int>(json['position']),
       startAt: serializer.fromJson<DateTime>(json['startAt']),
       endAt: serializer.fromJson<DateTime?>(json['endAt']),
@@ -11192,7 +11325,7 @@ class AttendancePauseRow extends DataClass
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'id': serializer.toJson<String>(id),
-      'attendanceId': serializer.toJson<String>(attendanceId),
+      'sessionId': serializer.toJson<String>(sessionId),
       'position': serializer.toJson<int>(position),
       'startAt': serializer.toJson<DateTime>(startAt),
       'endAt': serializer.toJson<DateTime?>(endAt),
@@ -11201,13 +11334,13 @@ class AttendancePauseRow extends DataClass
 
   AttendancePauseRow copyWith({
     String? id,
-    String? attendanceId,
+    String? sessionId,
     int? position,
     DateTime? startAt,
     Value<DateTime?> endAt = const Value.absent(),
   }) => AttendancePauseRow(
     id: id ?? this.id,
-    attendanceId: attendanceId ?? this.attendanceId,
+    sessionId: sessionId ?? this.sessionId,
     position: position ?? this.position,
     startAt: startAt ?? this.startAt,
     endAt: endAt.present ? endAt.value : this.endAt,
@@ -11215,9 +11348,7 @@ class AttendancePauseRow extends DataClass
   AttendancePauseRow copyWithCompanion(AttendancePausesCompanion data) {
     return AttendancePauseRow(
       id: data.id.present ? data.id.value : this.id,
-      attendanceId: data.attendanceId.present
-          ? data.attendanceId.value
-          : this.attendanceId,
+      sessionId: data.sessionId.present ? data.sessionId.value : this.sessionId,
       position: data.position.present ? data.position.value : this.position,
       startAt: data.startAt.present ? data.startAt.value : this.startAt,
       endAt: data.endAt.present ? data.endAt.value : this.endAt,
@@ -11228,7 +11359,7 @@ class AttendancePauseRow extends DataClass
   String toString() {
     return (StringBuffer('AttendancePauseRow(')
           ..write('id: $id, ')
-          ..write('attendanceId: $attendanceId, ')
+          ..write('sessionId: $sessionId, ')
           ..write('position: $position, ')
           ..write('startAt: $startAt, ')
           ..write('endAt: $endAt')
@@ -11237,13 +11368,13 @@ class AttendancePauseRow extends DataClass
   }
 
   @override
-  int get hashCode => Object.hash(id, attendanceId, position, startAt, endAt);
+  int get hashCode => Object.hash(id, sessionId, position, startAt, endAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is AttendancePauseRow &&
           other.id == this.id &&
-          other.attendanceId == this.attendanceId &&
+          other.sessionId == this.sessionId &&
           other.position == this.position &&
           other.startAt == this.startAt &&
           other.endAt == this.endAt);
@@ -11251,14 +11382,14 @@ class AttendancePauseRow extends DataClass
 
 class AttendancePausesCompanion extends UpdateCompanion<AttendancePauseRow> {
   final Value<String> id;
-  final Value<String> attendanceId;
+  final Value<String> sessionId;
   final Value<int> position;
   final Value<DateTime> startAt;
   final Value<DateTime?> endAt;
   final Value<int> rowid;
   const AttendancePausesCompanion({
     this.id = const Value.absent(),
-    this.attendanceId = const Value.absent(),
+    this.sessionId = const Value.absent(),
     this.position = const Value.absent(),
     this.startAt = const Value.absent(),
     this.endAt = const Value.absent(),
@@ -11266,18 +11397,18 @@ class AttendancePausesCompanion extends UpdateCompanion<AttendancePauseRow> {
   });
   AttendancePausesCompanion.insert({
     required String id,
-    required String attendanceId,
+    required String sessionId,
     required int position,
     required DateTime startAt,
     this.endAt = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
-       attendanceId = Value(attendanceId),
+       sessionId = Value(sessionId),
        position = Value(position),
        startAt = Value(startAt);
   static Insertable<AttendancePauseRow> custom({
     Expression<String>? id,
-    Expression<String>? attendanceId,
+    Expression<String>? sessionId,
     Expression<int>? position,
     Expression<DateTime>? startAt,
     Expression<DateTime>? endAt,
@@ -11285,7 +11416,7 @@ class AttendancePausesCompanion extends UpdateCompanion<AttendancePauseRow> {
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
-      if (attendanceId != null) 'attendance_id': attendanceId,
+      if (sessionId != null) 'session_id': sessionId,
       if (position != null) 'position': position,
       if (startAt != null) 'start_at': startAt,
       if (endAt != null) 'end_at': endAt,
@@ -11295,7 +11426,7 @@ class AttendancePausesCompanion extends UpdateCompanion<AttendancePauseRow> {
 
   AttendancePausesCompanion copyWith({
     Value<String>? id,
-    Value<String>? attendanceId,
+    Value<String>? sessionId,
     Value<int>? position,
     Value<DateTime>? startAt,
     Value<DateTime?>? endAt,
@@ -11303,7 +11434,7 @@ class AttendancePausesCompanion extends UpdateCompanion<AttendancePauseRow> {
   }) {
     return AttendancePausesCompanion(
       id: id ?? this.id,
-      attendanceId: attendanceId ?? this.attendanceId,
+      sessionId: sessionId ?? this.sessionId,
       position: position ?? this.position,
       startAt: startAt ?? this.startAt,
       endAt: endAt ?? this.endAt,
@@ -11317,8 +11448,8 @@ class AttendancePausesCompanion extends UpdateCompanion<AttendancePauseRow> {
     if (id.present) {
       map['id'] = Variable<String>(id.value);
     }
-    if (attendanceId.present) {
-      map['attendance_id'] = Variable<String>(attendanceId.value);
+    if (sessionId.present) {
+      map['session_id'] = Variable<String>(sessionId.value);
     }
     if (position.present) {
       map['position'] = Variable<int>(position.value);
@@ -11339,7 +11470,7 @@ class AttendancePausesCompanion extends UpdateCompanion<AttendancePauseRow> {
   String toString() {
     return (StringBuffer('AttendancePausesCompanion(')
           ..write('id: $id, ')
-          ..write('attendanceId: $attendanceId, ')
+          ..write('sessionId: $sessionId, ')
           ..write('position: $position, ')
           ..write('startAt: $startAt, ')
           ..write('endAt: $endAt, ')
@@ -11372,6 +11503,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       $EmployeeCredentialsTable(this);
   late final $PayrollPeriodsTable payrollPeriods = $PayrollPeriodsTable(this);
   late final $AttendancesTable attendances = $AttendancesTable(this);
+  late final $AttendanceSessionsTable attendanceSessions =
+      $AttendanceSessionsTable(this);
   late final $AttendancePausesTable attendancePauses = $AttendancePausesTable(
     this,
   );
@@ -11463,9 +11596,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     'employees_store',
     'CREATE INDEX employees_store ON employees (store_id)',
   );
-  late final Index employeesCin = Index(
-    'employees_cin',
-    'CREATE UNIQUE INDEX employees_cin ON employees (cin)',
+  late final Index employeesPin = Index(
+    'employees_pin',
+    'CREATE UNIQUE INDEX employees_pin ON employees (pin)',
   );
   late final Index employeesEmail = Index(
     'employees_email',
@@ -11491,9 +11624,13 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     'attendances_store_date',
     'CREATE INDEX attendances_store_date ON attendances (store_id, date)',
   );
-  late final Index attendancePausesAttendance = Index(
-    'attendance_pauses_attendance',
-    'CREATE UNIQUE INDEX attendance_pauses_attendance ON attendance_pauses (attendance_id, position)',
+  late final Index attendanceSessionsAttendance = Index(
+    'attendance_sessions_attendance',
+    'CREATE UNIQUE INDEX attendance_sessions_attendance ON attendance_sessions (attendance_id, position)',
+  );
+  late final Index attendancePausesSession = Index(
+    'attendance_pauses_session',
+    'CREATE UNIQUE INDEX attendance_pauses_session ON attendance_pauses (session_id, position)',
   );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
@@ -11518,6 +11655,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     employeeCredentials,
     payrollPeriods,
     attendances,
+    attendanceSessions,
     attendancePauses,
     itemsStore,
     itemsStoreBarcode,
@@ -11541,14 +11679,15 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     goodsReceiptLinesItem,
     notificationsStoreTime,
     employeesStore,
-    employeesCin,
+    employeesPin,
     employeesEmail,
     employeeCredentialsEmployee,
     payrollPeriodsEmployee,
     payrollPeriodsStore,
     attendancesEmployeeDate,
     attendancesStoreDate,
-    attendancePausesAttendance,
+    attendanceSessionsAttendance,
+    attendancePausesSession,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -11702,6 +11841,13 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     WritePropagation(
       on: TableUpdateQuery.onTableName(
         'attendances',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('attendance_sessions', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'attendance_sessions',
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('attendance_pauses', kind: UpdateKind.delete)],

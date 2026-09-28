@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:drift/drift.dart';
 
 import '../../core/utils/order_status.dart';
@@ -7,8 +8,10 @@ import '../../models/purchase_order.dart';
 import '../../models/purchase_order_line.dart';
 import '../database/app_database.dart';
 import '../mappers/mappers.dart';
+import '../notifications/notification_engine.dart';
 import '../view_models/item_detail_views.dart';
 import '../view_models/order_detail_view.dart';
+import '../view_models/order_document_sources.dart';
 import '../view_models/receipt_document_sources.dart';
 import 'account_repository.dart';
 import 'movement_repository.dart';
@@ -263,6 +266,59 @@ class OrderRepository {
     _db.goodsReceipts.id.equals(id),
   ).get().then((rows) => _assembleReceipts(rows).firstOrNull);
 
+  /// Every delivery received in the store, **newest first**, each with its
+  /// quotable number, its commande and supplier, its value and how many of
+  /// its lines did not match — the Réceptions page's history.
+  ///
+  /// The number after the slash is still the receipt's position among its own
+  /// commande's deliveries, oldest first, so it matches the bon de réception.
+  Stream<List<StoreReceiptRowView>> watchStoreReceiptRows(String storeId) =>
+      _receipts(_db.goodsReceipts.storeId.equals(storeId))
+          .watch()
+          .map(_assembleReceipts)
+          .asyncMap((receipts) async {
+            final orderIds = {for (final r in receipts) r.orderId};
+            final orderRows = orderIds.isEmpty
+                ? const <PurchaseOrderRow>[]
+                : await (_db.select(
+                    _db.purchaseOrders,
+                  )..where((o) => o.id.isIn(orderIds))).get();
+            final ordersById = {for (final o in orderRows) o.id: o};
+            final names = await _supplierNames({
+              for (final o in orderRows) o.supplierId,
+            });
+
+            // Position within each commande, oldest first — the receipts
+            // arrive in that order from the query.
+            final sequence = <String, int>{};
+            final numbered = <String, int>{};
+            for (final receipt in receipts) {
+              final next = (sequence[receipt.orderId] ?? 0) + 1;
+              sequence[receipt.orderId] = next;
+              numbered[receipt.id] = next;
+            }
+
+            final rows = [
+              for (final receipt in receipts)
+                StoreReceiptRowView(
+                  receipt: receipt,
+                  reference: ordersById[receipt.orderId] == null
+                      ? 'BR-${receipt.id}'
+                      : receiptReference(
+                          ordersById[receipt.orderId]!.reference,
+                          numbered[receipt.id]!,
+                        ),
+                  orderReference:
+                      ordersById[receipt.orderId]?.reference ?? '—',
+                  supplierName:
+                      names[ordersById[receipt.orderId]?.supplierId] ?? '—',
+                  value: receiptValue(receipt),
+                  discrepancies: receiptDiscrepancyCount(receipt),
+                ),
+            ];
+            return rows.reversed.toList();
+          });
+
   /// The quotable number for one delivery — `BR-2026-014/2`.
   ///
   /// Resolves the receipt's position among its commande's deliveries and hands
@@ -405,14 +461,37 @@ class OrderRepository {
     );
   }
 
+  /// What the bon de commande needs: the store, the supplier, and each
+  /// article's name and unit. Null when the store or supplier is gone.
+  Future<OrderDocumentSources?> orderDocumentSources(
+    PurchaseOrder order,
+  ) async {
+    final store = await StoreRepository(_db).store(order.storeId);
+    if (store == null) return null;
+
+    final supplier = await SupplierRepository(_db).supplier(order.supplierId);
+    if (supplier == null) return null;
+
+    return OrderDocumentSources(
+      order: order,
+      store: store,
+      supplier: supplier,
+      items: await _itemsNamed({for (final line in order.lines) line.itemId}),
+    );
+  }
+
   /// Name and unit abbreviation for every article on a delivery.
   ///
   /// A left join, so an article whose unit has been deleted still yields a name.
   /// An article deleted outright is simply absent from the map — the document
   /// prints a dash for it, because a receipt is evidence and the evidence
   /// outlives the catalogue entry.
-  Future<Map<String, ReceiptDocumentItem>> _itemsOn(GoodsReceipt receipt) async {
-    final ids = {for (final line in receipt.lines) line.itemId};
+  Future<Map<String, ReceiptDocumentItem>> _itemsOn(GoodsReceipt receipt) =>
+      _itemsNamed({for (final line in receipt.lines) line.itemId});
+
+  /// Name and unit abbreviation for each of [ids] — the lookup both documents
+  /// share.
+  Future<Map<String, ReceiptDocumentItem>> _itemsNamed(Set<String> ids) async {
     if (ids.isEmpty) return const {};
 
     final rows =
@@ -453,7 +532,7 @@ class OrderRepository {
         // such protection, which was safe only because nothing was concurrent.
         reference: await _nextReference(),
         status: PurchaseOrderStatus.draft,
-        createdAt: DateTime.now(),
+        createdAt: clock.now(),
         lines: List.of(lines),
         note: note,
       );
@@ -521,7 +600,7 @@ class OrderRepository {
       )..where((o) => o.id.equals(orderId))).write(
         PurchaseOrdersCompanion(
           status: const Value(PurchaseOrderStatus.sent),
-          sentAt: Value(DateTime.now()),
+          sentAt: Value(clock.now()),
         ),
       );
       return order(orderId);
@@ -564,7 +643,7 @@ class OrderRepository {
       )..where((o) => o.id.equals(orderId))).write(
         PurchaseOrdersCompanion(
           status: const Value(PurchaseOrderStatus.cancelled),
-          closedAt: Value(DateTime.now()),
+          closedAt: Value(clock.now()),
         ),
       );
       return order(orderId);
@@ -597,7 +676,7 @@ class OrderRepository {
       )..where((o) => o.id.equals(orderId))).write(
         PurchaseOrdersCompanion(
           status: const Value(PurchaseOrderStatus.received),
-          closedAt: Value(DateTime.now()),
+          closedAt: Value(clock.now()),
         ),
       );
       return order(orderId);
@@ -652,6 +731,7 @@ class OrderRepository {
     required String orderId,
     required List<ReceiptDraftLine> lines,
     String? receivedByName,
+    String? receivedByEmployeeId,
     String? note,
   }) async {
     final receivedBy =
@@ -661,7 +741,7 @@ class OrderRepository {
       final existing = await order(orderId);
       if (existing == null || !orderCanReceive(existing)) return null;
 
-      final now = DateTime.now();
+      final now = clock.now();
       final receiptId = newId();
 
       final receiptLines = [
@@ -684,6 +764,7 @@ class OrderRepository {
         storeId: existing.storeId,
         receivedAt: now,
         receivedByName: receivedBy,
+        receivedByEmployeeId: receivedByEmployeeId,
         lines: receiptLines,
         note: note,
       );
@@ -712,6 +793,7 @@ class OrderRepository {
           unitPrice: line.actualUnitPrice,
           occurredAt: now,
           userName: receivedBy,
+          employeeId: receivedByEmployeeId,
           orderId: existing.id,
           receiptId: receiptId,
           note: line.note,
@@ -726,6 +808,22 @@ class OrderRepository {
       }
 
       await _applyReceiptToOrder(existing, lines, closedAt: now);
+
+      // One entry for the delivery, after everything it caused has been
+      // applied. The stock-ins above each notified their own crossing, which is
+      // the useful half; this is the receipt itself, and it is the kind that
+      // ships switched off.
+      final supplier = await SupplierRepository(_db).supplier(existing.supplierId);
+      if (supplier != null) {
+        await NotificationEngine(_db).deliveryReceived(
+          storeId: existing.storeId,
+          supplierId: supplier.id,
+          supplierName: supplier.name,
+          lineCount: receiptLines.where((l) => l.quantityReceived > 0).length,
+          receivedBy: receivedBy,
+        );
+      }
+
       return receipt;
     });
   }
@@ -898,7 +996,7 @@ class OrderRepository {
       if (value > highest) highest = value;
     }
 
-    final year = DateTime.now().year;
+    final year = clock.now().year;
     return 'CMD-$year-${(highest + 1).toString().padLeft(3, '0')}';
   }
   // ---------------------------------------------------------------------------

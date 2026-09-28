@@ -27,7 +27,6 @@ class PayrollPeriods extends Table {
 
   IntColumn get workedDays => integer()();
   RealColumn get totalWorkedHours => real()();
-  RealColumn get totalOvertimeHours => real()();
 
   /// Snapshot of the employee's pay (monthly EUR for `fixed`, EUR/h for
   /// `extra`) at pay time — a later raise cannot rewrite history.

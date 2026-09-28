@@ -9,7 +9,7 @@ import '../../core/theme/app_spacing.dart';
 /// keeps the horizontal overflow *inside* the table — the page itself must
 /// never scroll sideways, which on a tablet is disorienting and easy to trigger
 /// by accident with a stray thumb.
-class DataTableWrapper extends StatelessWidget {
+class DataTableWrapper extends StatefulWidget {
   const DataTableWrapper({
     required this.columns,
     required this.rows,
@@ -29,12 +29,53 @@ class DataTableWrapper extends StatelessWidget {
   final bool sortAscending;
 
   @override
+  State<DataTableWrapper> createState() => _DataTableWrapperState();
+}
+
+class _DataTableWrapperState extends State<DataTableWrapper> {
+  /// Owned here rather than left implicit: a `Scrollbar` and the view it
+  /// controls must share one controller, and an inherited `PrimaryScrollController`
+  /// belongs to the page's vertical scroll, not this horizontal one.
+  final _controller = ScrollController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  /// Hairline width for the table's frame and row dividers.
+  static const double _rule = 0.5;
+
+  /// A row that opens something gets the hand cursor, like a link — callers
+  /// build their rows without having to remember it.
+  static DataRow _withCursor(DataRow row) {
+    if (row.onSelectChanged == null || row.mouseCursor != null) return row;
+    return DataRow(
+      key: row.key,
+      selected: row.selected,
+      onSelectChanged: row.onSelectChanged,
+      onLongPress: row.onLongPress,
+      color: row.color,
+      mouseCursor: const WidgetStatePropertyAll(SystemMouseCursors.click),
+      cells: row.cells,
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final columns = widget.columns;
+    final rows = [for (final row in widget.rows) _withCursor(row)];
+    final minWidth = widget.minWidth;
+    final sortColumnIndex = widget.sortColumnIndex;
+    final sortAscending = widget.sortAscending;
+
+    // Square corners and a hairline frame: the table reads as part of the
+    // page rather than as a card floating on it.
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: AppRadius.lgAll,
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: AppColors.border, width: _rule),
       ),
       clipBehavior: Clip.antiAlias,
       child: LayoutBuilder(
@@ -50,22 +91,55 @@ class DataTableWrapper extends StatelessWidget {
 
           final table = ConstrainedBox(
             constraints: BoxConstraints(minWidth: floor),
-            child: DataTable(
-              columns: columns,
-              rows: rows,
-              sortColumnIndex: sortColumnIndex,
-              sortAscending: sortAscending,
-              headingRowColor: const WidgetStatePropertyAll(
-                AppColors.surfaceVariant,
-              ),
-              dividerThickness: 1,
-              showCheckboxColumn: false,
+            // passthrough: the DataTable must see the min-width floor, or it
+            // shrinks to its content and leaves the frame half empty.
+            child: Stack(
+              fit: StackFit.passthrough,
+              children: [
+                DataTable(
+                  columns: columns,
+                  rows: rows,
+                  sortColumnIndex: sortColumnIndex,
+                  sortAscending: sortAscending,
+                  headingRowColor: const WidgetStatePropertyAll(
+                    AppColors.tableHeader,
+                  ),
+                  dividerThickness: _rule,
+                  showCheckboxColumn: false,
+                ),
+                // No rule under the heading: DataTable draws it as the first
+                // row's top border and offers no way to drop that one alone,
+                // so a strip of the row colour covers it — the grey heading
+                // then meets the white rows edge to edge.
+                const Positioned(
+                  top: AppSizing.tableHeaderHeight,
+                  left: 0,
+                  right: 0,
+                  height: _rule,
+                  child: IgnorePointer(
+                    child: ColoredBox(
+                      key: ValueKey('table-heading-rule-cover'),
+                      color: AppColors.surface,
+                    ),
+                  ),
+                ),
+              ],
             ),
           );
 
-          return SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: table,
+          // A visible scrollbar rather than the platform default, which on
+          // desktop only fades in once the pointer moves. A table that scrolls
+          // sideways with no sign that it does reads as a table with missing
+          // columns — and on the pricing screens the columns off the right are
+          // the ones the user came for.
+          return Scrollbar(
+            controller: _controller,
+            thumbVisibility: constraints.maxWidth < floor,
+            child: SingleChildScrollView(
+              controller: _controller,
+              scrollDirection: Axis.horizontal,
+              child: table,
+            ),
           );
         },
       ),

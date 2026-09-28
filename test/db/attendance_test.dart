@@ -34,12 +34,13 @@ void main() {
   DateTime daysBefore(int n) => seedInstant.subtract(Duration(days: n));
 
   group('clocking in', () {
-    test('creates a working row, and a second call the same day is refused',
+    test('creates a working row, and a second call while open is refused',
         () async {
       final first = await repo().clockIn(_fresh, StoreIds.sablon);
       expect(first, isNotNull);
       expect(first!.status, AttendanceStatus.working);
-      expect(first.clockInAt, isNotNull);
+      expect(first.sessions, hasLength(1));
+      expect(first.sessions.single.clockInAt, isNotNull);
 
       final second = await repo().clockIn(_fresh, StoreIds.sablon);
       expect(second, isNull);
@@ -60,7 +61,7 @@ void main() {
       ]);
 
       final after = (await repo().attendance(row.id))!;
-      expect(after.pauses, hasLength(1));
+      expect(after.sessions.single.pauses, hasLength(1));
       expect(after.status, AttendanceStatus.onBreak);
     });
   });
@@ -102,30 +103,81 @@ void main() {
       await r.endPause(row.id, now: DateTime(2026, 1, 5, 13, 30));
       final done = (await r.clockOut(row.id, now: DateTime(2026, 1, 5, 17)))!;
 
-      expect(done.pauses, hasLength(2));
+      expect(done.sessions.single.pauses, hasLength(2));
       expect(totalBreak(done), const Duration(minutes: 50));
       // 9h between in and out, minus 50 minutes of breaks.
       expect(workedDuration(done), const Duration(hours: 8, minutes: 10));
     });
   });
 
-  group('late and overtime, against the resolved schedule', () {
-    test('late is flagged past the grace window, not within it', () {
-      final onTime = _finished(clockIn: const (8, 3), clockOut: const (17, 0));
-      final late = _finished(clockIn: const (8, 20), clockOut: const (17, 0));
+  group('multiple cycles in one day', () {
+    test('clockIn after Fin de journée opens a second session', () async {
+      final r = repo();
+      final first = (await r.clockIn(
+        _fresh,
+        StoreIds.sablon,
+        now: DateTime(2026, 1, 5, 8),
+      ))!;
+      final afterFirst = (await r.clockOut(
+        first.id,
+        now: DateTime(2026, 1, 5, 14),
+      ))!;
+      expect(afterFirst.status, AttendanceStatus.done);
+      expect(afterFirst.sessions, hasLength(1));
 
-      expect(isLate(onTime, 8 * 60), isFalse);
-      expect(isLate(late, 8 * 60), isTrue);
-      expect(lateBy(late, 8 * 60), const Duration(minutes: 15));
+      final reopened = (await r.clockIn(
+        _fresh,
+        StoreIds.sablon,
+        now: DateTime(2026, 1, 5, 16),
+      ))!;
+      expect(reopened.id, first.id, reason: 'still the same day, same row');
+      expect(reopened.status, AttendanceStatus.working);
+      expect(reopened.sessions, hasLength(2));
+      expect(reopened.sessions.first.clockOutAt, DateTime(2026, 1, 5, 14));
+      expect(reopened.sessions.last.clockOutAt, isNull);
+
+      final done = (await r.clockOut(
+        reopened.id,
+        now: DateTime(2026, 1, 5, 22),
+      ))!;
+      expect(done.status, AttendanceStatus.done);
+      expect(done.sessions, hasLength(2));
+      // 6h the first cycle + 6h the second.
+      expect(workedDuration(done), const Duration(hours: 12));
     });
 
-    test('overtime is time clocked out past the scheduled end, floored at 0',
-        () {
-      final over = _finished(clockIn: const (8, 0), clockOut: const (18, 30));
-      final early = _finished(clockIn: const (8, 0), clockOut: const (16, 0));
+    test('clockIn while a cycle is still open is refused, even mid-break',
+        () async {
+      final r = repo();
+      final row = (await r.clockIn(_fresh, StoreIds.sablon))!;
+      expect(await r.clockIn(_fresh, StoreIds.sablon), isNull);
 
-      expect(overtimeBy(over, 17 * 60), const Duration(hours: 1, minutes: 30));
-      expect(overtimeBy(early, 17 * 60), Duration.zero);
+      await r.startPause(row.id);
+      expect(await r.clockIn(_fresh, StoreIds.sablon), isNull);
+    });
+
+    test('pauses on a later cycle stay scoped to their own session',
+        () async {
+      final r = repo();
+      final first = (await r.clockIn(
+        _fresh,
+        StoreIds.sablon,
+        now: DateTime(2026, 1, 5, 8),
+      ))!;
+      await r.startPause(first.id, now: DateTime(2026, 1, 5, 10));
+      await r.endPause(first.id, now: DateTime(2026, 1, 5, 10, 15));
+      await r.clockOut(first.id, now: DateTime(2026, 1, 5, 14));
+
+      await r.clockIn(_fresh, StoreIds.sablon, now: DateTime(2026, 1, 5, 16));
+      await r.startPause(first.id, now: DateTime(2026, 1, 5, 18));
+      final done = (await r.endPause(
+        first.id,
+        now: DateTime(2026, 1, 5, 18, 30),
+      ))!;
+
+      expect(done.sessions.first.pauses, hasLength(1));
+      expect(done.sessions.last.pauses, hasLength(1));
+      expect(totalPauseCount(done), 2);
     });
   });
 
@@ -143,7 +195,7 @@ void main() {
       ]);
       expect(hasLateBreak(longBreak, 30), isTrue);
       expect(
-        breakOverrun(longBreak.pauses.first, 30),
+        breakOverrun(longBreak.sessions.single.pauses.first, 30),
         const Duration(minutes: 15),
       );
       expect(totalBreakOverrun(longBreak, 30), const Duration(minutes: 15));
@@ -151,7 +203,7 @@ void main() {
 
     test('a running break is never counted as an overrun', () {
       final open = _withPauses([(const (12, 0), null)]);
-      expect(breakOverrun(open.pauses.first, 30), Duration.zero);
+      expect(breakOverrun(open.sessions.single.pauses.first, 30), Duration.zero);
       expect(hasLateBreak(open, 30), isFalse);
     });
   });
@@ -160,7 +212,6 @@ void main() {
     List<AttendanceAnomaly> anomalies(Attendance a, {DateTime? now}) =>
         attendanceAnomalies(
           a,
-          startMinutes: 8 * 60,
           maxBreakMinutes: 30,
           now: now,
         );
@@ -168,16 +219,6 @@ void main() {
     test('a clean finished day has none', () {
       final clean = _finished(clockIn: const (8, 0), clockOut: const (17, 0));
       expect(anomalies(clean), isEmpty);
-    });
-
-    test('overtime is never an anomaly', () {
-      final over = _finished(clockIn: const (8, 0), clockOut: const (20, 0));
-      expect(anomalies(over), isEmpty);
-    });
-
-    test('a late arrival is retard', () {
-      final late = _finished(clockIn: const (8, 40), clockOut: const (17, 0));
-      expect(anomalies(late), [AttendanceAnomaly.retard]);
     });
 
     test('a break past the allowance is pauseDepassee', () {
@@ -192,8 +233,7 @@ void main() {
         employeeId: _fresh,
         date: DateTime(2026, 1, 5),
         status: AttendanceStatus.working,
-        clockInAt: DateTime(2026, 1, 5, 8),
-        pauses: const [],
+        sessions: [AttendanceSession(clockInAt: DateTime(2026, 1, 5, 8))],
         paymentStatus: PaymentStatus.unpaid,
       );
       expect(
@@ -209,8 +249,7 @@ void main() {
         employeeId: _fresh,
         date: DateTime(2026, 1, 5),
         status: AttendanceStatus.working,
-        clockInAt: DateTime(2026, 1, 5, 8),
-        pauses: const [],
+        sessions: [AttendanceSession(clockInAt: DateTime(2026, 1, 5, 8))],
         paymentStatus: PaymentStatus.unpaid,
       );
       expect(
@@ -323,29 +362,30 @@ void main() {
       );
       expect(stats.days, greaterThan(0));
       expect(stats.worked, greaterThan(Duration.zero));
-      expect(stats.lateArrivals, greaterThanOrEqualTo(0));
-      expect(stats.overtime, greaterThanOrEqualTo(Duration.zero));
+      expect(stats.lateBreaks, greaterThanOrEqualTo(0));
     });
   });
 
   group('the evaluation context is frozen at clock-in', () {
-    DateTime todayAt(int hour) => DateTime(
+    DateTime todayAt(int hour, [int minute = 0]) => DateTime(
           seedInstant.year,
           seedInstant.month,
           seedInstant.day,
           hour,
+          minute,
         );
 
-    test('clockIn stamps the resolved schedule and break allowance', () async {
+    test('clockIn stamps the resolved break allowance', () async {
       final day = (await repo().clockIn(_fresh, StoreIds.sablon))!;
-      // Noah has no personal schedule → the store's 08:00–17:00, 45-min break.
-      expect(day.scheduledStartMinutes, 8 * 60);
-      expect(day.scheduledEndMinutes, 17 * 60);
+      // Noah has no personal override → the store's 45-minute break allowance.
       expect(day.maxBreakMinutes, 45);
     });
 
-    test('a later store-hours change does not rewrite a past day', () async {
+    test('a later store break-allowance change does not rewrite a past day',
+        () async {
       final day = (await repo().clockIn(_fresh, StoreIds.sablon))!;
+      await repo().startPause(day.id, now: todayAt(10));
+      await repo().endPause(day.id, now: todayAt(10, 50));
       await repo().clockOut(day.id, now: todayAt(18));
 
       final before = await repo().stats(
@@ -354,11 +394,11 @@ void main() {
         to: seedInstant,
         employeeId: _fresh,
       );
-      expect(before.overtime, const Duration(hours: 1));
+      expect(before.lateBreaks, 1);
 
       await StoreRepository(db).updateStoreSettings(
         StoreIds.sablon,
-        closeMinutes: 22 * 60,
+        maxBreakMinutes: 60,
       );
 
       final after = await repo().stats(
@@ -368,30 +408,28 @@ void main() {
         employeeId: _fresh,
       );
       expect(
-        after.overtime,
-        const Duration(hours: 1),
-        reason: 'measured against the 17:00 close frozen on the row, not the '
-            'new 22:00 one',
+        after.lateBreaks,
+        1,
+        reason: 'measured against the 45-minute allowance frozen on the row, '
+            'not the new 60-minute one',
       );
     });
 
-    test('a row with no frozen context falls back to the live schedule',
+    test('a row with no frozen context falls back to the live allowance',
         () async {
       final day = (await repo().clockIn(_fresh, StoreIds.sablon))!;
+      await repo().startPause(day.id, now: todayAt(10));
+      await repo().endPause(day.id, now: todayAt(10, 50));
       await repo().clockOut(day.id, now: todayAt(18));
 
       // A row from before schema v3, before the backfill ran.
       await (db.update(db.attendances)..where((a) => a.id.equals(day.id))).write(
-        const AttendancesCompanion(
-          scheduledStartMinutes: Value(null),
-          scheduledEndMinutes: Value(null),
-          maxBreakMinutes: Value(null),
-        ),
+        const AttendancesCompanion(maxBreakMinutes: Value(null)),
       );
 
       await StoreRepository(db).updateStoreSettings(
         StoreIds.sablon,
-        closeMinutes: 22 * 60,
+        maxBreakMinutes: 60,
       );
 
       final after = await repo().stats(
@@ -401,9 +439,9 @@ void main() {
         employeeId: _fresh,
       );
       expect(
-        after.overtime,
-        Duration.zero,
-        reason: 'no snapshot → judged against the current 22:00 close',
+        after.lateBreaks,
+        0,
+        reason: 'no snapshot → judged against the current 60-minute allowance',
       );
     });
   });
@@ -446,9 +484,11 @@ void main() {
     final sablon = await repo().page(StoreIds.sablon, pageSize: 100);
     final rows = sablon.rows;
 
-    expect(rows.where((a) => a.pauses.length >= 2), isNotEmpty);
+    expect(rows.where((a) => totalPauseCount(a) >= 2), isNotEmpty);
     expect(
-      rows.where((a) => a.pauses.any((p) => p.endAt == null)),
+      rows.where(
+        (a) => a.sessions.expand((s) => s.pauses).any((p) => p.endAt == null),
+      ),
       isNotEmpty,
       reason: 'a break still running today',
     );
@@ -471,27 +511,35 @@ Attendance _finished({
   employeeId: _fresh,
   date: DateTime(2026, 1, 5),
   status: AttendanceStatus.done,
-  clockInAt: DateTime(2026, 1, 5, clockIn.$1, clockIn.$2),
-  clockOutAt: DateTime(2026, 1, 5, clockOut.$1, clockOut.$2),
-  pauses: const [],
+  sessions: [
+    AttendanceSession(
+      clockInAt: DateTime(2026, 1, 5, clockIn.$1, clockIn.$2),
+      clockOutAt: DateTime(2026, 1, 5, clockOut.$1, clockOut.$2),
+    ),
+  ],
   paymentStatus: PaymentStatus.unpaid,
 );
 
-/// A working [Attendance] on 2026-01-05 carrying the given break windows —
-/// `(start, end?)` as `(h, m)` tuples, `end` null for a running break.
+/// A working [Attendance] on 2026-01-05, one session, carrying the given
+/// break windows — `(start, end?)` as `(h, m)` tuples, `end` null for a
+/// running break.
 Attendance _withPauses(List<((int, int), (int, int)?)> windows) => Attendance(
   id: 'test',
   storeId: StoreIds.sablon,
   employeeId: _fresh,
   date: DateTime(2026, 1, 5),
   status: AttendanceStatus.working,
-  clockInAt: DateTime(2026, 1, 5, 8),
-  pauses: [
-    for (final (start, end) in windows)
-      AttendancePause(
-        startAt: DateTime(2026, 1, 5, start.$1, start.$2),
-        endAt: end == null ? null : DateTime(2026, 1, 5, end.$1, end.$2),
-      ),
+  sessions: [
+    AttendanceSession(
+      clockInAt: DateTime(2026, 1, 5, 8),
+      pauses: [
+        for (final (start, end) in windows)
+          AttendancePause(
+            startAt: DateTime(2026, 1, 5, start.$1, start.$2),
+            endAt: end == null ? null : DateTime(2026, 1, 5, end.$1, end.$2),
+          ),
+      ],
+    ),
   ],
   paymentStatus: PaymentStatus.unpaid,
 );

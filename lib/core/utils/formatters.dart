@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:intl/intl.dart';
 
 /// Every number and date the user sees is formatted here.
@@ -91,10 +92,12 @@ abstract final class Formatters {
   // Durations
   // ---------------------------------------------------------------------------
 
-  /// `7 h 48` — worked time, break length, overtime.
+  /// `7 h 48` — worked time, break length, overtime. Under an hour, the
+  /// leading `0 h` is noise — `15 min` reads faster than `0 h 15`.
   static String duration(Duration value) {
     final hours = value.inHours;
     final minutes = value.inMinutes.remainder(60);
+    if (hours == 0) return '$minutes min';
     return '$hours h ${minutes.toString().padLeft(2, '0')}';
   }
 
@@ -106,6 +109,9 @@ abstract final class Formatters {
   static final DateFormat _longDate = DateFormat('d MMMM yyyy', locale);
   static final DateFormat _dayMonth = DateFormat('d MMM', locale);
   static final DateFormat _time = DateFormat('HH:mm', locale);
+  static final DateFormat _weekday = DateFormat('EEEE', locale);
+  static final DateFormat _dateNoPad = DateFormat('d/M/yyyy', locale);
+  static final DateFormat _weekdayDayMonth = DateFormat('EEEE d MMMM', locale);
 
   /// `22/08/2026`
   static String date(DateTime value) => _shortDate.format(value);
@@ -113,8 +119,46 @@ abstract final class Formatters {
   /// `22 août 2026`
   static String dateLong(DateTime value) => _longDate.format(value);
 
+  /// `lundi 21 septembre` — the dashboard's "today", in a sentence.
+  static String weekdayDayMonth(DateTime value) =>
+      _weekdayDayMonth.format(value);
+
   /// `22 août` — chart axes and compact rows.
   static String dayMonth(DateTime value) => _dayMonth.format(value);
+
+  /// `Lundi : 8/10/2026`
+  static String dateWithWeekday(DateTime value) {
+    final weekday = _weekday.format(value);
+    final capitalized = weekday.isEmpty
+        ? weekday
+        : weekday[0].toUpperCase() + weekday.substring(1);
+    return '$capitalized : ${_dateNoPad.format(value)}';
+  }
+
+  /// `Jeudi 24/12/2026` — the day line of the pointage drawers.
+  static String dateLongWeekday(DateTime value) {
+    final weekday = _weekday.format(value);
+    final capitalized = weekday.isEmpty
+        ? weekday
+        : weekday[0].toUpperCase() + weekday.substring(1);
+    return '$capitalized ${date(value)}';
+  }
+
+  static final DateFormat _weekdayShort = DateFormat('EEE', locale);
+
+  /// `Lun` — capitalised, no abbreviation dot.
+  static String weekdayShort(DateTime value) {
+    final weekday = _weekdayShort.format(value).replaceAll('.', '');
+    return weekday.isEmpty
+        ? weekday
+        : weekday[0].toUpperCase() + weekday.substring(1);
+  }
+
+  /// `Lun 22/10/2026` — the date column of every employee table (drawn by
+  /// `WeekdayDate`, the weekday a size smaller). The abbreviated weekday lets
+  /// a manager scan a week without counting days.
+  static String dateShortWeekday(DateTime value) =>
+      '${weekdayShort(value)} ${date(value)}';
 
   /// `14:32` — Belgium uses a 24-hour clock.
   static String time(DateTime value) => _time.format(value);
@@ -148,7 +192,7 @@ abstract final class Formatters {
   /// Falls back to an absolute date beyond a month — "il y a 47 jours" is
   /// harder to reason about than the date itself.
   static String relative(DateTime value, {DateTime? now}) {
-    final reference = now ?? DateTime.now();
+    final reference = now ?? clock.now();
     final difference = reference.difference(value);
 
     if (difference.inMinutes < 1) return "à l'instant";

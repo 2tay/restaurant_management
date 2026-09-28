@@ -131,10 +131,34 @@ void main() {
       expect(stockStatusOf(created), StockStatus.outOfStock);
     });
 
-    test('the maximum defaults to none when nothing asks for one', () async {
+    // This used to assert zero — "no maximum declared". Zero is no longer a
+    // state an article can be in: it left the stock gauge with no range to
+    // draw, and `topUpQuantity` fell back to refilling only to the alert line,
+    // which puts a product back at exactly the quantity that made it low.
+    //
+    // The form is where the rule is enforced and where somebody is asked to
+    // choose. This is the floor under it, for the seed and for callers like
+    // this one that name no ceiling.
+    test('a maximum is always stored, even when the caller names none', () async {
       final created = (await chicons())!;
 
-      expect(created.maxStock, 0);
+      expect(created.maxStock, greaterThan(created.lowStockThreshold));
+      // Twice the minimum: the same figure `topUpQuantity` always guessed,
+      // now a stored and editable number rather than a branch.
+      expect(created.maxStock, created.lowStockThreshold * 2);
+    });
+
+    test('a maximum the caller does name is kept as given', () async {
+      final created = (await items.create(
+        storeId: StoreIds.sablon,
+        name: 'Chicons',
+        categoryId: CategoryIds.legumes,
+        unitId: UnitIds.kg,
+        lowStockThreshold: 4,
+        maxStock: 30,
+      ))!;
+
+      expect(created.maxStock, 30);
     });
 
     test('a photo and a default supplier are stored and read back', () async {

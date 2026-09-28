@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -7,10 +8,16 @@ import '../../../../app/routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/employee_status.dart';
+import '../../../../core/utils/formatters.dart';
+import '../../../../core/utils/responsive.dart';
 import '../../../../data/providers.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
+import '../widgets/employee_actions.dart';
+import '../widgets/employee_card.dart';
+import '../widgets/employee_actions_menu.dart';
+import '../widgets/employee_wizard_dialog.dart';
 
 /// The staff roster — *Personnel*.
 ///
@@ -18,6 +25,12 @@ import '../../../../shared/widgets/widgets.dart';
 /// carries no back control. Archived people are hidden by default, the same
 /// instinct as items and suppliers defaulting to what is currently usable —
 /// "afficher les personnels retirés" brings them back into view.
+///
+/// Two layouts of the same filtered roster — cards (the default) or a table —
+/// behind the same toggle the inventory uses. The actions — the person's
+/// pointage and payment histories (opened filtered to them), Modifier,
+/// Retirer / Restaurer — are on each card's ⋮ menu and in the table's Actions
+/// column; nothing opens on a plain click.
 class EmployeesListPage extends ConsumerStatefulWidget {
   const EmployeesListPage({required this.storeId, super.key});
 
@@ -30,6 +43,23 @@ class EmployeesListPage extends ConsumerStatefulWidget {
 class _EmployeesListPageState extends ConsumerState<EmployeesListPage> {
   String _query = '';
   bool _showArchived = false;
+  CollectionViewMode _viewMode = CollectionViewMode.grid;
+  int _page = 0;
+  int _pageSize = Paginator.defaultPageSizes.first;
+
+  void _add() => showEmployeeWizard(context, storeId: widget.storeId);
+
+  late final _actions = _RosterActions(
+    onAttendance: (e) => context.goSection(
+      Routes.toAttendanceHistory(widget.storeId, employeeId: e.id),
+    ),
+    onPayroll: (e) =>
+        context.goSection(Routes.toPayroll(widget.storeId, employeeId: e.id)),
+    onEdit: (e) =>
+        showEmployeeWizard(context, storeId: widget.storeId, employee: e),
+    onArchive: (e) => confirmArchiveEmployee(context, ref, e),
+    onRestore: (e) => restoreEmployee(context, ref, e),
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -42,9 +72,9 @@ class _EmployeesListPageState extends ConsumerState<EmployeesListPage> {
       actions: [
         PrimaryButton(
           label: l10n.employeesAdd,
+          shortLabel: l10n.shortAddEmployee,
           icon: LucideIcons.userPlus,
-          onPressed: () =>
-              context.pushScreen(Routes.toAddEmployee(widget.storeId)),
+          onPressed: _add,
         ),
       ],
       child: AsyncContent<List<Employee>>(
@@ -55,60 +85,105 @@ class _EmployeesListPageState extends ConsumerState<EmployeesListPage> {
     );
   }
 
-  Widget _content(BuildContext context, AppLocalizations l10n, List<Employee> all) {
-    final filtered = _filtered(all);
+  Widget _content(
+    BuildContext context,
+    AppLocalizations l10n,
+    List<Employee> all,
+  ) {
+    // The owner is the account, not staff to manage here — neither a card nor
+    // a row.
+    final filtered = [
+      for (final e in _filtered(all))
+        if (e.role != EmployeeRole.owner) e,
+    ];
+    final pageCount = filtered.isEmpty
+        ? 1
+        : (filtered.length + _pageSize - 1) ~/ _pageSize;
+    final page = _page.clamp(0, pageCount - 1);
+    final start = page * _pageSize;
+    final visible = filtered.sublist(
+      start,
+      (start + _pageSize).clamp(start, filtered.length),
+    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _KpiRow(employees: all),
         const SizedBox(height: AppSpacing.lg),
-        Row(
-            children: [
-              Expanded(
-                child: SearchField(
-                  hint: l10n.employeesSearchHint,
-                  onChanged: (value) => setState(() => _query = value),
-                ),
-              ),
-              const SizedBox(width: AppSpacing.md),
-              _ArchivedFilterPill(
-                active: _showArchived,
-                onTap: () => setState(() => _showArchived = !_showArchived),
-              ),
-            ],
+        FilterToolbar(
+          search: SearchField(
+            hint: l10n.employeesSearchHint,
+            onChanged: (value) => setState(() {
+              _query = value;
+              _page = 0;
+            }),
           ),
-          const SizedBox(height: AppSpacing.md),
-          if (filtered.isEmpty)
-            ConstrainedBox(
-              constraints: const BoxConstraints(minHeight: 360),
-              child: all.isEmpty
-                  ? EmptyState(
-                      icon: LucideIcons.idCard,
-                      title: l10n.employeesEmpty,
-                      message: l10n.employeesEmptyBody,
-                      actionLabel: l10n.employeesAdd,
-                      actionIcon: LucideIcons.userPlus,
-                      onAction: () => context.pushScreen(
-                        Routes.toAddEmployee(widget.storeId),
-                      ),
-                    )
-                  : EmptyState.noResults(
-                      l10n,
-                      onClearFilters: () => setState(() {
-                        _query = '';
-                        _showArchived = false;
-                      }),
-                    ),
-            )
-          else
-            for (final employee in filtered)
-              Padding(
-                padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                child: _EmployeeRow(
-                  employee: employee,
-                  storeId: widget.storeId,
+          filters: [
+            _ArchivedFilterPill(
+              active: _showArchived,
+              onTap: () => setState(() {
+                _showArchived = !_showArchived;
+                _page = 0;
+              }),
+            ),
+            ViewModeToggle<CollectionViewMode>(
+              value: _viewMode,
+              onSelected: (mode) => setState(() => _viewMode = mode),
+              options: [
+                ViewModeOption(
+                  value: CollectionViewMode.grid,
+                  icon: LucideIcons.layoutGrid,
+                  label: l10n.viewModeGrid,
                 ),
-              ),
+                ViewModeOption(
+                  value: CollectionViewMode.list,
+                  icon: LucideIcons.list,
+                  label: l10n.viewModeList,
+                ),
+              ],
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.md),
+        if (filtered.isEmpty)
+          ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 360),
+            child: all.every((e) => e.role == EmployeeRole.owner)
+                ? EmptyState(
+                    icon: LucideIcons.idCard,
+                    title: l10n.employeesEmpty,
+                    message: l10n.employeesEmptyBody,
+                    actionLabel: l10n.employeesAdd,
+                    actionIcon: LucideIcons.userPlus,
+                    onAction: _add,
+                  )
+                : EmptyState.noResults(
+                    l10n,
+                    onClearFilters: () => setState(() {
+                      _query = '';
+                      _showArchived = false;
+                      _page = 0;
+                    }),
+                  ),
+          )
+        else ...[
+          if (_viewMode == CollectionViewMode.list)
+            _EmployeeTable(employees: visible, actions: _actions)
+          else
+            _EmployeeGrid(employees: visible, actions: _actions),
+          const SizedBox(height: AppSpacing.sm),
+          Paginator(
+            page: page,
+            pageCount: pageCount,
+            totalCount: filtered.length,
+            pageSize: _pageSize,
+            onChanged: (p) => setState(() => _page = p),
+            onPageSizeChanged: (size) => setState(() {
+              _pageSize = size;
+              _page = 0;
+            }),
+          ),
+        ],
       ],
     );
   }
@@ -119,12 +194,13 @@ class _EmployeesListPageState extends ConsumerState<EmployeesListPage> {
     if (query.isEmpty) return base;
     return base.where((employee) {
       return employeeDisplayName(employee).toLowerCase().contains(query) ||
-          employee.cin.toLowerCase().contains(query);
+          employee.pin.toLowerCase().contains(query);
     }).toList();
   }
 }
 
-/// Four counts over the whole roster (active only), independent of the search
+/// Five figures over the whole roster (active only) — three counts, the
+/// average and the highest hourly rate — independent of the search
 /// below — the same split the reports pages use between a headline total and
 /// a filtered result count.
 class _KpiRow extends StatelessWidget {
@@ -136,54 +212,56 @@ class _KpiRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final active = employees.where(isEmployeeActive).toList();
-    final fixed = active
-        .where((e) => e.contractType == ContractType.fixed)
-        .length;
-    final extra = active.length - fixed;
     final managers = active
         .where(
           (e) => e.role == EmployeeRole.manager || e.role == EmployeeRole.owner,
         )
         .length;
-    final now = DateTime.now();
+    final now = clock.now();
     final hiredThisMonth = active
         .where(
           (e) => e.hireDate.year == now.year && e.hireDate.month == now.month,
         )
         .length;
+    // Mean hourly rate of the active roster — what an hour of staff costs on
+    // average. A dash, not "0,00 €", when nobody is active.
+    final averageRate = active.isEmpty
+        ? null
+        : active.map((e) => e.pay).reduce((a, b) => a + b) / active.length;
+    final maxRate = active.isEmpty
+        ? null
+        : active.map((e) => e.pay).reduce((a, b) => a > b ? a : b);
 
-    return Row(
-      children: [
-        Expanded(
-          child: StatTile(
-            label: l10n.employeesKpiActive,
-            value: '${active.length}',
-            icon: LucideIcons.users,
-          ),
+    return StatTileRow(
+      tiles: [
+        StatTile(
+          label: l10n.employeesKpiActive,
+          value: '${active.length}',
+          icon: LucideIcons.users,
         ),
-        const SizedBox(width: AppSpacing.lg),
-        Expanded(
-          child: StatTile(
-            label: l10n.employeesKpiContractSplit,
-            value: l10n.employeesKpiContractSplitValue(fixed, extra),
-            icon: LucideIcons.briefcase,
-          ),
+        StatTile(
+          label: l10n.employeesKpiManagers,
+          value: '$managers',
+          icon: LucideIcons.shieldCheck,
         ),
-        const SizedBox(width: AppSpacing.lg),
-        Expanded(
-          child: StatTile(
-            label: l10n.employeesKpiManagers,
-            value: '$managers',
-            icon: LucideIcons.shieldCheck,
-          ),
+        StatTile(
+          label: l10n.employeesKpiHiredThisMonth,
+          value: '$hiredThisMonth',
+          icon: LucideIcons.userPlus,
         ),
-        const SizedBox(width: AppSpacing.lg),
-        Expanded(
-          child: StatTile(
-            label: l10n.employeesKpiHiredThisMonth,
-            value: '$hiredThisMonth',
-            icon: LucideIcons.userPlus,
-          ),
+        StatTile(
+          key: const ValueKey('kpi-average-rate'),
+          label: l10n.employeesKpiAverageRate,
+          value: averageRate == null
+              ? '—'
+              : '${Formatters.price(averageRate)} /h',
+          icon: LucideIcons.wallet,
+        ),
+        StatTile(
+          key: const ValueKey('kpi-max-rate'),
+          label: l10n.employeesKpiMaxRate,
+          value: maxRate == null ? '—' : '${Formatters.price(maxRate)} /h',
+          icon: LucideIcons.trendingUp,
         ),
       ],
     );
@@ -205,138 +283,186 @@ class _ArchivedFilterPill extends StatelessWidget {
 
     return Material(
       color: Colors.transparent,
-      borderRadius: AppRadius.pillAll,
+      borderRadius: AppRadius.smAll,
       child: InkWell(
         onTap: onTap,
-        borderRadius: AppRadius.pillAll,
+        borderRadius: AppRadius.smAll,
         child: FilterPill(
           label: l10n.employeesShowArchived,
           selectedLabel: active ? l10n.employeesShowArchived : null,
           icon: LucideIcons.archive,
+          // Red, like the retired cards it brings into view.
+          activeColors: AppColors.outOfStock,
         ),
       ),
     );
   }
 }
 
-class _EmployeeRow extends StatelessWidget {
-  const _EmployeeRow({required this.employee, required this.storeId});
+/// The roster as a grid of vertical [EmployeeCard]s — as many per line as
+/// the width allows (300dp minimum, up to four), sized by
+/// the same [cardGridColumns] as the pointage and payroll history cards.
+class _EmployeeGrid extends StatelessWidget {
+  const _EmployeeGrid({required this.employees, required this.actions});
 
-  final Employee employee;
-  final String storeId;
+  final List<Employee> employees;
+  final _RosterActions actions;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final columns = cardGridColumns(
+          constraints.maxWidth,
+          minCardWidth: 300,
+          maxColumns: 4,
+        );
+        const spacing = AppSpacing.lg;
+        final cardWidth = columns == 1
+            ? constraints.maxWidth
+            : (constraints.maxWidth - spacing * (columns - 1)) / columns;
+
+        return Wrap(
+          spacing: spacing,
+          runSpacing: spacing,
+          children: [
+            for (final employee in employees)
+              SizedBox(
+                width: cardWidth,
+                child: EmployeeCard(
+                  key: ValueKey('employee-card-${employee.id}'),
+                  employee: employee,
+                  onAttendance: () => actions.onAttendance(employee),
+                  onPayroll: () => actions.onPayroll(employee),
+                  onEdit: () => actions.onEdit(employee),
+                  onArchive: () => actions.onArchive(employee),
+                  onRestore: () => actions.onRestore(employee),
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+/// What a card or a table row can do for one person — built once by the page.
+class _RosterActions {
+  const _RosterActions({
+    required this.onAttendance,
+    required this.onPayroll,
+    required this.onEdit,
+    required this.onArchive,
+    required this.onRestore,
+  });
+
+  final ValueChanged<Employee> onAttendance;
+  final ValueChanged<Employee> onPayroll;
+  final ValueChanged<Employee> onEdit;
+  final ValueChanged<Employee> onArchive;
+  final ValueChanged<Employee> onRestore;
+}
+
+/// The roster as a table — the alternative to the card grid, for scanning
+/// contact details, rates and hire dates side by side. The Actions column
+/// opens the two histories directly and holds the same ⋮ menu as a card.
+/// Same [DataTableWrapper] as the pointage history: below its minimum width
+/// it scrolls sideways rather than squeezing the columns.
+class _EmployeeTable extends StatelessWidget {
+  const _EmployeeTable({required this.employees, required this.actions});
+
+  final List<Employee> employees;
+  final _RosterActions actions;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
+
+    return DataTableWrapper(
+      minWidth: 960,
+      columns: [
+        DataColumn(label: Text(l10n.employeesColumnName)),
+        DataColumn(label: Text(l10n.employeesColumnRole)),
+        DataColumn(label: Text(l10n.employeeFormPhone)),
+        DataColumn(label: Text(l10n.employeeFormEmail)),
+        DataColumn(label: Text(l10n.employeesColumnPay), numeric: true),
+        DataColumn(label: Text(l10n.employeesColumnHired)),
+        DataColumn(label: Text(l10n.employeesColumnActions)),
+      ],
+      rows: [for (final e in employees) _row(context, l10n, e)],
+    );
+  }
+
+  DataRow _row(BuildContext context, AppLocalizations l10n, Employee employee) {
     final archived = !isEmployeeActive(employee);
 
-    return AppCard(
-      onTap: () => context.pushScreen(Routes.toEmployee(storeId, employee.id)),
-      child: Row(
-        children: [
-          EmployeeAvatar(employee: employee, dimmed: archived),
-          const SizedBox(width: AppSpacing.lg),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Flexible(
-                      child: Text(
-                        employeeDisplayName(employee),
-                        style: theme.textTheme.titleSmall,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    if (archived) ...[
-                      const SizedBox(width: AppSpacing.sm),
-                      _ArchivedPill(label: l10n.employeesArchivedPill),
-                    ],
-                  ],
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  l10n.employeeCinLabel(employee.cin),
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
+    return DataRow(
+      key: ValueKey('employee-row-${employee.id}'),
+      // A retired person's row hovers red, like their card and badge.
+      color: archived
+          ? WidgetStateProperty.resolveWith(
+              (states) => states.contains(WidgetState.hovered)
+                  ? AppColors.error.withValues(alpha: 0.08)
+                  : null,
+            )
+          : null,
+      // Nothing opens on a row click; the handler only keeps the hover
+      // highlight (red for the retired), with the ordinary arrow cursor.
+      onSelectChanged: (_) {},
+      mouseCursor: const WidgetStatePropertyAll(SystemMouseCursors.basic),
+      cells: [
+        DataCell(
+          EmployeeCell(
+            employee: employee,
+            dimmed: archived,
+            trailing: archived
+                ? LabelChip(
+                    key: const ValueKey('employee-row-retired'),
+                    label: l10n.employeesArchivedPill,
+                    background: AppColors.outOfStock.container,
+                    foreground: AppColors.outOfStock.foreground,
+                    dense: true,
+                    borderRadius: AppRadius.smAll,
+                  )
+                : null,
           ),
-          const SizedBox(width: AppSpacing.md),
-          EmployeeRoleBadge(role: employee.role),
-          const SizedBox(width: AppSpacing.sm),
-          _ContractChip(type: employee.contractType),
-          const SizedBox(width: AppSpacing.sm),
-          const Icon(
-            LucideIcons.chevronRight,
-            size: AppSizing.iconMd,
-            color: AppColors.textDisabled,
+        ),
+        DataCell(EmployeeRoleBadge(role: employee.role)),
+        DataCell(Text(employee.phone)),
+        DataCell(Text(employee.email)),
+        DataCell(Text('${Formatters.price(employee.pay)} / h')),
+        DataCell(WeekdayDate(employee.hireDate)),
+        DataCell(
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                key: ValueKey('employee-row-attendance-${employee.id}'),
+                tooltip: l10n.employeeActionAttendance,
+                icon: const Icon(LucideIcons.history, size: AppSizing.iconSm),
+                color: AppColors.primary600,
+                onPressed: () => actions.onAttendance(employee),
+              ),
+              IconButton(
+                key: ValueKey('employee-row-payroll-${employee.id}'),
+                tooltip: l10n.employeeActionPayroll,
+                icon: const Icon(LucideIcons.wallet, size: AppSizing.iconSm),
+                color: AppColors.primary600,
+                onPressed: () => actions.onPayroll(employee),
+              ),
+              EmployeeActionsMenu(
+                employee: employee,
+                includeHistories: false,
+                onAttendance: () => actions.onAttendance(employee),
+                onPayroll: () => actions.onPayroll(employee),
+                onEdit: () => actions.onEdit(employee),
+                onArchive: () => actions.onArchive(employee),
+                onRestore: () => actions.onRestore(employee),
+              ),
+            ],
           ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ContractChip extends StatelessWidget {
-  const _ContractChip({required this.type});
-
-  final ContractType type;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.xs,
-      ),
-      decoration: const BoxDecoration(
-        color: AppColors.surfaceVariant,
-        borderRadius: AppRadius.pillAll,
-      ),
-      child: Text(
-        contractTypeLabel(l10n, type),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: Theme.of(
-          context,
-        ).textTheme.labelMedium?.copyWith(color: AppColors.textSecondary),
-      ),
-    );
-  }
-}
-
-class _ArchivedPill extends StatelessWidget {
-  const _ArchivedPill({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.sm,
-        vertical: 2,
-      ),
-      decoration: const BoxDecoration(
-        color: AppColors.surfaceVariant,
-        borderRadius: AppRadius.pillAll,
-      ),
-      child: Text(
-        label,
-        style: Theme.of(
-          context,
-        ).textTheme.labelSmall?.copyWith(color: AppColors.textSecondary),
-      ),
+        ),
+      ],
     );
   }
 }

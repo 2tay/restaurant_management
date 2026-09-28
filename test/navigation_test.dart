@@ -47,7 +47,6 @@ final _rootScreens = <String, String>{
 Map<String, String> _pushedScreens() {
   final item = mockItems.first.id;
   final supplier = mockSuppliers.first.id;
-  final employee = mockEmployees.first.id;
 
   return {
     'item detail': Routes.toItem(_store, item),
@@ -70,9 +69,6 @@ Map<String, String> _pushedScreens() {
     'valuation report': Routes.toValuationReport(_store),
     'comparison report': Routes.toComparisonReport(_store),
     'usage report': Routes.toUsageReport(_store),
-    'add employee': Routes.toAddEmployee(_store),
-    'employee detail': Routes.toEmployee(_store, employee),
-    'edit employee': Routes.toEditEmployee(_store, employee),
     'search': Routes.toSearch(_store),
   };
 }
@@ -172,12 +168,81 @@ void main() {
     });
   });
 
+  group('the back control names where back goes', () {
+    String backLabel(WidgetTester tester) =>
+        tester.widget<Tooltip>(
+          find.descendant(
+            of: find.byType(BackControl),
+            matching: find.byType(Tooltip),
+          ),
+        ).message!;
+
+    testApp('names the screen it pops to, not the hierarchy parent', (
+      tester,
+    ) async {
+      await _pump(tester);
+      appRouter.go(Routes.toDashboard(_store));
+      await tester.pumpAndSettle();
+      unawaited(appRouter.push(Routes.toItem(_store, mockItems.first.id)));
+      await tester.pumpAndSettle();
+
+      expect(backLabel(tester), 'Retour à Tableau de bord');
+    });
+
+    testApp('names the list when the detail was opened from it', (
+      tester,
+    ) async {
+      await _pump(tester);
+      appRouter.go(Routes.toInventory(_store));
+      await tester.pumpAndSettle();
+      unawaited(appRouter.push(Routes.toItem(_store, mockItems.first.id)));
+      await tester.pumpAndSettle();
+
+      expect(backLabel(tester), 'Retour à Produits');
+    });
+
+    testApp('falls back to the parent when there is nothing to pop', (
+      tester,
+    ) async {
+      await _pump(tester);
+      appRouter.go(Routes.toItem(_store, mockItems.first.id));
+      await tester.pumpAndSettle();
+
+      expect(backLabel(tester), 'Retour à Produits');
+    });
+  });
+
   group('the sidebar tracks where the user is', () {
     /// The label of the sidebar nav row currently highlighted.
     String activeNav(WidgetTester tester) => tester
         .widgetList<SidebarNavTile>(find.byType(SidebarNavTile))
         .firstWhere((tile) => tile.active)
         .label;
+
+    // Alertes leads the rail: it is what this establishment opens the app for.
+    testApp('lists Alertes first, above the dashboard', (tester) async {
+      await _pump(tester);
+
+      final labels = tester
+          .widgetList<SidebarNavTile>(find.byType(SidebarNavTile))
+          .map((tile) => tile.label)
+          .toList();
+
+      expect(labels.first, 'Alertes');
+      expect(labels[1], 'Tableau de bord');
+    });
+
+    // The count is the whole point of putting it first — a rail entry that says
+    // nothing is just a link.
+    testApp('badges Alertes with what needs a decision', (tester) async {
+      await _pump(tester);
+
+      final alerts = tester
+          .widgetList<SidebarNavTile>(find.byType(SidebarNavTile))
+          .firstWhere((tile) => tile.label == 'Alertes');
+
+      expect(alerts.badgeCount, greaterThan(0));
+    });
 
     testApp('highlights the section a nested screen belongs to', (
       tester,
@@ -188,12 +253,14 @@ void main() {
 
       expect(
         activeNav(tester),
-        'Inventaire',
-        reason: 'an item detail is still inside Inventaire',
+        'Produits',
+        reason: 'an item detail is still inside Produits',
       );
     });
 
-    testApp('highlights Fournisseurs on a supplier pricing screen', (
+    // Fournisseurs lives under the Achats group: the group's tile is the
+    // top-level entry that lights up, and it opens to show Fournisseurs.
+    testApp('highlights Achats on a supplier pricing screen', (
       tester,
     ) async {
       await _pump(tester);
@@ -204,7 +271,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(activeNav(tester), 'Fournisseurs');
+      expect(activeNav(tester), 'Achats');
     });
 
     testApp('highlights Gestion Employée from a nested employee screen', (
@@ -212,7 +279,7 @@ void main() {
     ) async {
       await _pump(tester);
       unawaited(
-        appRouter.push(Routes.toEmployee(_store, mockEmployees.first.id)),
+        appRouter.push(Routes.toAttendanceHistory(_store)),
       );
       await tester.pumpAndSettle();
 

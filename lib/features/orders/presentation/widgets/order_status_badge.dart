@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_spacing.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../models/models.dart';
+import '../../../../shared/widgets/widgets.dart';
 
 /// The status of a commande.
 ///
@@ -13,7 +13,8 @@ import '../../../../models/models.dart';
 /// others and a written label, so the list stays readable for someone with a
 /// colour vision deficiency and at a glance from across the pass.
 ///
-/// The mapping from status to colour lives here and nowhere else.
+/// The mapping from status to colour lives here and nowhere else; the pill it
+/// is drawn as is the shared [StatusPill].
 class OrderStatusBadge extends StatelessWidget {
   const OrderStatusBadge({
     required this.status,
@@ -32,47 +33,11 @@ class OrderStatusBadge extends StatelessWidget {
     final icon = iconFor(status);
     final label = labelFor(AppLocalizations.of(context), status);
 
-    if (compact) {
-      return Tooltip(
-        message: label,
-        child: Container(
-          width: AppSizing.iconLg,
-          height: AppSizing.iconLg,
-          decoration: BoxDecoration(
-            color: colors.container,
-            shape: BoxShape.circle,
-          ),
-          child: Icon(icon, size: AppSizing.iconSm, color: colors.foreground),
-        ),
-      );
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.sm,
-      ),
-      decoration: BoxDecoration(
-        color: colors.container,
-        borderRadius: AppRadius.pillAll,
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: AppSizing.iconSm, color: colors.foreground),
-          const SizedBox(width: AppSpacing.xs),
-          Flexible(
-            child: Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(
-                context,
-              ).textTheme.labelMedium?.copyWith(color: colors.foreground),
-            ),
-          ),
-        ],
-      ),
+    return StatusPill(
+      colors: colors,
+      icon: icon,
+      label: label,
+      compact: compact,
     );
   }
 

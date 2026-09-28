@@ -62,12 +62,20 @@ abstract final class AppSnackBar {
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context)..clearSnackBars();
 
+    // Capped rather than fixed. The cap stops a snackbar stretching the full
+    // width of a 1280dp tablet, which puts the text miles from where the user
+    // was looking; the clamp stops it being *wider than the window*, which is
+    // what a flat 560 did on a phone — a floating SnackBar with a width larger
+    // than its viewport overflows rather than shrinking.
+    final available = MediaQuery.sizeOf(context).width - AppSpacing.xl * 2;
+    final width = available < AppSizing.snackBarMaxWidth
+        ? available
+        : AppSizing.snackBarMaxWidth;
+
     messenger.showSnackBar(
       SnackBar(
         duration: _duration,
-        // Constrained so a snackbar does not stretch the full width of a 1280dp
-        // tablet, which puts the text miles from where the user was looking.
-        width: 560,
+        width: width,
         behavior: SnackBarBehavior.floating,
         content: Row(
           children: [

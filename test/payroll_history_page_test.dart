@@ -30,17 +30,17 @@ Future<AppDatabase> _openPayroll(
   return db;
 }
 
-/// Answers the identity dialog that guards "Payer" with the given CIN. Marc
-/// (the signed-in owner) carries the seeded CIN `78.02.14-153.24`.
-const _marcCin = '78.02.14-153.24';
+/// Answers the identity dialog that guards "Payer" with the given PIN. Marc
+/// (the signed-in owner) carries the seeded PIN `78.02.14-153.24`.
+const _marcPin = '78.02.14-153.24';
 
-Future<void> _enterCin(WidgetTester tester, String cin) async {
+Future<void> _enterPin(WidgetTester tester, String pin) async {
   await tester.enterText(
     find.descendant(
       of: find.byType(AlertDialog),
       matching: find.byType(TextField),
     ),
-    cin,
+    pin,
   );
   await tester.pumpAndSettle();
   await tester.tap(
@@ -71,11 +71,20 @@ Future<void> _confirmPay(WidgetTester tester) async {
 }
 
 Future<void> _pickKarim(WidgetTester tester) async {
-  // The employee picker is the shared EmployeeSelector combobox: open it,
-  // filter to Karim, then tap his keyed option row.
-  await tester.tap(find.byType(EmployeeSelector));
+  // The employee picker is the shared EmployeeSelector in its search-bar
+  // form: type into the bar, then tap his keyed option row.
+  // A pick that survived a re-pump shows in place of the bar: clear it first.
+  final selected = find.byKey(const ValueKey('employee-selector-selected'));
+  if (selected.evaluate().isNotEmpty) {
+    await tester.tap(
+      find.descendant(of: selected, matching: find.byTooltip('Effacer')),
+    );
+    await tester.pumpAndSettle();
+  }
+  final search = find.byKey(const ValueKey('employee-selector-search'));
+  await tester.tap(search);
   await tester.pumpAndSettle();
-  await tester.enterText(find.byType(TextField).last, 'Karim');
+  await tester.enterText(search, 'Karim');
   await tester.pumpAndSettle();
   await tester.tap(
     find.byKey(const ValueKey('employee-option-${EmployeeIds.karim}')),
@@ -92,7 +101,10 @@ void main() {
     // KPIs and the day table are shown straight away, aggregated over the store.
     expect(find.text('Jours payés'), findsOneWidget);
     expect(find.text('Jours non payés'), findsOneWidget);
-    expect(find.byType(DateField), findsNWidgets(2));
+    // A Début and a Fin pill, and no labels above them.
+    expect(find.byType(DateFilter), findsNWidgets(2));
+    expect(find.byType(DateField), findsNothing);
+    expect(find.byType(FilterToolbar), findsOneWidget);
     expect(find.byType(PaymentStatusBadge), findsWidgets);
     // Paying is per employee — no button while showing everyone.
     expect(find.widgetWithText(PrimaryButton, 'Payer'), findsNothing);
@@ -102,10 +114,22 @@ void main() {
     await _openPayroll(tester, size: const Size(1440, 900));
     await _pickKarim(tester);
 
-    final detailButton =
-        find.widgetWithIcon(IconButton, LucideIcons.eye).first;
-    await tester.ensureVisible(detailButton);
-    await tester.tap(detailButton);
+    // No Détail column: the row itself is the way in.
+    final table = find.byType(DataTable);
+    expect(
+      find.descendant(of: table, matching: find.byIcon(LucideIcons.eye)),
+      findsNothing,
+    );
+    final headers = [
+      for (final c in tester.widget<DataTable>(table).columns)
+        (c.label as Text).data,
+    ];
+    expect(headers, isNot(contains('Détail')));
+    final row = find
+        .descendant(of: table, matching: find.byType(PaymentStatusBadge))
+        .first;
+    await tester.ensureVisible(row);
+    await tester.tap(row);
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
@@ -127,7 +151,7 @@ void main() {
 
     expect(tester.takeException(), isNull);
     expect(find.text('Jours payés'), findsOneWidget);
-    expect(find.text('Heures supplémentaires'), findsOneWidget);
+    expect(find.text('Heures supplémentaires'), findsNothing);
     // Karim has a paid day and an unpaid day in the seed → both badges render.
     expect(find.byType(PaymentStatusBadge), findsWidgets);
     expect(find.widgetWithText(PrimaryButton, 'Payer'), findsOneWidget);
@@ -141,11 +165,11 @@ void main() {
 
       expect(tester.takeException(), isNull, reason: '$size');
       expect(find.text('Jours payés'), findsOneWidget, reason: '$size');
-      expect(find.byType(DateField), findsNWidgets(2), reason: '$size');
+      expect(find.byType(DateFilter), findsNWidgets(2), reason: '$size');
     }
   });
 
-  testApp('"Payer" confirms, asks for the CIN, then flips the days to paid',
+  testApp('"Payer" confirms, asks for the PIN, then flips the days to paid',
       (tester) async {
     final db = await _openPayroll(tester);
     await _pickKarim(tester);
@@ -159,8 +183,8 @@ void main() {
     await _confirmPay(tester);
 
     // The identity dialog stands between the confirmation and the write.
-    expect(find.text('Numéro CIN'), findsOneWidget);
-    await _enterCin(tester, _marcCin);
+    expect(find.text('Numéro PIN'), findsOneWidget);
+    await _enterPin(tester, _marcPin);
 
     expect(find.text('Paiement enregistré'), findsOneWidget);
     expect(
@@ -169,19 +193,41 @@ void main() {
     );
   });
 
-  testApp('a wrong CIN leaves the days unpaid', (tester) async {
+  testApp('a wrong PIN leaves the days unpaid', (tester) async {
     final db = await _openPayroll(tester);
     await _pickKarim(tester);
 
     await _confirmPay(tester);
-    await _enterCin(tester, '00.00.00-000.00');
+    await _enterPin(tester, '00.00.00-000.00');
 
     // Dialog stays open, days untouched.
-    expect(find.textContaining('tentative'), findsOneWidget);
+    expect(find.text('Numéro incorrect. Réessayez.'), findsOneWidget);
     expect(
       (await AttendanceRepository(db).attendance(AttendanceIds.karim1))!
           .paymentStatus,
       PaymentStatus.unpaid,
     );
+  });
+
+  /// Picks [size] in the paginator's rows-per-page menu.
+  Future<void> pickPageSize(WidgetTester tester, int size) async {
+    final menu = find.byKey(const ValueKey('paginator-page-size'));
+    await tester.ensureVisible(menu);
+    await tester.tap(menu);
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(PopupMenuItem<int>, '$size'));
+    await tester.pumpAndSettle();
+  }
+
+  testApp('the table is paged: 10 rows by default, 25 or 50 on demand', (tester) async {
+    await _openPayroll(tester);
+    expect(find.byType(Paginator), findsOneWidget);
+    Paginator pager() => tester.widget<Paginator>(find.byType(Paginator));
+    expect(pager().pageSize, 10);
+    expect(find.textContaining(RegExp(r'^1–\d+ sur \d+$')), findsOneWidget);
+    await pickPageSize(tester, 25);
+    expect(tester.takeException(), isNull);
+    expect(pager().pageSize, 25);
+    expect(pager().page, 0);
   });
 }

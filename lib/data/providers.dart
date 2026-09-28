@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/models.dart';
@@ -80,11 +81,11 @@ final Provider<CredentialRepository> credentialRepositoryProvider =
       (ref) => CredentialRepository(ref.watch(databaseProvider)),
     );
 
-/// The pointage clock. `DateTime.now` in the app; a test overrides it with a
+/// The pointage clock. `clock.now()` in the app; a test overrides it with a
 /// fixed function so an employee can clock in at 07:45 and out at 17:00 without
 /// wall-clock time passing.
 final Provider<DateTime Function()> attendanceClockProvider =
-    Provider<DateTime Function()>((ref) => DateTime.now);
+    Provider<DateTime Function()>((ref) => () => clock.now());
 
 final Provider<AttendanceRepository> attendanceRepositoryProvider =
     Provider<AttendanceRepository>(
@@ -236,6 +237,17 @@ final lowStockAlertsProvider =
           ref.watch(itemRepositoryProvider).watchLowStockAlerts(storeId),
     );
 
+/// The number on the sidebar's "Alertes" entry — how many articles need a
+/// decision today, ruptures included.
+///
+/// Derived from [lowStockAlertsProvider] rather than counted with a query of
+/// its own: the rail and the screen then answer from the same stream, and a
+/// movement that clears an alert changes both in the same frame.
+final alertsCountProvider = Provider.family<int, String>(
+  (ref, storeId) =>
+      ref.watch(lowStockAlertsProvider(storeId)).value?.length ?? 0,
+);
+
 /// Every article in the establishment, alphabetically — for the callers that do
 /// their own ordering, where "worst first" would be noise.
 final itemsByNameProvider = StreamProvider.family<List<Item>, String>(
@@ -384,6 +396,14 @@ final ordersForSupplierProvider =
     );
 
 /// The open ones, named the same way.
+/// Every delivery received in the store, newest first — the Réceptions
+/// page's history.
+final storeReceiptRowsProvider =
+    StreamProvider.family<List<StoreReceiptRowView>, String>(
+      (ref, storeId) =>
+          ref.watch(orderRepositoryProvider).watchStoreReceiptRows(storeId),
+    );
+
 final openOrderRowsProvider = StreamProvider.family<List<OrderRowView>, String>(
   (ref, storeId) =>
       ref.watch(orderRepositoryProvider).watchOpenOrderRows(storeId),
@@ -524,7 +544,7 @@ final stockValuationProvider = StreamProvider.family<double, String>(
 ///
 /// Here rather than at each call site so every report measures its window the
 /// same way — from this instant, not from midnight.
-DateTime _daysAgo(int days) => DateTime.now().subtract(Duration(days: days));
+DateTime _daysAgo(int days) => clock.now().subtract(Duration(days: days));
 
 // --- Gestion Employée ------------------------------------------------------
 
@@ -583,6 +603,7 @@ typedef AttendanceLogKey = ({
   AttendanceStatus? status,
   String? employeeId,
   int page,
+  int pageSize,
 });
 
 final attendancePageProvider =
@@ -594,6 +615,7 @@ final attendancePageProvider =
         status: key.status,
         employeeId: key.employeeId,
         page: key.page,
+        pageSize: key.pageSize,
       ),
     );
 
@@ -624,6 +646,7 @@ typedef PayrollDaysKey = ({
   DateTime? to,
   PaymentStatus? status,
   int page,
+  int pageSize,
 });
 
 /// A `FutureProvider`: the day view is heavy and the paie flow that changes it
@@ -638,6 +661,7 @@ final payrollDaysProvider =
         to: key.to,
         status: key.status,
         page: key.page,
+        pageSize: key.pageSize,
       ),
     );
 

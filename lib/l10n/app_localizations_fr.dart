@@ -48,6 +48,56 @@ class AppLocalizationsFr extends AppLocalizations {
   String get stockStatusOutOfStock => 'Rupture de stock';
 
   @override
+  String get shortAddItem => 'Ajouter';
+
+  @override
+  String get shortAddDelivery => 'Livraison';
+
+  @override
+  String get shortLogUsage => 'Sortie';
+
+  @override
+  String get shortAdjustStock => 'Ajuster';
+
+  @override
+  String get shortAddSupplier => 'Ajouter';
+
+  @override
+  String get shortAddEmployee => 'Ajouter';
+
+  @override
+  String get shortAddCategory => 'Ajouter';
+
+  @override
+  String get shortAddUnit => 'Ajouter';
+
+  @override
+  String get shortNewOrder => 'Nouvelle';
+
+  @override
+  String get shortCreateOrders => 'Commander';
+
+  @override
+  String get shortEditPrices => 'Tarifs';
+
+  @override
+  String get shortMarkAllRead => 'Tout lire';
+
+  @override
+  String get filtersTitle => 'Filtres';
+
+  @override
+  String filtersTitleWithCount(int count) {
+    return 'Filtres · $count';
+  }
+
+  @override
+  String get filtersClearAll => 'Tout effacer';
+
+  @override
+  String get filtersDone => 'Voir les résultats';
+
+  @override
   String get actionAddItem => 'Ajouter un produit';
 
   @override
@@ -191,9 +241,6 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get loginEmail => 'Adresse e-mail';
-
-  @override
-  String get loginPassword => 'Mot de passe';
 
   @override
   String get loginRemember => 'Rester connecté';
@@ -382,16 +429,93 @@ class AppLocalizationsFr extends AppLocalizations {
   String get inventorySortStockDesc => 'Stock décroissant';
 
   @override
+  String get inventoryViewTable => 'Vue tableau';
+
+  @override
+  String movementsShowMore(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count restants',
+      one: '1 restant',
+    );
+    return 'Afficher plus ($_temp0)';
+  }
+
+  @override
+  String get movementsViewList => 'Vue liste';
+
+  @override
+  String get movementsViewTable => 'Vue tableau';
+
+  @override
+  String get tableColProduct => 'Produit';
+
+  @override
+  String get tableColStock => 'Stock';
+
+  @override
+  String get tableColThreshold => 'Stock min/max';
+
+  @override
+  String get tableColLevel => 'Niveau';
+
+  @override
+  String get tableColValue => 'Valeur';
+
+  @override
+  String get tableColStatus => 'Statut';
+
+  @override
+  String get tableColDate => 'Date';
+
+  @override
+  String get tableColType => 'Type';
+
+  @override
+  String get tableColQuantity => 'Quantité';
+
+  @override
+  String get tableColBy => 'Par';
+
+  @override
+  String get tableColTime => 'Heure';
+
+  @override
   String get inventoryViewGrid => 'Vue grille';
 
   @override
   String get inventoryViewList => 'Vue liste';
 
   @override
-  String get inventoryStockCurrent => 'Stock actuel';
+  String get wizardNext => 'Suivant';
 
   @override
-  String get inventoryOpenItem => 'Voir le produit';
+  String get wizardPrevious => 'Précédent';
+
+  @override
+  String get wizardReset => 'Réinitialiser';
+
+  @override
+  String get wizardResetTitle => 'Réinitialiser le formulaire ?';
+
+  @override
+  String get wizardResetBody =>
+      'Les informations saisies seront effacées et vous reviendrez à la première étape.';
+
+  @override
+  String wizardStepOf(int current, int total) {
+    return 'Étape $current sur $total';
+  }
+
+  @override
+  String get viewModeGrid => 'Vue grille';
+
+  @override
+  String get viewModeList => 'Vue liste';
+
+  @override
+  String get inventoryStockCurrent => 'Stock actuel';
 
   @override
   String get inventorySelectPrompt => 'Sélectionnez un produit';
@@ -401,10 +525,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'Choisissez un produit dans la liste pour voir son détail, ses fournisseurs et ses prix.';
 
   @override
-  String get itemQuantityLabel => 'Quantité en stock';
+  String get itemQuantityLabel => 'Quantité';
 
   @override
-  String get itemThresholdLabel => 'Seuil d\'alerte';
+  String get itemThresholdLabel => 'Stock minimum';
 
   @override
   String get itemImageLabel => 'Photo du produit';
@@ -445,10 +569,6 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get itemSuppliersTitle => 'Fournisseurs et prix';
-
-  @override
-  String get itemSuppliersSubtitle =>
-      'Un même produit peut avoir plusieurs fournisseurs, chacun avec son prix.';
 
   @override
   String get itemNoSuppliersTitle => 'Aucun fournisseur associé';
@@ -512,15 +632,43 @@ class AppLocalizationsFr extends AppLocalizations {
       'Vous serez alerté lorsque le stock atteindra ce niveau ou passera en dessous.';
 
   @override
+  String get itemHolidayMinLabel => 'Stock minimum en forte affluence';
+
+  @override
+  String itemHolidayMinHelp(String quantity) {
+    return 'Facultatif. Laissez vide pour le double du stock minimum, soit $quantity.';
+  }
+
+  @override
+  String get itemHolidayMinInvalid =>
+      'Le minimum en forte affluence doit dépasser le stock minimum.';
+
+  @override
+  String get itemFormSectionIdentity => 'Identité';
+
+  @override
+  String get itemFormSectionClassification => 'Classement';
+
+  @override
+  String get itemFormSectionLevels => 'Niveaux de stock';
+
+  @override
+  String get itemFormSectionNote => 'Note';
+
+  @override
   String get itemMaxStockLabel => 'Stock maximum';
 
   @override
   String get itemFormMaxStockHelp =>
-      'La quantité visée quand le stock est complet. Une commande propose de remonter à ce niveau. Laissez à 0 si ce produit n\'a pas de maximum.';
+      'La quantité visée quand le stock est complet. Une commande propose de remonter à ce niveau.';
 
   @override
   String get itemFormMaxStockInvalid =>
-      'Le stock maximum doit être supérieur au seuil d\'alerte.';
+      'Le stock maximum doit être supérieur au stock minimum.';
+
+  @override
+  String get itemFormThresholdRequired =>
+      'Indiquez un stock minimum supérieur à 0.';
 
   @override
   String get itemFormNoCostTitle => 'Pas de prix sur cette page';
@@ -785,7 +933,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get periodAll => 'Tout l\'historique';
 
   @override
-  String get movementTypeIn => 'Livraison';
+  String get movementTypeIn => 'Entrée';
 
   @override
   String get movementTypeOut => 'Sortie';
@@ -921,6 +1069,237 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get adjustmentNoChange => 'Aucun écart — rien à enregistrer.';
+
+  @override
+  String adjustmentLargeDropWarning(String percent) {
+    return 'Baisse de $percent — vérifiez votre comptage.';
+  }
+
+  @override
+  String adjustmentLargeConfirmBodyMany(int count, String percent) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count produits baissent',
+      one: '1 produit baisse',
+    );
+    return '$_temp0 d\'au moins $percent. Vérifiez votre comptage avant de confirmer.';
+  }
+
+  @override
+  String movementCountedOf(String counted, String expected) {
+    return 'Compté $counted — prévu $expected';
+  }
+
+  @override
+  String get dateToday => 'Aujourd\'hui';
+
+  @override
+  String get dateYesterday => 'Hier';
+
+  @override
+  String get pickerTitle => 'Choisir des produits';
+
+  @override
+  String get pickerSearchHint => 'Rechercher un produit';
+
+  @override
+  String get pickerAllCategories => 'Toutes';
+
+  @override
+  String get pickerNoResults => 'Aucun produit ne correspond.';
+
+  @override
+  String pickerConfirm(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Ajouter $count produits',
+      one: 'Ajouter 1 produit',
+      zero: 'Sélectionnez des produits',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get cartEmptyBody =>
+      'Touchez les produits concernés — vous pourrez en ajouter d\'autres ensuite.';
+
+  @override
+  String get cartAddProduct => 'Ajouter un produit';
+
+  @override
+  String cartInStock(String quantity) {
+    return 'En stock : $quantity';
+  }
+
+  @override
+  String cartLineCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count produits',
+      one: '1 produit',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get cartRemoveLine => 'Retirer';
+
+  @override
+  String get cartTotal => 'Total';
+
+  @override
+  String get cartProducts => 'Produits';
+
+  @override
+  String get lineChooseSupplier => 'Choisir un fournisseur';
+
+  @override
+  String linePriceEdited(String old) {
+    return 'prix modifié (avant $old)';
+  }
+
+  @override
+  String linePriceLabel(String unit) {
+    return 'Prix / $unit';
+  }
+
+  @override
+  String supplierSheetTitle(String item) {
+    return 'Fournisseur — $item';
+  }
+
+  @override
+  String get supplierBestPrice => 'Meilleur prix';
+
+  @override
+  String get supplierUsual => 'Habituel';
+
+  @override
+  String get supplierApplyAll =>
+      'Utiliser ce fournisseur pour tous les produits qu\'il propose';
+
+  @override
+  String supplierAppliedAll(String supplier, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count produits',
+      one: '1 produit',
+    );
+    return '$supplier choisi pour $_temp0';
+  }
+
+  @override
+  String cartIssueNoSupplier(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count produits sans fournisseur',
+      one: '1 produit sans fournisseur',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String cartIssueNoQuantity(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count produits sans quantité',
+      one: '1 produit sans quantité',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String adjustmentExpected(String quantity) {
+    return 'prévu $quantity';
+  }
+
+  @override
+  String get adjustmentMarkCorrect => 'Juste';
+
+  @override
+  String adjustmentCorrectCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count justes',
+      one: '1 juste',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String adjustmentGapCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count écarts',
+      one: '1 écart',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get pickerSectionRestock => 'À réapprovisionner';
+
+  @override
+  String get pickerSectionRecent => 'Utilisés récemment';
+
+  @override
+  String get pickerSectionAll => 'Tous les produits';
+
+  @override
+  String deliveryReceivedOn(String date) {
+    return 'Reçue $date';
+  }
+
+  @override
+  String get actorSheetTitle => 'Qui enregistre ?';
+
+  @override
+  String get actorSheetSubtitle =>
+      'Touchez votre nom, puis confirmez avec votre numéro PIN.';
+
+  @override
+  String get actorMe => 'Moi';
+
+  @override
+  String get actorSearchHint => 'Rechercher un employé';
+
+  @override
+  String get actorNoEmployees => 'Aucun employé actif dans cet établissement.';
+
+  @override
+  String movementsRecordedBy(int count, String name) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count mouvements enregistrés',
+      one: '1 mouvement enregistré',
+    );
+    return '$_temp0 par $name';
+  }
+
+  @override
+  String receiveConfirmedBy(String name) {
+    return 'Livraison reçue par $name';
+  }
+
+  @override
+  String movementsRecorded(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count mouvements enregistrés',
+      one: '1 mouvement enregistré',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get suppliersTitle => 'Fournisseurs';
@@ -1084,6 +1463,20 @@ class AppLocalizationsFr extends AppLocalizations {
   String get dashboardAllGoodBody => 'Aucun produit sous son seuil d\'alerte.';
 
   @override
+  String get dashboardTabActivity => 'Activité';
+
+  @override
+  String get dashboardTabAlerts => 'À surveiller';
+
+  @override
+  String dashboardAlertLevel(String quantity, String threshold) {
+    return '$quantity / seuil $threshold';
+  }
+
+  @override
+  String get dashboardAddProductShort => 'Produit';
+
+  @override
   String get dashboardEmptyStore => 'Cet établissement est vide';
 
   @override
@@ -1105,14 +1498,97 @@ class AppLocalizationsFr extends AppLocalizations {
       'Tous vos produits sont au-dessus de leur seuil d\'alerte.';
 
   @override
-  String alertsShortfall(String quantity) {
-    return 'Il manque $quantity pour atteindre le seuil';
+  String get alertsSeverityOutOfStock => 'Ruptures';
+
+  @override
+  String get alertsSeverityLowStock => 'Stock bas';
+
+  @override
+  String get alertsFilterCoverage => 'Couverture';
+
+  @override
+  String get alertsFilterSupplier => 'Fournisseur';
+
+  @override
+  String get alertsFilterSort => 'Tri';
+
+  @override
+  String get alertsFilterAll => 'Toutes';
+
+  @override
+  String get alertsFilterAllSuppliers => 'Tous';
+
+  @override
+  String get alertsCoverageUncovered => 'Rien en commande';
+
+  @override
+  String get alertsCoverageOnOrder => 'En commande';
+
+  @override
+  String get alertsSortUrgency => 'Urgence';
+
+  @override
+  String get alertsSortShortfall => 'Manque';
+
+  @override
+  String get alertsSortName => 'Nom';
+
+  @override
+  String get alertsNoSupplier => 'Sans fournisseur';
+
+  @override
+  String alertsLevel(String quantity, String threshold) {
+    return '$quantity sur $threshold';
   }
 
   @override
-  String alertsOrderFrom(String supplier) {
-    return 'Commander chez $supplier';
+  String get alertsSelectAll => 'Tout sélectionner';
+
+  @override
+  String alertsShortfallShort(String quantity) {
+    return 'manque $quantity';
   }
+
+  @override
+  String get alertsOrder => 'Commander';
+
+  @override
+  String alertsSelectionSummary(int items, int suppliers) {
+    String _temp0 = intl.Intl.pluralLogic(
+      items,
+      locale: localeName,
+      other: '$items produits',
+      one: '1 produit',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      suppliers,
+      locale: localeName,
+      other: '$suppliers fournisseurs',
+      one: '1 fournisseur',
+    );
+    return '$_temp0 · $_temp1';
+  }
+
+  @override
+  String get alertsSelectionClear => 'Annuler la sélection';
+
+  @override
+  String get alertsColumnItem => 'Produit';
+
+  @override
+  String get alertsColumnStock => 'Stock';
+
+  @override
+  String get alertsColumnThreshold => 'Seuil';
+
+  @override
+  String get alertsColumnShortfall => 'Manque';
+
+  @override
+  String get alertsColumnOnOrder => 'En commande';
+
+  @override
+  String get alertsColumnStatus => 'Statut';
 
   @override
   String get notificationsTitle => 'Notifications';
@@ -1147,6 +1623,40 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get notificationsFilterUnread => 'Non lues';
+
+  @override
+  String get notificationsFilterKind => 'Type';
+
+  @override
+  String get notificationsKindStock => 'Stock';
+
+  @override
+  String get notificationsKindPrice => 'Prix';
+
+  @override
+  String get notificationsKindAdjustment => 'Ajustements';
+
+  @override
+  String get notificationsKindDelivery => 'Livraisons';
+
+  @override
+  String get notificationsToday => 'Aujourd\'hui';
+
+  @override
+  String get notificationsYesterday => 'Hier';
+
+  @override
+  String get notificationsMarkRead => 'Marquer comme lue';
+
+  @override
+  String get notificationsMarkedOneRead => 'Notification marquée comme lue.';
+
+  @override
+  String get notificationsNoneOfKind => 'Aucune notification de ce type';
+
+  @override
+  String get notificationsNoneOfKindBody =>
+      'Changez le filtre pour voir les autres notifications.';
 
   @override
   String get reportsTitle => 'Rapports';
@@ -1497,6 +2007,22 @@ class AppLocalizationsFr extends AppLocalizations {
   String get settingsTabSync => 'Synchronisation';
 
   @override
+  String get settingsTabStoreHint => 'Nom, adresse, horaires et paie';
+
+  @override
+  String get settingsTabAccountHint => 'Profil, sécurité et établissements';
+
+  @override
+  String get settingsTabNotificationsHint => 'Les alertes que vous recevez';
+
+  @override
+  String get settingsTabSyncHint => 'Connexion et données locales';
+
+  @override
+  String get settingsTabSyncAttention =>
+      'Hors ligne ou modifications en attente';
+
+  @override
   String get movementsTabHistory => 'Historique';
 
   @override
@@ -1701,6 +2227,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get orderActionCancel => 'Annuler la commande';
 
   @override
+  String get shortReceive => 'Réceptionner';
+
+  @override
   String get orderActionReceive => 'Réceptionner la livraison';
 
   @override
@@ -1782,6 +2311,23 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get editOrderTitle => 'Modifier la commande';
+
+  @override
+  String get orderTimelineCreated => 'Créée';
+
+  @override
+  String get orderTimelineSent => 'Envoyée';
+
+  @override
+  String orderTimelineReceipt(int number) {
+    return 'Réception $number';
+  }
+
+  @override
+  String get orderTimelineDone => 'Terminée';
+
+  @override
+  String get orderTimelineCancelled => 'Annulée';
 
   @override
   String get orderStepSupplier => 'Fournisseur';
@@ -1913,6 +2459,34 @@ class AppLocalizationsFr extends AppLocalizations {
   String get itemOnOrderLabel => 'En commande';
 
   @override
+  String itemRangeInline(String minimum, String maximum) {
+    return 'min $minimum · max $maximum';
+  }
+
+  @override
+  String get itemStockValueLabel => 'Valeur du stock';
+
+  @override
+  String get itemStockValueUnknown => 'Coût inconnu';
+
+  @override
+  String get stockGaugeOverMaximum => 'Au-dessus du stock maximum';
+
+  @override
+  String get itemStockRangeLabel => 'Stock min/max';
+
+  @override
+  String itemTopUpSuggestion(String quantity) {
+    return 'Pour remonter au maximum : $quantity';
+  }
+
+  @override
+  String get itemDetailsTitle => 'Détails';
+
+  @override
+  String get itemDetailsSubtitle => 'Fiche du produit';
+
+  @override
   String get itemOpenOrdersTitle => 'Commandes en cours';
 
   @override
@@ -1960,6 +2534,17 @@ class AppLocalizationsFr extends AppLocalizations {
   String receiveOverBadge(String quantity) {
     return 'Sur-livraison de $quantity';
   }
+
+  @override
+  String receiptOrderedOf(String quantity) {
+    return 'commandé $quantity';
+  }
+
+  @override
+  String get receiptShortBadge => 'Reste dû';
+
+  @override
+  String get receiptClosedShortBadge => 'Soldée';
 
   @override
   String get receiveUnorderedBadge => 'Non commandé';
@@ -2080,30 +2665,13 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String dashboardStaleOrdersTitle(int count, int days) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count commandes partielles ouvertes depuis plus de $days jours',
-      one: '1 commande partielle ouverte depuis plus de $days jours',
-    );
-    return '$_temp0';
-  }
-
-  @override
   String get dashboardStaleOrdersBody =>
       'Une commande laissée ouverte gonfle la quantité « en commande » et fausse l\'alerte de double commande.';
 
   @override
-  String get dashboardStaleOrdersAction => 'Voir les commandes';
-
-  @override
   String alertsOnOrder(String quantity) {
-    return '$quantity en commande';
+    return '$quantity en route';
   }
-
-  @override
-  String get alertsNothingOnOrder => 'Rien en commande';
 
   @override
   String get alertsCreateOrders => 'Créer les commandes';
@@ -2296,9 +2864,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get employeesNavPayroll => 'Historique de paiement';
 
   @override
-  String get employeeSectionComingSoonTitle => 'Bientôt disponible';
-
-  @override
   String get employeeSectionComingSoonTimeclock =>
       'Le tableau de pointage arrive dans une prochaine étape.';
 
@@ -2332,29 +2897,38 @@ class AppLocalizationsFr extends AppLocalizations {
       'Aucun accès à l\'application. Son pointage est fait au tableau de bord partagé.';
 
   @override
-  String get contractTypeFixed => 'Salarié fixe';
-
-  @override
-  String get contractTypeExtra => 'Extra';
-
-  @override
   String get employeesTitle => 'Personnel';
 
   @override
   String get employeesSubtitle =>
-      'Le personnel de cet établissement — coordonnées, contrat et rôle.';
+      'Le personnel de cet établissement — coordonnées, rémunération et rôle.';
 
   @override
   String get employeesAdd => 'Ajouter un employé';
 
   @override
-  String get employeesSearchHint => 'Rechercher (nom, CIN)';
+  String get employeesSearchHint => 'Rechercher (nom, PIN)';
 
   @override
   String get employeeSelectorHint => 'Rechercher ou sélectionner un employé…';
 
   @override
   String get employeesShowArchived => 'Afficher les personnels retirés';
+
+  @override
+  String get employeeStatusActive => 'Actif';
+
+  @override
+  String get employeeCardHourlyRate => 'Salaire horaire';
+
+  @override
+  String get employeeCardHiredOn => 'Embauché le';
+
+  @override
+  String get employeeCardRetiredOn => 'Retiré le';
+
+  @override
+  String get employeeCardActions => 'Actions';
 
   @override
   String get employeesArchivedPill => 'Retiré';
@@ -2367,29 +2941,91 @@ class AppLocalizationsFr extends AppLocalizations {
       'Ajoutez les membres de votre personnel pour suivre leur pointage et leur paie.';
 
   @override
-  String employeeCinLabel(String cin) {
-    return 'CIN $cin';
-  }
-
-  @override
   String get employeesKpiActive => 'Personnel actif';
-
-  @override
-  String get employeesKpiContractSplit => 'Fixes / Extras';
-
-  @override
-  String employeesKpiContractSplitValue(int fixed, int extra) {
-    return '$fixed fixes · $extra extras';
-  }
 
   @override
   String get employeesKpiManagers => 'Gérants';
 
   @override
+  String get employeesKpiAverageRate => 'Tarif moyen';
+
+  @override
+  String get employeesKpiMaxRate => 'Tarif max';
+
+  @override
   String get employeesKpiHiredThisMonth => 'Embauches ce mois';
 
   @override
+  String get employeesColumnName => 'Employé';
+
+  @override
+  String get employeesColumnRole => 'Rôle';
+
+  @override
+  String get employeesColumnPay => 'Tarif';
+
+  @override
+  String get employeesColumnActions => 'Actions';
+
+  @override
+  String get employeeActionAttendance => 'Historique pointage';
+
+  @override
+  String get employeeActionPayroll => 'Historique paiement';
+
+  @override
+  String get employeesColumnHired => 'Embauché le';
+
+  @override
+  String get employeeWizardStepInfo => 'Information professionnelle';
+
+  @override
+  String get employeeWizardStepPay => 'Rémunération';
+
+  @override
+  String get employeeWizardStepRole => 'Rôle et sécurité';
+
+  @override
+  String get employeeFormDescription =>
+      'Renseignez la fiche en trois étapes : les informations professionnelles, la rémunération, puis le rôle et les accès.';
+
+  @override
+  String employeeFormEditDescription(String name) {
+    return 'Modifiez la fiche de $name. Chaque étape peut être enregistrée directement.';
+  }
+
+  @override
+  String get employeeFormFirstNameHint => 'Ex. Nora';
+
+  @override
+  String get employeeFormLastNameHint => 'Ex. Benali';
+
+  @override
+  String get employeeFormPhoneHint => '+32 470 12 34 56';
+
+  @override
+  String get employeeFormEmailHint => 'prenom.nom@exemple.be';
+
+  @override
+  String get employeeFormPayHint => 'Ex. 15,50';
+
+  @override
+  String get employeeFormPasswordConfirmHint => 'Répétez les 4 chiffres';
+
+  @override
   String get employeeFormPhoto => 'Photo';
+
+  @override
+  String get employeeFormPhotoHelp =>
+      'Facultatif · cliquez sur le cercle pour choisir un JPG ou PNG';
+
+  @override
+  String get employeeFormPayHelp =>
+      'Payé à l\'heure réellement travaillée, pauses déduites.';
+
+  @override
+  String get employeeFormStaffNoPassword =>
+      'Un employé pointe avec son numéro PIN et n\'a pas accès à l\'application : aucun mot de passe n\'est demandé.';
 
   @override
   String get employeeFormPhotoAction => 'Choisir une photo';
@@ -2411,7 +3047,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get employeeFormLastName => 'Nom';
 
   @override
-  String get employeeFormCin => 'N° de carte d\'identité';
+  String get employeeFormPin => 'Numéro PIN';
 
   @override
   String get employeeFormPhone => 'Téléphone';
@@ -2420,8 +3056,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get employeeFormEmail => 'Adresse e-mail';
 
   @override
-  String get employeeCinTaken =>
-      'Ce numéro de carte d\'identité est déjà utilisé.';
+  String get employeePinTaken => 'Ce numéro PIN est déjà utilisé.';
 
   @override
   String get employeeEmailTaken => 'Cette adresse e-mail est déjà utilisée.';
@@ -2430,55 +3065,13 @@ class AppLocalizationsFr extends AppLocalizations {
   String get employeeFormRole => 'Rôle et accès';
 
   @override
-  String get employeeFormEmployment => 'Contrat et rémunération';
-
-  @override
-  String get employeeFormContractType => 'Type de contrat';
-
-  @override
-  String get employeeFormPayMonthly => 'Salaire mensuel (€)';
-
-  @override
   String get employeeFormPayHourly => 'Tarif horaire (€/h)';
-
-  @override
-  String get employeeFormSchedule => 'Horaires';
-
-  @override
-  String get employeeFormScheduleStart => 'Heure d\'arrivée';
-
-  @override
-  String get employeeFormScheduleEnd => 'Heure de départ';
-
-  @override
-  String get employeeFormScheduleInvalid => 'Format attendu : HH:MM';
-
-  @override
-  String get employeeFormScheduleHelp =>
-      'Laissez vide pour utiliser les horaires de l\'établissement.';
 
   @override
   String get employeeCreated => 'Employé ajouté';
 
   @override
   String get employeeUpdated => 'Employé modifié';
-
-  @override
-  String employeeHiredOn(String date) {
-    return 'Embauché le $date';
-  }
-
-  @override
-  String get employeeDetailContact => 'Coordonnées';
-
-  @override
-  String get employeeScheduleStoreHours => 'Horaires de l\'établissement';
-
-  @override
-  String get employeeHistoryTitle => 'Historique de pointage';
-
-  @override
-  String get employeePayrollTitle => 'Historique de paiement';
 
   @override
   String employeeArchiveTitle(String name) {
@@ -2502,14 +3095,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get employeeRestored => 'Employé restauré';
 
   @override
-  String employeeDetailArchivedOn(String date) {
-    return 'Retiré le $date';
-  }
-
-  @override
-  String get employeeHistoryEmpty => 'Aucun pointage enregistré.';
-
-  @override
   String get attendanceStatusNotClockedIn => 'Non pointé';
 
   @override
@@ -2520,9 +3105,6 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get attendanceStatusDone => 'Terminé';
-
-  @override
-  String get attendanceLate => 'En retard';
 
   @override
   String get attendanceBreakOverrun => 'Pause dépassée';
@@ -2591,6 +3173,25 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String get liveDateLabel => 'Date';
+
+  @override
+  String get liveTimeLabel => 'Heure';
+
+  @override
+  String get timeclockViewDetail => 'Voir détails';
+
+  @override
+  String timeclockStartDayPrompt(String date) {
+    return 'Vous n\'avez pas encore commencé votre journée du $date. Pointez pour la démarrer.';
+  }
+
+  @override
+  String timeclockSessionTitle(int number) {
+    return 'Session N° $number';
+  }
+
+  @override
   String get timeclockLogArrival => 'Arrivée';
 
   @override
@@ -2603,30 +3204,14 @@ class AppLocalizationsFr extends AppLocalizations {
   String get timeclockLogDeparture => 'Départ';
 
   @override
-  String timeclockWorked(String duration) {
-    return 'Travaillé : $duration';
-  }
-
-  @override
-  String timeclockOvertimeMark(String duration) {
-    return '+$duration sup.';
-  }
-
-  @override
-  String get storeSettingsHours => 'Horaires de l\'établissement';
-
-  @override
-  String get storeSettingsOpenTime => 'Ouverture';
-
-  @override
-  String get storeSettingsCloseTime => 'Fermeture';
+  String get storeSettingsHours => 'Pauses';
 
   @override
   String get storeSettingsMaxBreak => 'Pause max (minutes)';
 
   @override
   String get storeSettingsHoursHelp =>
-      'Les horaires servent de base au calcul du retard et des heures supplémentaires (pour un employé sans horaire personnel). Une pause plus longue que le maximum est signalée « Pause dépassée ».';
+      'Une pause plus longue que le maximum est signalée « Pause dépassée ».';
 
   @override
   String paginatorRange(int first, int last, int total) {
@@ -2634,15 +3219,13 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String paginatorPage(int page, int count) {
-    return '$page / $count';
-  }
-
-  @override
   String get paginatorPrevious => 'Page précédente';
 
   @override
   String get paginatorNext => 'Page suivante';
+
+  @override
+  String get paginatorPageSize => 'Lignes par page :';
 
   @override
   String get attendanceHistoryTitle => 'Historique de pointage';
@@ -2671,16 +3254,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'Aucun pointage n\'a encore été enregistré dans cet établissement.';
 
   @override
-  String get attendanceFilterEmployee => 'Employé';
+  String get historyFilterFrom => 'Début';
 
   @override
-  String get attendanceFilterAllEmployees => 'Tous les employés';
-
-  @override
-  String get attendanceFilterFrom => 'Du';
-
-  @override
-  String get attendanceFilterTo => 'Au';
+  String get historyFilterTo => 'Fin';
 
   @override
   String attendanceFilterDateRange(String from, String to) {
@@ -2694,10 +3271,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get attendanceStatWorked => 'Heures travaillées';
 
   @override
-  String get attendanceStatLate => 'Retards';
-
-  @override
-  String get attendanceStatOvertime => 'Heures supplémentaires';
+  String get attendanceStatLateBreaks => 'Pauses dépassées';
 
   @override
   String get attendanceColumnDate => 'Date';
@@ -2712,46 +3286,35 @@ class AppLocalizationsFr extends AppLocalizations {
   String get attendanceColumnDeparture => 'Départ';
 
   @override
-  String get attendanceColumnBreaks => 'Pauses';
-
-  @override
   String get attendanceColumnWorked => 'Durée travail';
-
-  @override
-  String get attendanceColumnOvertime => 'Heures sup';
 
   @override
   String get attendanceColumnStatus => 'Statut';
 
   @override
-  String get attendanceColumnFlags => 'Alertes';
+  String get attendanceDayIntro =>
+      'Les pointages de la journée, session par session, puis le temps travaillé, les pauses et les alertes éventuelles.';
 
   @override
-  String get attendanceColumnActions => 'Détail';
+  String get attendanceDaySummary =>
+      'Résumé de la journée : le temps travaillé et les pauses prises.';
+
+  @override
+  String get attendanceTotalWorked => 'Durée totale travaillée';
+
+  @override
+  String attendancePausesCount(int count) {
+    return 'Pauses ($count)';
+  }
+
+  @override
+  String get attendanceColumnFlags => 'Alertes';
 
   @override
   String get attendanceViewDetail => 'Voir le détail';
 
   @override
-  String get attendanceDetailTitle => 'Détail du pointage';
-
-  @override
-  String attendanceDetailBreaks(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count pauses',
-      one: '1 pause',
-      zero: 'Aucune pause',
-    );
-    return '$_temp0';
-  }
-
-  @override
   String get attendanceColumnSchedule => 'Horaires';
-
-  @override
-  String get attendanceFilterReset => 'Réinitialiser';
 
   @override
   String attendanceBreakSummary(int count, String duration) {
@@ -2765,31 +3328,7 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get attendanceDetailBreakTotal => 'Total pauses';
-
-  @override
-  String get attendanceDetailWorkTime => 'Temps de travail';
-
-  @override
-  String attendanceDetailOvertimeInfo(String duration) {
-    return '$duration (informatif)';
-  }
-
-  @override
-  String get attendanceDetailTimeline => 'Chronologie';
-
-  @override
-  String get storeSettingsPayroll => 'Paie';
-
-  @override
-  String get storeSettingsOvertimeMultiplier => 'Majoration heures sup.';
-
-  @override
-  String get storeSettingsWorkingDays => 'Jours ouvrés / mois';
-
-  @override
-  String get storeSettingsPayrollHelp =>
-      'Un salarié fixe est payé son taux journalier (salaire ÷ jours ouvrés) par jour travaillé ; les heures supplémentaires sont payées à ce taux fois la majoration.';
+  String get attendanceCardBreakLabel => 'Pause';
 
   @override
   String get payrollHistoryTitle => 'Historique de paiement';
@@ -2797,18 +3336,6 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get payrollHistorySubtitle =>
       'L\'historique de paiement d\'un employé, jour par jour.';
-
-  @override
-  String get payrollFilterEmployee => 'Employé';
-
-  @override
-  String get payrollFilterAllEmployees => 'Tous les employés';
-
-  @override
-  String get payrollFilterFrom => 'Du';
-
-  @override
-  String get payrollFilterTo => 'Au';
 
   @override
   String get payrollFilterStatus => 'Statut de paiement';
@@ -2851,9 +3378,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get payrollStatWorkedHours => 'Heures travaillées';
 
   @override
-  String get payrollStatOvertimeHours => 'Heures supplémentaires';
-
-  @override
   String get payrollColumnEmployee => 'Employé';
 
   @override
@@ -2869,9 +3393,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get payrollColumnWorked => 'Durée travaillée';
 
   @override
-  String get payrollColumnOvertime => 'Heures sup';
-
-  @override
   String get payrollColumnAmount => 'Montant';
 
   @override
@@ -2879,6 +3400,9 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get payrollColumnPaidAt => 'Payé le';
+
+  @override
+  String get payrollDetailPayNow => 'Payer maintenant';
 
   @override
   String get payrollPayAction => 'Payer';
@@ -2906,9 +3430,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get payrollColumnHours => 'Horaires';
 
   @override
-  String get payrollColumnDetail => 'Détail';
-
-  @override
   String payrollBreakSummary(int count, String duration) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -2918,12 +3439,6 @@ class AppLocalizationsFr extends AppLocalizations {
     );
     return '$_temp0';
   }
-
-  @override
-  String get payrollFilterReset => 'Réinitialiser';
-
-  @override
-  String get payrollViewDetail => 'Voir le détail';
 
   @override
   String get payrollDetailTitle => 'Détail du paiement';
@@ -2938,18 +3453,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get payrollDetailWorked => 'Temps travaillé';
 
   @override
-  String payrollDetailOvertimeInfo(String duration) {
-    return '$duration (informatif)';
-  }
-
-  @override
   String get payrollDetailRate => 'Taux horaire';
-
-  @override
-  String get payrollDetailBase => 'Montant de base';
-
-  @override
-  String get payrollDetailPremium => 'Prime heures sup.';
 
   @override
   String get payrollDetailTotal => 'Total';
@@ -2961,22 +3465,22 @@ class AppLocalizationsFr extends AppLocalizations {
   String get paymentStatusUnpaid => 'Non payé';
 
   @override
-  String get loginCin => 'Numéro CIN';
+  String get loginPin => 'Numéro PIN';
 
   @override
-  String get loginCinHint => 'AB.12.34-567.89';
+  String get loginPinHint => 'AB.12.34-567.89';
 
   @override
-  String get loginPin => 'Code PIN';
+  String get loginPassword => 'Mot de passe';
 
   @override
-  String get loginPinHint => '4 chiffres';
+  String get loginPasswordHint => '4 chiffres';
 
   @override
-  String get loginForgotPin => 'Code oublié ?';
+  String get loginForgotPassword => 'Mot de passe oublié ?';
 
   @override
-  String get loginErrorBadCredentials => 'CIN ou code PIN incorrect.';
+  String get loginErrorBadCredentials => 'PIN ou mot de passe incorrect.';
 
   @override
   String get loginErrorLocked =>
@@ -2990,21 +3494,22 @@ class AppLocalizationsFr extends AppLocalizations {
   String get employeeFormCredentials => 'Identifiants';
 
   @override
-  String get employeeFormPin => 'Code PIN';
+  String get employeeFormPassword => 'Mot de passe';
 
   @override
-  String get employeeFormPinConfirm => 'Confirmer le code';
+  String get employeeFormPasswordConfirm => 'Confirmer le mot de passe';
 
   @override
-  String get employeeFormPinHelp =>
-      '4 chiffres. La personne se connecte avec son numéro CIN et ce code.';
+  String get employeeFormPasswordHelp =>
+      '4 chiffres. La personne se connecte avec son numéro PIN et ce mot de passe.';
 
   @override
-  String get employeeFormPinEditHelp =>
-      'Laisser vide pour conserver le code actuel.';
+  String get employeeFormPasswordEditHelp =>
+      'Laisser vide pour conserver le mot de passe actuel.';
 
   @override
-  String get employeeFormPinMismatch => 'Les deux codes ne correspondent pas.';
+  String get employeeFormPasswordMismatch =>
+      'Les deux mots de passe ne correspondent pas.';
 
   @override
   String get storeSettingsReadOnlyNotice =>
@@ -3042,6 +3547,178 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get addStoreVatNumberHelp =>
       'Facultatif. Figure sur les bons de réception envoyés aux fournisseurs.';
+
+  @override
+  String get orderStepProducts => 'Produits';
+
+  @override
+  String get orderStepReview => 'Récapitulatif';
+
+  @override
+  String get orderContinue => 'Continuer';
+
+  @override
+  String get orderEditProducts => 'Modifier les produits';
+
+  @override
+  String get orderPickProducts => 'Choisir des produits';
+
+  @override
+  String get orderActionDuplicate => 'Dupliquer';
+
+  @override
+  String orderDuplicated(String reference) {
+    return 'Nouveau brouillon $reference créé';
+  }
+
+  @override
+  String get ordersTabAll => 'Toutes';
+
+  @override
+  String get ordersTabDrafts => 'Brouillons';
+
+  @override
+  String get ordersTabSent => 'Envoyées';
+
+  @override
+  String get ordersTabPartial => 'Partielles';
+
+  @override
+  String get ordersTabDone => 'Terminées';
+
+  @override
+  String get tableColReference => 'Référence';
+
+  @override
+  String get tableColLines => 'Lignes';
+
+  @override
+  String get tableColAmount => 'Montant';
+
+  @override
+  String get tableColReceived => 'Reçu';
+
+  @override
+  String get navPurchases => 'Achats';
+
+  @override
+  String get navReceptions => 'Réceptions';
+
+  @override
+  String get receptionsTitle => 'Réceptions';
+
+  @override
+  String get receptionsSubtitle => 'Ce qui doit arriver, et ce qui est arrivé.';
+
+  @override
+  String get receptionsTabPending => 'À réceptionner';
+
+  @override
+  String get receptionsTabHistory => 'Historique';
+
+  @override
+  String get receptionsPendingEmpty => 'Rien à réceptionner';
+
+  @override
+  String get receptionsPendingEmptyBody =>
+      'Toutes les commandes envoyées ont été réceptionnées.';
+
+  @override
+  String get receptionsHistoryEmpty => 'Aucune réception pour le moment';
+
+  @override
+  String get receptionsHistoryEmptyBody =>
+      'Les livraisons réceptionnées apparaîtront ici.';
+
+  @override
+  String receptionsSentOn(String date) {
+    return 'Envoyée le $date';
+  }
+
+  @override
+  String receptionsLinesLeft(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count produits à recevoir',
+      one: '1 produit à recevoir',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get receptionsLate => 'En retard';
+
+  @override
+  String get receptionsReceive => 'Réceptionner';
+
+  @override
+  String get receptionsConform => 'Conforme';
+
+  @override
+  String receptionsDiscrepancies(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count écarts',
+      one: '1 écart',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get tableColReceipt => 'Bon';
+
+  @override
+  String get tableColOrder => 'Commande';
+
+  @override
+  String get tableColSupplier => 'Fournisseur';
+
+  @override
+  String get tableColReceivedBy => 'Reçu par';
+
+  @override
+  String get tableColDiscrepancies => 'Écarts';
+
+  @override
+  String get orderDocAction => 'Bon de commande (PDF)';
+
+  @override
+  String get orderDocActionShort => 'PDF';
+
+  @override
+  String get orderDocTitle => 'BON DE COMMANDE';
+
+  @override
+  String get orderDocDraft => 'BROUILLON — NON ENVOYÉ';
+
+  @override
+  String get orderDocDeliverTo => 'Livrer à';
+
+  @override
+  String get orderDocDate => 'Date';
+
+  @override
+  String get orderDocColumnQuantity => 'Quantité';
+
+  @override
+  String get orderDocColumnUnitPrice => 'Prix unitaire';
+
+  @override
+  String get orderDocColumnTotal => 'Total';
+
+  @override
+  String get orderDocTotalLabel => 'Total de la commande';
+
+  @override
+  String get orderDocClosing =>
+      'Merci de confirmer la commande et la date de livraison.';
+
+  @override
+  String orderDocFooter(String date) {
+    return 'Document généré le $date — ne constitue pas une facture.';
+  }
 
   @override
   String get receiptDocAction => 'Bon de réception';
@@ -3167,60 +3844,24 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get storeSettingsRetroWarningTitle =>
-      'Des journées ne sont pas encore payées';
-
-  @override
-  String storeSettingsRetroWarningBody(int days) {
-    String _temp0 = intl.Intl.pluralLogic(
-      days,
-      locale: localeName,
-      other: '$days journées terminées n\'\'ont pas encore été payées',
-      one: '1 journée terminée n\'\'a pas encore été payée',
-    );
-    return '$_temp0. Changer les horaires ou les coefficients modifiera le retard, les heures supplémentaires et le montant estimé de ces journées. Payez-les d\'\'abord pour figer leurs chiffres.';
-  }
-
-  @override
-  String get storeSettingsRetroWarningConfirm => 'Changer quand même';
-
-  @override
   String get identityPromptTitle => 'Confirmation d\'identité';
 
   @override
-  String get identityPromptField => 'Numéro CIN';
+  String get identityPromptField => 'Numéro PIN';
 
   @override
   String get identityPromptValidate => 'Valider';
 
   @override
-  String identityPromptWrong(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count tentatives restantes.',
-      one: '1 tentative restante.',
-      zero: 'Verrouillé.',
-    );
-    return 'Numéro incorrect. $_temp0';
-  }
-
-  @override
-  String identityPromptLocked(String time) {
-    return 'Trop de tentatives. Réessayez dans $time.';
-  }
-
-  @override
-  String get identityPromptNoCredential =>
-      'Aucun identifiant n\'est configuré pour cette personne.';
+  String get identityPromptWrong => 'Numéro incorrect. Réessayez.';
 
   @override
   String identityPromptPointageSubtitle(String action, String name) {
-    return '$action · saisissez le numéro CIN de $name';
+    return '$action · saisissez le numéro PIN de $name';
   }
 
   @override
   String identityPromptPayrollSubtitle(String name) {
-    return 'Saisissez votre numéro CIN pour valider le paiement de $name';
+    return 'Saisissez votre numéro PIN pour valider le paiement de $name';
   }
 }

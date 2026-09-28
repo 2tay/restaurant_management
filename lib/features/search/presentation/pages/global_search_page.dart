@@ -14,6 +14,7 @@ import '../../../../data/providers.dart';
 import '../../../../data/repositories/repositories.dart';
 import '../../../../data/view_models/view_models.dart';
 import '../../../../shared/widgets/widgets.dart';
+import '../../../inventory/presentation/widgets/product_drawer.dart';
 
 /// Search across items, suppliers and categories for the current store.
 ///
@@ -47,10 +48,14 @@ class _GlobalSearchPageState extends ConsumerState<GlobalSearchPage> {
     // uses, for the reason written down in `item_search.dart`: SQLite folds
     // case for ASCII only, so a `LIKE` here would stop finding "Épicerie".
     final allItems =
-        ref.watch(itemRowsProvider((
-              storeId: widget.storeId,
-              filter: ItemFilter.none,
-            ))).value ??
+        ref
+            .watch(
+              itemRowsProvider((
+                storeId: widget.storeId,
+                filter: ItemFilter.none,
+              )),
+            )
+            .value ??
         const <ItemRowView>[];
     final allSuppliers =
         ref.watch(supplierRowsProvider(widget.storeId)).value ??
@@ -93,17 +98,17 @@ class _GlobalSearchPageState extends ConsumerState<GlobalSearchPage> {
         path: Routes.toDashboard(widget.storeId),
       ),
       title: l10n.searchTitle,
-      scrollable: false,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 640),
-            child: SearchField(
-              hint: l10n.searchHint,
-              autofocus: true,
-              onChanged: (value) => setState(() => _query = value),
-            ),
+          // Wider than the 420dp a search box gets on a list screen, where it
+          // shares a control bar with filters. Here the search *is* the
+          // screen, so it earns the room.
+          SearchField(
+            hint: l10n.searchHint,
+            autofocus: true,
+            maxWidth: 640,
+            onChanged: (value) => setState(() => _query = value),
           ),
           if (query.isNotEmpty) ...[
             const SizedBox(height: AppSpacing.md),
@@ -114,8 +119,9 @@ class _GlobalSearchPageState extends ConsumerState<GlobalSearchPage> {
           ],
           const SizedBox(height: AppSpacing.lg),
 
-          Expanded(
-            child: query.isEmpty
+          // Part of the page: the whole page scrolls, search box included.
+          Builder(
+            builder: (context) => query.isEmpty
                 ? EmptyState(
                     icon: LucideIcons.search,
                     title: l10n.searchPrompt,
@@ -124,6 +130,10 @@ class _GlobalSearchPageState extends ConsumerState<GlobalSearchPage> {
                 : total == 0
                 ? EmptyState.noResults(l10n)
                 : ListView(
+                    shrinkWrap: true,
+                    primary: false,
+                    physics: const NeverScrollableScrollPhysics(),
+                    padding: EdgeInsets.zero,
                     children: [
                       if (items.isNotEmpty) ...[
                         SectionHeader(
@@ -218,7 +228,10 @@ class _ItemResult extends StatelessWidget {
     final unit = view.unitAbbreviation;
 
     return AppCard(
-      onTap: () => context.pushScreen(Routes.toItem(storeId, item.id)),
+      // A panel, not a navigation: a search is find-and-peek, and leaving the
+      // screen throws away the query you would only have to type again.
+      onTap: () =>
+          openProductDrawer(context, storeId: storeId, itemId: item.id),
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.lg,
         vertical: AppSpacing.md,

@@ -12,6 +12,7 @@
 // a hand-built minimal one — the same trade `db_fixture.dart` makes for the
 // data suites.
 
+import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -51,12 +52,11 @@ Employee fakeOwner({String storeId = 'store-sablon'}) => Employee(
   storeId: storeId,
   firstName: 'Test',
   lastName: 'Owner',
-  cin: '00.00.00-000.00',
+  pin: '00.00.00-000.00',
   phone: '',
   email: 'test.owner@example.test',
   hireDate: DateTime(2020),
   role: EmployeeRole.owner,
-  contractType: ContractType.fixed,
   pay: 0,
   createdAt: DateTime(2020),
 );
@@ -119,12 +119,22 @@ Future<void> pumpAppWith(
 /// A failing body skips both, deliberately: `flutter_test` stops checking
 /// invariants once a test has failed, and a cleanup pump on a broken tree
 /// replaces the real failure with a confusing one.
+///
+/// The app's clock starts at [seedInstant], the moment the seeded database was
+/// written, and runs on from there with the test's own time. Against the real
+/// clock the seed ages a day with every day the suite is not run: the log opens
+/// on the last thirty days, and a month after the seed it opened on nothing.
 void testApp(
   String description,
   Future<void> Function(WidgetTester tester) body,
 ) {
   testWidgets(description, (tester) async {
-    await body(tester);
+    final testClock = clock;
+    final start = testClock.now();
+    await withClock(
+      Clock(() => seedInstant.add(testClock.now().difference(start))),
+      () => body(tester),
+    );
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(Duration.zero);
   });

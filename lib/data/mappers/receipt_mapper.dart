@@ -18,6 +18,7 @@ GoodsReceipt receiptFromRows(
   storeId: row.storeId,
   receivedAt: row.receivedAt,
   receivedByName: row.receivedByName,
+  receivedByEmployeeId: row.receivedByEmployeeId,
   lines: lineRows.map(receiptLineFromRow).toList(),
   note: row.note,
 );
@@ -29,6 +30,7 @@ GoodsReceiptsCompanion receiptToRow(GoodsReceipt receipt) =>
       storeId: receipt.storeId,
       receivedAt: receipt.receivedAt,
       receivedByName: receipt.receivedByName,
+      receivedByEmployeeId: Value(receipt.receivedByEmployeeId),
       note: Value(receipt.note),
     );
 

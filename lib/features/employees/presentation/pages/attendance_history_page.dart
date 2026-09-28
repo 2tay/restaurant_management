@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -7,16 +8,20 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/attendance_status.dart';
 import '../../../../core/utils/employee_status.dart';
 import '../../../../core/utils/formatters.dart';
+import '../../../../core/utils/responsive.dart';
 import '../../../../data/providers.dart';
 import '../../../../data/repositories/repositories.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 
-const int _pageSize = 25;
-
 /// How far back the range picker opens on first load.
 const int _defaultRangeDays = 30;
+
+/// Below this width the table would have to scroll horizontally to show its
+/// six columns — a card per day reads better on a touch screen than a
+/// sideways-scrolling table, so the history switches to cards instead.
+const double _tableMinWidth = 740;
 
 DateTime _dayOnly(DateTime value) =>
     DateTime(value.year, value.month, value.day);
@@ -25,9 +30,17 @@ DateTime _dayOnly(DateTime value) =>
 /// the Gestion Employée dropdown, so a `goSection` destination with no back
 /// control.
 class AttendanceHistoryPage extends ConsumerStatefulWidget {
-  const AttendanceHistoryPage({required this.storeId, super.key});
+  const AttendanceHistoryPage({
+    required this.storeId,
+    this.initialEmployeeId,
+    super.key,
+  });
 
   final String storeId;
+
+  /// Opens filtered to this employee — "Historique" from the staff roster.
+  /// Ignored when the id is not on the list.
+  final String? initialEmployeeId;
 
   @override
   ConsumerState<AttendanceHistoryPage> createState() =>
@@ -42,13 +55,18 @@ class _AttendanceHistoryPageState extends ConsumerState<AttendanceHistoryPage> {
   late DateTime _to;
   AttendanceStatus? _status;
   int _page = 0;
+  int _pageSize = Paginator.defaultPageSizes.first;
 
   String? get _employeeId => _selectedEmployee?.id;
+
+  /// [widget.initialEmployeeId], until the roster it resolves against has
+  /// loaded once.
+  late String? _pendingEmployeeId = widget.initialEmployeeId;
 
   @override
   void initState() {
     super.initState();
-    _defaultTo = _dayOnly(DateTime.now());
+    _defaultTo = _dayOnly(clock.now());
     _defaultFrom = _defaultTo.subtract(const Duration(days: _defaultRangeDays));
     _from = _defaultFrom;
     _to = _defaultTo;
@@ -80,6 +98,14 @@ class _AttendanceHistoryPageState extends ConsumerState<AttendanceHistoryPage> {
               (x, y) =>
                   employeeDisplayName(x).compareTo(employeeDisplayName(y)),
             );
+          final pending = _pendingEmployeeId;
+          if (pending != null) {
+            // Once, during this build — before anything reads the filter.
+            _pendingEmployeeId = null;
+            _selectedEmployee = employees
+                .where((e) => e.id == pending)
+                .firstOrNull;
+          }
           return _buildBody(l10n, employees, b.settings);
         },
       ),
@@ -99,6 +125,7 @@ class _AttendanceHistoryPageState extends ConsumerState<AttendanceHistoryPage> {
       status: _status,
       employeeId: _employeeId,
       page: _page,
+      pageSize: _pageSize,
     );
     final statsAsync = ref.watch(attendanceStatsProvider(key));
     final pageAsync = ref.watch(attendancePageProvider(key));
@@ -117,13 +144,7 @@ class _AttendanceHistoryPageState extends ConsumerState<AttendanceHistoryPage> {
         }
         final stats =
             statsAsync.value ??
-            (
-              days: 0,
-              worked: Duration.zero,
-              lateArrivals: 0,
-              overtime: Duration.zero,
-              lateBreaks: 0,
-            );
+            (days: 0, worked: Duration.zero, lateBreaks: 0);
         final storeEmpty = !_hasActiveFilters && result.totalCount == 0;
 
         return _content(
@@ -157,8 +178,8 @@ class _AttendanceHistoryPageState extends ConsumerState<AttendanceHistoryPage> {
           from: _from,
           to: _to,
           status: _status,
-          canReset: _hasActiveFilters,
-          onReset: _clearFilters,
+          defaultFrom: _defaultFrom,
+          defaultTo: _defaultTo,
           onEmployee: (e) => setState(() {
             _selectedEmployee = e;
             _page = 0;
@@ -215,16 +236,27 @@ class _AttendanceHistoryPageState extends ConsumerState<AttendanceHistoryPage> {
             child: _emptyState(l10n, storeEmpty),
           )
         else ...[
-          _HistoryTable(
-            rows: result.rows,
-            employeesById: employeesById,
-            settings: settings,
-            onOpen: (a) => _openDrawer(
-              l10n,
-              a,
-              employeesById[a.employeeId],
-              settings,
-            ),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              void onOpen(Attendance a) => _openDrawer(
+                a,
+                employeesById[a.employeeId],
+                settings,
+              );
+              return constraints.maxWidth >= _tableMinWidth
+                  ? _HistoryTable(
+                      rows: result.rows,
+                      employeesById: employeesById,
+                      settings: settings,
+                      onOpen: onOpen,
+                    )
+                  : _HistoryCards(
+                      rows: result.rows,
+                      employeesById: employeesById,
+                      settings: settings,
+                      onOpen: onOpen,
+                    );
+            },
           ),
           const SizedBox(height: AppSpacing.sm),
           Paginator(
@@ -233,124 +265,33 @@ class _AttendanceHistoryPageState extends ConsumerState<AttendanceHistoryPage> {
             totalCount: result.totalCount,
             pageSize: _pageSize,
             onChanged: (p) => setState(() => _page = p),
+            onPageSizeChanged: (size) => setState(() {
+              _pageSize = size;
+              _page = 0;
+            }),
           ),
         ],
       ],
     );
   }
 
+  /// Bare panel: the day itself is the heading — see [AttendanceDayDetail].
   Future<void> _openDrawer(
-    AppLocalizations l10n,
     Attendance a,
     Employee? employee,
     StoreSettings settings,
   ) {
-    final schedule = employee == null
-        ? (startMinutes: settings.openMinutes, endMinutes: settings.closeMinutes)
-        : resolvedSchedule(
-            employee,
-            storeOpenMinutes: settings.openMinutes,
-            storeCloseMinutes: settings.closeMinutes,
-          );
-    final ctx = evaluationContext(
-      a,
-      fallbackStartMinutes: schedule.startMinutes,
-      fallbackEndMinutes: schedule.endMinutes,
-      fallbackMaxBreakMinutes: settings.maxBreakMinutes,
-    );
-    final worked = workedDuration(a);
-    final overtime = overtimeBy(a, ctx.endMinutes) ?? Duration.zero;
-
     return DetailDrawer.show(
       context,
-      title: l10n.attendanceDetailTitle,
       children: [
-        if (employee != null) ...[
-          Row(
-            children: [
-              EmployeeAvatar(employee: employee),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      employeeDisplayName(employee),
-                      style: Theme.of(context).textTheme.titleSmall,
-                    ),
-                    Text(
-                      l10n.employeeCinLabel(employee.cin),
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.lg),
-        ],
-        DrawerRow(
-          label: l10n.attendanceColumnDate,
-          value: Formatters.date(a.date),
-        ),
-        DrawerRow(
-          label: l10n.attendanceColumnStatus,
-          valueWidget: Align(
-            alignment: Alignment.centerLeft,
-            child: AttendanceStatusBadge(status: a.status),
-          ),
-        ),
-        const SizedBox(height: AppSpacing.md),
-        SectionHeader(title: l10n.attendanceColumnSchedule),
-        DrawerRow(
-          label: l10n.attendanceColumnArrival,
-          value: a.clockInAt == null ? '—' : Formatters.time(a.clockInAt!),
-        ),
-        DrawerRow(
-          label: l10n.attendanceColumnDeparture,
-          value: a.clockOutAt == null ? '—' : Formatters.time(a.clockOutAt!),
-        ),
-        const SizedBox(height: AppSpacing.md),
-        SectionHeader(
-          title: l10n.attendanceDetailBreaks(a.pauses.length),
-        ),
-        for (final pause in a.pauses)
-          _BreakLine(
-            pause: pause,
-            over:
-                breakOverrun(pause, ctx.maxBreakMinutes) > Duration.zero,
-          ),
-        DrawerRow(
-          label: l10n.attendanceDetailBreakTotal,
-          value: Formatters.duration(totalBreak(a)),
-        ),
-        const SizedBox(height: AppSpacing.md),
-        SectionHeader(title: l10n.attendanceDetailWorkTime),
-        DrawerRow(
-          label: l10n.attendanceColumnWorked,
-          value: worked == null ? '—' : Formatters.duration(worked),
-        ),
-        DrawerRow(
-          label: l10n.attendanceColumnOvertime,
-          value: overtime == Duration.zero
-              ? '—'
-              : l10n.attendanceDetailOvertimeInfo(
-                  Formatters.duration(overtime),
-                ),
-        ),
-        const SizedBox(height: AppSpacing.md),
-        SectionHeader(title: l10n.attendanceColumnFlags),
-        AttendanceAlerts(
+        AttendanceDayDetail(
           entry: a,
-          startMinutes: ctx.startMinutes,
-          maxBreakMinutes: ctx.maxBreakMinutes,
-          detailed: true,
+          employee: employee,
+          maxBreakMinutes: resolvedMaxBreakMinutes(
+            a,
+            fallback: settings.maxBreakMinutes,
+          ),
         ),
-        const SizedBox(height: AppSpacing.lg),
-        SectionHeader(title: l10n.attendanceDetailTimeline),
-        AttendanceTimeline(entry: a, maxBreakMinutes: ctx.maxBreakMinutes),
       ],
     );
   }
@@ -386,58 +327,37 @@ class _AttendanceHistoryPageState extends ConsumerState<AttendanceHistoryPage> {
 class _StatRow extends StatelessWidget {
   const _StatRow({required this.stats});
 
-  final ({
-    int days,
-    Duration worked,
-    int lateArrivals,
-    Duration overtime,
-    int lateBreaks,
-  })
-  stats;
+  final ({int days, Duration worked, int lateBreaks}) stats;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
 
-    return Row(
-      children: [
-        Expanded(
-          child: StatTile(
-            label: l10n.attendanceStatDays,
-            value: '${stats.days}',
-            icon: LucideIcons.clipboardList,
-          ),
+    return StatTileRow(
+      tiles: [
+        StatTile(
+          label: l10n.attendanceStatDays,
+          value: '${stats.days}',
+          icon: LucideIcons.clipboardList,
         ),
-        const SizedBox(width: AppSpacing.lg),
-        Expanded(
-          child: StatTile(
-            label: l10n.attendanceStatWorked,
-            value: Formatters.duration(stats.worked),
-            icon: LucideIcons.clock,
-          ),
+        StatTile(
+          label: l10n.attendanceStatWorked,
+          value: Formatters.duration(stats.worked),
+          icon: LucideIcons.clock,
         ),
-        const SizedBox(width: AppSpacing.lg),
-        Expanded(
-          child: StatTile(
-            label: l10n.attendanceStatLate,
-            value: '${stats.lateArrivals}',
-            icon: LucideIcons.triangleAlert,
-            accent: stats.lateArrivals == 0 ? null : AppColors.lowStock,
-          ),
-        ),
-        const SizedBox(width: AppSpacing.lg),
-        Expanded(
-          child: StatTile(
-            label: l10n.attendanceStatOvertime,
-            value: Formatters.duration(stats.overtime),
-            icon: LucideIcons.hourglass,
-          ),
+        StatTile(
+          label: l10n.attendanceStatLateBreaks,
+          value: '${stats.lateBreaks}',
+          icon: LucideIcons.coffee,
+          accent: stats.lateBreaks == 0 ? null : AppColors.lowStock,
         ),
       ],
     );
   }
 }
 
+/// Search on the left, début, fin and statut at the right edge — the same strip
+/// as the Personnel page and the payroll history.
 class _Filters extends StatelessWidget {
   const _Filters({
     required this.selectedEmployee,
@@ -445,8 +365,8 @@ class _Filters extends StatelessWidget {
     required this.from,
     required this.to,
     required this.status,
-    required this.canReset,
-    required this.onReset,
+    required this.defaultFrom,
+    required this.defaultTo,
     required this.onEmployee,
     required this.onFrom,
     required this.onTo,
@@ -458,8 +378,8 @@ class _Filters extends StatelessWidget {
   final DateTime from;
   final DateTime to;
   final AttendanceStatus? status;
-  final bool canReset;
-  final VoidCallback onReset;
+  final DateTime defaultFrom;
+  final DateTime defaultTo;
   final ValueChanged<Employee?> onEmployee;
   final ValueChanged<DateTime> onFrom;
   final ValueChanged<DateTime> onTo;
@@ -468,77 +388,51 @@ class _Filters extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final today = _dayOnly(DateTime.now());
-    final floor = DateTime(2000);
 
-    return Wrap(
-      spacing: AppSpacing.lg,
-      runSpacing: AppSpacing.md,
-      crossAxisAlignment: WrapCrossAlignment.end,
-      children: [
-        LabeledField(
-          label: l10n.attendanceFilterEmployee,
-          child: SizedBox(
-            width: 260,
-            child: EmployeeSelector(
-              employees: employees,
-              value: selectedEmployee,
-              showCin: true,
-              hint: l10n.attendanceFilterAllEmployees,
-              onChanged: onEmployee,
-            ),
-          ),
+    return FilterToolbar(
+      search: EmployeeSelector(
+        employees: employees,
+        value: selectedEmployee,
+        showPin: true,
+        searchBar: true,
+        hint: l10n.employeesSearchHint,
+        onChanged: onEmployee,
+      ),
+      filters: [
+        DateFilter(
+          key: const ValueKey('date-filter-from'),
+          label: l10n.historyFilterFrom,
+          value: from,
+          firstDate: DateTime(2000),
+          lastDate: to,
+          isDefault: from == defaultFrom,
+          onChanged: onFrom,
         ),
-        LabeledField(
-          label: l10n.attendanceFilterFrom,
-          child: SizedBox(
-            width: 165,
-            child: DateField(
-              value: from,
-              compact: true,
-              firstDate: floor,
-              lastDate: to,
-              onChanged: onFrom,
-            ),
-          ),
+        DateFilter(
+          key: const ValueKey('date-filter-to'),
+          label: l10n.historyFilterTo,
+          value: to,
+          firstDate: from,
+          lastDate: _dayOnly(clock.now()),
+          isDefault: to == defaultTo,
+          onChanged: onTo,
         ),
-        LabeledField(
-          label: l10n.attendanceFilterTo,
-          child: SizedBox(
-            width: 165,
-            child: DateField(
-              value: to,
-              compact: true,
-              firstDate: from,
-              lastDate: today,
-              onChanged: onTo,
-            ),
-          ),
-        ),
-        LabeledField(
+        FilterMenu<AttendanceStatus?>(
           label: l10n.ordersFilterStatus,
-          child: FilterMenu<AttendanceStatus?>(
-            label: l10n.ordersFilterStatus,
-            selectedLabel: status == null
-                ? null
-                : attendanceStatusLabel(l10n, status!),
-            entries: {
-              null: l10n.ordersFilterAllStatuses,
-              for (final s in const [
-                AttendanceStatus.working,
-                AttendanceStatus.onBreak,
-                AttendanceStatus.done,
-              ])
-                s: attendanceStatusLabel(l10n, s),
-            },
-            onSelected: onStatus,
-          ),
+          selectedLabel: status == null
+              ? null
+              : attendanceStatusLabel(l10n, status!),
+          entries: {
+            null: l10n.ordersFilterAllStatuses,
+            for (final s in const [
+              AttendanceStatus.working,
+              AttendanceStatus.onBreak,
+              AttendanceStatus.done,
+            ])
+              s: attendanceStatusLabel(l10n, s),
+          },
+          onSelected: onStatus,
         ),
-        if (canReset)
-          FilterResetButton(
-            label: l10n.attendanceFilterReset,
-            onPressed: onReset,
-          ),
       ],
     );
   }
@@ -593,6 +487,11 @@ class _ActiveFilters extends StatelessWidget {
   }
 }
 
+/// One line per day: Date / Employé / Travaillé / Statut / Alertes. Clicking
+/// the row opens the detail drawer — there is no separate Détail column.
+/// The arrival → départ times and the pauses are deliberately not here — a day
+/// can hold several sessions, which no single cell reads well; the drawer's
+/// timeline shows them all.
 class _HistoryTable extends StatelessWidget {
   const _HistoryTable({
     required this.rows,
@@ -611,140 +510,270 @@ class _HistoryTable extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
 
     return DataTableWrapper(
-      minWidth: 940,
+      minWidth: _tableMinWidth,
       columns: [
         DataColumn(label: Text(l10n.attendanceColumnDate)),
         DataColumn(label: Text(l10n.attendanceColumnEmployee)),
-        DataColumn(label: Text(l10n.attendanceColumnSchedule)),
         DataColumn(label: Text(l10n.attendanceColumnWorked)),
         DataColumn(label: Text(l10n.attendanceColumnStatus)),
         DataColumn(label: Text(l10n.attendanceColumnFlags)),
-        DataColumn(label: Text(l10n.attendanceColumnActions)),
       ],
       rows: [for (final a in rows) _row(context, l10n, a)],
     );
   }
 
   DataRow _row(BuildContext context, AppLocalizations l10n, Attendance a) {
-    final theme = Theme.of(context);
-    final employee = employeesById[a.employeeId];
-    final schedule = employee == null
-        ? (startMinutes: settings.openMinutes, endMinutes: settings.closeMinutes)
-        : resolvedSchedule(
-            employee,
-            storeOpenMinutes: settings.openMinutes,
-            storeCloseMinutes: settings.closeMinutes,
-          );
-    final ctx = evaluationContext(
-      a,
-      fallbackStartMinutes: schedule.startMinutes,
-      fallbackEndMinutes: schedule.endMinutes,
-      fallbackMaxBreakMinutes: settings.maxBreakMinutes,
-    );
-    final worked = workedDuration(a);
-    final arrival = a.clockInAt == null ? '—' : Formatters.time(a.clockInAt!);
-    final departure = a.clockOutAt == null
-        ? '…'
-        : Formatters.time(a.clockOutAt!);
-    final totalPause = totalBreak(a);
+    final data = _attendanceRowData(a, employeesById, settings);
+    final employee = data.employee;
 
     return DataRow(
       onSelectChanged: (_) => onOpen(a),
       cells: [
-        DataCell(Text(Formatters.date(a.date))),
+        DataCell(WeekdayDate(a.date)),
+        DataCell(EmployeeCell(employee: employee)),
         DataCell(
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(employee == null ? '—' : employeeDisplayName(employee)),
-              if (employee != null)
-                Text(
-                  l10n.employeeCinLabel(employee.cin),
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-            ],
-          ),
+          Text(data.worked == null ? '—' : Formatters.duration(data.worked!)),
         ),
-        DataCell(
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('$arrival → $departure'),
-              if (a.pauses.isNotEmpty)
-                Text(
-                  l10n.attendanceBreakSummary(
-                    a.pauses.length,
-                    Formatters.duration(totalPause),
-                  ),
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-            ],
-          ),
-        ),
-        DataCell(Text(worked == null ? '—' : Formatters.duration(worked))),
         DataCell(AttendanceStatusBadge(status: a.status)),
         DataCell(
-          AttendanceAlerts(
-            entry: a,
-            startMinutes: ctx.startMinutes,
-            maxBreakMinutes: ctx.maxBreakMinutes,
-          ),
-        ),
-        DataCell(
-          IconButton(
-            tooltip: l10n.attendanceViewDetail,
-            icon: const Icon(LucideIcons.eye, size: AppSizing.iconSm),
-            onPressed: () => onOpen(a),
-          ),
+          AttendanceAlerts(entry: a, maxBreakMinutes: data.maxBreakMinutes),
         ),
       ],
     );
   }
 }
 
-/// One break line in the detail drawer — start – end (duration), amber when it
-/// ran past the allowance.
-class _BreakLine extends StatelessWidget {
-  const _BreakLine({required this.pause, required this.over});
+/// The fields a table row and a card both need, computed once so the two
+/// renderings of the same day can never drift apart.
+typedef _AttendanceRowData = ({
+  Employee? employee,
+  Duration? worked,
+  Duration totalPause,
+  String arrival,
+  String departure,
+  int maxBreakMinutes,
+});
 
-  final AttendancePause pause;
-  final bool over;
+_AttendanceRowData _attendanceRowData(
+  Attendance a,
+  Map<String, Employee> employeesById,
+  StoreSettings settings,
+) {
+  final employee = employeesById[a.employeeId];
+  final maxBreak = resolvedMaxBreakMinutes(
+    a,
+    fallback: settings.maxBreakMinutes,
+  );
+  return (
+    employee: employee,
+    worked: workedDuration(a),
+    totalPause: totalBreak(a),
+    arrival: a.sessions.firstOrNull?.clockInAt == null
+        ? '—'
+        : Formatters.time(a.sessions.first.clockInAt),
+    departure: a.sessions.lastOrNull?.clockOutAt == null
+        ? '…'
+        : Formatters.time(a.sessions.last.clockOutAt!),
+    maxBreakMinutes: maxBreak,
+  );
+}
+
+/// The history as a grid of day cards — the table's small-screen alternative.
+/// Below [_tableMinWidth] a `DataTable` would have to scroll sideways to show
+/// its six columns, which is not a touch-friendly way to read a day's
+/// pointage.
+///
+/// Fits as many columns as the available width allows — up to 3 on a wide
+/// tablet, dropping to 2 then 1 as the screen narrows — rather than always
+/// stacking a single column, which wastes tablet-width real estate. Uses the
+/// same [cardGridColumns] sizing as the payroll history cards, so the two
+/// screens switch column counts at the same width.
+class _HistoryCards extends StatelessWidget {
+  const _HistoryCards({
+    required this.rows,
+    required this.employeesById,
+    required this.settings,
+    required this.onOpen,
+  });
+
+  final List<Attendance> rows;
+  final Map<String, Employee> employeesById;
+  final StoreSettings settings;
+  final ValueChanged<Attendance> onOpen;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final end = pause.endAt;
-    final label = end == null
-        ? '${Formatters.time(pause.startAt)} – …'
-        : '${Formatters.time(pause.startAt)} – ${Formatters.time(end)}'
-              ' (${Formatters.duration(end.difference(pause.startAt))})';
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final columns = cardGridColumns(constraints.maxWidth);
+        const spacing = AppSpacing.lg;
+        final cardWidth = columns == 1
+            ? constraints.maxWidth
+            : (constraints.maxWidth - spacing * (columns - 1)) / columns;
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.xs),
-      child: Row(
+        return Wrap(
+          spacing: spacing,
+          runSpacing: spacing,
+          children: [
+            for (final a in rows)
+              SizedBox(
+                width: cardWidth,
+                child: _AttendanceCard(
+                  attendance: a,
+                  data: _attendanceRowData(a, employeesById, settings),
+                  onTap: () => onOpen(a),
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+/// One day, as a card: the date and the detail action on top, who it is,
+/// the arrival → départ span as the main figure, pause and overtime grouped
+/// underneath it, and the status with — only when there is one — an alert
+/// chip at the bottom.
+class _AttendanceCard extends StatelessWidget {
+  const _AttendanceCard({
+    required this.attendance,
+    required this.data,
+    required this.onTap,
+  });
+
+  final Attendance attendance;
+  final _AttendanceRowData data;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final employee = data.employee;
+    final anomalies = attendanceAnomalies(
+      attendance,
+      maxBreakMinutes: data.maxBreakMinutes,
+    );
+
+    return AppCard(
+      onTap: onTap,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            over ? LucideIcons.triangleAlert : LucideIcons.coffee,
-            size: AppSizing.iconSm,
-            color: over
-                ? AppColors.lowStock.foreground
-                : AppColors.textSecondary,
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  Formatters.dateLong(attendance.date),
+                  style: theme.textTheme.titleSmall,
+                ),
+              ),
+              IconButton(
+                tooltip: l10n.attendanceViewDetail,
+                icon: const Icon(LucideIcons.eye, size: AppSizing.iconSm),
+                onPressed: onTap,
+                visualDensity: VisualDensity.compact,
+              ),
+            ],
           ),
-          const SizedBox(width: AppSpacing.xs),
+          const SizedBox(height: AppSpacing.md),
+          Row(
+            children: [
+              if (employee != null)
+                EmployeeAvatar(employee: employee, size: 40)
+              else
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: const BoxDecoration(
+                    color: AppColors.surfaceVariant,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    LucideIcons.user,
+                    size: AppSizing.iconSm,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      employee == null ? '—' : employeeDisplayName(employee),
+                      style: theme.textTheme.titleSmall,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (employee != null)
+                      Text(
+                        employee.pin,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
           Text(
-            label,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: over ? AppColors.lowStock.foreground : null,
+            l10n.attendanceColumnSchedule,
+            style: theme.textTheme.labelMedium?.copyWith(
+              color: AppColors.textSecondary,
             ),
           ),
+          const SizedBox(height: 2),
+          Text(
+            '${data.arrival} → ${data.departure}',
+            style: theme.textTheme.titleMedium,
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Container(
+            padding: const EdgeInsets.all(AppSpacing.sm),
+            decoration: const BoxDecoration(
+              color: AppColors.surfaceVariant,
+              borderRadius: AppRadius.mdAll,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  l10n.attendanceCardBreakLabel,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                Text(
+                  Formatters.duration(data.totalPause),
+                  style: theme.textTheme.titleSmall,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          AttendanceStatusBadge(status: attendance.status),
+          // Alerts get their own line rather than sharing the status badge's —
+          // squeezed next to it, an anomaly chip has to fight the badge for
+          // width and ends up ellipsized. Full card width lets the alerts'
+          // own `Wrap` arrange chips across as many lines as it needs instead.
+          if (anomalies.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.sm),
+            AttendanceAlerts(
+              entry: attendance,
+              maxBreakMinutes: data.maxBreakMinutes,
+            ),
+          ],
         ],
       ),
     );
   }
 }
+

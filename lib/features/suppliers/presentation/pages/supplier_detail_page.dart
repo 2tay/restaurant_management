@@ -15,6 +15,7 @@ import '../../../../data/view_models/view_models.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 import '../../../orders/presentation/widgets/order_row.dart';
+import '../../../inventory/presentation/widgets/product_drawer.dart';
 
 /// A supplier's contact details and everything they supply, with prices.
 ///
@@ -100,16 +101,17 @@ class _SupplierDetailPageState extends ConsumerState<SupplierDetailPage> {
       ],
     );
 
+    // Embedded beside the suppliers list, it scrolls with that page rather
+    // than on its own — a scroll view inside a scrolling page catches the
+    // finger and the page stops moving.
     if (embedded) {
-      return SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Align(alignment: Alignment.centerLeft, child: tabs),
-            const SizedBox(height: AppSpacing.xl),
-            body,
-          ],
-        ),
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Align(alignment: Alignment.centerLeft, child: tabs),
+          const SizedBox(height: AppSpacing.xl),
+          body,
+        ],
       );
     }
 
@@ -134,6 +136,7 @@ class _SupplierDetailPageState extends ConsumerState<SupplierDetailPage> {
         ),
         PrimaryButton(
           label: l10n.supplierEditPrices,
+          shortLabel: l10n.shortEditPrices,
           icon: LucideIcons.scale,
           onPressed: () =>
               context.pushScreen(Routes.toSupplierPricing(storeId, supplierId)),
@@ -235,8 +238,7 @@ class _SupplierDetailPageState extends ConsumerState<SupplierDetailPage> {
             label: l10n.actionDelete,
             icon: LucideIcons.trash2,
             filled: false,
-            onPressed: () =>
-                _confirmDelete(context, supplier, products.length),
+            onPressed: () => _confirmDelete(context, supplier, products.length),
           ),
         ),
       ],
@@ -254,8 +256,10 @@ class _SupplierDetailPageState extends ConsumerState<SupplierDetailPage> {
     final gap = price.pricePerUnit - product.cheapestPricePerUnit;
 
     return DataRow(
+      // Opens over the price list rather than replacing it: the question here
+      // is usually asked of several products in a row.
       onSelectChanged: (_) =>
-          context.pushScreen(Routes.toItem(storeId, price.itemId)),
+          openProductDrawer(context, storeId: storeId, itemId: price.itemId),
       cells: [
         DataCell(Text(product.itemName)),
         DataCell(

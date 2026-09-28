@@ -16,12 +16,12 @@ import '../../../../l10n/app_localizations.dart';
 import '../../../../shared/widgets/widgets.dart';
 import '../widgets/auth_layout.dart';
 
-/// The login screen — CIN + PIN, checked against the `employee_credentials`
+/// The login screen — PIN + password, checked against the `employee_credentials`
 /// table (Phase 6).
 ///
 /// Still fake, deliberately: no backend, no real hashing, no network. What it
 /// does do is resolve the session into `currentEmployeeProvider`, enforce the
-/// lockout after [AuthRules.maxFailedAttempts] wrong PINs, and refuse a `staff`
+/// lockout after [AuthRules.maxFailedAttempts] wrong passwords, and refuse a `staff`
 /// account, which has no active access to the app. The demo notice at the
 /// bottom keeps saying the authentication is not real.
 class LoginPage extends ConsumerStatefulWidget {
@@ -32,20 +32,20 @@ class LoginPage extends ConsumerStatefulWidget {
 }
 
 class _LoginPageState extends ConsumerState<LoginPage> {
-  /// The seeded owner's CIN, pre-filled as a demo courtesy — the same one the
-  /// Phase 1 form paid with an email and password. `1234` is every seeded PIN.
-  static const _demoCin = '78.02.14-153.24';
+  /// The seeded owner's PIN, pre-filled as a demo courtesy — the same one the
+  /// Phase 1 form paid with an email and password. `1234` is every seeded password.
+  static const _demoPin = '78.02.14-153.24';
 
-  final _cin = TextEditingController(text: _demoCin);
-  final _pin = TextEditingController(text: '1234');
+  final _pin = TextEditingController(text: _demoPin);
+  final _password = TextEditingController(text: '1234');
   bool _rememberMe = true;
-  bool _obscurePin = true;
+  bool _obscurePassword = true;
   String? _error;
 
   @override
   void dispose() {
-    _cin.dispose();
     _pin.dispose();
+    _password.dispose();
     super.dispose();
   }
 
@@ -58,24 +58,24 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       subtitle: l10n.loginSubtitle,
       children: [
         AppTextField(
-          label: l10n.loginCin,
-          controller: _cin,
-          hint: l10n.loginCinHint,
+          label: l10n.loginPin,
+          controller: _pin,
+          hint: l10n.loginPinHint,
           prefixIcon: LucideIcons.idCard,
           textInputAction: TextInputAction.next,
           onChanged: (_) => _clearError(),
         ),
         const SizedBox(height: AppSpacing.lg),
         AppTextField(
-          label: l10n.loginPin,
-          controller: _pin,
-          hint: l10n.loginPinHint,
+          label: l10n.loginPassword,
+          controller: _password,
+          hint: l10n.loginPasswordHint,
           prefixIcon: LucideIcons.lock,
-          obscureText: _obscurePin,
+          obscureText: _obscurePassword,
           keyboardType: TextInputType.number,
           inputFormatters: [
             FilteringTextInputFormatter.digitsOnly,
-            LengthLimitingTextInputFormatter(AuthRules.pinLength),
+            LengthLimitingTextInputFormatter(AuthRules.passwordLength),
           ],
           textInputAction: TextInputAction.done,
           onChanged: (_) => _clearError(),
@@ -85,12 +85,12 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         Align(
           alignment: Alignment.centerRight,
           child: TextButton.icon(
-            onPressed: () => setState(() => _obscurePin = !_obscurePin),
+            onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
             icon: Icon(
-              _obscurePin ? LucideIcons.eye : LucideIcons.eyeOff,
+              _obscurePassword ? LucideIcons.eye : LucideIcons.eyeOff,
               size: AppSizing.iconSm,
             ),
-            label: Text(_obscurePin ? l10n.actionShow : l10n.actionHide),
+            label: Text(_obscurePassword ? l10n.actionShow : l10n.actionHide),
           ),
         ),
         const SizedBox(height: AppSpacing.md),
@@ -113,7 +113,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           alignment: Alignment.centerLeft,
           child: TextButton(
             onPressed: () => context.goSection(Routes.forgotPassword),
-            child: Text(l10n.loginForgotPin),
+            child: Text(l10n.loginForgotPassword),
           ),
         ),
         if (_error != null) ...[
@@ -165,7 +165,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     final l10n = AppLocalizations.of(context);
     final attempt = await ref
         .read(credentialRepositoryProvider)
-        .authenticate(_cin.text, _pin.text);
+        .authenticate(_pin.text, _password.text);
     if (!mounted) return;
 
     switch (attempt.outcome) {
@@ -180,8 +180,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
               ? Routes.stores
               : Routes.toDashboard(employee.storeId),
         );
-      case LoginOutcome.unknownCin:
-      case LoginOutcome.wrongPin:
+      case LoginOutcome.unknownPin:
+      case LoginOutcome.wrongPassword:
         setState(() => _error = l10n.loginErrorBadCredentials);
       case LoginOutcome.locked:
         setState(() => _error = l10n.loginErrorLocked);

@@ -68,7 +68,6 @@ class ItemDetailPage extends ConsumerWidget {
       ],
       title: item.name,
       subtitle: row.categoryName,
-      scrollable: false,
       actions: [
         StockStatusBadge(status: stockStatusOf(item)),
         SecondaryButton(
@@ -93,6 +92,7 @@ class ItemDetailPage extends ConsumerWidget {
         itemId: itemId,
         storeId: storeId,
         showTitle: false,
+        scrollsItself: false,
       ),
     );
   }

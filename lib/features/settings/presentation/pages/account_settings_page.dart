@@ -13,7 +13,7 @@ import '../../../../data/providers.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
-import 'store_settings_page.dart' show settingsTabs;
+import '../widgets/settings_tabs.dart';
 
 /// The signed-in employee's own profile, security and linked stores.
 class AccountSettingsPage extends ConsumerWidget {
@@ -33,10 +33,11 @@ class AccountSettingsPage extends ConsumerWidget {
     final stores = ref.watch(storesProvider);
 
     return ShellPage(
-      tabs: SectionTabs(
+      tabs: SettingsTabs(
+        storeId: storeId,
         currentPath: Routes.toAccountSettings(storeId),
-        tabs: settingsTabs(l10n, storeId),
       ),
+      sideTabsOnWide: true,
       title: l10n.accountSettingsTitle,
       child: AsyncContent<List<Store>>(
         value: stores,
@@ -69,45 +70,56 @@ class AccountSettingsPage extends ConsumerWidget {
         children: [
           SectionHeader(title: l10n.accountProfile),
           AppCard(
-            child: Row(
-              children: [
-                Container(
-                  width: 64,
-                  height: 64,
-                  alignment: Alignment.center,
-                  decoration: const BoxDecoration(
-                    color: AppColors.primaryContainer,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Text(
-                    employeeInitials(user),
-                    style: theme.textTheme.headlineSmall?.copyWith(
-                      color: AppColors.onPrimaryContainer,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.lg),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+            // Identity block and the edit action; the action takes its own
+            // line rather than squeezing the name on a phone.
+            child: AdaptiveRow(
+              cells: [
+                AdaptiveCell(
+                  flex: 1,
+                  child: Row(
                     children: [
-                      Text(
-                        employeeDisplayName(user),
-                        style: theme.textTheme.titleMedium,
+                      Container(
+                        width: 64,
+                        height: 64,
+                        alignment: Alignment.center,
+                        decoration: const BoxDecoration(
+                          color: AppColors.primaryContainer,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Text(
+                          employeeInitials(user),
+                          style: theme.textTheme.headlineSmall?.copyWith(
+                            color: AppColors.onPrimaryContainer,
+                          ),
+                        ),
                       ),
-                      Text(user.email, style: theme.textTheme.bodyMedium),
-                      const SizedBox(height: AppSpacing.xs),
-                      Text(
-                        employeeRoleLabel(l10n, user.role),
-                        style: theme.textTheme.bodySmall,
+                      const SizedBox(width: AppSpacing.lg),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              employeeDisplayName(user),
+                              style: theme.textTheme.titleMedium,
+                            ),
+                            Text(user.email, style: theme.textTheme.bodyMedium),
+                            const SizedBox(height: AppSpacing.xs),
+                            Text(
+                              employeeRoleLabel(l10n, user.role),
+                              style: theme.textTheme.bodySmall,
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
                 ),
-                SecondaryButton(
-                  label: l10n.actionEdit,
-                  icon: LucideIcons.pencil,
-                  onPressed: () {},
+                AdaptiveCell(
+                  child: SecondaryButton(
+                    label: l10n.actionEdit,
+                    icon: LucideIcons.pencil,
+                    onPressed: () {},
+                  ),
                 ),
               ],
             ),
@@ -116,33 +128,39 @@ class AccountSettingsPage extends ConsumerWidget {
 
           SectionHeader(title: l10n.accountSecurity),
           AppCard(
-            child: Row(
-              children: [
-                const Icon(
-                  LucideIcons.lock,
-                  size: AppSizing.iconMd,
-                  color: AppColors.textSecondary,
-                ),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: Text(
-                    l10n.accountChangePassword,
-                    style: theme.textTheme.bodyLarge,
+            child: AdaptiveRow(
+              cells: [
+                AdaptiveCell(
+                  flex: 1,
+                  child: Row(
+                    children: [
+                      const Icon(
+                        LucideIcons.lock,
+                        size: AppSizing.iconMd,
+                        color: AppColors.textSecondary,
+                      ),
+                      const SizedBox(width: AppSpacing.md),
+                      Expanded(
+                        child: Text(
+                          l10n.accountChangePassword,
+                          style: theme.textTheme.bodyLarge,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                SecondaryButton(
-                  label: l10n.accountChangePassword,
-                  onPressed: () => context.goSection(Routes.forgotPassword),
+                AdaptiveCell(
+                  child: SecondaryButton(
+                    label: l10n.accountChangePassword,
+                    onPressed: () => context.goSection(Routes.forgotPassword),
+                  ),
                 ),
               ],
             ),
           ),
           const SizedBox(height: AppSpacing.xl),
 
-          SectionHeader(
-            title: l10n.accountLinkedStores,
-            count: stores.length,
-          ),
+          SectionHeader(title: l10n.accountLinkedStores, count: stores.length),
           AppCard(
             padding: EdgeInsets.zero,
             child: Column(
@@ -160,7 +178,8 @@ class AccountSettingsPage extends ConsumerWidget {
                             color: AppColors.primary600,
                           )
                         : const Icon(LucideIcons.chevronRight),
-                    onTap: () => context.goSection(Routes.toDashboard(store.id)),
+                    onTap: () =>
+                        context.goSection(Routes.toDashboard(store.id)),
                   ),
               ],
             ),

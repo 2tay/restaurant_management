@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:drift/drift.dart';
 
 import '../../models/item.dart';
@@ -328,6 +329,7 @@ class ItemRepository {
     required String unitId,
     required double lowStockThreshold,
     double maxStock = 0,
+    double? holidayLowStockThreshold,
     double quantity = 0,
     double? openingUnitCost,
     String? barcode,
@@ -355,8 +357,9 @@ class ItemRepository {
         unitId: unitId,
         quantity: 0,
         lowStockThreshold: lowStockThreshold,
-        maxStock: maxStock,
-        updatedAt: DateTime.now(),
+        maxStock: _usableMaximum(lowStockThreshold, maxStock),
+        holidayLowStockThreshold: holidayLowStockThreshold,
+        updatedAt: clock.now(),
         defaultSupplierId: defaultSupplierId,
         barcode: cleanBarcode,
         note: _clean(note),
@@ -397,11 +400,17 @@ class ItemRepository {
     String? unitId,
     double? lowStockThreshold,
     double? maxStock,
+    double? holidayLowStockThreshold,
     String? barcode,
     String? note,
     String? defaultSupplierId,
     String? imagePath,
     bool clearBarcode = false,
+
+    /// Clears the busy-week minimum, so it goes back to following twice the
+    /// ordinary one. Needed because null already means "leave as it is" for
+    /// every other optional parameter here.
+    bool clearHolidayMinimum = false,
     bool clearNote = false,
     bool clearDefaultSupplier = false,
     bool clearImage = false,
@@ -434,7 +443,12 @@ class ItemRepository {
             lowStockThreshold ?? existing.lowStockThreshold,
           ),
           maxStock: Value(maxStock ?? existing.maxStock),
-          updatedAt: Value(DateTime.now()),
+          holidayLowStockThreshold: Value(
+            clearHolidayMinimum
+                ? null
+                : holidayLowStockThreshold ?? existing.holidayLowStockThreshold,
+          ),
+          updatedAt: Value(clock.now()),
           defaultSupplierId: Value(
             clearDefaultSupplier
                 ? null
@@ -511,6 +525,21 @@ class ItemRepository {
 
   /// Empty input stores as null rather than as an empty string, so "no barcode"
   /// is one value rather than two.
+  /// A ceiling that actually clears the floor.
+  ///
+  /// **Normalisation, not validation.** The product form is where the rule is
+  /// enforced and where somebody is told to fix it, because a maximum is a
+  /// judgement about the product and a silent default is a worse answer than
+  /// asking. This is the floor under that: the seed and the test suites create
+  /// articles without naming a ceiling, and a stored zero used to mean "no
+  /// maximum" — which left the stock gauge with no range to draw.
+  ///
+  /// Twice the minimum, the same figure `topUpQuantity` has always fallen back
+  /// to, so nothing about ordering changes — the guess simply becomes a stored,
+  /// editable number instead of a branch.
+  static double _usableMaximum(double minimum, double maximum) =>
+      maximum > minimum ? maximum : minimum * 2;
+
   String? _clean(String? value) {
     final trimmed = value?.trim();
     return (trimmed == null || trimmed.isEmpty) ? null : trimmed;

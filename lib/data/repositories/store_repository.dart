@@ -1,8 +1,8 @@
+import 'package:clock/clock.dart';
 import 'package:drift/drift.dart';
 
 import '../../core/utils/attendance_status.dart';
 import '../../core/utils/order_status.dart';
-import '../../core/utils/payroll_math.dart';
 import '../../models/store.dart';
 import '../../models/store_settings.dart';
 import '../database/app_database.dart';
@@ -113,8 +113,8 @@ class StoreRepository {
     return row?.stalePartialOrderDays ?? 7;
   }
 
-  /// The full six-field [StoreSettings] — the pointage hours, the break
-  /// allowance, the payroll coefficients and the stale-order threshold.
+  /// The full [StoreSettings] — the break allowance and the stale-order
+  /// threshold.
   ///
   /// This was `mock_store_settings.dart` / `MockQueries.storeSettings`; the
   /// columns live on the establishment row since Phase 2 employé. Synthesises a
@@ -136,11 +136,7 @@ class StoreRepository {
   StoreSettings _settingsOf(String storeId, StoreRow? row) => row == null
       ? StoreSettings(
           storeId: storeId,
-          openMinutes: AttendanceRules.defaultOpenMinutes,
-          closeMinutes: AttendanceRules.defaultCloseMinutes,
           maxBreakMinutes: AttendanceRules.defaultMaxBreakMinutes,
-          overtimeMultiplier: PayrollRules.defaultOvertimeMultiplier,
-          workingDaysPerMonth: PayrollRules.defaultWorkingDaysPerMonth,
           stalePartialOrderDays: OrderRules.defaultStalePartialDays,
         )
       : storeSettingsFromRow(row);
@@ -177,7 +173,7 @@ class StoreRepository {
       city: city.trim(),
       phone: phone.trim(),
       vatNumber: _trimToNull(vatNumber),
-      createdAt: DateTime.now(),
+      createdAt: clock.now(),
     );
 
     await _db.into(_db.stores).insert(storeToRow(store));
@@ -239,39 +235,22 @@ class StoreRepository {
     });
   }
 
-  /// Edits the pointage / paie settings — opening hours, the break allowance,
-  /// the payroll coefficients. One `UPDATE stores`.
+  /// Edits the pointage settings — the break allowance. One `UPDATE stores`.
   ///
-  /// A field left null keeps its current value. A nonsense value (a negative
-  /// number, a time of day outside 0–1439, a multiplier below 1) is **ignored,
-  /// not refused** — the same forgiving stance the settings screen takes, where
-  /// a half-typed field should not block the save of the rest. The
-  /// stale-order threshold has its own method ([setStalePartialOrderDays])
-  /// because that one does refuse.
+  /// A field left null keeps its current value. A nonsense value (zero or
+  /// negative) is **ignored, not refused** — the same forgiving stance the
+  /// settings screen takes, where a half-typed field should not block the
+  /// save of the rest. The stale-order threshold has its own method
+  /// ([setStalePartialOrderDays]) because that one does refuse.
   Future<StoreSettings> updateStoreSettings(
     String storeId, {
-    int? openMinutes,
-    int? closeMinutes,
     int? maxBreakMinutes,
-    double? overtimeMultiplier,
-    int? workingDaysPerMonth,
   }) async {
-    Value<int> time(int? m) => m != null && m >= 0 && m < 24 * 60
-        ? Value(m)
-        : const Value.absent();
     Value<int> count(int? n) =>
         n != null && n > 0 ? Value(n) : const Value.absent();
 
     await (_db.update(_db.stores)..where((s) => s.id.equals(storeId))).write(
-      StoresCompanion(
-        openMinutes: time(openMinutes),
-        closeMinutes: time(closeMinutes),
-        maxBreakMinutes: count(maxBreakMinutes),
-        overtimeMultiplier: overtimeMultiplier != null && overtimeMultiplier >= 1
-            ? Value(overtimeMultiplier)
-            : const Value.absent(),
-        workingDaysPerMonth: count(workingDaysPerMonth),
-      ),
+      StoresCompanion(maxBreakMinutes: count(maxBreakMinutes)),
     );
     return settings(storeId);
   }
@@ -284,6 +263,34 @@ class StoreRepository {
   /// The settings screen falls back to `OrderRules.defaultStalePartialDays` on
   /// nonsense input, which is a decision about the form rather than about the
   /// establishment.
+  /// Switches one notification kind on or off for an establishment.
+  ///
+  /// One field at a time rather than a whole record: the preferences screen is
+  /// four independent switches, and writing all four on every toggle would let
+  /// a stale screen silently revert a change made on another tablet.
+  Future<bool> setNotificationPreference(
+    String storeId, {
+    bool? lowStock,
+    bool? priceChange,
+    bool? largeAdjustment,
+    bool? deliveries,
+  }) async {
+    Value<bool> v(bool? value) =>
+        value == null ? const Value.absent() : Value(value);
+
+    final changed =
+        await (_db.update(_db.stores)..where((s) => s.id.equals(storeId)))
+            .write(
+              StoresCompanion(
+                notifyLowStock: v(lowStock),
+                notifyPriceChange: v(priceChange),
+                notifyLargeAdjustment: v(largeAdjustment),
+                notifyDeliveries: v(deliveries),
+              ),
+            );
+    return changed > 0;
+  }
+
   Future<bool> setStalePartialOrderDays(String storeId, int days) async {
     if (days <= 0) return false;
 

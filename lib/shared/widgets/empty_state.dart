@@ -50,48 +50,54 @@ class EmptyState extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 420),
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.xxl),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 72,
-                height: 72,
+    // Scrollable rather than a bare Column. This is centred in whatever space
+    // the page has left, which on a short window with the type turned up is
+    // less than the illustration, the two lines and the button need — and a
+    // clipped empty state hides the button that is the only way out of it.
+    return SingleChildScrollView(
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 420),
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.xxl),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 72,
+                  height: 72,
                 decoration: const BoxDecoration(
                   color: AppColors.surfaceVariant,
                   shape: BoxShape.circle,
                 ),
-                child: Icon(icon, size: 32, color: AppColors.textSecondary),
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              Text(
-                title,
-                style: theme.textTheme.titleLarge,
-                textAlign: TextAlign.center,
-              ),
-              if (message != null) ...[
-                const SizedBox(height: AppSpacing.sm),
+                  child: Icon(icon, size: 32, color: AppColors.textSecondary),
+                ),
+                const SizedBox(height: AppSpacing.lg),
                 Text(
-                  message!,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
+                  title,
+                  style: theme.textTheme.titleLarge,
                   textAlign: TextAlign.center,
                 ),
+                if (message != null) ...[
+                  const SizedBox(height: AppSpacing.sm),
+                  Text(
+                    message!,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+                if (actionLabel != null && onAction != null) ...[
+                  const SizedBox(height: AppSpacing.xl),
+                  PrimaryButton(
+                    label: actionLabel!,
+                    icon: actionIcon,
+                    onPressed: onAction,
+                  ),
+                ],
               ],
-              if (actionLabel != null && onAction != null) ...[
-                const SizedBox(height: AppSpacing.xl),
-                PrimaryButton(
-                  label: actionLabel!,
-                  icon: actionIcon,
-                  onPressed: onAction,
-                ),
-              ],
-            ],
+            ),
           ),
         ),
       ),

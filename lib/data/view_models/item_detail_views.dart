@@ -86,11 +86,16 @@ class MovementRowView {
     required this.movement,
     required this.itemName,
     required this.unitAbbreviation,
+    this.itemImagePath,
     this.supplierName,
     this.orderReference,
   });
 
   final StockMovement movement;
+
+  /// The article's photo, so a row in the log shows the product as well as
+  /// naming it. Null when it has none, or has been deleted since.
+  final String? itemImagePath;
 
   /// A dash when the article has been deleted since. Movements outlive the
   /// articles they describe: `stock_movements` cascades from `items`, so this

@@ -43,8 +43,11 @@ class DateField extends StatelessWidget {
         if (picked != null) onChanged(picked);
       },
       child: Container(
-        height: AppSizing.inputHeight,
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+        constraints: const BoxConstraints(minHeight: AppSizing.inputHeight),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.lg,
+          vertical: AppSpacing.sm,
+        ),
         decoration: BoxDecoration(
           color: AppColors.surfaceVariant,
           borderRadius: AppRadius.mdAll,

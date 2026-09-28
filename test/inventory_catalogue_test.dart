@@ -13,6 +13,8 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:stock_inventory/shared/widgets/widgets.dart';
+import 'package:stock_inventory/core/theme/app_spacing.dart';
 import 'package:stock_inventory/app/router.dart';
 import 'package:stock_inventory/app/routes.dart';
 import 'package:stock_inventory/core/utils/stock_status.dart';
@@ -20,7 +22,8 @@ import 'package:stock_inventory/data/database/app_database.dart';
 import 'package:stock_inventory/data/seed/dataset/dataset.dart';
 import 'package:stock_inventory/features/inventory/presentation/pages/inventory_list_page.dart';
 import 'package:stock_inventory/features/inventory/presentation/widgets/item_card.dart';
-import 'package:stock_inventory/features/inventory/presentation/widgets/item_list_row.dart';
+import 'package:stock_inventory/data/view_models/view_models.dart';
+import 'package:stock_inventory/shared/widgets/app_table.dart';
 import 'package:drift/drift.dart' show Value;
 
 import 'support/app_harness.dart';
@@ -41,9 +44,9 @@ Future<void> _openInventory(WidgetTester tester, Size size) async {
   await tester.pumpAndSettle();
 }
 
-/// Switches the catalogue to rows, by pressing the button a user would.
+/// Switches the catalogue to the table, by pressing the button a user would.
 Future<void> _switchToList(WidgetTester tester) async {
-  await tester.tap(find.byTooltip('Vue liste').first);
+  await tester.tap(find.byTooltip('Vue tableau').first);
   await tester.pumpAndSettle();
 }
 
@@ -97,7 +100,7 @@ void main() {
         await _switchToList(tester);
 
         expect(tester.takeException(), isNull);
-        expect(find.byType(ItemListRow), findsWidgets);
+        expect(find.byType(AppTable<ItemRowView>), findsWidgets);
         expect(find.byType(ItemCard), findsNothing);
       });
     }
@@ -109,7 +112,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(ItemCard), findsWidgets);
-      expect(find.byType(ItemListRow), findsNothing);
+      expect(find.byType(AppTable<ItemRowView>), findsNothing);
     });
   });
 
@@ -119,28 +122,71 @@ void main() {
   // can see past. These two functions are the whole of the grid's responsive
   // behaviour, and they are what the phone case is actually about.
   group('the grid sizes itself', () {
-    test('one column on a phone, two on a tablet, four on a desktop', () {
-      expect(inventoryGridColumns(390), 1);
-      expect(inventoryGridColumns(430), 1);
-      expect(inventoryGridColumns(640), 2);
-      expect(inventoryGridColumns(800), 3);
-      expect(inventoryGridColumns(1100), 4);
-      // Never a fifth column, however wide the window.
-      expect(inventoryGridColumns(2400), 4);
+    test('two on a phone, more as the window grows', () {
+      // A phone shows two. It showed one until the card lost its "Stock
+      // actuel" caption and its arrow button: a 360dp screen leaves about
+      // 180dp a card, which was not enough for a name, a category and a
+      // quantity and now is.
+      expect(inventoryGridColumns(360), 2);
+      expect(inventoryGridColumns(390), 2);
+      expect(inventoryGridColumns(430), 2);
+      // Only a genuinely tiny window falls back to one.
+      expect(inventoryGridColumns(300), 1);
+      expect(inventoryGridColumns(640), 3);
+      expect(inventoryGridColumns(800), 4);
+      expect(inventoryGridColumns(1100), 5);
+      // Never a seventh column, however wide the window. A catalogue is
+      // navigated by scanning, but past six across the names are the first
+      // thing to go, and the name is what is being scanned.
+      expect(inventoryGridColumns(2400), 6);
     });
 
-    test('the picture keeps roughly 55-60% of the card', () {
-      for (final cellWidth in [440.0, 300.0, 260.0, 220.0]) {
+    test('the picture stays about half the card at every column width', () {
+      // Not a fixed share: the image is a ratio of the column width and the
+      // text block under it is a fixed height, so a narrow column gives the
+      // picture proportionally less. The band is what keeps a card from
+      // becoming either a poster or a caption with a thumbnail.
+      for (final cellWidth in [440.0, 300.0, 260.0, 220.0, 160.0]) {
         final image = inventoryImageHeight(cellWidth);
         final share = image / (image + itemCardTextHeight);
-        expect(share, greaterThan(0.55), reason: 'at a $cellWidth column');
-        expect(share, lessThan(0.65), reason: 'at a $cellWidth column');
+        expect(share, greaterThan(0.45), reason: 'at a $cellWidth column');
+        expect(share, lessThan(0.62), reason: 'at a $cellWidth column');
       }
     });
 
     test('and is bounded at both ends', () {
-      expect(inventoryImageHeight(120), 180);
-      expect(inventoryImageHeight(900), 240);
+      expect(inventoryImageHeight(120), 100);
+      expect(inventoryImageHeight(900), 136);
+    });
+
+    test('a card is not taller than it needs to be', () {
+      // The regression this guards, and how far it has come: the picture was
+      // three quarters of the column width with a 240dp ceiling and the text
+      // block was 140dp, which made a card 376dp tall — one and a half
+      // products on a phone, six on the 1280dp design baseline. It is now
+      // under 260 at every width, which is what makes a long catalogue
+      // navigable by scrolling rather than by searching.
+      for (final cellWidth in [440.0, 300.0, 230.0]) {
+        final tile = inventoryImageHeight(cellWidth) + itemCardTextHeight;
+        expect(tile, lessThan(260), reason: 'at a $cellWidth column');
+      }
+    });
+
+    test('a 1280dp window shows more than twice the products it used to', () {
+      // The design baseline, minus the sidebar and the page insets. Three
+      // cards across at 376dp tall was six products before a scroll; the
+      // assertion is about how many fit now, because that is the whole point
+      // of every number in this group.
+      const pane = 1280.0 - AppSizing.sidebarWidthExpanded - AppSpacing.xl * 2;
+      final columns = inventoryGridColumns(pane);
+      final cellWidth =
+          (pane - AppSpacing.sm * (columns - 1)) / columns;
+      final tile = inventoryImageHeight(cellWidth) + itemCardTextHeight;
+
+      expect(columns, 5);
+      // Three full rows in an 800dp window, where three cards across at 376dp
+      // tall managed one and the top of a second.
+      expect(tile, lessThan(240));
     });
   });
 
@@ -191,7 +237,7 @@ void main() {
       await _sortBy(tester, 'Nom A → Z');
 
       expect(tester.takeException(), isNull);
-      expect(find.byType(ItemListRow), findsWidgets);
+      expect(find.byType(AppTable<ItemRowView>), findsWidgets);
     });
 
     // The ordering is not a filter, and clearing the filters must not quietly
@@ -254,6 +300,75 @@ void main() {
       final built = tester.widgetList<ItemCard>(find.byType(ItemCard));
       expect(built, isNotEmpty);
       expect(built.every((card) => needsAttention(card.view.item)), isTrue);
+    });
+  });
+
+  // A catalogue is walked by section — you go looking for a vegetable among
+  // the vegetables — but only while the screen is choosing the order. The
+  // moment the user picks one, blocks would contradict it.
+  group('the grid groups by category', () {
+    /// The category names shown as section headings, top to bottom.
+    List<String> headings(WidgetTester tester) => [
+      for (final header in tester.widgetList<CategoryHeader>(
+        find.byType(CategoryHeader),
+      ))
+        header.title,
+    ];
+
+    testApp('in the default order, one block per category', (tester) async {
+      await _openInventory(tester, _tablet);
+
+      final shown = headings(tester);
+      expect(shown.length, greaterThan(1));
+      // Alphabetical, so the blocks sit in the same place every visit.
+      final sorted = [...shown]
+        ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+      expect(shown, sorted);
+    });
+
+    testApp('every card on screen belongs to a block', (tester) async {
+      await _openInventory(tester, _tablet);
+
+      final categories = headings(tester).toSet();
+      for (final card in tester.widgetList<ItemCard>(find.byType(ItemCard))) {
+        expect(categories, contains(card.view.categoryName));
+      }
+    });
+
+    // Eight categories of twenty products is a long page to scroll past to
+    // reach the one section you came for.
+    testApp('a block folds away and still says how many it hides', (
+      tester,
+    ) async {
+      await _openInventory(tester, _tablet);
+      final first = headings(tester).first;
+      final before = _namesInOrder(tester).length;
+
+      await tester.tap(find.byType(CategoryHeader).first);
+      await tester.pumpAndSettle();
+
+      // Fewer cards, but the heading and its count stay put.
+      expect(_namesInOrder(tester).length, lessThan(before));
+      expect(headings(tester).first, first);
+
+      await tester.tap(find.byType(CategoryHeader).first);
+      await tester.pumpAndSettle();
+
+      expect(_namesInOrder(tester).length, before);
+    });
+
+    testApp('choosing a sort flattens it', (tester) async {
+      await _openInventory(tester, _tablet);
+      expect(headings(tester), isNotEmpty);
+
+      await _sortBy(tester, 'Nom A → Z');
+
+      // No blocks left, and the names run in one alphabetical sequence.
+      expect(headings(tester), isEmpty);
+      final names = _namesInOrder(tester);
+      final sorted = [...names]
+        ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+      expect(names, sorted);
     });
   });
 }

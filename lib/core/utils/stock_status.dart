@@ -41,6 +41,51 @@ bool needsAttention(Item item) => stockStatusOf(item) != StockStatus.inStock;
 /// for the same article will each suggest the full top-up. `onOrderQuantity`
 /// is the figure that would fix it, and wiring it in is deliberately left for
 /// its own change.
+/// The minimum to hold when the place is busy — a holiday week, a festival, a
+/// long weekend — which is not the minimum that suits an ordinary Tuesday.
+///
+/// Twice the ordinary minimum unless somebody has set a figure. Derived rather
+/// than stored, and that is the whole point: a product whose ordinary minimum
+/// is raised from 8 to 10 should want 20 in a busy week, not the 16 that was
+/// written down the day it was created. Only an explicit figure is kept, and
+/// only an explicit figure stops following.
+///
+/// Doubling because it is the simplest honest guess. It is a placeholder for a
+/// number this establishment has not thought about yet, not a claim that busy
+/// weeks take exactly twice the stock.
+double holidayMinimumOf(Item item) =>
+    item.holidayLowStockThreshold ?? item.lowStockThreshold * 2;
+
+/// What is wrong with a product's stock range, if anything.
+///
+/// A product declares a floor and a ceiling: the minimum it may fall to before
+/// it is flagged, and the maximum a commande tops it back up to. Both are
+/// required, and the maximum has to clear the minimum.
+///
+/// Both were optional until now, and zero meant "not set". That left two
+/// things guessing: the stock gauge had no range to draw, and [topUpQuantity]
+/// fell back to refilling to the alert line — which puts a product back at
+/// exactly the quantity that made it low, so the next portion sold re-alerts
+/// it. Requiring the pair is what retires both workarounds.
+///
+/// Returns both answers rather than the first failure, so a form can say
+/// everything that is wrong in one pass instead of sending somebody back twice.
+({bool minimumMissing, bool maximumTooLow}) stockRangeProblems({
+  required double minimum,
+  required double maximum,
+}) => (
+  minimumMissing: minimum <= 0,
+  // At or below the minimum, not merely below it: equal is not a range, and a
+  // commande would suggest a zero top-up for a product already flagged as low.
+  maximumTooLow: maximum <= minimum,
+);
+
+/// Whether [minimum] and [maximum] are a usable stock range.
+bool isValidStockRange({required double minimum, required double maximum}) {
+  final problems = stockRangeProblems(minimum: minimum, maximum: maximum);
+  return !problems.minimumMissing && !problems.maximumTooLow;
+}
+
 double topUpQuantity(Item item) {
   final target = item.maxStock > 0
       ? item.maxStock - item.quantity

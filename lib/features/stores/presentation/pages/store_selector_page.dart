@@ -44,7 +44,9 @@ class StoreSelectorPage extends ConsumerWidget {
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 1200),
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(AppSpacing.xxl),
+              padding: EdgeInsets.all(
+                context.isPhone ? AppSpacing.lg : AppSpacing.xxl,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -72,7 +74,7 @@ class StoreSelectorPage extends ConsumerWidget {
                       // Opening a store is an owner action (Phase 6). A manager
                       // sees the grid but not the button — and the route is
                       // guarded too.
-                      if (canCreateStore) ...[
+                      if (canCreateStore && !context.isPhone) ...[
                         const SizedBox(width: AppSpacing.lg),
                         PrimaryButton(
                           label: l10n.storesAdd,
@@ -82,6 +84,17 @@ class StoreSelectorPage extends ConsumerWidget {
                       ],
                     ],
                   ),
+                  // On a phone the button takes its own line: beside the
+                  // title it squeezed the heading into a column of letters.
+                  if (canCreateStore && context.isPhone) ...[
+                    const SizedBox(height: AppSpacing.lg),
+                    PrimaryButton(
+                      label: l10n.storesAdd,
+                      icon: LucideIcons.plus,
+                      fullWidth: true,
+                      onPressed: () => context.goSection(Routes.addStore),
+                    ),
+                  ],
                   const SizedBox(height: AppSpacing.xxl),
                   AsyncContent<List<StoreCardView>>(
                     value: cards,
@@ -90,7 +103,7 @@ class StoreSelectorPage extends ConsumerWidget {
                     // where their outlines already were.
                     skeleton: SkeletonGrid(
                       columns: context.gridColumns(max: 3),
-                      itemHeight: 320,
+                      itemHeight: _tileHeight(context),
                       count: context.gridColumns(max: 3),
                     ),
                     builder: (context, cards) => GridView.builder(
@@ -101,8 +114,10 @@ class StoreSelectorPage extends ConsumerWidget {
                         crossAxisSpacing: AppSpacing.xl,
                         mainAxisSpacing: AppSpacing.xl,
                         // Tall enough for the address to wrap without the
-                        // card clipping.
-                        mainAxisExtent: 320,
+                        // card clipping, and grown with the user's type size —
+                        // a fixed extent clips the bottom of every card once
+                        // the text is turned up.
+                        mainAxisExtent: _tileHeight(context),
                       ),
                       itemCount: cards.length,
                       itemBuilder: (context, index) {
@@ -137,4 +152,15 @@ class StoreSelectorPage extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// The height of one card on the selector grid.
+///
+/// Stated rather than derived from a ratio: the picture band is a fixed 120dp
+/// and the text under it is a known number of single lines, so the tile is the
+/// two added up. It scales with the type size and is capped at 2x, the same
+/// bargain `itemCardTextHeightFor` makes in the catalogue grid.
+double _tileHeight(BuildContext context) {
+  final scale = MediaQuery.textScalerOf(context).scale(14) / 14;
+  return 320 * scale.clamp(1.0, 2.0);
 }
