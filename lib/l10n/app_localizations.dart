@@ -526,12 +526,6 @@ abstract class AppLocalizations {
   /// **'Adresse e-mail'**
   String get loginEmail;
 
-  /// Password field label.
-  ///
-  /// In fr, this message translates to:
-  /// **'Mot de passe'**
-  String get loginPassword;
-
   /// Remember-me toggle on the login form.
   ///
   /// In fr, this message translates to:
@@ -933,6 +927,54 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Vue liste'**
   String get inventoryViewList;
+
+  /// Wizard: go to the next step.
+  ///
+  /// In fr, this message translates to:
+  /// **'Suivant'**
+  String get wizardNext;
+
+  /// Wizard: go back one step.
+  ///
+  /// In fr, this message translates to:
+  /// **'Précédent'**
+  String get wizardPrevious;
+
+  /// Wizard: put the form back to where it started.
+  ///
+  /// In fr, this message translates to:
+  /// **'Réinitialiser'**
+  String get wizardReset;
+
+  /// Confirmation title before resetting a wizard.
+  ///
+  /// In fr, this message translates to:
+  /// **'Réinitialiser le formulaire ?'**
+  String get wizardResetTitle;
+
+  /// Confirmation body before resetting a wizard.
+  ///
+  /// In fr, this message translates to:
+  /// **'Les informations saisies seront effacées et vous reviendrez à la première étape.'**
+  String get wizardResetBody;
+
+  /// Wizard step indicator on a phone.
+  ///
+  /// In fr, this message translates to:
+  /// **'Étape {current} sur {total}'**
+  String wizardStepOf(int current, int total);
+
+  /// Tooltip on the button switching a list screen (products, staff) to cards.
+  ///
+  /// In fr, this message translates to:
+  /// **'Vue grille'**
+  String get viewModeGrid;
+
+  /// Tooltip on the button switching a list screen (products, staff) to rows.
+  ///
+  /// In fr, this message translates to:
+  /// **'Vue liste'**
+  String get viewModeList;
 
   /// Caption above the quantity on a product card. Says the figure is what is on the shelf now, not an order or a threshold.
   ///
@@ -2071,7 +2113,7 @@ abstract class AppLocalizations {
   /// Instruction under the who-is-recording sheet title.
   ///
   /// In fr, this message translates to:
-  /// **'Touchez votre nom, puis confirmez avec votre numéro CIN.'**
+  /// **'Touchez votre nom, puis confirmez avec votre numéro PIN.'**
   String get actorSheetSubtitle;
 
   /// Tag on the signed-in user's card in the who-is-recording sheet.
@@ -4594,12 +4636,6 @@ abstract class AppLocalizations {
   /// **'Historique de paiement'**
   String get employeesNavPayroll;
 
-  /// Heading of the placeholder screen for a Gestion Employée section not yet built.
-  ///
-  /// In fr, this message translates to:
-  /// **'Bientôt disponible'**
-  String get employeeSectionComingSoonTitle;
-
   /// Placeholder body for the pointage board.
   ///
   /// In fr, this message translates to:
@@ -4654,18 +4690,6 @@ abstract class AppLocalizations {
   /// **'Aucun accès à l\'application. Son pointage est fait au tableau de bord partagé.'**
   String get employeeRoleStaffBody;
 
-  /// Contract type: a monthly salary.
-  ///
-  /// In fr, this message translates to:
-  /// **'Salarié fixe'**
-  String get contractTypeFixed;
-
-  /// Contract type: an hourly rate, paid only for hours worked.
-  ///
-  /// In fr, this message translates to:
-  /// **'Extra'**
-  String get contractTypeExtra;
-
   /// Staff roster page heading.
   ///
   /// In fr, this message translates to:
@@ -4675,7 +4699,7 @@ abstract class AppLocalizations {
   /// Supporting line on the roster page.
   ///
   /// In fr, this message translates to:
-  /// **'Le personnel de cet établissement — coordonnées, contrat et rôle.'**
+  /// **'Le personnel de cet établissement — coordonnées, rémunération et rôle.'**
   String get employeesSubtitle;
 
   /// Primary action on the roster page.
@@ -4687,7 +4711,7 @@ abstract class AppLocalizations {
   /// Placeholder in the roster search field.
   ///
   /// In fr, this message translates to:
-  /// **'Rechercher (nom, CIN)'**
+  /// **'Rechercher (nom, PIN)'**
   String get employeesSearchHint;
 
   /// Placeholder shown in the closed EmployeeSelector combobox when nothing is picked.
@@ -4701,6 +4725,36 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Afficher les personnels retirés'**
   String get employeesShowArchived;
+
+  /// Staff card: status chip of an employee still on the roster.
+  ///
+  /// In fr, this message translates to:
+  /// **'Actif'**
+  String get employeeStatusActive;
+
+  /// Staff card: caption under the hourly rate.
+  ///
+  /// In fr, this message translates to:
+  /// **'Salaire horaire'**
+  String get employeeCardHourlyRate;
+
+  /// Staff card: caption of the hire date.
+  ///
+  /// In fr, this message translates to:
+  /// **'Embauché le'**
+  String get employeeCardHiredOn;
+
+  /// Retired staff card: caption of the date they were retired.
+  ///
+  /// In fr, this message translates to:
+  /// **'Retiré le'**
+  String get employeeCardRetiredOn;
+
+  /// Tooltip of the ⋮ menu on a staff card.
+  ///
+  /// In fr, this message translates to:
+  /// **'Actions'**
+  String get employeeCardActions;
 
   /// Badge on an archived employee's row.
   ///
@@ -4720,29 +4774,11 @@ abstract class AppLocalizations {
   /// **'Ajoutez les membres de votre personnel pour suivre leur pointage et leur paie.'**
   String get employeesEmptyBody;
 
-  /// Compact CIN label shown under an employee's name.
-  ///
-  /// In fr, this message translates to:
-  /// **'CIN {cin}'**
-  String employeeCinLabel(String cin);
-
   /// Roster KPI: count of active employees.
   ///
   /// In fr, this message translates to:
   /// **'Personnel actif'**
   String get employeesKpiActive;
-
-  /// Roster KPI label: split between fixed and extra contracts.
-  ///
-  /// In fr, this message translates to:
-  /// **'Fixes / Extras'**
-  String get employeesKpiContractSplit;
-
-  /// Roster KPI value: the fixed/extra split.
-  ///
-  /// In fr, this message translates to:
-  /// **'{fixed} fixes · {extra} extras'**
-  String employeesKpiContractSplitValue(int fixed, int extra);
 
   /// Roster KPI: count of owners and managers.
   ///
@@ -4750,17 +4786,155 @@ abstract class AppLocalizations {
   /// **'Gérants'**
   String get employeesKpiManagers;
 
+  /// Staff roster KPI: mean hourly rate of the active employees.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tarif moyen'**
+  String get employeesKpiAverageRate;
+
+  /// Staff roster KPI: highest hourly rate among the active employees.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tarif max'**
+  String get employeesKpiMaxRate;
+
   /// Roster KPI: employees hired this calendar month.
   ///
   /// In fr, this message translates to:
   /// **'Embauches ce mois'**
   String get employeesKpiHiredThisMonth;
 
-  /// Photo section label on the employee form.
+  /// Staff roster table: the name column.
+  ///
+  /// In fr, this message translates to:
+  /// **'Employé'**
+  String get employeesColumnName;
+
+  /// Staff roster table: the role column.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rôle'**
+  String get employeesColumnRole;
+
+  /// Staff roster table: the hourly rate column.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tarif'**
+  String get employeesColumnPay;
+
+  /// Staff roster table: the column of per-row actions.
+  ///
+  /// In fr, this message translates to:
+  /// **'Actions'**
+  String get employeesColumnActions;
+
+  /// Staff card / row action: open the attendance history filtered to this person.
+  ///
+  /// In fr, this message translates to:
+  /// **'Historique pointage'**
+  String get employeeActionAttendance;
+
+  /// Staff card / row action: open the payroll history filtered to this person.
+  ///
+  /// In fr, this message translates to:
+  /// **'Historique paiement'**
+  String get employeeActionPayroll;
+
+  /// Staff roster table: the hire-date column.
+  ///
+  /// In fr, this message translates to:
+  /// **'Embauché le'**
+  String get employeesColumnHired;
+
+  /// Employee wizard, step 1: photo, name, PIN and contact details.
+  ///
+  /// In fr, this message translates to:
+  /// **'Information professionnelle'**
+  String get employeeWizardStepInfo;
+
+  /// Employee wizard, step 2: the hourly rate.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rémunération'**
+  String get employeeWizardStepPay;
+
+  /// Employee wizard, step 3: the role and, for a role that signs in, the password.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rôle et sécurité'**
+  String get employeeWizardStepRole;
+
+  /// Paragraph under the add-employee title.
+  ///
+  /// In fr, this message translates to:
+  /// **'Renseignez la fiche en trois étapes : les informations professionnelles, la rémunération, puis le rôle et les accès.'**
+  String get employeeFormDescription;
+
+  /// Paragraph under the edit-employee title.
+  ///
+  /// In fr, this message translates to:
+  /// **'Modifiez la fiche de {name}. Chaque étape peut être enregistrée directement.'**
+  String employeeFormEditDescription(String name);
+
+  /// Placeholder of the first-name field.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ex. Nora'**
+  String get employeeFormFirstNameHint;
+
+  /// Placeholder of the last-name field.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ex. Benali'**
+  String get employeeFormLastNameHint;
+
+  /// Placeholder of the phone field.
+  ///
+  /// In fr, this message translates to:
+  /// **'+32 470 12 34 56'**
+  String get employeeFormPhoneHint;
+
+  /// Placeholder of the email field.
+  ///
+  /// In fr, this message translates to:
+  /// **'prenom.nom@exemple.be'**
+  String get employeeFormEmailHint;
+
+  /// Placeholder of the hourly-rate field.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ex. 15,50'**
+  String get employeeFormPayHint;
+
+  /// Placeholder of the confirm-password field.
+  ///
+  /// In fr, this message translates to:
+  /// **'Répétez les 4 chiffres'**
+  String get employeeFormPasswordConfirmHint;
+
+  /// Label beside the photo picker circle on the employee form.
   ///
   /// In fr, this message translates to:
   /// **'Photo'**
   String get employeeFormPhoto;
+
+  /// Help line beside the photo button on the employee form.
+  ///
+  /// In fr, this message translates to:
+  /// **'Facultatif · cliquez sur le cercle pour choisir un JPG ou PNG'**
+  String get employeeFormPhotoHelp;
+
+  /// Employee wizard, pay step: how the hourly rate is applied.
+  ///
+  /// In fr, this message translates to:
+  /// **'Payé à l\'heure réellement travaillée, pauses déduites.'**
+  String get employeeFormPayHelp;
+
+  /// Employee wizard, role step: shown instead of the password fields for the Employé role.
+  ///
+  /// In fr, this message translates to:
+  /// **'Un employé pointe avec son numéro PIN et n\'a pas accès à l\'application : aucun mot de passe n\'est demandé.'**
+  String get employeeFormStaffNoPassword;
 
   /// Button under the employee photo tile when no photo is set yet.
   ///
@@ -4801,8 +4975,8 @@ abstract class AppLocalizations {
   /// Employee national identity card number field label.
   ///
   /// In fr, this message translates to:
-  /// **'N° de carte d\'identité'**
-  String get employeeFormCin;
+  /// **'Numéro PIN'**
+  String get employeeFormPin;
 
   /// Employee phone field label.
   ///
@@ -4816,11 +4990,11 @@ abstract class AppLocalizations {
   /// **'Adresse e-mail'**
   String get employeeFormEmail;
 
-  /// Inline error when the CIN already belongs to another employee.
+  /// Inline error when the PIN already belongs to another employee.
   ///
   /// In fr, this message translates to:
-  /// **'Ce numéro de carte d\'identité est déjà utilisé.'**
-  String get employeeCinTaken;
+  /// **'Ce numéro PIN est déjà utilisé.'**
+  String get employeePinTaken;
 
   /// Inline error when the email already belongs to another employee.
   ///
@@ -4834,59 +5008,11 @@ abstract class AppLocalizations {
   /// **'Rôle et accès'**
   String get employeeFormRole;
 
-  /// Employment section header on the employee form and detail page.
-  ///
-  /// In fr, this message translates to:
-  /// **'Contrat et rémunération'**
-  String get employeeFormEmployment;
-
-  /// Contract type dropdown label.
-  ///
-  /// In fr, this message translates to:
-  /// **'Type de contrat'**
-  String get employeeFormContractType;
-
-  /// Pay field label when the contract is fixed.
-  ///
-  /// In fr, this message translates to:
-  /// **'Salaire mensuel (€)'**
-  String get employeeFormPayMonthly;
-
   /// Pay field label when the contract is extra.
   ///
   /// In fr, this message translates to:
   /// **'Tarif horaire (€/h)'**
   String get employeeFormPayHourly;
-
-  /// Schedule section header on the employee form and detail page.
-  ///
-  /// In fr, this message translates to:
-  /// **'Horaires'**
-  String get employeeFormSchedule;
-
-  /// Scheduled start-of-day field label.
-  ///
-  /// In fr, this message translates to:
-  /// **'Heure d\'arrivée'**
-  String get employeeFormScheduleStart;
-
-  /// Scheduled end-of-day field label.
-  ///
-  /// In fr, this message translates to:
-  /// **'Heure de départ'**
-  String get employeeFormScheduleEnd;
-
-  /// Inline error when a schedule time does not parse.
-  ///
-  /// In fr, this message translates to:
-  /// **'Format attendu : HH:MM'**
-  String get employeeFormScheduleInvalid;
-
-  /// Helper text under the schedule fields.
-  ///
-  /// In fr, this message translates to:
-  /// **'Laissez vide pour utiliser les horaires de l\'établissement.'**
-  String get employeeFormScheduleHelp;
 
   /// Snackbar confirming a new employee was created.
   ///
@@ -4899,36 +5025,6 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Employé modifié'**
   String get employeeUpdated;
-
-  /// Hire date line on the employee detail header.
-  ///
-  /// In fr, this message translates to:
-  /// **'Embauché le {date}'**
-  String employeeHiredOn(String date);
-
-  /// Section heading on the employee detail page for contact fields.
-  ///
-  /// In fr, this message translates to:
-  /// **'Coordonnées'**
-  String get employeeDetailContact;
-
-  /// Shown for the schedule when the employee has no custom start/end.
-  ///
-  /// In fr, this message translates to:
-  /// **'Horaires de l\'établissement'**
-  String get employeeScheduleStoreHours;
-
-  /// Section heading for one employee's attendance history.
-  ///
-  /// In fr, this message translates to:
-  /// **'Historique de pointage'**
-  String get employeeHistoryTitle;
-
-  /// Section heading for one employee's payroll history.
-  ///
-  /// In fr, this message translates to:
-  /// **'Historique de paiement'**
-  String get employeePayrollTitle;
 
   /// Destructive confirmation dialog title for archiving an employee. Regular space before the question mark, matching the rest of the file.
   ///
@@ -4966,18 +5062,6 @@ abstract class AppLocalizations {
   /// **'Employé restauré'**
   String get employeeRestored;
 
-  /// Status line on an archived employee's detail page.
-  ///
-  /// In fr, this message translates to:
-  /// **'Retiré le {date}'**
-  String employeeDetailArchivedOn(String date);
-
-  /// Shown in the attendance history section when the employee has no rows yet.
-  ///
-  /// In fr, this message translates to:
-  /// **'Aucun pointage enregistré.'**
-  String get employeeHistoryEmpty;
-
   /// Attendance status — no row for the day yet.
   ///
   /// In fr, this message translates to:
@@ -5001,12 +5085,6 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Terminé'**
   String get attendanceStatusDone;
-
-  /// Marker on a day where the arrival was past the scheduled start.
-  ///
-  /// In fr, this message translates to:
-  /// **'En retard'**
-  String get attendanceLate;
 
   /// Marker on a day where a single break ran longer than the store's allowance.
   ///
@@ -5110,6 +5188,36 @@ abstract class AppLocalizations {
   /// **'Fin de journée enregistrée pour {name}.'**
   String timeclockClockOutDone(String name);
 
+  /// Label before today's date in the pointage board header and drawer.
+  ///
+  /// In fr, this message translates to:
+  /// **'Date'**
+  String get liveDateLabel;
+
+  /// Label before the live clock in the pointage board header and drawer.
+  ///
+  /// In fr, this message translates to:
+  /// **'Heure'**
+  String get liveTimeLabel;
+
+  /// Link at the top right of a pointage board card; opens the drawer.
+  ///
+  /// In fr, this message translates to:
+  /// **'Voir détails'**
+  String get timeclockViewDetail;
+
+  /// Board drawer, before the day's first punch. {date} is e.g. 'jeudi 24/12/2026'.
+  ///
+  /// In fr, this message translates to:
+  /// **'Vous n\'avez pas encore commencé votre journée du {date}. Pointez pour la démarrer.'**
+  String timeclockStartDayPrompt(String date);
+
+  /// Divider above one session of a multi-session day.
+  ///
+  /// In fr, this message translates to:
+  /// **'Session N° {number}'**
+  String timeclockSessionTitle(int number);
+
   /// Timestamp log label — clock-in.
   ///
   /// In fr, this message translates to:
@@ -5134,35 +5242,11 @@ abstract class AppLocalizations {
   /// **'Départ'**
   String get timeclockLogDeparture;
 
-  /// Worked-duration line on a finished card.
+  /// Store settings section header for the break allowance.
   ///
   /// In fr, this message translates to:
-  /// **'Travaillé : {duration}'**
-  String timeclockWorked(String duration);
-
-  /// Overtime marker on a finished card.
-  ///
-  /// In fr, this message translates to:
-  /// **'+{duration} sup.'**
-  String timeclockOvertimeMark(String duration);
-
-  /// Store settings section header for opening hours.
-  ///
-  /// In fr, this message translates to:
-  /// **'Horaires de l\'établissement'**
+  /// **'Pauses'**
   String get storeSettingsHours;
-
-  /// Store opening time field label.
-  ///
-  /// In fr, this message translates to:
-  /// **'Ouverture'**
-  String get storeSettingsOpenTime;
-
-  /// Store closing time field label.
-  ///
-  /// In fr, this message translates to:
-  /// **'Fermeture'**
-  String get storeSettingsCloseTime;
 
   /// Store setting — the longest a single break may run before it is flagged.
   ///
@@ -5170,10 +5254,10 @@ abstract class AppLocalizations {
   /// **'Pause max (minutes)'**
   String get storeSettingsMaxBreak;
 
-  /// Helper text under the store hours / break fields.
+  /// Helper text under the break allowance field.
   ///
   /// In fr, this message translates to:
-  /// **'Les horaires servent de base au calcul du retard et des heures supplémentaires (pour un employé sans horaire personnel). Une pause plus longue que le maximum est signalée « Pause dépassée ».'**
+  /// **'Une pause plus longue que le maximum est signalée « Pause dépassée ».'**
   String get storeSettingsHoursHelp;
 
   /// Which slice of a paged list is shown.
@@ -5181,12 +5265,6 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'{first}–{last} sur {total}'**
   String paginatorRange(int first, int last, int total);
-
-  /// Current page number out of the total.
-  ///
-  /// In fr, this message translates to:
-  /// **'{page} / {count}'**
-  String paginatorPage(int page, int count);
 
   /// Tooltip on the previous-page button.
   ///
@@ -5199,6 +5277,12 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Page suivante'**
   String get paginatorNext;
+
+  /// Label of the rows-per-page menu beside the paginator.
+  ///
+  /// In fr, this message translates to:
+  /// **'Lignes par page :'**
+  String get paginatorPageSize;
 
   /// Heading of the attendance history page.
   ///
@@ -5230,29 +5314,17 @@ abstract class AppLocalizations {
   /// **'Aucun pointage n\'a encore été enregistré dans cet établissement.'**
   String get attendanceHistoryEmptyBody;
 
-  /// Label of the employee dropdown on the attendance history page.
+  /// Start-date filter pill on the history pages (followed by the date).
   ///
   /// In fr, this message translates to:
-  /// **'Employé'**
-  String get attendanceFilterEmployee;
+  /// **'Début'**
+  String get historyFilterFrom;
 
-  /// Employee dropdown option that shows every employee at once.
+  /// End-date filter pill on the history pages (followed by the date).
   ///
   /// In fr, this message translates to:
-  /// **'Tous les employés'**
-  String get attendanceFilterAllEmployees;
-
-  /// Label of the period start-date field on the attendance history page.
-  ///
-  /// In fr, this message translates to:
-  /// **'Du'**
-  String get attendanceFilterFrom;
-
-  /// Label of the period end-date field on the attendance history page.
-  ///
-  /// In fr, this message translates to:
-  /// **'Au'**
-  String get attendanceFilterTo;
+  /// **'Fin'**
+  String get historyFilterTo;
 
   /// Active-filter chip showing the selected date range.
   ///
@@ -5272,17 +5344,11 @@ abstract class AppLocalizations {
   /// **'Heures travaillées'**
   String get attendanceStatWorked;
 
-  /// History KPI — number of late arrivals in the period.
+  /// History KPI — number of days with a break that ran past the allowance in the period.
   ///
   /// In fr, this message translates to:
-  /// **'Retards'**
-  String get attendanceStatLate;
-
-  /// History KPI — total overtime in the period.
-  ///
-  /// In fr, this message translates to:
-  /// **'Heures supplémentaires'**
-  String get attendanceStatOvertime;
+  /// **'Pauses dépassées'**
+  String get attendanceStatLateBreaks;
 
   /// History table column — the work day.
   ///
@@ -5308,23 +5374,11 @@ abstract class AppLocalizations {
   /// **'Départ'**
   String get attendanceColumnDeparture;
 
-  /// History table column — number of breaks.
-  ///
-  /// In fr, this message translates to:
-  /// **'Pauses'**
-  String get attendanceColumnBreaks;
-
   /// History table column — worked duration.
   ///
   /// In fr, this message translates to:
   /// **'Durée travail'**
   String get attendanceColumnWorked;
-
-  /// History table column — overtime.
-  ///
-  /// In fr, this message translates to:
-  /// **'Heures sup'**
-  String get attendanceColumnOvertime;
 
   /// History table column — the day's status.
   ///
@@ -5332,17 +5386,35 @@ abstract class AppLocalizations {
   /// **'Statut'**
   String get attendanceColumnStatus;
 
+  /// Line under the date in the pointage drawers, saying what the rest of the drawer shows.
+  ///
+  /// In fr, this message translates to:
+  /// **'Les pointages de la journée, session par session, puis le temps travaillé, les pauses et les alertes éventuelles.'**
+  String get attendanceDayIntro;
+
+  /// Short line introducing the day's totals table in the pointage drawers.
+  ///
+  /// In fr, this message translates to:
+  /// **'Résumé de la journée : le temps travaillé et les pauses prises.'**
+  String get attendanceDaySummary;
+
+  /// Label of the day's worked time in the pointage drawers.
+  ///
+  /// In fr, this message translates to:
+  /// **'Durée totale travaillée'**
+  String get attendanceTotalWorked;
+
+  /// Label of the day's total break time, with the number of breaks.
+  ///
+  /// In fr, this message translates to:
+  /// **'Pauses ({count})'**
+  String attendancePausesCount(int count);
+
   /// History table column — late / break-overrun icons.
   ///
   /// In fr, this message translates to:
   /// **'Alertes'**
   String get attendanceColumnFlags;
-
-  /// History table column — the row detail button.
-  ///
-  /// In fr, this message translates to:
-  /// **'Détail'**
-  String get attendanceColumnActions;
 
   /// Tooltip on the row detail button.
   ///
@@ -5350,29 +5422,11 @@ abstract class AppLocalizations {
   /// **'Voir le détail'**
   String get attendanceViewDetail;
 
-  /// Heading of the attendance detail side panel.
-  ///
-  /// In fr, this message translates to:
-  /// **'Détail du pointage'**
-  String get attendanceDetailTitle;
-
-  /// Break count heading in the detail panel.
-  ///
-  /// In fr, this message translates to:
-  /// **'{count, plural, =0{Aucune pause} =1{1 pause} other{{count} pauses}}'**
-  String attendanceDetailBreaks(int count);
-
   /// History table column — arrival → departure, grouped.
   ///
   /// In fr, this message translates to:
   /// **'Horaires'**
   String get attendanceColumnSchedule;
-
-  /// Button in the filter bar that clears every filter.
-  ///
-  /// In fr, this message translates to:
-  /// **'Réinitialiser'**
-  String get attendanceFilterReset;
 
   /// Secondary line under the Horaires cell — break count and total.
   ///
@@ -5380,77 +5434,11 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{1 pause · {duration}} other{{count} pauses · {duration}}}'**
   String attendanceBreakSummary(int count, String duration);
 
-  /// Drawer row — total break time.
-  ///
-  /// In fr, this message translates to:
-  /// **'Total pauses'**
-  String get attendanceDetailBreakTotal;
-
-  /// Drawer section header for worked hours and overtime.
-  ///
-  /// In fr, this message translates to:
-  /// **'Temps de travail'**
-  String get attendanceDetailWorkTime;
-
-  /// Overtime value in the drawer, marked as informational — never an alert.
-  ///
-  /// In fr, this message translates to:
-  /// **'{duration} (informatif)'**
-  String attendanceDetailOvertimeInfo(String duration);
-
-  /// Drawer section header for the event timeline.
-  ///
-  /// In fr, this message translates to:
-  /// **'Chronologie'**
-  String get attendanceDetailTimeline;
-
-  /// Drawer summary row label — break count, paired with the total break duration as its value.
-  ///
-  /// In fr, this message translates to:
-  /// **'Pause({count})'**
-  String attendanceDetailPauseCount(int count);
-
-  /// Drawer summary row label — how late the arrival was, paired with the duration as its value.
-  ///
-  /// In fr, this message translates to:
-  /// **'Retard'**
-  String get attendanceDetailLate;
-
   /// Compact break-duration label on the mobile/tablet attendance card.
   ///
   /// In fr, this message translates to:
   /// **'Pause'**
   String get attendanceCardBreakLabel;
-
-  /// Compact overtime-duration label on the mobile/tablet attendance card.
-  ///
-  /// In fr, this message translates to:
-  /// **'Heures supplémentaires'**
-  String get attendanceCardOvertimeLabel;
-
-  /// Store settings section header for payroll coefficients.
-  ///
-  /// In fr, this message translates to:
-  /// **'Paie'**
-  String get storeSettingsPayroll;
-
-  /// Overtime multiplier field label (e.g. 1,25).
-  ///
-  /// In fr, this message translates to:
-  /// **'Majoration heures sup.'**
-  String get storeSettingsOvertimeMultiplier;
-
-  /// Working-days-per-month field label (turns a monthly salary into a daily rate).
-  ///
-  /// In fr, this message translates to:
-  /// **'Jours ouvrés / mois'**
-  String get storeSettingsWorkingDays;
-
-  /// Helper text under the payroll fields.
-  ///
-  /// In fr, this message translates to:
-  /// **'Un salarié fixe est payé son taux journalier (salaire ÷ jours ouvrés) par jour travaillé ; les heures supplémentaires sont payées à ce taux fois la majoration.'**
-  String get storeSettingsPayrollHelp;
 
   /// Heading of the payroll history page.
   ///
@@ -5463,30 +5451,6 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'L\'historique de paiement d\'un employé, jour par jour.'**
   String get payrollHistorySubtitle;
-
-  /// Label of the employee dropdown on the payroll history page.
-  ///
-  /// In fr, this message translates to:
-  /// **'Employé'**
-  String get payrollFilterEmployee;
-
-  /// Employee dropdown option that shows every active employee at once.
-  ///
-  /// In fr, this message translates to:
-  /// **'Tous les employés'**
-  String get payrollFilterAllEmployees;
-
-  /// Label of the period start-date field on the payroll history page.
-  ///
-  /// In fr, this message translates to:
-  /// **'Du'**
-  String get payrollFilterFrom;
-
-  /// Label of the period end-date field on the payroll history page.
-  ///
-  /// In fr, this message translates to:
-  /// **'Au'**
-  String get payrollFilterTo;
 
   /// Label of the payment-status filter.
   ///
@@ -5548,12 +5512,6 @@ abstract class AppLocalizations {
   /// **'Heures travaillées'**
   String get payrollStatWorkedHours;
 
-  /// Payroll KPI — total overtime hours in the window.
-  ///
-  /// In fr, this message translates to:
-  /// **'Heures supplémentaires'**
-  String get payrollStatOvertimeHours;
-
   /// Payroll table column — the employee (shown when every employee is listed).
   ///
   /// In fr, this message translates to:
@@ -5583,12 +5541,6 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Durée travaillée'**
   String get payrollColumnWorked;
-
-  /// Payroll table column — overtime hours.
-  ///
-  /// In fr, this message translates to:
-  /// **'Heures sup'**
-  String get payrollColumnOvertime;
 
   /// Payroll table column — the amount for the day.
   ///
@@ -5644,29 +5596,11 @@ abstract class AppLocalizations {
   /// **'Horaires'**
   String get payrollColumnHours;
 
-  /// Payroll table column — the row detail button.
-  ///
-  /// In fr, this message translates to:
-  /// **'Détail'**
-  String get payrollColumnDetail;
-
   /// Secondary line under the Horaires cell — break count and total.
   ///
   /// In fr, this message translates to:
   /// **'{count, plural, =1{1 pause · {duration}} other{{count} pauses · {duration}}}'**
   String payrollBreakSummary(int count, String duration);
-
-  /// Button in the payroll filter bar that clears every filter.
-  ///
-  /// In fr, this message translates to:
-  /// **'Réinitialiser'**
-  String get payrollFilterReset;
-
-  /// Tooltip on the payroll row detail button.
-  ///
-  /// In fr, this message translates to:
-  /// **'Voir le détail'**
-  String get payrollViewDetail;
 
   /// Heading of the payroll detail side panel.
   ///
@@ -5680,7 +5614,7 @@ abstract class AppLocalizations {
   /// **'Total pauses'**
   String get payrollDetailBreakTotal;
 
-  /// Payroll drawer section header for worked hours and overtime.
+  /// Payroll drawer section header for worked hours.
   ///
   /// In fr, this message translates to:
   /// **'Temps de travail'**
@@ -5692,29 +5626,11 @@ abstract class AppLocalizations {
   /// **'Temps travaillé'**
   String get payrollDetailWorked;
 
-  /// Overtime value in the payroll drawer, marked informational — never an alert.
-  ///
-  /// In fr, this message translates to:
-  /// **'{duration} (informatif)'**
-  String payrollDetailOvertimeInfo(String duration);
-
-  /// Payroll drawer row — the employee's effective hourly rate.
+  /// Payroll drawer row — the employee's hourly rate.
   ///
   /// In fr, this message translates to:
   /// **'Taux horaire'**
   String get payrollDetailRate;
-
-  /// Payroll drawer row — worked hours at the normal rate, before any overtime premium.
-  ///
-  /// In fr, this message translates to:
-  /// **'Montant de base'**
-  String get payrollDetailBase;
-
-  /// Payroll drawer row — the extra paid on the overtime hours, above the base.
-  ///
-  /// In fr, this message translates to:
-  /// **'Prime heures sup.'**
-  String get payrollDetailPremium;
 
   /// Payroll drawer row — the day's total amount.
   ///
@@ -5737,37 +5653,37 @@ abstract class AppLocalizations {
   /// Login form: the national ID field, which is the login identifier (Phase 6).
   ///
   /// In fr, this message translates to:
-  /// **'Numéro CIN'**
-  String get loginCin;
+  /// **'Numéro PIN'**
+  String get loginPin;
 
-  /// Placeholder showing the shape of a CIN on the login form.
+  /// Placeholder showing the shape of a PIN on the login form.
   ///
   /// In fr, this message translates to:
   /// **'AB.12.34-567.89'**
-  String get loginCinHint;
+  String get loginPinHint;
 
-  /// Login form: the 4-digit PIN field.
+  /// Login form: the 4-digit password field.
   ///
   /// In fr, this message translates to:
-  /// **'Code PIN'**
-  String get loginPin;
+  /// **'Mot de passe'**
+  String get loginPassword;
 
-  /// Placeholder on the login PIN field.
+  /// Placeholder on the login password field.
   ///
   /// In fr, this message translates to:
   /// **'4 chiffres'**
-  String get loginPinHint;
+  String get loginPasswordHint;
 
   /// Link to the reset screen from the login form. Narrow no-break space before the question mark.
   ///
   /// In fr, this message translates to:
-  /// **'Code oublié ?'**
-  String get loginForgotPin;
+  /// **'Mot de passe oublié ?'**
+  String get loginForgotPassword;
 
-  /// Login error shown for an unknown CIN or a wrong PIN — deliberately not saying which.
+  /// Login error shown for an unknown PIN or a wrong password — deliberately not saying which.
   ///
   /// In fr, this message translates to:
-  /// **'CIN ou code PIN incorrect.'**
+  /// **'PIN ou mot de passe incorrect.'**
   String get loginErrorBadCredentials;
 
   /// Login error when the credential is locked out after too many failed attempts.
@@ -5782,41 +5698,41 @@ abstract class AppLocalizations {
   /// **'Ce compte n\'a pas accès à l\'application. Le pointage se fait au tableau de bord partagé.'**
   String get loginErrorNoAccess;
 
-  /// Section heading on the employee form for the login PIN.
+  /// Section heading on the employee form for the login password.
   ///
   /// In fr, this message translates to:
   /// **'Identifiants'**
   String get employeeFormCredentials;
 
-  /// Employee form: the 4-digit login PIN field.
+  /// Employee form: the 4-digit login password field.
   ///
   /// In fr, this message translates to:
-  /// **'Code PIN'**
-  String get employeeFormPin;
+  /// **'Mot de passe'**
+  String get employeeFormPassword;
 
-  /// Employee form: re-enter the PIN to catch a typo.
+  /// Employee form: re-enter the password to catch a typo.
   ///
   /// In fr, this message translates to:
-  /// **'Confirmer le code'**
-  String get employeeFormPinConfirm;
+  /// **'Confirmer le mot de passe'**
+  String get employeeFormPasswordConfirm;
 
-  /// Helper under the PIN fields when creating an employee.
+  /// Helper under the password fields when creating an employee.
   ///
   /// In fr, this message translates to:
-  /// **'4 chiffres. La personne se connecte avec son numéro CIN et ce code.'**
-  String get employeeFormPinHelp;
+  /// **'4 chiffres. La personne se connecte avec son numéro PIN et ce mot de passe.'**
+  String get employeeFormPasswordHelp;
 
-  /// Helper under the PIN fields when editing an employee.
+  /// Helper under the password fields when editing an employee.
   ///
   /// In fr, this message translates to:
-  /// **'Laisser vide pour conserver le code actuel.'**
-  String get employeeFormPinEditHelp;
+  /// **'Laisser vide pour conserver le mot de passe actuel.'**
+  String get employeeFormPasswordEditHelp;
 
-  /// Error under the confirm-PIN field when the two entries differ.
+  /// Error under the confirm-password field when the two entries differ.
   ///
   /// In fr, this message translates to:
-  /// **'Les deux codes ne correspondent pas.'**
-  String get employeeFormPinMismatch;
+  /// **'Les deux mots de passe ne correspondent pas.'**
+  String get employeeFormPasswordMismatch;
 
   /// Shown to a manager on the store settings page — visible but read-only (Phase 6).
   ///
@@ -6377,34 +6293,16 @@ abstract class AppLocalizations {
   /// **'Document généré le {date} — ne constitue pas une facture.'**
   String receiptDocFooter(String date);
 
-  /// Title of the dialog shown before saving pointage / payroll settings while unpaid finished days exist.
-  ///
-  /// In fr, this message translates to:
-  /// **'Des journées ne sont pas encore payées'**
-  String get storeSettingsRetroWarningTitle;
-
-  /// Body of the dialog warning that changing pointage / payroll settings retroactively affects unpaid days.
-  ///
-  /// In fr, this message translates to:
-  /// **'{days, plural, =1{1 journée terminée n\'\'a pas encore été payée} other{{days} journées terminées n\'\'ont pas encore été payées}}. Changer les horaires ou les coefficients modifiera le retard, les heures supplémentaires et le montant estimé de ces journées. Payez-les d\'\'abord pour figer leurs chiffres.'**
-  String storeSettingsRetroWarningBody(int days);
-
-  /// Confirm button on the retroactive-settings warning dialog.
-  ///
-  /// In fr, this message translates to:
-  /// **'Changer quand même'**
-  String get storeSettingsRetroWarningConfirm;
-
-  /// Title of the dialog that asks for a CIN before an action goes through.
+  /// Title of the dialog that asks for a PIN before an action goes through.
   ///
   /// In fr, this message translates to:
   /// **'Confirmation d\'identité'**
   String get identityPromptTitle;
 
-  /// Label of the CIN input in the identity confirmation dialog.
+  /// Label of the PIN input in the identity confirmation dialog.
   ///
   /// In fr, this message translates to:
-  /// **'Numéro CIN'**
+  /// **'Numéro PIN'**
   String get identityPromptField;
 
   /// Confirm button of the identity dialog.
@@ -6413,34 +6311,22 @@ abstract class AppLocalizations {
   /// **'Valider'**
   String get identityPromptValidate;
 
-  /// Shown in the identity dialog after a wrong CIN, with the number of attempts left before the lockout.
+  /// Shown in the identity dialog after a wrong PIN. Attempts are unlimited.
   ///
   /// In fr, this message translates to:
-  /// **'Numéro incorrect. {count, plural, =0{Verrouillé.} =1{1 tentative restante.} other{{count} tentatives restantes.}}'**
-  String identityPromptWrong(int count);
+  /// **'Numéro incorrect. Réessayez.'**
+  String get identityPromptWrong;
 
-  /// Shown in the identity dialog while the credential is locked, with a mm:ss countdown.
+  /// Subtitle of the identity dialog on the pointage board — the action being confirmed and whose PIN is required.
   ///
   /// In fr, this message translates to:
-  /// **'Trop de tentatives. Réessayez dans {time}.'**
-  String identityPromptLocked(String time);
-
-  /// Shown in the identity dialog when the employee has no credential row.
-  ///
-  /// In fr, this message translates to:
-  /// **'Aucun identifiant n\'est configuré pour cette personne.'**
-  String get identityPromptNoCredential;
-
-  /// Subtitle of the identity dialog on the pointage board — the action being confirmed and whose CIN is required.
-  ///
-  /// In fr, this message translates to:
-  /// **'{action} · saisissez le numéro CIN de {name}'**
+  /// **'{action} · saisissez le numéro PIN de {name}'**
   String identityPromptPointageSubtitle(String action, String name);
 
-  /// Subtitle of the identity dialog before settling an employee's payroll days — the signed-in user confirms with their own CIN.
+  /// Subtitle of the identity dialog before settling an employee's payroll days — the signed-in user confirms with their own PIN.
   ///
   /// In fr, this message translates to:
-  /// **'Saisissez votre numéro CIN pour valider le paiement de {name}'**
+  /// **'Saisissez votre numéro PIN pour valider le paiement de {name}'**
   String identityPromptPayrollSubtitle(String name);
 }
 

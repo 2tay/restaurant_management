@@ -22,8 +22,8 @@ import 'search_field.dart';
 ///
 /// The tablet stays signed in as the manager all day; the people moving stock
 /// are the cooks. So every save asks who it is: tap your card, then confirm
-/// with your CIN — the same dialog, and the same three-strikes lockout, as the
-/// pointage board, so there is one habit to learn, not two. The signed-in
+/// with your PIN — the same dialog as the pointage board, so there is one
+/// habit to learn, not two. The signed-in
 /// manager is on the grid too, marked "Moi", and confirms the same way.
 ///
 /// Asked at the save rather than when the form opens, so the person who
@@ -90,8 +90,8 @@ class _ActorPickerState extends ConsumerState<_ActorPicker> {
         widget.actionLabel,
         employeeDisplayName(employee),
       ),
-      verify: (cin) =>
-          ref.read(credentialRepositoryProvider).verifyCin(cin, employee.id),
+      verify: (pin) =>
+          ref.read(credentialRepositoryProvider).verifyPin(pin, employee.id),
     );
     if (ok && mounted) Navigator.of(context).pop(employee);
   }

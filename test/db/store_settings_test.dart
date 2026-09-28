@@ -35,13 +35,9 @@ void main() {
       final after = await stores.updateStoreSettings(
         StoreIds.sablon,
         maxBreakMinutes: 90,
-        overtimeMultiplier: 2,
       );
 
       expect(after.maxBreakMinutes, 90);
-      expect(after.overtimeMultiplier, 2);
-      expect(after.openMinutes, before.openMinutes);
-      expect(after.workingDaysPerMonth, before.workingDaysPerMonth);
       expect(after.stalePartialOrderDays, before.stalePartialOrderDays);
 
       // Reads back the same on a fresh query.
@@ -56,18 +52,10 @@ void main() {
 
       final after = await stores.updateStoreSettings(
         StoreIds.sablon,
-        openMinutes: -1,
-        closeMinutes: 1440,
         maxBreakMinutes: 0,
-        overtimeMultiplier: 0.5,
-        workingDaysPerMonth: -3,
       );
 
-      expect(after.openMinutes, before.openMinutes);
-      expect(after.closeMinutes, before.closeMinutes);
       expect(after.maxBreakMinutes, before.maxBreakMinutes);
-      expect(after.overtimeMultiplier, before.overtimeMultiplier);
-      expect(after.workingDaysPerMonth, before.workingDaysPerMonth);
     });
 
     test('another establishment is unaffected', () async {

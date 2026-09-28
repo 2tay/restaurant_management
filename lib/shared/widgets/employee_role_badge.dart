@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_spacing.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/models.dart';
 import 'status_pill.dart';
@@ -22,12 +24,18 @@ class EmployeeRoleBadge extends StatelessWidget {
 
     return LabelChip(
       label: employeeRoleLabel(l10n, role),
+      icon: switch (role) {
+        EmployeeRole.owner => LucideIcons.crown,
+        EmployeeRole.manager => LucideIcons.shieldCheck,
+        EmployeeRole.staff => LucideIcons.user,
+      },
       background: isOwner
           ? AppColors.primaryContainer
           : AppColors.surfaceVariant,
       foreground: isOwner
           ? AppColors.onPrimaryContainer
           : AppColors.textSecondary,
+      borderRadius: AppRadius.smAll,
     );
   }
 }
@@ -47,11 +55,4 @@ String employeeRoleDescription(AppLocalizations l10n, EmployeeRole role) =>
       EmployeeRole.owner => l10n.employeeRoleOwnerBody,
       EmployeeRole.manager => l10n.employeeRoleManagerBody,
       EmployeeRole.staff => l10n.employeeRoleStaffBody,
-    };
-
-/// Shared contract-type naming.
-String contractTypeLabel(AppLocalizations l10n, ContractType type) =>
-    switch (type) {
-      ContractType.fixed => l10n.contractTypeFixed,
-      ContractType.extra => l10n.contractTypeExtra,
     };

@@ -48,7 +48,7 @@ class StockMovements extends Table {
   TextColumn get userName => text()();
 
   /// The employee who recorded it, confirmed at the kitchen tablet by their
-  /// CIN — null on movements from before v6, and on those the app files on
+  /// PIN — null on movements from before v6, and on those the app files on
   /// its own behalf (a receipt against a commande, an opening balance).
   ///
   /// **No foreign key**, for the same reason as [supplierId]: an employee

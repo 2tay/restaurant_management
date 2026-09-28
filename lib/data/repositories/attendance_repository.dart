@@ -2,20 +2,13 @@ import 'package:drift/drift.dart';
 
 import '../../core/utils/attendance_status.dart';
 import '../../models/attendance.dart';
-import '../../models/store_settings.dart';
 import '../database/app_database.dart';
 import '../mappers/mappers.dart';
 import 'new_id.dart';
 import 'store_repository.dart';
 
 /// The KPI figures above the Historique de pointage table.
-typedef AttendanceStats = ({
-  int days,
-  Duration worked,
-  int lateArrivals,
-  Duration overtime,
-  int lateBreaks,
-});
+typedef AttendanceStats = ({int days, Duration worked, int lateBreaks});
 
 /// One page of the store's attendance log.
 typedef AttendancePage = ({
@@ -90,8 +83,7 @@ class AttendanceRepository {
   }
 
   /// One employee's attendance, **most recent day first** — `date` descending,
-  /// then `clockInAt` descending so several rows on one day keep a stable
-  /// order.
+  /// then `id` descending for a stable order between rows on the same date.
   Stream<List<Attendance>> watchForEmployee(String employeeId) =>
       _forEmployeeQuery(employeeId).watch().asyncMap(_assemble);
 
@@ -177,12 +169,11 @@ class AttendanceRepository {
 
   /// The KPI figures above the Historique table — over the store log matching
   /// [from]–[to] and [employeeId], independent of the status / page filters
-  /// below. Late arrivals and overtime are measured against each employee's
-  /// resolved schedule.
+  /// below.
   ///
-  /// SQL fetches the rows and pauses in the range; the durations are folded in
-  /// Dart with the **unchanged** `attendance_status.dart` functions. Not pure
-  /// SQL — that arithmetic stays one definition.
+  /// SQL fetches the rows, sessions and pauses in the range; the durations are
+  /// folded in Dart with the **unchanged** `attendance_status.dart` functions.
+  /// Not pure SQL — that arithmetic stays one definition.
   Future<AttendanceStats> stats(
     String storeId, {
     DateTime? from,
@@ -190,7 +181,6 @@ class AttendanceRepository {
     String? employeeId,
   }) async {
     final settings = await StoreRepository(_db).settings(storeId);
-    final schedules = await _schedulesFor(storeId, settings);
 
     final rows = await _logQuery(
       storeId,
@@ -201,42 +191,31 @@ class AttendanceRepository {
     final entries = await _assemble(rows);
 
     var worked = Duration.zero;
-    var overtime = Duration.zero;
-    var lateArrivals = 0;
     var lateBreaks = 0;
 
     for (final entry in entries) {
-      final schedule = schedules[entry.employeeId];
-      // Each day is judged against the context frozen on its row; the live
-      // resolved schedule is only the fallback for a pre-v3 row.
-      final ctx = evaluationContext(
+      // Judged against the allowance frozen on its row; the live store
+      // setting is only the fallback for a pre-v3 row.
+      final maxBreak = resolvedMaxBreakMinutes(
         entry,
-        fallbackStartMinutes: schedule?.startMinutes ?? settings.openMinutes,
-        fallbackEndMinutes: schedule?.endMinutes ?? settings.closeMinutes,
-        fallbackMaxBreakMinutes: settings.maxBreakMinutes,
+        fallback: settings.maxBreakMinutes,
       );
       worked += workedDuration(entry) ?? Duration.zero;
-      overtime += overtimeBy(entry, ctx.endMinutes) ?? Duration.zero;
-      if (isLate(entry, ctx.startMinutes)) lateArrivals++;
-      if (hasLateBreak(entry, ctx.maxBreakMinutes)) lateBreaks++;
+      if (hasLateBreak(entry, maxBreak)) lateBreaks++;
     }
 
-    return (
-      days: entries.length,
-      worked: worked,
-      lateArrivals: lateArrivals,
-      overtime: overtime,
-      lateBreaks: lateBreaks,
-    );
+    return (days: entries.length, worked: worked, lateBreaks: lateBreaks);
   }
 
   // ---------------------------------------------------------------------------
   // Writes
   // ---------------------------------------------------------------------------
 
-  /// `Pointer`. Creates the day's `working` row. Refuses (returns null) if one
-  /// already exists for this employee today — one row per employee per calendar
-  /// day, which the `(employeeId, date)` unique index also enforces.
+  /// `Pointer`. Opens a new session. When this is the day's first cycle it
+  /// also creates the `attendances` row; when the previous cycle already
+  /// finished (`done`) it opens another one — a day can hold several Pointer →
+  /// Fin de journée cycles. Refuses (returns null) only while a cycle is
+  /// already open (`working` / `onBreak`) or the day is locked by payroll.
   Future<Attendance?> clockIn(
     String employeeId,
     String storeId, {
@@ -250,48 +229,62 @@ class AttendanceRepository {
             (a) => a.employeeId.equals(employeeId) & a.date.equals(day),
           ))
           .getSingleOrNull();
-      if (existing != null) return null;
 
-      // Freeze the evaluation context now — the schedule and break allowance
-      // this day will be judged against — so a later change to the store hours
-      // or this employee's schedule never rewrites its retard / heures supp. /
-      // pause dépassée.
-      final settings = await StoreRepository(_db).settings(storeId);
-      final employeeRow = await (_db.select(
-        _db.employees,
-      )..where((e) => e.id.equals(employeeId))).getSingleOrNull();
-      final schedule = employeeRow == null
-          ? (
-              startMinutes: settings.openMinutes,
-              endMinutes: settings.closeMinutes,
-            )
-          : resolvedSchedule(
-              employeeFromRow(employeeRow),
-              storeOpenMinutes: settings.openMinutes,
-              storeCloseMinutes: settings.closeMinutes,
+      if (existing == null) {
+        // First cycle of the day — freeze the break allowance this day will
+        // be judged against, so a later change to the store's setting never
+        // rewrites its pause dépassée.
+        final settings = await StoreRepository(_db).settings(storeId);
+
+        final attendanceId = newId();
+        final entry = Attendance(
+          id: attendanceId,
+          storeId: storeId,
+          employeeId: employeeId,
+          date: day,
+          status: AttendanceStatus.working,
+          sessions: const [],
+          paymentStatus: PaymentStatus.unpaid,
+          maxBreakMinutes: settings.maxBreakMinutes,
+        );
+        await _db.into(_db.attendances).insert(attendanceToRow(entry));
+        await _db
+            .into(_db.attendanceSessions)
+            .insert(
+              sessionToRow(
+                AttendanceSession(clockInAt: at),
+                attendanceId: attendanceId,
+                position: 0,
+                id: newId(),
+              ),
             );
+        return attendance(attendanceId);
+      }
 
-      final entry = Attendance(
-        id: newId(),
-        storeId: storeId,
-        employeeId: employeeId,
-        date: day,
-        status: AttendanceStatus.working,
-        clockInAt: at,
-        pauses: const [],
-        paymentStatus: PaymentStatus.unpaid,
-        scheduledStartMinutes: schedule.startMinutes,
-        scheduledEndMinutes: schedule.endMinutes,
-        maxBreakMinutes: settings.maxBreakMinutes,
-      );
-      await _db.into(_db.attendances).insert(attendanceToRow(entry));
-      return entry;
+      if (existing.payrollPeriodId != null) return null;
+      if (existing.status != AttendanceStatus.done) return null;
+
+      final count = await _sessionCount(existing.id);
+      await _db
+          .into(_db.attendanceSessions)
+          .insert(
+            sessionToRow(
+              AttendanceSession(clockInAt: at),
+              attendanceId: existing.id,
+              position: count,
+              id: newId(),
+            ),
+          );
+      await (_db.update(_db.attendances)..where((a) => a.id.equals(existing.id)))
+          .write(const AttendancesCompanion(status: Value(AttendanceStatus.working)));
+      return attendance(existing.id);
     });
   }
 
-  /// `Pause`. Refuses unless the day is `working`. Appends a pause row at
-  /// `position = count` and flips the day to `onBreak`. There is no cap — the
-  /// button offers `Pause` again after every `Reprendre`.
+  /// `Pause`. Refuses unless the day is `working`. Appends a pause row on the
+  /// current (last) session at `position = count` and flips the day to
+  /// `onBreak`. There is no cap — the button offers `Pause` again after every
+  /// `Reprendre`.
   ///
   /// The count-then-insert runs inside the transaction, so two Pause taps
   /// racing each other resolve to exactly one appended break: drift serialises
@@ -299,14 +292,16 @@ class AttendanceRepository {
   Future<Attendance?> startPause(String attendanceId, {DateTime? now}) {
     return _mutate(attendanceId, (row) async {
       if (row.status != AttendanceStatus.working) return null;
+      final session = await _lastSession(attendanceId);
+      if (session == null) return null;
 
-      final count = await _pauseCount(attendanceId);
+      final count = await _pauseCount(session.id);
       await _db
           .into(_db.attendancePauses)
           .insert(
             pauseToRow(
               AttendancePause(startAt: now ?? _clock()),
-              attendanceId: attendanceId,
+              sessionId: session.id,
               position: count,
               id: newId(),
             ),
@@ -315,16 +310,19 @@ class AttendanceRepository {
     });
   }
 
-  /// `Reprendre`. Refuses unless the day is `onBreak` with an open break.
-  /// Closes that break and flips the day back to `working`.
+  /// `Reprendre`. Refuses unless the day is `onBreak` with an open break on
+  /// its current (last) session. Closes that break and flips the day back to
+  /// `working`.
   Future<Attendance?> endPause(String attendanceId, {DateTime? now}) {
     return _mutate(attendanceId, (row) async {
       if (row.status != AttendanceStatus.onBreak) return null;
+      final session = await _lastSession(attendanceId);
+      if (session == null) return null;
 
       final open =
           await (_db.select(_db.attendancePauses)
                 ..where(
-                  (p) => p.attendanceId.equals(attendanceId) & p.endAt.isNull(),
+                  (p) => p.sessionId.equals(session.id) & p.endAt.isNull(),
                 )
                 ..orderBy([(p) => OrderingTerm(expression: p.position)]))
               .get();
@@ -338,13 +336,17 @@ class AttendanceRepository {
   }
 
   /// `Fin de journée`. Refuses unless the day is `working` — in particular it
-  /// refuses while `onBreak`, so nobody clocks out mid-break.
+  /// refuses while `onBreak`, so nobody clocks out mid-break. Closes the
+  /// current (last) session; `Pointer` can open a new one afterwards.
   Future<Attendance?> clockOut(String attendanceId, {DateTime? now}) {
     return _mutate(attendanceId, (row) async {
       if (row.status != AttendanceStatus.working) return null;
-      await (_db.update(_db.attendances)
-            ..where((a) => a.id.equals(attendanceId)))
-          .write(AttendancesCompanion(clockOutAt: Value(now ?? _clock())));
+      final session = await _lastSession(attendanceId);
+      if (session == null) return null;
+
+      await (_db.update(_db.attendanceSessions)
+            ..where((s) => s.id.equals(session.id)))
+          .write(AttendanceSessionsCompanion(clockOutAt: Value(now ?? _clock())));
       return AttendanceStatus.done;
     });
   }
@@ -404,34 +406,34 @@ class AttendanceRepository {
     });
   }
 
-  Future<int> _pauseCount(String attendanceId) async {
+  Future<int> _pauseCount(String sessionId) async {
     final count = _db.attendancePauses.id.count();
     final query = _db.selectOnly(_db.attendancePauses)
       ..addColumns([count])
-      ..where(_db.attendancePauses.attendanceId.equals(attendanceId));
+      ..where(_db.attendancePauses.sessionId.equals(sessionId));
     return (await query.getSingle()).read(count) ?? 0;
   }
 
-  // ---------------------------------------------------------------------------
-
-  /// Every active-or-archived employee's resolved schedule, keyed by id — the
-  /// stats and payroll folds look one up per row rather than a query per row.
-  Future<Map<String, ({int startMinutes, int endMinutes})>> _schedulesFor(
-    String storeId,
-    StoreSettings settings,
-  ) async {
-    final employees = await (_db.select(
-      _db.employees,
-    )..where((e) => e.storeId.equals(storeId))).get();
-    return {
-      for (final row in employees)
-        row.id: resolvedSchedule(
-          employeeFromRow(row),
-          storeOpenMinutes: settings.openMinutes,
-          storeCloseMinutes: settings.closeMinutes,
-        ),
-    };
+  Future<int> _sessionCount(String attendanceId) async {
+    final count = _db.attendanceSessions.id.count();
+    final query = _db.selectOnly(_db.attendanceSessions)
+      ..addColumns([count])
+      ..where(_db.attendanceSessions.attendanceId.equals(attendanceId));
+    return (await query.getSingle()).read(count) ?? 0;
   }
+
+  /// The day's most recently opened cycle — the one every session-scoped
+  /// mutation (`Pause`, `Reprendre`, `Fin de journée`) acts on.
+  Future<AttendanceSessionRow?> _lastSession(String attendanceId) =>
+      (_db.select(_db.attendanceSessions)
+            ..where((s) => s.attendanceId.equals(attendanceId))
+            ..orderBy([
+              (s) => OrderingTerm(expression: s.position, mode: OrderingMode.desc),
+            ])
+            ..limit(1))
+          .getSingleOrNull();
+
+  // ---------------------------------------------------------------------------
 
   SimpleSelectStatement<$AttendancesTable, AttendanceRow> _todayQuery(
     String employeeId,
@@ -449,8 +451,7 @@ class AttendanceRepository {
         ..where((a) => a.employeeId.equals(employeeId))
         ..orderBy([
           (a) => OrderingTerm(expression: a.date, mode: OrderingMode.desc),
-          (a) =>
-              OrderingTerm(expression: a.clockInAt, mode: OrderingMode.desc),
+          (a) => OrderingTerm(expression: a.id, mode: OrderingMode.desc),
         ]);
 
   SimpleSelectStatement<$AttendancesTable, AttendanceRow> _logQuery(
@@ -464,7 +465,7 @@ class AttendanceRepository {
       ..where((a) => a.storeId.equals(storeId))
       ..orderBy([
         (a) => OrderingTerm(expression: a.date, mode: OrderingMode.desc),
-        (a) => OrderingTerm(expression: a.clockInAt, mode: OrderingMode.desc),
+        (a) => OrderingTerm(expression: a.id, mode: OrderingMode.desc),
       ]);
 
     if (from != null) {
@@ -485,24 +486,40 @@ class AttendanceRepository {
   }
 
   /// Rebuilds `Attendance` objects for a set of rows, in the same order,
-  /// attaching each one's pauses. One extra query for the pauses, not one per
-  /// row.
+  /// attaching each one's sessions and each session's pauses. Two extra
+  /// queries total, not one per row.
   Future<List<Attendance>> _assemble(List<AttendanceRow> rows) async {
     if (rows.isEmpty) return const <Attendance>[];
 
     final ids = rows.map((r) => r.id).toList();
-    final pauseRows = await (_db.select(
-      _db.attendancePauses,
-    )..where((p) => p.attendanceId.isIn(ids))).get();
+    final sessionRows =
+        await (_db.select(_db.attendanceSessions)
+              ..where((s) => s.attendanceId.isIn(ids))
+              ..orderBy([(s) => OrderingTerm(expression: s.position)]))
+            .get();
 
-    final byAttendance = <String, List<AttendancePauseRow>>{};
+    final sessionIds = sessionRows.map((s) => s.id).toList();
+    final pauseRows = sessionIds.isEmpty
+        ? const <AttendancePauseRow>[]
+        : await (_db.select(
+            _db.attendancePauses,
+          )..where((p) => p.sessionId.isIn(sessionIds))).get();
+
+    final pausesBySession = <String, List<AttendancePauseRow>>{};
     for (final pause in pauseRows) {
-      (byAttendance[pause.attendanceId] ??= <AttendancePauseRow>[]).add(pause);
+      (pausesBySession[pause.sessionId] ??= <AttendancePauseRow>[]).add(pause);
+    }
+
+    final sessionsByAttendance = <String, List<AttendanceSession>>{};
+    for (final row in sessionRows) {
+      (sessionsByAttendance[row.attendanceId] ??= <AttendanceSession>[]).add(
+        attendanceSessionFromRow(row, pausesBySession[row.id] ?? const []),
+      );
     }
 
     return [
       for (final row in rows)
-        attendanceFromRows(row, byAttendance[row.id] ?? const []),
+        attendanceFromRows(row, sessionsByAttendance[row.id] ?? const []),
     ];
   }
 

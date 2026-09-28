@@ -12,7 +12,7 @@ import 'app_card.dart';
 import 'attendance_status_badge.dart';
 
 /// One day's attendance line: date, the timestamps as a readable strip,
-/// worked duration, the status badge and a late marker.
+/// worked duration, the status badge and a break-overrun marker.
 ///
 /// Shared by the employee detail page (one person, [employeeName] omitted)
 /// and Phase 4's Historique table ([employeeName] set, [asCard] on so each
@@ -21,7 +21,6 @@ import 'attendance_status_badge.dart';
 class AttendanceRow extends StatelessWidget {
   const AttendanceRow({
     required this.attendance,
-    required this.scheduledStartMinutes,
     required this.maxBreakMinutes,
     this.employeeName,
     this.asCard = false,
@@ -29,10 +28,6 @@ class AttendanceRow extends StatelessWidget {
   });
 
   final Attendance attendance;
-
-  /// The resolved start of day this row is measured against, for the late
-  /// marker. See `resolvedSchedule`.
-  final int scheduledStartMinutes;
 
   /// The store's break allowance, for the "pause dépassée" marker.
   final int maxBreakMinutes;
@@ -45,24 +40,13 @@ class AttendanceRow extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final worked = workedDuration(attendance);
-    final late = isLate(attendance, scheduledStartMinutes);
     final lateBreak = hasLateBreak(attendance, maxBreakMinutes);
     final name = employeeName;
 
     final markers = Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (late)
-          Tooltip(
-            message: l10n.attendanceLate,
-            child: Icon(
-              LucideIcons.triangleAlert,
-              size: AppSizing.iconSm,
-              color: AppColors.lowStock.foreground,
-            ),
-          ),
-        if (lateBreak) ...[
-          if (late) const SizedBox(width: AppSpacing.xs),
+        if (lateBreak)
           Tooltip(
             message: l10n.attendanceBreakOverrun,
             child: Icon(
@@ -71,7 +55,6 @@ class AttendanceRow extends StatelessWidget {
               color: AppColors.lowStock.foreground,
             ),
           ),
-        ],
       ],
     );
 
@@ -162,15 +145,15 @@ class AttendanceRow extends StatelessWidget {
 
   String _timesLine() {
     final parts = <String>[];
-    if (attendance.clockInAt != null) {
-      parts.add(Formatters.time(attendance.clockInAt!));
-    }
-    for (final pause in attendance.pauses) {
-      final end = pause.endAt == null ? '…' : Formatters.time(pause.endAt!);
-      parts.add('${Formatters.time(pause.startAt)}–$end');
-    }
-    if (attendance.clockOutAt != null) {
-      parts.add(Formatters.time(attendance.clockOutAt!));
+    for (final session in attendance.sessions) {
+      parts.add(Formatters.time(session.clockInAt));
+      for (final pause in session.pauses) {
+        final end = pause.endAt == null ? '…' : Formatters.time(pause.endAt!);
+        parts.add('${Formatters.time(pause.startAt)}–$end');
+      }
+      if (session.clockOutAt != null) {
+        parts.add(Formatters.time(session.clockOutAt!));
+      }
     }
     return parts.isEmpty ? '—' : parts.join(' · ');
   }

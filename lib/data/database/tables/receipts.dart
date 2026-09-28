@@ -32,7 +32,7 @@ class GoodsReceipts extends Table {
   TextColumn get receivedByName => text()();
 
   /// The employee who checked the delivery in, confirmed at the tablet by
-  /// their CIN. Null on receipts from before v7. No foreign key, for the same
+  /// their PIN. Null on receipts from before v7. No foreign key, for the same
   /// reason as `stock_movements.employeeId`: somebody leaving does not unmake
   /// the delivery they received, and [receivedByName] keeps the name.
   TextColumn get receivedByEmployeeId => text().nullable()();

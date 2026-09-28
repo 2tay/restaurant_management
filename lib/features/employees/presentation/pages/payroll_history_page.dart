@@ -18,8 +18,6 @@ import '../../../../l10n/app_localizations.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 
-const int _pageSize = 25;
-
 /// How far back the range picker opens on first load.
 const int _defaultRangeDays = 90;
 
@@ -39,9 +37,17 @@ DateTime _dayOnly(DateTime value) =>
 /// A range start can never go before an employee's hire date — the picker is
 /// bounded there and `PayrollRepository.days` enforces it again per employee.
 class PayrollHistoryPage extends ConsumerStatefulWidget {
-  const PayrollHistoryPage({required this.storeId, super.key});
+  const PayrollHistoryPage({
+    required this.storeId,
+    this.initialEmployeeId,
+    super.key,
+  });
 
   final String storeId;
+
+  /// Opens filtered to this employee — "Historique" from the staff roster.
+  /// Ignored when the id is not on the list.
+  final String? initialEmployeeId;
 
   @override
   ConsumerState<PayrollHistoryPage> createState() => _PayrollHistoryPageState();
@@ -55,12 +61,17 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
   late DateTime _to;
   PaymentStatus? _statusFilter;
   int _page = 0;
+  int _pageSize = Paginator.defaultPageSizes.first;
 
   /// The roster, cached from the last build so the synchronous filter handlers
   /// can resolve a floor without a query.
   List<Employee> _employees = const [];
 
   String? get _employeeId => _selectedEmployee?.id;
+
+  /// [widget.initialEmployeeId], until the roster it resolves against has
+  /// loaded once.
+  late String? _pendingEmployeeId = widget.initialEmployeeId;
 
   @override
   void initState() {
@@ -123,6 +134,21 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
               (a, b) =>
                   employeeDisplayName(a).compareTo(employeeDisplayName(b)),
             );
+          final pending = _pendingEmployeeId;
+          if (pending != null) {
+            // Once, during this build — the same narrowing a pick in the
+            // selector does (range floored at the hire date), minus setState.
+            _pendingEmployeeId = null;
+            final employee = _employees
+                .where((e) => e.id == pending)
+                .firstOrNull;
+            if (employee != null) {
+              _selectedEmployee = employee;
+              final hire = _dayOnly(employee.hireDate);
+              if (_from.isBefore(hire)) _from = hire;
+              if (_to.isBefore(_from)) _to = _dayOnly(clock.now());
+            }
+          }
           return _buildBody(l10n, _employees, base.settings);
         },
       ),
@@ -141,6 +167,7 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
       to: _to,
       status: _statusFilter,
       page: _page,
+      pageSize: _pageSize,
     );
     final daysAsync = ref.watch(payrollDaysProvider(key));
 
@@ -177,8 +204,8 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
           to: _to,
           status: _statusFilter,
           floor: _pickerFloor(employees),
-          canReset: _hasActiveFilters,
-          onReset: _clearFilters,
+          defaultFrom: _defaultFrom,
+          defaultTo: _defaultTo,
           onEmployee: _onEmployeeChanged,
           onFrom: (d) => setState(() {
             _from = _dayOnly(d);
@@ -254,7 +281,7 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
                 data.paidAtByPeriod,
                 settings,
               );
-              return constraints.maxWidth >= (showEmployee ? 1080 : 940)
+              return constraints.maxWidth >= _daysTableMinWidth(showEmployee)
                   ? _DaysTable(
                       rows: data.rows,
                       employeesById: data.employeesById,
@@ -273,16 +300,18 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
                     );
             },
           ),
-          if (data.pageCount > 1) ...[
-            const SizedBox(height: AppSpacing.sm),
-            Paginator(
-              page: data.page,
-              pageCount: data.pageCount,
-              totalCount: data.totalCount,
-              pageSize: _pageSize,
-              onChanged: (p) => setState(() => _page = p),
-            ),
-          ],
+          const SizedBox(height: AppSpacing.sm),
+          Paginator(
+            page: data.page,
+            pageCount: data.pageCount,
+            totalCount: data.totalCount,
+            pageSize: _pageSize,
+            onChanged: (p) => setState(() => _page = p),
+            onPageSizeChanged: (size) => setState(() {
+              _pageSize = size;
+              _page = 0;
+            }),
+          ),
         ],
         if (selectedEmployee != null) ...[
           const SizedBox(height: AppSpacing.lg),
@@ -319,13 +348,6 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
           value: Formatters.duration(data.worked),
           icon: LucideIcons.clock,
         ),
-        StatTile(
-          label: l10n.payrollStatOvertimeHours,
-          value: data.overtime == Duration.zero
-              ? '—'
-              : Formatters.duration(data.overtime),
-          icon: LucideIcons.timer,
-        ),
       ],
     );
   }
@@ -351,29 +373,9 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
     Map<String, DateTime> paidAtByPeriod,
     StoreSettings settings,
   ) {
-    final schedule = employee == null
-        ? (startMinutes: settings.openMinutes, endMinutes: settings.closeMinutes)
-        : resolvedSchedule(
-            employee,
-            storeOpenMinutes: settings.openMinutes,
-            storeCloseMinutes: settings.closeMinutes,
-          );
-    final ctx = evaluationContext(
-      a,
-      fallbackStartMinutes: schedule.startMinutes,
-      fallbackEndMinutes: schedule.endMinutes,
-      fallbackMaxBreakMinutes: settings.maxBreakMinutes,
-    );
     final worked = workedDuration(a);
-    final overtime = overtimeBy(a, ctx.endMinutes) ?? Duration.zero;
-    final money = employee == null
-        ? const (rate: 0.0, base: 0.0, premium: 0.0, total: 0.0)
-        : dayAmountBreakdown(
-            a,
-            employee,
-            settings,
-            scheduledEndMinutes: ctx.endMinutes,
-          );
+    final rate = employee?.pay ?? 0.0;
+    final total = employee == null ? 0.0 : dayAmount(a, employee, settings);
     final paidAt = a.payrollPeriodId == null
         ? null
         : paidAtByPeriod[a.payrollPeriodId!];
@@ -396,7 +398,7 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
                       style: Theme.of(context).textTheme.titleSmall,
                     ),
                     Text(
-                      l10n.employeeCinLabel(employee.cin),
+                      employee.pin,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: AppColors.textSecondary,
                       ),
@@ -409,7 +411,7 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
           const SizedBox(height: AppSpacing.sm),
           Row(
             children: [
-              // Indented past the avatar so this lines up with the name/CIN
+              // Indented past the avatar so this lines up with the name/PIN
               // above rather than with the avatar's left edge.
               const SizedBox(width: 48 + AppSpacing.md),
               Expanded(
@@ -470,13 +472,17 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
         const SizedBox(height: AppSpacing.md),
         DrawerRow(
           label: l10n.payrollColumnClockIn,
-          value: a.clockInAt == null ? '—' : Formatters.time(a.clockInAt!),
+          value: a.sessions.firstOrNull?.clockInAt == null
+              ? '—'
+              : Formatters.time(a.sessions.first.clockInAt),
         ),
         DrawerRow(
           label: l10n.payrollColumnClockOut,
-          value: a.clockOutAt == null ? '—' : Formatters.time(a.clockOutAt!),
+          value: a.sessions.lastOrNull?.clockOutAt == null
+              ? '—'
+              : Formatters.time(a.sessions.last.clockOutAt!),
         ),
-        if (a.pauses.isNotEmpty)
+        if (totalPauseCount(a) > 0)
           DrawerRow(
             label: l10n.payrollDetailBreakTotal,
             value: Formatters.duration(totalBreak(a)),
@@ -488,32 +494,17 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
           label: l10n.payrollDetailWorked,
           value: worked == null ? '—' : Formatters.duration(worked),
         ),
-        DrawerRow(
-          label: l10n.payrollColumnOvertime,
-          value: overtime == Duration.zero
-              ? '—'
-              : l10n.payrollDetailOvertimeInfo(Formatters.duration(overtime)),
-        ),
         const SizedBox(height: AppSpacing.xxxl),
         _drawerSectionTitle(LucideIcons.wallet, l10n.payrollColumnAmount),
         const SizedBox(height: AppSpacing.md),
         DrawerRow(
           label: l10n.payrollDetailRate,
-          value: '${Formatters.price(money.rate)} / h',
+          value: '${Formatters.price(rate)} / h',
         ),
-        DrawerRow(
-          label: l10n.payrollDetailBase,
-          value: Formatters.price(money.base),
-        ),
-        if (money.premium > 0)
-          DrawerRow(
-            label: l10n.payrollDetailPremium,
-            value: Formatters.price(money.premium),
-          ),
         DrawerRow(
           label: l10n.payrollDetailTotal,
           valueWidget: Text(
-            Formatters.price(money.total),
+            Formatters.price(total),
             style: Theme.of(context).textTheme.titleSmall,
           ),
         ),
@@ -578,14 +569,14 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
     final actorId = ref.read(currentEmployeeProvider)?.id;
     if (actorId == null) return;
 
-    // The person settling the days confirms with their own CIN — same
+    // The person settling the days confirms with their own PIN — same
     // wrong-attempt / 5-minute lockout as the pointage board.
     final identityOk = await IdentityPromptDialog.show(
       context,
       title: l10n.identityPromptTitle,
       subtitle: l10n.identityPromptPayrollSubtitle(employeeDisplayName(employee)),
-      verify: (cin) =>
-          ref.read(credentialRepositoryProvider).verifyCin(cin, actorId),
+      verify: (pin) =>
+          ref.read(credentialRepositoryProvider).verifyPin(pin, actorId),
     );
     if (!identityOk || !mounted) return;
 
@@ -606,6 +597,8 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
 
 // -----------------------------------------------------------------------------
 
+/// Search on the left, début, fin and statut at the right edge — the same strip
+/// as the Personnel page and the attendance history.
 class _Filters extends StatelessWidget {
   const _Filters({
     required this.selectedEmployee,
@@ -614,8 +607,8 @@ class _Filters extends StatelessWidget {
     required this.to,
     required this.status,
     required this.floor,
-    required this.canReset,
-    required this.onReset,
+    required this.defaultFrom,
+    required this.defaultTo,
     required this.onEmployee,
     required this.onFrom,
     required this.onTo,
@@ -628,8 +621,8 @@ class _Filters extends StatelessWidget {
   final DateTime to;
   final PaymentStatus? status;
   final DateTime floor;
-  final bool canReset;
-  final VoidCallback onReset;
+  final DateTime defaultFrom;
+  final DateTime defaultTo;
   final ValueChanged<Employee?> onEmployee;
   final ValueChanged<DateTime> onFrom;
   final ValueChanged<DateTime> onTo;
@@ -638,60 +631,46 @@ class _Filters extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final today = _dayOnly(clock.now());
 
-    return FilterBar(
-      reset: canReset
-          ? FilterResetButton(
-              label: l10n.payrollFilterReset,
-              onPressed: onReset,
-            )
-          : null,
-      fields: [
-        FilterField(
-          label: l10n.payrollFilterEmployee,
-          child: EmployeeSelector(
-            employees: employees,
-            value: selectedEmployee,
-            showCin: true,
-            hint: l10n.payrollFilterAllEmployees,
-            onChanged: onEmployee,
-          ),
+    return FilterToolbar(
+      search: EmployeeSelector(
+        employees: employees,
+        value: selectedEmployee,
+        showPin: true,
+        searchBar: true,
+        hint: l10n.employeesSearchHint,
+        onChanged: onEmployee,
+      ),
+      filters: [
+        DateFilter(
+          key: const ValueKey('date-filter-from'),
+          label: l10n.historyFilterFrom,
+          value: from,
+          firstDate: floor,
+          lastDate: to,
+          isDefault: from == defaultFrom,
+          onChanged: onFrom,
         ),
-        FilterField.date(
-          label: l10n.payrollFilterFrom,
-          child: DateField(
-            value: from,
-            compact: true,
-            firstDate: floor,
-            lastDate: to,
-            onChanged: onFrom,
-          ),
+        DateFilter(
+          key: const ValueKey('date-filter-to'),
+          label: l10n.historyFilterTo,
+          value: to,
+          firstDate: from,
+          lastDate: _dayOnly(clock.now()),
+          isDefault: to == defaultTo,
+          onChanged: onTo,
         ),
-        FilterField.date(
-          label: l10n.payrollFilterTo,
-          child: DateField(
-            value: to,
-            compact: true,
-            firstDate: from,
-            lastDate: today,
-            onChanged: onTo,
-          ),
-        ),
-        FilterField.auto(
+        FilterMenu<PaymentStatus?>(
           label: l10n.payrollFilterStatus,
-          child: FilterMenu<PaymentStatus?>(
-            label: l10n.payrollFilterStatus,
-            selectedLabel: status == null
-                ? null
-                : paymentStatusLabel(l10n, status!),
-            entries: {
-              null: l10n.payrollStatusAll,
-              PaymentStatus.paid: l10n.payrollStatusPaid,
-              PaymentStatus.unpaid: l10n.payrollStatusUnpaid,
-            },
-            onSelected: onStatus,
-          ),
+          selectedLabel: status == null
+              ? null
+              : paymentStatusLabel(l10n, status!),
+          entries: {
+            null: l10n.payrollStatusAll,
+            PaymentStatus.paid: l10n.payrollStatusPaid,
+            PaymentStatus.unpaid: l10n.payrollStatusUnpaid,
+          },
+          onSelected: onStatus,
         ),
       ],
     );
@@ -747,6 +726,10 @@ class _ActiveFilters extends StatelessWidget {
   }
 }
 
+/// Below this the day list switches from the table to cards. The table's own
+/// minimum width, so the two can never disagree.
+double _daysTableMinWidth(bool showEmployee) => showEmployee ? 1000 : 860;
+
 class _DaysTable extends StatelessWidget {
   const _DaysTable({
     required this.rows,
@@ -769,17 +752,15 @@ class _DaysTable extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
 
     return DataTableWrapper(
-      minWidth: showEmployee ? 1080 : 940,
+      minWidth: _daysTableMinWidth(showEmployee),
       columns: [
         if (showEmployee) DataColumn(label: Text(l10n.payrollColumnEmployee)),
         DataColumn(label: Text(l10n.payrollColumnDate)),
         DataColumn(label: Text(l10n.payrollColumnHours)),
         DataColumn(label: Text(l10n.payrollColumnWorked)),
-        DataColumn(label: Text(l10n.payrollColumnOvertime)),
         DataColumn(label: Text(l10n.payrollColumnAmount), numeric: true),
         DataColumn(label: Text(l10n.payrollColumnStatus)),
         DataColumn(label: Text(l10n.payrollColumnPaidAt)),
-        DataColumn(label: Text(l10n.payrollColumnDetail)),
       ],
       rows: [for (final a in rows) _row(context, l10n, a)],
     );
@@ -790,42 +771,29 @@ class _DaysTable extends StatelessWidget {
     final data = _payrollRowData(a, employeesById, paidAtByPeriod, settings);
     final employee = data.employee;
 
-    final arrival = a.clockInAt == null ? '—' : Formatters.time(a.clockInAt!);
-    final departure = a.clockOutAt == null
+    final arrival = a.sessions.firstOrNull?.clockInAt == null
+        ? '—'
+        : Formatters.time(a.sessions.first.clockInAt);
+    final departure = a.sessions.lastOrNull?.clockOutAt == null
         ? '…'
-        : Formatters.time(a.clockOutAt!);
+        : Formatters.time(a.sessions.last.clockOutAt!);
 
     return DataRow(
       onSelectChanged: (_) => onOpen(a),
       cells: [
         if (showEmployee)
-          DataCell(
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(employee == null ? '—' : employeeDisplayName(employee)),
-                if (employee != null)
-                  Text(
-                    l10n.employeeCinLabel(employee.cin),
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        DataCell(Text(Formatters.date(a.date))),
+          DataCell(EmployeeCell(employee: employee)),
+        DataCell(WeekdayDate(a.date)),
         DataCell(
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
               Text('$arrival → $departure'),
-              if (a.pauses.isNotEmpty)
+              if (totalPauseCount(a) > 0)
                 Text(
                   l10n.payrollBreakSummary(
-                    a.pauses.length,
+                    totalPauseCount(a),
                     Formatters.duration(totalBreak(a)),
                   ),
                   style: theme.textTheme.bodySmall?.copyWith(
@@ -838,24 +806,10 @@ class _DaysTable extends StatelessWidget {
         DataCell(
           Text(data.worked == null ? '—' : Formatters.duration(data.worked!)),
         ),
-        DataCell(
-          Text(
-            data.overtime == Duration.zero
-                ? '—'
-                : Formatters.duration(data.overtime),
-          ),
-        ),
         DataCell(NumericCell(Formatters.price(data.amount), emphasis: true)),
         DataCell(PaymentStatusBadge(status: a.paymentStatus)),
         DataCell(
-          Text(data.paidAt == null ? '—' : Formatters.date(data.paidAt!)),
-        ),
-        DataCell(
-          IconButton(
-            tooltip: l10n.payrollViewDetail,
-            icon: const Icon(LucideIcons.eye, size: AppSizing.iconSm),
-            onPressed: () => onOpen(a),
-          ),
+          data.paidAt == null ? const Text('—') : WeekdayDate(data.paidAt!),
         ),
       ],
     );
@@ -868,7 +822,6 @@ class _DaysTable extends StatelessWidget {
 typedef _PayrollRowData = ({
   Employee? employee,
   Duration? worked,
-  Duration overtime,
   double amount,
   DateTime? paidAt,
 });
@@ -880,27 +833,11 @@ _PayrollRowData _payrollRowData(
   StoreSettings settings,
 ) {
   final employee = employeesById[a.employeeId];
-  final schedule = employee == null
-      ? (startMinutes: settings.openMinutes, endMinutes: settings.closeMinutes)
-      : resolvedSchedule(
-          employee,
-          storeOpenMinutes: settings.openMinutes,
-          storeCloseMinutes: settings.closeMinutes,
-        );
-  final ctx = evaluationContext(
-    a,
-    fallbackStartMinutes: schedule.startMinutes,
-    fallbackEndMinutes: schedule.endMinutes,
-    fallbackMaxBreakMinutes: settings.maxBreakMinutes,
-  );
 
   return (
     employee: employee,
     worked: workedDuration(a),
-    overtime: overtimeBy(a, ctx.endMinutes) ?? Duration.zero,
-    amount: employee == null
-        ? 0.0
-        : dayAmount(a, employee, settings, scheduledEndMinutes: ctx.endMinutes),
+    amount: employee == null ? 0.0 : dayAmount(a, employee, settings),
     paidAt: a.payrollPeriodId == null
         ? null
         : paidAtByPeriod[a.payrollPeriodId!],
@@ -1013,7 +950,7 @@ class _PayrollDayCard extends StatelessWidget {
                           ? Formatters.date(attendance.date)
                           : (employee == null
                                 ? '—'
-                                : l10n.employeeCinLabel(employee.cin)),
+                                : employee.pin),
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: AppColors.textSecondary,
                       ),
@@ -1037,14 +974,6 @@ class _PayrollDayCard extends StatelessWidget {
                   value: data.worked == null
                       ? '—'
                       : Formatters.duration(data.worked!),
-                ),
-              ),
-              Expanded(
-                child: _Figure(
-                  label: l10n.payrollColumnOvertime,
-                  value: data.overtime == Duration.zero
-                      ? '—'
-                      : Formatters.duration(data.overtime),
                 ),
               ),
               _Figure(

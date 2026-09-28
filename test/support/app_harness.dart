@@ -52,12 +52,11 @@ Employee fakeOwner({String storeId = 'store-sablon'}) => Employee(
   storeId: storeId,
   firstName: 'Test',
   lastName: 'Owner',
-  cin: '00.00.00-000.00',
+  pin: '00.00.00-000.00',
   phone: '',
   email: 'test.owner@example.test',
   hireDate: DateTime(2020),
   role: EmployeeRole.owner,
-  contractType: ContractType.fixed,
   pay: 0,
   createdAt: DateTime(2020),
 );

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_spacing.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/models.dart';
 import 'status_pill.dart';
@@ -26,6 +27,7 @@ class AttendanceStatusBadge extends StatelessWidget {
       colors: colors,
       icon: iconFor(status),
       label: attendanceStatusLabel(AppLocalizations.of(context), status),
+      borderRadius: AppRadius.smAll,
     );
   }
 

@@ -49,6 +49,12 @@ abstract final class AppSizing {
   /// Absolute minimum for any tappable element. Enforced by the brief.
   static const double minTapTarget = 48;
 
+  /// Height of the flat controls in a list screen's toolbar — the view
+  /// toggle and the filter pills. Under the 48dp touch floor on purpose: the
+  /// bar is a desktop / tablet control strip, and each control keeps a full
+  /// 40dp square hit area.
+  static const double toolbarControlHeight = 40;
+
   /// Primary actions get more than the minimum.
   static const double buttonHeight = 56;
   static const double buttonHeightLarge = 64;
@@ -92,7 +98,7 @@ abstract final class AppSizing {
   static const double searchFieldMaxWidth = 420;
 
   /// The employee picker in a filter bar. Wide enough for "Van der Meulen
-  /// Jean-Baptiste" plus the CIN line under it.
+  /// Jean-Baptiste" plus the PIN line under it.
   static const double filterFieldWidth = 260;
 
   /// A compact date field. Fits `31/12/2025` with the calendar affordance.

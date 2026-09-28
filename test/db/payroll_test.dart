@@ -40,22 +40,31 @@ void main() {
     required (int, int) clockIn,
     required (int, int) clockOut,
     String? payrollPeriodId,
-    int? scheduledStartMinutes,
-    int? scheduledEndMinutes,
     int? maxBreakMinutes,
   }) async {
     final d = daysAgo(n);
     final day = DateTime(d.year, d.month, d.day);
-    await db
-        .into(db.attendances)
-        .insert(
+    final id = 'pay-test-$employeeId-$n';
+    await db.into(db.attendances).insert(
           attendanceToRow(
             Attendance(
-              id: 'pay-test-$employeeId-$n',
+              id: id,
               storeId: StoreIds.sablon,
               employeeId: employeeId,
               date: day,
               status: AttendanceStatus.done,
+              sessions: const [],
+              paymentStatus: payrollPeriodId == null
+                  ? PaymentStatus.unpaid
+                  : PaymentStatus.paid,
+              payrollPeriodId: payrollPeriodId,
+              maxBreakMinutes: maxBreakMinutes,
+            ),
+          ),
+        );
+    await db.into(db.attendanceSessions).insert(
+          sessionToRow(
+            AttendanceSession(
               clockInAt: DateTime(
                 day.year,
                 day.month,
@@ -70,15 +79,9 @@ void main() {
                 clockOut.$1,
                 clockOut.$2,
               ),
-              pauses: const [],
-              paymentStatus: payrollPeriodId == null
-                  ? PaymentStatus.unpaid
-                  : PaymentStatus.paid,
-              payrollPeriodId: payrollPeriodId,
-              scheduledStartMinutes: scheduledStartMinutes,
-              scheduledEndMinutes: scheduledEndMinutes,
-              maxBreakMinutes: maxBreakMinutes,
             ),
+            attendanceId: id,
+            position: 0,
           ),
         );
   }
@@ -87,37 +90,13 @@ void main() {
       AttendanceRepository(db, clock: () => seedInstant).attendance(id);
 
   group('the maths', () {
-    test('an extra is paid their hourly rate; a fixed employee a derived one',
-        () async {
-      final settings = await StoreRepository(db).settings(StoreIds.sablon);
-      final julien = (await employees.employee(EmployeeIds.julien))!; // extra
-      final karim = (await employees.employee(EmployeeIds.karim))!; // fixed 2400
-
-      expect(hourlyRate(julien, settings), 13);
-      expect(hourlyRate(karim, settings), closeTo(2400 / 26 / 8, 0.001));
-    });
-
-    test('overtime hours carry the multiplier premium', () async {
+    test('every employee is paid their own hourly rate', () async {
       final settings = await StoreRepository(db).settings(StoreIds.sablon);
       final julien = (await employees.employee(EmployeeIds.julien))!;
-      final day = Attendance(
-        id: 'x',
-        storeId: StoreIds.sablon,
-        employeeId: EmployeeIds.julien,
-        date: DateTime(2026, 1, 5),
-        status: AttendanceStatus.done,
-        clockInAt: DateTime(2026, 1, 5, 9),
-        clockOutAt: DateTime(2026, 1, 5, 18), // 1h overtime past 17:00
-        pauses: const [],
-        paymentStatus: PaymentStatus.unpaid,
-      );
+      final karim = (await employees.employee(EmployeeIds.karim))!;
 
-      final expected =
-          9 * 13 + (settings.overtimeMultiplier - 1) * 13; // base + premium
-      expect(
-        dayAmount(day, julien, settings, scheduledEndMinutes: 17 * 60),
-        closeTo(expected, 0.001),
-      );
+      expect(hourlyRate(julien, settings), julien.pay);
+      expect(hourlyRate(karim, settings), karim.pay);
     });
 
     test('a day that is not done is worth nothing', () async {
@@ -129,14 +108,10 @@ void main() {
         employeeId: EmployeeIds.julien,
         date: DateTime(2026, 1, 5),
         status: AttendanceStatus.working,
-        clockInAt: DateTime(2026, 1, 5, 9),
-        pauses: const [],
+        sessions: [AttendanceSession(clockInAt: DateTime(2026, 1, 5, 9))],
         paymentStatus: PaymentStatus.unpaid,
       );
-      expect(
-        dayAmount(open, julien, settings, scheduledEndMinutes: 17 * 60),
-        0,
-      );
+      expect(dayAmount(open, julien, settings), 0);
     });
   });
 
@@ -198,28 +173,6 @@ void main() {
       );
     });
 
-    test('a later store-hours change does not move overtime already worked',
-        () async {
-      // Marc has no other payable days. A day that ran two hours past the
-      // 17:00 close it was worked under.
-      await seedDoneDay(3, employeeId: EmployeeIds.marc, clockIn: (8, 0),
-          clockOut: (19, 0), scheduledEndMinutes: 17 * 60);
-
-      final before = await payroll.preview(EmployeeIds.marc, StoreIds.sablon);
-      expect(before.overtimeHours, 2);
-
-      await StoreRepository(db).updateStoreSettings(
-        StoreIds.sablon,
-        closeMinutes: 22 * 60,
-      );
-
-      final after = await payroll.preview(EmployeeIds.marc, StoreIds.sablon);
-      expect(
-        after.overtimeHours,
-        2,
-        reason: 'measured against the end-of-day frozen on the row',
-      );
-    });
   });
 
   group('pay', () {

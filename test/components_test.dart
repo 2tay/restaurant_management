@@ -6,10 +6,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:stock_inventory/core/theme/app_colors.dart';
 import 'package:stock_inventory/core/theme/app_theme.dart';
-import 'package:stock_inventory/data/repositories/repositories.dart';
+import 'package:stock_inventory/core/utils/formatters.dart';
 import 'package:stock_inventory/l10n/app_localizations.dart';
 import 'package:stock_inventory/models/models.dart';
 import 'package:stock_inventory/shared/widgets/widgets.dart';
@@ -714,7 +715,7 @@ void main() {
   group('IdentityPromptDialog', () {
     Future<void> open(
       WidgetTester tester,
-      Future<CinVerification> Function(String cin) verify,
+      Future<bool> Function(String pin) verify,
     ) async {
       await tester.pumpWidget(
         _host(
@@ -735,73 +736,58 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    Future<void> submit(WidgetTester tester, String cin) async {
-      await tester.enterText(find.byType(TextField), cin);
+    Future<void> submit(WidgetTester tester, String pin) async {
+      await tester.enterText(find.byType(TextField), pin);
       await tester.pumpAndSettle();
       await tester.tap(find.widgetWithText(FilledButton, 'Valider'));
       await tester.pumpAndSettle();
     }
 
-    testWidgets('a wrong CIN keeps the dialog open with the count left', (
+    testWidgets('a wrong PIN keeps the dialog open, ready for another try', (
       tester,
     ) async {
-      await open(
-        tester,
-        (_) async => const CinVerification(
-          CinCheckResult.wrongCin,
-          attemptsRemaining: 2,
-        ),
-      );
+      await open(tester, (_) async => false);
       await submit(tester, '99.99.99-999.99');
 
       expect(find.byType(IdentityPromptDialog), findsOneWidget);
-      expect(find.textContaining('2 tentatives restantes'), findsOneWidget);
+      expect(find.text('Numéro incorrect. Réessayez.'), findsOneWidget);
+      expect(find.textContaining('tentative'), findsNothing);
     });
 
-    testWidgets('the right CIN closes the dialog', (tester) async {
-      await open(tester, (_) async => const CinVerification(CinCheckResult.ok));
+    testWidgets('attempts are unlimited — Valider never locks', (tester) async {
+      var calls = 0;
+      await open(tester, (_) async {
+        calls++;
+        return false;
+      });
+      for (var i = 0; i < 10; i++) {
+        await submit(tester, '99.99.99-999.99');
+      }
+
+      expect(calls, 10);
+      expect(find.byType(IdentityPromptDialog), findsOneWidget);
+      expect(find.textContaining('Réessayez dans'), findsNothing);
+    });
+
+    testWidgets('the right PIN closes the dialog', (tester) async {
+      await open(tester, (_) async => true);
       await submit(tester, '78.02.14-153.24');
 
       expect(find.byType(IdentityPromptDialog), findsNothing);
     });
-
-    testWidgets('a locked result disables Valider and shows a countdown', (
-      tester,
-    ) async {
-      final until = DateTime.now().add(const Duration(minutes: 5));
-      await open(
-        tester,
-        (_) async => CinVerification(CinCheckResult.locked, lockedUntil: until),
-      );
-      await tester.enterText(find.byType(TextField), '99.99.99-999.99');
-      await tester.pump();
-      await tester.tap(find.widgetWithText(FilledButton, 'Valider'));
-      await tester.pump();
-
-      expect(find.textContaining('Réessayez dans'), findsOneWidget);
-      final valider = tester.widget<FilledButton>(
-        find.widgetWithText(FilledButton, 'Valider'),
-      );
-      expect(valider.onPressed, isNull);
-
-      // Close it so the countdown Timer is disposed before the test ends.
-      await tester.tap(find.widgetWithText(TextButton, 'Annuler'));
-      await tester.pumpAndSettle();
-    });
   });
 
   group('EmployeeSelector', () {
-    Employee emp(String first, String last, String cin) => Employee(
-      id: cin,
+    Employee emp(String first, String last, String pin) => Employee(
+      id: pin,
       storeId: 's1',
       firstName: first,
       lastName: last,
-      cin: cin,
+      pin: pin,
       phone: '0',
       email: '$first@x.c',
       hireDate: DateTime(2026),
       role: EmployeeRole.staff,
-      contractType: ContractType.fixed,
       pay: 2000,
       createdAt: DateTime(2026),
     );
@@ -813,7 +799,7 @@ void main() {
 
     Future<Employee?> pumpSelector(
       WidgetTester tester, {
-      bool showCin = false,
+      bool showPin = false,
     }) async {
       Employee? picked;
       await tester.pumpWidget(
@@ -824,7 +810,7 @@ void main() {
               child: EmployeeSelector(
                 employees: roster,
                 value: picked,
-                showCin: showCin,
+                showPin: showPin,
                 onChanged: (e) => setState(() => picked = e),
               ),
             ),
@@ -850,7 +836,7 @@ void main() {
       expect(find.text('Karim Haddouch'), findsOneWidget);
     });
 
-    testWidgets('filters by CIN even when the CIN is not shown', (
+    testWidgets('filters by PIN even when the PIN is not shown', (
       tester,
     ) async {
       await pumpSelector(tester);
@@ -861,12 +847,12 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Amélie Vandenberghe'), findsOneWidget);
       expect(find.text('Karim Haddouch'), findsNothing);
-      // showCin is false → the number itself is not rendered in the row.
-      expect(find.textContaining('CIN 89.07.30-201.44'), findsNothing);
+      // showPin is false → the number itself is not rendered in the row.
+      expect(find.textContaining('PIN 89.07.30-201.44'), findsNothing);
     });
 
-    testWidgets('showCin renders the CIN under each name', (tester) async {
-      await pumpSelector(tester, showCin: true);
+    testWidgets('showPin renders the PIN under each name', (tester) async {
+      await pumpSelector(tester, showPin: true);
       await tester.tap(find.byType(EmployeeSelector));
       await tester.pumpAndSettle();
       expect(find.textContaining('89.07.30-201.44'), findsOneWidget);
@@ -888,5 +874,620 @@ void main() {
         findsOneWidget,
       );
     });
+
+    group('searchBar', () {
+      Future<void> pumpBar(WidgetTester tester) async {
+        Employee? picked;
+        await tester.pumpWidget(
+          _host(
+            StatefulBuilder(
+              builder: (context, setState) => SizedBox(
+                width: 360,
+                child: EmployeeSelector(
+                  employees: roster,
+                  value: picked,
+                  showPin: true,
+                  searchBar: true,
+                  hint: 'Rechercher (nom, PIN)',
+                  onChanged: (e) => setState(() => picked = e),
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+      }
+
+      final bar = find.byKey(const ValueKey('employee-selector-search'));
+
+      testWidgets('typing into the bar drops the matches beneath it, with no '
+          'second search box', (tester) async {
+        await pumpBar(tester);
+        expect(find.byType(TextField), findsOneWidget);
+        expect(find.text('Amélie Vandenberghe'), findsNothing);
+
+        await tester.tap(bar);
+        await tester.pumpAndSettle();
+        expect(find.text('Amélie Vandenberghe'), findsOneWidget);
+        expect(find.byType(TextField), findsOneWidget);
+
+        await tester.enterText(bar, 'karim');
+        await tester.pumpAndSettle();
+        expect(find.text('Amélie Vandenberghe'), findsNothing);
+        expect(find.text('Karim Haddouch'), findsOneWidget);
+        // The bare PIN, no "PIN" word before it.
+        expect(find.text('01.02.03-004.05'), findsOneWidget);
+        expect(find.textContaining('PIN 01'), findsNothing);
+      });
+
+      testWidgets('picking shows the person in the bar; ✕ gives the empty '
+          'search back', (tester) async {
+        await pumpBar(tester);
+        await tester.tap(bar);
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Karim Haddouch'));
+        await tester.pumpAndSettle();
+
+        final selected = find.byKey(
+          const ValueKey('employee-selector-selected'),
+        );
+        expect(selected, findsOneWidget);
+        expect(
+          find.descendant(of: selected, matching: find.text('Karim Haddouch')),
+          findsOneWidget,
+        );
+        expect(bar, findsNothing);
+
+        await tester.tap(find.byTooltip('Effacer'));
+        await tester.pumpAndSettle();
+        expect(selected, findsNothing);
+        expect(bar, findsOneWidget);
+        expect(find.text('Rechercher (nom, PIN)'), findsOneWidget);
+      });
+
+      testWidgets('a click outside closes the list', (tester) async {
+        await pumpBar(tester);
+        await tester.tap(bar);
+        await tester.pumpAndSettle();
+        expect(find.text('Amélie Vandenberghe'), findsOneWidget);
+
+        await tester.tapAt(const Offset(5, 590));
+        await tester.pumpAndSettle();
+        expect(find.text('Amélie Vandenberghe'), findsNothing);
+      });
+    });
+  });
+
+  group('FilterToolbar', () {
+    Future<void> pumpToolbar(WidgetTester tester, double width) async {
+      tester.view.physicalSize = const Size(1400, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(
+        _host(
+          SizedBox(
+            width: width,
+            child: FilterToolbar(
+              search: SearchField(onChanged: (_) {}),
+              filters: const [
+                FilterPill(
+                  key: ValueKey('a'),
+                  label: 'Période',
+                  selectedLabel: null,
+                ),
+                FilterPill(
+                  key: ValueKey('b'),
+                  label: 'Statut',
+                  selectedLabel: null,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('wide: one line, the controls flush with the right edge', (
+      tester,
+    ) async {
+      await pumpToolbar(tester, 1200);
+      final strip = tester.getRect(find.byType(FilterToolbar));
+      final a = tester.getRect(find.byKey(const ValueKey('a')));
+      final b = tester.getRect(find.byKey(const ValueKey('b')));
+      final search = tester.getRect(find.byType(TextField));
+      expect(b.right, closeTo(strip.right, 0.5));
+      expect(a.right, lessThan(b.left));
+      expect(search.left, closeTo(strip.left, 0.5));
+      expect(search.center.dy, closeTo(a.center.dy, 6));
+      // The free space sits between the search and the controls.
+      expect(a.left - search.right, greaterThan(100));
+    });
+
+    testWidgets('phone: the search on its own line, the controls below', (
+      tester,
+    ) async {
+      await pumpToolbar(tester, 360);
+      expect(tester.takeException(), isNull);
+      final a = tester.getRect(find.byKey(const ValueKey('a')));
+      final search = tester.getRect(find.byType(TextField));
+      expect(a.top, greaterThan(search.bottom));
+    });
+  });
+
+  group('DateFilter', () {
+    setUpAll(() => initializeDateFormatting(Formatters.locale));
+
+    testWidgets('names its end of the period; tinted only off its default', (
+      tester,
+    ) async {
+      Future<FilterPill> pill({required bool isDefault}) async {
+        await tester.pumpWidget(
+          _host(
+            DateFilter(
+              label: 'Début',
+              value: DateTime(2026, 9, 1),
+              firstDate: DateTime(2000),
+              lastDate: DateTime(2026, 12, 31),
+              isDefault: isDefault,
+              onChanged: (_) {},
+            ),
+          ),
+        );
+        return tester.widget<FilterPill>(find.byType(FilterPill));
+      }
+
+      final idle = await pill(isDefault: true);
+      expect(idle.label, 'Début : 01/09/2026');
+      expect(idle.selectedLabel, isNull);
+      expect(
+        (await pill(isDefault: false)).selectedLabel,
+        'Début : 01/09/2026',
+      );
+    });
+  });
+
+  group('WeekdayDate', () {
+    setUpAll(() => initializeDateFormatting(Formatters.locale));
+
+    testWidgets('reads "Mar 12/10/2024", the weekday a size smaller', (
+      tester,
+    ) async {
+      await tester.pumpWidget(_host(WeekdayDate(DateTime(2024, 10, 12))));
+      final text = tester.widget<Text>(find.byType(Text));
+      final spans = (text.textSpan! as TextSpan).children!.cast<TextSpan>();
+      expect(text.textSpan!.toPlainText(), 'Sam 12/10/2024');
+      expect(spans.first.text, 'Sam');
+      final base = DefaultTextStyle.of(
+        tester.element(find.byType(Text)),
+      ).style.fontSize!;
+      expect(spans.first.style!.fontSize, lessThan(base));
+      expect(spans.last.style, isNull);
+    });
+  });
+
+  group('AttendanceSessions', () {
+    DateTime at(int h, int m) => DateTime(2026, 10, 24, h, m);
+    Attendance day(List<AttendanceSession> sessions) => Attendance(
+      id: 'a',
+      storeId: 's',
+      employeeId: 'e',
+      date: DateTime(2026, 10, 24),
+      status: AttendanceStatus.done,
+      sessions: sessions,
+      paymentStatus: PaymentStatus.unpaid,
+    );
+
+    Future<void> pump(WidgetTester tester, Attendance entry) async {
+      await initializeDateFormatting(Formatters.locale);
+      await tester.pumpWidget(
+        _host(
+          SizedBox(
+            width: 400,
+            child: AttendanceSessions(entry: entry, maxBreakMinutes: 30),
+          ),
+        ),
+      );
+    }
+
+    testWidgets('one session: the timeline straight away, no heading', (
+      tester,
+    ) async {
+      await pump(
+        tester,
+        day([
+          AttendanceSession(
+            clockInAt: at(8, 0),
+            clockOutAt: at(16, 0),
+            pauses: [AttendancePause(startAt: at(9, 30), endAt: at(10, 0))],
+          ),
+        ]),
+      );
+      expect(find.textContaining('Session'), findsNothing);
+      expect(find.text('08:00'), findsOneWidget);
+      expect(find.text('16:00'), findsOneWidget);
+      // A 30-minute break against a 30-minute allowance: no alert.
+      expect(find.textContaining('dépassée'), findsNothing);
+    });
+
+    testWidgets('two sessions: a centred Session N° each, no rules, no '
+        'alert lines under them', (tester) async {
+      await pump(
+        tester,
+        day([
+          AttendanceSession(
+            clockInAt: at(8, 0),
+            clockOutAt: at(16, 0),
+            pauses: [
+              AttendancePause(startAt: at(9, 30), endAt: at(10, 0)),
+              AttendancePause(startAt: at(13, 15), endAt: at(14, 0)),
+            ],
+          ),
+          AttendanceSession(
+            clockInAt: at(18, 0),
+            clockOutAt: at(23, 0),
+            pauses: [AttendancePause(startAt: at(19, 30), endAt: at(20, 0))],
+          ),
+        ]),
+      );
+
+      final first = find.text('Session N° 1');
+      final second = find.text('Session N° 2');
+      expect(first, findsOneWidget);
+      expect(second, findsOneWidget);
+      // Centred in the 400dp column, with no hairline either side.
+      expect(tester.getCenter(first).dx, closeTo(tester.getCenter(find.byType(AttendanceSessions)).dx, 1));
+      expect(
+        find.descendant(
+          of: find.byType(AttendanceSessions),
+          matching: find.byWidgetPredicate(
+            (w) => w is Container && w.constraints?.maxHeight == 1,
+          ),
+        ),
+        findsNothing,
+      );
+      // Dashes either side of each label, out to both edges, and a
+      // full-width one closing the list, under the last event.
+      final column = tester.getRect(find.byType(AttendanceSessions));
+      final heading = find.ancestor(of: first, matching: find.byType(Row)).first;
+      final dashes = find.descendant(
+        of: heading,
+        matching: find.byType(CustomPaint),
+      );
+      expect(dashes, findsNWidgets(2));
+      expect(tester.getRect(dashes.first).left, closeTo(column.left, 0.5));
+      expect(tester.getRect(dashes.last).right, closeTo(column.right, 0.5));
+      final end = find.byKey(const ValueKey('attendance-sessions-end'));
+      expect(end, findsOneWidget);
+      expect(tester.getSize(end).width, closeTo(column.width, 0.5));
+      expect(
+        tester.getTopLeft(end).dy,
+        greaterThan(tester.getTopLeft(find.text('23:00')).dy),
+      );
+      // Room between the sessions.
+      expect(
+        tester.getTopLeft(second).dy -
+            tester.getBottomLeft(find.text('16:00')).dy,
+        greaterThanOrEqualTo(32),
+      );
+      // The overrun is the drawer's Alertes section's business now.
+      expect(find.textContaining('dépassée'), findsNothing);
+      expect(
+        tester.getTopLeft(find.text('18:00')).dy,
+        greaterThan(tester.getTopLeft(second).dy),
+      );
+    });
+  });
+
+  group('AttendanceDayDetail', () {
+    DateTime at(int h, int m) => DateTime(2026, 10, 24, h, m);
+    final amelie = Employee(
+      id: 'e',
+      storeId: 's',
+      firstName: 'Amélie',
+      lastName: 'Laurent',
+      pin: '4821',
+      phone: '0',
+      email: 'a@x.c',
+      hireDate: DateTime(2026),
+      role: EmployeeRole.staff,
+      pay: 2000,
+      createdAt: DateTime(2026),
+    );
+    Attendance day({bool overrun = false}) => Attendance(
+      id: 'a',
+      storeId: 's',
+      employeeId: 'e',
+      date: DateTime(2026, 10, 24),
+      status: AttendanceStatus.done,
+      sessions: [
+        AttendanceSession(
+          clockInAt: at(8, 0),
+          clockOutAt: at(12, 0),
+          pauses: [
+            AttendancePause(
+              startAt: at(10, 0),
+              endAt: overrun ? at(10, 45) : at(10, 20),
+            ),
+          ],
+        ),
+        AttendanceSession(clockInAt: at(14, 0), clockOutAt: at(18, 0)),
+      ],
+      paymentStatus: PaymentStatus.unpaid,
+    );
+
+    Future<void> pump(
+      WidgetTester tester,
+      Attendance entry, {
+      bool showPin = true,
+    }) async {
+      await initializeDateFormatting(Formatters.locale);
+      await tester.pumpWidget(
+        _host(
+          SizedBox(
+            width: 400,
+            child: SingleChildScrollView(
+              child: AttendanceDayDetail(
+                entry: entry,
+                employee: amelie,
+                maxBreakMinutes: 30,
+                showPin: showPin,
+                now: DateTime(2026, 10, 30),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    testWidgets('identity, day, sessions, summary, alerts — in that order', (
+      tester,
+    ) async {
+      await pump(tester, day(overrun: true));
+      final name = find.text('Amélie Laurent');
+      final pin = find.text('4821');
+      final date = find.text('Samedi 24/10/2026');
+      final session = find.text('Session N° 1');
+      final summary = find.textContaining('Résumé de la journée');
+      final alerts = find.text('Alertes');
+      for (final f in [name, pin, date, session, summary, alerts]) {
+        expect(f, findsOneWidget);
+      }
+      expect(find.text('PIN'), findsNothing);
+      expect(find.byType(AttendanceStatusBadge), findsOneWidget);
+      double y(Finder f) => tester.getTopLeft(f).dy;
+      expect(y(pin), greaterThan(y(name)));
+      expect(y(date), greaterThan(y(pin)));
+      // A line under the date saying what follows.
+      final intro = find.textContaining('Les pointages de la journée');
+      expect(intro, findsOneWidget);
+      expect(y(intro), greaterThan(y(date)));
+      expect(y(session), greaterThan(y(intro)));
+      expect(y(summary), greaterThan(y(find.text('18:00'))));
+      expect(y(alerts), greaterThan(y(summary)));
+      // 4 h + 4 h, minus the 45-min break; one break.
+      // A 2 × 2 table: label | value.
+      final table = tester.widget<Table>(
+        find.byKey(const ValueKey('attendance-day-summary')),
+      );
+      expect(table.children, hasLength(2));
+      expect(table.children.every((r) => r.children.length == 2), isTrue);
+      String value(String key) =>
+          tester.widget<Text>(find.byKey(ValueKey(key))).data!;
+      expect(find.text('Durée totale travaillée'), findsOneWidget);
+      expect(value('attendance-day-worked'), '7 h 15');
+      expect(find.text('Pauses (1)'), findsOneWidget);
+      expect(value('attendance-day-pauses'), '45 min');
+      // The summary line is a paragraph, not a heading.
+      expect(
+        tester.widget<Text>(summary).style!.fontSize,
+        lessThan(Theme.of(tester.element(summary)).textTheme.titleSmall!.fontSize!),
+      );
+      expect(find.text('Pause dépassée de 15 min'), findsOneWidget);
+    });
+
+    testWidgets('no alert: no Alertes section at all', (tester) async {
+      await pump(tester, day());
+      expect(find.text('Alertes'), findsNothing);
+      expect(find.byKey(const ValueKey('attendance-day-alerts')), findsNothing);
+      expect(find.textContaining('Résumé de la journée'), findsOneWidget);
+    });
+
+    testWidgets('showPin false: the name alone', (tester) async {
+      await pump(tester, day(), showPin: false);
+      expect(find.text('Amélie Laurent'), findsOneWidget);
+      expect(find.text('4821'), findsNothing);
+    });
+  });
+
+  group('Paginator', () {
+    Widget paginator({
+      int page = 0,
+      int pageCount = 1,
+      int total = 3,
+      int pageSize = 10,
+      ValueChanged<int>? onChanged,
+      ValueChanged<int>? onPageSize,
+    }) => _host(
+      SizedBox(
+        width: 800,
+        child: Paginator(
+          page: page,
+          pageCount: pageCount,
+          totalCount: total,
+          pageSize: pageSize,
+          onChanged: onChanged ?? (_) {},
+          onPageSizeChanged: onPageSize,
+        ),
+      ),
+    );
+
+    testWidgets('shown on a single page, arrows disabled', (tester) async {
+      await tester.pumpWidget(paginator());
+      expect(find.text('1–3 sur 3'), findsOneWidget);
+      expect(find.text('1 / 1'), findsOneWidget);
+      for (final tooltip in ['Page précédente', 'Page suivante']) {
+        final button = tester.widget<IconButton>(
+          find.ancestor(
+            of: find.byTooltip(tooltip),
+            matching: find.byType(IconButton),
+          ),
+        );
+        expect(button.onPressed, isNull);
+      }
+    });
+
+    testWidgets('nothing at all without a row', (tester) async {
+      await tester.pumpWidget(paginator(total: 0));
+      expect(find.textContaining('sur'), findsNothing);
+    });
+
+    testWidgets('no rows-per-page menu without a handler', (tester) async {
+      await tester.pumpWidget(paginator());
+      expect(find.byKey(const ValueKey('paginator-page-size')), findsNothing);
+    });
+
+    testWidgets('the rows-per-page menu offers 10 / 25 / 50', (tester) async {
+      int? picked;
+      await tester.pumpWidget(
+        paginator(total: 40, pageCount: 4, onPageSize: (s) => picked = s),
+      );
+      final menu = find.byKey(const ValueKey('paginator-page-size'));
+      expect(
+        find.descendant(of: menu, matching: find.text('Lignes par page :')),
+        findsOneWidget,
+      );
+      await tester.tap(menu);
+      await tester.pumpAndSettle();
+      expect(find.byType(PopupMenuItem<int>), findsNWidgets(3));
+      await tester.tap(find.widgetWithText(PopupMenuItem<int>, '25'));
+      await tester.pumpAndSettle();
+      expect(picked, 25);
+    });
+
+    testWidgets('range left; rows-per-page and arrows on the right', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        paginator(total: 40, pageCount: 4, onPageSize: (_) {}),
+      );
+      final frame = tester.getRect(find.byType(Paginator));
+      final menu = tester.getRect(
+        find.byKey(const ValueKey('paginator-page-size')),
+      );
+      final next = tester.getRect(find.byTooltip('Page suivante'));
+      expect(tester.getRect(find.text('1–10 sur 40')).left, frame.left);
+      expect(next.right, closeTo(frame.right, 0.5));
+      expect(menu.right, lessThan(next.left));
+      expect(menu.center.dy, closeTo(next.center.dy, 2));
+      final chip = tester.widget<Container>(
+        find.descendant(
+          of: find.byKey(const ValueKey('paginator-page-size')),
+          matching: find.byType(Container),
+        ).first,
+      );
+      expect((chip.decoration! as BoxDecoration).color, AppColors.white);
+    });
+
+    testWidgets('white arrows with a green chevron; the page number green', (
+      tester,
+    ) async {
+      await tester.pumpWidget(paginator(page: 1, total: 40, pageCount: 4));
+      final style = tester
+          .widget<IconButton>(
+            find.ancestor(
+              of: find.byTooltip('Page suivante'),
+              matching: find.byType(IconButton),
+            ),
+          )
+          .style!;
+      expect(style.backgroundColor!.resolve({}), AppColors.white);
+      expect(style.foregroundColor!.resolve({}), AppColors.primary600);
+      expect(style.side?.resolve({}), isNull);
+      expect(
+        tester.getSize(find.byTooltip('Page suivante')),
+        const Size.square(32),
+      );
+      expect(find.text('2 / 4'), findsOneWidget);
+      final span = tester
+          .widget<RichText>(
+            find.descendant(
+              of: find.byType(Paginator),
+              matching: find.byWidgetPredicate(
+                (w) =>
+                    w is RichText && w.text.toPlainText() == '2 / 4',
+              ),
+            ),
+          )
+          .text as TextSpan;
+      final current = (span.children!.single as TextSpan).children!.first;
+      expect(current.toPlainText(), '2');
+      expect(current.style!.color, AppColors.primary600);
+    });
+
+    testWidgets('Suivant moves one page on', (tester) async {
+      int? page;
+      await tester.pumpWidget(
+        paginator(total: 40, pageCount: 4, onChanged: (p) => page = p),
+      );
+      expect(find.text('1–10 sur 40'), findsOneWidget);
+      await tester.tap(find.byTooltip('Page suivante'));
+      expect(page, 1);
+    });
+  });
+
+  testWidgets('tooltips: white, brand-green text, no dark box', (tester) async {
+    await tester.pumpWidget(
+      _host(
+        const Tooltip(message: 'Aide', child: Text('?')),
+      ),
+    );
+    final theme = TooltipTheme.of(tester.element(find.text('?')));
+    final box = theme.decoration! as BoxDecoration;
+    expect(box.color, AppColors.white);
+    expect(box.boxShadow, isNotEmpty);
+    expect(theme.textStyle!.color, AppColors.primary600);
+  });
+
+  testWidgets('sidebar row: the active page on the hourly-rate tile wash, '
+      'green text; the others grey on white', (tester) async {
+    await tester.pumpWidget(
+      _host(
+        const SizedBox(
+          width: 260,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SidebarNavTile(
+                icon: LucideIcons.store,
+                label: 'Actif',
+                active: true,
+                collapsed: false,
+                onTap: _noop,
+              ),
+              SidebarNavTile(
+                icon: LucideIcons.store,
+                label: 'Autre',
+                active: false,
+                collapsed: false,
+                onTap: _noop,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    Material fill(String label) => tester.widget<Material>(
+      find
+          .ancestor(of: find.text(label), matching: find.byType(Material))
+          .first,
+    );
+    Color? ink(String label) => tester.widget<Text>(find.text(label)).style?.color;
+    expect(fill('Actif').color, AppColors.primary600.withValues(alpha: 0.08));
+    expect(ink('Actif'), AppColors.primary600);
+    expect(fill('Autre').color, Colors.transparent);
+    expect(ink('Autre'), AppColors.textSecondary);
   });
 }
+
+void _noop() {}

@@ -7,9 +7,7 @@ import '../dev/theme_gallery_page.dart';
 import '../features/alerts/presentation/pages/low_stock_alerts_page.dart';
 import '../features/alerts/presentation/pages/notifications_page.dart';
 import '../features/dashboard/presentation/pages/store_dashboard_page.dart';
-import '../features/employees/presentation/pages/add_edit_employee_page.dart';
 import '../features/employees/presentation/pages/attendance_history_page.dart';
-import '../features/employees/presentation/pages/employee_detail_page.dart';
 import '../features/employees/presentation/pages/employees_list_page.dart';
 import '../features/employees/presentation/pages/payroll_history_page.dart';
 import '../features/employees/presentation/pages/timeclock_board_page.dart';
@@ -493,13 +491,6 @@ final GoRouter appRouter = GoRouter(
           ),
         ),
         GoRoute(
-          path: Routes.addEmployee,
-          pageBuilder: (context, state) => appPage(
-            key: state.pageKey,
-            child: AddEditEmployeePage(storeId: _storeId(state)),
-          ),
-        ),
-        GoRoute(
           path: Routes.timeclock,
           pageBuilder: (context, state) => appPage(
             key: state.pageKey,
@@ -510,33 +501,19 @@ final GoRouter appRouter = GoRouter(
           path: Routes.attendanceHistory,
           pageBuilder: (context, state) => appPage(
             key: state.pageKey,
-            child: AttendanceHistoryPage(storeId: _storeId(state)),
+            child: AttendanceHistoryPage(
+              storeId: _storeId(state),
+              initialEmployeeId: state.uri.queryParameters['employee'],
+            ),
           ),
         ),
         GoRoute(
           path: Routes.payroll,
           pageBuilder: (context, state) => appPage(
             key: state.pageKey,
-            child: PayrollHistoryPage(storeId: _storeId(state)),
-          ),
-        ),
-        GoRoute(
-          path: Routes.employeeDetail,
-          pageBuilder: (context, state) => appPage(
-            key: state.pageKey,
-            child: EmployeeDetailPage(
+            child: PayrollHistoryPage(
               storeId: _storeId(state),
-              employeeId: state.pathParameters['employeeId']!,
-            ),
-          ),
-        ),
-        GoRoute(
-          path: Routes.editEmployee,
-          pageBuilder: (context, state) => appPage(
-            key: state.pageKey,
-            child: AddEditEmployeePage(
-              storeId: _storeId(state),
-              employeeId: state.pathParameters['employeeId'],
+              initialEmployeeId: state.uri.queryParameters['employee'],
             ),
           ),
         ),

@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -15,6 +13,10 @@ import '../../../../data/providers.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
+
+/// Identity, status and the buttons — the day's timestamps live in the
+/// drawer behind "Voir détails", not on the card.
+const double _cardHeight = 348;
 
 /// The pointage kiosk — today's live board, one card per active employee.
 ///
@@ -62,7 +64,9 @@ class _TimeclockBoardPageState extends ConsumerState<TimeclockBoardPage> {
     return ShellPage(
       title: l10n.timeclockBoardTitle,
       subtitle: l10n.timeclockBoardSubtitle,
-      actions: const [_LiveClock(), _FullScreenToggleButton()],
+      // One line at the title's right: the live date and time, then full
+      // screen.
+      actions: const [LiveDateTime(), _FullScreenToggleButton()],
       child: AsyncContent<
         ({
           List<Employee> employees,
@@ -131,7 +135,7 @@ class _TimeclockBoardPageState extends ConsumerState<TimeclockBoardPage> {
           // One card pinned — a lone card in a four-up grid reads as an error.
           SizedBox(
             width: 360,
-            height: 372,
+            height: _cardHeight,
             child: _EmployeeCard(
               employee: pinned,
               entry: board[pinned.id],
@@ -147,7 +151,7 @@ class _TimeclockBoardPageState extends ConsumerState<TimeclockBoardPage> {
               crossAxisCount: context.gridColumns(max: 4),
               crossAxisSpacing: AppSpacing.lg,
               mainAxisSpacing: AppSpacing.lg,
-              mainAxisExtent: 372,
+              mainAxisExtent: _cardHeight,
             ),
             itemCount: shown.length,
             itemBuilder: (context, index) => _EmployeeCard(
@@ -170,53 +174,6 @@ class _TimeclockBoardPageState extends ConsumerState<TimeclockBoardPage> {
       };
 }
 
-/// Today's date and a ticking clock, isolated so the once-a-second tick
-/// redraws only this header, not the employee grid.
-class _LiveClock extends StatefulWidget {
-  const _LiveClock();
-
-  @override
-  State<_LiveClock> createState() => _LiveClockState();
-}
-
-class _LiveClockState extends State<_LiveClock> {
-  late DateTime _now = clock.now();
-  Timer? _ticker;
-
-  @override
-  void initState() {
-    super.initState();
-    _ticker = Timer.periodic(
-      const Duration(seconds: 1),
-      (_) => setState(() => _now = clock.now()),
-    );
-  }
-
-  @override
-  void dispose() {
-    _ticker?.cancel();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          Formatters.dateLong(_now),
-          style: theme.textTheme.bodyMedium?.copyWith(
-            color: AppColors.textSecondary,
-          ),
-        ),
-        Text(Formatters.time(_now), style: theme.textTheme.headlineSmall),
-      ],
-    );
-  }
-}
-
 class _FullScreenToggleButton extends ConsumerWidget {
   const _FullScreenToggleButton();
 
@@ -236,8 +193,8 @@ class _FullScreenToggleButton extends ConsumerWidget {
   }
 }
 
-/// A vertical pointage card: identity, status, the day's timestamp log, and
-/// the action area.
+/// A vertical pointage card: identity, status and the action area, with
+/// "Voir détails" at the top right for the day's timestamps.
 class _EmployeeCard extends StatelessWidget {
   const _EmployeeCard({
     required this.employee,
@@ -251,69 +208,70 @@ class _EmployeeCard extends StatelessWidget {
   final StoreSettings settings;
   final String storeId;
 
+  void _openDetail(BuildContext context) {
+    // Bare: the day detail — date and live time included — is the heading.
+    DetailDrawer.show(
+      context,
+      children: [_BoardDetail(storeId: storeId, employeeId: employee.id)],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
     final status = entry?.status ?? AttendanceStatus.notClockedIn;
-    final lateBreak =
-        entry != null && hasLateBreak(entry!, settings.maxBreakMinutes);
 
     return AppCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
+      child: Stack(
         children: [
-          EmployeeAvatar(employee: employee, size: 56),
-          const SizedBox(height: AppSpacing.sm),
-          Text(
-            employeeDisplayName(employee),
-            style: theme.textTheme.titleSmall,
-            textAlign: TextAlign.center,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          Text(
-            employeeRoleLabel(l10n, employee.role),
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: AppColors.textSecondary,
-            ),
-            textAlign: TextAlign.center,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: AppSpacing.md),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              AttendanceStatusBadge(status: status),
-              if (lateBreak) ...[
-                const SizedBox(width: AppSpacing.xs),
-                Tooltip(
-                  message: l10n.attendanceBreakOverrun,
-                  child: Icon(
-                    LucideIcons.coffee,
-                    size: AppSizing.iconSm,
-                    color: AppColors.lowStock.foreground,
-                  ),
+              const SizedBox(height: AppSpacing.md),
+              EmployeeAvatar(employee: employee, size: 56),
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                employeeDisplayName(employee),
+                style: theme.textTheme.titleSmall,
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              Text(
+                employeeRoleLabel(l10n, employee.role),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: AppColors.textSecondary,
                 ),
-              ],
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: AppSpacing.md),
+              AttendanceStatusBadge(status: status),
+              const Spacer(),
+              const SizedBox(height: AppSpacing.md),
+              _ActionArea(
+                entry: entry,
+                employee: employee,
+                settings: settings,
+                storeId: storeId,
+              ),
             ],
           ),
-          if (entry != null) ...[
-            const SizedBox(height: AppSpacing.md),
-            _TimestampLog(
-              entry: entry!,
-              maxBreakMinutes: settings.maxBreakMinutes,
+          Positioned(
+            top: -AppSpacing.sm,
+            right: -AppSpacing.sm,
+            child: TextButton.icon(
+              key: ValueKey('timeclock-detail-${employee.id}'),
+              onPressed: () => _openDetail(context),
+              style: TextButton.styleFrom(
+                visualDensity: VisualDensity.compact,
+                textStyle: theme.textTheme.labelMedium,
+              ),
+              icon: const Icon(LucideIcons.eye, size: AppSizing.iconSm),
+              label: Text(l10n.timeclockViewDetail),
             ),
-          ],
-          const Spacer(),
-          const SizedBox(height: AppSpacing.md),
-          _ActionArea(
-            entry: entry,
-            employee: employee,
-            settings: settings,
-            storeId: storeId,
           ),
         ],
       ),
@@ -321,91 +279,114 @@ class _EmployeeCard extends StatelessWidget {
   }
 }
 
-/// The day's events laid out left to right — Arrivée · Pause · Reprise ·
-/// Pause · … · Départ — wrapping to the next line only when the card runs out
-/// of width. Each chip is a coloured dot, a time and a short label. An
-/// over-allowance break turns its `Reprise` chip amber.
-class _TimestampLog extends StatelessWidget {
-  const _TimestampLog({required this.entry, required this.maxBreakMinutes});
+/// The drawer behind "Voir détails" — the same day detail as the history's
+/// ([AttendanceDayDetail]), with the live time beside the date. Before the
+/// first punch of the day: the employee, centred, asked to start their day,
+/// with the card's own `Pointer` (PIN first).
+///
+/// Watches the board itself rather than taking a snapshot, so a punch made
+/// while the drawer is open shows up in it. No PIN: this is the shared kiosk,
+/// and the PIN is what confirms an action here.
+class _BoardDetail extends ConsumerWidget {
+  const _BoardDetail({required this.storeId, required this.employeeId});
 
-  final Attendance entry;
-  final int maxBreakMinutes;
+  final String storeId;
+  final String employeeId;
 
   @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final chips = <Widget>[];
+  Widget build(BuildContext context, WidgetRef ref) {
+    final employee = ref
+        .watch(activeEmployeesProvider(storeId))
+        .value
+        ?.where((e) => e.id == employeeId)
+        .firstOrNull;
+    final entry = ref.watch(attendanceBoardProvider(storeId)).value?[employeeId];
+    final settings = ref.watch(storeSettingsProvider(storeId)).value;
+    if (employee == null || settings == null) return const SizedBox.shrink();
 
-    void add(DateTime at, String label, Color color) {
-      chips.add(_LogChip(time: at, label: label, color: color));
-    }
-
-    if (entry.clockInAt != null) {
-      add(entry.clockInAt!, l10n.timeclockLogArrival, AppColors.inStock.solid);
-    }
-    for (final pause in entry.pauses) {
-      add(pause.startAt, l10n.timeclockLogBreak, AppColors.onBreak.solid);
-      if (pause.endAt != null) {
-        final over = breakOverrun(pause, maxBreakMinutes) > Duration.zero;
-        add(
-          pause.endAt!,
-          l10n.timeclockLogResume,
-          over ? AppColors.lowStock.solid : AppColors.inStock.solid,
-        );
-      }
-    }
-    if (entry.clockOutAt != null) {
-      add(
-        entry.clockOutAt!,
-        l10n.timeclockLogDeparture,
-        AppColors.textSecondary,
+    if (entry == null || entry.sessions.isEmpty) {
+      return _StartDayPrompt(
+        employee: employee,
+        settings: settings,
+        storeId: storeId,
       );
     }
 
-    return Wrap(
-      spacing: AppSpacing.sm,
-      runSpacing: AppSpacing.xs,
-      alignment: WrapAlignment.center,
-      children: chips,
+    return AttendanceDayDetail(
+      entry: entry,
+      employee: employee,
+      showPin: false,
+      maxBreakMinutes: resolvedMaxBreakMinutes(
+        entry,
+        fallback: settings.maxBreakMinutes,
+      ),
+      dateLine: AttendanceDayDate(date: entry.date, trailing: const LiveTime()),
     );
   }
 }
 
-class _LogChip extends StatelessWidget {
-  const _LogChip({
-    required this.time,
-    required this.label,
-    required this.color,
+/// Not clocked in yet: avatar, name, a line inviting them to start the day
+/// (dated), and `Pointer` — centred in the drawer.
+class _StartDayPrompt extends StatelessWidget {
+  const _StartDayPrompt({
+    required this.employee,
+    required this.settings,
+    required this.storeId,
   });
 
-  final DateTime time;
-  final String label;
-  final Color color;
+  final Employee employee;
+  final StoreSettings settings;
+  final String storeId;
+
+  /// The bare drawer's close bar and bottom padding — what the body's
+  /// height leaves for this block to centre in.
+  static const double _drawerChrome = 88;
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 6,
-          height: 6,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+    final media = MediaQuery.of(context);
+    final day = Formatters.dateLongWeekday(clock.now());
+    final dayLower = day.isEmpty ? day : day[0].toLowerCase() + day.substring(1);
+
+    return ConstrainedBox(
+      key: const ValueKey('timeclock-start-day'),
+      constraints: BoxConstraints(
+        minHeight: media.size.height - media.padding.vertical - _drawerChrome,
+      ),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            EmployeeAvatar(employee: employee, size: 72),
+            const SizedBox(height: AppSpacing.md),
+            Text(
+              employeeDisplayName(employee),
+              style: theme.textTheme.titleMedium,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            Text(
+              l10n.timeclockStartDayPrompt(dayLower),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: AppColors.textSecondary,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: AppSpacing.xl),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 240),
+              child: _ActionArea(
+                entry: null,
+                employee: employee,
+                settings: settings,
+                storeId: storeId,
+              ),
+            ),
+          ],
         ),
-        const SizedBox(width: AppSpacing.xxs),
-        Text(
-          Formatters.time(time),
-          style: theme.textTheme.bodySmall?.copyWith(color: color),
-        ),
-        const SizedBox(width: 2),
-        Text(
-          label,
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: AppColors.textSecondary,
-          ),
-        ),
-      ],
+      ),
     );
   }
 }
@@ -425,8 +406,8 @@ class _ActionArea extends ConsumerWidget {
   final String storeId;
 
   /// Every board action is attributed to a person, so each one asks for that
-  /// employee's CIN first — the dialog owns the wrong-attempt / lockout loop.
-  /// Only on a confirmed CIN does the pointage write run.
+  /// employee's PIN first — the dialog owns the wrong-attempt / lockout loop.
+  /// Only on a confirmed PIN does the pointage write run.
   Future<void> _run(
     BuildContext context,
     WidgetRef ref,
@@ -442,8 +423,8 @@ class _ActionArea extends ConsumerWidget {
         actionLabel,
         employeeDisplayName(employee),
       ),
-      verify: (cin) =>
-          ref.read(credentialRepositoryProvider).verifyCin(cin, employee.id),
+      verify: (pin) =>
+          ref.read(credentialRepositoryProvider).verifyPin(pin, employee.id),
     );
     if (!ok || !context.mounted) return;
 
@@ -524,10 +505,25 @@ class _ActionArea extends ConsumerWidget {
         );
 
       case AttendanceStatus.done:
-        return _DoneSummary(
-          entry: current,
-          employee: employee,
-          settings: settings,
+        // The day's cycle is closed, but not the day itself — `Pointer`
+        // starts another one, for the employee who steps out and comes back.
+        return Column(
+          children: [
+            const _DoneSummary(),
+            const SizedBox(height: AppSpacing.xs),
+            _BigButton(
+              label: l10n.timeclockClockIn,
+              icon: LucideIcons.circle,
+              outlined: true,
+              onPressed: () => _run(
+                context,
+                ref,
+                l10n.timeclockClockIn,
+                () => repo.clockIn(employee.id, storeId),
+                l10n.timeclockClockInDone,
+              ),
+            ),
+          ],
         );
     }
   }
@@ -603,91 +599,18 @@ class _BigButton extends StatelessWidget {
   }
 }
 
+/// The finished day's disabled `TERMINÉ` — the hours themselves are in the
+/// drawer, not on the card.
 class _DoneSummary extends StatelessWidget {
-  const _DoneSummary({
-    required this.entry,
-    required this.employee,
-    required this.settings,
-  });
-
-  final Attendance entry;
-  final Employee employee;
-  final StoreSettings settings;
+  const _DoneSummary();
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-    final schedule = resolvedSchedule(
-      employee,
-      storeOpenMinutes: settings.openMinutes,
-      storeCloseMinutes: settings.closeMinutes,
-    );
-    final worked = workedDuration(entry);
-    final over = overtimeBy(entry, schedule.endMinutes) ?? Duration.zero;
-    final late = isLate(entry, schedule.startMinutes);
-    final lateBreak = hasLateBreak(entry, settings.maxBreakMinutes);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (worked != null)
-          Text(
-            l10n.timeclockWorked(Formatters.duration(worked)),
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: AppColors.textSecondary,
-            ),
-          ),
-        if (over > Duration.zero || late) ...[
-          const SizedBox(height: 2),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              if (late) ...[
-                Icon(
-                  LucideIcons.triangleAlert,
-                  size: AppSizing.iconSm,
-                  color: AppColors.lowStock.foreground,
-                ),
-                const SizedBox(width: AppSpacing.xs),
-              ],
-              if (over > Duration.zero)
-                Text(
-                  l10n.timeclockOvertimeMark(Formatters.duration(over)),
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              if (late && over <= Duration.zero)
-                Text(
-                  l10n.attendanceLate,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-            ],
-          ),
-        ],
-        if (lateBreak) ...[
-          const SizedBox(height: 2),
-          Text(
-            l10n.attendanceBreakOverrun,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: AppColors.lowStock.foreground,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-        const SizedBox(height: AppSpacing.xs),
-        _BigButton(
-          label: l10n.attendanceStatusDone,
-          icon: LucideIcons.circleCheck,
-          color: AppColors.surfaceVariant,
-          onPressed: null,
-        ),
-      ],
+    return _BigButton(
+      label: AppLocalizations.of(context).attendanceStatusDone,
+      icon: LucideIcons.circleCheck,
+      color: AppColors.surfaceVariant,
+      onPressed: null,
     );
   }
 }

@@ -310,7 +310,7 @@ record(
 # --- The Gestion Employée tables have one writer each -------------------------
 # Same single-writer rule as stock quantity, for the aggregates Phase 2 employé
 # moves onto the database. Each table is written by exactly one repository, so
-# its invariants — CIN / email uniqueness, the lockout state machine, the
+# its invariants — PIN / email uniqueness, the lockout state machine, the
 # pointage transitions, the frozen payroll rate — live in one place rather than
 # spread across whatever screen felt like touching a companion.
 #

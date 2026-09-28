@@ -13,16 +13,21 @@ import 'adaptive_row.dart';
 ///
 /// ~440px on a desktop, near full-width below 600. Dismissed by the close
 /// button, the scrim, or Échap.
+///
+/// With no [title] the panel is bare: the close button alone at the top
+/// right, no rule under it — the content is its own heading (the pointage
+/// drawers).
 class DetailDrawer extends StatelessWidget {
-  const DetailDrawer({required this.title, required this.children, super.key});
+  const DetailDrawer({required this.children, this.title, super.key});
 
-  final String title;
+  /// The panel's heading, over a hairline. Null for a bare panel.
+  final String? title;
   final List<Widget> children;
 
   static Future<void> show(
     BuildContext context, {
-    required String title,
     required List<Widget> children,
+    String? title,
   }) =>
       _slideIn(context, (_) => DetailDrawer(title: title, children: children));
 
@@ -71,6 +76,7 @@ class DetailDrawer extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    final bare = title == null;
 
     return _DrawerPanel(
       width: 440,
@@ -78,16 +84,18 @@ class DetailDrawer extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(
+            padding: EdgeInsets.fromLTRB(
               AppSpacing.xl,
-              AppSpacing.md,
+              bare ? AppSpacing.sm : AppSpacing.md,
               AppSpacing.sm,
-              AppSpacing.md,
+              bare ? 0 : AppSpacing.md,
             ),
             child: Row(
               children: [
                 Expanded(
-                  child: Text(title, style: theme.textTheme.titleMedium),
+                  child: bare
+                      ? const SizedBox.shrink()
+                      : Text(title!, style: theme.textTheme.titleMedium),
                 ),
                 IconButton(
                   onPressed: () => Navigator.of(context).pop(),
@@ -97,10 +105,18 @@ class DetailDrawer extends StatelessWidget {
               ],
             ),
           ),
-          Divider(height: 1, color: AppColors.border.withValues(alpha: 0.5)),
+          if (!bare)
+            Divider(height: 1, color: AppColors.border.withValues(alpha: 0.5)),
           Expanded(
             child: ListView(
-              padding: const EdgeInsets.all(AppSpacing.xl),
+              padding: bare
+                  ? const EdgeInsets.fromLTRB(
+                      AppSpacing.xl,
+                      0,
+                      AppSpacing.xl,
+                      AppSpacing.xl,
+                    )
+                  : const EdgeInsets.all(AppSpacing.xl),
               children: children,
             ),
           ),

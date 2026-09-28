@@ -31,7 +31,6 @@ final List<PayrollPeriod> mockPayrollPeriods = [
     endDate: dayOnly(2),
     workedDays: 2,
     totalWorkedHours: 17.25,
-    totalOvertimeHours: 0.25,
     appliedRate: 2400,
     computedAmount: 200.53,
     status: PayrollStatus.paid,
@@ -54,7 +53,7 @@ PayrollPeriod _testCalculPeriod(String id, String employeeId) {
       mockAttendances.where((a) => a.payrollPeriodId == id).toList()
         ..sort((a, b) => a.date.compareTo(b.date));
 
-  final totals = periodTotals(days, employee, settings);
+  final totals = periodTotals(days);
   final paidAt = DateTime(2026, 7, 16);
 
   return PayrollPeriod(
@@ -65,7 +64,6 @@ PayrollPeriod _testCalculPeriod(String id, String employeeId) {
     endDate: days.last.date,
     workedDays: totals.days,
     totalWorkedHours: totals.workedHours,
-    totalOvertimeHours: totals.overtimeHours,
     appliedRate: employee.pay,
     computedAmount: periodAmount(days, employee, settings),
     status: PayrollStatus.paid,

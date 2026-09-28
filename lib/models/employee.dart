@@ -18,21 +18,10 @@ enum EmployeeRole {
   staff,
 }
 
-/// How a person is engaged, which decides how [Employee.pay] is read.
-enum ContractType {
-  /// Salarié fixe — a monthly [Employee.pay]. An unjustified absence is a
-  /// deduction against it.
-  fixed,
-
-  /// Extra — an hourly [Employee.pay]. Paid only for hours actually worked;
-  /// absence does not apply.
-  extra,
-}
-
 /// A member of staff at one store.
 ///
 /// This is the single "person" model for the app: it carries both the
-/// employment facts (contract, pay, CIN) and the application access
+/// employment facts (contract, pay, PIN) and the application access
 /// ([role]) that the removed `TeamMember` used to hold separately. One store
 /// per person — see `.claude/phase_gestion_employee.md` decision 2; an owner
 /// spans stores by navigating between them, not by a list on this record.
@@ -48,17 +37,14 @@ class Employee {
     required this.storeId,
     required this.firstName,
     required this.lastName,
-    required this.cin,
+    required this.pin,
     required this.phone,
     required this.email,
     required this.hireDate,
     required this.role,
-    required this.contractType,
     required this.pay,
     required this.createdAt,
     this.photoAsset,
-    this.scheduledStartMinutes,
-    this.scheduledEndMinutes,
     this.archivedAt,
   });
 
@@ -70,7 +56,7 @@ class Employee {
 
   /// Carte d'identité nationale — the identity document number kept on file.
   /// Unique account-wide, and the future login identifier (Phase 6).
-  final String cin;
+  final String pin;
 
   final String phone;
 
@@ -85,18 +71,9 @@ class Employee {
   final DateTime hireDate;
 
   final EmployeeRole role;
-  final ContractType contractType;
 
-  /// Read per [contractType] — a monthly amount in euros when `fixed`, an
-  /// hourly rate in euros per hour when `extra`.
+  /// Hourly rate in euros — every hour actually worked is paid at this rate.
   final double pay;
-
-  /// Minutes since midnight for this person's own start / end of day. Null
-  /// means "use the store's opening hours" — the resolved schedule is what
-  /// lateness and overtime are measured against (Phase 3). Stored as an int
-  /// rather than a `TimeOfDay` so the model stays pure Dart.
-  final int? scheduledStartMinutes;
-  final int? scheduledEndMinutes;
 
   final DateTime createdAt;
 

@@ -20,6 +20,8 @@ class AppCard extends StatefulWidget {
     this.padding,
     this.selected = false,
     this.accentColor,
+    this.bordered = true,
+    this.dashedBorderColor,
     super.key,
   });
 
@@ -36,6 +38,14 @@ class AppCard extends StatefulWidget {
   /// A thick left edge — carries stock status onto a card without relying on
   /// the surface colour, which has to stay neutral.
   final Color? accentColor;
+
+  /// False drops the resting hairline — the shadow alone lifts the card (the
+  /// KPI tiles). Selection and keyboard focus still draw their outline.
+  final bool bordered;
+
+  /// Draws a dashed outline in this colour instead of the resting hairline —
+  /// a record that is no longer active (a retired employee).
+  final Color? dashedBorderColor;
 
   /// The hairline a resting card is drawn with.
   static const double borderWidth = 1;
@@ -74,7 +84,10 @@ class _AppCardState extends State<AppCard> {
 
     final lifted = _isInteractive && (_hovered || widget.selected || _focused);
 
-    return MouseRegion(
+    final dashed = widget.dashedBorderColor;
+    final showDashes = dashed != null && !widget.selected && !_focused;
+
+    final card = MouseRegion(
       cursor: _isInteractive ? SystemMouseCursors.click : MouseCursor.defer,
       onEnter: _isInteractive ? (_) => setState(() => _hovered = true) : null,
       onExit: _isInteractive ? (_) => setState(() => _hovered = false) : null,
@@ -93,10 +106,12 @@ class _AppCardState extends State<AppCard> {
                   color: AppColors.primary600,
                   width: AppCard.selectedBorderWidth,
                 )
-              : Border.all(
+              : widget.bordered && widget.dashedBorderColor == null
+              ? Border.all(
                   color: AppColors.hairline,
                   width: AppCard.borderWidth,
-                ),
+                )
+              : null,
           // Pressed drops back to resting so the card appears to sink under
           // the finger rather than staying lifted.
           boxShadow: _pressed
@@ -152,5 +167,40 @@ class _AppCardState extends State<AppCard> {
         ),
       ),
     );
+    if (!showDashes) return card;
+    return CustomPaint(
+      foregroundPainter: _DashedRRectPainter(color: dashed),
+      child: card,
+    );
   }
+}
+
+/// A dashed rounded-rectangle outline — see [AppCard.dashedBorderColor].
+class _DashedRRectPainter extends CustomPainter {
+  const _DashedRRectPainter({required this.color});
+
+  final Color color;
+
+  static const double _dash = 6;
+  static const double _gap = 4;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5;
+    final rect = (Offset.zero & size).deflate(0.75);
+    final path = Path()
+      ..addRRect(AppRadius.lgAll.toRRect(rect));
+    for (final metric in path.computeMetrics()) {
+      for (var d = 0.0; d < metric.length; d += _dash + _gap) {
+        canvas.drawPath(metric.extractPath(d, d + _dash), paint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(_DashedRRectPainter oldDelegate) =>
+      color != oldDelegate.color;
 }

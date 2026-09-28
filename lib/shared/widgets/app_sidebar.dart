@@ -99,10 +99,7 @@ class _AppSidebarState extends ConsumerState<AppSidebar> {
       width: collapsed
           ? AppSizing.sidebarWidthCollapsed
           : AppSizing.sidebarWidthExpanded,
-      decoration: const BoxDecoration(
-        color: AppColors.steel800,
-        border: Border(right: BorderSide(color: AppColors.steel700)),
-      ),
+      color: AppColors.white,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -154,8 +151,15 @@ class _SidebarDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      const Divider(height: 1, thickness: 1, color: AppColors.steel700);
+      const Divider(height: 1, thickness: 1, color: AppColors.border);
 }
+
+/// The active page's fill — the pale brand-green wash of the hourly-rate tile
+/// on the employee cards (`HighlightTile`), under brand-green text.
+final Color _activeFill = AppColors.primary600.withValues(alpha: 0.08);
+
+/// Hover on the white sidebar and its menus.
+const Color _hoverFill = AppColors.neutral50;
 
 // -----------------------------------------------------------------------------
 // Header — the active store's icon and name, and the notification shortcut.
@@ -175,7 +179,7 @@ class _SidebarHeader extends ConsumerWidget {
 
     final storeIcon = Icon(
       LucideIcons.store,
-      color: AppColors.white,
+      color: AppColors.primary600,
       size: collapsed ? AppSizing.iconMd : AppSizing.iconLg,
     );
 
@@ -216,7 +220,7 @@ class _SidebarHeader extends ConsumerWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: theme.textTheme.titleSmall?.copyWith(
-                color: AppColors.white,
+                color: AppColors.textPrimary,
               ),
             ),
           ),
@@ -250,8 +254,8 @@ class _HeaderIconButton extends StatelessWidget {
           onPressed: onPressed,
           tooltip: tooltip,
           icon: Icon(icon, size: AppSizing.iconMd),
-          color: AppColors.neutral300,
-          hoverColor: AppColors.steel700,
+          color: AppColors.textSecondary,
+          hoverColor: _hoverFill,
         ),
         if (badgeCount > 0)
           Positioned(right: 4, top: 4, child: _CountBadge(count: badgeCount)),
@@ -263,16 +267,12 @@ class _HeaderIconButton extends StatelessWidget {
 /// The red count pill — on the bell in the header, and on the navigation row of
 /// a section with something waiting.
 ///
-/// Ringed in the sidebar's own steel so it stays separated from whatever it
-/// sits on. On the active row that ring would land on teal and read as a second
-/// alarm, so [inverted] flips it to white-on-teal instead.
+/// Ringed in white, the sidebar's own background, so it stays separated from
+/// whatever it sits on.
 class _CountBadge extends StatelessWidget {
-  const _CountBadge({required this.count, this.inverted = false});
+  const _CountBadge({required this.count});
 
   final int count;
-
-  /// For a row that is already highlighted teal.
-  final bool inverted;
 
   @override
   Widget build(BuildContext context) {
@@ -283,11 +283,9 @@ class _CountBadge extends StatelessWidget {
       ),
       constraints: const BoxConstraints(minWidth: 18),
       decoration: BoxDecoration(
-        color: inverted ? AppColors.white : AppColors.error,
+        color: AppColors.error,
         borderRadius: AppRadius.pillAll,
-        border: inverted
-            ? null
-            : Border.all(color: AppColors.steel800, width: 1.5),
+        border: Border.all(color: AppColors.white, width: 1.5),
       ),
       child: Text(
         // Three digits stretch the pill past the label beside it, and the
@@ -295,7 +293,7 @@ class _CountBadge extends StatelessWidget {
         count > 99 ? '99+' : '$count',
         textAlign: TextAlign.center,
         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-          color: inverted ? AppColors.primary600 : AppColors.white,
+          color: AppColors.white,
           fontWeight: FontWeight.w700,
         ),
       ),
@@ -652,11 +650,11 @@ class _NavList extends ConsumerWidget {
             top: topLeft.dy,
             child: Material(
               elevation: 8,
-              // Steel-800, the sidebar's own background — the flyout reads as
-              // an extension of the rail rather than a separate popup. Square
-              // on the left, where it meets the rail; a small radius only on
-              // the right, the edge that actually faces open space.
-              color: AppColors.steel800,
+              // White, the sidebar's own background — the flyout reads as an
+              // extension of the rail rather than a separate popup. Square on
+              // the left, where it meets the rail; a small radius only on the
+              // right, the edge that actually faces open space.
+              color: AppColors.white,
               borderRadius: const BorderRadius.only(
                 topRight: Radius.circular(AppRadius.sm),
                 bottomRight: Radius.circular(AppRadius.sm),
@@ -675,7 +673,7 @@ class _NavList extends ConsumerWidget {
                         Container(
                           width: 1,
                           height: AppSizing.iconMd + AppSpacing.sm * 2,
-                          color: AppColors.steel700,
+                          color: AppColors.border,
                         ),
                       Tooltip(
                         message: items[i].label(l10n),
@@ -689,7 +687,7 @@ class _NavList extends ConsumerWidget {
                             child: Icon(
                               items[i].icon,
                               size: AppSizing.iconMd,
-                              color: AppColors.neutral300,
+                              color: AppColors.textSecondary,
                             ),
                           ),
                         ),
@@ -708,9 +706,10 @@ class _NavList extends ConsumerWidget {
   }
 }
 
-/// One navigation row in the sidebar — icon, label, and a teal highlight when
-/// it is the section the user is in. Reused for every destination; the Gestion
-/// Employée row passes a [trailing] chevron, and Alertes a [badgeCount].
+/// One navigation row in the sidebar — icon, label, and a pale-green fill with
+/// green text when it is the section the user is in. Reused for every
+/// destination; the Gestion Employée row passes a [trailing] chevron, and
+/// Alertes a [badgeCount].
 ///
 /// Public so the navigation suite can read which row is [active].
 class SidebarNavTile extends StatelessWidget {
@@ -737,7 +736,7 @@ class SidebarNavTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final foreground = active ? AppColors.white : AppColors.neutral300;
+    final foreground = active ? AppColors.primary600 : AppColors.textSecondary;
     final badged = badgeCount > 0;
 
     // Collapsed there is no room for a pill beside an 88dp-wide icon, so the
@@ -757,10 +756,7 @@ class SidebarNavTile extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: AppColors.error,
                     shape: BoxShape.circle,
-                    border: Border.all(
-                      color: active ? AppColors.primary600 : AppColors.steel800,
-                      width: 1.5,
-                    ),
+                    border: Border.all(color: AppColors.white, width: 1.5),
                   ),
                 ),
               ),
@@ -791,7 +787,7 @@ class SidebarNavTile extends StatelessWidget {
           ),
           if (badged) ...[
             const SizedBox(width: AppSpacing.sm),
-            _CountBadge(count: badgeCount, inverted: active),
+            _CountBadge(count: badgeCount),
           ],
           if (trailing != null)
             IconTheme.merge(
@@ -803,12 +799,12 @@ class SidebarNavTile extends StatelessWidget {
     );
 
     final tile = Material(
-      color: active ? AppColors.primary600 : Colors.transparent,
+      color: active ? _activeFill : Colors.transparent,
       borderRadius: AppRadius.mdAll,
       child: InkWell(
         onTap: onTap,
         borderRadius: AppRadius.mdAll,
-        hoverColor: AppColors.steel700,
+        hoverColor: _hoverFill,
         child: Container(
           constraints: const BoxConstraints(minHeight: AppSizing.minTapTarget),
           padding: EdgeInsets.symmetric(
@@ -865,15 +861,15 @@ class _ChildNavTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final foreground = active ? AppColors.white : AppColors.neutral300;
+    final foreground = active ? AppColors.primary600 : AppColors.textSecondary;
 
     return Material(
-      color: active ? AppColors.primary600 : Colors.transparent,
+      color: active ? _activeFill : Colors.transparent,
       borderRadius: AppRadius.mdAll,
       child: InkWell(
         onTap: onTap,
         borderRadius: AppRadius.mdAll,
-        hoverColor: AppColors.steel700,
+        hoverColor: _hoverFill,
         child: Container(
           constraints: const BoxConstraints(minHeight: AppSizing.minTapTarget),
           padding: const EdgeInsets.only(right: AppSpacing.md),
@@ -885,7 +881,7 @@ class _ChildNavTile extends StatelessWidget {
                 child: CustomPaint(
                   painter: _TreeBranchPainter(
                     isLast: isLast,
-                    color: AppColors.steel500,
+                    color: AppColors.borderStrong,
                   ),
                 ),
               ),
@@ -978,7 +974,7 @@ class _SidebarProfile extends ConsumerWidget {
   /// gap.
   static const double _menuLift = 3 * AppSizing.minTapTarget + AppSpacing.xxl;
 
-  /// Opens the user menu — a steel panel [_menuWidth] wide, centred on the
+  /// Opens the user menu — a white panel [_menuWidth] wide, centred on the
   /// sidebar and floating just above the profile row, with a drop shadow.
   Future<void> _open(BuildContext context, WidgetRef ref) async {
     final box = context.findRenderObject() as RenderBox?;
@@ -998,11 +994,11 @@ class _SidebarProfile extends ConsumerWidget {
 
     final selected = await showMenu<String>(
       context: context,
-      color: AppColors.steel800,
-      // A real drop shadow, not an M3 surface tint (which does nothing on this
-      // custom steel colour).
+      color: AppColors.white,
+      // A real drop shadow, not an M3 surface tint — the menu is white on a
+      // white sidebar.
       elevation: 12,
-      shadowColor: AppColors.neutral950,
+      shadowColor: AppColors.neutral950.withValues(alpha: 0.35),
       surfaceTintColor: Colors.transparent,
       constraints: const BoxConstraints.tightFor(width: _menuWidth),
       shape: const RoundedRectangleBorder(borderRadius: AppRadius.mdAll),
@@ -1021,7 +1017,7 @@ class _SidebarProfile extends ConsumerWidget {
           padding: EdgeInsets.zero,
           child: _MenuRow(icon: LucideIcons.settings, label: l10n.navSettings),
         ),
-        const PopupMenuDivider(color: AppColors.steel600),
+        const PopupMenuDivider(color: AppColors.border),
         PopupMenuItem<String>(
           value: 'logout',
           padding: EdgeInsets.zero,
@@ -1059,7 +1055,7 @@ class _SidebarProfile extends ConsumerWidget {
       message: l10n.topBarAccount,
       child: InkWell(
         onTap: () => _open(context, ref),
-        hoverColor: AppColors.steel700,
+        hoverColor: _hoverFill,
         child: Container(
           padding: EdgeInsets.symmetric(
             horizontal: collapsed ? AppSpacing.sm : AppSpacing.lg,
@@ -1083,7 +1079,7 @@ class _SidebarProfile extends ConsumerWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.labelLarge?.copyWith(
-                          color: AppColors.white,
+                          color: AppColors.textPrimary,
                         ),
                       ),
                       if (user != null)
@@ -1092,7 +1088,7 @@ class _SidebarProfile extends ConsumerWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: theme.textTheme.bodySmall?.copyWith(
-                            color: AppColors.neutral400,
+                            color: AppColors.textSecondary,
                           ),
                         ),
                     ],
@@ -1101,7 +1097,7 @@ class _SidebarProfile extends ConsumerWidget {
                 const Icon(
                   LucideIcons.chevronsUpDown,
                   size: AppSizing.iconSm,
-                  color: AppColors.neutral300,
+                  color: AppColors.textSecondary,
                 ),
               ],
             ],
@@ -1112,10 +1108,9 @@ class _SidebarProfile extends ConsumerWidget {
   }
 }
 
-/// One row of the user menu — light on the steel ground it shares with the
-/// sidebar. On hover it fills with the same teal the active navigation entry
-/// uses. [destructive] paints "Se déconnecter" red, until it too goes white on
-/// the teal.
+/// One row of the user menu, on white. On hover it takes the active
+/// navigation entry's pale-green fill and green text; [destructive] keeps
+/// "Se déconnecter" red, over a pale-red fill on hover.
 class _MenuRow extends StatefulWidget {
   const _MenuRow({
     required this.icon,
@@ -1137,18 +1132,21 @@ class _MenuRowState extends State<_MenuRow> {
   @override
   Widget build(BuildContext context) {
     final Color foreground;
-    if (_hovered) {
-      foreground = AppColors.white;
-    } else if (widget.destructive) {
-      foreground = AppColors.errorOnChrome;
+    final Color iconColor;
+    final Color fill;
+    if (widget.destructive) {
+      foreground = iconColor = AppColors.error;
+      fill = _hovered
+          ? AppColors.error.withValues(alpha: 0.08)
+          : Colors.transparent;
+    } else if (_hovered) {
+      foreground = iconColor = AppColors.primary600;
+      fill = _activeFill;
     } else {
-      foreground = AppColors.neutral100;
+      foreground = AppColors.textPrimary;
+      iconColor = AppColors.textSecondary;
+      fill = Colors.transparent;
     }
-    final Color iconColor = _hovered
-        ? AppColors.white
-        : widget.destructive
-        ? AppColors.errorOnChrome
-        : AppColors.neutral300;
 
     return MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),
@@ -1156,7 +1154,7 @@ class _MenuRowState extends State<_MenuRow> {
       child: Container(
         constraints: const BoxConstraints(minHeight: AppSizing.minTapTarget),
         alignment: Alignment.centerLeft,
-        color: _hovered ? AppColors.primary600 : Colors.transparent,
+        color: fill,
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
         child: Row(
           children: [
@@ -1194,14 +1192,14 @@ class _InitialsAvatar extends StatelessWidget {
       height: 32,
       alignment: Alignment.center,
       decoration: const BoxDecoration(
-        color: AppColors.steel600,
+        color: AppColors.neutral200,
         shape: BoxShape.circle,
       ),
       child: Text(
         initials,
         style: Theme.of(
           context,
-        ).textTheme.labelMedium?.copyWith(color: AppColors.white),
+        ).textTheme.labelMedium?.copyWith(color: AppColors.textPrimary),
       ),
     );
   }

@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 
+/// How the staff roster lays its records out.
+enum CollectionViewMode { grid, list }
+
 /// One way of showing a list: its icon, and the name read out and shown on
 /// hover.
 @immutable
@@ -18,11 +21,12 @@ class ViewModeOption<T> {
   final String label;
 }
 
-/// Cards, list or table — a pill of icon buttons, the chosen one tinted.
+/// Cards, list or table — a segmented control of icon buttons, the chosen one
+/// tinted.
 ///
-/// Shared by the product page (grille / tableau) and the movement history
-/// (liste / tableau), so the control that switches a view looks and behaves
-/// the same wherever there is one.
+/// Shared by the product page (grille / tableau), the movement history
+/// (liste / tableau) and the staff roster (grille / liste), so the control
+/// that switches a view looks and sits the same wherever there is one.
 class ViewModeToggle<T> extends StatelessWidget {
   const ViewModeToggle({
     required this.value,
@@ -38,17 +42,16 @@ class ViewModeToggle<T> extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: AppSizing.minTapTarget,
-      decoration: BoxDecoration(
+      height: AppSizing.toolbarControlHeight,
+      decoration: const BoxDecoration(
         color: AppColors.surface,
-        borderRadius: AppRadius.pillAll,
-        border: Border.all(color: AppColors.border),
+        borderRadius: AppRadius.smAll,
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           for (final option in options)
-            _Button(
+            _ViewModeButton(
               icon: option.icon,
               label: option.label,
               selected: option.value == value,
@@ -60,8 +63,8 @@ class ViewModeToggle<T> extends StatelessWidget {
   }
 }
 
-class _Button extends StatelessWidget {
-  const _Button({
+class _ViewModeButton extends StatelessWidget {
+  const _ViewModeButton({
     required this.icon,
     required this.label,
     required this.selected,
@@ -83,21 +86,21 @@ class _Button extends StatelessWidget {
         label: label,
         child: InkWell(
           onTap: onTap,
-          borderRadius: AppRadius.pillAll,
+          borderRadius: AppRadius.smAll,
           child: AnimatedContainer(
             duration: AppMotion.duration(context, AppMotion.fast),
             curve: AppMotion.standard,
-            // Square at the tap-target floor, even though the icon inside is
-            // small: this is a control for a wet finger on a tablet.
-            width: AppSizing.minTapTarget,
-            height: AppSizing.minTapTarget,
+            // Square at the toolbar height: a full-size hit area for a small
+            // icon.
+            width: AppSizing.toolbarControlHeight,
+            height: AppSizing.toolbarControlHeight,
             decoration: BoxDecoration(
               color: selected ? AppColors.primaryContainer : Colors.transparent,
-              borderRadius: AppRadius.pillAll,
+              borderRadius: AppRadius.smAll,
             ),
             child: Icon(
               icon,
-              size: AppSizing.iconMd,
+              size: AppSizing.iconSm,
               color: selected
                   ? AppColors.onPrimaryContainer
                   : AppColors.textSecondary,

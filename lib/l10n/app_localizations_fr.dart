@@ -243,9 +243,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get loginEmail => 'Adresse e-mail';
 
   @override
-  String get loginPassword => 'Mot de passe';
-
-  @override
   String get loginRemember => 'Rester connecté';
 
   @override
@@ -489,6 +486,33 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get inventoryViewList => 'Vue liste';
+
+  @override
+  String get wizardNext => 'Suivant';
+
+  @override
+  String get wizardPrevious => 'Précédent';
+
+  @override
+  String get wizardReset => 'Réinitialiser';
+
+  @override
+  String get wizardResetTitle => 'Réinitialiser le formulaire ?';
+
+  @override
+  String get wizardResetBody =>
+      'Les informations saisies seront effacées et vous reviendrez à la première étape.';
+
+  @override
+  String wizardStepOf(int current, int total) {
+    return 'Étape $current sur $total';
+  }
+
+  @override
+  String get viewModeGrid => 'Vue grille';
+
+  @override
+  String get viewModeList => 'Vue liste';
 
   @override
   String get inventoryStockCurrent => 'Stock actuel';
@@ -1239,7 +1263,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get actorSheetSubtitle =>
-      'Touchez votre nom, puis confirmez avec votre numéro CIN.';
+      'Touchez votre nom, puis confirmez avec votre numéro PIN.';
 
   @override
   String get actorMe => 'Moi';
@@ -2840,9 +2864,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get employeesNavPayroll => 'Historique de paiement';
 
   @override
-  String get employeeSectionComingSoonTitle => 'Bientôt disponible';
-
-  @override
   String get employeeSectionComingSoonTimeclock =>
       'Le tableau de pointage arrive dans une prochaine étape.';
 
@@ -2876,29 +2897,38 @@ class AppLocalizationsFr extends AppLocalizations {
       'Aucun accès à l\'application. Son pointage est fait au tableau de bord partagé.';
 
   @override
-  String get contractTypeFixed => 'Salarié fixe';
-
-  @override
-  String get contractTypeExtra => 'Extra';
-
-  @override
   String get employeesTitle => 'Personnel';
 
   @override
   String get employeesSubtitle =>
-      'Le personnel de cet établissement — coordonnées, contrat et rôle.';
+      'Le personnel de cet établissement — coordonnées, rémunération et rôle.';
 
   @override
   String get employeesAdd => 'Ajouter un employé';
 
   @override
-  String get employeesSearchHint => 'Rechercher (nom, CIN)';
+  String get employeesSearchHint => 'Rechercher (nom, PIN)';
 
   @override
   String get employeeSelectorHint => 'Rechercher ou sélectionner un employé…';
 
   @override
   String get employeesShowArchived => 'Afficher les personnels retirés';
+
+  @override
+  String get employeeStatusActive => 'Actif';
+
+  @override
+  String get employeeCardHourlyRate => 'Salaire horaire';
+
+  @override
+  String get employeeCardHiredOn => 'Embauché le';
+
+  @override
+  String get employeeCardRetiredOn => 'Retiré le';
+
+  @override
+  String get employeeCardActions => 'Actions';
 
   @override
   String get employeesArchivedPill => 'Retiré';
@@ -2911,29 +2941,91 @@ class AppLocalizationsFr extends AppLocalizations {
       'Ajoutez les membres de votre personnel pour suivre leur pointage et leur paie.';
 
   @override
-  String employeeCinLabel(String cin) {
-    return 'CIN $cin';
-  }
-
-  @override
   String get employeesKpiActive => 'Personnel actif';
-
-  @override
-  String get employeesKpiContractSplit => 'Fixes / Extras';
-
-  @override
-  String employeesKpiContractSplitValue(int fixed, int extra) {
-    return '$fixed fixes · $extra extras';
-  }
 
   @override
   String get employeesKpiManagers => 'Gérants';
 
   @override
+  String get employeesKpiAverageRate => 'Tarif moyen';
+
+  @override
+  String get employeesKpiMaxRate => 'Tarif max';
+
+  @override
   String get employeesKpiHiredThisMonth => 'Embauches ce mois';
 
   @override
+  String get employeesColumnName => 'Employé';
+
+  @override
+  String get employeesColumnRole => 'Rôle';
+
+  @override
+  String get employeesColumnPay => 'Tarif';
+
+  @override
+  String get employeesColumnActions => 'Actions';
+
+  @override
+  String get employeeActionAttendance => 'Historique pointage';
+
+  @override
+  String get employeeActionPayroll => 'Historique paiement';
+
+  @override
+  String get employeesColumnHired => 'Embauché le';
+
+  @override
+  String get employeeWizardStepInfo => 'Information professionnelle';
+
+  @override
+  String get employeeWizardStepPay => 'Rémunération';
+
+  @override
+  String get employeeWizardStepRole => 'Rôle et sécurité';
+
+  @override
+  String get employeeFormDescription =>
+      'Renseignez la fiche en trois étapes : les informations professionnelles, la rémunération, puis le rôle et les accès.';
+
+  @override
+  String employeeFormEditDescription(String name) {
+    return 'Modifiez la fiche de $name. Chaque étape peut être enregistrée directement.';
+  }
+
+  @override
+  String get employeeFormFirstNameHint => 'Ex. Nora';
+
+  @override
+  String get employeeFormLastNameHint => 'Ex. Benali';
+
+  @override
+  String get employeeFormPhoneHint => '+32 470 12 34 56';
+
+  @override
+  String get employeeFormEmailHint => 'prenom.nom@exemple.be';
+
+  @override
+  String get employeeFormPayHint => 'Ex. 15,50';
+
+  @override
+  String get employeeFormPasswordConfirmHint => 'Répétez les 4 chiffres';
+
+  @override
   String get employeeFormPhoto => 'Photo';
+
+  @override
+  String get employeeFormPhotoHelp =>
+      'Facultatif · cliquez sur le cercle pour choisir un JPG ou PNG';
+
+  @override
+  String get employeeFormPayHelp =>
+      'Payé à l\'heure réellement travaillée, pauses déduites.';
+
+  @override
+  String get employeeFormStaffNoPassword =>
+      'Un employé pointe avec son numéro PIN et n\'a pas accès à l\'application : aucun mot de passe n\'est demandé.';
 
   @override
   String get employeeFormPhotoAction => 'Choisir une photo';
@@ -2955,7 +3047,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get employeeFormLastName => 'Nom';
 
   @override
-  String get employeeFormCin => 'N° de carte d\'identité';
+  String get employeeFormPin => 'Numéro PIN';
 
   @override
   String get employeeFormPhone => 'Téléphone';
@@ -2964,8 +3056,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get employeeFormEmail => 'Adresse e-mail';
 
   @override
-  String get employeeCinTaken =>
-      'Ce numéro de carte d\'identité est déjà utilisé.';
+  String get employeePinTaken => 'Ce numéro PIN est déjà utilisé.';
 
   @override
   String get employeeEmailTaken => 'Cette adresse e-mail est déjà utilisée.';
@@ -2974,55 +3065,13 @@ class AppLocalizationsFr extends AppLocalizations {
   String get employeeFormRole => 'Rôle et accès';
 
   @override
-  String get employeeFormEmployment => 'Contrat et rémunération';
-
-  @override
-  String get employeeFormContractType => 'Type de contrat';
-
-  @override
-  String get employeeFormPayMonthly => 'Salaire mensuel (€)';
-
-  @override
   String get employeeFormPayHourly => 'Tarif horaire (€/h)';
-
-  @override
-  String get employeeFormSchedule => 'Horaires';
-
-  @override
-  String get employeeFormScheduleStart => 'Heure d\'arrivée';
-
-  @override
-  String get employeeFormScheduleEnd => 'Heure de départ';
-
-  @override
-  String get employeeFormScheduleInvalid => 'Format attendu : HH:MM';
-
-  @override
-  String get employeeFormScheduleHelp =>
-      'Laissez vide pour utiliser les horaires de l\'établissement.';
 
   @override
   String get employeeCreated => 'Employé ajouté';
 
   @override
   String get employeeUpdated => 'Employé modifié';
-
-  @override
-  String employeeHiredOn(String date) {
-    return 'Embauché le $date';
-  }
-
-  @override
-  String get employeeDetailContact => 'Coordonnées';
-
-  @override
-  String get employeeScheduleStoreHours => 'Horaires de l\'établissement';
-
-  @override
-  String get employeeHistoryTitle => 'Historique de pointage';
-
-  @override
-  String get employeePayrollTitle => 'Historique de paiement';
 
   @override
   String employeeArchiveTitle(String name) {
@@ -3046,14 +3095,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get employeeRestored => 'Employé restauré';
 
   @override
-  String employeeDetailArchivedOn(String date) {
-    return 'Retiré le $date';
-  }
-
-  @override
-  String get employeeHistoryEmpty => 'Aucun pointage enregistré.';
-
-  @override
   String get attendanceStatusNotClockedIn => 'Non pointé';
 
   @override
@@ -3064,9 +3105,6 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get attendanceStatusDone => 'Terminé';
-
-  @override
-  String get attendanceLate => 'En retard';
 
   @override
   String get attendanceBreakOverrun => 'Pause dépassée';
@@ -3135,6 +3173,25 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String get liveDateLabel => 'Date';
+
+  @override
+  String get liveTimeLabel => 'Heure';
+
+  @override
+  String get timeclockViewDetail => 'Voir détails';
+
+  @override
+  String timeclockStartDayPrompt(String date) {
+    return 'Vous n\'avez pas encore commencé votre journée du $date. Pointez pour la démarrer.';
+  }
+
+  @override
+  String timeclockSessionTitle(int number) {
+    return 'Session N° $number';
+  }
+
+  @override
   String get timeclockLogArrival => 'Arrivée';
 
   @override
@@ -3147,30 +3204,14 @@ class AppLocalizationsFr extends AppLocalizations {
   String get timeclockLogDeparture => 'Départ';
 
   @override
-  String timeclockWorked(String duration) {
-    return 'Travaillé : $duration';
-  }
-
-  @override
-  String timeclockOvertimeMark(String duration) {
-    return '+$duration sup.';
-  }
-
-  @override
-  String get storeSettingsHours => 'Horaires de l\'établissement';
-
-  @override
-  String get storeSettingsOpenTime => 'Ouverture';
-
-  @override
-  String get storeSettingsCloseTime => 'Fermeture';
+  String get storeSettingsHours => 'Pauses';
 
   @override
   String get storeSettingsMaxBreak => 'Pause max (minutes)';
 
   @override
   String get storeSettingsHoursHelp =>
-      'Les horaires servent de base au calcul du retard et des heures supplémentaires (pour un employé sans horaire personnel). Une pause plus longue que le maximum est signalée « Pause dépassée ».';
+      'Une pause plus longue que le maximum est signalée « Pause dépassée ».';
 
   @override
   String paginatorRange(int first, int last, int total) {
@@ -3178,15 +3219,13 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String paginatorPage(int page, int count) {
-    return '$page / $count';
-  }
-
-  @override
   String get paginatorPrevious => 'Page précédente';
 
   @override
   String get paginatorNext => 'Page suivante';
+
+  @override
+  String get paginatorPageSize => 'Lignes par page :';
 
   @override
   String get attendanceHistoryTitle => 'Historique de pointage';
@@ -3215,16 +3254,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'Aucun pointage n\'a encore été enregistré dans cet établissement.';
 
   @override
-  String get attendanceFilterEmployee => 'Employé';
+  String get historyFilterFrom => 'Début';
 
   @override
-  String get attendanceFilterAllEmployees => 'Tous les employés';
-
-  @override
-  String get attendanceFilterFrom => 'Du';
-
-  @override
-  String get attendanceFilterTo => 'Au';
+  String get historyFilterTo => 'Fin';
 
   @override
   String attendanceFilterDateRange(String from, String to) {
@@ -3238,10 +3271,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get attendanceStatWorked => 'Heures travaillées';
 
   @override
-  String get attendanceStatLate => 'Retards';
-
-  @override
-  String get attendanceStatOvertime => 'Heures supplémentaires';
+  String get attendanceStatLateBreaks => 'Pauses dépassées';
 
   @override
   String get attendanceColumnDate => 'Date';
@@ -3256,46 +3286,35 @@ class AppLocalizationsFr extends AppLocalizations {
   String get attendanceColumnDeparture => 'Départ';
 
   @override
-  String get attendanceColumnBreaks => 'Pauses';
-
-  @override
   String get attendanceColumnWorked => 'Durée travail';
-
-  @override
-  String get attendanceColumnOvertime => 'Heures sup';
 
   @override
   String get attendanceColumnStatus => 'Statut';
 
   @override
-  String get attendanceColumnFlags => 'Alertes';
+  String get attendanceDayIntro =>
+      'Les pointages de la journée, session par session, puis le temps travaillé, les pauses et les alertes éventuelles.';
 
   @override
-  String get attendanceColumnActions => 'Détail';
+  String get attendanceDaySummary =>
+      'Résumé de la journée : le temps travaillé et les pauses prises.';
+
+  @override
+  String get attendanceTotalWorked => 'Durée totale travaillée';
+
+  @override
+  String attendancePausesCount(int count) {
+    return 'Pauses ($count)';
+  }
+
+  @override
+  String get attendanceColumnFlags => 'Alertes';
 
   @override
   String get attendanceViewDetail => 'Voir le détail';
 
   @override
-  String get attendanceDetailTitle => 'Détail du pointage';
-
-  @override
-  String attendanceDetailBreaks(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count pauses',
-      one: '1 pause',
-      zero: 'Aucune pause',
-    );
-    return '$_temp0';
-  }
-
-  @override
   String get attendanceColumnSchedule => 'Horaires';
-
-  @override
-  String get attendanceFilterReset => 'Réinitialiser';
 
   @override
   String attendanceBreakSummary(int count, String duration) {
@@ -3309,45 +3328,7 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get attendanceDetailBreakTotal => 'Total pauses';
-
-  @override
-  String get attendanceDetailWorkTime => 'Temps de travail';
-
-  @override
-  String attendanceDetailOvertimeInfo(String duration) {
-    return '$duration (informatif)';
-  }
-
-  @override
-  String get attendanceDetailTimeline => 'Chronologie';
-
-  @override
-  String attendanceDetailPauseCount(int count) {
-    return 'Pause($count)';
-  }
-
-  @override
-  String get attendanceDetailLate => 'Retard';
-
-  @override
   String get attendanceCardBreakLabel => 'Pause';
-
-  @override
-  String get attendanceCardOvertimeLabel => 'Heures supplémentaires';
-
-  @override
-  String get storeSettingsPayroll => 'Paie';
-
-  @override
-  String get storeSettingsOvertimeMultiplier => 'Majoration heures sup.';
-
-  @override
-  String get storeSettingsWorkingDays => 'Jours ouvrés / mois';
-
-  @override
-  String get storeSettingsPayrollHelp =>
-      'Un salarié fixe est payé son taux journalier (salaire ÷ jours ouvrés) par jour travaillé ; les heures supplémentaires sont payées à ce taux fois la majoration.';
 
   @override
   String get payrollHistoryTitle => 'Historique de paiement';
@@ -3355,18 +3336,6 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get payrollHistorySubtitle =>
       'L\'historique de paiement d\'un employé, jour par jour.';
-
-  @override
-  String get payrollFilterEmployee => 'Employé';
-
-  @override
-  String get payrollFilterAllEmployees => 'Tous les employés';
-
-  @override
-  String get payrollFilterFrom => 'Du';
-
-  @override
-  String get payrollFilterTo => 'Au';
 
   @override
   String get payrollFilterStatus => 'Statut de paiement';
@@ -3409,9 +3378,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get payrollStatWorkedHours => 'Heures travaillées';
 
   @override
-  String get payrollStatOvertimeHours => 'Heures supplémentaires';
-
-  @override
   String get payrollColumnEmployee => 'Employé';
 
   @override
@@ -3425,9 +3391,6 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get payrollColumnWorked => 'Durée travaillée';
-
-  @override
-  String get payrollColumnOvertime => 'Heures sup';
 
   @override
   String get payrollColumnAmount => 'Montant';
@@ -3467,9 +3430,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get payrollColumnHours => 'Horaires';
 
   @override
-  String get payrollColumnDetail => 'Détail';
-
-  @override
   String payrollBreakSummary(int count, String duration) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -3479,12 +3439,6 @@ class AppLocalizationsFr extends AppLocalizations {
     );
     return '$_temp0';
   }
-
-  @override
-  String get payrollFilterReset => 'Réinitialiser';
-
-  @override
-  String get payrollViewDetail => 'Voir le détail';
 
   @override
   String get payrollDetailTitle => 'Détail du paiement';
@@ -3499,18 +3453,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get payrollDetailWorked => 'Temps travaillé';
 
   @override
-  String payrollDetailOvertimeInfo(String duration) {
-    return '$duration (informatif)';
-  }
-
-  @override
   String get payrollDetailRate => 'Taux horaire';
-
-  @override
-  String get payrollDetailBase => 'Montant de base';
-
-  @override
-  String get payrollDetailPremium => 'Prime heures sup.';
 
   @override
   String get payrollDetailTotal => 'Total';
@@ -3522,22 +3465,22 @@ class AppLocalizationsFr extends AppLocalizations {
   String get paymentStatusUnpaid => 'Non payé';
 
   @override
-  String get loginCin => 'Numéro CIN';
+  String get loginPin => 'Numéro PIN';
 
   @override
-  String get loginCinHint => 'AB.12.34-567.89';
+  String get loginPinHint => 'AB.12.34-567.89';
 
   @override
-  String get loginPin => 'Code PIN';
+  String get loginPassword => 'Mot de passe';
 
   @override
-  String get loginPinHint => '4 chiffres';
+  String get loginPasswordHint => '4 chiffres';
 
   @override
-  String get loginForgotPin => 'Code oublié ?';
+  String get loginForgotPassword => 'Mot de passe oublié ?';
 
   @override
-  String get loginErrorBadCredentials => 'CIN ou code PIN incorrect.';
+  String get loginErrorBadCredentials => 'PIN ou mot de passe incorrect.';
 
   @override
   String get loginErrorLocked =>
@@ -3551,21 +3494,22 @@ class AppLocalizationsFr extends AppLocalizations {
   String get employeeFormCredentials => 'Identifiants';
 
   @override
-  String get employeeFormPin => 'Code PIN';
+  String get employeeFormPassword => 'Mot de passe';
 
   @override
-  String get employeeFormPinConfirm => 'Confirmer le code';
+  String get employeeFormPasswordConfirm => 'Confirmer le mot de passe';
 
   @override
-  String get employeeFormPinHelp =>
-      '4 chiffres. La personne se connecte avec son numéro CIN et ce code.';
+  String get employeeFormPasswordHelp =>
+      '4 chiffres. La personne se connecte avec son numéro PIN et ce mot de passe.';
 
   @override
-  String get employeeFormPinEditHelp =>
-      'Laisser vide pour conserver le code actuel.';
+  String get employeeFormPasswordEditHelp =>
+      'Laisser vide pour conserver le mot de passe actuel.';
 
   @override
-  String get employeeFormPinMismatch => 'Les deux codes ne correspondent pas.';
+  String get employeeFormPasswordMismatch =>
+      'Les deux mots de passe ne correspondent pas.';
 
   @override
   String get storeSettingsReadOnlyNotice =>
@@ -3900,60 +3844,24 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get storeSettingsRetroWarningTitle =>
-      'Des journées ne sont pas encore payées';
-
-  @override
-  String storeSettingsRetroWarningBody(int days) {
-    String _temp0 = intl.Intl.pluralLogic(
-      days,
-      locale: localeName,
-      other: '$days journées terminées n\'\'ont pas encore été payées',
-      one: '1 journée terminée n\'\'a pas encore été payée',
-    );
-    return '$_temp0. Changer les horaires ou les coefficients modifiera le retard, les heures supplémentaires et le montant estimé de ces journées. Payez-les d\'\'abord pour figer leurs chiffres.';
-  }
-
-  @override
-  String get storeSettingsRetroWarningConfirm => 'Changer quand même';
-
-  @override
   String get identityPromptTitle => 'Confirmation d\'identité';
 
   @override
-  String get identityPromptField => 'Numéro CIN';
+  String get identityPromptField => 'Numéro PIN';
 
   @override
   String get identityPromptValidate => 'Valider';
 
   @override
-  String identityPromptWrong(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count tentatives restantes.',
-      one: '1 tentative restante.',
-      zero: 'Verrouillé.',
-    );
-    return 'Numéro incorrect. $_temp0';
-  }
-
-  @override
-  String identityPromptLocked(String time) {
-    return 'Trop de tentatives. Réessayez dans $time.';
-  }
-
-  @override
-  String get identityPromptNoCredential =>
-      'Aucun identifiant n\'est configuré pour cette personne.';
+  String get identityPromptWrong => 'Numéro incorrect. Réessayez.';
 
   @override
   String identityPromptPointageSubtitle(String action, String name) {
-    return '$action · saisissez le numéro CIN de $name';
+    return '$action · saisissez le numéro PIN de $name';
   }
 
   @override
   String identityPromptPayrollSubtitle(String name) {
-    return 'Saisissez votre numéro CIN pour valider le paiement de $name';
+    return 'Saisissez votre numéro PIN pour valider le paiement de $name';
   }
 }

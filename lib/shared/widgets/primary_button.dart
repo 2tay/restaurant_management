@@ -26,6 +26,7 @@ class PrimaryButton extends StatelessWidget {
     this.isBusy = false,
     this.fullWidth = false,
     this.large = false,
+    this.tonal = false,
     super.key,
   });
 
@@ -52,16 +53,27 @@ class PrimaryButton extends StatelessWidget {
   /// quick actions, a form's submit.
   final bool large;
 
+  /// Translucent teal with teal text instead of solid teal — for a forward
+  /// step (a wizard's Suivant) that is the way on but not yet the commit.
+  final bool tonal;
+
   @override
   Widget build(BuildContext context) {
+    final ButtonStyle? sizeStyle = large
+        ? FilledButton.styleFrom(
+            minimumSize: const Size(0, AppSizing.buttonHeightLarge),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
+          )
+        : null;
+    final ButtonStyle? tonalStyle = tonal
+        ? FilledButton.styleFrom(
+            backgroundColor: AppColors.primary600.withValues(alpha: 0.14),
+            foregroundColor: AppColors.primary600,
+          )
+        : null;
     final button = FilledButton(
       onPressed: isBusy ? null : onPressed,
-      style: large
-          ? FilledButton.styleFrom(
-              minimumSize: const Size(0, AppSizing.buttonHeightLarge),
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
-            )
-          : null,
+      style: tonalStyle?.merge(sizeStyle) ?? sizeStyle,
       child: isBusy
           ? const _ButtonSpinner()
           : _ButtonContent(
@@ -78,6 +90,22 @@ class PrimaryButton extends StatelessWidget {
 }
 
 /// A supporting action — "Annuler", "Voir tout", a secondary form path.
+/// How a [SecondaryButton] is drawn.
+enum SecondaryButtonTone {
+  /// Outlined — the default everywhere.
+  outlined,
+
+  /// No border, a white fill and placeholder-grey text — a side action
+  /// (Réinitialiser) that should not compete with the steps around it. The
+  /// fill is there from the start, enabled or not, so the button reads as a
+  /// button before the pointer finds it.
+  quiet,
+
+  /// No border on a white fill — a secondary step (Précédent) sitting on the
+  /// page's grey background.
+  surface,
+}
+
 class SecondaryButton extends StatelessWidget {
   const SecondaryButton({
     required this.label,
@@ -85,6 +113,7 @@ class SecondaryButton extends StatelessWidget {
     this.shortLabel,
     this.icon,
     this.fullWidth = false,
+    this.tone = SecondaryButtonTone.outlined,
     super.key,
   });
 
@@ -96,17 +125,35 @@ class SecondaryButton extends StatelessWidget {
   final VoidCallback? onPressed;
   final IconData? icon;
   final bool fullWidth;
+  final SecondaryButtonTone tone;
 
   @override
   Widget build(BuildContext context) {
+    final ButtonStyle? toneStyle = switch (tone) {
+      SecondaryButtonTone.outlined => null,
+      SecondaryButtonTone.quiet => OutlinedButton.styleFrom(
+        foregroundColor: AppColors.placeholder,
+        backgroundColor: AppColors.surface,
+        disabledBackgroundColor: AppColors.surface,
+        side: BorderSide.none,
+      ),
+      SecondaryButtonTone.surface => OutlinedButton.styleFrom(
+        foregroundColor: AppColors.textPrimary,
+        backgroundColor: AppColors.surface,
+        side: BorderSide.none,
+      ),
+    };
     return _collapsible(
       context: context,
       label: label,
       shortLabel: shortLabel,
       icon: icon,
       fullWidth: fullWidth,
-      builder: (child, style) =>
-          OutlinedButton(onPressed: onPressed, style: style, child: child),
+      builder: (child, style) => OutlinedButton(
+        onPressed: onPressed,
+        style: toneStyle == null ? style : toneStyle.merge(style),
+        child: child,
+      ),
     );
   }
 }

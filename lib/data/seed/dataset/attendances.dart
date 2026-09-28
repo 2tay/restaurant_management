@@ -35,7 +35,9 @@ const String _testCalculHakimPeriodId = 'payroll-testcalcul-hakim';
 /// Only *today*'s rows are left mid-day (`working` / `onBreak`); every earlier
 /// day is finished, because a day in the past cannot still be in progress. A
 /// day with no row at all means "not clocked in yet" and is simply absent —
-/// Noah and Marc have no row today.
+/// Noah and Marc have no row today. Most days are a single session; the
+/// several-cycles case (more than one Pointer → Fin de journée in a day) is
+/// yesterday on TestCalcul — see [_testCalculMultiSessionDays].
 ///
 /// Covers every state the walkthrough needs, without manipulation:
 /// - **several pauses in one day** — Fatima today (one ended, one running)
@@ -51,8 +53,7 @@ final List<Attendance> mockAttendances = [
     employeeId: EmployeeIds.karim,
     date: dayOnly(0),
     status: AttendanceStatus.working,
-    clockInAt: timeOnDay(0, 7, 45),
-    pauses: const [],
+    sessions: [AttendanceSession(clockInAt: timeOnDay(0, 7, 45))],
     paymentStatus: PaymentStatus.unpaid,
   ),
   Attendance(
@@ -61,11 +62,15 @@ final List<Attendance> mockAttendances = [
     employeeId: EmployeeIds.amelie,
     date: dayOnly(0),
     status: AttendanceStatus.working,
-    clockInAt: timeOnDay(0, 8, 30),
-    pauses: [
-      AttendancePause(
-        startAt: timeOnDay(0, 10, 30),
-        endAt: timeOnDay(0, 10, 45),
+    sessions: [
+      AttendanceSession(
+        clockInAt: timeOnDay(0, 8, 30),
+        pauses: [
+          AttendancePause(
+            startAt: timeOnDay(0, 10, 30),
+            endAt: timeOnDay(0, 10, 45),
+          ),
+        ],
       ),
     ],
     paymentStatus: PaymentStatus.unpaid,
@@ -76,13 +81,17 @@ final List<Attendance> mockAttendances = [
     employeeId: EmployeeIds.fatima,
     date: dayOnly(0),
     status: AttendanceStatus.onBreak,
-    clockInAt: timeOnDay(0, 8, 0),
-    pauses: [
-      AttendancePause(
-        startAt: timeOnDay(0, 12, 0),
-        endAt: timeOnDay(0, 12, 20),
+    sessions: [
+      AttendanceSession(
+        clockInAt: timeOnDay(0, 8, 0),
+        pauses: [
+          AttendancePause(
+            startAt: timeOnDay(0, 12, 0),
+            endAt: timeOnDay(0, 12, 20),
+          ),
+          AttendancePause(startAt: timeOnDay(0, 15, 0)),
+        ],
       ),
-      AttendancePause(startAt: timeOnDay(0, 15, 0)),
     ],
     paymentStatus: PaymentStatus.unpaid,
   ),
@@ -95,10 +104,17 @@ final List<Attendance> mockAttendances = [
     employeeId: EmployeeIds.karim,
     date: dayOnly(1),
     status: AttendanceStatus.done,
-    clockInAt: timeOnDay(1, 8, 0),
-    clockOutAt: timeOnDay(1, 17, 0),
-    pauses: [
-      AttendancePause(startAt: timeOnDay(1, 12, 0), endAt: timeOnDay(1, 12, 30)),
+    sessions: [
+      AttendanceSession(
+        clockInAt: timeOnDay(1, 8, 0),
+        clockOutAt: timeOnDay(1, 17, 0),
+        pauses: [
+          AttendancePause(
+            startAt: timeOnDay(1, 12, 0),
+            endAt: timeOnDay(1, 12, 30),
+          ),
+        ],
+      ),
     ],
     paymentStatus: PaymentStatus.unpaid,
   ),
@@ -108,10 +124,17 @@ final List<Attendance> mockAttendances = [
     employeeId: EmployeeIds.amelie,
     date: dayOnly(1),
     status: AttendanceStatus.done,
-    clockInAt: timeOnDay(1, 8, 0),
-    clockOutAt: timeOnDay(1, 18, 30),
-    pauses: [
-      AttendancePause(startAt: timeOnDay(1, 12, 30), endAt: timeOnDay(1, 13, 0)),
+    sessions: [
+      AttendanceSession(
+        clockInAt: timeOnDay(1, 8, 0),
+        clockOutAt: timeOnDay(1, 18, 30),
+        pauses: [
+          AttendancePause(
+            startAt: timeOnDay(1, 12, 30),
+            endAt: timeOnDay(1, 13, 0),
+          ),
+        ],
+      ),
     ],
     paymentStatus: PaymentStatus.unpaid,
   ),
@@ -121,10 +144,17 @@ final List<Attendance> mockAttendances = [
     employeeId: EmployeeIds.fatima,
     date: dayOnly(1),
     status: AttendanceStatus.done,
-    clockInAt: timeOnDay(1, 8, 20),
-    clockOutAt: timeOnDay(1, 16, 20),
-    pauses: [
-      AttendancePause(startAt: timeOnDay(1, 12, 0), endAt: timeOnDay(1, 12, 15)),
+    sessions: [
+      AttendanceSession(
+        clockInAt: timeOnDay(1, 8, 20),
+        clockOutAt: timeOnDay(1, 16, 20),
+        pauses: [
+          AttendancePause(
+            startAt: timeOnDay(1, 12, 0),
+            endAt: timeOnDay(1, 12, 15),
+          ),
+        ],
+      ),
     ],
     paymentStatus: PaymentStatus.unpaid,
   ),
@@ -134,10 +164,17 @@ final List<Attendance> mockAttendances = [
     employeeId: EmployeeIds.elise,
     date: dayOnly(1),
     status: AttendanceStatus.done,
-    clockInAt: timeOnDay(1, 16, 0),
-    clockOutAt: timeOnDay(1, 23, 30),
-    pauses: [
-      AttendancePause(startAt: timeOnDay(1, 19, 0), endAt: timeOnDay(1, 19, 20)),
+    sessions: [
+      AttendanceSession(
+        clockInAt: timeOnDay(1, 16, 0),
+        clockOutAt: timeOnDay(1, 23, 30),
+        pauses: [
+          AttendancePause(
+            startAt: timeOnDay(1, 19, 0),
+            endAt: timeOnDay(1, 19, 20),
+          ),
+        ],
+      ),
     ],
     paymentStatus: PaymentStatus.unpaid,
   ),
@@ -149,10 +186,17 @@ final List<Attendance> mockAttendances = [
     employeeId: EmployeeIds.karim,
     date: dayOnly(2),
     status: AttendanceStatus.done,
-    clockInAt: timeOnDay(2, 8, 0),
-    clockOutAt: timeOnDay(2, 17, 0),
-    pauses: [
-      AttendancePause(startAt: timeOnDay(2, 12, 0), endAt: timeOnDay(2, 12, 30)),
+    sessions: [
+      AttendanceSession(
+        clockInAt: timeOnDay(2, 8, 0),
+        clockOutAt: timeOnDay(2, 17, 0),
+        pauses: [
+          AttendancePause(
+            startAt: timeOnDay(2, 12, 0),
+            endAt: timeOnDay(2, 12, 30),
+          ),
+        ],
+      ),
     ],
     paymentStatus: PaymentStatus.paid,
     payrollPeriodId: _seededPayrollPeriodId,
@@ -163,9 +207,12 @@ final List<Attendance> mockAttendances = [
     employeeId: EmployeeIds.noah,
     date: dayOnly(2),
     status: AttendanceStatus.done,
-    clockInAt: timeOnDay(2, 9, 0),
-    clockOutAt: timeOnDay(2, 15, 0),
-    pauses: const [],
+    sessions: [
+      AttendanceSession(
+        clockInAt: timeOnDay(2, 9, 0),
+        clockOutAt: timeOnDay(2, 15, 0),
+      ),
+    ],
     paymentStatus: PaymentStatus.unpaid,
   ),
   Attendance(
@@ -174,10 +221,17 @@ final List<Attendance> mockAttendances = [
     employeeId: EmployeeIds.karim,
     date: dayOnly(3),
     status: AttendanceStatus.done,
-    clockInAt: timeOnDay(3, 8, 0),
-    clockOutAt: timeOnDay(3, 17, 15),
-    pauses: [
-      AttendancePause(startAt: timeOnDay(3, 12, 0), endAt: timeOnDay(3, 12, 30)),
+    sessions: [
+      AttendanceSession(
+        clockInAt: timeOnDay(3, 8, 0),
+        clockOutAt: timeOnDay(3, 17, 15),
+        pauses: [
+          AttendancePause(
+            startAt: timeOnDay(3, 12, 0),
+            endAt: timeOnDay(3, 12, 30),
+          ),
+        ],
+      ),
     ],
     paymentStatus: PaymentStatus.paid,
     payrollPeriodId: _seededPayrollPeriodId,
@@ -188,9 +242,12 @@ final List<Attendance> mockAttendances = [
     employeeId: EmployeeIds.fatima,
     date: dayOnly(3),
     status: AttendanceStatus.done,
-    clockInAt: timeOnDay(3, 8, 0),
-    clockOutAt: timeOnDay(3, 16, 0),
-    pauses: const [],
+    sessions: [
+      AttendanceSession(
+        clockInAt: timeOnDay(3, 8, 0),
+        clockOutAt: timeOnDay(3, 16, 0),
+      ),
+    ],
     paymentStatus: PaymentStatus.unpaid,
   ),
 
@@ -201,16 +258,25 @@ final List<Attendance> mockAttendances = [
     employeeId: EmployeeIds.camille,
     date: dayOnly(5),
     status: AttendanceStatus.done,
-    clockInAt: timeOnDay(5, 8, 0),
-    clockOutAt: timeOnDay(5, 16, 0),
-    pauses: [
-      AttendancePause(startAt: timeOnDay(5, 12, 0), endAt: timeOnDay(5, 12, 30)),
+    sessions: [
+      AttendanceSession(
+        clockInAt: timeOnDay(5, 8, 0),
+        clockOutAt: timeOnDay(5, 16, 0),
+        pauses: [
+          AttendancePause(
+            startAt: timeOnDay(5, 12, 0),
+            endAt: timeOnDay(5, 12, 30),
+          ),
+        ],
+      ),
     ],
     paymentStatus: PaymentStatus.unpaid,
   ),
 
   // --- TestCalcul — a full month of finished days for the salaire check -----
   ..._testCalculAttendances(),
+  // --- TestCalcul — yesterday, split into several sessions ------------------
+  ..._testCalculMultiSessionDays(),
 ];
 
 /// Attendance for the TestCalcul store: every working day (Mon–Sat) from
@@ -224,12 +290,10 @@ final List<Attendance> mockAttendances = [
 /// stay `unpaid`, so the paiement screen shows "des jours payés et d'autres
 /// pas encore".
 ///
-/// - **Ayoub** (fixe, 08:00–22:00, 1 h lunch): normally clocks out at 22:00
-///   (13 h worked, no overtime). Every 5th working day he stays to 23:30
-///   (+1 h 30 overtime). His 2nd working day is a late arrival (08:35).
-/// - **Hakim** (extra, 10:00–20:00, 30 min break): normally clocks out at
-///   20:00 (9 h 30 worked). Every 4th working day he stays to 22:00
-///   (+2 h overtime).
+/// - **Ayoub** (50 €/h, 1 h lunch): 08:00–22:00 (13 h worked). Every 5th
+///   working day he stays to 23:30; his 2nd working day starts at 08:35.
+/// - **Hakim** (70 €/h, 30 min break): 10:00–20:00 (9 h 30 worked). Every 4th
+///   working day he stays to 22:00.
 List<Attendance> _testCalculAttendances() {
   final rows = <Attendance>[];
   final firstDay = DateTime(2026, 7, 1);
@@ -262,9 +326,13 @@ List<Attendance> _testCalculAttendances() {
         employeeId: EmployeeIds.ayoub,
         date: date,
         status: AttendanceStatus.done,
-        clockInAt: ayoubLate ? at(8, 35) : at(8, 0),
-        clockOutAt: ayoubOvertime ? at(23, 30) : at(22, 0),
-        pauses: [AttendancePause(startAt: at(12, 0), endAt: at(13, 0))],
+        sessions: [
+          AttendanceSession(
+            clockInAt: ayoubLate ? at(8, 35) : at(8, 0),
+            clockOutAt: ayoubOvertime ? at(23, 30) : at(22, 0),
+            pauses: [AttendancePause(startAt: at(12, 0), endAt: at(13, 0))],
+          ),
+        ],
         paymentStatus: paid ? PaymentStatus.paid : PaymentStatus.unpaid,
         payrollPeriodId: paid ? _testCalculAyoubPeriodId : null,
       ),
@@ -279,9 +347,13 @@ List<Attendance> _testCalculAttendances() {
         employeeId: EmployeeIds.hakim,
         date: date,
         status: AttendanceStatus.done,
-        clockInAt: at(10, 0),
-        clockOutAt: hakimOvertime ? at(22, 0) : at(20, 0),
-        pauses: [AttendancePause(startAt: at(13, 0), endAt: at(13, 30))],
+        sessions: [
+          AttendanceSession(
+            clockInAt: at(10, 0),
+            clockOutAt: hakimOvertime ? at(22, 0) : at(20, 0),
+            pauses: [AttendancePause(startAt: at(13, 0), endAt: at(13, 30))],
+          ),
+        ],
         paymentStatus: paid ? PaymentStatus.paid : PaymentStatus.unpaid,
         payrollPeriodId: paid ? _testCalculHakimPeriodId : null,
       ),
@@ -289,5 +361,67 @@ List<Attendance> _testCalculAttendances() {
   }
   return rows;
 }
+
+/// Yesterday on TestCalcul, finished and unpaid, with the day split into
+/// several Pointer → Fin de journée cycles — the case a single-session history
+/// never shows:
+/// - **Ayoub**, 2 sessions: 08:00–12:00, then 13:30–18:00 with a 15-min break
+///   (8 h 15 worked → 412,50 € at 50 €/h).
+/// - **Hakim**, 3 sessions: 07:00–10:00, 11:00–14:30 with a 20-min break, then
+///   17:00–21:00 (10 h 10 worked → 711,67 € at 70 €/h).
+List<Attendance> _testCalculMultiSessionDays() => [
+  Attendance(
+    id: 'att-testcalcul-ayoub-yesterday',
+    storeId: StoreIds.testCalcul,
+    employeeId: EmployeeIds.ayoub,
+    date: dayOnly(1),
+    status: AttendanceStatus.done,
+    sessions: [
+      AttendanceSession(
+        clockInAt: timeOnDay(1, 8),
+        clockOutAt: timeOnDay(1, 12),
+      ),
+      AttendanceSession(
+        clockInAt: timeOnDay(1, 13, 30),
+        clockOutAt: timeOnDay(1, 18),
+        pauses: [
+          AttendancePause(
+            startAt: timeOnDay(1, 15, 30),
+            endAt: timeOnDay(1, 15, 45),
+          ),
+        ],
+      ),
+    ],
+    paymentStatus: PaymentStatus.unpaid,
+  ),
+  Attendance(
+    id: 'att-testcalcul-hakim-yesterday',
+    storeId: StoreIds.testCalcul,
+    employeeId: EmployeeIds.hakim,
+    date: dayOnly(1),
+    status: AttendanceStatus.done,
+    sessions: [
+      AttendanceSession(
+        clockInAt: timeOnDay(1, 7),
+        clockOutAt: timeOnDay(1, 10),
+      ),
+      AttendanceSession(
+        clockInAt: timeOnDay(1, 11),
+        clockOutAt: timeOnDay(1, 14, 30),
+        pauses: [
+          AttendancePause(
+            startAt: timeOnDay(1, 12, 30),
+            endAt: timeOnDay(1, 12, 50),
+          ),
+        ],
+      ),
+      AttendanceSession(
+        clockInAt: timeOnDay(1, 17),
+        clockOutAt: timeOnDay(1, 21),
+      ),
+    ],
+    paymentStatus: PaymentStatus.unpaid,
+  ),
+];
 
 String _pad(int value) => value.toString().padLeft(2, '0');

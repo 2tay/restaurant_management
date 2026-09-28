@@ -90,7 +90,6 @@ void main() {
       for (final blocked in [
         Routes.toEmployees(_store),
         Routes.toPayroll(_store),
-        Routes.toAddEmployee(_store),
       ]) {
         appRouter.go(blocked);
         await tester.pumpAndSettle();
@@ -178,7 +177,7 @@ void main() {
 
       await tester.enterText(
         find.byType(TextField).at(0),
-        '89.07.30-201.44', // Amélie's CIN
+        '89.07.30-201.44', // Amélie's PIN
       );
       await tester.enterText(find.byType(TextField).at(1), '1234');
       await tester.tap(find.widgetWithText(PrimaryButton, 'Se connecter'));

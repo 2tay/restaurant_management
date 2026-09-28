@@ -153,7 +153,7 @@ abstract final class AppTheme {
         shape: const Border(bottom: BorderSide(color: AppColors.border)),
       ),
 
-      // The navigation sidebar draws its own steel chrome — see
+      // The navigation sidebar draws its own white chrome — see
       // `app_sidebar.dart`. It is a plain widget, not a `NavigationRail`, so
       // there is no rail theme to set here.
 
@@ -181,12 +181,18 @@ abstract final class AppTheme {
         titleTextStyle: textTheme.headlineSmall,
         contentTextStyle: textTheme.bodyLarge,
       ),
+      // White with brand-green text, lifted off white pages by the menus'
+      // shadow rather than a border.
       tooltipTheme: TooltipThemeData(
         decoration: const BoxDecoration(
-          color: AppColors.neutral900,
+          color: AppColors.white,
           borderRadius: AppRadius.smAll,
+          boxShadow: AppElevation.raised,
         ),
-        textStyle: textTheme.bodySmall?.copyWith(color: AppColors.white),
+        textStyle: textTheme.bodySmall?.copyWith(
+          color: AppColors.primary600,
+          fontWeight: FontWeight.w500,
+        ),
         padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.md,
           vertical: AppSpacing.sm,
