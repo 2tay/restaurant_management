@@ -206,11 +206,12 @@ void main() {
       find.descendant(of: date, matching: find.byType(LiveTime)),
       findsOneWidget,
     );
-    // One session — no heading.
+    // One session — still titled, like a split day.
     expect(inDrawer(find.text('Arrivée')), findsOneWidget);
     expect(inDrawer(find.text('08:00')), findsOneWidget);
     expect(inDrawer(find.text('Reprise')), findsOneWidget);
-    expect(inDrawer(find.textContaining('Session N°')), findsNothing);
+    expect(inDrawer(find.text('Session N° 1')), findsOneWidget);
+    expect(inDrawer(find.textContaining('Session N° 2')), findsNothing);
     // Summary under the sessions; nothing to alert.
     final summary = inDrawer(find.textContaining('Résumé de la journée'));
     expect(summary, findsOneWidget);

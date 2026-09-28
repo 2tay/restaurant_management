@@ -1090,7 +1090,7 @@ void main() {
       );
     }
 
-    testWidgets('one session: the timeline straight away, no heading', (
+    testWidgets('one session: titled Session N° 1, like a split day', (
       tester,
     ) async {
       await pump(
@@ -1103,7 +1103,8 @@ void main() {
           ),
         ]),
       );
-      expect(find.textContaining('Session'), findsNothing);
+      expect(find.text('Session N° 1'), findsOneWidget);
+      expect(find.textContaining('Session N° 2'), findsNothing);
       expect(find.text('08:00'), findsOneWidget);
       expect(find.text('16:00'), findsOneWidget);
       // A 30-minute break against a 30-minute allowance: no alert.

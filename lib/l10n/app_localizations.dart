@@ -5212,7 +5212,7 @@ abstract class AppLocalizations {
   /// **'Vous n\'avez pas encore commencé votre journée du {date}. Pointez pour la démarrer.'**
   String timeclockStartDayPrompt(String date);
 
-  /// Divider above one session of a multi-session day.
+  /// Divider above each session of a day, even when there is only one.
   ///
   /// In fr, this message translates to:
   /// **'Session N° {number}'**

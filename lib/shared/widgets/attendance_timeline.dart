@@ -7,14 +7,14 @@ import '../../core/utils/formatters.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/models.dart';
 
-/// The day's timestamps split by session, for the pointage drawers (tableau
-/// de pointage and historique).
+/// The day's timestamps split by session, for the pointage and paiement
+/// drawers.
 ///
-/// One session reads as a plain timeline — no "Session" heading for a day
-/// that only has the one. Two or more each get a centred `Session N° x` on a
-/// full-width dashed rule, with room between sessions. A full-width dashed
-/// rule closes the list. The day's alerts (a break over the allowance) live in the
-/// drawer's own Alertes section; a late Reprise dot still turns amber.
+/// Every session — the only one included — gets a centred `Session N° x` on a
+/// full-width dashed rule, with room between sessions, so a one-session day
+/// reads the same as a split one. A full-width dashed rule closes the list.
+/// The day's alerts (a break over the allowance) live in the drawer's own
+/// Alertes section; a late Reprise dot still turns amber.
 class AttendanceSessions extends StatelessWidget {
   const AttendanceSessions({
     required this.entry,
@@ -30,7 +30,6 @@ class AttendanceSessions extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final sessions = entry.sessions;
     if (sessions.isEmpty) return const SizedBox.shrink();
-    final numbered = sessions.length > 1;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -38,10 +37,8 @@ class AttendanceSessions extends StatelessWidget {
       children: [
         for (var i = 0; i < sessions.length; i++) ...[
           if (i > 0) const SizedBox(height: AppSpacing.xxl),
-          if (numbered) ...[
-            _SessionHeading(label: l10n.timeclockSessionTitle(i + 1)),
-            const SizedBox(height: AppSpacing.lg),
-          ],
+          _SessionHeading(label: l10n.timeclockSessionTitle(i + 1)),
+          const SizedBox(height: AppSpacing.lg),
           _EventRail(sessions: [sessions[i]], maxBreakMinutes: maxBreakMinutes),
         ],
         const SizedBox(height: AppSpacing.xl),

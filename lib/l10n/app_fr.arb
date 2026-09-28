@@ -1936,7 +1936,7 @@
   "timeclockStartDayPrompt": "Vous n'avez pas encore commencé votre journée du {date}. Pointez pour la démarrer.",
   "@timeclockStartDayPrompt": {"description": "Board drawer, before the day's first punch. {date} is e.g. 'jeudi 24/12/2026'.", "placeholders": {"date": {"type": "String"}}},
   "timeclockSessionTitle": "Session N° {number}",
-  "@timeclockSessionTitle": {"description": "Divider above one session of a multi-session day.", "placeholders": {"number": {"type": "int"}}},
+  "@timeclockSessionTitle": {"description": "Divider above each session of a day, even when there is only one.", "placeholders": {"number": {"type": "int"}}},
   "timeclockLogArrival": "Arrivée",
   "@timeclockLogArrival": {"description": "Timestamp log label — clock-in."},
   "timeclockLogBreak": "Pause",
