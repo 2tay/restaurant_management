@@ -5374,16 +5374,16 @@ abstract class AppLocalizations {
   /// **'Statut'**
   String get attendanceColumnStatus;
 
-  /// Line under the date in the pointage drawers, saying what the rest of the drawer shows.
+  /// One short line under the date in the pointage drawers, saying what the rest of the drawer shows.
   ///
   /// In fr, this message translates to:
-  /// **'Les pointages de la journée, session par session, puis le temps travaillé, les pauses et les alertes éventuelles.'**
+  /// **'Pointages, temps travaillé et pauses de la journée.'**
   String get attendanceDayIntro;
 
   /// Short line introducing the day's totals table in the pointage drawers.
   ///
   /// In fr, this message translates to:
-  /// **'Résumé de la journée : le temps travaillé et les pauses prises.'**
+  /// **'Résumé de la journée'**
   String get attendanceDaySummary;
 
   /// Label of the day's worked time in the pointage drawers.
@@ -5409,12 +5409,6 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Voir le détail'**
   String get attendanceViewDetail;
-
-  /// History table column — arrival → departure, grouped.
-  ///
-  /// In fr, this message translates to:
-  /// **'Horaires'**
-  String get attendanceColumnSchedule;
 
   /// Secondary line under the Horaires cell — break count and total.
   ///
@@ -5512,18 +5506,6 @@ abstract class AppLocalizations {
   /// **'Date'**
   String get payrollColumnDate;
 
-  /// Payroll table column — clock-in time.
-  ///
-  /// In fr, this message translates to:
-  /// **'Arrivée'**
-  String get payrollColumnClockIn;
-
-  /// Payroll table column — clock-out time.
-  ///
-  /// In fr, this message translates to:
-  /// **'Départ'**
-  String get payrollColumnClockOut;
-
   /// Payroll table column — worked duration.
   ///
   /// In fr, this message translates to:
@@ -5548,10 +5530,10 @@ abstract class AppLocalizations {
   /// **'Payé le'**
   String get payrollColumnPaidAt;
 
-  /// Button at the end of the payment detail drawer, shown only while the day is unpaid.
+  /// Button at the end of the payment detail drawer, shown only while the day is unpaid. Pays that one day only.
   ///
   /// In fr, this message translates to:
-  /// **'Payer maintenant'**
+  /// **'Payer ce jour'**
   String get payrollDetailPayNow;
 
   /// The button under the table that settles the unpaid days.
@@ -5578,53 +5560,35 @@ abstract class AppLocalizations {
   /// **'Paiement enregistré'**
   String get payrollPaid;
 
-  /// Payroll table column — arrival → departure, grouped.
+  /// Payroll table column — how many breaks the day had, with their total time underneath.
   ///
   /// In fr, this message translates to:
-  /// **'Horaires'**
-  String get payrollColumnHours;
+  /// **'Pauses'**
+  String get payrollColumnBreaks;
 
-  /// Secondary line under the Horaires cell — break count and total.
+  /// One short line under the date in the payment drawer, saying what the rest of the drawer shows.
   ///
   /// In fr, this message translates to:
-  /// **'{count, plural, =1{1 pause · {duration}} other{{count} pauses · {duration}}}'**
-  String payrollBreakSummary(int count, String duration);
+  /// **'Pointages et montant de la journée.'**
+  String get payrollDayIntro;
 
-  /// Heading of the payroll detail side panel.
+  /// Payroll drawer row — the hourly rate: the one frozen at payment for a paid day, the current one for an unpaid day.
   ///
   /// In fr, this message translates to:
-  /// **'Détail du paiement'**
-  String get payrollDetailTitle;
-
-  /// Payroll drawer row — total break time.
-  ///
-  /// In fr, this message translates to:
-  /// **'Total pauses'**
-  String get payrollDetailBreakTotal;
-
-  /// Payroll drawer section header for worked hours.
-  ///
-  /// In fr, this message translates to:
-  /// **'Temps de travail'**
-  String get payrollDetailWorkSection;
-
-  /// Payroll drawer row — worked duration.
-  ///
-  /// In fr, this message translates to:
-  /// **'Temps travaillé'**
-  String get payrollDetailWorked;
-
-  /// Payroll drawer row — the employee's hourly rate.
-  ///
-  /// In fr, this message translates to:
-  /// **'Taux horaire'**
+  /// **'Tarif horaire'**
   String get payrollDetailRate;
 
-  /// Payroll drawer row — the day's total amount.
+  /// An hourly rate, e.g. 12,00 €/h.
   ///
   /// In fr, this message translates to:
-  /// **'Total'**
-  String get payrollDetailTotal;
+  /// **'{rate}/h'**
+  String payrollRatePerHour(String rate);
+
+  /// Payroll drawer row — the day's amount, with the calculation: hourly rate times the time worked over every session.
+  ///
+  /// In fr, this message translates to:
+  /// **'Montant ({rate} × {hours})'**
+  String payrollDetailAmount(String rate, String hours);
 
   /// Payment status badge — the day has been settled.
   ///

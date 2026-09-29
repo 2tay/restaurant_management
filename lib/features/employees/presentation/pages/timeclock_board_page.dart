@@ -137,8 +137,9 @@ class _TimeclockBoardPageState extends ConsumerState<TimeclockBoardPage> {
         const SizedBox(height: AppSpacing.lg),
         if (pinned != null)
           // One card pinned — a lone card in a four-up grid reads as an error.
+          // Full width on a phone, where 360dp is wider than the content.
           SizedBox(
-            width: 360,
+            width: context.isPhone ? double.infinity : 360,
             height: _cardHeight,
             child: _EmployeeCard(
               employee: pinned,
@@ -148,22 +149,18 @@ class _TimeclockBoardPageState extends ConsumerState<TimeclockBoardPage> {
             ),
           )
         else
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: context.gridColumns(max: 4),
-              crossAxisSpacing: AppSpacing.lg,
-              mainAxisSpacing: AppSpacing.lg,
-              mainAxisExtent: _cardHeight,
-            ),
-            itemCount: shown.length,
-            itemBuilder: (context, index) => _EmployeeCard(
-              employee: shown[index],
-              entry: board[shown[index].id],
-              settings: settings,
-              storeId: widget.storeId,
-            ),
+          ResponsiveCardGrid(
+            minCardWidth: 260,
+            itemHeight: _cardHeight,
+            children: [
+              for (final employee in shown)
+                _EmployeeCard(
+                  employee: employee,
+                  entry: board[employee.id],
+                  settings: settings,
+                  storeId: widget.storeId,
+                ),
+            ],
           ),
       ],
     );

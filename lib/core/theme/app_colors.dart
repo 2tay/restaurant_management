@@ -50,6 +50,9 @@ abstract final class AppColors {
   // appears roughly once per screen.
   // ---------------------------------------------------------------------------
 
+  /// The sidebar's ground only — deeper than any action colour so the rail
+  /// never competes with a button.
+  static const Color primary800 = Color(0xFF08504A);
   static const Color primary700 = Color(0xFF0B5F58);
   static const Color primary600 = Color(0xFF0F766E);
   static const Color primary500 = Color(0xFF148F84);

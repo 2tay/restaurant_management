@@ -125,6 +125,9 @@ void main() {
         (c.label as Text).data,
     ];
     expect(headers, isNot(contains('Détail')));
+    // The break count replaces the arrival → departure span.
+    expect(headers, contains('Pauses'));
+    expect(headers, isNot(contains('Horaires')));
     final row = find
         .descendant(of: table, matching: find.byType(PaymentStatusBadge))
         .first;
@@ -134,10 +137,13 @@ void main() {
 
     expect(tester.takeException(), isNull);
     expect(find.byType(DetailDrawer), findsOneWidget);
-    expect(find.text('Détail du paiement'), findsOneWidget);
+    // Bare, like the pointage drawer: the employee is the heading.
+    expect(find.text('Détail du paiement'), findsNothing);
+    expect(find.byType(PayrollDayDetail), findsOneWidget);
     // The amount breakdown the drawer exists to show.
-    expect(find.text('Taux horaire'), findsOneWidget);
-    expect(find.text('Total'), findsOneWidget);
+    expect(find.text('Tarif horaire'), findsOneWidget);
+    expect(find.textContaining('Montant ('), findsOneWidget);
+    expect(find.text('Session N° 1'), findsOneWidget);
 
     await tester.tap(find.byTooltip('Fermer'));
     await tester.pumpAndSettle();
@@ -193,6 +199,59 @@ void main() {
     );
   });
 
+  testApp('the drawer\'s « Payer ce jour » settles that one day only, then '
+      'closes', (tester) async {
+    final db = await _openPayroll(tester, size: const Size(1440, 900));
+    final attendance = AttendanceRepository(db);
+    // Fatima has two unpaid finished days in range: yesterday and 3 days ago.
+    for (final id in [AttendanceIds.fatima1, AttendanceIds.fatima3]) {
+      expect(
+        (await attendance.attendance(id))!.paymentStatus,
+        PaymentStatus.unpaid,
+      );
+    }
+
+    // Most recent first: her first row is yesterday's.
+    final row = find
+        .descendant(
+          of: find.byType(DataTable),
+          matching: find.text('Fatima Ezzahra'),
+        )
+        .first;
+    await tester.ensureVisible(row);
+    await tester.tap(row);
+    await tester.pumpAndSettle();
+    expect(find.byType(PayrollDayDetail), findsOneWidget);
+
+    final button = find.widgetWithText(PrimaryButton, 'Payer ce jour');
+    await tester.ensureVisible(button);
+    await tester.tap(button);
+    await tester.pumpAndSettle();
+
+    // One day in the confirmation, not the page's range.
+    expect(find.textContaining('Payer Fatima Ezzahra'), findsOneWidget);
+    expect(find.textContaining('1 jour'), findsOneWidget);
+    await tester.tap(
+      find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.widgetWithText(FilledButton, 'Payer'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await _enterPin(tester, _marcPin);
+
+    expect(find.text('Paiement enregistré'), findsOneWidget);
+    expect(find.byType(DetailDrawer), findsNothing);
+    expect(
+      (await attendance.attendance(AttendanceIds.fatima1))!.paymentStatus,
+      PaymentStatus.paid,
+    );
+    expect(
+      (await attendance.attendance(AttendanceIds.fatima3))!.paymentStatus,
+      PaymentStatus.unpaid,
+    );
+  });
+
   testApp('a wrong PIN leaves the days unpaid', (tester) async {
     final db = await _openPayroll(tester);
     await _pickKarim(tester);
@@ -229,5 +288,22 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(pager().pageSize, 25);
     expect(pager().page, 0);
+  });
+
+  testApp('a phone: one day card per line, the filters behind an icon', (
+    tester,
+  ) async {
+    await _openPayroll(tester, size: const Size(390, 844));
+    expect(tester.takeException(), isNull);
+    expect(find.byType(DataTable), findsNothing);
+    expect(find.byType(DateFilter), findsNothing);
+    expect(find.byType(FilterSheetButton), findsOneWidget);
+
+    // The badge is right-aligned on every card: one right edge, one column.
+    final rights = {
+      for (final e in find.byType(PaymentStatusBadge).evaluate())
+        tester.getTopRight(find.byWidget(e.widget)).dx,
+    };
+    expect(rights, hasLength(1));
   });
 }

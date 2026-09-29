@@ -10,7 +10,6 @@ import '../../../../core/utils/attendance_status.dart';
 import '../../../../core/utils/employee_status.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/utils/payroll_math.dart';
-import '../../../../core/utils/responsive.dart';
 import '../../../../data/current_employee.dart';
 import '../../../../data/providers.dart';
 import '../../../../data/repositories/repositories.dart';
@@ -221,6 +220,12 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
             _statusFilter = s;
             _page = 0;
           }),
+          onClear: () => setState(() {
+            _from = _defaultFrom;
+            _to = _defaultTo;
+            _statusFilter = null;
+            _page = 0;
+          }),
         ),
         if (_hasActiveFilters) ...[
           const SizedBox(height: AppSpacing.sm),
@@ -275,17 +280,20 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
             builder: (context, constraints) {
               final showEmployee = _employeeId == null;
               void onOpen(Attendance a) => _openDrawer(
-                l10n,
                 a,
-                data.employeesById[a.employeeId],
-                data.paidAtByPeriod,
+                _payrollRowData(
+                  a,
+                  data.employeesById,
+                  data.periodsById,
+                  settings,
+                ),
                 settings,
               );
               return constraints.maxWidth >= _daysTableMinWidth(showEmployee)
                   ? _DaysTable(
                       rows: data.rows,
                       employeesById: data.employeesById,
-                      paidAtByPeriod: data.paidAtByPeriod,
+                      periodsById: data.periodsById,
                       settings: settings,
                       showEmployee: showEmployee,
                       onOpen: onOpen,
@@ -293,7 +301,7 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
                   : _DaysCards(
                       rows: data.rows,
                       employeesById: data.employeesById,
-                      paidAtByPeriod: data.paidAtByPeriod,
+                      periodsById: data.periodsById,
                       settings: settings,
                       showEmployee: showEmployee,
                       onOpen: onOpen,
@@ -322,7 +330,7 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
               icon: LucideIcons.banknote,
               onPressed: data.unpaidDays == 0
                   ? null
-                  : () => _confirmPay(selectedEmployee),
+                  : () => _confirmPay(selectedEmployee, from: _from, to: _to),
             ),
           ),
         ],
@@ -366,193 +374,57 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
     return earliest.isBefore(_from) ? earliest : _from;
   }
 
+  /// Bare panel, like the pointage history's: the employee is the heading —
+  /// see [PayrollDayDetail]. Its button pays this one day, whatever range the
+  /// page is filtered to.
   Future<void> _openDrawer(
-    AppLocalizations l10n,
     Attendance a,
-    Employee? employee,
-    Map<String, DateTime> paidAtByPeriod,
+    _PayrollRowData data,
     StoreSettings settings,
   ) {
-    final worked = workedDuration(a);
-    final rate = employee?.pay ?? 0.0;
-    final total = employee == null ? 0.0 : dayAmount(a, employee, settings);
-    final paidAt = a.payrollPeriodId == null
-        ? null
-        : paidAtByPeriod[a.payrollPeriodId!];
-
+    final employee = data.employee;
     return DetailDrawer.show(
       context,
-      title: l10n.payrollDetailTitle,
       children: [
-        if (employee != null) ...[
-          Row(
-            children: [
-              EmployeeAvatar(employee: employee),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      employeeDisplayName(employee),
-                      style: Theme.of(context).textTheme.titleSmall,
-                    ),
-                    Text(
-                      employee.pin,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+        PayrollDayDetail(
+          entry: a,
+          employee: employee,
+          rate: data.rate,
+          amount: data.amount,
+          paidAt: data.paidAt,
+          maxBreakMinutes: resolvedMaxBreakMinutes(
+            a,
+            fallback: settings.maxBreakMinutes,
           ),
-          const SizedBox(height: AppSpacing.sm),
-          Row(
-            children: [
-              // Indented past the avatar so this lines up with the name/PIN
-              // above rather than with the avatar's left edge.
-              const SizedBox(width: 48 + AppSpacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Wrap(
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      spacing: AppSpacing.sm,
-                      runSpacing: AppSpacing.xs,
-                      children: [
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              LucideIcons.calendar,
-                              size: AppSizing.iconSm,
-                              color: AppColors.textSecondary,
-                            ),
-                            const SizedBox(width: AppSpacing.xs),
-                            Text(
-                              Formatters.date(a.date),
-                              style: Theme.of(context).textTheme.bodyMedium
-                                  ?.copyWith(color: AppColors.textSecondary),
-                            ),
-                          ],
-                        ),
-                        PaymentStatusBadge(status: a.paymentStatus),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ] else ...[
-          Row(
-            children: [
-              const Icon(
-                LucideIcons.calendar,
-                size: AppSizing.iconSm,
-                color: AppColors.textSecondary,
-              ),
-              const SizedBox(width: AppSpacing.xs),
-              Text(
-                Formatters.date(a.date),
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
-              ),
-              const SizedBox(width: AppSpacing.md),
-              PaymentStatusBadge(status: a.paymentStatus),
-            ],
-          ),
-        ],
-        const SizedBox(height: AppSpacing.xxxl),
-        _drawerSectionTitle(LucideIcons.clock, l10n.payrollColumnHours),
-        const SizedBox(height: AppSpacing.md),
-        DrawerRow(
-          label: l10n.payrollColumnClockIn,
-          value: a.sessions.firstOrNull?.clockInAt == null
-              ? '—'
-              : Formatters.time(a.sessions.first.clockInAt),
+          onPay: employee == null
+              ? null
+              : () => _confirmPay(employee, from: a.date, to: a.date),
         ),
-        DrawerRow(
-          label: l10n.payrollColumnClockOut,
-          value: a.sessions.lastOrNull?.clockOutAt == null
-              ? '—'
-              : Formatters.time(a.sessions.last.clockOutAt!),
-        ),
-        if (totalPauseCount(a) > 0)
-          DrawerRow(
-            label: l10n.payrollDetailBreakTotal,
-            value: Formatters.duration(totalBreak(a)),
-          ),
-        const SizedBox(height: AppSpacing.xxxl),
-        _drawerSectionTitle(LucideIcons.timer, l10n.payrollDetailWorkSection),
-        const SizedBox(height: AppSpacing.md),
-        DrawerRow(
-          label: l10n.payrollDetailWorked,
-          value: worked == null ? '—' : Formatters.duration(worked),
-        ),
-        const SizedBox(height: AppSpacing.xxxl),
-        _drawerSectionTitle(LucideIcons.wallet, l10n.payrollColumnAmount),
-        const SizedBox(height: AppSpacing.md),
-        DrawerRow(
-          label: l10n.payrollDetailRate,
-          value: '${Formatters.price(rate)} / h',
-        ),
-        DrawerRow(
-          label: l10n.payrollDetailTotal,
-          valueWidget: Text(
-            Formatters.price(total),
-            style: Theme.of(context).textTheme.titleSmall,
-          ),
-        ),
-        if (paidAt != null) ...[
-          const SizedBox(height: AppSpacing.md),
-          Text(
-            '${l10n.payrollColumnPaidAt} ${Formatters.date(paidAt)}',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: AppColors.inStock.foreground,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
-        if (employee != null && a.paymentStatus == PaymentStatus.unpaid) ...[
-          const SizedBox(height: AppSpacing.xxxl),
-          PrimaryButton(
-            label: l10n.payrollDetailPayNow,
-            icon: LucideIcons.banknote,
-            fullWidth: true,
-            onPressed: () => _confirmPay(employee),
-          ),
-        ],
       ],
     );
   }
 
-  /// A drawer section title matching the drawer header's own text style —
-  /// bigger than the shared [SectionHeader], with a leading icon.
-  Widget _drawerSectionTitle(IconData icon, String title) => Row(
-    children: [
-      Icon(icon, size: AppSizing.iconSm, color: AppColors.textSecondary),
-      const SizedBox(width: AppSpacing.xs),
-      Text(title, style: Theme.of(context).textTheme.titleMedium),
-    ],
-  );
-
-  Future<void> _confirmPay(Employee employee) async {
+  /// Settles [employee]'s unpaid finished days from [from] to [to] — the
+  /// page's filtered range from the button under the table, a single day from
+  /// the drawer. Resolves true once paid.
+  Future<bool> _confirmPay(
+    Employee employee, {
+    required DateTime from,
+    required DateTime to,
+  }) async {
     final l10n = AppLocalizations.of(context);
     final payroll = ref.read(payrollRepositoryProvider);
     final preview = await payroll.preview(
       employee.id,
       widget.storeId,
-      from: _from,
-      to: _to,
+      from: from,
+      to: to,
     );
-    if (!mounted || preview.isEmpty) return;
+    if (!mounted || preview.isEmpty) return false;
 
-    final rangeLabel = '${Formatters.date(_from)} – ${Formatters.date(_to)}';
+    final rangeLabel = from == to
+        ? Formatters.date(from)
+        : '${Formatters.date(from)} – ${Formatters.date(to)}';
 
     final ok = await ConfirmDialog.show(
       context,
@@ -564,10 +436,10 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
       ),
       confirmLabel: l10n.payrollPayAction,
     );
-    if (!ok || !mounted) return;
+    if (!ok || !mounted) return false;
 
     final actorId = ref.read(currentEmployeeProvider)?.id;
-    if (actorId == null) return;
+    if (actorId == null) return false;
 
     // The person settling the days confirms with their own PIN — same
     // wrong-attempt / 5-minute lockout as the pointage board.
@@ -578,20 +450,21 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
       verify: (pin) =>
           ref.read(credentialRepositoryProvider).verifyPin(pin, actorId),
     );
-    if (!identityOk || !mounted) return;
+    if (!identityOk || !mounted) return false;
 
     final period = await payroll.pay(
       employee.id,
       widget.storeId,
-      from: _from,
-      to: _to,
+      from: from,
+      to: to,
       paidByEmployeeId: actorId,
     );
-    if (!mounted || period == null) return;
+    if (!mounted || period == null) return false;
 
     // A `FutureProvider` — nudge it so the table reflects the settled days.
     ref.invalidate(payrollDaysProvider);
     AppSnackBar.success(context, l10n.payrollPaid);
+    return true;
   }
 }
 
@@ -613,6 +486,7 @@ class _Filters extends StatelessWidget {
     required this.onFrom,
     required this.onTo,
     required this.onStatus,
+    required this.onClear,
   });
 
   final Employee? selectedEmployee;
@@ -628,11 +502,18 @@ class _Filters extends StatelessWidget {
   final ValueChanged<DateTime> onTo;
   final ValueChanged<PaymentStatus?> onStatus;
 
+  /// Resets the period and the status — not the employee, which is the
+  /// search, not one of the filters.
+  final VoidCallback onClear;
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final rangeChanged = from != defaultFrom || to != defaultTo;
 
     return FilterToolbar(
+      activeCount: (rangeChanged ? 1 : 0) + (status == null ? 0 : 1),
+      onClear: onClear,
       search: EmployeeSelector(
         employees: employees,
         value: selectedEmployee,
@@ -734,7 +615,7 @@ class _DaysTable extends StatelessWidget {
   const _DaysTable({
     required this.rows,
     required this.employeesById,
-    required this.paidAtByPeriod,
+    required this.periodsById,
     required this.settings,
     required this.showEmployee,
     required this.onOpen,
@@ -742,7 +623,7 @@ class _DaysTable extends StatelessWidget {
 
   final List<Attendance> rows;
   final Map<String, Employee> employeesById;
-  final Map<String, DateTime> paidAtByPeriod;
+  final Map<String, PayrollPeriod> periodsById;
   final StoreSettings settings;
   final bool showEmployee;
   final ValueChanged<Attendance> onOpen;
@@ -756,7 +637,7 @@ class _DaysTable extends StatelessWidget {
       columns: [
         if (showEmployee) DataColumn(label: Text(l10n.payrollColumnEmployee)),
         DataColumn(label: Text(l10n.payrollColumnDate)),
-        DataColumn(label: Text(l10n.payrollColumnHours)),
+        DataColumn(label: Text(l10n.payrollColumnBreaks)),
         DataColumn(label: Text(l10n.payrollColumnWorked)),
         DataColumn(label: Text(l10n.payrollColumnAmount), numeric: true),
         DataColumn(label: Text(l10n.payrollColumnStatus)),
@@ -768,15 +649,9 @@ class _DaysTable extends StatelessWidget {
 
   DataRow _row(BuildContext context, AppLocalizations l10n, Attendance a) {
     final theme = Theme.of(context);
-    final data = _payrollRowData(a, employeesById, paidAtByPeriod, settings);
+    final data = _payrollRowData(a, employeesById, periodsById, settings);
     final employee = data.employee;
-
-    final arrival = a.sessions.firstOrNull?.clockInAt == null
-        ? '—'
-        : Formatters.time(a.sessions.first.clockInAt);
-    final departure = a.sessions.lastOrNull?.clockOutAt == null
-        ? '…'
-        : Formatters.time(a.sessions.last.clockOutAt!);
+    final pauses = totalPauseCount(a);
 
     return DataRow(
       onSelectChanged: (_) => onOpen(a),
@@ -785,23 +660,21 @@ class _DaysTable extends StatelessWidget {
           DataCell(EmployeeCell(employee: employee)),
         DataCell(WeekdayDate(a.date)),
         DataCell(
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('$arrival → $departure'),
-              if (totalPauseCount(a) > 0)
-                Text(
-                  l10n.payrollBreakSummary(
-                    totalPauseCount(a),
-                    Formatters.duration(totalBreak(a)),
-                  ),
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
+          pauses == 0
+              ? const Text('—')
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('$pauses'),
+                    Text(
+                      Formatters.duration(totalBreak(a)),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
                 ),
-            ],
-          ),
         ),
         DataCell(
           Text(data.worked == null ? '—' : Formatters.duration(data.worked!)),
@@ -819,9 +692,13 @@ class _DaysTable extends StatelessWidget {
 /// The fields a table row and a card both need, computed once so the two
 /// renderings of the same day can never drift apart — mirrors
 /// `_attendanceRowData` in the pointage history page.
+///
+/// A paid day is figured at the rate frozen on its payroll run, an unpaid one
+/// at the employee's current rate — see [dayRate].
 typedef _PayrollRowData = ({
   Employee? employee,
   Duration? worked,
+  double rate,
   double amount,
   DateTime? paidAt,
 });
@@ -829,30 +706,35 @@ typedef _PayrollRowData = ({
 _PayrollRowData _payrollRowData(
   Attendance a,
   Map<String, Employee> employeesById,
-  Map<String, DateTime> paidAtByPeriod,
+  Map<String, PayrollPeriod> periodsById,
   StoreSettings settings,
 ) {
   final employee = employeesById[a.employeeId];
+  final period = a.payrollPeriodId == null
+      ? null
+      : periodsById[a.payrollPeriodId!];
+  final rate = employee == null
+      ? period?.appliedRate ?? 0.0
+      : dayRate(employee, settings, period);
 
   return (
     employee: employee,
     worked: workedDuration(a),
-    amount: employee == null ? 0.0 : dayAmount(a, employee, settings),
-    paidAt: a.payrollPeriodId == null
-        ? null
-        : paidAtByPeriod[a.payrollPeriodId!],
+    rate: rate,
+    amount: dayAmountAt(a, rate),
+    paidAt: period?.paidAt,
   );
 }
 
 /// The payroll history as a grid of day cards — the table's small-screen
 /// alternative, the same concept as `_HistoryCards` on the pointage history
-/// page: fits as many columns as the available width allows via
-/// [cardGridColumns] rather than always stacking a single column.
+/// page: one card per line on a phone, two or more on a tablet, via the shared
+/// [ResponsiveCardGrid].
 class _DaysCards extends StatelessWidget {
   const _DaysCards({
     required this.rows,
     required this.employeesById,
-    required this.paidAtByPeriod,
+    required this.periodsById,
     required this.settings,
     required this.showEmployee,
     required this.onOpen,
@@ -860,38 +742,23 @@ class _DaysCards extends StatelessWidget {
 
   final List<Attendance> rows;
   final Map<String, Employee> employeesById;
-  final Map<String, DateTime> paidAtByPeriod;
+  final Map<String, PayrollPeriod> periodsById;
   final StoreSettings settings;
   final bool showEmployee;
   final ValueChanged<Attendance> onOpen;
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final columns = cardGridColumns(constraints.maxWidth);
-        const spacing = AppSpacing.lg;
-        final cardWidth = columns == 1
-            ? constraints.maxWidth
-            : (constraints.maxWidth - spacing * (columns - 1)) / columns;
-
-        return Wrap(
-          spacing: spacing,
-          runSpacing: spacing,
-          children: [
-            for (final a in rows)
-              SizedBox(
-                width: cardWidth,
-                child: _PayrollDayCard(
-                  attendance: a,
-                  data: _payrollRowData(a, employeesById, paidAtByPeriod, settings),
-                  showEmployee: showEmployee,
-                  onTap: () => onOpen(a),
-                ),
-              ),
-          ],
-        );
-      },
+    return ResponsiveCardGrid(
+      children: [
+        for (final a in rows)
+          _PayrollDayCard(
+            attendance: a,
+            data: _payrollRowData(a, employeesById, periodsById, settings),
+            showEmployee: showEmployee,
+            onTap: () => onOpen(a),
+          ),
+      ],
     );
   }
 }

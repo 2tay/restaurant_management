@@ -11,6 +11,7 @@ import '../../models/models.dart';
 import 'attendance_alerts.dart';
 import 'attendance_status_badge.dart';
 import 'attendance_timeline.dart';
+import 'day_summary_table.dart';
 import 'employee_avatar.dart';
 
 /// One day of pointage, as both pointage drawers show it — the history's and
@@ -60,27 +61,6 @@ class AttendanceDayDetail extends StatelessWidget {
       now: now,
     ).isNotEmpty;
 
-    final labelStyle = theme.textTheme.bodyMedium?.copyWith(
-      color: AppColors.textSecondary,
-    );
-    TableRow row(Key valueKey, String label, String value) => TableRow(
-      children: [
-        Padding(
-          padding: _cellPadding,
-          child: Text(label, style: labelStyle),
-        ),
-        Padding(
-          padding: _cellPadding,
-          child: Text(
-            value,
-            key: valueKey,
-            style: theme.textTheme.titleSmall,
-            textAlign: TextAlign.right,
-          ),
-        ),
-      ],
-    );
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -109,27 +89,18 @@ class AttendanceDayDetail extends StatelessWidget {
           ),
         ),
         const SizedBox(height: AppSpacing.sm),
-        Table(
+        DaySummaryTable(
           key: const ValueKey('attendance-day-summary'),
-          border: TableBorder.all(
-            color: AppColors.border,
-            borderRadius: AppRadius.smAll,
-          ),
-          columnWidths: const {
-            0: FlexColumnWidth(),
-            1: IntrinsicColumnWidth(),
-          },
-          defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-          children: [
-            row(
-              const ValueKey('attendance-day-worked'),
-              l10n.attendanceTotalWorked,
-              worked == null ? '—' : Formatters.duration(worked),
+          rows: [
+            DaySummaryRow(
+              valueKey: const ValueKey('attendance-day-worked'),
+              label: l10n.attendanceTotalWorked,
+              value: worked == null ? '—' : Formatters.duration(worked),
             ),
-            row(
-              const ValueKey('attendance-day-pauses'),
-              l10n.attendancePausesCount(totalPauseCount(entry)),
-              Formatters.duration(totalBreak(entry)),
+            DaySummaryRow(
+              valueKey: const ValueKey('attendance-day-pauses'),
+              label: l10n.attendancePausesCount(totalPauseCount(entry)),
+              value: Formatters.duration(totalBreak(entry)),
             ),
           ],
         ),
@@ -151,28 +122,31 @@ class AttendanceDayDetail extends StatelessWidget {
 }
 
 /// Avatar, name and — when [showPin] — the bare PIN under it, the day's
-/// status at the right.
+/// status at the right: its pointage status, or whatever [badge] puts there
+/// instead (the payment drawer's paid / unpaid).
 class AttendanceIdentityRow extends StatelessWidget {
   const AttendanceIdentityRow({
     required this.employee,
-    required this.status,
+    this.status,
+    this.badge,
     this.showPin = true,
     super.key,
-  });
+  }) : assert(status != null || badge != null);
 
   final Employee? employee;
-  final AttendanceStatus status;
+  final AttendanceStatus? status;
+
+  /// Replaces the [AttendanceStatusBadge] of [status].
+  final Widget? badge;
   final bool showPin;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final trailing = badge ?? AttendanceStatusBadge(status: status!);
     final who = employee;
     if (who == null) {
-      return Align(
-        alignment: Alignment.centerRight,
-        child: AttendanceStatusBadge(status: status),
-      );
+      return Align(alignment: Alignment.centerRight, child: trailing);
     }
     return Row(
       children: [
@@ -194,7 +168,7 @@ class AttendanceIdentityRow extends StatelessWidget {
           ),
         ),
         const SizedBox(width: AppSpacing.md),
-        AttendanceStatusBadge(status: status),
+        trailing,
       ],
     );
   }
@@ -240,11 +214,6 @@ class AttendanceDayDate extends StatelessWidget {
     );
   }
 }
-
-const EdgeInsets _cellPadding = EdgeInsets.symmetric(
-  horizontal: AppSpacing.md,
-  vertical: AppSpacing.sm,
-);
 
 class _SectionTitle extends StatelessWidget {
   const _SectionTitle(this.text);

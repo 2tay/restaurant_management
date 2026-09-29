@@ -181,6 +181,88 @@ abstract final class AppTheme {
         titleTextStyle: textTheme.headlineSmall,
         contentTextStyle: textTheme.bodyLarge,
       ),
+      // White throughout, header included — Material's default grey ground
+      // read as a disabled panel. The selected day is the one teal fill; today
+      // is only ringed, so the two never look alike.
+      datePickerTheme: DatePickerThemeData(
+        backgroundColor: AppColors.white,
+        surfaceTintColor: Colors.transparent,
+        elevation: 6,
+        shadowColor: AppColors.neutral950.withValues(alpha: 0.18),
+        shape: const RoundedRectangleBorder(borderRadius: AppRadius.lgAll),
+        headerBackgroundColor: AppColors.white,
+        headerForegroundColor: AppColors.textPrimary,
+        // Sizes as seen on screen — `showAppDatePicker` compensates for the
+        // scale it draws the dialog at.
+        headerHelpStyle: textTheme.labelMedium?.copyWith(
+          fontSize: 12,
+          color: AppColors.textSecondary,
+        ),
+        headerHeadlineStyle: textTheme.headlineSmall?.copyWith(
+          fontSize: 20,
+          fontWeight: FontWeight.w700,
+        ),
+        dividerColor: AppColors.border,
+        weekdayStyle: textTheme.labelMedium?.copyWith(
+          fontSize: 12,
+          color: AppColors.textSecondary,
+          fontWeight: FontWeight.w600,
+        ),
+        dayStyle: textTheme.bodyMedium?.copyWith(
+          fontSize: 13,
+          fontWeight: FontWeight.w500,
+        ),
+        yearStyle: textTheme.bodyMedium?.copyWith(fontSize: 14),
+        dayShape: const WidgetStatePropertyAll(
+          RoundedRectangleBorder(borderRadius: AppRadius.smAll),
+        ),
+        dayForegroundColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) return AppColors.white;
+          if (states.contains(WidgetState.disabled)) {
+            return AppColors.textDisabled;
+          }
+          return AppColors.textPrimary;
+        }),
+        dayBackgroundColor: WidgetStateProperty.resolveWith(
+          (states) => states.contains(WidgetState.selected)
+              ? AppColors.primary600
+              : Colors.transparent,
+        ),
+        dayOverlayColor: WidgetStateProperty.resolveWith(
+          (states) => states.contains(WidgetState.selected)
+              ? AppColors.white.withValues(alpha: 0.12)
+              : AppColors.primary600.withValues(alpha: 0.08),
+        ),
+        todayForegroundColor: WidgetStateProperty.resolveWith(
+          (states) => states.contains(WidgetState.selected)
+              ? AppColors.white
+              : AppColors.primary600,
+        ),
+        todayBackgroundColor: WidgetStateProperty.resolveWith(
+          (states) => states.contains(WidgetState.selected)
+              ? AppColors.primary600
+              : Colors.transparent,
+        ),
+        todayBorder: const BorderSide(color: AppColors.primary600, width: 1.5),
+        yearForegroundColor: WidgetStateProperty.resolveWith(
+          (states) => states.contains(WidgetState.selected)
+              ? AppColors.white
+              : AppColors.textPrimary,
+        ),
+        yearBackgroundColor: WidgetStateProperty.resolveWith(
+          (states) => states.contains(WidgetState.selected)
+              ? AppColors.primary600
+              : Colors.transparent,
+        ),
+        cancelButtonStyle: TextButton.styleFrom(
+          foregroundColor: AppColors.textSecondary,
+        ),
+        confirmButtonStyle: TextButton.styleFrom(
+          backgroundColor: AppColors.primary600,
+          foregroundColor: AppColors.white,
+          shape: const RoundedRectangleBorder(borderRadius: AppRadius.mdAll),
+        ),
+      ),
       // White with brand-green text, lifted off white pages by the menus'
       // shadow rather than a border.
       tooltipTheme: TooltipThemeData(

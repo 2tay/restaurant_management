@@ -134,9 +134,8 @@ extension ResponsiveContext on BuildContext {
 /// card stays at least [minCardWidth] wide, so a grid never crowds cards to
 /// the point of clipping their content.
 ///
-/// Shared between the pointage history cards and the payroll history cards —
-/// the table's small-screen alternative on both pages — so the same width
-/// reads as the same column count on each.
+/// Behind `ResponsiveCardGrid`, which adds the one-column phone rule; the
+/// receptions page calls it directly.
 int cardGridColumns(
   double width, {
   double minCardWidth = 280,

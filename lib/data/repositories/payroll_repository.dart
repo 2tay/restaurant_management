@@ -48,11 +48,12 @@ typedef PayrollPage = ({
 /// The day-by-day paiement view: the finished days (paginated), the four KPI
 /// figures above them, the pager totals, and the two lookups the table needs
 /// per row so it does not query per row — the employee behind each day and,
-/// for a paid day, when its period was settled.
+/// for a paid day, the period that settled it (when, and at which frozen
+/// rate).
 typedef PayrollDays = ({
   List<Attendance> rows,
   Map<String, Employee> employeesById,
-  Map<String, DateTime> paidAtByPeriod,
+  Map<String, PayrollPeriod> periodsById,
   int paidDays,
   int unpaidDays,
   Duration worked,
@@ -204,8 +205,7 @@ class PayrollRepository {
     final end = (start + pageSize).clamp(0, filtered.length);
     final pageRows = filtered.sublist(start, end);
 
-    // The paid-at date for each period a shown day points at — one query, not
-    // one per row.
+    // The period each shown paid day points at — one query, not one per row.
     final periodIds = pageRows
         .map((a) => a.payrollPeriodId)
         .whereType<String>()
@@ -221,10 +221,7 @@ class PayrollRepository {
     return (
       rows: pageRows,
       employeesById: {for (final e in employeeRows) e.id: e},
-      paidAtByPeriod: {
-        for (final p in periods)
-          if (p.paidAt != null) p.id: p.paidAt!,
-      },
+      periodsById: {for (final p in periods) p.id: p},
       paidDays: paid,
       unpaidDays: unpaid,
       worked: worked,

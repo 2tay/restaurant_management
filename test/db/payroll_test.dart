@@ -113,6 +113,62 @@ void main() {
       );
       expect(dayAmount(open, julien, settings), 0);
     });
+
+    test('a day is worth its rate × the time worked over every session',
+        () {
+      DateTime at(int h, int m) => DateTime(2026, 1, 5, h, m);
+      final split = Attendance(
+        id: 'x',
+        storeId: StoreIds.sablon,
+        employeeId: EmployeeIds.julien,
+        date: DateTime(2026, 1, 5),
+        status: AttendanceStatus.done,
+        sessions: [
+          AttendanceSession(clockInAt: at(9, 0), clockOutAt: at(12, 0)),
+          AttendanceSession(
+            clockInAt: at(18, 0),
+            clockOutAt: at(22, 30),
+            pauses: [AttendancePause(startAt: at(20, 0), endAt: at(20, 15))],
+          ),
+        ],
+        paymentStatus: PaymentStatus.unpaid,
+      );
+      // 3 h + 4 h 30 − 15 min = 7 h 15, at 12 €/h.
+      expect(dayAmountAt(split, 12), 87);
+    });
+
+    test('a paid day keeps the rate frozen on its run, an unpaid one follows '
+        'the current rate', () async {
+      final settings = await StoreRepository(db).settings(StoreIds.sablon);
+      final karim = (await employees.employee(EmployeeIds.karim))!;
+      final run = (await payroll.period(PayrollPeriodIds.karimSeed))!;
+      // The same run, as if Karim had been paid at a rate he no longer has.
+      final older = PayrollPeriod(
+        id: run.id,
+        storeId: run.storeId,
+        employeeId: run.employeeId,
+        startDate: run.startDate,
+        endDate: run.endDate,
+        workedDays: run.workedDays,
+        totalWorkedHours: run.totalWorkedHours,
+        appliedRate: karim.pay - 2,
+        computedAmount: run.computedAmount,
+        status: run.status,
+        paidByEmployeeId: run.paidByEmployeeId,
+        paidAt: run.paidAt,
+        createdAt: run.createdAt,
+      );
+
+      expect(dayRate(karim, settings, null), karim.pay);
+      expect(dayRate(karim, settings, older), karim.pay - 2);
+    });
+
+    test("the seeded run's frozen rate is Karim's hourly rate", () async {
+      final karim = (await employees.employee(EmployeeIds.karim))!;
+      final run = (await payroll.period(PayrollPeriodIds.karimSeed))!;
+      expect(run.appliedRate, karim.pay);
+      expect(run.computedAmount, closeTo(run.totalWorkedHours * karim.pay, 1e-9));
+    });
   });
 
   group('preview', () {

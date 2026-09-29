@@ -8,7 +8,6 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/attendance_status.dart';
 import '../../../../core/utils/employee_status.dart';
 import '../../../../core/utils/formatters.dart';
-import '../../../../core/utils/responsive.dart';
 import '../../../../data/providers.dart';
 import '../../../../data/repositories/repositories.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -198,6 +197,12 @@ class _AttendanceHistoryPageState extends ConsumerState<AttendanceHistoryPage> {
             _status = s;
             _page = 0;
           }),
+          onClear: () => setState(() {
+            _from = _defaultFrom;
+            _to = _defaultTo;
+            _status = null;
+            _page = 0;
+          }),
         ),
         if (_hasActiveFilters) ...[
           const SizedBox(height: AppSpacing.sm),
@@ -371,6 +376,7 @@ class _Filters extends StatelessWidget {
     required this.onFrom,
     required this.onTo,
     required this.onStatus,
+    required this.onClear,
   });
 
   final Employee? selectedEmployee;
@@ -385,11 +391,18 @@ class _Filters extends StatelessWidget {
   final ValueChanged<DateTime> onTo;
   final ValueChanged<AttendanceStatus?> onStatus;
 
+  /// Resets the period and the status — not the employee, which is the
+  /// search, not one of the filters.
+  final VoidCallback onClear;
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final rangeChanged = from != defaultFrom || to != defaultTo;
 
     return FilterToolbar(
+      activeCount: (rangeChanged ? 1 : 0) + (status == null ? 0 : 1),
+      onClear: onClear,
       search: EmployeeSelector(
         employees: employees,
         value: selectedEmployee,
@@ -549,8 +562,7 @@ typedef _AttendanceRowData = ({
   Employee? employee,
   Duration? worked,
   Duration totalPause,
-  String arrival,
-  String departure,
+  int pauseCount,
   int maxBreakMinutes,
 });
 
@@ -568,12 +580,7 @@ _AttendanceRowData _attendanceRowData(
     employee: employee,
     worked: workedDuration(a),
     totalPause: totalBreak(a),
-    arrival: a.sessions.firstOrNull?.clockInAt == null
-        ? '—'
-        : Formatters.time(a.sessions.first.clockInAt),
-    departure: a.sessions.lastOrNull?.clockOutAt == null
-        ? '…'
-        : Formatters.time(a.sessions.last.clockOutAt!),
+    pauseCount: totalPauseCount(a),
     maxBreakMinutes: maxBreak,
   );
 }
@@ -583,11 +590,9 @@ _AttendanceRowData _attendanceRowData(
 /// its six columns, which is not a touch-friendly way to read a day's
 /// pointage.
 ///
-/// Fits as many columns as the available width allows — up to 3 on a wide
-/// tablet, dropping to 2 then 1 as the screen narrows — rather than always
-/// stacking a single column, which wastes tablet-width real estate. Uses the
-/// same [cardGridColumns] sizing as the payroll history cards, so the two
-/// screens switch column counts at the same width.
+/// One card per line on a phone, two or more on a tablet — the same
+/// [ResponsiveCardGrid] as the payroll history cards, so the two screens switch
+/// column counts at the same width.
 class _HistoryCards extends StatelessWidget {
   const _HistoryCards({
     required this.rows,
@@ -603,38 +608,25 @@ class _HistoryCards extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final columns = cardGridColumns(constraints.maxWidth);
-        const spacing = AppSpacing.lg;
-        final cardWidth = columns == 1
-            ? constraints.maxWidth
-            : (constraints.maxWidth - spacing * (columns - 1)) / columns;
-
-        return Wrap(
-          spacing: spacing,
-          runSpacing: spacing,
-          children: [
-            for (final a in rows)
-              SizedBox(
-                width: cardWidth,
-                child: _AttendanceCard(
-                  attendance: a,
-                  data: _attendanceRowData(a, employeesById, settings),
-                  onTap: () => onOpen(a),
-                ),
-              ),
-          ],
-        );
-      },
+    return ResponsiveCardGrid(
+      children: [
+        for (final a in rows)
+          _AttendanceCard(
+            attendance: a,
+            data: _attendanceRowData(a, employeesById, settings),
+            onTap: () => onOpen(a),
+          ),
+      ],
     );
   }
 }
 
-/// One day, as a card: the date and the detail action on top, who it is,
-/// the arrival → départ span as the main figure, pause and overtime grouped
-/// underneath it, and the status with — only when there is one — an alert
-/// chip at the bottom.
+/// One day, as a card: the date and the detail action on top, who it is, the
+/// time worked and the pauses side by side, and the status with — only when
+/// there is one — an alert chip at the bottom.
+///
+/// No arrival → départ span: a day can hold several sessions, which one span
+/// misreads; the drawer's timeline shows them all.
 class _AttendanceCard extends StatelessWidget {
   const _AttendanceCard({
     required this.attendance,
@@ -666,7 +658,7 @@ class _AttendanceCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   Formatters.dateLong(attendance.date),
-                  style: theme.textTheme.titleSmall,
+                  style: theme.textTheme.labelLarge?.copyWith(fontSize: 14),
                 ),
               ),
               IconButton(
@@ -677,15 +669,15 @@ class _AttendanceCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: AppSpacing.md),
+          const SizedBox(height: AppSpacing.sm),
           Row(
             children: [
               if (employee != null)
-                EmployeeAvatar(employee: employee, size: 40)
+                EmployeeAvatar(employee: employee, size: 36)
               else
                 Container(
-                  width: 40,
-                  height: 40,
+                  width: 36,
+                  height: 36,
                   decoration: const BoxDecoration(
                     color: AppColors.surfaceVariant,
                     shape: BoxShape.circle,
@@ -704,7 +696,7 @@ class _AttendanceCard extends StatelessWidget {
                   children: [
                     Text(
                       employee == null ? '—' : employeeDisplayName(employee),
-                      style: theme.textTheme.titleSmall,
+                      style: theme.textTheme.labelLarge?.copyWith(fontSize: 14),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -723,37 +715,27 @@ class _AttendanceCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: AppSpacing.md),
-          Text(
-            l10n.attendanceColumnSchedule,
-            style: theme.textTheme.labelMedium?.copyWith(
-              color: AppColors.textSecondary,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            '${data.arrival} → ${data.departure}',
-            style: theme.textTheme.titleMedium,
-          ),
-          const SizedBox(height: AppSpacing.md),
-          Container(
-            padding: const EdgeInsets.all(AppSpacing.sm),
-            decoration: const BoxDecoration(
-              color: AppColors.surfaceVariant,
-              borderRadius: AppRadius.mdAll,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
+          // IntrinsicHeight so the two tiles match when one label wraps.
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(
-                  l10n.attendanceCardBreakLabel,
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: AppColors.textSecondary,
+                Expanded(
+                  child: _CardFigure(
+                    label: l10n.attendanceStatWorked,
+                    value: data.worked == null
+                        ? '—'
+                        : Formatters.duration(data.worked!),
                   ),
                 ),
-                Text(
-                  Formatters.duration(data.totalPause),
-                  style: theme.textTheme.titleSmall,
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: _CardFigure(
+                    key: const ValueKey('attendance-card-pauses'),
+                    label: l10n.attendanceCardBreakLabel,
+                    count: data.pauseCount,
+                    value: Formatters.duration(data.totalPause),
+                  ),
                 ),
               ],
             ),
@@ -771,6 +753,84 @@ class _AttendanceCard extends StatelessWidget {
               maxBreakMinutes: data.maxBreakMinutes,
             ),
           ],
+        ],
+      ),
+    );
+  }
+}
+
+/// One figure on an [_AttendanceCard] — a small grey label over the value, on
+/// a grey tile. [count], when given, sits in a badge beside the label: how
+/// many pauses the value adds up.
+class _CardFigure extends StatelessWidget {
+  const _CardFigure({
+    required this.label,
+    required this.value,
+    this.count,
+    super.key,
+  });
+
+  final String label;
+  final String value;
+  final int? count;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final labelStyle = theme.textTheme.labelSmall?.copyWith(
+      color: AppColors.textSecondary,
+    );
+
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.sm),
+      decoration: const BoxDecoration(
+        color: AppColors.surfaceVariant,
+        borderRadius: AppRadius.mdAll,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              Flexible(
+                child: Text(
+                  label,
+                  style: labelStyle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              if (count != null) ...[
+                const SizedBox(width: AppSpacing.xs),
+                Container(
+                  key: const ValueKey('card-figure-count'),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.xs + 2,
+                  ),
+                  decoration: const BoxDecoration(
+                    color: AppColors.primaryContainer,
+                    borderRadius: AppRadius.pillAll,
+                  ),
+                  child: Text(
+                    '$count',
+                    style: labelStyle?.copyWith(
+                      color: AppColors.onPrimaryContainer,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+          const SizedBox(height: 2),
+          Text(
+            value,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
         ],
       ),
     );

@@ -26,6 +26,9 @@ Future<AppDatabase> _roster(WidgetTester tester) async {
   );
   appRouter.go(Routes.toEmployees(StoreIds.sablon));
   await tester.pumpAndSettle();
+  // Personnel opens on the table; the edit path below goes through a card.
+  await tester.tap(find.byTooltip('Vue grille'));
+  await tester.pumpAndSettle();
   return db;
 }
 

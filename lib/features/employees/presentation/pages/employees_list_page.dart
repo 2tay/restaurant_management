@@ -26,8 +26,9 @@ import '../widgets/employee_wizard_dialog.dart';
 /// instinct as items and suppliers defaulting to what is currently usable —
 /// "afficher les personnels retirés" brings them back into view.
 ///
-/// Two layouts of the same filtered roster — cards (the default) or a table —
-/// behind the same toggle the inventory uses. The actions — the person's
+/// Two layouts of the same filtered roster — a table (the default) or cards —
+/// behind the same toggle the inventory uses. Below [WindowSize.medium] only
+/// the cards remain. The actions — the person's
 /// pointage and payment histories (opened filtered to them), Modifier,
 /// Retirer / Restaurer — are on each card's ⋮ menu and in the table's Actions
 /// column; nothing opens on a plain click.
@@ -43,7 +44,7 @@ class EmployeesListPage extends ConsumerStatefulWidget {
 class _EmployeesListPageState extends ConsumerState<EmployeesListPage> {
   String _query = '';
   bool _showArchived = false;
-  CollectionViewMode _viewMode = CollectionViewMode.grid;
+  CollectionViewMode _viewMode = CollectionViewMode.list;
   int _page = 0;
   int _pageSize = Paginator.defaultPageSizes.first;
 
@@ -105,6 +106,10 @@ class _EmployeesListPageState extends ConsumerState<EmployeesListPage> {
       start,
       (start + _pageSize).clamp(start, filtered.length),
     );
+    // A phone or a portrait tablet has no room for the table's eight columns
+    // — cards only, and no toggle to reach a table that would scroll sideways.
+    final cardsOnly = context.windowSize.index < WindowSize.medium.index;
+    final showTable = !cardsOnly && _viewMode == CollectionViewMode.list;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -118,6 +123,11 @@ class _EmployeesListPageState extends ConsumerState<EmployeesListPage> {
               _page = 0;
             }),
           ),
+          activeCount: _showArchived ? 1 : 0,
+          onClear: () => setState(() {
+            _showArchived = false;
+            _page = 0;
+          }),
           filters: [
             _ArchivedFilterPill(
               active: _showArchived,
@@ -126,22 +136,23 @@ class _EmployeesListPageState extends ConsumerState<EmployeesListPage> {
                 _page = 0;
               }),
             ),
-            ViewModeToggle<CollectionViewMode>(
-              value: _viewMode,
-              onSelected: (mode) => setState(() => _viewMode = mode),
-              options: [
-                ViewModeOption(
-                  value: CollectionViewMode.grid,
-                  icon: LucideIcons.layoutGrid,
-                  label: l10n.viewModeGrid,
-                ),
-                ViewModeOption(
-                  value: CollectionViewMode.list,
-                  icon: LucideIcons.list,
-                  label: l10n.viewModeList,
-                ),
-              ],
-            ),
+            if (!cardsOnly)
+              ViewModeToggle<CollectionViewMode>(
+                value: _viewMode,
+                onSelected: (mode) => setState(() => _viewMode = mode),
+                options: [
+                  ViewModeOption(
+                    value: CollectionViewMode.grid,
+                    icon: LucideIcons.layoutGrid,
+                    label: l10n.viewModeGrid,
+                  ),
+                  ViewModeOption(
+                    value: CollectionViewMode.list,
+                    icon: LucideIcons.list,
+                    label: l10n.viewModeList,
+                  ),
+                ],
+              ),
           ],
         ),
         const SizedBox(height: AppSpacing.md),
@@ -167,7 +178,7 @@ class _EmployeesListPageState extends ConsumerState<EmployeesListPage> {
                   ),
           )
         else ...[
-          if (_viewMode == CollectionViewMode.list)
+          if (showTable)
             _EmployeeTable(employees: visible, actions: _actions)
           else
             _EmployeeGrid(employees: visible, actions: _actions),
@@ -299,9 +310,8 @@ class _ArchivedFilterPill extends StatelessWidget {
   }
 }
 
-/// The roster as a grid of vertical [EmployeeCard]s — as many per line as
-/// the width allows (300dp minimum, up to four), sized by
-/// the same [cardGridColumns] as the pointage and payroll history cards.
+/// The roster as a grid of vertical [EmployeeCard]s — one per line on a
+/// phone, then two to four as the width allows (see [ResponsiveCardGrid]).
 class _EmployeeGrid extends StatelessWidget {
   const _EmployeeGrid({required this.employees, required this.actions});
 
@@ -310,38 +320,20 @@ class _EmployeeGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final columns = cardGridColumns(
-          constraints.maxWidth,
-          minCardWidth: 300,
-          maxColumns: 4,
-        );
-        const spacing = AppSpacing.lg;
-        final cardWidth = columns == 1
-            ? constraints.maxWidth
-            : (constraints.maxWidth - spacing * (columns - 1)) / columns;
-
-        return Wrap(
-          spacing: spacing,
-          runSpacing: spacing,
-          children: [
-            for (final employee in employees)
-              SizedBox(
-                width: cardWidth,
-                child: EmployeeCard(
-                  key: ValueKey('employee-card-${employee.id}'),
-                  employee: employee,
-                  onAttendance: () => actions.onAttendance(employee),
-                  onPayroll: () => actions.onPayroll(employee),
-                  onEdit: () => actions.onEdit(employee),
-                  onArchive: () => actions.onArchive(employee),
-                  onRestore: () => actions.onRestore(employee),
-                ),
-              ),
-          ],
-        );
-      },
+    return ResponsiveCardGrid(
+      minCardWidth: 260,
+      children: [
+        for (final employee in employees)
+          EmployeeCard(
+            key: ValueKey('employee-card-${employee.id}'),
+            employee: employee,
+            onAttendance: () => actions.onAttendance(employee),
+            onPayroll: () => actions.onPayroll(employee),
+            onEdit: () => actions.onEdit(employee),
+            onArchive: () => actions.onArchive(employee),
+            onRestore: () => actions.onRestore(employee),
+          ),
+      ],
     );
   }
 }

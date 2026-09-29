@@ -222,14 +222,13 @@ class _StockInPageState extends ConsumerState<StockInPage> {
   }
 
   Future<void> _pickDate() async {
-    final picked = await showDatePicker(
+    final picked = await showAppDatePicker(
       context: context,
       initialDate: _date,
       // Deliveries are recorded on the day or shortly after, never for the
       // future — a future delivery has not arrived.
       firstDate: clock.now().subtract(const Duration(days: 365)),
       lastDate: clock.now(),
-      locale: const Locale('fr', 'BE'),
     );
     if (picked != null && mounted) setState(() => _date = picked);
   }

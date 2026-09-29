@@ -3287,11 +3287,10 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get attendanceDayIntro =>
-      'Les pointages de la journée, session par session, puis le temps travaillé, les pauses et les alertes éventuelles.';
+      'Pointages, temps travaillé et pauses de la journée.';
 
   @override
-  String get attendanceDaySummary =>
-      'Résumé de la journée : le temps travaillé et les pauses prises.';
+  String get attendanceDaySummary => 'Résumé de la journée';
 
   @override
   String get attendanceTotalWorked => 'Durée totale travaillée';
@@ -3306,9 +3305,6 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get attendanceViewDetail => 'Voir le détail';
-
-  @override
-  String get attendanceColumnSchedule => 'Horaires';
 
   @override
   String attendanceBreakSummary(int count, String duration) {
@@ -3378,12 +3374,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get payrollColumnDate => 'Date';
 
   @override
-  String get payrollColumnClockIn => 'Arrivée';
-
-  @override
-  String get payrollColumnClockOut => 'Départ';
-
-  @override
   String get payrollColumnWorked => 'Durée travaillée';
 
   @override
@@ -3396,7 +3386,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get payrollColumnPaidAt => 'Payé le';
 
   @override
-  String get payrollDetailPayNow => 'Payer maintenant';
+  String get payrollDetailPayNow => 'Payer ce jour';
 
   @override
   String get payrollPayAction => 'Payer';
@@ -3421,36 +3411,23 @@ class AppLocalizationsFr extends AppLocalizations {
   String get payrollPaid => 'Paiement enregistré';
 
   @override
-  String get payrollColumnHours => 'Horaires';
+  String get payrollColumnBreaks => 'Pauses';
 
   @override
-  String payrollBreakSummary(int count, String duration) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count pauses · $duration',
-      one: '1 pause · $duration',
-    );
-    return '$_temp0';
+  String get payrollDayIntro => 'Pointages et montant de la journée.';
+
+  @override
+  String get payrollDetailRate => 'Tarif horaire';
+
+  @override
+  String payrollRatePerHour(String rate) {
+    return '$rate/h';
   }
 
   @override
-  String get payrollDetailTitle => 'Détail du paiement';
-
-  @override
-  String get payrollDetailBreakTotal => 'Total pauses';
-
-  @override
-  String get payrollDetailWorkSection => 'Temps de travail';
-
-  @override
-  String get payrollDetailWorked => 'Temps travaillé';
-
-  @override
-  String get payrollDetailRate => 'Taux horaire';
-
-  @override
-  String get payrollDetailTotal => 'Total';
+  String payrollDetailAmount(String rate, String hours) {
+    return 'Montant ($rate × $hours)';
+  }
 
   @override
   String get paymentStatusPaid => 'Payé';

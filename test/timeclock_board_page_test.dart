@@ -342,4 +342,26 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(IdentityPromptDialog), findsOneWidget);
   });
+
+  _testBoard('cards: one per line on a phone, then three or four', (
+    tester,
+  ) async {
+    Future<int> perLine(Size size) async {
+      await _openBoard(tester, size: size);
+      expect(tester.takeException(), isNull, reason: '$size');
+      // Each card's own "Voir détails" — the sidebar carries an avatar too.
+      final details = find.byWidgetPredicate(
+        (w) => '${w.key}'.contains('timeclock-detail-'),
+      );
+      final tops = [
+        for (final e in details.evaluate())
+          tester.getTopLeft(find.byWidget(e.widget)).dy,
+      ];
+      return tops.where((y) => y == tops.first).length;
+    }
+
+    expect(await perLine(const Size(390, 844)), 1);
+    expect(await perLine(const Size(1280, 800)), 3);
+    expect(await perLine(const Size(1440, 900)), 4);
+  });
 }

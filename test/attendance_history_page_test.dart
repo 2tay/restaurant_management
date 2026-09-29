@@ -196,4 +196,40 @@ void main() {
     expect(pager().pageSize, 25);
     expect(pager().page, 0);
   });
+
+  testApp('a phone: one card per line, worked hours and a pause count, the '
+      'filters behind an icon', (tester) async {
+    await _open(tester, size: const Size(390, 844));
+    expect(tester.takeException(), isNull);
+    expect(find.byType(DataTable), findsNothing);
+
+    // Filters: search on the page, the rest in the sheet.
+    expect(find.byKey(const ValueKey('date-filter-from')), findsNothing);
+    await tester.tap(find.byType(FilterSheetButton));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('date-filter-from')), findsOneWidget);
+    await tester.tap(find.text('Voir les résultats'));
+    await tester.pumpAndSettle();
+
+    // The card: no Horaires span, the time worked, and the pauses with their
+    // count in a badge.
+    expect(find.text('Horaires'), findsNothing);
+    expect(find.text('Heures travaillées'), findsWidgets);
+    final pauses = find.byKey(const ValueKey('attendance-card-pauses'));
+    expect(pauses, findsWidgets);
+    expect(
+      find.descendant(
+        of: pauses.first,
+        matching: find.byKey(const ValueKey('card-figure-count')),
+      ),
+      findsOneWidget,
+    );
+
+    // One per line: every card starts at the same left edge.
+    final lefts = {
+      for (final e in pauses.evaluate())
+        tester.getTopLeft(find.byWidget(e.widget)).dx,
+    };
+    expect(lefts, hasLength(1));
+  });
 }
