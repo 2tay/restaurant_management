@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/utils/busy_calendar.dart';
 import '../models/models.dart';
+import '../services/auth_service.dart';
 import 'database/app_database.dart';
 import 'employee_photo_store.dart';
 import 'repositories/repositories.dart';
@@ -73,6 +74,12 @@ final Provider<DeviceRepository> deviceRepositoryProvider =
     Provider<DeviceRepository>(
       (ref) => DeviceRepository(ref.watch(databaseProvider)),
     );
+
+/// The account login's server (SYNC_PLAN.md, Phase 4). `main()` overrides it
+/// with the Supabase one when the build knows a server; a test overrides it
+/// with a fake. Left alone, it is a backend that politely refuses everything.
+final Provider<AccountBackend> accountBackendProvider =
+    Provider<AccountBackend>((ref) => const UnconfiguredAccountBackend());
 
 final Provider<OutboxRepository> outboxRepositoryProvider =
     Provider<OutboxRepository>(

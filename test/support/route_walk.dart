@@ -29,6 +29,12 @@ List<WalkableRoute> allRoutes() {
     (label: 'login', path: Routes.login, inShell: false),
     (label: 'forgot password', path: Routes.forgotPassword, inShell: false),
     (label: 'onboarding', path: Routes.onboarding, inShell: false),
+    // The account screens (Phase 4), open in the demo so a demo device can
+    // connect to a real restaurant. The waiting screen is account-only.
+    (label: 'welcome', path: Routes.welcome, inShell: false),
+    (label: 'account sign-up', path: Routes.accountSignUp, inShell: false),
+    (label: 'account set-up', path: Routes.accountSetup, inShell: false),
+    (label: 'account password reset', path: Routes.accountForgot, inShell: false),
     (label: 'store selector', path: Routes.stores, inShell: false),
     (label: 'add store', path: Routes.addStore, inShell: false),
 

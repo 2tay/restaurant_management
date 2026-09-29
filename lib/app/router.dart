@@ -21,9 +21,14 @@ import '../features/settings/presentation/pages/account_settings_page.dart';
 import '../features/settings/presentation/pages/notification_preferences_page.dart';
 import '../features/settings/presentation/pages/store_settings_page.dart';
 import '../features/settings/presentation/pages/sync_status_page.dart';
+import '../features/auth/presentation/pages/account_forgot_page.dart';
+import '../features/auth/presentation/pages/account_setup_page.dart';
+import '../features/auth/presentation/pages/account_sign_up_page.dart';
+import '../features/auth/presentation/pages/account_waiting_page.dart';
 import '../features/auth/presentation/pages/forgot_password_page.dart';
 import '../features/auth/presentation/pages/login_page.dart';
 import '../features/auth/presentation/pages/onboarding_page.dart';
+import '../features/auth/presentation/pages/welcome_page.dart';
 import '../features/catalog/presentation/pages/categories_page.dart';
 import '../features/catalog/presentation/pages/units_page.dart';
 import '../features/inventory/presentation/pages/add_edit_item_page.dart';
@@ -50,6 +55,7 @@ import '../features/suppliers/presentation/pages/supplier_pricing_page.dart';
 import '../features/suppliers/presentation/pages/suppliers_list_page.dart';
 import '../core/utils/permissions.dart';
 import '../data/current_employee.dart';
+import '../data/device_access.dart';
 import '../models/models.dart';
 import '../shared/widgets/app_scaffold.dart';
 import 'navigation.dart';
@@ -67,6 +73,50 @@ import 'routes.dart';
 ///   `/store/:storeId/`. The shell resolves the store once and hands it to
 ///   [AppScaffold], so the rail and top bar persist across navigations.
 ///
+
+/// The account screens (SYNC_PLAN.md, Phase 4), reachable before any account
+/// or demo is set up. The waiting screen is apart: it is only for an account
+/// device whose data has not arrived yet.
+const Set<String> _accountRoutes = {
+  Routes.welcome,
+  Routes.accountSignUp,
+  Routes.accountSetup,
+  Routes.accountForgot,
+};
+
+/// The device level of the guard, before anything about employees.
+///
+/// - nothing chosen yet → the welcome screen and its account pages only
+/// - an account whose restaurant data has not arrived → the waiting screen
+/// - an account with data → never back to the account pages; the employee
+///   rules below take over
+/// - the demo → as the app has always been, plus the account pages, which is
+///   how a demo device connects to a real restaurant
+///
+/// Returns where to go, `null` to stay, or [_continue] to let the employee
+/// rules decide.
+const String _continue = '';
+
+String? _deviceGuard(String location) {
+  final access = deviceAccessSnapshot;
+  switch (access.mode) {
+    case DeviceMode.none:
+      return _accountRoutes.contains(location) ? null : Routes.welcome;
+    case DeviceMode.account:
+      if (!access.hasLocalData) {
+        return location == Routes.accountWaiting ? null : Routes.accountWaiting;
+      }
+      if (_accountRoutes.contains(location) ||
+          location == Routes.accountWaiting) {
+        return Routes.login;
+      }
+      return _continue;
+    case DeviceMode.demo:
+      if (_accountRoutes.contains(location)) return null;
+      if (location == Routes.accountWaiting) return Routes.login;
+      return _continue;
+  }
+}
 
 /// Pulls the store id out of a store-scoped route.
 ///
@@ -110,6 +160,9 @@ Capability? _capabilityFor(String location) {
 ///   → home
 String? _guard(BuildContext context, GoRouterState state) {
   final location = state.matchedLocation;
+
+  final device = _deviceGuard(location);
+  if (device != _continue) return device;
 
   // Read synchronously — `currentEmployeeSnapshot` is resolved before the first
   // frame (`main()` awaits `hydrate()`; the widget-test fixtures seed it) and
@@ -157,6 +210,26 @@ final GoRouter appRouter = GoRouter(
     // Auth and store selection — no shell
     // -------------------------------------------------------------------------
     GoRoute(path: Routes.login, builder: (context, state) => const LoginPage()),
+    GoRoute(
+      path: Routes.welcome,
+      builder: (context, state) => const WelcomePage(),
+    ),
+    GoRoute(
+      path: Routes.accountSignUp,
+      builder: (context, state) => const AccountSignUpPage(),
+    ),
+    GoRoute(
+      path: Routes.accountSetup,
+      builder: (context, state) => const AccountSetupPage(),
+    ),
+    GoRoute(
+      path: Routes.accountForgot,
+      builder: (context, state) => const AccountForgotPage(),
+    ),
+    GoRoute(
+      path: Routes.accountWaiting,
+      builder: (context, state) => const AccountWaitingPage(),
+    ),
     GoRoute(
       path: Routes.forgotPassword,
       builder: (context, state) => const ForgotPasswordPage(),

@@ -2,20 +2,18 @@ import '../repositories/device_repository.dart';
 import '../seed/demo_seed.dart';
 import 'app_database.dart';
 
-/// Opens the app's database, seeding it if it has never been used.
+/// Opens the app's database.
 ///
 /// Called once from `main()`, before the first frame. The returned instance is
 /// handed to `ProviderScope` as the override for `databaseProvider`, which is
 /// the only way anything else gets hold of it.
 ///
-/// A first launch finds no establishments and writes the demo dataset, so a
-/// fresh install looks exactly like the Phase 1 demo did. Every launch after
-/// that finds the user's own data and leaves it alone — which is the whole
-/// point of this phase, and the one thing no amount of Phase 1 polish could
-/// fake.
+/// It no longer seeds the demo on a first launch (SYNC_PLAN.md, Phase 4): a
+/// fresh install opens on the welcome screen, where "Essayer la démo" seeds it
+/// ([seedIfEmpty]) and signing in to an account starts from that account's
+/// data instead.
 Future<AppDatabase> openAppDatabase() async {
   final AppDatabase db = AppDatabase();
-  await seedIfEmpty(db);
   // Made now rather than on first use, so the id exists from the install's
   // very first launch, before anything could need to report it.
   await DeviceRepository(db).deviceId();

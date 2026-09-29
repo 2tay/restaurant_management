@@ -13,6 +13,7 @@ import '../../../../data/providers.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
+import '../widgets/restaurant_account_section.dart';
 import '../widgets/settings_tabs.dart';
 
 /// The signed-in employee's own profile, security and linked stores.
@@ -124,6 +125,9 @@ class AccountSettingsPage extends ConsumerWidget {
               ],
             ),
           ),
+          const SizedBox(height: AppSpacing.xl),
+
+          const RestaurantAccountSection(),
           const SizedBox(height: AppSpacing.xl),
 
           SectionHeader(title: l10n.accountSecurity),

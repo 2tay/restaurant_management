@@ -12,6 +12,14 @@ abstract final class Routes {
   // --- Outside the shell (no sidebar — there is no store context yet) --------
 
   static const String login = '/login';
+
+  // The account (SYNC_PLAN.md, Phase 4): the restaurant's e-mail login, which
+  // comes before the employee PIN login above.
+  static const String welcome = '/welcome';
+  static const String accountSignUp = '/welcome/sign-up';
+  static const String accountSetup = '/welcome/setup';
+  static const String accountForgot = '/welcome/forgot';
+  static const String accountWaiting = '/welcome/waiting';
   static const String forgotPassword = '/forgot-password';
   static const String onboarding = '/onboarding';
   static const String stores = '/stores';

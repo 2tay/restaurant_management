@@ -38,4 +38,19 @@ abstract final class MetaKeys {
   /// stay silent while it exists. Only `SyncQuiet` writes it, inside the same
   /// transaction as the quiet writes, so a crash can never leave it behind.
   static const String syncQuiet = 'syncQuiet';
+
+  /// What this installation is (SYNC_PLAN.md, Phase 4): `demo` or `account`.
+  /// Absent on a fresh install, which opens on the welcome screen. See
+  /// `DeviceAccess`.
+  static const String deviceMode = 'deviceMode';
+
+  /// The signed-in account and its restaurant, cached so the app knows them
+  /// offline. Written when the device joins an organization, removed when the
+  /// account signs out (which wipes the device).
+  static const String accountEmail = 'accountEmail';
+  static const String organizationId = 'organizationId';
+  static const String organizationName = 'organizationName';
+
+  /// `owner` or `manager`.
+  static const String accountRole = 'accountRole';
 }

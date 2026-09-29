@@ -10,6 +10,7 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/credential_status.dart';
 import '../../../../core/utils/permissions.dart';
 import '../../../../data/current_employee.dart';
+import '../../../../data/device_access.dart';
 import '../../../../data/providers.dart';
 import '../../../../data/repositories/credential_repository.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -36,8 +37,12 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   /// Phase 1 form paid with an email and password. `1234` is every seeded password.
   static const _demoPin = '78.02.14-153.24';
 
-  final _pin = TextEditingController(text: _demoPin);
-  final _password = TextEditingController(text: '1234');
+  /// Pre-filled only in the demo. On a restaurant's own account the fields
+  /// start empty, and the demo notice below is not shown.
+  late final bool _isDemo =
+      ref.read(deviceAccessProvider).mode == DeviceMode.demo;
+  late final _pin = TextEditingController(text: _isDemo ? _demoPin : '');
+  late final _password = TextEditingController(text: _isDemo ? '1234' : '');
   bool _rememberMe = true;
   bool _obscurePassword = true;
   String? _error;
@@ -85,7 +90,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         Align(
           alignment: Alignment.centerRight,
           child: TextButton.icon(
-            onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+            onPressed: () =>
+                setState(() => _obscurePassword = !_obscurePassword),
             icon: Icon(
               _obscurePassword ? LucideIcons.eye : LucideIcons.eyeOff,
               size: AppSizing.iconSm,
@@ -128,31 +134,33 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           large: true,
           onPressed: () => _signIn(),
         ),
-        const SizedBox(height: AppSpacing.xl),
-        Container(
-          padding: const EdgeInsets.all(AppSpacing.md),
-          decoration: BoxDecoration(
-            color: AppColors.surfaceVariant,
-            borderRadius: AppRadius.mdAll,
-            border: Border.all(color: AppColors.border),
-          ),
-          child: Row(
-            children: [
-              const Icon(
-                LucideIcons.info,
-                size: AppSizing.iconMd,
-                color: AppColors.textSecondary,
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: Text(
-                  l10n.loginDemoNotice,
-                  style: Theme.of(context).textTheme.bodySmall,
+        if (_isDemo) ...[
+          const SizedBox(height: AppSpacing.xl),
+          Container(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceVariant,
+              borderRadius: AppRadius.mdAll,
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Row(
+              children: [
+                const Icon(
+                  LucideIcons.info,
+                  size: AppSizing.iconMd,
+                  color: AppColors.textSecondary,
                 ),
-              ),
-            ],
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: Text(
+                    l10n.loginDemoNotice,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
+        ],
       ],
     );
   }

@@ -2,13 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app/app.dart';
+import 'core/config/env.dart';
 import 'core/utils/formatters.dart';
 import 'data/current_employee.dart';
 import 'data/database/app_database.dart';
 import 'data/database/bootstrap.dart';
+import 'data/device_access.dart';
 import 'data/providers.dart';
+import 'services/auth_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,9 +23,9 @@ Future<void> main() async {
   await initializeDateFormatting(Formatters.locale);
   Intl.defaultLocale = Formatters.locale;
 
-  // Open the local database, seeding it on a first launch. Awaited before the
-  // first frame: every store-scoped screen needs an establishment to exist, and
-  // a splash that resolves into "no data" is worse than a slightly later splash.
+  // Open the local database. Awaited before the first frame: the router has to
+  // know whether this device is a demo, an account or neither before it picks
+  // the first screen.
   //
   // Nothing else in the app opens a database. This instance is handed to
   // `databaseProvider` below and every repository is built from it, which is
@@ -39,9 +43,26 @@ Future<void> main() async {
   // already hold a value — Employee or null — by the time the first route is
   // built. A fresh install has no `meta.currentEmployeeId`, so this resolves to
   // null and the app opens on `/login`.
+  //
+  // The account server, when the build names one (`--dart-define-from-file=
+  // config/local.json`, see `core/config/env.dart`). Supabase restores a
+  // signed-in session from the device, so this works offline too.
+  AccountBackend backend = const UnconfiguredAccountBackend();
+  if (Env.hasServer) {
+    await Supabase.initialize(
+      url: Env.supabaseUrl,
+      publishableKey: Env.supabasePublishableKey,
+    );
+    backend = SupabaseAccountBackend(Supabase.instance.client);
+  }
+
   final container = ProviderContainer(
-    overrides: [databaseProvider.overrideWithValue(database)],
+    overrides: [
+      databaseProvider.overrideWithValue(database),
+      accountBackendProvider.overrideWithValue(backend),
+    ],
   );
+  await container.read(deviceAccessProvider.notifier).hydrate();
   await container.read(currentEmployeeProvider.notifier).hydrate();
 
   // Orientation is deliberately left unconstrained. The app is designed

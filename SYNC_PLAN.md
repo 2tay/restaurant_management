@@ -1,8 +1,112 @@
 # Synchronisation and multi-device plan (Phase 3)
 
 This file explains, step by step, how we add a server and multi-device sync to the app.
-It is written before any code. Each phase has ordered steps. Do the phases in order: each one
+It was written before any code. Each phase has ordered steps. Do the phases in order: each one
 depends on the ones before it.
+
+---
+
+## Progress so far (read this first in a new session)
+
+Last updated: 2026-09-29. Branch: `14-sync-phase-1` (pushed to GitHub).
+
+| Phase | What | Status |
+|---|---|---|
+| 0 | Decisions and setup | Local only: Docker Desktop + Supabase CLI installed. **No cloud project yet** (on purpose, until real tablets need it). |
+| 1 | Local database ready for sync (schema v15) | Done |
+| 2 | Outbox (schema v16) | Done |
+| 3 | Server tables, rules, push and pull functions | Done, tested locally |
+| 4 | Real login (account + employee PIN) | Done, tested locally |
+| 5 | Sending changes (push) | **Next** |
+| 6 | Receiving changes (pull) | To do |
+| 7 | Conflict rules | Partly done in Phase 3 (delete wins, order status forward, paid payroll final). Rest to do. |
+| 8 | Photos | Bucket exists on the server. App side to do. |
+| 9 | First connection and existing data | To do |
+| 10 | Screens and messages | Partly done in Phase 4 (account screens). Sync page still to do. |
+| 11 | Testing and release | To do |
+
+Each finished phase below has a **Status** note saying what was built and where it differs from
+the first plan. Read those notes before changing anything in that area.
+
+### Where things are
+
+- **App, local database:** `lib/data/database/` (tables, `sync_triggers.drift`,
+  `outbox_triggers.drift`, `sync_tables.dart`), `lib/data/repositories/` (`soft_delete.dart`,
+  `stock_ledger.dart`, `outbox_repository.dart`, `sync_quiet.dart`,
+  `device_access_repository.dart`, `device_repository.dart`).
+- **App, accounts:** `lib/services/auth_service.dart` (Supabase backend behind the
+  `AccountBackend` interface), `lib/data/device_access.dart` (demo / account mode and every
+  account flow), `lib/features/auth/presentation/pages/` (welcome, sign-up, set-up, forgot,
+  waiting), `lib/features/settings/presentation/widgets/restaurant_account_section.dart`.
+- **Server:** `supabase/` (migrations, pgTAP tests, README). `supabase/README.md` explains it.
+- **Generators:** `tool/generate_outbox_triggers.py` (app triggers) and
+  `tool/generate_server_schema.py` (server tables), both from the newest drift schema dump.
+- **Local config:** `config/local.json` (not committed; copy `config/example.json`, paste
+  `PUBLISHABLE_KEY` from `supabase status`).
+
+### How to run and check everything
+
+```
+supabase start                                   # local server (Docker must be running)
+supabase test db                                 # server tests: 49
+flutter analyze                                  # must say "No issues found"
+python tool/ux_audit.py                          # 2 old findings only (colour, fontSize)
+flutter test test/db test/password_hash_test.dart            # 452 tests
+flutter test test/integration --dart-define-from-file=config/local.json   # real server: 2
+flutter test --concurrency=2 <every test/*.dart except responsive_test.dart>  # screens
+flutter run -d windows --dart-define-from-file=config/local.json
+```
+
+The full screen suite uses a lot of memory; `--concurrency=2` keeps it stable.
+
+### Known issues, not caused by this work
+
+- 2 screen tests fail on the original code too: `page_scroll_test.dart`, "Fournisseurs" and
+  "Notifications": the title scrolls away with the page.
+- `responsive_test.dart` (large text) had 5 failures on the original code; it was not rerun
+  after these phases because it is slow and memory-hungry.
+
+### Open points to remember
+
+- **The demo notice on the PIN login** ("Prototype de démonstration — aucune authentification
+  réelle") is outdated wording. It only shows in demo mode now; suggested text: "Mode
+  démonstration : restaurant fictif, rien n'est envoyé."
+- **Existing installs open in demo mode** (their data was seeded before Phase 4). To reach the
+  account screens: Paramètres → Compte → "Connecter un compte", or delete the local database
+  file `stock_inventory.sqlite` under `AppData\Roaming`.
+- **`createRestaurant` is resumable only up to the server step.** If the network fails after
+  the local establishment is created, a retry creates a second one. Rare; fix in Phase 9.
+- **Changing a synced table** now means: new drift schema version and dump, then
+  `python tool/generate_outbox_triggers.py`, then a **new** server migration altering the
+  server table (never edit an applied migration).
+- **Cloud project:** create "dev" on supabase.com when real devices must share data, then
+  `supabase link` and `supabase db push`, and put its URL and publishable key in a config file.
+
+### Next step: Phase 5, sending changes
+
+The queue (Phase 2) and the receive function (Phase 3) both exist; Phase 5 connects them.
+In order:
+
+1. **`SyncService`** in `lib/services/sync_service.dart`: state (idle, syncing, offline, error),
+   last sync time, one sync at a time. Exposed by a provider.
+2. **Only for account devices.** Do nothing in demo mode (`deviceAccessProvider`).
+3. **Send the queue in batches:** read `OutboxRepository.pending(limit: 100)`, call the server's
+   `push_changes(p_device_id, p_changes)` with entries shaped
+   `{id, table, row_key, store_id, payload}` (`payload` can stay the JSON text). Add a
+   `pushChanges` method to `AccountBackend` (Supabase RPC) and to the test fake.
+4. **Handle each answer.** Accepted: delete that outbox entry, **but only if its payload has not
+   changed since it was read** (a row edited during the send must stay queued). Rejected: move
+   it to a new local `sync_errors` table with the reason, and remove it from the outbox.
+   Network error: keep everything, retry later (5 s, 15 s, 1 min, 5 min).
+5. **When to sync:** a few seconds after a local write, on app resume, when the network comes
+   back (`connectivity_plus`), every few minutes, and from a button.
+6. **Tests:** a fake server that accepts, rejects or fails on demand; batching; retry; an entry
+   edited mid-send stays queued; rejected entries land in `sync_errors`. Then one integration
+   test against the local server: create a restaurant, sync, and read the rows back with
+   `pull_changes`.
+
+Phase 6 (pulling changes into the local database, with `SyncQuiet` and `StockLedger`) comes
+after, and ends the waiting screen for devices that joined a restaurant.
 
 ## Where we start
 
@@ -388,6 +492,24 @@ pull work from a test script.
 ## Phase 4: Real authentication
 
 Goal: owners and managers log in with a real account. Employees keep the PIN on shared devices.
+
+> **Status: built, tested against the local server.** Not on a cloud project yet. What differs
+> from the first plan, or was decided on the way:
+>
+> - **A fresh install opens on a welcome screen**: sign in, create an account, or "Essayer la
+>   démo". The demo is no longer seeded on first launch. Installs from before keep their demo.
+> - **The device mode (demo or account) is stored in `meta`**, so the router knows it
+>   synchronously and offline (`DeviceAccess`, `deviceAccessSnapshot`).
+> - **Creating a restaurant also creates, on the device, the first establishment and the owner
+>   as an employee with a PIN**, signed in. Both wait in the outbox for Phase 5.
+> - **A device that joins an existing restaurant shows a waiting screen** until Phase 6 brings
+>   its data.
+> - **Managers join with an 8-character code** the owner creates (one use, 7 days), not an
+>   e-mail invitation. Server: `create_join_code`, `join_organization`, `remove_device`,
+>   `my_account` (`supabase/migrations/…_join_codes.sql`).
+> - **The server key is the "publishable" key**, given at build time with
+>   `--dart-define-from-file=config/local.json` (ignored by git; `config/example.json` shows
+>   the shape). A build without it runs with the demo only.
 
 **Step 4.1: Add the Supabase package.**
 Add `supabase_flutter` to `pubspec.yaml`. Initialize it in `main.dart` with the values from

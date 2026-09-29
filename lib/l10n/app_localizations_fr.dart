@@ -4052,4 +4052,269 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get calendarRelativeToday => 'aujourd\'hui';
+
+  @override
+  String get welcomeTitle => 'Bienvenue';
+
+  @override
+  String get welcomeSubtitle => 'Connectez-vous au compte de votre restaurant.';
+
+  @override
+  String get accountEmail => 'Adresse e-mail';
+
+  @override
+  String get accountPassword => 'Mot de passe';
+
+  @override
+  String get accountPasswordHint => '8 caractères minimum';
+
+  @override
+  String get accountSignIn => 'Se connecter';
+
+  @override
+  String get accountCreate => 'Créer un compte';
+
+  @override
+  String get accountForgotLink => 'Mot de passe oublié ?';
+
+  @override
+  String get welcomeTryDemo => 'Essayer la démo';
+
+  @override
+  String get welcomeDemoHint =>
+      'Un restaurant fictif, sur cet appareil seulement. Rien n\'est envoyé.';
+
+  @override
+  String get welcomeOr => 'ou';
+
+  @override
+  String get accountDemoWipeWarning =>
+      'Les données de démonstration de cet appareil seront effacées.';
+
+  @override
+  String get accountServerMissing =>
+      'Aucun serveur n\'est configuré dans cette version. La démo reste disponible.';
+
+  @override
+  String get signUpTitle => 'Créer un compte';
+
+  @override
+  String get signUpSubtitle =>
+      'Le compte du propriétaire ou d\'un gérant du restaurant.';
+
+  @override
+  String get signUpPasswordConfirm => 'Confirmer le mot de passe';
+
+  @override
+  String get signUpPasswordMismatch =>
+      'Les deux mots de passe ne correspondent pas.';
+
+  @override
+  String get signUpPasswordTooShort =>
+      'Le mot de passe doit faire au moins 8 caractères.';
+
+  @override
+  String get signUpSubmit => 'Créer le compte';
+
+  @override
+  String get signUpHaveAccount => 'Déjà un compte ? Se connecter';
+
+  @override
+  String get setupTitle => 'Votre restaurant';
+
+  @override
+  String get setupSubtitle =>
+      'Créez votre restaurant, ou rejoignez-en un avec le code du propriétaire.';
+
+  @override
+  String get setupCreateTab => 'Créer';
+
+  @override
+  String get setupJoinTab => 'Rejoindre';
+
+  @override
+  String get setupRestaurantName => 'Nom du restaurant';
+
+  @override
+  String get setupCity => 'Ville';
+
+  @override
+  String get setupPhone => 'Téléphone';
+
+  @override
+  String get setupFirstName => 'Prénom';
+
+  @override
+  String get setupLastName => 'Nom';
+
+  @override
+  String get setupPin => 'Votre PIN';
+
+  @override
+  String get setupPinHint =>
+      'Votre identifiant sur les tablettes du restaurant';
+
+  @override
+  String get setupEmployeePassword => 'Code de connexion (4 chiffres)';
+
+  @override
+  String get setupCreateSubmit => 'Créer le restaurant';
+
+  @override
+  String get setupJoinCode => 'Code d\'invitation';
+
+  @override
+  String get setupJoinCodeHint => '8 caractères, donnés par le propriétaire';
+
+  @override
+  String get setupJoinSubmit => 'Rejoindre le restaurant';
+
+  @override
+  String setupSignedInAs(String email) {
+    return 'Connecté en tant que $email';
+  }
+
+  @override
+  String get setupNotSignedIn =>
+      'Connectez-vous d\'abord au compte du restaurant.';
+
+  @override
+  String get setupFieldsRequired => 'Remplissez tous les champs.';
+
+  @override
+  String get setupPasswordFormat => 'Le code de connexion fait 4 chiffres.';
+
+  @override
+  String get forgotAccountTitle => 'Mot de passe oublié';
+
+  @override
+  String get forgotAccountSubtitle =>
+      'Recevez un lien pour choisir un nouveau mot de passe.';
+
+  @override
+  String get forgotAccountSubmit => 'Envoyer le lien';
+
+  @override
+  String get forgotAccountSent =>
+      'Si un compte existe pour cette adresse, un e-mail vient de partir.';
+
+  @override
+  String get forgotAccountBack => 'Retour à la connexion';
+
+  @override
+  String get waitingTitle => 'Presque prêt';
+
+  @override
+  String waitingBody(String restaurant) {
+    return 'Cet appareil est relié à $restaurant. Ses données arriveront avec la synchronisation, ajoutée dans une prochaine version.';
+  }
+
+  @override
+  String get accountErrorUnavailable => 'Aucun serveur n\'est configuré.';
+
+  @override
+  String get accountErrorNetwork =>
+      'Le serveur est injoignable. Vérifiez la connexion et réessayez.';
+
+  @override
+  String get accountErrorBadCredentials =>
+      'Adresse e-mail ou mot de passe incorrect.';
+
+  @override
+  String get accountErrorEmailTaken =>
+      'Un compte existe déjà avec cette adresse.';
+
+  @override
+  String get accountErrorWeakPassword =>
+      'Mot de passe trop faible : 8 caractères minimum.';
+
+  @override
+  String get accountErrorConfirmEmail =>
+      'Confirmez votre adresse e-mail avec le lien reçu, puis connectez-vous.';
+
+  @override
+  String get accountErrorInvalidCode => 'Code invalide ou expiré.';
+
+  @override
+  String get accountErrorAlreadyMember =>
+      'Ce compte appartient déjà à un restaurant.';
+
+  @override
+  String get accountErrorNotAllowed => 'Seul le propriétaire peut faire cela.';
+
+  @override
+  String get accountErrorUnknown => 'Une erreur est survenue. Réessayez.';
+
+  @override
+  String get accountSectionTitle => 'Compte du restaurant';
+
+  @override
+  String get accountSectionDemo =>
+      'Cet appareil utilise la démo. Connectez le compte de votre restaurant pour travailler sur plusieurs appareils.';
+
+  @override
+  String get accountConnect => 'Connecter un compte';
+
+  @override
+  String get accountRoleOwner => 'Propriétaire';
+
+  @override
+  String get accountRoleManager => 'Gérant';
+
+  @override
+  String get accountInvite => 'Inviter un gérant';
+
+  @override
+  String get accountInviteTitle => 'Code d\'invitation';
+
+  @override
+  String get accountInviteBody =>
+      'Donnez ce code au gérant : il l\'entre après avoir créé son compte. Valable 7 jours, une seule fois.';
+
+  @override
+  String get accountDevices => 'Appareils';
+
+  @override
+  String get accountDeviceThis => 'Cet appareil';
+
+  @override
+  String accountDeviceLastSeen(String date) {
+    return 'Vu le $date';
+  }
+
+  @override
+  String get accountDeviceRemove => 'Retirer';
+
+  @override
+  String get accountDeviceRemoveConfirm =>
+      'Retirer cet appareil ? Il ne pourra plus envoyer de modifications.';
+
+  @override
+  String get accountDevicesUnavailable =>
+      'La liste des appareils demande une connexion au serveur.';
+
+  @override
+  String get accountSignOut => 'Se déconnecter du compte';
+
+  @override
+  String get accountSignOutTitle => 'Se déconnecter du compte ?';
+
+  @override
+  String get accountSignOutBody =>
+      'Toutes les données de cet appareil seront effacées. Celles déjà envoyées restent sur le serveur.';
+
+  @override
+  String accountSignOutPending(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count modifications n\'ont pas encore été envoyées et seront perdues.',
+      one: '1 modification n\'a pas encore été envoyée et sera perdue.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get signUpDone => 'Compte créé.';
 }

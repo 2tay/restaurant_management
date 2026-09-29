@@ -6592,6 +6592,462 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'aujourd\'hui'**
   String get calendarRelativeToday;
+
+  /// Welcome screen heading (the restaurant account login).
+  ///
+  /// In fr, this message translates to:
+  /// **'Bienvenue'**
+  String get welcomeTitle;
+
+  /// Under the welcome heading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Connectez-vous au compte de votre restaurant.'**
+  String get welcomeSubtitle;
+
+  /// Account e-mail field.
+  ///
+  /// In fr, this message translates to:
+  /// **'Adresse e-mail'**
+  String get accountEmail;
+
+  /// Account password field.
+  ///
+  /// In fr, this message translates to:
+  /// **'Mot de passe'**
+  String get accountPassword;
+
+  /// Hint under the account password field.
+  ///
+  /// In fr, this message translates to:
+  /// **'8 caractères minimum'**
+  String get accountPasswordHint;
+
+  /// Account sign-in button.
+  ///
+  /// In fr, this message translates to:
+  /// **'Se connecter'**
+  String get accountSignIn;
+
+  /// Link from the welcome screen to account sign-up.
+  ///
+  /// In fr, this message translates to:
+  /// **'Créer un compte'**
+  String get accountCreate;
+
+  /// Link to the account password reset. Narrow no-break space before ?.
+  ///
+  /// In fr, this message translates to:
+  /// **'Mot de passe oublié ?'**
+  String get accountForgotLink;
+
+  /// Opens the demo restaurant, offline.
+  ///
+  /// In fr, this message translates to:
+  /// **'Essayer la démo'**
+  String get welcomeTryDemo;
+
+  /// Under the demo button.
+  ///
+  /// In fr, this message translates to:
+  /// **'Un restaurant fictif, sur cet appareil seulement. Rien n\'est envoyé.'**
+  String get welcomeDemoHint;
+
+  /// Separator between the account login and the demo.
+  ///
+  /// In fr, this message translates to:
+  /// **'ou'**
+  String get welcomeOr;
+
+  /// Shown on the account screens when the device holds the demo.
+  ///
+  /// In fr, this message translates to:
+  /// **'Les données de démonstration de cet appareil seront effacées.'**
+  String get accountDemoWipeWarning;
+
+  /// Welcome screen, build without a server.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun serveur n\'est configuré dans cette version. La démo reste disponible.'**
+  String get accountServerMissing;
+
+  /// Account sign-up heading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Créer un compte'**
+  String get signUpTitle;
+
+  /// Under the sign-up heading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le compte du propriétaire ou d\'un gérant du restaurant.'**
+  String get signUpSubtitle;
+
+  /// Second password field on sign-up.
+  ///
+  /// In fr, this message translates to:
+  /// **'Confirmer le mot de passe'**
+  String get signUpPasswordConfirm;
+
+  /// Sign-up error.
+  ///
+  /// In fr, this message translates to:
+  /// **'Les deux mots de passe ne correspondent pas.'**
+  String get signUpPasswordMismatch;
+
+  /// Sign-up error.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le mot de passe doit faire au moins 8 caractères.'**
+  String get signUpPasswordTooShort;
+
+  /// Sign-up button.
+  ///
+  /// In fr, this message translates to:
+  /// **'Créer le compte'**
+  String get signUpSubmit;
+
+  /// Link back to sign-in.
+  ///
+  /// In fr, this message translates to:
+  /// **'Déjà un compte ? Se connecter'**
+  String get signUpHaveAccount;
+
+  /// Heading of the step after sign-up.
+  ///
+  /// In fr, this message translates to:
+  /// **'Votre restaurant'**
+  String get setupTitle;
+
+  /// Under the set-up heading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Créez votre restaurant, ou rejoignez-en un avec le code du propriétaire.'**
+  String get setupSubtitle;
+
+  /// Set-up tab: create a restaurant.
+  ///
+  /// In fr, this message translates to:
+  /// **'Créer'**
+  String get setupCreateTab;
+
+  /// Set-up tab: join with a code.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rejoindre'**
+  String get setupJoinTab;
+
+  /// Set-up field.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nom du restaurant'**
+  String get setupRestaurantName;
+
+  /// Set-up field.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ville'**
+  String get setupCity;
+
+  /// Set-up field.
+  ///
+  /// In fr, this message translates to:
+  /// **'Téléphone'**
+  String get setupPhone;
+
+  /// Set-up field: the owner's first name.
+  ///
+  /// In fr, this message translates to:
+  /// **'Prénom'**
+  String get setupFirstName;
+
+  /// Set-up field: the owner's last name.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nom'**
+  String get setupLastName;
+
+  /// Set-up field: the owner's PIN for the tablets.
+  ///
+  /// In fr, this message translates to:
+  /// **'Votre PIN'**
+  String get setupPin;
+
+  /// Hint under the PIN field.
+  ///
+  /// In fr, this message translates to:
+  /// **'Votre identifiant sur les tablettes du restaurant'**
+  String get setupPinHint;
+
+  /// Set-up field: the 4-digit password used with the PIN.
+  ///
+  /// In fr, this message translates to:
+  /// **'Code de connexion (4 chiffres)'**
+  String get setupEmployeePassword;
+
+  /// Set-up button.
+  ///
+  /// In fr, this message translates to:
+  /// **'Créer le restaurant'**
+  String get setupCreateSubmit;
+
+  /// Set-up field: the join code.
+  ///
+  /// In fr, this message translates to:
+  /// **'Code d\'invitation'**
+  String get setupJoinCode;
+
+  /// Hint under the join code.
+  ///
+  /// In fr, this message translates to:
+  /// **'8 caractères, donnés par le propriétaire'**
+  String get setupJoinCodeHint;
+
+  /// Set-up button: join.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rejoindre le restaurant'**
+  String get setupJoinSubmit;
+
+  /// Set-up: which account is signed in.
+  ///
+  /// In fr, this message translates to:
+  /// **'Connecté en tant que {email}'**
+  String setupSignedInAs(String email);
+
+  /// Set-up opened without a signed-in account.
+  ///
+  /// In fr, this message translates to:
+  /// **'Connectez-vous d\'abord au compte du restaurant.'**
+  String get setupNotSignedIn;
+
+  /// Form error.
+  ///
+  /// In fr, this message translates to:
+  /// **'Remplissez tous les champs.'**
+  String get setupFieldsRequired;
+
+  /// Form error.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le code de connexion fait 4 chiffres.'**
+  String get setupPasswordFormat;
+
+  /// Account password reset heading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Mot de passe oublié'**
+  String get forgotAccountTitle;
+
+  /// Under the reset heading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Recevez un lien pour choisir un nouveau mot de passe.'**
+  String get forgotAccountSubtitle;
+
+  /// Reset button.
+  ///
+  /// In fr, this message translates to:
+  /// **'Envoyer le lien'**
+  String get forgotAccountSubmit;
+
+  /// After asking for a reset link.
+  ///
+  /// In fr, this message translates to:
+  /// **'Si un compte existe pour cette adresse, un e-mail vient de partir.'**
+  String get forgotAccountSent;
+
+  /// Link back to the welcome screen.
+  ///
+  /// In fr, this message translates to:
+  /// **'Retour à la connexion'**
+  String get forgotAccountBack;
+
+  /// Waiting screen heading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Presque prêt'**
+  String get waitingTitle;
+
+  /// Account device with no local data yet.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cet appareil est relié à {restaurant}. Ses données arriveront avec la synchronisation, ajoutée dans une prochaine version.'**
+  String waitingBody(String restaurant);
+
+  /// Account error.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun serveur n\'est configuré.'**
+  String get accountErrorUnavailable;
+
+  /// Account error.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le serveur est injoignable. Vérifiez la connexion et réessayez.'**
+  String get accountErrorNetwork;
+
+  /// Account error.
+  ///
+  /// In fr, this message translates to:
+  /// **'Adresse e-mail ou mot de passe incorrect.'**
+  String get accountErrorBadCredentials;
+
+  /// Account error.
+  ///
+  /// In fr, this message translates to:
+  /// **'Un compte existe déjà avec cette adresse.'**
+  String get accountErrorEmailTaken;
+
+  /// Account error. Narrow no-break space before the colon.
+  ///
+  /// In fr, this message translates to:
+  /// **'Mot de passe trop faible : 8 caractères minimum.'**
+  String get accountErrorWeakPassword;
+
+  /// Account error.
+  ///
+  /// In fr, this message translates to:
+  /// **'Confirmez votre adresse e-mail avec le lien reçu, puis connectez-vous.'**
+  String get accountErrorConfirmEmail;
+
+  /// Account error.
+  ///
+  /// In fr, this message translates to:
+  /// **'Code invalide ou expiré.'**
+  String get accountErrorInvalidCode;
+
+  /// Account error.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ce compte appartient déjà à un restaurant.'**
+  String get accountErrorAlreadyMember;
+
+  /// Account error.
+  ///
+  /// In fr, this message translates to:
+  /// **'Seul le propriétaire peut faire cela.'**
+  String get accountErrorNotAllowed;
+
+  /// Account error.
+  ///
+  /// In fr, this message translates to:
+  /// **'Une erreur est survenue. Réessayez.'**
+  String get accountErrorUnknown;
+
+  /// Account settings: the restaurant account section.
+  ///
+  /// In fr, this message translates to:
+  /// **'Compte du restaurant'**
+  String get accountSectionTitle;
+
+  /// Account settings in demo mode.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cet appareil utilise la démo. Connectez le compte de votre restaurant pour travailler sur plusieurs appareils.'**
+  String get accountSectionDemo;
+
+  /// Account settings in demo mode.
+  ///
+  /// In fr, this message translates to:
+  /// **'Connecter un compte'**
+  String get accountConnect;
+
+  /// Account role.
+  ///
+  /// In fr, this message translates to:
+  /// **'Propriétaire'**
+  String get accountRoleOwner;
+
+  /// Account role.
+  ///
+  /// In fr, this message translates to:
+  /// **'Gérant'**
+  String get accountRoleManager;
+
+  /// Button: create a join code.
+  ///
+  /// In fr, this message translates to:
+  /// **'Inviter un gérant'**
+  String get accountInvite;
+
+  /// Dialog heading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Code d\'invitation'**
+  String get accountInviteTitle;
+
+  /// Dialog body. Narrow no-break space before the colon.
+  ///
+  /// In fr, this message translates to:
+  /// **'Donnez ce code au gérant : il l\'entre après avoir créé son compte. Valable 7 jours, une seule fois.'**
+  String get accountInviteBody;
+
+  /// Account settings: device list heading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Appareils'**
+  String get accountDevices;
+
+  /// Marks the current device in the list.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cet appareil'**
+  String get accountDeviceThis;
+
+  /// When a device last talked to the server.
+  ///
+  /// In fr, this message translates to:
+  /// **'Vu le {date}'**
+  String accountDeviceLastSeen(String date);
+
+  /// Remove a device.
+  ///
+  /// In fr, this message translates to:
+  /// **'Retirer'**
+  String get accountDeviceRemove;
+
+  /// Confirmation. Narrow no-break space before ?.
+  ///
+  /// In fr, this message translates to:
+  /// **'Retirer cet appareil ? Il ne pourra plus envoyer de modifications.'**
+  String get accountDeviceRemoveConfirm;
+
+  /// Device list could not load.
+  ///
+  /// In fr, this message translates to:
+  /// **'La liste des appareils demande une connexion au serveur.'**
+  String get accountDevicesUnavailable;
+
+  /// Signs the account out and wipes the device.
+  ///
+  /// In fr, this message translates to:
+  /// **'Se déconnecter du compte'**
+  String get accountSignOut;
+
+  /// Confirmation heading. Narrow no-break space before ?.
+  ///
+  /// In fr, this message translates to:
+  /// **'Se déconnecter du compte ?'**
+  String get accountSignOutTitle;
+
+  /// Confirmation body.
+  ///
+  /// In fr, this message translates to:
+  /// **'Toutes les données de cet appareil seront effacées. Celles déjà envoyées restent sur le serveur.'**
+  String get accountSignOutBody;
+
+  /// Warning in the sign-out confirmation.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =1{1 modification n\'a pas encore été envoyée et sera perdue.} other{{count} modifications n\'ont pas encore été envoyées et seront perdues.}}'**
+  String accountSignOutPending(int count);
+
+  /// Confirmation after creating the account.
+  ///
+  /// In fr, this message translates to:
+  /// **'Compte créé.'**
+  String get signUpDone;
 }
 
 class _AppLocalizationsDelegate

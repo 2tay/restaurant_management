@@ -24,7 +24,9 @@ supabase stop
 | `migrations/…_sync_tables.sql` | **Generated.** The 20 synced tables, `server_seq`, `store_changes`, read-only access rules, `pull_changes` |
 | `migrations/…_push_changes.sql` | `push_changes`: access checks, conflict rules, then the write |
 | `migrations/…_photos.sql` | The private `photos` bucket, one folder per store |
+| `migrations/…_join_codes.sql` | Join codes for managers, `my_account`, `remove_device` (Phase 4) |
 | `tests/database/sync.test.sql` | pgTAP tests: isolation between restaurants, push and pull, conflict rules |
+| `tests/database/accounts.test.sql` | pgTAP tests: join codes, roles, removing a device |
 
 ## Rules worth knowing
 

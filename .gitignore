@@ -47,3 +47,5 @@ app.*.map.json
 # Claude Code — keep the project brief, drop machine-local permission settings
 .claude/settings.local.json
 docs/
+# Local server address and key for `flutter run --dart-define-from-file=config/local.json`.
+config/local.json

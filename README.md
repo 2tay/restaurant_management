@@ -56,8 +56,23 @@ flutter pub get
 flutter run
 ```
 
-Requires Flutter 3.38+ (Dart 3.10+). The app opens on the login screen; any credentials
-get you in, because nothing is authenticated.
+Requires Flutter 3.38+ (Dart 3.10+). A fresh install opens on the welcome screen. **Essayer la
+démo** opens the demo restaurant, offline; the PIN login is pre-filled.
+
+### With the local sync server
+
+The restaurant account login (e-mail, SYNC_PLAN.md Phase 4) needs a server. Locally, with
+Docker Desktop running and the Supabase CLI installed:
+
+```bash
+supabase start
+# Copy config/example.json to config/local.json and paste PUBLISHABLE_KEY
+# from `supabase status` into it (config/local.json is not committed).
+flutter run --dart-define-from-file=config/local.json
+```
+
+Without that file the app still runs; the welcome screen then offers only the demo. See
+`supabase/README.md` for the server itself.
 
 ### The demo path
 
