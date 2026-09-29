@@ -3173,12 +3173,6 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get liveDateLabel => 'Date';
-
-  @override
-  String get liveTimeLabel => 'Heure';
-
-  @override
   String get timeclockViewDetail => 'Voir détails';
 
   @override

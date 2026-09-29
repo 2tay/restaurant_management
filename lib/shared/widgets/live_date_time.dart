@@ -6,10 +6,8 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/utils/formatters.dart';
-import '../../l10n/app_localizations.dart';
 
-/// `Date : Mar 24/10/2026 · Heure : 12:01`, ticking — the pointage board's
-/// header.
+/// `📅 Mar 24/10/2026 | 🕐 12:01`, ticking — the pointage board's header.
 ///
 /// Its own stateful widget so the once-a-second tick redraws this line only,
 /// never the grid of cards around it.
@@ -41,11 +39,7 @@ class _LiveDateTimeState extends State<LiveDateTime> {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final labelStyle = theme.textTheme.bodyMedium?.copyWith(
-      color: AppColors.textSecondary,
-    );
     final valueStyle = theme.textTheme.bodyMedium?.copyWith(
       color: AppColors.textPrimary,
       fontWeight: FontWeight.w600,
@@ -53,7 +47,7 @@ class _LiveDateTimeState extends State<LiveDateTime> {
 
     // Text spans rather than a Row of widgets, so a narrow panel (the
     // drawer on a small tablet) wraps the line instead of overflowing it.
-    Widget part(IconData icon, String label, List<InlineSpan> value) =>
+    Widget part(IconData icon, List<InlineSpan> value) =>
         Text.rich(
           TextSpan(
             children: [
@@ -68,7 +62,6 @@ class _LiveDateTimeState extends State<LiveDateTime> {
                   ),
                 ),
               ),
-              TextSpan(text: '$label : ', style: labelStyle),
               TextSpan(style: valueStyle, children: value),
             ],
           ),
@@ -77,22 +70,40 @@ class _LiveDateTimeState extends State<LiveDateTime> {
     final smaller = (valueStyle?.fontSize ?? 14) - 3;
     return Wrap(
       key: const ValueKey('live-date-time'),
-      spacing: AppSpacing.lg,
+      // Same gap as the header's action row, so the pipe after the clock
+      // (before full screen) sits like the one between date and time.
+      spacing: AppSpacing.md,
       runSpacing: AppSpacing.xs,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
         // `Mar 24/10/2026`, the weekday a size smaller — as `WeekdayDate`.
-        part(LucideIcons.calendar, l10n.liveDateLabel, [
+        part(LucideIcons.calendar, [
           TextSpan(
             text: Formatters.weekdayShort(_now),
             style: TextStyle(fontSize: smaller),
           ),
           TextSpan(text: ' ${Formatters.date(_now)}'),
         ]),
-        part(LucideIcons.clock, l10n.liveTimeLabel, [
+        const PipeSeparator(),
+        part(LucideIcons.clock, [
           TextSpan(text: Formatters.time(_now)),
         ]),
       ],
+    );
+  }
+}
+
+/// The `|` between the items of a header line — date, time, full screen.
+class PipeSeparator extends StatelessWidget {
+  const PipeSeparator({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      '|',
+      style: Theme.of(
+        context,
+      ).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
     );
   }
 }

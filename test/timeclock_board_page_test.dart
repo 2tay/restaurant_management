@@ -95,16 +95,28 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // Scoped to the cards: Marc's name still shows in the sidebar user menu.
-    Finder marcCard() => find.descendant(
+    Finder amelieCard() => find.descendant(
       of: find.byType(AppCard),
-      matching: find.text(_name(EmployeeIds.marc)),
+      matching: find.text(_name(EmployeeIds.amelie)),
     );
-    expect(marcCard(), findsNothing);
+    expect(amelieCard(), findsNothing);
 
     await tester.tap(find.byTooltip('Effacer'));
     await tester.pumpAndSettle();
-    expect(marcCard(), findsWidgets);
+    expect(amelieCard(), findsWidgets);
+  });
+
+  _testBoard('the owner has no card on the board', (tester) async {
+    await _openBoard(tester);
+
+    // Scoped to the cards: Marc's name still shows in the sidebar user menu.
+    expect(
+      find.descendant(
+        of: find.byType(AppCard),
+        matching: find.text(_name(EmployeeIds.marc)),
+      ),
+      findsNothing,
+    );
   });
 
   _testBoard('header: title and paragraph left; date, time and full screen on '
@@ -115,14 +127,19 @@ void main() {
 
     final clock = find.byKey(const ValueKey('live-date-time'));
     expect(clock, findsOneWidget);
+    // No « Date : » / « Heure : » labels — icon, value, then a pipe.
     expect(
       find.descendant(of: clock, matching: find.textContaining('Date : ')),
-      findsOneWidget,
+      findsNothing,
     );
     expect(
       find.descendant(of: clock, matching: find.textContaining('Heure : ')),
-      findsOneWidget,
+      findsNothing,
     );
+    // date | time | full screen.
+    final pipes = find.byType(PipeSeparator);
+    expect(pipes, findsNWidgets(2));
+    expect(find.descendant(of: clock, matching: pipes), findsOneWidget);
     final fullScreen = find.byTooltip('Plein écran');
     expect(fullScreen, findsOneWidget);
 
@@ -132,6 +149,9 @@ void main() {
     expect(clockRect.left, greaterThan(tester.getRect(title).right));
     expect(tester.getCenter(fullScreen).dy, closeTo(clockRect.center.dy, 12));
     expect(tester.getRect(fullScreen).left, greaterThan(clockRect.right));
+    final outerPipe = tester.getRect(pipes.last);
+    expect(outerPipe.left, greaterThan(clockRect.right));
+    expect(tester.getRect(fullScreen).left, greaterThan(outerPipe.right));
   });
 
   _testBoard(

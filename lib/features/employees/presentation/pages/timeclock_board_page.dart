@@ -64,9 +64,12 @@ class _TimeclockBoardPageState extends ConsumerState<TimeclockBoardPage> {
     return ShellPage(
       title: l10n.timeclockBoardTitle,
       subtitle: l10n.timeclockBoardSubtitle,
-      // One line at the title's right: the live date and time, then full
-      // screen.
-      actions: const [LiveDateTime(), _FullScreenToggleButton()],
+      // One line at the title's right: date | time | full screen.
+      actions: const [
+        LiveDateTime(),
+        PipeSeparator(),
+        _FullScreenToggleButton(),
+      ],
       child: AsyncContent<
         ({
           List<Employee> employees,
@@ -93,7 +96,8 @@ class _TimeclockBoardPageState extends ConsumerState<TimeclockBoardPage> {
     Map<String, Attendance> board,
     StoreSettings settings,
   ) {
-    final all = [...employees]
+    // The owner does not clock in — the board shows only the staff who do.
+    final all = employees.where((e) => e.role != EmployeeRole.owner).toList()
       ..sort((a, b) {
         final rankA = _rank(board[a.id]);
         final rankB = _rank(board[b.id]);

@@ -5188,18 +5188,6 @@ abstract class AppLocalizations {
   /// **'Fin de journée enregistrée pour {name}.'**
   String timeclockClockOutDone(String name);
 
-  /// Label before today's date in the pointage board header and drawer.
-  ///
-  /// In fr, this message translates to:
-  /// **'Date'**
-  String get liveDateLabel;
-
-  /// Label before the live clock in the pointage board header and drawer.
-  ///
-  /// In fr, this message translates to:
-  /// **'Heure'**
-  String get liveTimeLabel;
-
   /// Link at the top right of a pointage board card; opens the drawer.
   ///
   /// In fr, this message translates to:
