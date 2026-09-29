@@ -4,6 +4,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../data/providers.dart';
 import '../../l10n/app_localizations.dart';
 
 /// Whether the app is pretending to be offline.
@@ -29,20 +30,14 @@ final offlineModeProvider = NotifierProvider<OfflineMode, bool>(
   OfflineMode.new,
 );
 
-/// Number of local changes waiting to sync.
+/// Number of local changes waiting to sync: the size of the outbox, live.
 ///
-/// **Zero, and honestly so.** Phase 1 hardcoded three to make the banner look
-/// alive in a demo. Phase 2 stores everything locally and syncs nothing, so
-/// there is no outbound queue and nothing is waiting — a number above zero
-/// would now be a claim about work the app is not doing. The provider stays
-/// because Phase 3 fills it from the real outbox; only the lie goes.
-class PendingChanges extends Notifier<int> {
-  @override
-  int build() => 0;
-}
-
-final pendingChangesProvider = NotifierProvider<PendingChanges, int>(
-  PendingChanges.new,
+/// Every change to shared data queues itself (SYNC_PLAN.md, Phase 2), demo
+/// mode included, so the number moves during a walkthrough and the demo reset
+/// puts it back to zero. Zero while the count is still loading, which is also
+/// what an empty queue reads as.
+final Provider<int> pendingChangesProvider = Provider<int>(
+  (ref) => ref.watch(outboxPendingCountProvider).value ?? 0,
 );
 
 /// A slim persistent bar shown above the content area when offline.

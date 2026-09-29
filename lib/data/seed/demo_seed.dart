@@ -6,6 +6,7 @@ import 'dataset/dataset.dart';
 import '../database/app_database.dart';
 import '../database/meta_keys.dart';
 import '../mappers/mappers.dart';
+import '../repositories/sync_quiet.dart';
 
 /// Writes the demo dataset into an empty database.
 ///
@@ -62,188 +63,190 @@ Future<void> seedDemoData(AppDatabase db, {DateTime? at}) async {
     for (final employee in mockEmployees) employee.id: employee.storeId,
   };
 
-  await db.batch((Batch batch) {
-    // Insertion order is foreign-key order. With `PRAGMA foreign_keys = ON` the
-    // constraints are immediate, not deferred, so a category inserted after the
-    // items that use it is a failure and not a detail.
-    batch.insertAll(db.stores, [
-      for (final store in mockStores)
-        storeToRow(
-          store,
-          storeSettingsOrDefault(store.id),
-        ).copyWith(createdAt: Value(moved(store.createdAt))),
-    ]);
-    batch.insertAll(db.categories, mockCategories.map(categoryToRow));
-    batch.insertAll(db.units, mockUnits.map(unitToRow));
-    batch.insertAll(db.suppliers, mockSuppliers.map(supplierToRow));
+  // Quiet, so the demo does not arrive as a queue of changes to send: it is
+  // the starting point, not something anybody did.
+  await SyncQuiet.run(
+    db,
+    () => db.batch((Batch batch) {
+      // Insertion order is foreign-key order. With `PRAGMA foreign_keys = ON` the
+      // constraints are immediate, not deferred, so a category inserted after the
+      // items that use it is a failure and not a detail.
+      batch.insertAll(db.stores, [
+        for (final store in mockStores)
+          storeToRow(
+            store,
+            storeSettingsOrDefault(store.id),
+          ).copyWith(createdAt: Value(moved(store.createdAt))),
+      ]);
+      batch.insertAll(db.categories, mockCategories.map(categoryToRow));
+      batch.insertAll(db.units, mockUnits.map(unitToRow));
+      batch.insertAll(db.suppliers, mockSuppliers.map(supplierToRow));
 
-    batch.insertAll(db.items, [
-      for (final item in mockItems)
-        // The stock the article holds is the baseline a rebuild starts from:
-        // the seeded history is a sample, not the whole story, so it does not
-        // add up to that stock. See `repositories/stock_ledger.dart`.
-        itemToRow(item).copyWith(
-          updatedAt: Value(moved(item.updatedAt)),
-          baselineQuantity: Value(item.quantity),
-          baselineAverageCost: Value(item.averageCost),
-        ),
-    ]);
-    batch.insertAll(db.supplierPrices, [
-      for (final price in mockSupplierPrices)
-        supplierPriceToRow(
-          price,
-          storeId: itemStore[price.itemId]!,
-        ).copyWith(effectiveDate: Value(moved(price.effectiveDate))),
-    ]);
-    batch.insertAll(db.priceHistory, [
-      for (final entry in mockPriceHistory)
-        priceHistoryToRow(
-          entry,
-          storeId: itemStore[entry.itemId]!,
-        ).copyWith(changedAt: Value(moved(entry.changedAt))),
-    ]);
-    batch.insertAll(db.stockMovements, [
-      for (final movement in mockStockMovements)
-        movementToRow(movement).copyWith(
-          occurredAt: Value(moved(movement.occurredAt)),
-          inBaseline: const Value(true),
-        ),
-    ]);
+      batch.insertAll(db.items, [
+        for (final item in mockItems)
+          // The stock the article holds is the baseline a rebuild starts from:
+          // the seeded history is a sample, not the whole story, so it does not
+          // add up to that stock. See `repositories/stock_ledger.dart`.
+          itemToRow(item).copyWith(
+            updatedAt: Value(moved(item.updatedAt)),
+            baselineQuantity: Value(item.quantity),
+            baselineAverageCost: Value(item.averageCost),
+          ),
+      ]);
+      batch.insertAll(db.supplierPrices, [
+        for (final price in mockSupplierPrices)
+          supplierPriceToRow(
+            price,
+            storeId: itemStore[price.itemId]!,
+          ).copyWith(effectiveDate: Value(moved(price.effectiveDate))),
+      ]);
+      batch.insertAll(db.priceHistory, [
+        for (final entry in mockPriceHistory)
+          priceHistoryToRow(
+            entry,
+            storeId: itemStore[entry.itemId]!,
+          ).copyWith(changedAt: Value(moved(entry.changedAt))),
+      ]);
+      batch.insertAll(db.stockMovements, [
+        for (final movement in mockStockMovements)
+          movementToRow(movement).copyWith(
+            occurredAt: Value(moved(movement.occurredAt)),
+            inBaseline: const Value(true),
+          ),
+      ]);
 
-    batch.insertAll(db.purchaseOrders, [
-      for (final order in mockPurchaseOrders)
-        orderToRow(order).copyWith(
-          createdAt: Value(moved(order.createdAt)),
-          sentAt: movedValue(order.sentAt),
-          closedAt: movedValue(order.closedAt),
-        ),
-    ]);
-    batch.insertAll(db.purchaseOrderLines, [
-      for (final order in mockPurchaseOrders)
-        for (final (int index, line) in order.lines.indexed)
-          orderLineToRow(
-            line,
-            storeId: order.storeId,
-            orderId: order.id,
-            position: index,
+      batch.insertAll(db.purchaseOrders, [
+        for (final order in mockPurchaseOrders)
+          orderToRow(order).copyWith(
+            createdAt: Value(moved(order.createdAt)),
+            sentAt: movedValue(order.sentAt),
+            closedAt: movedValue(order.closedAt),
           ),
-    ]);
-
-    batch.insertAll(db.goodsReceipts, [
-      for (final receipt in mockGoodsReceipts)
-        receiptToRow(
-          receipt,
-        ).copyWith(receivedAt: Value(moved(receipt.receivedAt))),
-    ]);
-    batch.insertAll(db.goodsReceiptLines, [
-      for (final receipt in mockGoodsReceipts)
-        for (final (int index, line) in receipt.lines.indexed)
-          receiptLineToRow(
-            line,
-            storeId: receipt.storeId,
-            receiptId: receipt.id,
-            position: index,
-          ),
-    ]);
-
-    // --- Gestion Employée (Phase 2 employé) --------------------------------
-    //
-    // Foreign-key order: an employee before its credential and its attendance,
-    // a payroll period before the attendance rows it locks (`payrollPeriodId`
-    // is `RESTRICT`), a pause after its day.
-    batch.insertAll(db.employees, [
-      for (final employee in mockEmployees)
-        employeeToRow(employee).copyWith(
-          hireDate: Value(movedByDays(employee.hireDate)),
-          createdAt: Value(movedByDays(employee.createdAt)),
-          archivedAt: movedByDaysValue(employee.archivedAt),
-        ),
-    ]);
-    batch.insertAll(db.employeeCredentials, [
-      for (final credential in mockCredentials)
-        credentialToRow(
-          credential,
-          storeId: employeeStore[credential.employeeId]!,
-        ),
-    ]);
-    batch.insertAll(db.payrollPeriods, [
-      for (final period in mockPayrollPeriods)
-        payrollPeriodToRow(period).copyWith(
-          startDate: Value(movedDay(period.startDate)),
-          endDate: Value(movedDay(period.endDate)),
-          paidAt: movedByDaysValue(period.paidAt),
-          createdAt: Value(movedByDays(period.createdAt)),
-        ),
-    ]);
-    batch.insertAll(db.attendances, [
-      for (final attendance in mockAttendances)
-        attendanceToRow(attendance).copyWith(
-          date: Value(
-            movedDay(attendance.sessions.first.clockInAt),
-          ),
-          // Freeze the break allowance the same way `clockIn` does, so demo
-          // rows exercise the real path and a settings change in-session does
-          // not rewrite the seeded history.
-          maxBreakMinutes: Value(
-            storeSettingsOrDefault(attendance.storeId).maxBreakMinutes,
-          ),
-        ),
-    ]);
-    batch.insertAll(db.attendanceSessions, [
-      for (final attendance in mockAttendances)
-        for (final (int index, session) in attendance.sessions.indexed)
-          sessionToRow(
-            session,
-            storeId: attendance.storeId,
-            attendanceId: attendance.id,
-            position: index,
-          ).copyWith(
-            clockInAt: Value(movedByDays(session.clockInAt)),
-            clockOutAt: movedByDaysValue(session.clockOutAt),
-          ),
-    ]);
-    batch.insertAll(db.attendancePauses, [
-      for (final attendance in mockAttendances)
-        for (final (int sessionIndex, session) in attendance.sessions.indexed)
-          for (final (int pauseIndex, pause) in session.pauses.indexed)
-            pauseToRow(
-              pause,
-              storeId: attendance.storeId,
-              sessionId: '${attendance.id}-session-$sessionIndex',
-              position: pauseIndex,
-            ).copyWith(
-              startAt: Value(movedByDays(pause.startAt)),
-              endAt: movedByDaysValue(pause.endAt),
+      ]);
+      batch.insertAll(db.purchaseOrderLines, [
+        for (final order in mockPurchaseOrders)
+          for (final (int index, line) in order.lines.indexed)
+            orderLineToRow(
+              line,
+              storeId: order.storeId,
+              orderId: order.id,
+              position: index,
             ),
-    ]);
+      ]);
 
-    batch.insertAll(db.notifications, [
-      for (final notification in mockNotifications)
-        notificationToRow(
-          notification,
-        ).copyWith(createdAt: Value(moved(notification.createdAt))),
-    ]);
+      batch.insertAll(db.goodsReceipts, [
+        for (final receipt in mockGoodsReceipts)
+          receiptToRow(
+            receipt,
+          ).copyWith(receivedAt: Value(moved(receipt.receivedAt))),
+      ]);
+      batch.insertAll(db.goodsReceiptLines, [
+        for (final receipt in mockGoodsReceipts)
+          for (final (int index, line) in receipt.lines.indexed)
+            receiptLineToRow(
+              line,
+              storeId: receipt.storeId,
+              receiptId: receipt.id,
+              position: index,
+            ),
+      ]);
 
-    batch.insertAll(db.meta, [
-      MetaCompanion.insert(
-        key: MetaKeys.seededAt,
-        value: seededAt.toIso8601String(),
-      ),
-      // The name every movement and price change is stamped with. A fresh
-      // install is signed out, so nothing has set this yet; seed the owner of
-      // the flagship establishment so a movement made before the first login
-      // is still attributed to somebody. `SessionRepository.signIn` refreshes
-      // it to whoever actually signs in.
-      MetaCompanion.insert(
-        key: MetaKeys.currentUserName,
-        value: employeeDisplayName(
-          mockEmployees.firstWhere((e) => e.id == EmployeeIds.marc),
+      // --- Gestion Employée (Phase 2 employé) --------------------------------
+      //
+      // Foreign-key order: an employee before its credential and its attendance,
+      // a payroll period before the attendance rows it locks (`payrollPeriodId`
+      // is `RESTRICT`), a pause after its day.
+      batch.insertAll(db.employees, [
+        for (final employee in mockEmployees)
+          employeeToRow(employee).copyWith(
+            hireDate: Value(movedByDays(employee.hireDate)),
+            createdAt: Value(movedByDays(employee.createdAt)),
+            archivedAt: movedByDaysValue(employee.archivedAt),
+          ),
+      ]);
+      batch.insertAll(db.employeeCredentials, [
+        for (final credential in mockCredentials)
+          credentialToRow(
+            credential,
+            storeId: employeeStore[credential.employeeId]!,
+          ),
+      ]);
+      batch.insertAll(db.payrollPeriods, [
+        for (final period in mockPayrollPeriods)
+          payrollPeriodToRow(period).copyWith(
+            startDate: Value(movedDay(period.startDate)),
+            endDate: Value(movedDay(period.endDate)),
+            paidAt: movedByDaysValue(period.paidAt),
+            createdAt: Value(movedByDays(period.createdAt)),
+          ),
+      ]);
+      batch.insertAll(db.attendances, [
+        for (final attendance in mockAttendances)
+          attendanceToRow(attendance).copyWith(
+            date: Value(movedDay(attendance.sessions.first.clockInAt)),
+            // Freeze the break allowance the same way `clockIn` does, so demo
+            // rows exercise the real path and a settings change in-session does
+            // not rewrite the seeded history.
+            maxBreakMinutes: Value(
+              storeSettingsOrDefault(attendance.storeId).maxBreakMinutes,
+            ),
+          ),
+      ]);
+      batch.insertAll(db.attendanceSessions, [
+        for (final attendance in mockAttendances)
+          for (final (int index, session) in attendance.sessions.indexed)
+            sessionToRow(
+              session,
+              storeId: attendance.storeId,
+              attendanceId: attendance.id,
+              position: index,
+            ).copyWith(
+              clockInAt: Value(movedByDays(session.clockInAt)),
+              clockOutAt: movedByDaysValue(session.clockOutAt),
+            ),
+      ]);
+      batch.insertAll(db.attendancePauses, [
+        for (final attendance in mockAttendances)
+          for (final (int sessionIndex, session) in attendance.sessions.indexed)
+            for (final (int pauseIndex, pause) in session.pauses.indexed)
+              pauseToRow(
+                pause,
+                storeId: attendance.storeId,
+                sessionId: '${attendance.id}-session-$sessionIndex',
+                position: pauseIndex,
+              ).copyWith(
+                startAt: Value(movedByDays(pause.startAt)),
+                endAt: movedByDaysValue(pause.endAt),
+              ),
+      ]);
+
+      batch.insertAll(db.notifications, [
+        for (final notification in mockNotifications)
+          notificationToRow(
+            notification,
+          ).copyWith(createdAt: Value(moved(notification.createdAt))),
+      ]);
+
+      batch.insertAll(db.meta, [
+        MetaCompanion.insert(
+          key: MetaKeys.seededAt,
+          value: seededAt.toIso8601String(),
         ),
-      ),
-    ]);
-  });
+        // The name every movement and price change is stamped with. A fresh
+        // install is signed out, so nothing has set this yet; seed the owner of
+        // the flagship establishment so a movement made before the first login
+        // is still attributed to somebody. `SessionRepository.signIn` refreshes
+        // it to whoever actually signs in.
+        MetaCompanion.insert(
+          key: MetaKeys.currentUserName,
+          value: employeeDisplayName(
+            mockEmployees.firstWhere((e) => e.id == EmployeeIds.marc),
+          ),
+        ),
+      ]);
+    }),
+  );
 }
-
 
 /// Empties every table, in reverse foreign-key order.
 ///

@@ -6,6 +6,7 @@
 /// truth. A queue records what those transactions did; it does not have to
 /// invent where they happened.
 ///
-/// `pendingChangesProvider` in `shared/widgets/offline_banner.dart` reports zero
-/// and is the number this will fill in.
+/// The queue it will send already exists: the `outbox` table, filled by
+/// triggers (SYNC_PLAN.md, Phase 2) and counted by `pendingChangesProvider` in
+/// `shared/widgets/offline_banner.dart`.
 class SyncService {}

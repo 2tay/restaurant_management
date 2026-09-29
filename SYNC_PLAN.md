@@ -235,6 +235,22 @@ for the user.
 
 Goal: every change to a synced table is recorded in a queue, ready to send. Still no network.
 
+> **Status: built** (schema version 16). What differs from the first plan:
+>
+> - **No `operation` column.** Deletes are soft since Phase 1, so a delete is an ordinary
+>   entry whose payload has `deleted_at` set.
+> - **The switch is a `meta` key, `syncQuiet`,** set and removed by `SyncQuiet.run` inside
+>   the same transaction as the quiet writes. A crash rolls it back with them, so the queue
+>   can never stay switched off.
+> - **One entry per row is an upsert** on (table, row key) that keeps the entry's place, the
+>   row's first change. Deleting and re-adding would move an edited parent behind its
+>   children.
+> - **The triggers are generated** by `tool/generate_outbox_triggers.py` from the schema
+>   dump, into `lib/data/database/outbox_triggers.drift`. Each trigger reads the row back
+>   from its table, so the entry holds the final row whatever order the triggers run in.
+> - **The demo queues changes** (option 2): the count moves during a walkthrough. The seed
+>   is quiet, and the demo reset empties the queue.
+
 **Step 2.1: Create the `Outbox` table (schema version 16).**
 Columns:
 

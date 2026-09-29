@@ -27,6 +27,17 @@ targets:
           # BETWEEN still use the index.
           store_date_time_values_as_text: true
 
+          # The outbox triggers build their payload with `json_object`, from
+          # SQLite's JSON functions, and queue with an upsert. Both need the
+          # analyzer told which SQLite it targets. Every platform the app runs
+          # on bundles or ships a newer one (the Windows test library is 3.51).
+          sql:
+            dialect: sqlite
+            options:
+              version: "3.38"
+              modules:
+                - json1
+
           # Do not generate the manager API.
           #
           # It is drift's fluent alternative to the core query builder

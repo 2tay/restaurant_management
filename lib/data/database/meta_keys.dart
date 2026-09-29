@@ -32,4 +32,10 @@ abstract final class MetaKeys {
   /// names the installation rather than anything in the dataset. See
   /// `DeviceRepository`.
   static const String deviceId = 'deviceId';
+
+  /// Present while a write must not be queued for sending: rows received from
+  /// the server, the demo seed, a stock rebuild. The `*_outbox_*` triggers
+  /// stay silent while it exists. Only `SyncQuiet` writes it, inside the same
+  /// transaction as the quiet writes, so a crash can never leave it behind.
+  static const String syncQuiet = 'syncQuiet';
 }

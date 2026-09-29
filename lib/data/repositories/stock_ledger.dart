@@ -5,6 +5,7 @@ import '../../core/utils/stock_cost.dart';
 import '../../models/stock_movement.dart';
 import '../database/app_database.dart';
 import '../mappers/mappers.dart';
+import 'sync_quiet.dart';
 
 /// What one movement does to an article's cost, and the unit cost it applied.
 ///
@@ -122,8 +123,11 @@ class StockLedger {
 
   /// Replays one article. Returns whether anything was written: false for a
   /// missing or deleted article, and for one whose figures were already right.
+  ///
+  /// Quiet (see [SyncQuiet]): the figures it writes are ones every device
+  /// recomputes for itself, so they are not changes to send.
   Future<bool> rebuildItem(String itemId) {
-    return _db.transaction(() async {
+    return SyncQuiet.run(_db, () async {
       final item = await (_db.select(_db.items)
             ..where((i) => i.id.equals(itemId) & i.deletedAt.isNull()))
           .getSingleOrNull();

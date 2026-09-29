@@ -24,7 +24,7 @@ fails when a new table is in neither.
 
 | Synced (shared by every device) | Local (this installation only) |
 |---|---|
-| `stores`, `categories`, `units`, `items`, `suppliers`, `supplier_prices`, `price_history`, `stock_movements`, `purchase_orders`, `purchase_order_lines`, `goods_receipts`, `goods_receipt_lines`, `notifications`, `employees`, `employee_credentials`, `payroll_periods`, `attendances`, `attendance_sessions`, `attendance_pauses`, `busy_dates` | `meta`: the signed-in employee, the device id, later the sync cursors |
+| `stores`, `categories`, `units`, `items`, `suppliers`, `supplier_prices`, `price_history`, `stock_movements`, `purchase_orders`, `purchase_order_lines`, `goods_receipts`, `goods_receipt_lines`, `notifications`, `employees`, `employee_credentials`, `payroll_periods`, `attendances`, `attendance_sessions`, `attendance_pauses`, `busy_dates` | `meta`: the signed-in employee, the device id, later the sync cursors. `outbox`: the changes waiting to be sent |
 
 A synced table follows four rules:
 
@@ -46,6 +46,25 @@ movements not marked `in_baseline` on top of `baseline_quantity` and
 `baseline_average_cost` produces. `repositories/stock_ledger.dart` does the replay. The
 version 15 upgrade and the demo seed set the baseline to the stock the article already
 held, because the history before that is incomplete.
+
+## The outbox (schema version 16)
+
+Every change to a synced table queues itself in `outbox`, in the same transaction
+(`SYNC_PLAN.md`, Phase 2). Nothing sends it yet.
+
+- **Triggers fill it**, two per synced table, in `outbox_triggers.drift`. That file is
+  generated: after changing a synced table, dump the schema, then run
+  `python tool/generate_outbox_triggers.py`, then `build_runner`. A test fails if the
+  triggers and the tables disagree.
+- **One entry per row**, holding the whole row as JSON as it is now. The entry keeps the
+  place of the row's first change, so a parent is always ahead of its children.
+- **A delete is just an entry with `deleted_at` set.** There is no delete entry.
+- **`items.quantity` and `items.average_cost` never travel.** Every device recomputes them.
+- **Some writes are quiet.** The demo seed, a stock rebuild, and later the rows received
+  from the server run inside `SyncQuiet.run`, and queue nothing. The demo reset also
+  empties the queue.
+
+The offline banner and the sync page show the queue's size, demo mode included.
 
 ## Two things that are easy to get wrong
 

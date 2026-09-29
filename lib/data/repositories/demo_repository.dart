@@ -1,6 +1,7 @@
 import '../database/app_database.dart';
 import '../database/meta_keys.dart';
 import '../seed/demo_seed.dart';
+import 'outbox_repository.dart';
 
 /// Puts the demo back exactly as it shipped.
 ///
@@ -24,10 +25,14 @@ class DemoRepository {
   /// app was first opened. A demo reset in three months should produce a
   /// commande sent three days ago, not one sent three months and three days
   /// ago.
+  ///
+  /// The queue of changes to send is emptied too: the walkthrough's changes
+  /// go with the walkthrough, and the demo starts again with nothing waiting.
   Future<void> resetDemo() {
     return _db.transaction(() async {
       await clearAllData(_db);
       await seedDemoData(_db);
+      await OutboxRepository(_db).clear();
     });
   }
 

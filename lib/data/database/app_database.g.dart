@@ -3,86 +3,6 @@
 part of 'app_database.dart';
 
 // ignore_for_file: type=lint
-class SyncClockData extends DataClass {
-  final String now;
-  const SyncClockData({required this.now});
-  factory SyncClockData.fromJson(
-    Map<String, dynamic> json, {
-    ValueSerializer? serializer,
-  }) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return SyncClockData(now: serializer.fromJson<String>(json['now']));
-  }
-  @override
-  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return <String, dynamic>{'now': serializer.toJson<String>(now)};
-  }
-
-  SyncClockData copyWith({String? now}) => SyncClockData(now: now ?? this.now);
-  @override
-  String toString() {
-    return (StringBuffer('SyncClockData(')
-          ..write('now: $now')
-          ..write(')'))
-        .toString();
-  }
-
-  @override
-  int get hashCode => now.hashCode;
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      (other is SyncClockData && other.now == this.now);
-}
-
-class SyncClock extends ViewInfo<SyncClock, SyncClockData>
-    implements HasResultSet {
-  final String? _alias;
-  @override
-  final _$AppDatabase attachedDatabase;
-  SyncClock(this.attachedDatabase, [this._alias]);
-  @override
-  List<GeneratedColumn> get $columns => [now];
-  @override
-  String get aliasedName => _alias ?? entityName;
-  @override
-  String get entityName => 'sync_clock';
-  @override
-  Map<SqlDialect, String> get createViewStatements => {
-    SqlDialect.sqlite:
-        'CREATE VIEW sync_clock AS SELECT strftime(\'%Y-%m-%dT%H:%M:%fZ\', \'now\') AS now',
-  };
-  @override
-  SyncClock get asDslTable => this;
-  @override
-  SyncClockData map(Map<String, dynamic> data, {String? tablePrefix}) {
-    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return SyncClockData(
-      now: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}now'],
-      )!,
-    );
-  }
-
-  late final GeneratedColumn<String> now = GeneratedColumn<String>(
-    'now',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-  );
-  @override
-  SyncClock createAlias(String alias) {
-    return SyncClock(attachedDatabase, alias);
-  }
-
-  @override
-  Query? get query => null;
-  @override
-  Set<String> get readTables => const {};
-}
-
 class $StoresTable extends Stores with TableInfo<$StoresTable, StoreRow> {
   @override
   final GeneratedDatabase attachedDatabase;
@@ -1256,6 +1176,811 @@ class StoresCompanion extends UpdateCompanion<StoreRow> {
           ..write(')'))
         .toString();
   }
+}
+
+class $MetaTable extends Meta with TableInfo<$MetaTable, MetaRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $MetaTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _keyMeta = const VerificationMeta('key');
+  @override
+  late final GeneratedColumn<String> key = GeneratedColumn<String>(
+    'key',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _valueMeta = const VerificationMeta('value');
+  @override
+  late final GeneratedColumn<String> value = GeneratedColumn<String>(
+    'value',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [key, value];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'meta';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<MetaRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('key')) {
+      context.handle(
+        _keyMeta,
+        key.isAcceptableOrUnknown(data['key']!, _keyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_keyMeta);
+    }
+    if (data.containsKey('value')) {
+      context.handle(
+        _valueMeta,
+        value.isAcceptableOrUnknown(data['value']!, _valueMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_valueMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {key};
+  @override
+  MetaRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return MetaRow(
+      key: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}key'],
+      )!,
+      value: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}value'],
+      )!,
+    );
+  }
+
+  @override
+  $MetaTable createAlias(String alias) {
+    return $MetaTable(attachedDatabase, alias);
+  }
+}
+
+class MetaRow extends DataClass implements Insertable<MetaRow> {
+  final String key;
+  final String value;
+  const MetaRow({required this.key, required this.value});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['key'] = Variable<String>(key);
+    map['value'] = Variable<String>(value);
+    return map;
+  }
+
+  MetaCompanion toCompanion(bool nullToAbsent) {
+    return MetaCompanion(key: Value(key), value: Value(value));
+  }
+
+  factory MetaRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return MetaRow(
+      key: serializer.fromJson<String>(json['key']),
+      value: serializer.fromJson<String>(json['value']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'key': serializer.toJson<String>(key),
+      'value': serializer.toJson<String>(value),
+    };
+  }
+
+  MetaRow copyWith({String? key, String? value}) =>
+      MetaRow(key: key ?? this.key, value: value ?? this.value);
+  MetaRow copyWithCompanion(MetaCompanion data) {
+    return MetaRow(
+      key: data.key.present ? data.key.value : this.key,
+      value: data.value.present ? data.value.value : this.value,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MetaRow(')
+          ..write('key: $key, ')
+          ..write('value: $value')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(key, value);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is MetaRow && other.key == this.key && other.value == this.value);
+}
+
+class MetaCompanion extends UpdateCompanion<MetaRow> {
+  final Value<String> key;
+  final Value<String> value;
+  final Value<int> rowid;
+  const MetaCompanion({
+    this.key = const Value.absent(),
+    this.value = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  MetaCompanion.insert({
+    required String key,
+    required String value,
+    this.rowid = const Value.absent(),
+  }) : key = Value(key),
+       value = Value(value);
+  static Insertable<MetaRow> custom({
+    Expression<String>? key,
+    Expression<String>? value,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (key != null) 'key': key,
+      if (value != null) 'value': value,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  MetaCompanion copyWith({
+    Value<String>? key,
+    Value<String>? value,
+    Value<int>? rowid,
+  }) {
+    return MetaCompanion(
+      key: key ?? this.key,
+      value: value ?? this.value,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (key.present) {
+      map['key'] = Variable<String>(key.value);
+    }
+    if (value.present) {
+      map['value'] = Variable<String>(value.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MetaCompanion(')
+          ..write('key: $key, ')
+          ..write('value: $value, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $OutboxTable extends Outbox with TableInfo<$OutboxTable, OutboxRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $OutboxTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _changedTableMeta = const VerificationMeta(
+    'changedTable',
+  );
+  @override
+  late final GeneratedColumn<String> changedTable = GeneratedColumn<String>(
+    'changed_table',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _rowKeyMeta = const VerificationMeta('rowKey');
+  @override
+  late final GeneratedColumn<String> rowKey = GeneratedColumn<String>(
+    'row_key',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _storeIdMeta = const VerificationMeta(
+    'storeId',
+  );
+  @override
+  late final GeneratedColumn<String> storeId = GeneratedColumn<String>(
+    'store_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _payloadMeta = const VerificationMeta(
+    'payload',
+  );
+  @override
+  late final GeneratedColumn<String> payload = GeneratedColumn<String>(
+    'payload',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _queuedAtMeta = const VerificationMeta(
+    'queuedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> queuedAt = GeneratedColumn<DateTime>(
+    'queued_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _attemptsMeta = const VerificationMeta(
+    'attempts',
+  );
+  @override
+  late final GeneratedColumn<int> attempts = GeneratedColumn<int>(
+    'attempts',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _lastErrorMeta = const VerificationMeta(
+    'lastError',
+  );
+  @override
+  late final GeneratedColumn<String> lastError = GeneratedColumn<String>(
+    'last_error',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    changedTable,
+    rowKey,
+    storeId,
+    payload,
+    queuedAt,
+    attempts,
+    lastError,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'outbox';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<OutboxRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('changed_table')) {
+      context.handle(
+        _changedTableMeta,
+        changedTable.isAcceptableOrUnknown(
+          data['changed_table']!,
+          _changedTableMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_changedTableMeta);
+    }
+    if (data.containsKey('row_key')) {
+      context.handle(
+        _rowKeyMeta,
+        rowKey.isAcceptableOrUnknown(data['row_key']!, _rowKeyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_rowKeyMeta);
+    }
+    if (data.containsKey('store_id')) {
+      context.handle(
+        _storeIdMeta,
+        storeId.isAcceptableOrUnknown(data['store_id']!, _storeIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_storeIdMeta);
+    }
+    if (data.containsKey('payload')) {
+      context.handle(
+        _payloadMeta,
+        payload.isAcceptableOrUnknown(data['payload']!, _payloadMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_payloadMeta);
+    }
+    if (data.containsKey('queued_at')) {
+      context.handle(
+        _queuedAtMeta,
+        queuedAt.isAcceptableOrUnknown(data['queued_at']!, _queuedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_queuedAtMeta);
+    }
+    if (data.containsKey('attempts')) {
+      context.handle(
+        _attemptsMeta,
+        attempts.isAcceptableOrUnknown(data['attempts']!, _attemptsMeta),
+      );
+    }
+    if (data.containsKey('last_error')) {
+      context.handle(
+        _lastErrorMeta,
+        lastError.isAcceptableOrUnknown(data['last_error']!, _lastErrorMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  OutboxRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return OutboxRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      changedTable: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}changed_table'],
+      )!,
+      rowKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}row_key'],
+      )!,
+      storeId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}store_id'],
+      )!,
+      payload: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}payload'],
+      )!,
+      queuedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}queued_at'],
+      )!,
+      attempts: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}attempts'],
+      )!,
+      lastError: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}last_error'],
+      ),
+    );
+  }
+
+  @override
+  $OutboxTable createAlias(String alias) {
+    return $OutboxTable(attachedDatabase, alias);
+  }
+}
+
+class OutboxRow extends DataClass implements Insertable<OutboxRow> {
+  /// Send order. Auto-increment, so it follows the order changes happened in.
+  final int id;
+
+  /// The SQL name of the changed table, as in `SyncTables.synced`.
+  final String changedTable;
+
+  /// The changed row's id. `busy_dates` has no single id, so its key is
+  /// `store_id|day`.
+  final String rowKey;
+
+  /// The row's establishment, which is what the server checks access
+  /// against. For a `stores` row, its own id.
+  final String storeId;
+
+  /// The whole row as JSON, as it is now, minus the figures every device
+  /// recomputes for itself (`items.quantity`, `items.average_cost`).
+  final String payload;
+
+  /// When the row last changed while pending, in UTC, from the same clock
+  /// view as the `updated_at` stamps.
+  final DateTime queuedAt;
+
+  /// Failed sends so far, and why the last one failed (Phase 5).
+  final int attempts;
+  final String? lastError;
+  const OutboxRow({
+    required this.id,
+    required this.changedTable,
+    required this.rowKey,
+    required this.storeId,
+    required this.payload,
+    required this.queuedAt,
+    required this.attempts,
+    this.lastError,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['changed_table'] = Variable<String>(changedTable);
+    map['row_key'] = Variable<String>(rowKey);
+    map['store_id'] = Variable<String>(storeId);
+    map['payload'] = Variable<String>(payload);
+    map['queued_at'] = Variable<DateTime>(queuedAt);
+    map['attempts'] = Variable<int>(attempts);
+    if (!nullToAbsent || lastError != null) {
+      map['last_error'] = Variable<String>(lastError);
+    }
+    return map;
+  }
+
+  OutboxCompanion toCompanion(bool nullToAbsent) {
+    return OutboxCompanion(
+      id: Value(id),
+      changedTable: Value(changedTable),
+      rowKey: Value(rowKey),
+      storeId: Value(storeId),
+      payload: Value(payload),
+      queuedAt: Value(queuedAt),
+      attempts: Value(attempts),
+      lastError: lastError == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastError),
+    );
+  }
+
+  factory OutboxRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return OutboxRow(
+      id: serializer.fromJson<int>(json['id']),
+      changedTable: serializer.fromJson<String>(json['changedTable']),
+      rowKey: serializer.fromJson<String>(json['rowKey']),
+      storeId: serializer.fromJson<String>(json['storeId']),
+      payload: serializer.fromJson<String>(json['payload']),
+      queuedAt: serializer.fromJson<DateTime>(json['queuedAt']),
+      attempts: serializer.fromJson<int>(json['attempts']),
+      lastError: serializer.fromJson<String?>(json['lastError']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'changedTable': serializer.toJson<String>(changedTable),
+      'rowKey': serializer.toJson<String>(rowKey),
+      'storeId': serializer.toJson<String>(storeId),
+      'payload': serializer.toJson<String>(payload),
+      'queuedAt': serializer.toJson<DateTime>(queuedAt),
+      'attempts': serializer.toJson<int>(attempts),
+      'lastError': serializer.toJson<String?>(lastError),
+    };
+  }
+
+  OutboxRow copyWith({
+    int? id,
+    String? changedTable,
+    String? rowKey,
+    String? storeId,
+    String? payload,
+    DateTime? queuedAt,
+    int? attempts,
+    Value<String?> lastError = const Value.absent(),
+  }) => OutboxRow(
+    id: id ?? this.id,
+    changedTable: changedTable ?? this.changedTable,
+    rowKey: rowKey ?? this.rowKey,
+    storeId: storeId ?? this.storeId,
+    payload: payload ?? this.payload,
+    queuedAt: queuedAt ?? this.queuedAt,
+    attempts: attempts ?? this.attempts,
+    lastError: lastError.present ? lastError.value : this.lastError,
+  );
+  OutboxRow copyWithCompanion(OutboxCompanion data) {
+    return OutboxRow(
+      id: data.id.present ? data.id.value : this.id,
+      changedTable: data.changedTable.present
+          ? data.changedTable.value
+          : this.changedTable,
+      rowKey: data.rowKey.present ? data.rowKey.value : this.rowKey,
+      storeId: data.storeId.present ? data.storeId.value : this.storeId,
+      payload: data.payload.present ? data.payload.value : this.payload,
+      queuedAt: data.queuedAt.present ? data.queuedAt.value : this.queuedAt,
+      attempts: data.attempts.present ? data.attempts.value : this.attempts,
+      lastError: data.lastError.present ? data.lastError.value : this.lastError,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('OutboxRow(')
+          ..write('id: $id, ')
+          ..write('changedTable: $changedTable, ')
+          ..write('rowKey: $rowKey, ')
+          ..write('storeId: $storeId, ')
+          ..write('payload: $payload, ')
+          ..write('queuedAt: $queuedAt, ')
+          ..write('attempts: $attempts, ')
+          ..write('lastError: $lastError')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    changedTable,
+    rowKey,
+    storeId,
+    payload,
+    queuedAt,
+    attempts,
+    lastError,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is OutboxRow &&
+          other.id == this.id &&
+          other.changedTable == this.changedTable &&
+          other.rowKey == this.rowKey &&
+          other.storeId == this.storeId &&
+          other.payload == this.payload &&
+          other.queuedAt == this.queuedAt &&
+          other.attempts == this.attempts &&
+          other.lastError == this.lastError);
+}
+
+class OutboxCompanion extends UpdateCompanion<OutboxRow> {
+  final Value<int> id;
+  final Value<String> changedTable;
+  final Value<String> rowKey;
+  final Value<String> storeId;
+  final Value<String> payload;
+  final Value<DateTime> queuedAt;
+  final Value<int> attempts;
+  final Value<String?> lastError;
+  const OutboxCompanion({
+    this.id = const Value.absent(),
+    this.changedTable = const Value.absent(),
+    this.rowKey = const Value.absent(),
+    this.storeId = const Value.absent(),
+    this.payload = const Value.absent(),
+    this.queuedAt = const Value.absent(),
+    this.attempts = const Value.absent(),
+    this.lastError = const Value.absent(),
+  });
+  OutboxCompanion.insert({
+    this.id = const Value.absent(),
+    required String changedTable,
+    required String rowKey,
+    required String storeId,
+    required String payload,
+    required DateTime queuedAt,
+    this.attempts = const Value.absent(),
+    this.lastError = const Value.absent(),
+  }) : changedTable = Value(changedTable),
+       rowKey = Value(rowKey),
+       storeId = Value(storeId),
+       payload = Value(payload),
+       queuedAt = Value(queuedAt);
+  static Insertable<OutboxRow> custom({
+    Expression<int>? id,
+    Expression<String>? changedTable,
+    Expression<String>? rowKey,
+    Expression<String>? storeId,
+    Expression<String>? payload,
+    Expression<DateTime>? queuedAt,
+    Expression<int>? attempts,
+    Expression<String>? lastError,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (changedTable != null) 'changed_table': changedTable,
+      if (rowKey != null) 'row_key': rowKey,
+      if (storeId != null) 'store_id': storeId,
+      if (payload != null) 'payload': payload,
+      if (queuedAt != null) 'queued_at': queuedAt,
+      if (attempts != null) 'attempts': attempts,
+      if (lastError != null) 'last_error': lastError,
+    });
+  }
+
+  OutboxCompanion copyWith({
+    Value<int>? id,
+    Value<String>? changedTable,
+    Value<String>? rowKey,
+    Value<String>? storeId,
+    Value<String>? payload,
+    Value<DateTime>? queuedAt,
+    Value<int>? attempts,
+    Value<String?>? lastError,
+  }) {
+    return OutboxCompanion(
+      id: id ?? this.id,
+      changedTable: changedTable ?? this.changedTable,
+      rowKey: rowKey ?? this.rowKey,
+      storeId: storeId ?? this.storeId,
+      payload: payload ?? this.payload,
+      queuedAt: queuedAt ?? this.queuedAt,
+      attempts: attempts ?? this.attempts,
+      lastError: lastError ?? this.lastError,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (changedTable.present) {
+      map['changed_table'] = Variable<String>(changedTable.value);
+    }
+    if (rowKey.present) {
+      map['row_key'] = Variable<String>(rowKey.value);
+    }
+    if (storeId.present) {
+      map['store_id'] = Variable<String>(storeId.value);
+    }
+    if (payload.present) {
+      map['payload'] = Variable<String>(payload.value);
+    }
+    if (queuedAt.present) {
+      map['queued_at'] = Variable<DateTime>(queuedAt.value);
+    }
+    if (attempts.present) {
+      map['attempts'] = Variable<int>(attempts.value);
+    }
+    if (lastError.present) {
+      map['last_error'] = Variable<String>(lastError.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('OutboxCompanion(')
+          ..write('id: $id, ')
+          ..write('changedTable: $changedTable, ')
+          ..write('rowKey: $rowKey, ')
+          ..write('storeId: $storeId, ')
+          ..write('payload: $payload, ')
+          ..write('queuedAt: $queuedAt, ')
+          ..write('attempts: $attempts, ')
+          ..write('lastError: $lastError')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class SyncClockData extends DataClass {
+  final String now;
+  const SyncClockData({required this.now});
+  factory SyncClockData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return SyncClockData(now: serializer.fromJson<String>(json['now']));
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{'now': serializer.toJson<String>(now)};
+  }
+
+  SyncClockData copyWith({String? now}) => SyncClockData(now: now ?? this.now);
+  @override
+  String toString() {
+    return (StringBuffer('SyncClockData(')
+          ..write('now: $now')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => now.hashCode;
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SyncClockData && other.now == this.now);
+}
+
+class SyncClock extends ViewInfo<SyncClock, SyncClockData>
+    implements HasResultSet {
+  final String? _alias;
+  @override
+  final _$AppDatabase attachedDatabase;
+  SyncClock(this.attachedDatabase, [this._alias]);
+  @override
+  List<GeneratedColumn> get $columns => [now];
+  @override
+  String get aliasedName => _alias ?? entityName;
+  @override
+  String get entityName => 'sync_clock';
+  @override
+  Map<SqlDialect, String> get createViewStatements => {
+    SqlDialect.sqlite:
+        'CREATE VIEW sync_clock AS SELECT strftime(\'%Y-%m-%dT%H:%M:%fZ\', \'now\') AS now',
+  };
+  @override
+  SyncClock get asDslTable => this;
+  @override
+  SyncClockData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return SyncClockData(
+      now: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}now'],
+      )!,
+    );
+  }
+
+  late final GeneratedColumn<String> now = GeneratedColumn<String>(
+    'now',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+  );
+  @override
+  SyncClock createAlias(String alias) {
+    return SyncClock(attachedDatabase, alias);
+  }
+
+  @override
+  Query? get query => null;
+  @override
+  Set<String> get readTables => const {};
 }
 
 class $CategoriesTable extends Categories
@@ -14180,319 +14905,196 @@ class BusyDatesCompanion extends UpdateCompanion<BusyDateRow> {
   }
 }
 
-class $MetaTable extends Meta with TableInfo<$MetaTable, MetaRow> {
-  @override
-  final GeneratedDatabase attachedDatabase;
-  final String? _alias;
-  $MetaTable(this.attachedDatabase, [this._alias]);
-  static const VerificationMeta _keyMeta = const VerificationMeta('key');
-  @override
-  late final GeneratedColumn<String> key = GeneratedColumn<String>(
-    'key',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _valueMeta = const VerificationMeta('value');
-  @override
-  late final GeneratedColumn<String> value = GeneratedColumn<String>(
-    'value',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  @override
-  List<GeneratedColumn> get $columns => [key, value];
-  @override
-  String get aliasedName => _alias ?? actualTableName;
-  @override
-  String get actualTableName => $name;
-  static const String $name = 'meta';
-  @override
-  VerificationContext validateIntegrity(
-    Insertable<MetaRow> instance, {
-    bool isInserting = false,
-  }) {
-    final context = VerificationContext();
-    final data = instance.toColumns(true);
-    if (data.containsKey('key')) {
-      context.handle(
-        _keyMeta,
-        key.isAcceptableOrUnknown(data['key']!, _keyMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_keyMeta);
-    }
-    if (data.containsKey('value')) {
-      context.handle(
-        _valueMeta,
-        value.isAcceptableOrUnknown(data['value']!, _valueMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_valueMeta);
-    }
-    return context;
-  }
-
-  @override
-  Set<GeneratedColumn> get $primaryKey => {key};
-  @override
-  MetaRow map(Map<String, dynamic> data, {String? tablePrefix}) {
-    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return MetaRow(
-      key: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}key'],
-      )!,
-      value: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}value'],
-      )!,
-    );
-  }
-
-  @override
-  $MetaTable createAlias(String alias) {
-    return $MetaTable(attachedDatabase, alias);
-  }
-}
-
-class MetaRow extends DataClass implements Insertable<MetaRow> {
-  final String key;
-  final String value;
-  const MetaRow({required this.key, required this.value});
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    map['key'] = Variable<String>(key);
-    map['value'] = Variable<String>(value);
-    return map;
-  }
-
-  MetaCompanion toCompanion(bool nullToAbsent) {
-    return MetaCompanion(key: Value(key), value: Value(value));
-  }
-
-  factory MetaRow.fromJson(
-    Map<String, dynamic> json, {
-    ValueSerializer? serializer,
-  }) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return MetaRow(
-      key: serializer.fromJson<String>(json['key']),
-      value: serializer.fromJson<String>(json['value']),
-    );
-  }
-  @override
-  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return <String, dynamic>{
-      'key': serializer.toJson<String>(key),
-      'value': serializer.toJson<String>(value),
-    };
-  }
-
-  MetaRow copyWith({String? key, String? value}) =>
-      MetaRow(key: key ?? this.key, value: value ?? this.value);
-  MetaRow copyWithCompanion(MetaCompanion data) {
-    return MetaRow(
-      key: data.key.present ? data.key.value : this.key,
-      value: data.value.present ? data.value.value : this.value,
-    );
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('MetaRow(')
-          ..write('key: $key, ')
-          ..write('value: $value')
-          ..write(')'))
-        .toString();
-  }
-
-  @override
-  int get hashCode => Object.hash(key, value);
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      (other is MetaRow && other.key == this.key && other.value == this.value);
-}
-
-class MetaCompanion extends UpdateCompanion<MetaRow> {
-  final Value<String> key;
-  final Value<String> value;
-  final Value<int> rowid;
-  const MetaCompanion({
-    this.key = const Value.absent(),
-    this.value = const Value.absent(),
-    this.rowid = const Value.absent(),
-  });
-  MetaCompanion.insert({
-    required String key,
-    required String value,
-    this.rowid = const Value.absent(),
-  }) : key = Value(key),
-       value = Value(value);
-  static Insertable<MetaRow> custom({
-    Expression<String>? key,
-    Expression<String>? value,
-    Expression<int>? rowid,
-  }) {
-    return RawValuesInsertable({
-      if (key != null) 'key': key,
-      if (value != null) 'value': value,
-      if (rowid != null) 'rowid': rowid,
-    });
-  }
-
-  MetaCompanion copyWith({
-    Value<String>? key,
-    Value<String>? value,
-    Value<int>? rowid,
-  }) {
-    return MetaCompanion(
-      key: key ?? this.key,
-      value: value ?? this.value,
-      rowid: rowid ?? this.rowid,
-    );
-  }
-
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    if (key.present) {
-      map['key'] = Variable<String>(key.value);
-    }
-    if (value.present) {
-      map['value'] = Variable<String>(value.value);
-    }
-    if (rowid.present) {
-      map['rowid'] = Variable<int>(rowid.value);
-    }
-    return map;
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('MetaCompanion(')
-          ..write('key: $key, ')
-          ..write('value: $value, ')
-          ..write('rowid: $rowid')
-          ..write(')'))
-        .toString();
-  }
-}
-
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
-  late final SyncClock syncClock = SyncClock(this);
   late final $StoresTable stores = $StoresTable(this);
-  late final Trigger storesTouch = Trigger(
-    'CREATE TRIGGER stores_touch AFTER UPDATE ON stores WHEN NEW.updated_at IS OLD.updated_at BEGIN UPDATE stores SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
-    'stores_touch',
+  late final $MetaTable meta = $MetaTable(this);
+  late final $OutboxTable outbox = $OutboxTable(this);
+  late final SyncClock syncClock = SyncClock(this);
+  late final Trigger storesOutboxInsert = Trigger(
+    'CREATE TRIGGER stores_outbox_insert AFTER INSERT ON stores WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT \'stores\', id, id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'name\', name, \'address_line\', address_line, \'postal_code\', postal_code, \'city\', city, \'phone\', phone, \'created_at\', created_at, \'vat_number\', vat_number, \'image_asset\', image_asset, \'stale_partial_order_days\', stale_partial_order_days, \'max_break_minutes\', max_break_minutes, \'notify_low_stock\', notify_low_stock, \'notify_price_change\', notify_price_change, \'notify_large_adjustment\', notify_large_adjustment, \'notify_deliveries\', notify_deliveries, \'notify_busy_days\', notify_busy_days, \'busy_weekdays\', busy_weekdays, \'busy_reminder_days\', busy_reminder_days), (SELECT now FROM sync_clock) FROM stores WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'stores_outbox_insert',
+  );
+  late final Trigger storesOutboxUpdate = Trigger(
+    'CREATE TRIGGER stores_outbox_update AFTER UPDATE ON stores WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT \'stores\', id, id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'name\', name, \'address_line\', address_line, \'postal_code\', postal_code, \'city\', city, \'phone\', phone, \'created_at\', created_at, \'vat_number\', vat_number, \'image_asset\', image_asset, \'stale_partial_order_days\', stale_partial_order_days, \'max_break_minutes\', max_break_minutes, \'notify_low_stock\', notify_low_stock, \'notify_price_change\', notify_price_change, \'notify_large_adjustment\', notify_large_adjustment, \'notify_deliveries\', notify_deliveries, \'notify_busy_days\', notify_busy_days, \'busy_weekdays\', busy_weekdays, \'busy_reminder_days\', busy_reminder_days), (SELECT now FROM sync_clock) FROM stores WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'stores_outbox_update',
   );
   late final $CategoriesTable categories = $CategoriesTable(this);
-  late final Trigger categoriesTouch = Trigger(
-    'CREATE TRIGGER categories_touch AFTER UPDATE ON categories WHEN NEW.updated_at IS OLD.updated_at BEGIN UPDATE categories SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
-    'categories_touch',
+  late final Trigger categoriesOutboxInsert = Trigger(
+    'CREATE TRIGGER categories_outbox_insert AFTER INSERT ON categories WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT \'categories\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'name\', name), (SELECT now FROM sync_clock) FROM categories WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'categories_outbox_insert',
+  );
+  late final Trigger categoriesOutboxUpdate = Trigger(
+    'CREATE TRIGGER categories_outbox_update AFTER UPDATE ON categories WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT \'categories\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'name\', name), (SELECT now FROM sync_clock) FROM categories WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'categories_outbox_update',
   );
   late final $UnitsTable units = $UnitsTable(this);
-  late final Trigger unitsTouch = Trigger(
-    'CREATE TRIGGER units_touch AFTER UPDATE ON units WHEN NEW.updated_at IS OLD.updated_at BEGIN UPDATE units SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
-    'units_touch',
+  late final Trigger unitsOutboxInsert = Trigger(
+    'CREATE TRIGGER units_outbox_insert AFTER INSERT ON units WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT \'units\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'name\', name, \'abbreviation\', abbreviation), (SELECT now FROM sync_clock) FROM units WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'units_outbox_insert',
+  );
+  late final Trigger unitsOutboxUpdate = Trigger(
+    'CREATE TRIGGER units_outbox_update AFTER UPDATE ON units WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT \'units\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'name\', name, \'abbreviation\', abbreviation), (SELECT now FROM sync_clock) FROM units WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'units_outbox_update',
   );
   late final $ItemsTable items = $ItemsTable(this);
-  late final Trigger itemsTouch = Trigger(
-    'CREATE TRIGGER items_touch AFTER UPDATE ON items WHEN NEW.updated_at IS OLD.updated_at AND NEW.quantity IS OLD.quantity BEGIN UPDATE items SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
-    'items_touch',
+  late final Trigger itemsOutboxInsert = Trigger(
+    'CREATE TRIGGER items_outbox_insert AFTER INSERT ON items WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT \'items\', id, store_id, json_object(\'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'name\', name, \'category_id\', category_id, \'unit_id\', unit_id, \'low_stock_threshold\', low_stock_threshold, \'max_stock\', max_stock, \'holiday_low_stock_threshold\', holiday_low_stock_threshold, \'updated_at\', updated_at, \'baseline_quantity\', baseline_quantity, \'baseline_average_cost\', baseline_average_cost, \'default_supplier_id\', default_supplier_id, \'barcode\', barcode, \'note\', note, \'image_path\', image_path), (SELECT now FROM sync_clock) FROM items WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'items_outbox_insert',
+  );
+  late final Trigger itemsOutboxUpdate = Trigger(
+    'CREATE TRIGGER items_outbox_update AFTER UPDATE ON items WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT \'items\', id, store_id, json_object(\'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'name\', name, \'category_id\', category_id, \'unit_id\', unit_id, \'low_stock_threshold\', low_stock_threshold, \'max_stock\', max_stock, \'holiday_low_stock_threshold\', holiday_low_stock_threshold, \'updated_at\', updated_at, \'baseline_quantity\', baseline_quantity, \'baseline_average_cost\', baseline_average_cost, \'default_supplier_id\', default_supplier_id, \'barcode\', barcode, \'note\', note, \'image_path\', image_path), (SELECT now FROM sync_clock) FROM items WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'items_outbox_update',
   );
   late final $SuppliersTable suppliers = $SuppliersTable(this);
-  late final Trigger suppliersTouch = Trigger(
-    'CREATE TRIGGER suppliers_touch AFTER UPDATE ON suppliers WHEN NEW.updated_at IS OLD.updated_at BEGIN UPDATE suppliers SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
-    'suppliers_touch',
+  late final Trigger suppliersOutboxInsert = Trigger(
+    'CREATE TRIGGER suppliers_outbox_insert AFTER INSERT ON suppliers WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT \'suppliers\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'name\', name, \'contact_name\', contact_name, \'email\', email, \'phone\', phone, \'address_line\', address_line, \'postal_code\', postal_code, \'city\', city, \'note\', note), (SELECT now FROM sync_clock) FROM suppliers WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'suppliers_outbox_insert',
+  );
+  late final Trigger suppliersOutboxUpdate = Trigger(
+    'CREATE TRIGGER suppliers_outbox_update AFTER UPDATE ON suppliers WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT \'suppliers\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'name\', name, \'contact_name\', contact_name, \'email\', email, \'phone\', phone, \'address_line\', address_line, \'postal_code\', postal_code, \'city\', city, \'note\', note), (SELECT now FROM sync_clock) FROM suppliers WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'suppliers_outbox_update',
   );
   late final $SupplierPricesTable supplierPrices = $SupplierPricesTable(this);
-  late final Trigger supplierPricesTouch = Trigger(
-    'CREATE TRIGGER supplier_prices_touch AFTER UPDATE ON supplier_prices WHEN NEW.updated_at IS OLD.updated_at BEGIN UPDATE supplier_prices SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
-    'supplier_prices_touch',
+  late final Trigger supplierPricesOutboxInsert = Trigger(
+    'CREATE TRIGGER supplier_prices_outbox_insert AFTER INSERT ON supplier_prices WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT \'supplier_prices\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'item_id\', item_id, \'supplier_id\', supplier_id, \'price_per_unit\', price_per_unit, \'effective_date\', effective_date, \'is_default\', is_default), (SELECT now FROM sync_clock) FROM supplier_prices WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'supplier_prices_outbox_insert',
+  );
+  late final Trigger supplierPricesOutboxUpdate = Trigger(
+    'CREATE TRIGGER supplier_prices_outbox_update AFTER UPDATE ON supplier_prices WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT \'supplier_prices\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'item_id\', item_id, \'supplier_id\', supplier_id, \'price_per_unit\', price_per_unit, \'effective_date\', effective_date, \'is_default\', is_default), (SELECT now FROM sync_clock) FROM supplier_prices WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'supplier_prices_outbox_update',
   );
   late final $PriceHistoryTable priceHistory = $PriceHistoryTable(this);
-  late final Trigger priceHistoryTouch = Trigger(
-    'CREATE TRIGGER price_history_touch AFTER UPDATE ON price_history WHEN NEW.updated_at IS OLD.updated_at BEGIN UPDATE price_history SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
-    'price_history_touch',
+  late final Trigger priceHistoryOutboxInsert = Trigger(
+    'CREATE TRIGGER price_history_outbox_insert AFTER INSERT ON price_history WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT \'price_history\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'item_id\', item_id, \'supplier_id\', supplier_id, \'old_price\', old_price, \'new_price\', new_price, \'changed_at\', changed_at, \'changed_by_name\', changed_by_name), (SELECT now FROM sync_clock) FROM price_history WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'price_history_outbox_insert',
+  );
+  late final Trigger priceHistoryOutboxUpdate = Trigger(
+    'CREATE TRIGGER price_history_outbox_update AFTER UPDATE ON price_history WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT \'price_history\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'item_id\', item_id, \'supplier_id\', supplier_id, \'old_price\', old_price, \'new_price\', new_price, \'changed_at\', changed_at, \'changed_by_name\', changed_by_name), (SELECT now FROM sync_clock) FROM price_history WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'price_history_outbox_update',
   );
   late final $StockMovementsTable stockMovements = $StockMovementsTable(this);
-  late final Trigger stockMovementsTouch = Trigger(
-    'CREATE TRIGGER stock_movements_touch AFTER UPDATE ON stock_movements WHEN NEW.updated_at IS OLD.updated_at BEGIN UPDATE stock_movements SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
-    'stock_movements_touch',
+  late final Trigger stockMovementsOutboxInsert = Trigger(
+    'CREATE TRIGGER stock_movements_outbox_insert AFTER INSERT ON stock_movements WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT \'stock_movements\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'item_id\', item_id, \'type\', type, \'quantity\', quantity, \'occurred_at\', occurred_at, \'user_name\', user_name, \'employee_id\', employee_id, \'supplier_id\', supplier_id, \'unit_price\', unit_price, \'reason\', reason, \'system_quantity\', system_quantity, \'counted_quantity\', counted_quantity, \'unit_cost\', unit_cost, \'average_cost_after\', average_cost_after, \'order_id\', order_id, \'receipt_id\', receipt_id, \'note\', note, \'in_baseline\', in_baseline), (SELECT now FROM sync_clock) FROM stock_movements WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'stock_movements_outbox_insert',
+  );
+  late final Trigger stockMovementsOutboxUpdate = Trigger(
+    'CREATE TRIGGER stock_movements_outbox_update AFTER UPDATE ON stock_movements WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT \'stock_movements\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'item_id\', item_id, \'type\', type, \'quantity\', quantity, \'occurred_at\', occurred_at, \'user_name\', user_name, \'employee_id\', employee_id, \'supplier_id\', supplier_id, \'unit_price\', unit_price, \'reason\', reason, \'system_quantity\', system_quantity, \'counted_quantity\', counted_quantity, \'unit_cost\', unit_cost, \'average_cost_after\', average_cost_after, \'order_id\', order_id, \'receipt_id\', receipt_id, \'note\', note, \'in_baseline\', in_baseline), (SELECT now FROM sync_clock) FROM stock_movements WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'stock_movements_outbox_update',
   );
   late final $PurchaseOrdersTable purchaseOrders = $PurchaseOrdersTable(this);
-  late final Trigger purchaseOrdersTouch = Trigger(
-    'CREATE TRIGGER purchase_orders_touch AFTER UPDATE ON purchase_orders WHEN NEW.updated_at IS OLD.updated_at BEGIN UPDATE purchase_orders SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
-    'purchase_orders_touch',
+  late final Trigger purchaseOrdersOutboxInsert = Trigger(
+    'CREATE TRIGGER purchase_orders_outbox_insert AFTER INSERT ON purchase_orders WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT \'purchase_orders\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'supplier_id\', supplier_id, \'reference\', reference, \'status\', status, \'created_at\', created_at, \'sent_at\', sent_at, \'closed_at\', closed_at, \'note\', note), (SELECT now FROM sync_clock) FROM purchase_orders WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'purchase_orders_outbox_insert',
+  );
+  late final Trigger purchaseOrdersOutboxUpdate = Trigger(
+    'CREATE TRIGGER purchase_orders_outbox_update AFTER UPDATE ON purchase_orders WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT \'purchase_orders\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'supplier_id\', supplier_id, \'reference\', reference, \'status\', status, \'created_at\', created_at, \'sent_at\', sent_at, \'closed_at\', closed_at, \'note\', note), (SELECT now FROM sync_clock) FROM purchase_orders WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'purchase_orders_outbox_update',
   );
   late final $PurchaseOrderLinesTable purchaseOrderLines =
       $PurchaseOrderLinesTable(this);
-  late final Trigger purchaseOrderLinesTouch = Trigger(
-    'CREATE TRIGGER purchase_order_lines_touch AFTER UPDATE ON purchase_order_lines WHEN NEW.updated_at IS OLD.updated_at BEGIN UPDATE purchase_order_lines SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
-    'purchase_order_lines_touch',
+  late final Trigger purchaseOrderLinesOutboxInsert = Trigger(
+    'CREATE TRIGGER purchase_order_lines_outbox_insert AFTER INSERT ON purchase_order_lines WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT \'purchase_order_lines\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'order_id\', order_id, \'item_id\', item_id, \'quantity_ordered\', quantity_ordered, \'quantity_received\', quantity_received, \'unit_price\', unit_price, \'closed_short\', closed_short, \'position\', position), (SELECT now FROM sync_clock) FROM purchase_order_lines WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'purchase_order_lines_outbox_insert',
+  );
+  late final Trigger purchaseOrderLinesOutboxUpdate = Trigger(
+    'CREATE TRIGGER purchase_order_lines_outbox_update AFTER UPDATE ON purchase_order_lines WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT \'purchase_order_lines\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'order_id\', order_id, \'item_id\', item_id, \'quantity_ordered\', quantity_ordered, \'quantity_received\', quantity_received, \'unit_price\', unit_price, \'closed_short\', closed_short, \'position\', position), (SELECT now FROM sync_clock) FROM purchase_order_lines WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'purchase_order_lines_outbox_update',
   );
   late final $GoodsReceiptsTable goodsReceipts = $GoodsReceiptsTable(this);
-  late final Trigger goodsReceiptsTouch = Trigger(
-    'CREATE TRIGGER goods_receipts_touch AFTER UPDATE ON goods_receipts WHEN NEW.updated_at IS OLD.updated_at BEGIN UPDATE goods_receipts SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
-    'goods_receipts_touch',
+  late final Trigger goodsReceiptsOutboxInsert = Trigger(
+    'CREATE TRIGGER goods_receipts_outbox_insert AFTER INSERT ON goods_receipts WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT \'goods_receipts\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'order_id\', order_id, \'store_id\', store_id, \'received_at\', received_at, \'received_by_name\', received_by_name, \'received_by_employee_id\', received_by_employee_id, \'note\', note), (SELECT now FROM sync_clock) FROM goods_receipts WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'goods_receipts_outbox_insert',
+  );
+  late final Trigger goodsReceiptsOutboxUpdate = Trigger(
+    'CREATE TRIGGER goods_receipts_outbox_update AFTER UPDATE ON goods_receipts WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT \'goods_receipts\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'order_id\', order_id, \'store_id\', store_id, \'received_at\', received_at, \'received_by_name\', received_by_name, \'received_by_employee_id\', received_by_employee_id, \'note\', note), (SELECT now FROM sync_clock) FROM goods_receipts WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'goods_receipts_outbox_update',
   );
   late final $GoodsReceiptLinesTable goodsReceiptLines =
       $GoodsReceiptLinesTable(this);
-  late final Trigger goodsReceiptLinesTouch = Trigger(
-    'CREATE TRIGGER goods_receipt_lines_touch AFTER UPDATE ON goods_receipt_lines WHEN NEW.updated_at IS OLD.updated_at BEGIN UPDATE goods_receipt_lines SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
-    'goods_receipt_lines_touch',
+  late final Trigger goodsReceiptLinesOutboxInsert = Trigger(
+    'CREATE TRIGGER goods_receipt_lines_outbox_insert AFTER INSERT ON goods_receipt_lines WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT \'goods_receipt_lines\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'receipt_id\', receipt_id, \'item_id\', item_id, \'quantity_ordered\', quantity_ordered, \'quantity_received\', quantity_received, \'actual_unit_price\', actual_unit_price, \'closed_short\', closed_short, \'was_unordered\', was_unordered, \'note\', note, \'position\', position), (SELECT now FROM sync_clock) FROM goods_receipt_lines WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'goods_receipt_lines_outbox_insert',
+  );
+  late final Trigger goodsReceiptLinesOutboxUpdate = Trigger(
+    'CREATE TRIGGER goods_receipt_lines_outbox_update AFTER UPDATE ON goods_receipt_lines WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT \'goods_receipt_lines\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'receipt_id\', receipt_id, \'item_id\', item_id, \'quantity_ordered\', quantity_ordered, \'quantity_received\', quantity_received, \'actual_unit_price\', actual_unit_price, \'closed_short\', closed_short, \'was_unordered\', was_unordered, \'note\', note, \'position\', position), (SELECT now FROM sync_clock) FROM goods_receipt_lines WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'goods_receipt_lines_outbox_update',
   );
   late final $NotificationsTable notifications = $NotificationsTable(this);
-  late final Trigger notificationsTouch = Trigger(
-    'CREATE TRIGGER notifications_touch AFTER UPDATE ON notifications WHEN NEW.updated_at IS OLD.updated_at BEGIN UPDATE notifications SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
-    'notifications_touch',
+  late final Trigger notificationsOutboxInsert = Trigger(
+    'CREATE TRIGGER notifications_outbox_insert AFTER INSERT ON notifications WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT \'notifications\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'kind\', kind, \'title\', title, \'body\', body, \'created_at\', created_at, \'is_read\', is_read, \'related_item_id\', related_item_id, \'related_supplier_id\', related_supplier_id), (SELECT now FROM sync_clock) FROM notifications WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'notifications_outbox_insert',
+  );
+  late final Trigger notificationsOutboxUpdate = Trigger(
+    'CREATE TRIGGER notifications_outbox_update AFTER UPDATE ON notifications WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT \'notifications\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'kind\', kind, \'title\', title, \'body\', body, \'created_at\', created_at, \'is_read\', is_read, \'related_item_id\', related_item_id, \'related_supplier_id\', related_supplier_id), (SELECT now FROM sync_clock) FROM notifications WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'notifications_outbox_update',
   );
   late final $EmployeesTable employees = $EmployeesTable(this);
-  late final Trigger employeesTouch = Trigger(
-    'CREATE TRIGGER employees_touch AFTER UPDATE ON employees WHEN NEW.updated_at IS OLD.updated_at BEGIN UPDATE employees SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
-    'employees_touch',
+  late final Trigger employeesOutboxInsert = Trigger(
+    'CREATE TRIGGER employees_outbox_insert AFTER INSERT ON employees WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT \'employees\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'first_name\', first_name, \'last_name\', last_name, \'pin\', pin, \'phone\', phone, \'email\', email, \'photo_asset\', photo_asset, \'hire_date\', hire_date, \'role\', role, \'pay\', pay, \'created_at\', created_at, \'archived_at\', archived_at), (SELECT now FROM sync_clock) FROM employees WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'employees_outbox_insert',
+  );
+  late final Trigger employeesOutboxUpdate = Trigger(
+    'CREATE TRIGGER employees_outbox_update AFTER UPDATE ON employees WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT \'employees\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'first_name\', first_name, \'last_name\', last_name, \'pin\', pin, \'phone\', phone, \'email\', email, \'photo_asset\', photo_asset, \'hire_date\', hire_date, \'role\', role, \'pay\', pay, \'created_at\', created_at, \'archived_at\', archived_at), (SELECT now FROM sync_clock) FROM employees WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'employees_outbox_update',
   );
   late final $EmployeeCredentialsTable employeeCredentials =
       $EmployeeCredentialsTable(this);
-  late final Trigger employeeCredentialsTouch = Trigger(
-    'CREATE TRIGGER employee_credentials_touch AFTER UPDATE ON employee_credentials WHEN NEW.updated_at IS OLD.updated_at BEGIN UPDATE employee_credentials SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
-    'employee_credentials_touch',
+  late final Trigger employeeCredentialsOutboxInsert = Trigger(
+    'CREATE TRIGGER employee_credentials_outbox_insert AFTER INSERT ON employee_credentials WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT \'employee_credentials\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'employee_id\', employee_id, \'password_hash\', password_hash, \'failed_attempts\', failed_attempts, \'locked_until\', locked_until, \'last_login_at\', last_login_at), (SELECT now FROM sync_clock) FROM employee_credentials WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'employee_credentials_outbox_insert',
+  );
+  late final Trigger employeeCredentialsOutboxUpdate = Trigger(
+    'CREATE TRIGGER employee_credentials_outbox_update AFTER UPDATE ON employee_credentials WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT \'employee_credentials\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'employee_id\', employee_id, \'password_hash\', password_hash, \'failed_attempts\', failed_attempts, \'locked_until\', locked_until, \'last_login_at\', last_login_at), (SELECT now FROM sync_clock) FROM employee_credentials WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'employee_credentials_outbox_update',
   );
   late final $PayrollPeriodsTable payrollPeriods = $PayrollPeriodsTable(this);
-  late final Trigger payrollPeriodsTouch = Trigger(
-    'CREATE TRIGGER payroll_periods_touch AFTER UPDATE ON payroll_periods WHEN NEW.updated_at IS OLD.updated_at BEGIN UPDATE payroll_periods SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
-    'payroll_periods_touch',
+  late final Trigger payrollPeriodsOutboxInsert = Trigger(
+    'CREATE TRIGGER payroll_periods_outbox_insert AFTER INSERT ON payroll_periods WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT \'payroll_periods\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'employee_id\', employee_id, \'store_id\', store_id, \'start_date\', start_date, \'end_date\', end_date, \'worked_days\', worked_days, \'total_worked_hours\', total_worked_hours, \'applied_rate\', applied_rate, \'computed_amount\', computed_amount, \'status\', status, \'paid_by_employee_id\', paid_by_employee_id, \'paid_at\', paid_at, \'created_at\', created_at), (SELECT now FROM sync_clock) FROM payroll_periods WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'payroll_periods_outbox_insert',
+  );
+  late final Trigger payrollPeriodsOutboxUpdate = Trigger(
+    'CREATE TRIGGER payroll_periods_outbox_update AFTER UPDATE ON payroll_periods WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT \'payroll_periods\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'employee_id\', employee_id, \'store_id\', store_id, \'start_date\', start_date, \'end_date\', end_date, \'worked_days\', worked_days, \'total_worked_hours\', total_worked_hours, \'applied_rate\', applied_rate, \'computed_amount\', computed_amount, \'status\', status, \'paid_by_employee_id\', paid_by_employee_id, \'paid_at\', paid_at, \'created_at\', created_at), (SELECT now FROM sync_clock) FROM payroll_periods WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'payroll_periods_outbox_update',
   );
   late final $AttendancesTable attendances = $AttendancesTable(this);
-  late final Trigger attendancesTouch = Trigger(
-    'CREATE TRIGGER attendances_touch AFTER UPDATE ON attendances WHEN NEW.updated_at IS OLD.updated_at BEGIN UPDATE attendances SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
-    'attendances_touch',
+  late final Trigger attendancesOutboxInsert = Trigger(
+    'CREATE TRIGGER attendances_outbox_insert AFTER INSERT ON attendances WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT \'attendances\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'employee_id\', employee_id, \'date\', date, \'status\', status, \'max_break_minutes\', max_break_minutes, \'payroll_period_id\', payroll_period_id), (SELECT now FROM sync_clock) FROM attendances WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'attendances_outbox_insert',
+  );
+  late final Trigger attendancesOutboxUpdate = Trigger(
+    'CREATE TRIGGER attendances_outbox_update AFTER UPDATE ON attendances WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT \'attendances\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'employee_id\', employee_id, \'date\', date, \'status\', status, \'max_break_minutes\', max_break_minutes, \'payroll_period_id\', payroll_period_id), (SELECT now FROM sync_clock) FROM attendances WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'attendances_outbox_update',
   );
   late final $AttendanceSessionsTable attendanceSessions =
       $AttendanceSessionsTable(this);
-  late final Trigger attendanceSessionsTouch = Trigger(
-    'CREATE TRIGGER attendance_sessions_touch AFTER UPDATE ON attendance_sessions WHEN NEW.updated_at IS OLD.updated_at BEGIN UPDATE attendance_sessions SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
-    'attendance_sessions_touch',
+  late final Trigger attendanceSessionsOutboxInsert = Trigger(
+    'CREATE TRIGGER attendance_sessions_outbox_insert AFTER INSERT ON attendance_sessions WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT \'attendance_sessions\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'attendance_id\', attendance_id, \'position\', position, \'clock_in_at\', clock_in_at, \'clock_out_at\', clock_out_at), (SELECT now FROM sync_clock) FROM attendance_sessions WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'attendance_sessions_outbox_insert',
+  );
+  late final Trigger attendanceSessionsOutboxUpdate = Trigger(
+    'CREATE TRIGGER attendance_sessions_outbox_update AFTER UPDATE ON attendance_sessions WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT \'attendance_sessions\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'attendance_id\', attendance_id, \'position\', position, \'clock_in_at\', clock_in_at, \'clock_out_at\', clock_out_at), (SELECT now FROM sync_clock) FROM attendance_sessions WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'attendance_sessions_outbox_update',
   );
   late final $AttendancePausesTable attendancePauses = $AttendancePausesTable(
     this,
   );
-  late final Trigger attendancePausesTouch = Trigger(
-    'CREATE TRIGGER attendance_pauses_touch AFTER UPDATE ON attendance_pauses WHEN NEW.updated_at IS OLD.updated_at BEGIN UPDATE attendance_pauses SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
-    'attendance_pauses_touch',
+  late final Trigger attendancePausesOutboxInsert = Trigger(
+    'CREATE TRIGGER attendance_pauses_outbox_insert AFTER INSERT ON attendance_pauses WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT \'attendance_pauses\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'session_id\', session_id, \'position\', position, \'start_at\', start_at, \'end_at\', end_at), (SELECT now FROM sync_clock) FROM attendance_pauses WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'attendance_pauses_outbox_insert',
+  );
+  late final Trigger attendancePausesOutboxUpdate = Trigger(
+    'CREATE TRIGGER attendance_pauses_outbox_update AFTER UPDATE ON attendance_pauses WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT \'attendance_pauses\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'session_id\', session_id, \'position\', position, \'start_at\', start_at, \'end_at\', end_at), (SELECT now FROM sync_clock) FROM attendance_pauses WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'attendance_pauses_outbox_update',
   );
   late final $BusyDatesTable busyDates = $BusyDatesTable(this);
-  late final Trigger busyDatesTouch = Trigger(
-    'CREATE TRIGGER busy_dates_touch AFTER UPDATE ON busy_dates WHEN NEW.updated_at IS OLD.updated_at BEGIN UPDATE busy_dates SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
-    'busy_dates_touch',
+  late final Trigger busyDatesOutboxInsert = Trigger(
+    'CREATE TRIGGER busy_dates_outbox_insert AFTER INSERT ON busy_dates WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT \'busy_dates\', store_id || \'|\' || day, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'store_id\', store_id, \'day\', day), (SELECT now FROM sync_clock) FROM busy_dates WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'busy_dates_outbox_insert',
+  );
+  late final Trigger busyDatesOutboxUpdate = Trigger(
+    'CREATE TRIGGER busy_dates_outbox_update AFTER UPDATE ON busy_dates WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT \'busy_dates\', store_id || \'|\' || day, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'store_id\', store_id, \'day\', day), (SELECT now FROM sync_clock) FROM busy_dates WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'busy_dates_outbox_update',
   );
   late final Index suppliersStore = Index(
     'suppliers_store',
@@ -14514,7 +15116,6 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     'price_history_pair_time',
     'CREATE INDEX price_history_pair_time ON price_history (item_id, supplier_id, changed_at DESC)',
   );
-  late final $MetaTable meta = $MetaTable(this);
   late final Index goodsReceiptsOrder = Index(
     'goods_receipts_order',
     'CREATE INDEX goods_receipts_order ON goods_receipts (order_id)',
@@ -14619,58 +15220,163 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     'notifications_store_time',
     'CREATE INDEX notifications_store_time ON notifications (store_id, created_at DESC)',
   );
+  late final Index outboxRow = Index(
+    'outbox_row',
+    'CREATE UNIQUE INDEX outbox_row ON outbox (changed_table, row_key)',
+  );
+  late final Trigger storesTouch = Trigger(
+    'CREATE TRIGGER stores_touch AFTER UPDATE ON stores WHEN NEW.updated_at IS OLD.updated_at BEGIN UPDATE stores SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
+    'stores_touch',
+  );
+  late final Trigger categoriesTouch = Trigger(
+    'CREATE TRIGGER categories_touch AFTER UPDATE ON categories WHEN NEW.updated_at IS OLD.updated_at BEGIN UPDATE categories SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
+    'categories_touch',
+  );
+  late final Trigger unitsTouch = Trigger(
+    'CREATE TRIGGER units_touch AFTER UPDATE ON units WHEN NEW.updated_at IS OLD.updated_at BEGIN UPDATE units SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
+    'units_touch',
+  );
+  late final Trigger itemsTouch = Trigger(
+    'CREATE TRIGGER items_touch AFTER UPDATE ON items WHEN NEW.updated_at IS OLD.updated_at AND NEW.quantity IS OLD.quantity BEGIN UPDATE items SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
+    'items_touch',
+  );
+  late final Trigger suppliersTouch = Trigger(
+    'CREATE TRIGGER suppliers_touch AFTER UPDATE ON suppliers WHEN NEW.updated_at IS OLD.updated_at BEGIN UPDATE suppliers SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
+    'suppliers_touch',
+  );
+  late final Trigger supplierPricesTouch = Trigger(
+    'CREATE TRIGGER supplier_prices_touch AFTER UPDATE ON supplier_prices WHEN NEW.updated_at IS OLD.updated_at BEGIN UPDATE supplier_prices SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
+    'supplier_prices_touch',
+  );
+  late final Trigger priceHistoryTouch = Trigger(
+    'CREATE TRIGGER price_history_touch AFTER UPDATE ON price_history WHEN NEW.updated_at IS OLD.updated_at BEGIN UPDATE price_history SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
+    'price_history_touch',
+  );
+  late final Trigger stockMovementsTouch = Trigger(
+    'CREATE TRIGGER stock_movements_touch AFTER UPDATE ON stock_movements WHEN NEW.updated_at IS OLD.updated_at BEGIN UPDATE stock_movements SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
+    'stock_movements_touch',
+  );
+  late final Trigger purchaseOrdersTouch = Trigger(
+    'CREATE TRIGGER purchase_orders_touch AFTER UPDATE ON purchase_orders WHEN NEW.updated_at IS OLD.updated_at BEGIN UPDATE purchase_orders SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
+    'purchase_orders_touch',
+  );
+  late final Trigger purchaseOrderLinesTouch = Trigger(
+    'CREATE TRIGGER purchase_order_lines_touch AFTER UPDATE ON purchase_order_lines WHEN NEW.updated_at IS OLD.updated_at BEGIN UPDATE purchase_order_lines SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
+    'purchase_order_lines_touch',
+  );
+  late final Trigger goodsReceiptsTouch = Trigger(
+    'CREATE TRIGGER goods_receipts_touch AFTER UPDATE ON goods_receipts WHEN NEW.updated_at IS OLD.updated_at BEGIN UPDATE goods_receipts SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
+    'goods_receipts_touch',
+  );
+  late final Trigger goodsReceiptLinesTouch = Trigger(
+    'CREATE TRIGGER goods_receipt_lines_touch AFTER UPDATE ON goods_receipt_lines WHEN NEW.updated_at IS OLD.updated_at BEGIN UPDATE goods_receipt_lines SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
+    'goods_receipt_lines_touch',
+  );
+  late final Trigger notificationsTouch = Trigger(
+    'CREATE TRIGGER notifications_touch AFTER UPDATE ON notifications WHEN NEW.updated_at IS OLD.updated_at BEGIN UPDATE notifications SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
+    'notifications_touch',
+  );
+  late final Trigger employeesTouch = Trigger(
+    'CREATE TRIGGER employees_touch AFTER UPDATE ON employees WHEN NEW.updated_at IS OLD.updated_at BEGIN UPDATE employees SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
+    'employees_touch',
+  );
+  late final Trigger employeeCredentialsTouch = Trigger(
+    'CREATE TRIGGER employee_credentials_touch AFTER UPDATE ON employee_credentials WHEN NEW.updated_at IS OLD.updated_at BEGIN UPDATE employee_credentials SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
+    'employee_credentials_touch',
+  );
+  late final Trigger payrollPeriodsTouch = Trigger(
+    'CREATE TRIGGER payroll_periods_touch AFTER UPDATE ON payroll_periods WHEN NEW.updated_at IS OLD.updated_at BEGIN UPDATE payroll_periods SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
+    'payroll_periods_touch',
+  );
+  late final Trigger attendancesTouch = Trigger(
+    'CREATE TRIGGER attendances_touch AFTER UPDATE ON attendances WHEN NEW.updated_at IS OLD.updated_at BEGIN UPDATE attendances SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
+    'attendances_touch',
+  );
+  late final Trigger attendanceSessionsTouch = Trigger(
+    'CREATE TRIGGER attendance_sessions_touch AFTER UPDATE ON attendance_sessions WHEN NEW.updated_at IS OLD.updated_at BEGIN UPDATE attendance_sessions SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
+    'attendance_sessions_touch',
+  );
+  late final Trigger attendancePausesTouch = Trigger(
+    'CREATE TRIGGER attendance_pauses_touch AFTER UPDATE ON attendance_pauses WHEN NEW.updated_at IS OLD.updated_at BEGIN UPDATE attendance_pauses SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
+    'attendance_pauses_touch',
+  );
+  late final Trigger busyDatesTouch = Trigger(
+    'CREATE TRIGGER busy_dates_touch AFTER UPDATE ON busy_dates WHEN NEW.updated_at IS OLD.updated_at BEGIN UPDATE busy_dates SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
+    'busy_dates_touch',
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
   List<DatabaseSchemaEntity> get allSchemaEntities => [
-    syncClock,
     stores,
-    storesTouch,
+    meta,
+    outbox,
+    syncClock,
+    storesOutboxInsert,
+    storesOutboxUpdate,
     categories,
-    categoriesTouch,
+    categoriesOutboxInsert,
+    categoriesOutboxUpdate,
     units,
-    unitsTouch,
+    unitsOutboxInsert,
+    unitsOutboxUpdate,
     items,
-    itemsTouch,
+    itemsOutboxInsert,
+    itemsOutboxUpdate,
     suppliers,
-    suppliersTouch,
+    suppliersOutboxInsert,
+    suppliersOutboxUpdate,
     supplierPrices,
-    supplierPricesTouch,
+    supplierPricesOutboxInsert,
+    supplierPricesOutboxUpdate,
     priceHistory,
-    priceHistoryTouch,
+    priceHistoryOutboxInsert,
+    priceHistoryOutboxUpdate,
     stockMovements,
-    stockMovementsTouch,
+    stockMovementsOutboxInsert,
+    stockMovementsOutboxUpdate,
     purchaseOrders,
-    purchaseOrdersTouch,
+    purchaseOrdersOutboxInsert,
+    purchaseOrdersOutboxUpdate,
     purchaseOrderLines,
-    purchaseOrderLinesTouch,
+    purchaseOrderLinesOutboxInsert,
+    purchaseOrderLinesOutboxUpdate,
     goodsReceipts,
-    goodsReceiptsTouch,
+    goodsReceiptsOutboxInsert,
+    goodsReceiptsOutboxUpdate,
     goodsReceiptLines,
-    goodsReceiptLinesTouch,
+    goodsReceiptLinesOutboxInsert,
+    goodsReceiptLinesOutboxUpdate,
     notifications,
-    notificationsTouch,
+    notificationsOutboxInsert,
+    notificationsOutboxUpdate,
     employees,
-    employeesTouch,
+    employeesOutboxInsert,
+    employeesOutboxUpdate,
     employeeCredentials,
-    employeeCredentialsTouch,
+    employeeCredentialsOutboxInsert,
+    employeeCredentialsOutboxUpdate,
     payrollPeriods,
-    payrollPeriodsTouch,
+    payrollPeriodsOutboxInsert,
+    payrollPeriodsOutboxUpdate,
     attendances,
-    attendancesTouch,
+    attendancesOutboxInsert,
+    attendancesOutboxUpdate,
     attendanceSessions,
-    attendanceSessionsTouch,
+    attendanceSessionsOutboxInsert,
+    attendanceSessionsOutboxUpdate,
     attendancePauses,
-    attendancePausesTouch,
+    attendancePausesOutboxInsert,
+    attendancePausesOutboxUpdate,
     busyDates,
-    busyDatesTouch,
+    busyDatesOutboxInsert,
+    busyDatesOutboxUpdate,
     suppliersStore,
     supplierPricesItem,
     supplierPricesSupplier,
     supplierPricesPair,
     priceHistoryPairTime,
-    meta,
     goodsReceiptsOrder,
     goodsReceiptsStore,
     goodsReceiptLinesReceipt,
@@ -14697,15 +15403,43 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     attendanceSessionsAttendance,
     attendancePausesSession,
     notificationsStoreTime,
+    outboxRow,
+    storesTouch,
+    categoriesTouch,
+    unitsTouch,
+    itemsTouch,
+    suppliersTouch,
+    supplierPricesTouch,
+    priceHistoryTouch,
+    stockMovementsTouch,
+    purchaseOrdersTouch,
+    purchaseOrderLinesTouch,
+    goodsReceiptsTouch,
+    goodsReceiptLinesTouch,
+    notificationsTouch,
+    employeesTouch,
+    employeeCredentialsTouch,
+    payrollPeriodsTouch,
+    attendancesTouch,
+    attendanceSessionsTouch,
+    attendancePausesTouch,
+    busyDatesTouch,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
     WritePropagation(
       on: TableUpdateQuery.onTableName(
         'stores',
+        limitUpdateKind: UpdateKind.insert,
+      ),
+      result: [TableUpdate('outbox', kind: UpdateKind.insert)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'stores',
         limitUpdateKind: UpdateKind.update,
       ),
-      result: [TableUpdate('stores', kind: UpdateKind.update)],
+      result: [TableUpdate('outbox', kind: UpdateKind.insert)],
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(
@@ -14717,9 +15451,16 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     WritePropagation(
       on: TableUpdateQuery.onTableName(
         'categories',
+        limitUpdateKind: UpdateKind.insert,
+      ),
+      result: [TableUpdate('outbox', kind: UpdateKind.insert)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'categories',
         limitUpdateKind: UpdateKind.update,
       ),
-      result: [TableUpdate('categories', kind: UpdateKind.update)],
+      result: [TableUpdate('outbox', kind: UpdateKind.insert)],
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(
@@ -14731,9 +15472,16 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     WritePropagation(
       on: TableUpdateQuery.onTableName(
         'units',
+        limitUpdateKind: UpdateKind.insert,
+      ),
+      result: [TableUpdate('outbox', kind: UpdateKind.insert)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'units',
         limitUpdateKind: UpdateKind.update,
       ),
-      result: [TableUpdate('units', kind: UpdateKind.update)],
+      result: [TableUpdate('outbox', kind: UpdateKind.insert)],
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(
@@ -14745,9 +15493,16 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     WritePropagation(
       on: TableUpdateQuery.onTableName(
         'items',
+        limitUpdateKind: UpdateKind.insert,
+      ),
+      result: [TableUpdate('outbox', kind: UpdateKind.insert)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'items',
         limitUpdateKind: UpdateKind.update,
       ),
-      result: [TableUpdate('items', kind: UpdateKind.update)],
+      result: [TableUpdate('outbox', kind: UpdateKind.insert)],
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(
@@ -14759,9 +15514,16 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     WritePropagation(
       on: TableUpdateQuery.onTableName(
         'suppliers',
+        limitUpdateKind: UpdateKind.insert,
+      ),
+      result: [TableUpdate('outbox', kind: UpdateKind.insert)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'suppliers',
         limitUpdateKind: UpdateKind.update,
       ),
-      result: [TableUpdate('suppliers', kind: UpdateKind.update)],
+      result: [TableUpdate('outbox', kind: UpdateKind.insert)],
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(
@@ -14787,9 +15549,16 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     WritePropagation(
       on: TableUpdateQuery.onTableName(
         'supplier_prices',
+        limitUpdateKind: UpdateKind.insert,
+      ),
+      result: [TableUpdate('outbox', kind: UpdateKind.insert)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'supplier_prices',
         limitUpdateKind: UpdateKind.update,
       ),
-      result: [TableUpdate('supplier_prices', kind: UpdateKind.update)],
+      result: [TableUpdate('outbox', kind: UpdateKind.insert)],
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(
@@ -14815,9 +15584,16 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     WritePropagation(
       on: TableUpdateQuery.onTableName(
         'price_history',
+        limitUpdateKind: UpdateKind.insert,
+      ),
+      result: [TableUpdate('outbox', kind: UpdateKind.insert)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'price_history',
         limitUpdateKind: UpdateKind.update,
       ),
-      result: [TableUpdate('price_history', kind: UpdateKind.update)],
+      result: [TableUpdate('outbox', kind: UpdateKind.insert)],
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(
@@ -14836,9 +15612,16 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     WritePropagation(
       on: TableUpdateQuery.onTableName(
         'stock_movements',
+        limitUpdateKind: UpdateKind.insert,
+      ),
+      result: [TableUpdate('outbox', kind: UpdateKind.insert)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'stock_movements',
         limitUpdateKind: UpdateKind.update,
       ),
-      result: [TableUpdate('stock_movements', kind: UpdateKind.update)],
+      result: [TableUpdate('outbox', kind: UpdateKind.insert)],
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(
@@ -14850,9 +15633,16 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     WritePropagation(
       on: TableUpdateQuery.onTableName(
         'purchase_orders',
+        limitUpdateKind: UpdateKind.insert,
+      ),
+      result: [TableUpdate('outbox', kind: UpdateKind.insert)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'purchase_orders',
         limitUpdateKind: UpdateKind.update,
       ),
-      result: [TableUpdate('purchase_orders', kind: UpdateKind.update)],
+      result: [TableUpdate('outbox', kind: UpdateKind.insert)],
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(
@@ -14871,9 +15661,16 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     WritePropagation(
       on: TableUpdateQuery.onTableName(
         'purchase_order_lines',
+        limitUpdateKind: UpdateKind.insert,
+      ),
+      result: [TableUpdate('outbox', kind: UpdateKind.insert)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'purchase_order_lines',
         limitUpdateKind: UpdateKind.update,
       ),
-      result: [TableUpdate('purchase_order_lines', kind: UpdateKind.update)],
+      result: [TableUpdate('outbox', kind: UpdateKind.insert)],
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(
@@ -14892,9 +15689,16 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     WritePropagation(
       on: TableUpdateQuery.onTableName(
         'goods_receipts',
+        limitUpdateKind: UpdateKind.insert,
+      ),
+      result: [TableUpdate('outbox', kind: UpdateKind.insert)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'goods_receipts',
         limitUpdateKind: UpdateKind.update,
       ),
-      result: [TableUpdate('goods_receipts', kind: UpdateKind.update)],
+      result: [TableUpdate('outbox', kind: UpdateKind.insert)],
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(
@@ -14913,9 +15717,16 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     WritePropagation(
       on: TableUpdateQuery.onTableName(
         'goods_receipt_lines',
+        limitUpdateKind: UpdateKind.insert,
+      ),
+      result: [TableUpdate('outbox', kind: UpdateKind.insert)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'goods_receipt_lines',
         limitUpdateKind: UpdateKind.update,
       ),
-      result: [TableUpdate('goods_receipt_lines', kind: UpdateKind.update)],
+      result: [TableUpdate('outbox', kind: UpdateKind.insert)],
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(
@@ -14927,16 +15738,30 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     WritePropagation(
       on: TableUpdateQuery.onTableName(
         'notifications',
+        limitUpdateKind: UpdateKind.insert,
+      ),
+      result: [TableUpdate('outbox', kind: UpdateKind.insert)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'notifications',
         limitUpdateKind: UpdateKind.update,
       ),
-      result: [TableUpdate('notifications', kind: UpdateKind.update)],
+      result: [TableUpdate('outbox', kind: UpdateKind.insert)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'employees',
+        limitUpdateKind: UpdateKind.insert,
+      ),
+      result: [TableUpdate('outbox', kind: UpdateKind.insert)],
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(
         'employees',
         limitUpdateKind: UpdateKind.update,
       ),
-      result: [TableUpdate('employees', kind: UpdateKind.update)],
+      result: [TableUpdate('outbox', kind: UpdateKind.insert)],
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(
@@ -14955,9 +15780,16 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     WritePropagation(
       on: TableUpdateQuery.onTableName(
         'employee_credentials',
+        limitUpdateKind: UpdateKind.insert,
+      ),
+      result: [TableUpdate('outbox', kind: UpdateKind.insert)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'employee_credentials',
         limitUpdateKind: UpdateKind.update,
       ),
-      result: [TableUpdate('employee_credentials', kind: UpdateKind.update)],
+      result: [TableUpdate('outbox', kind: UpdateKind.insert)],
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(
@@ -14976,9 +15808,16 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     WritePropagation(
       on: TableUpdateQuery.onTableName(
         'payroll_periods',
+        limitUpdateKind: UpdateKind.insert,
+      ),
+      result: [TableUpdate('outbox', kind: UpdateKind.insert)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'payroll_periods',
         limitUpdateKind: UpdateKind.update,
       ),
-      result: [TableUpdate('payroll_periods', kind: UpdateKind.update)],
+      result: [TableUpdate('outbox', kind: UpdateKind.insert)],
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(
@@ -14997,9 +15836,16 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     WritePropagation(
       on: TableUpdateQuery.onTableName(
         'attendances',
+        limitUpdateKind: UpdateKind.insert,
+      ),
+      result: [TableUpdate('outbox', kind: UpdateKind.insert)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'attendances',
         limitUpdateKind: UpdateKind.update,
       ),
-      result: [TableUpdate('attendances', kind: UpdateKind.update)],
+      result: [TableUpdate('outbox', kind: UpdateKind.insert)],
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(
@@ -15018,9 +15864,16 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     WritePropagation(
       on: TableUpdateQuery.onTableName(
         'attendance_sessions',
+        limitUpdateKind: UpdateKind.insert,
+      ),
+      result: [TableUpdate('outbox', kind: UpdateKind.insert)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'attendance_sessions',
         limitUpdateKind: UpdateKind.update,
       ),
-      result: [TableUpdate('attendance_sessions', kind: UpdateKind.update)],
+      result: [TableUpdate('outbox', kind: UpdateKind.insert)],
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(
@@ -15039,9 +15892,16 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     WritePropagation(
       on: TableUpdateQuery.onTableName(
         'attendance_pauses',
+        limitUpdateKind: UpdateKind.insert,
+      ),
+      result: [TableUpdate('outbox', kind: UpdateKind.insert)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'attendance_pauses',
         limitUpdateKind: UpdateKind.update,
       ),
-      result: [TableUpdate('attendance_pauses', kind: UpdateKind.update)],
+      result: [TableUpdate('outbox', kind: UpdateKind.insert)],
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(
@@ -15049,6 +15909,153 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('busy_dates', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'busy_dates',
+        limitUpdateKind: UpdateKind.insert,
+      ),
+      result: [TableUpdate('outbox', kind: UpdateKind.insert)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'busy_dates',
+        limitUpdateKind: UpdateKind.update,
+      ),
+      result: [TableUpdate('outbox', kind: UpdateKind.insert)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'stores',
+        limitUpdateKind: UpdateKind.update,
+      ),
+      result: [TableUpdate('stores', kind: UpdateKind.update)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'categories',
+        limitUpdateKind: UpdateKind.update,
+      ),
+      result: [TableUpdate('categories', kind: UpdateKind.update)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'units',
+        limitUpdateKind: UpdateKind.update,
+      ),
+      result: [TableUpdate('units', kind: UpdateKind.update)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'items',
+        limitUpdateKind: UpdateKind.update,
+      ),
+      result: [TableUpdate('items', kind: UpdateKind.update)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'suppliers',
+        limitUpdateKind: UpdateKind.update,
+      ),
+      result: [TableUpdate('suppliers', kind: UpdateKind.update)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'supplier_prices',
+        limitUpdateKind: UpdateKind.update,
+      ),
+      result: [TableUpdate('supplier_prices', kind: UpdateKind.update)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'price_history',
+        limitUpdateKind: UpdateKind.update,
+      ),
+      result: [TableUpdate('price_history', kind: UpdateKind.update)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'stock_movements',
+        limitUpdateKind: UpdateKind.update,
+      ),
+      result: [TableUpdate('stock_movements', kind: UpdateKind.update)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'purchase_orders',
+        limitUpdateKind: UpdateKind.update,
+      ),
+      result: [TableUpdate('purchase_orders', kind: UpdateKind.update)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'purchase_order_lines',
+        limitUpdateKind: UpdateKind.update,
+      ),
+      result: [TableUpdate('purchase_order_lines', kind: UpdateKind.update)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'goods_receipts',
+        limitUpdateKind: UpdateKind.update,
+      ),
+      result: [TableUpdate('goods_receipts', kind: UpdateKind.update)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'goods_receipt_lines',
+        limitUpdateKind: UpdateKind.update,
+      ),
+      result: [TableUpdate('goods_receipt_lines', kind: UpdateKind.update)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'notifications',
+        limitUpdateKind: UpdateKind.update,
+      ),
+      result: [TableUpdate('notifications', kind: UpdateKind.update)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'employees',
+        limitUpdateKind: UpdateKind.update,
+      ),
+      result: [TableUpdate('employees', kind: UpdateKind.update)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'employee_credentials',
+        limitUpdateKind: UpdateKind.update,
+      ),
+      result: [TableUpdate('employee_credentials', kind: UpdateKind.update)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'payroll_periods',
+        limitUpdateKind: UpdateKind.update,
+      ),
+      result: [TableUpdate('payroll_periods', kind: UpdateKind.update)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'attendances',
+        limitUpdateKind: UpdateKind.update,
+      ),
+      result: [TableUpdate('attendances', kind: UpdateKind.update)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'attendance_sessions',
+        limitUpdateKind: UpdateKind.update,
+      ),
+      result: [TableUpdate('attendance_sessions', kind: UpdateKind.update)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'attendance_pauses',
+        limitUpdateKind: UpdateKind.update,
+      ),
+      result: [TableUpdate('attendance_pauses', kind: UpdateKind.update)],
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(

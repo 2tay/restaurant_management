@@ -74,6 +74,16 @@ final Provider<DeviceRepository> deviceRepositoryProvider =
       (ref) => DeviceRepository(ref.watch(databaseProvider)),
     );
 
+final Provider<OutboxRepository> outboxRepositoryProvider =
+    Provider<OutboxRepository>(
+      (ref) => OutboxRepository(ref.watch(databaseProvider)),
+    );
+
+/// How many local changes are waiting to be sent — the queue's size, live.
+final StreamProvider<int> outboxPendingCountProvider = StreamProvider<int>(
+  (ref) => ref.watch(outboxRepositoryProvider).watchPendingCount(),
+);
+
 final Provider<DemoRepository> demoRepositoryProvider =
     Provider<DemoRepository>((ref) => DemoRepository(ref.watch(databaseProvider)));
 

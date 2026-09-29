@@ -21,6 +21,7 @@ import 'tables/employees.dart';
 import 'tables/items.dart';
 import 'tables/movements.dart';
 import 'tables/orders.dart';
+import 'tables/outbox.dart';
 import 'tables/payroll.dart';
 import 'tables/receipts.dart';
 import 'tables/stores.dart';
@@ -67,8 +68,9 @@ part 'app_database.g.dart';
     AttendanceSessions,
     AttendancePauses,
     BusyDates,
+    Outbox,
   ],
-  include: {'sync_triggers.drift'},
+  include: {'sync_triggers.drift', 'outbox_triggers.drift'},
 )
 class AppDatabase extends _$AppDatabase {
   /// The real one: a file, where the platform says application data belongs.
@@ -90,7 +92,7 @@ class AppDatabase extends _$AppDatabase {
   static const String databaseName = 'stock_inventory';
 
   @override
-  int get schemaVersion => 15;
+  int get schemaVersion => 16;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -344,6 +346,18 @@ class AppDatabase extends _$AppDatabase {
       if (from < 15) {
         await _migrateToVersion15(m);
       }
+
+      // v15 -> v16: the outbox (SYNC_PLAN.md, Phase 2) and the triggers that
+      // fill it. Nothing already in the database is queued: the rows an
+      // install holds before this version were never meant for a server, and
+      // uploading them is a deliberate step of its own (Phase 9).
+      if (from < 16) {
+        await m.createTable(outbox);
+        await m.create(outboxRow);
+        for (final trigger in allSchemaEntities.whereType<Trigger>()) {
+          if (trigger.entityName.contains('_outbox_')) await m.create(trigger);
+        }
+      }
     },
 
     beforeOpen: (OpeningDetails details) async {
@@ -569,7 +583,7 @@ class AppDatabase extends _$AppDatabase {
     // table, and these would otherwise fire during the copies above.
     await m.create(syncClock);
     for (final trigger in allSchemaEntities.whereType<Trigger>()) {
-      await m.create(trigger);
+      if (trigger.entityName.endsWith('_touch')) await m.create(trigger);
     }
   }
 }
