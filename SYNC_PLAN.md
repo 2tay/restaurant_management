@@ -313,6 +313,20 @@ In `test/db/`, add `outbox_test.dart`:
 Goal: a server database that mirrors the synced tables, with security rules and two functions:
 one to receive changes, one to send them.
 
+> **Status: built and tested locally** (`supabase/`, 34 pgTAP tests passing). Not deployed to
+> a cloud project yet. What differs from the first plan:
+>
+> - **Clients cannot write tables directly.** Row level security gives read access only, and
+>   every write goes through `push_changes`, so its rules cannot be bypassed.
+> - **One organization per login**, which keeps "which organization" out of every call.
+> - **Only `store_id` is a foreign key on the server.** Several offline devices can send a
+>   child before a later edit of its parent, for example an attendance linked to a pay period
+>   queued afterwards. The app keeps the other links correct.
+> - **The first conflict rules from Phase 7 are in:** delete wins, a commande's status only
+>   moves forward, and a paid pay period is final.
+> - **The mirror tables are generated** from the app's schema dump by
+>   `tool/generate_server_schema.py`.
+
 **Step 3.1: Create the account tables.**
 In a first SQL migration in `supabase/migrations/`:
 
