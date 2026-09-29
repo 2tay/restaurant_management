@@ -14,6 +14,7 @@ import '../../../../data/providers.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 import '../../../inventory/presentation/widgets/product_drawer.dart';
+import '../alerts_filter.dart';
 
 /// Which kinds the feed is narrowed to.
 ///
@@ -200,7 +201,8 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
         NotificationFilter.all => true,
         NotificationFilter.stock =>
           kind == NotificationKind.lowStock ||
-              kind == NotificationKind.outOfStock,
+              kind == NotificationKind.outOfStock ||
+              kind == NotificationKind.busyDays,
         NotificationFilter.price => kind == NotificationKind.priceChange,
         NotificationFilter.adjustment =>
           kind == NotificationKind.largeAdjustment,
@@ -255,6 +257,10 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
       context.pushScreen(
         Routes.toSupplier(widget.storeId, notification.relatedSupplierId!),
       );
+    } else if (notification.kind == NotificationKind.busyDays) {
+      // Straight to the list the reminder is about.
+      ref.read(alertsFilterProvider.notifier).setSeverity(AlertSeverity.busy);
+      context.goSection(Routes.toAlerts(widget.storeId));
     }
   }
 }
@@ -517,6 +523,11 @@ class _NotificationCard extends StatelessWidget {
       LucideIcons.truck,
       AppColors.inStock,
       l10n.notificationsKindDelivery,
+    ),
+    NotificationKind.busyDays => (
+      LucideIcons.calendarClock,
+      AppColors.lowStock,
+      l10n.notificationsKindBusyDays,
     ),
   };
 }

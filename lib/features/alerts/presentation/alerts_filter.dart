@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/utils/busy_calendar.dart';
 import '../../../core/utils/stock_status.dart';
 import '../../../data/view_models/view_models.dart';
 import '../../../models/models.dart';
@@ -13,6 +14,11 @@ enum AlertSeverity {
 
   /// At or under the threshold, but still something on the shelf.
   lowStock,
+
+  /// Under the busy-day minimum — the calendar's list. A different list, not a
+  /// narrowing of the others: the screen reads it from `busyAlertsProvider`,
+  /// and it holds products that are fine on an ordinary day.
+  busy,
 }
 
 /// Whether anybody has already dealt with the alert.
@@ -97,7 +103,9 @@ class AlertsFilter {
         // considered order with a cruder one.
         break;
       case AlertSort.shortfall:
-        kept.sort((a, b) => _shortfallOf(b).compareTo(_shortfallOf(a)));
+        kept.sort(
+          (a, b) => shortfallOf(b, severity).compareTo(shortfallOf(a, severity)),
+        );
       case AlertSort.name:
         kept.sort(
           (a, b) => a.row.item.name.toLowerCase().compareTo(
@@ -114,6 +122,7 @@ class AlertsFilter {
       AlertSeverity.all => true,
       AlertSeverity.outOfStock => status == StockStatus.outOfStock,
       AlertSeverity.lowStock => status == StockStatus.lowStock,
+      AlertSeverity.busy => true,
     };
     if (!severityOk) return false;
 
@@ -129,8 +138,11 @@ class AlertsFilter {
     return view.defaultSupplierId == supplierId;
   }
 
-  static double _shortfallOf(LowStockAlertView view) {
+  /// How much the row is short — of the busy-day minimum on the busy list,
+  /// of the ordinary one everywhere else.
+  static double shortfallOf(LowStockAlertView view, AlertSeverity severity) {
     final item = view.row.item;
+    if (severity == AlertSeverity.busy) return busyShortfallOf(item);
     final gap = item.lowStockThreshold - item.quantity;
     return gap > 0 ? gap : 0;
   }

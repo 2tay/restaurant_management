@@ -58,6 +58,7 @@ List<WalkableRoute> allRoutes() {
     (label: 'adjustment', path: Routes.toAdjustment(store), inShell: true),
 
     (label: 'alerts', path: Routes.toAlerts(store), inShell: true),
+    (label: 'calendar', path: Routes.toCalendar(store), inShell: true),
     (
       label: 'notifications',
       path: Routes.toNotifications(store),

@@ -21,6 +21,7 @@ class StoreSettings {
     this.notifyPriceChange = true,
     this.notifyLargeAdjustment = true,
     this.notifyDeliveries = false,
+    this.notifyBusyDays = true,
   });
 
   final String storeId;
@@ -41,4 +42,7 @@ class StoreSettings {
   final bool notifyPriceChange;
   final bool notifyLargeAdjustment;
   final bool notifyDeliveries;
+
+  /// The reminder before a busy period on the calendar.
+  final bool notifyBusyDays;
 }

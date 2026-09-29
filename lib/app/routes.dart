@@ -46,6 +46,8 @@ abstract final class Routes {
   static const String alerts = '$storeBase/alerts';
   static const String notifications = '$storeBase/notifications';
 
+  static const String calendar = '$storeBase/calendar';
+
   // Orders. `new` and `receipts` are declared before `:orderId` in the router
   // for the same reason `new` precedes `:itemId` — go_router matches in order,
   // and otherwise "new" would be read as an order id.
@@ -145,6 +147,8 @@ abstract final class Routes {
 
   static String toNotifications(String storeId) =>
       '/store/$storeId/notifications';
+
+  static String toCalendar(String storeId) => '/store/$storeId/calendar';
 
   static String toOrders(String storeId) => '/store/$storeId/orders';
 

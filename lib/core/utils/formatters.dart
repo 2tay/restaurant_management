@@ -123,6 +123,14 @@ abstract final class Formatters {
   static String weekdayDayMonth(DateTime value) =>
       _weekdayDayMonth.format(value);
 
+  static final DateFormat _monthYear = DateFormat('MMMM yyyy', locale);
+
+  /// `Octobre 2026` — the heading of a month grid.
+  static String monthYear(DateTime value) {
+    final label = _monthYear.format(value);
+    return label.isEmpty ? label : label[0].toUpperCase() + label.substring(1);
+  }
+
   /// `22 août` — chart axes and compact rows.
   static String dayMonth(DateTime value) => _dayMonth.format(value);
 
@@ -133,6 +141,14 @@ abstract final class Formatters {
         ? weekday
         : weekday[0].toUpperCase() + weekday.substring(1);
     return '$capitalized : ${_dateNoPad.format(value)}';
+  }
+
+  /// `Jeudi` — a weekday on its own, capitalised.
+  static String weekdayLong(DateTime value) {
+    final weekday = _weekday.format(value);
+    return weekday.isEmpty
+        ? weekday
+        : weekday[0].toUpperCase() + weekday.substring(1);
   }
 
   /// `Jeudi 24/12/2026` — the day line of the pointage drawers.

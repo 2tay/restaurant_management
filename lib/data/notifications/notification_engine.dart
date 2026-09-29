@@ -1,8 +1,13 @@
+import 'package:clock/clock.dart';
+
+import '../../core/utils/busy_calendar.dart';
 import '../../core/utils/formatters.dart';
 import '../../models/item.dart';
 import '../../models/notification_item.dart';
 import '../database/app_database.dart';
 import '../repositories/account_repository.dart';
+import '../repositories/calendar_repository.dart';
+import '../repositories/item_repository.dart';
 
 /// What turns the notification centre from a seeded list into a record of what
 /// happened.
@@ -191,6 +196,63 @@ class NotificationEngine {
         window: const Duration(minutes: 2),
       );
     });
+  }
+
+  /// A busy period on the calendar is close, and stock is short for it.
+  ///
+  /// Not triggered by a write like the others: the shell calls it when an
+  /// establishment is opened and every hour after that, because the thing that
+  /// changes is the date. So it has to be safe to call over and over, and it
+  /// is — **one notification per busy period**. The dedupe window reaches back
+  /// to the first day of this period's reminder, so anything already filed for
+  /// it silences the next call, and last week's weekend does not.
+  ///
+  /// Nothing is filed when every product already holds its busy-day minimum:
+  /// a reminder to buy nothing is noise. If a product drops under it later in
+  /// the reminder window, the next call files it then.
+  Future<void> busyDaysApproaching(String storeId, {DateTime? now}) async {
+    await _guard(() async {
+      if (!await _allows(storeId, (row) => row.notifyBusyDays)) return;
+
+      final at = now ?? clock.now();
+      final calendar = await CalendarRepository(_db).calendar(storeId);
+      final period = activeBusyWarning(at, calendar);
+      if (period == null) return;
+
+      final items = await ItemRepository(_db).items(storeId);
+      final short = items.where(isBelowBusyMinimum).length;
+      if (short == 0) return;
+
+      final since = reminderStartOf(period, calendar);
+      await AccountRepository(_db).emit(
+        storeId: storeId,
+        kind: NotificationKind.busyDays,
+        title: 'Jours chargés ${_whenLabel(at, period.start)}',
+        body:
+            '${_periodLabel(period)} : $short '
+            '${short == 1 ? 'produit est' : 'produits sont'} sous le '
+            'minimum de forte affluence.',
+        createdAt: at,
+        window: at.difference(since),
+      );
+    });
+  }
+
+  /// "demain", "dans 3 jours", or "en cours" once the period has started.
+  static String _whenLabel(DateTime now, DateTime start) {
+    final days = daysBetween(now, start);
+    if (days <= 0) return 'en cours';
+    if (days == 1) return 'demain';
+    return 'dans $days jours';
+  }
+
+  /// "Du vendredi 2 octobre au dimanche 4 octobre", or one day on its own.
+  static String _periodLabel(BusyPeriod period) {
+    final start = Formatters.weekdayDayMonth(period.start);
+    if (period.start == period.end) {
+      return start[0].toUpperCase() + start.substring(1);
+    }
+    return 'Du $start au ${Formatters.weekdayDayMonth(period.end)}';
   }
 
   // ---------------------------------------------------------------------------

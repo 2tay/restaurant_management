@@ -454,6 +454,13 @@ const List<_Destination> _destinations = [
       ),
     ],
   ),
+  // Next to Achats: it is how an establishment decides when to buy ahead.
+  _Destination(
+    icon: LucideIcons.calendarDays,
+    label: _labelCalendar,
+    pathBuilder: Routes.toCalendar,
+    matchSegment: 'calendar',
+  ),
   _Destination(
     icon: LucideIcons.tags,
     label: _labelCatalog,
@@ -513,6 +520,7 @@ String _labelPurchases(AppLocalizations l) => l.navPurchases;
 String _labelReceptions(AppLocalizations l) => l.navReceptions;
 String _labelSuppliers(AppLocalizations l) => l.navSuppliers;
 String _labelCatalog(AppLocalizations l) => l.navCatalog;
+String _labelCalendar(AppLocalizations l) => l.navCalendar;
 String _labelAlerts(AppLocalizations l) => l.navAlerts;
 String _labelReports(AppLocalizations l) => l.navReports;
 String _labelEmployees(AppLocalizations l) => l.navEmployees;

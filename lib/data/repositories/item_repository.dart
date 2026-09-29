@@ -18,7 +18,12 @@ import 'order_repository.dart';
 /// `core/utils/item_search.dart` over the rows this returns, for the reasons
 /// written down there.
 class ItemFilter {
-  const ItemFilter({this.categoryId, this.supplierId, this.lowStockOnly = false});
+  const ItemFilter({
+    this.categoryId,
+    this.supplierId,
+    this.lowStockOnly = false,
+    this.belowBusyMinimumOnly = false,
+  });
 
   final String? categoryId;
 
@@ -33,6 +38,10 @@ class ItemFilter {
   /// Articles at or below their threshold.
   final bool lowStockOnly;
 
+  /// Articles under their busy-day minimum — the calendar's "jours chargés"
+  /// list. Strictly under, because holding exactly the minimum is enough.
+  final bool belowBusyMinimumOnly;
+
   static const ItemFilter none = ItemFilter();
 
   // Value equality because a filter is a provider family's key. Riverpod keys
@@ -45,10 +54,12 @@ class ItemFilter {
       other is ItemFilter &&
       other.categoryId == categoryId &&
       other.supplierId == supplierId &&
-      other.lowStockOnly == lowStockOnly;
+      other.lowStockOnly == lowStockOnly &&
+      other.belowBusyMinimumOnly == belowBusyMinimumOnly;
 
   @override
-  int get hashCode => Object.hash(categoryId, supplierId, lowStockOnly);
+  int get hashCode =>
+      Object.hash(categoryId, supplierId, lowStockOnly, belowBusyMinimumOnly);
 }
 
 /// What is standing between an article and deletion.
@@ -129,7 +140,13 @@ class ItemRepository {
   /// and for the same reason: `closedShort` lines owe nothing, and a line that
   /// over-delivered does not owe a negative amount. A test holds every spelling
   /// of that rule to the same answer.
-  Stream<List<LowStockAlertView>> watchLowStockAlerts(String storeId) {
+  ///
+  /// With [belowBusyMinimum] it is the calendar's list instead: the same rows,
+  /// measured against the busy-day minimum rather than the ordinary one.
+  Stream<List<LowStockAlertView>> watchLowStockAlerts(
+    String storeId, {
+    bool belowBusyMinimum = false,
+  }) {
     const onOrder = CustomExpression<double>(
       '(SELECT COALESCE(SUM('
       '  CASE WHEN l.closed_short THEN 0 '
@@ -145,7 +162,9 @@ class ItemRepository {
     final query =
         _attentionFirst(
           storeId,
-          const ItemFilter(lowStockOnly: true),
+          belowBusyMinimum
+              ? const ItemFilter(belowBusyMinimumOnly: true)
+              : const ItemFilter(lowStockOnly: true),
         ).join([
           leftOuterJoin(
             _db.categories,
@@ -583,6 +602,18 @@ class ItemRepository {
       // `needsAttention` is "at or below threshold", which also covers a
       // rupture: a quantity of zero or less is at or below any threshold.
       query.where((i) => i.quantity.isSmallerOrEqual(i.lowStockThreshold));
+    }
+    if (filter.belowBusyMinimumOnly) {
+      // `holidayMinimumOf`, in SQL: the explicit figure, or twice the ordinary
+      // minimum when nobody has set one.
+      query.where(
+        (i) => i.quantity.isSmallerThan(
+          coalesce([
+            i.holidayLowStockThreshold,
+            i.lowStockThreshold * const Constant(2.0),
+          ]),
+        ),
+      );
     }
   }
 

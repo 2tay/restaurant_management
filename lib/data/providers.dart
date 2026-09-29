@@ -1,6 +1,7 @@
 import 'package:clock/clock.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/utils/busy_calendar.dart';
 import '../models/models.dart';
 import 'database/app_database.dart';
 import 'employee_photo_store.dart';
@@ -51,6 +52,11 @@ final Provider<MovementRepository> movementRepositoryProvider =
 final Provider<OrderRepository> orderRepositoryProvider =
     Provider<OrderRepository>(
       (ref) => OrderRepository(ref.watch(databaseProvider)),
+    );
+
+final Provider<CalendarRepository> calendarRepositoryProvider =
+    Provider<CalendarRepository>(
+      (ref) => CalendarRepository(ref.watch(databaseProvider)),
     );
 
 final Provider<AccountRepository> accountRepositoryProvider =
@@ -235,6 +241,50 @@ final lowStockAlertsProvider =
     StreamProvider.family<List<LowStockAlertView>, String>(
       (ref, storeId) =>
           ref.watch(itemRepositoryProvider).watchLowStockAlerts(storeId),
+    );
+
+// -----------------------------------------------------------------------------
+// The busy-day calendar
+// -----------------------------------------------------------------------------
+
+/// Today, at midnight. A notifier rather than `clock.now()` read in place, so
+/// the screens that depend on the date redraw when it changes: the shell
+/// calls [TodayNotifier.refresh] on a timer, and nothing else needs to poll.
+class TodayNotifier extends Notifier<DateTime> {
+  @override
+  DateTime build() => dayOf(clock.now());
+
+  void refresh() {
+    final today = dayOf(clock.now());
+    if (today != state) state = today;
+  }
+}
+
+final todayProvider = NotifierProvider<TodayNotifier, DateTime>(
+  TodayNotifier.new,
+);
+
+final busyCalendarProvider = StreamProvider.family<BusyCalendar, String>(
+  (ref, storeId) => ref.watch(calendarRepositoryProvider).watch(storeId),
+);
+
+/// The busy period to warn about today, or null — see [activeBusyWarning].
+final busyWarningProvider = Provider.family<BusyPeriod?, String>((ref, storeId) {
+  final calendar = ref.watch(busyCalendarProvider(storeId)).value;
+  if (calendar == null) return null;
+  return activeBusyWarning(ref.watch(todayProvider), calendar);
+});
+
+/// The articles under their busy-day minimum, shaped like the alerts so the
+/// same rows and the same ordering shortcuts serve both lists.
+///
+/// Listed whether or not a warning is active: the calendar tab on the alerts
+/// screen is also where somebody checks ahead of time.
+final busyAlertsProvider =
+    StreamProvider.family<List<LowStockAlertView>, String>(
+      (ref, storeId) => ref
+          .watch(itemRepositoryProvider)
+          .watchLowStockAlerts(storeId, belowBusyMinimum: true),
     );
 
 /// The number on the sidebar's "Alertes" entry — how many articles need a

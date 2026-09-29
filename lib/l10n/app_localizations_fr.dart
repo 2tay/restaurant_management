@@ -3864,4 +3864,192 @@ class AppLocalizationsFr extends AppLocalizations {
   String identityPromptPayrollSubtitle(String name) {
     return 'Saisissez votre numéro PIN pour valider le paiement de $name';
   }
+
+  @override
+  String get navCalendar => 'Calendrier';
+
+  @override
+  String get calendarTitle => 'Calendrier';
+
+  @override
+  String get calendarSubtitle => 'Soyez prévenu avant les jours chargés.';
+
+  @override
+  String get calendarWeekdaysTitle => 'Chaque semaine';
+
+  @override
+  String get calendarDatesTitle => 'Jours spéciaux';
+
+  @override
+  String get calendarDatesBody => 'Touchez un jour pour l\'ajouter.';
+
+  @override
+  String get calendarLegendWeekly => 'Chaque semaine';
+
+  @override
+  String get calendarLegendSpecial => 'Spécial';
+
+  @override
+  String get calendarPreviousMonth => 'Mois précédent';
+
+  @override
+  String get calendarNextMonth => 'Mois suivant';
+
+  @override
+  String get calendarReminderTitle => 'Me prévenir avant';
+
+  @override
+  String calendarReminderDays(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count jours avant',
+      one: '1 jour avant',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String calendarPeriodRange(String start, String end) {
+    return 'du $start au $end';
+  }
+
+  @override
+  String get busyWhenOngoing => 'en cours';
+
+  @override
+  String get busyWhenTomorrow => 'demain';
+
+  @override
+  String busyWhenInDays(int days) {
+    return 'dans $days jours';
+  }
+
+  @override
+  String get alertsBusyTab => 'Jours chargés';
+
+  @override
+  String alertsBusyBannerTitle(String when) {
+    return 'Jours chargés $when';
+  }
+
+  @override
+  String alertsBusyBannerBody(int count, String period) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$period : $count produits sont sous le minimum de forte affluence.',
+      one: '$period : 1 produit est sous le minimum de forte affluence.',
+      zero: '$period : tout le stock est prêt.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get alertsBusyShow => 'Voir la liste';
+
+  @override
+  String get alertsBusyEmpty => 'Tout le stock est prêt pour les jours chargés';
+
+  @override
+  String get alertsBusyEmptyBody =>
+      'Chaque produit atteint son minimum de forte affluence.';
+
+  @override
+  String get notificationsKindBusyDays => 'Jours chargés';
+
+  @override
+  String get notificationPrefBusyDays => 'Jours chargés à venir';
+
+  @override
+  String get notificationPrefBusyDaysBody =>
+      'Soyez prévenu avant les jours de forte affluence du calendrier, avec les produits à commander.';
+
+  @override
+  String get calendarHeroNextLabel => 'Prochains jours chargés';
+
+  @override
+  String get calendarHeroOngoingLabel => 'Jours chargés en cours';
+
+  @override
+  String get calendarHeroNoneTitle => 'Aucun jour chargé';
+
+  @override
+  String get calendarHeroNoneBody => 'Choisissez des jours ci-dessous.';
+
+  @override
+  String get calendarHeroReminderActive => 'Rappel actif';
+
+  @override
+  String calendarHeroReminderOn(String date) {
+    return 'Rappel $date';
+  }
+
+  @override
+  String calendarHeroReminderSince(String date) {
+    return 'Rappel depuis $date';
+  }
+
+  @override
+  String calendarHeroShortCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count à commander',
+      zero: 'Stock prêt',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get calendarHeroShowProducts => 'Voir';
+
+  @override
+  String calendarCountdownUnit(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'jours',
+      one: 'jour',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get calendarCountdownNow => 'En cours';
+
+  @override
+  String get calendarToday => 'Aujourd\'hui';
+
+  @override
+  String get calendarLegendReminder => 'Rappel';
+
+  @override
+  String calendarReminderShort(int days) {
+    return '$days j';
+  }
+
+  @override
+  String get calendarUpcomingTitle => 'À venir';
+
+  @override
+  String get calendarUpcomingEmpty => 'Aucun jour spécial.';
+
+  @override
+  String calendarUpcomingMore(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '+ $count autres',
+      one: '+ 1 autre',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get calendarRemoveDate => 'Retirer ce jour';
+
+  @override
+  String get calendarRelativeToday => 'aujourd\'hui';
 }

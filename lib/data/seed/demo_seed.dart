@@ -218,6 +218,7 @@ Future<void> clearAllData(AppDatabase db) async {
   await db.batch((Batch batch) {
     batch.deleteAll(db.meta);
     batch.deleteAll(db.notifications);
+    batch.deleteAll(db.busyDates);
 
     // Gestion Employée, reverse foreign-key order: a pause before its
     // session, a session before its day, the attendance rows before the
