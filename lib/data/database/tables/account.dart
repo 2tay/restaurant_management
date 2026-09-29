@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 
 import '../../../models/notification_item.dart';
 import 'stores.dart';
+import 'sync_columns.dart';
 
 /// Something the app wants to tell the user about this establishment.
 @DataClassName('NotificationRow')
@@ -9,7 +10,7 @@ import 'stores.dart';
   name: 'notifications_store_time',
   columns: {#storeId, IndexedColumn(#createdAt, orderBy: OrderingMode.desc)},
 )
-class Notifications extends Table {
+class Notifications extends Table with Touched, Deletable {
   TextColumn get id => text().withLength(min: 1, max: 64)();
   TextColumn get storeId =>
       text().references(Stores, #id, onDelete: KeyAction.cascade)();

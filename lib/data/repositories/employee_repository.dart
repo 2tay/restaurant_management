@@ -44,12 +44,14 @@ class EmployeeRepository {
           .then(_toEmployees);
 
   Stream<Employee?> watchEmployee(String id) =>
-      (_db.select(_db.employees)..where((e) => e.id.equals(id)))
+      (_db.select(_db.employees)
+            ..where((e) => e.id.equals(id) & e.deletedAt.isNull()))
           .watchSingleOrNull()
           .map(_toEmployeeOrNull);
 
   Future<Employee?> employee(String id) =>
-      (_db.select(_db.employees)..where((e) => e.id.equals(id)))
+      (_db.select(_db.employees)
+            ..where((e) => e.id.equals(id) & e.deletedAt.isNull()))
           .getSingleOrNull()
           .then(_toEmployeeOrNull);
 
@@ -265,11 +267,13 @@ class EmployeeRepository {
   static String _normalise(String value) => value.trim().toLowerCase();
 
   Future<List<Employee>> _all() =>
-      _db.select(_db.employees).get().then(_toEmployees);
+      (_db.select(_db.employees)..where((e) => e.deletedAt.isNull()))
+          .get()
+          .then(_toEmployees);
 
   SimpleSelectStatement<$EmployeesTable, EmployeeRow> _byName(String storeId) =>
       _db.select(_db.employees)
-        ..where((e) => e.storeId.equals(storeId))
+        ..where((e) => e.storeId.equals(storeId) & e.deletedAt.isNull())
         ..orderBy([
           (e) => OrderingTerm(expression: e.firstName),
           (e) => OrderingTerm(expression: e.lastName),

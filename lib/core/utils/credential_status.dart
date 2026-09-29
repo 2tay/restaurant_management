@@ -1,6 +1,7 @@
 import 'package:clock/clock.dart';
 
 import '../../models/models.dart';
+import 'password_hash.dart';
 
 /// The login rules, and the derivations over [EmployeeCredential].
 ///
@@ -19,15 +20,16 @@ abstract final class AuthRules {
   static const Duration lockoutDuration = Duration(minutes: 5);
 }
 
-/// **Not a real hash.** Phase 6 stays offline and fake
-/// (`.claude/phase_gestion_employee.md` decision 3) — this exists only so the
-/// password is never stored or compared in the clear, matching the shape a real
-/// backend would keep.
-String fakePasswordHash(String password) => 'password:${password.trim()}';
+/// What gets stored for [password]: a salted PBKDF2 hash (see [PasswordHash]).
+///
+/// It replaced a fake `password:1234` marker in schema version 15, before
+/// credentials start leaving the device with sync. The upgrade converts the
+/// old values, so nobody has to choose a new password.
+String passwordHashOf(String password) => PasswordHash.hash(password.trim());
 
 /// Whether [password] is the one behind this credential.
 bool passwordMatches(EmployeeCredential credential, String password) =>
-    credential.passwordHash == fakePasswordHash(password);
+    PasswordHash.verify(password.trim(), credential.passwordHash);
 
 /// Whether [password] is a syntactically valid password — [AuthRules.passwordLength] digits.
 bool isValidPassword(String password) {

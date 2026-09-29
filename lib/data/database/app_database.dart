@@ -6,6 +6,7 @@ import 'package:drift_flutter/drift_flutter.dart';
 // them is in the generated part below, which shares this file's imports — drop
 // one and `app_database.g.dart` stops compiling, while `flutter analyze` stays
 // clean, because generated files are excluded from it.
+import '../../core/utils/credential_status.dart';
 import '../../models/attendance.dart';
 import '../../models/employee.dart';
 import '../../models/notification_item.dart';
@@ -23,6 +24,7 @@ import 'tables/orders.dart';
 import 'tables/payroll.dart';
 import 'tables/receipts.dart';
 import 'tables/stores.dart';
+import 'tables/sync_columns.dart';
 import 'tables/suppliers.dart';
 
 part 'app_database.g.dart';
@@ -66,6 +68,7 @@ part 'app_database.g.dart';
     AttendancePauses,
     BusyDates,
   ],
+  include: {'sync_triggers.drift'},
 )
 class AppDatabase extends _$AppDatabase {
   /// The real one: a file, where the platform says application data belongs.
@@ -87,7 +90,7 @@ class AppDatabase extends _$AppDatabase {
   static const String databaseName = 'stock_inventory';
 
   @override
-  int get schemaVersion => 14;
+  int get schemaVersion => 15;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -246,10 +249,15 @@ class AppDatabase extends _$AppDatabase {
         await m.create(attendanceSessionsAttendance);
 
         // Every existing day becomes its first (and so far only) session.
+        // `store_id` and `updated_at` are version 15 columns. They are filled
+        // here because `createTable` above builds the *current* shape, where
+        // both are NOT NULL.
         await customStatement('''
           INSERT INTO attendance_sessions
-            (id, attendance_id, position, clock_in_at, clock_out_at)
-          SELECT id || '-session-0', id, 0, clock_in_at, clock_out_at
+            (id, store_id, attendance_id, position, clock_in_at, clock_out_at,
+             updated_at)
+          SELECT id || '-session-0', store_id, id, 0, clock_in_at, clock_out_at,
+                 coalesce(clock_out_at, clock_in_at)
           FROM attendances WHERE clock_in_at IS NOT NULL
         ''');
 
@@ -266,9 +274,12 @@ class AppDatabase extends _$AppDatabase {
         await m.createTable(attendancePauses);
         await m.create(attendancePausesSession);
         await customStatement('''
-          INSERT INTO attendance_pauses (id, session_id, position, start_at, end_at)
-          SELECT id, attendance_id || '-session-0', position, start_at, end_at
-          FROM attendance_pauses_old
+          INSERT INTO attendance_pauses
+            (id, store_id, session_id, position, start_at, end_at, updated_at)
+          SELECT p.id, a.store_id, p.attendance_id || '-session-0', p.position,
+                 p.start_at, p.end_at, coalesce(p.end_at, p.start_at)
+          FROM attendance_pauses_old p
+          JOIN attendances a ON a.id = p.attendance_id
         ''');
         await customStatement('DROP TABLE attendance_pauses_old');
 
@@ -298,7 +309,7 @@ class AppDatabase extends _$AppDatabase {
       // typed to confirm identity at the kiosk) is now the PIN, and what was
       // the PIN (the 4-digit login secret) is now the password. Renamed in
       // place so every value survives, and the fake hash's `pin:` prefix
-      // follows the rename (see `fakePasswordHash`) so an existing password
+      // follows the rename (the fake hash of the time) so an existing password
       // still matches. Guarded `from >= 2` for the usual reason.
       if (from >= 2 && from < 13) {
         await customStatement('DROP INDEX employees_cin');
@@ -327,6 +338,12 @@ class AppDatabase extends _$AppDatabase {
         await m.addColumn(stores, stores.busyReminderDays);
         await m.createTable(busyDates);
       }
+
+      // v14 -> v15: ready for sync (SYNC_PLAN.md, Phase 1). See
+      // [_migrateToVersion15].
+      if (from < 15) {
+        await _migrateToVersion15(m);
+      }
     },
 
     beforeOpen: (OpeningDetails details) async {
@@ -338,4 +355,221 @@ class AppDatabase extends _$AppDatabase {
       await customStatement('PRAGMA foreign_keys = ON');
     },
   );
+
+  /// Every synced table gains `updated_at` and `deleted_at`, the child tables
+  /// gain `store_id`, and articles gain their stock baseline.
+  ///
+  /// Each table is rebuilt with `alterTable` rather than altered column by
+  /// column: SQLite cannot `ADD COLUMN` a NOT NULL column without a constant
+  /// default, and `updated_at` and `store_id` have none. drift switches foreign
+  /// keys off around the rebuild, so dropping `stores` does not cascade.
+  ///
+  /// `updated_at` starts as the newest date the row already carries, or the
+  /// upgrade time for a table with no date of its own. `store_id` is copied
+  /// from the parent row. The stock baseline is the article's stock right now,
+  /// and every movement already filed is marked as part of it: the history an
+  /// install holds before this version is not guaranteed to add up to its
+  /// stock, so a rebuild must start from what the article holds today.
+  Future<void> _migrateToVersion15(Migrator m) async {
+    // `updated_at` is always UTC (see `tables/sync_columns.dart`), so the
+    // dates it starts from are converted: `strftime` reads drift's local
+    // format, offset included, and writes the UTC one.
+    final now = Variable<DateTime>(syncStampNow());
+
+    Expression<DateTime> newest(List<Expression<DateTime>> dates) =>
+        FunctionCallExpression<DateTime>('strftime', [
+          const Constant('%Y-%m-%dT%H:%M:%fZ'),
+          coalesce([...dates, now]),
+        ]);
+    Expression<T> sql<T extends Object>(String expression) =>
+        CustomExpression<T>(expression);
+
+    Future<void> rebuild(
+      TableInfo<Table, dynamic> table,
+      Map<GeneratedColumn<Object>, Expression<Object>> transform, {
+      List<GeneratedColumn<Object>> extraColumns = const [],
+    }) async {
+      final added = [
+        for (final column in table.$columns)
+          if (column.name == 'updated_at' && transform.containsKey(column))
+            column
+          else if (column.name == 'deleted_at')
+            column,
+        ...extraColumns,
+      ];
+      await m.alterTable(
+        // `TableMigration` is marked experimental, but it is drift's documented
+        // way to rebuild a table, and the migration test checks the result.
+        // ignore: experimental_member_use
+        TableMigration(table, newColumns: added, columnTransformer: transform),
+      );
+    }
+
+    await rebuild(stores, {
+      stores.updatedAt: newest([stores.createdAt]),
+    });
+    await rebuild(categories, {categories.updatedAt: now});
+    await rebuild(units, {units.updatedAt: now});
+    await rebuild(
+      items,
+      {
+        items.baselineQuantity: items.quantity,
+        items.baselineAverageCost: items.averageCost,
+      },
+      extraColumns: [items.baselineQuantity, items.baselineAverageCost],
+    );
+    await rebuild(suppliers, {suppliers.updatedAt: now});
+    await rebuild(
+      supplierPrices,
+      {
+        supplierPrices.updatedAt: newest([supplierPrices.effectiveDate]),
+        supplierPrices.storeId: sql<String>(
+          '(SELECT i.store_id FROM items i '
+          'WHERE i.id = supplier_prices.item_id)',
+        ),
+      },
+      extraColumns: [supplierPrices.storeId],
+    );
+    await rebuild(
+      priceHistory,
+      {
+        priceHistory.updatedAt: newest([priceHistory.changedAt]),
+        priceHistory.storeId: sql<String>(
+          '(SELECT i.store_id FROM items i '
+          'WHERE i.id = price_history.item_id)',
+        ),
+      },
+      extraColumns: [priceHistory.storeId],
+    );
+    await rebuild(
+      stockMovements,
+      {
+        stockMovements.updatedAt: newest([stockMovements.occurredAt]),
+        stockMovements.inBaseline: const Constant(true),
+      },
+      extraColumns: [stockMovements.inBaseline],
+    );
+    await rebuild(purchaseOrders, {
+      purchaseOrders.updatedAt: newest([
+        purchaseOrders.closedAt,
+        purchaseOrders.sentAt,
+        purchaseOrders.createdAt,
+      ]),
+    });
+    await rebuild(
+      purchaseOrderLines,
+      {
+        purchaseOrderLines.updatedAt: newest([
+          sql<DateTime>(
+            '(SELECT coalesce(o.closed_at, o.sent_at, o.created_at) '
+            'FROM purchase_orders o '
+            'WHERE o.id = purchase_order_lines.order_id)',
+          ),
+        ]),
+        purchaseOrderLines.storeId: sql<String>(
+          '(SELECT o.store_id FROM purchase_orders o '
+          'WHERE o.id = purchase_order_lines.order_id)',
+        ),
+      },
+      extraColumns: [purchaseOrderLines.storeId],
+    );
+    await rebuild(goodsReceipts, {
+      goodsReceipts.updatedAt: newest([goodsReceipts.receivedAt]),
+    });
+    await rebuild(
+      goodsReceiptLines,
+      {
+        goodsReceiptLines.updatedAt: newest([
+          sql<DateTime>(
+            '(SELECT r.received_at FROM goods_receipts r '
+            'WHERE r.id = goods_receipt_lines.receipt_id)',
+          ),
+        ]),
+        goodsReceiptLines.storeId: sql<String>(
+          '(SELECT r.store_id FROM goods_receipts r '
+          'WHERE r.id = goods_receipt_lines.receipt_id)',
+        ),
+      },
+      extraColumns: [goodsReceiptLines.storeId],
+    );
+    await rebuild(notifications, {
+      notifications.updatedAt: newest([notifications.createdAt]),
+    });
+    await rebuild(employees, {
+      employees.updatedAt: newest([employees.archivedAt, employees.createdAt]),
+    });
+    await rebuild(
+      employeeCredentials,
+      {
+        employeeCredentials.updatedAt: now,
+        employeeCredentials.storeId: sql<String>(
+          '(SELECT e.store_id FROM employees e '
+          'WHERE e.id = employee_credentials.employee_id)',
+        ),
+      },
+      extraColumns: [employeeCredentials.storeId],
+    );
+    await rebuild(payrollPeriods, {
+      payrollPeriods.updatedAt: newest([
+        payrollPeriods.paidAt,
+        payrollPeriods.createdAt,
+      ]),
+    });
+    await rebuild(attendances, {
+      attendances.updatedAt: newest([attendances.date]),
+    });
+    await rebuild(
+      attendanceSessions,
+      {
+        attendanceSessions.updatedAt: newest([
+          attendanceSessions.clockOutAt,
+          attendanceSessions.clockInAt,
+        ]),
+        attendanceSessions.storeId: sql<String>(
+          '(SELECT a.store_id FROM attendances a '
+          'WHERE a.id = attendance_sessions.attendance_id)',
+        ),
+      },
+      extraColumns: [attendanceSessions.storeId],
+    );
+    await rebuild(
+      attendancePauses,
+      {
+        attendancePauses.updatedAt: newest([
+          attendancePauses.endAt,
+          attendancePauses.startAt,
+        ]),
+        attendancePauses.storeId: sql<String>(
+          '(SELECT a.store_id FROM attendance_sessions s '
+          'JOIN attendances a ON a.id = s.attendance_id '
+          'WHERE s.id = attendance_pauses.session_id)',
+        ),
+      },
+      extraColumns: [attendancePauses.storeId],
+    );
+    await rebuild(busyDates, {busyDates.updatedAt: now});
+
+    // Until now a password was stored as `password:1234`, a marker rather than
+    // a hash. Credentials are about to be synced, so each is rehashed for real
+    // here, from the value it already holds: nobody has to pick a new one.
+    final legacy = await customSelect(
+      'SELECT id, password_hash FROM employee_credentials '
+      "WHERE password_hash LIKE 'password:%'",
+    ).get();
+    for (final row in legacy) {
+      final password = row.read<String>('password_hash').substring(9);
+      await customStatement(
+        'UPDATE employee_credentials SET password_hash = ? WHERE id = ?',
+        [passwordHashOf(password), row.read<String>('id')],
+      );
+    }
+
+    // The clock view and the `*_touch` triggers from `sync_triggers.drift`.
+    // Created last: `alterTable` recreates the triggers already attached to a
+    // table, and these would otherwise fire during the copies above.
+    await m.create(syncClock);
+    for (final trigger in allSchemaEntities.whereType<Trigger>()) {
+      await m.create(trigger);
+    }
+  }
 }

@@ -14,6 +14,7 @@ import '../view_models/supplier_views.dart';
 import 'account_repository.dart';
 import 'new_id.dart';
 import 'order_repository.dart';
+import 'soft_delete.dart';
 
 /// What is standing between a supplier and deletion.
 enum SupplierDeleteBlock {
@@ -45,12 +46,14 @@ class SupplierRepository {
       _suppliersQuery(storeId).get().then(_toSuppliers);
 
   Stream<Supplier?> watchSupplier(String id) =>
-      (_db.select(_db.suppliers)..where((s) => s.id.equals(id)))
+      (_db.select(_db.suppliers)
+            ..where((s) => s.id.equals(id) & s.deletedAt.isNull()))
           .watchSingleOrNull()
           .map((row) => row == null ? null : supplierFromRow(row));
 
   Future<Supplier?> supplier(String id) =>
-      (_db.select(_db.suppliers)..where((s) => s.id.equals(id)))
+      (_db.select(_db.suppliers)
+            ..where((s) => s.id.equals(id) & s.deletedAt.isNull()))
           .getSingleOrNull()
           .then((row) => row == null ? null : supplierFromRow(row));
 
@@ -68,11 +71,15 @@ class SupplierRepository {
     final query = _db.select(_db.suppliers).join([
       leftOuterJoin(
         _db.supplierPrices,
-        _db.supplierPrices.supplierId.equalsExp(_db.suppliers.id),
+        _db.supplierPrices.supplierId.equalsExp(_db.suppliers.id) &
+            _db.supplierPrices.deletedAt.isNull(),
       ),
     ]);
     query
-      ..where(_db.suppliers.storeId.equals(storeId))
+      ..where(
+        _db.suppliers.storeId.equals(storeId) &
+            _db.suppliers.deletedAt.isNull(),
+      )
       ..addColumns([count])
       ..groupBy([_db.suppliers.id])
       ..orderBy([OrderingTerm(expression: _db.suppliers.name)]);
@@ -100,7 +107,8 @@ class SupplierRepository {
       _db.selectOnly(_db.supplierPrices, distinct: true)
         ..addColumns([_db.supplierPrices.pricePerUnit.min()])
         ..where(
-          _db.supplierPrices.itemId.equalsExp(_db.items.id),
+          _db.supplierPrices.itemId.equalsExp(_db.items.id) &
+              _db.supplierPrices.deletedAt.isNull(),
         ),
     );
 
@@ -108,15 +116,24 @@ class SupplierRepository {
         _db.select(_db.supplierPrices).join([
             leftOuterJoin(
               _db.items,
-              _db.items.id.equalsExp(_db.supplierPrices.itemId),
+              _db.items.id.equalsExp(_db.supplierPrices.itemId) &
+                  _db.items.deletedAt.isNull(),
             ),
-            leftOuterJoin(_db.units, _db.units.id.equalsExp(_db.items.unitId)),
+            leftOuterJoin(
+              _db.units,
+              _db.units.id.equalsExp(_db.items.unitId) &
+                  _db.units.deletedAt.isNull(),
+            ),
             leftOuterJoin(
               _db.categories,
-              _db.categories.id.equalsExp(_db.items.categoryId),
+              _db.categories.id.equalsExp(_db.items.categoryId) &
+                  _db.categories.deletedAt.isNull(),
             ),
           ])
-          ..where(_db.supplierPrices.supplierId.equals(supplierId))
+          ..where(
+            _db.supplierPrices.supplierId.equals(supplierId) &
+                _db.supplierPrices.deletedAt.isNull(),
+          )
           ..addColumns([cheapest])
           // By article name: this is a catalogue, and somebody scanning it is
           // looking for a product rather than for a price.
@@ -157,7 +174,9 @@ class SupplierRepository {
   /// Every article this supplier provides.
   Future<List<SupplierPrice>> pricesForSupplier(String supplierId) =>
       (_db.select(_db.supplierPrices)
-            ..where((p) => p.supplierId.equals(supplierId))
+            ..where(
+              (p) => p.supplierId.equals(supplierId) & p.deletedAt.isNull(),
+            )
             ..orderBy([(p) => OrderingTerm(expression: p.id)]))
           .get()
           .then(_toPrices);
@@ -168,13 +187,21 @@ class SupplierRepository {
     final count = _db.supplierPrices.id.count();
     final query = _db.selectOnly(_db.supplierPrices)
       ..addColumns([count])
-      ..where(_db.supplierPrices.supplierId.equals(supplierId));
+      ..where(
+        _db.supplierPrices.supplierId.equals(supplierId) &
+            _db.supplierPrices.deletedAt.isNull(),
+      );
     return (await query.getSingle()).read(count) ?? 0;
   }
 
   Future<SupplierPrice?> defaultPriceForItem(String itemId) =>
       (_db.select(_db.supplierPrices)
-            ..where((p) => p.itemId.equals(itemId) & p.isDefault.equals(true)))
+            ..where(
+              (p) =>
+                  p.itemId.equals(itemId) &
+                  p.isDefault.equals(true) &
+                  p.deletedAt.isNull(),
+            ))
           .getSingleOrNull()
           .then(_toPriceOrNull);
 
@@ -183,7 +210,10 @@ class SupplierRepository {
 
   Future<SupplierPrice?> priceFor(String itemId, String supplierId) =>
       (_db.select(_db.supplierPrices)..where(
-            (p) => p.itemId.equals(itemId) & p.supplierId.equals(supplierId),
+            (p) =>
+                p.itemId.equals(itemId) &
+                p.supplierId.equals(supplierId) &
+                p.deletedAt.isNull(),
           ))
           .getSingleOrNull()
           .then(_toPriceOrNull);
@@ -200,10 +230,11 @@ class SupplierRepository {
         .customSelect(
           'SELECT d.price_per_unit - ('
           '  SELECT MIN(p.price_per_unit) FROM supplier_prices p '
-          '  WHERE p.item_id = d.item_id'
+          '  WHERE p.item_id = d.item_id AND p.deleted_at IS NULL'
           ') AS gap '
           'FROM supplier_prices d '
-          'WHERE d.item_id = ? AND d.is_default = 1',
+          'WHERE d.item_id = ? AND d.is_default = 1 '
+          'AND d.deleted_at IS NULL',
           variables: [Variable<String>(itemId)],
           readsFrom: {_db.supplierPrices},
         )
@@ -226,7 +257,8 @@ class SupplierRepository {
     final query = _pricesForItem(itemId).join([
       leftOuterJoin(
         _db.suppliers,
-        _db.suppliers.id.equalsExp(_db.supplierPrices.supplierId),
+        _db.suppliers.id.equalsExp(_db.supplierPrices.supplierId) &
+            _db.suppliers.deletedAt.isNull(),
       ),
     ]);
 
@@ -377,13 +409,12 @@ class SupplierRepository {
           .map((price) => price.itemId)
           .toList();
 
-      final removed = await (_db.delete(
-        _db.suppliers,
-      )..where((s) => s.id.equals(id))).go();
+      final removed = await SoftDelete(_db).supplier(id);
       if (removed == 0) return false;
 
-      // The prices and their history went with the supplier through the
-      // schema's cascade; the promotions are what the cascade cannot know to do.
+      // The prices and their history went with the supplier (see
+      // [SoftDelete.supplier]); the promotions are what a cascade cannot know
+      // to do.
       for (final itemId in orphaned) {
         await _promoteCheapestToDefault(itemId);
       }
@@ -420,16 +451,40 @@ class SupplierRepository {
 
       if (shouldDefault) await _clearDefaultFor(itemId);
 
+      final itemRow = await (_db.select(
+        _db.items,
+      )..where((i) => i.id.equals(itemId))).getSingleOrNull();
+      if (itemRow == null) return null;
+
+      // A link removed earlier is still in the table, marked deleted (see
+      // [SoftDelete]). The item–supplier pair is unique, so linking the same
+      // supplier again brings that row back instead of adding a second one.
+      final removedLink = await (_db.select(_db.supplierPrices)
+            ..where(
+              (p) =>
+                  p.itemId.equals(itemId) &
+                  p.supplierId.equals(supplierId) &
+                  p.deletedAt.isNotNull(),
+            ))
+          .getSingleOrNull();
+
       final price = SupplierPrice(
-        id: newId(),
+        id: removedLink?.id ?? newId(),
         itemId: itemId,
         supplierId: supplierId,
         pricePerUnit: pricePerUnit,
         effectiveDate: effectiveDate ?? clock.now(),
         isDefault: shouldDefault,
       );
+      final row = supplierPriceToRow(price, storeId: itemRow.storeId);
 
-      await _db.into(_db.supplierPrices).insert(supplierPriceToRow(price));
+      if (removedLink == null) {
+        await _db.into(_db.supplierPrices).insert(row);
+      } else {
+        await (_db.update(_db.supplierPrices)
+              ..where((p) => p.id.equals(removedLink.id)))
+            .write(row.copyWith(deletedAt: const Value(null)));
+      }
       return price;
     });
   }
@@ -455,9 +510,9 @@ class SupplierRepository {
     final author = changedByName ?? await AccountRepository(_db).currentUserName();
 
     return _db.transaction(() async {
-      final row = await (_db.select(
-        _db.supplierPrices,
-      )..where((p) => p.id.equals(priceId))).getSingleOrNull();
+      final row = await (_db.select(_db.supplierPrices)
+            ..where((p) => p.id.equals(priceId) & p.deletedAt.isNull()))
+          .getSingleOrNull();
       if (row == null) return null;
 
       final existing = supplierPriceFromRow(row);
@@ -478,6 +533,7 @@ class SupplierRepository {
             changedAt: at,
             changedByName: author,
           ),
+          storeId: row.storeId,
         ),
       );
 
@@ -532,13 +588,13 @@ class SupplierRepository {
   _namesForPriceChange(String itemId, String supplierId) async {
     final query = _db.select(_db.items).join([
       innerJoin(_db.units, _db.units.id.equalsExp(_db.items.unitId)),
-    ])..where(_db.items.id.equals(itemId));
+    ])..where(_db.items.id.equals(itemId) & _db.items.deletedAt.isNull());
     final row = await query.getSingleOrNull();
     if (row == null) return null;
 
-    final supplier = await (_db.select(
-      _db.suppliers,
-    )..where((s) => s.id.equals(supplierId))).getSingleOrNull();
+    final supplier = await (_db.select(_db.suppliers)
+          ..where((s) => s.id.equals(supplierId) & s.deletedAt.isNull()))
+        .getSingleOrNull();
     if (supplier == null) return null;
 
     final item = row.readTable(_db.items);
@@ -557,9 +613,9 @@ class SupplierRepository {
   /// trigger would be a second place the rule lives.
   Future<bool> setDefault(String priceId) {
     return _db.transaction(() async {
-      final row = await (_db.select(
-        _db.supplierPrices,
-      )..where((p) => p.id.equals(priceId))).getSingleOrNull();
+      final row = await (_db.select(_db.supplierPrices)
+            ..where((p) => p.id.equals(priceId) & p.deletedAt.isNull()))
+          .getSingleOrNull();
       if (row == null) return false;
 
       await _clearDefaultFor(row.itemId);
@@ -582,14 +638,12 @@ class SupplierRepository {
   /// charged while the link existed, which stays true afterwards.
   Future<bool> unlinkItem(String priceId) {
     return _db.transaction(() async {
-      final row = await (_db.select(
-        _db.supplierPrices,
-      )..where((p) => p.id.equals(priceId))).getSingleOrNull();
+      final row = await (_db.select(_db.supplierPrices)
+            ..where((p) => p.id.equals(priceId) & p.deletedAt.isNull()))
+          .getSingleOrNull();
       if (row == null) return false;
 
-      await (_db.delete(
-        _db.supplierPrices,
-      )..where((p) => p.id.equals(priceId))).go();
+      await SoftDelete(_db).supplierPrice(priceId);
 
       if (row.isDefault) await _promoteCheapestToDefault(row.itemId);
       return true;
@@ -602,7 +656,12 @@ class SupplierRepository {
 
   Future<void> _clearDefaultFor(String itemId) async {
     await (_db.update(_db.supplierPrices)
-          ..where((p) => p.itemId.equals(itemId) & p.isDefault.equals(true)))
+          ..where(
+            (p) =>
+                p.itemId.equals(itemId) &
+                p.isDefault.equals(true) &
+                p.deletedAt.isNull(),
+          ))
         .write(const SupplierPricesCompanion(isDefault: Value(false)));
   }
 
@@ -627,14 +686,14 @@ class SupplierRepository {
     String storeId,
   ) =>
       _db.select(_db.suppliers)
-        ..where((s) => s.storeId.equals(storeId))
+        ..where((s) => s.storeId.equals(storeId) & s.deletedAt.isNull())
         ..orderBy([(s) => OrderingTerm(expression: s.name)]);
 
   SimpleSelectStatement<$SupplierPricesTable, SupplierPriceRow> _pricesForItem(
     String itemId,
   ) =>
       _db.select(_db.supplierPrices)
-        ..where((p) => p.itemId.equals(itemId))
+        ..where((p) => p.itemId.equals(itemId) & p.deletedAt.isNull())
         ..orderBy([
           (p) => OrderingTerm(expression: p.pricePerUnit),
           (p) => OrderingTerm(expression: p.id),
@@ -645,7 +704,12 @@ class SupplierRepository {
     String supplierId,
   ) =>
       _db.select(_db.priceHistory)
-        ..where((h) => h.itemId.equals(itemId) & h.supplierId.equals(supplierId))
+        ..where(
+          (h) =>
+              h.itemId.equals(itemId) &
+              h.supplierId.equals(supplierId) &
+              h.deletedAt.isNull(),
+        )
         ..orderBy([
           (h) => OrderingTerm(expression: h.changedAt, mode: OrderingMode.desc),
           (h) => OrderingTerm(expression: h.id, mode: OrderingMode.desc),

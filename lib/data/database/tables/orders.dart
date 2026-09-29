@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 
 import '../../../models/purchase_order.dart';
 import 'stores.dart';
+import 'sync_columns.dart';
 
 /// A commande to a supplier.
 ///
@@ -13,7 +14,7 @@ import 'stores.dart';
 @DataClassName('PurchaseOrderRow')
 @TableIndex(name: 'purchase_orders_store_status', columns: {#storeId, #status})
 @TableIndex(name: 'purchase_orders_supplier', columns: {#supplierId})
-class PurchaseOrders extends Table {
+class PurchaseOrders extends Table with Touched, Deletable {
   TextColumn get id => text().withLength(min: 1, max: 64)();
   TextColumn get storeId =>
       text().references(Stores, #id, onDelete: KeyAction.cascade)();
@@ -46,8 +47,13 @@ class PurchaseOrders extends Table {
 @DataClassName('PurchaseOrderLineRow')
 @TableIndex(name: 'purchase_order_lines_order', columns: {#orderId})
 @TableIndex(name: 'purchase_order_lines_item', columns: {#itemId})
-class PurchaseOrderLines extends Table {
+class PurchaseOrderLines extends Table with Touched, Deletable {
   TextColumn get id => text().withLength(min: 1, max: 64)();
+
+  /// The establishment, copied from the parent row. Redundant locally, but it
+  /// lets the server check who may see this row without a join to its parent.
+  TextColumn get storeId =>
+      text().references(Stores, #id, onDelete: KeyAction.cascade)();
   TextColumn get orderId =>
       text().references(PurchaseOrders, #id, onDelete: KeyAction.cascade)();
 

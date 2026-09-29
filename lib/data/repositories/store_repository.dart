@@ -31,12 +31,14 @@ class StoreRepository {
   Future<List<Store>> stores() => _query().get().then(_toStores);
 
   Stream<Store?> watchStore(String id) =>
-      (_db.select(_db.stores)..where((s) => s.id.equals(id)))
+      (_db.select(_db.stores)
+            ..where((s) => s.id.equals(id) & s.deletedAt.isNull()))
           .watchSingleOrNull()
           .map((row) => row == null ? null : storeFromRow(row));
 
   Future<Store?> store(String id) =>
-      (_db.select(_db.stores)..where((s) => s.id.equals(id)))
+      (_db.select(_db.stores)
+            ..where((s) => s.id.equals(id) & s.deletedAt.isNull()))
           .getSingleOrNull()
           .then((row) => row == null ? null : storeFromRow(row));
 
@@ -78,9 +80,14 @@ class StoreRepository {
     final lowStockCount = _db.items.id.count(filter: lowStock);
 
     final query = _db.select(_db.stores).join([
-      leftOuterJoin(_db.items, _db.items.storeId.equalsExp(_db.stores.id)),
+      leftOuterJoin(
+        _db.items,
+        _db.items.storeId.equalsExp(_db.stores.id) &
+            _db.items.deletedAt.isNull(),
+      ),
     ]);
     query
+      ..where(_db.stores.deletedAt.isNull())
       ..addColumns([itemCount, lowStockCount])
       ..groupBy([_db.stores.id])
       ..orderBy([
@@ -109,7 +116,7 @@ class StoreRepository {
   Future<int> stalePartialOrderDays(String storeId) async {
     final row = await (_db.select(
       _db.stores,
-    )..where((s) => s.id.equals(storeId))).getSingleOrNull();
+    )..where((s) => s.id.equals(storeId) & s.deletedAt.isNull())).getSingleOrNull();
     return row?.stalePartialOrderDays ?? 7;
   }
 
@@ -122,14 +129,15 @@ class StoreRepository {
   /// without one, but a missing row is cheaper to treat as "defaults" than to
   /// assert against, exactly as the mock did.
   Stream<StoreSettings> watchSettings(String storeId) =>
-      (_db.select(_db.stores)..where((s) => s.id.equals(storeId)))
+      (_db.select(_db.stores)
+            ..where((s) => s.id.equals(storeId) & s.deletedAt.isNull()))
           .watchSingleOrNull()
           .map((row) => _settingsOf(storeId, row));
 
   Future<StoreSettings> settings(String storeId) async {
     final row = await (_db.select(
       _db.stores,
-    )..where((s) => s.id.equals(storeId))).getSingleOrNull();
+    )..where((s) => s.id.equals(storeId) & s.deletedAt.isNull())).getSingleOrNull();
     return _settingsOf(storeId, row);
   }
 
@@ -314,7 +322,9 @@ class StoreRepository {
   }
 
   SimpleSelectStatement<$StoresTable, StoreRow> _query() =>
-      _db.select(_db.stores)..orderBy([
+      _db.select(_db.stores)
+        ..where((s) => s.deletedAt.isNull())
+        ..orderBy([
         (s) => OrderingTerm(expression: s.createdAt),
         (s) => OrderingTerm(expression: s.id),
       ]);

@@ -16,6 +16,7 @@ import '../view_models/receipt_document_sources.dart';
 import 'account_repository.dart';
 import 'movement_repository.dart';
 import 'new_id.dart';
+import 'soft_delete.dart';
 import 'store_repository.dart';
 import 'supplier_repository.dart';
 
@@ -220,7 +221,7 @@ class OrderRepository {
     if (ids.isEmpty) return const {};
     final rows = await (_db.select(
       _db.suppliers,
-    )..where((s) => s.id.isIn(ids))).get();
+    )..where((s) => s.id.isIn(ids) & s.deletedAt.isNull())).get();
     return {for (final row in rows) row.id: row.name};
   }
 
@@ -280,9 +281,9 @@ class OrderRepository {
             final orderIds = {for (final r in receipts) r.orderId};
             final orderRows = orderIds.isEmpty
                 ? const <PurchaseOrderRow>[]
-                : await (_db.select(
-                    _db.purchaseOrders,
-                  )..where((o) => o.id.isIn(orderIds))).get();
+                : await (_db.select(_db.purchaseOrders)..where(
+                    (o) => o.id.isIn(orderIds) & o.deletedAt.isNull(),
+                  )).get();
             final ordersById = {for (final o in orderRows) o.id: o};
             final names = await _supplierNames({
               for (final o in orderRows) o.supplierId,
@@ -329,9 +330,9 @@ class OrderRepository {
   /// missing. That cannot happen through the app, but it keeps the document
   /// renderable rather than throwing at the moment somebody needs to send it.
   Future<String> receiptReferenceOf(GoodsReceipt receipt) async {
-    final row = await (_db.select(
-      _db.purchaseOrders,
-    )..where((o) => o.id.equals(receipt.orderId))).getSingleOrNull();
+    final row = await (_db.select(_db.purchaseOrders)..where(
+          (o) => o.id.equals(receipt.orderId) & o.deletedAt.isNull(),
+        )).getSingleOrNull();
     if (row == null) return 'BR-${receipt.id}';
 
     final siblings = await receiptsForOrder(receipt.orderId);
@@ -385,9 +386,17 @@ class OrderRepository {
   /// A name and a unit for a handful of article ids, in one joined query.
   Future<Map<String, ReceiptDocumentItem>> _itemNames(Set<String> ids) async {
     if (ids.isEmpty) return const {};
-    final rows = await (_db.select(_db.items)..where((i) => i.id.isIn(ids)))
-        .join([leftOuterJoin(_db.units, _db.units.id.equalsExp(_db.items.unitId))])
-        .get();
+    final rows =
+        await (_db.select(_db.items)
+              ..where((i) => i.id.isIn(ids) & i.deletedAt.isNull()))
+            .join([
+              leftOuterJoin(
+                _db.units,
+                _db.units.id.equalsExp(_db.items.unitId) &
+                    _db.units.deletedAt.isNull(),
+              ),
+            ])
+            .get();
     return {
       for (final row in rows)
         row.readTable(_db.items).id: (
@@ -495,9 +504,16 @@ class OrderRepository {
     if (ids.isEmpty) return const {};
 
     final rows =
-        await (_db.select(_db.items)..where((i) => i.id.isIn(ids))).join([
-          leftOuterJoin(_db.units, _db.units.id.equalsExp(_db.items.unitId)),
-        ]).get();
+        await (_db.select(_db.items)
+              ..where((i) => i.id.isIn(ids) & i.deletedAt.isNull()))
+            .join([
+              leftOuterJoin(
+                _db.units,
+                _db.units.id.equalsExp(_db.items.unitId) &
+                    _db.units.deletedAt.isNull(),
+              ),
+            ])
+            .get();
 
     return {
       for (final row in rows)
@@ -542,7 +558,7 @@ class OrderRepository {
       // The lines come back from the write because that is where their ids are
       // decided. Returning the ones handed in would hand the caller a commande
       // whose lines disagree with the table.
-      final written = await _writeLines(order.id, order.lines);
+      final written = await _writeLines(order.storeId, order.id, order.lines);
       return order.copyWith(lines: written);
     });
   }
@@ -576,10 +592,8 @@ class OrderRepository {
         // Replaced wholesale rather than diffed. A draft's lines are edited as
         // a set by a form that hands back the whole set, and matching them up
         // to decide which three changed would be work in service of nothing.
-        await (_db.delete(
-          _db.purchaseOrderLines,
-        )..where((l) => l.orderId.equals(orderId))).go();
-        await _writeLines(orderId, updated.lines);
+        await SoftDelete(_db).orderLines(orderId);
+        await _writeLines(updated.storeId, orderId, updated.lines);
       }
 
       return order(orderId);
@@ -620,11 +634,8 @@ class OrderRepository {
         return false;
       }
 
-      // The lines go with it through the schema's cascade.
-      final removed = await (_db.delete(
-        _db.purchaseOrders,
-      )..where((o) => o.id.equals(orderId))).go();
-      return removed > 0;
+      // The lines go with it (see [SoftDelete.order]).
+      return await SoftDelete(_db).order(orderId) > 0;
     });
   }
 
@@ -773,7 +784,14 @@ class OrderRepository {
       for (final (index, line) in receiptLines.indexed) {
         await _db
             .into(_db.goodsReceiptLines)
-            .insert(receiptLineToRow(line, receiptId: receiptId, position: index));
+            .insert(
+              receiptLineToRow(
+                line,
+                storeId: existing.storeId,
+                receiptId: receiptId,
+                position: index,
+              ),
+            );
       }
 
       for (final line in receiptLines) {
@@ -949,6 +967,7 @@ class OrderRepository {
   ///
   /// Returns the lines as written, so the caller's copy agrees with the table.
   Future<List<PurchaseOrderLine>> _writeLines(
+    String storeId,
     String orderId,
     List<PurchaseOrderLine> lines,
   ) async {
@@ -966,7 +985,14 @@ class OrderRepository {
 
       await _db
           .into(_db.purchaseOrderLines)
-          .insert(orderLineToRow(stored, orderId: orderId, position: index));
+          .insert(
+            orderLineToRow(
+              stored,
+              storeId: storeId,
+              orderId: orderId,
+              position: index,
+            ),
+          );
       written.add(stored);
     }
 
@@ -987,7 +1013,9 @@ class OrderRepository {
   /// trailing number", which `MAX(CAST(substr(...)))` only answers while every
   /// reference has the same number of digits.
   Future<String> _nextReference() async {
-    final rows = await _db.select(_db.purchaseOrders).get();
+    final rows = await (_db.select(
+      _db.purchaseOrders,
+    )..where((o) => o.deletedAt.isNull())).get();
 
     var highest = 0;
     for (final row in rows) {
@@ -1013,9 +1041,10 @@ class OrderRepository {
   ) => _db.select(_db.purchaseOrders).join([
     leftOuterJoin(
       _db.purchaseOrderLines,
-      _db.purchaseOrderLines.orderId.equalsExp(_db.purchaseOrders.id),
+      _db.purchaseOrderLines.orderId.equalsExp(_db.purchaseOrders.id) &
+          _db.purchaseOrderLines.deletedAt.isNull(),
     ),
-  ])..where(predicate)..orderBy([
+  ])..where(predicate & _db.purchaseOrders.deletedAt.isNull())..orderBy([
     OrderingTerm(
       expression: _db.purchaseOrders.createdAt,
       mode: OrderingMode.desc,
@@ -1029,9 +1058,10 @@ class OrderRepository {
   ) => _db.select(_db.goodsReceipts).join([
     leftOuterJoin(
       _db.goodsReceiptLines,
-      _db.goodsReceiptLines.receiptId.equalsExp(_db.goodsReceipts.id),
+      _db.goodsReceiptLines.receiptId.equalsExp(_db.goodsReceipts.id) &
+          _db.goodsReceiptLines.deletedAt.isNull(),
     ),
-  ])..where(predicate)..orderBy([
+  ])..where(predicate & _db.goodsReceipts.deletedAt.isNull())..orderBy([
     OrderingTerm(expression: _db.goodsReceipts.receivedAt),
     OrderingTerm(expression: _db.goodsReceipts.id),
     OrderingTerm(expression: _db.goodsReceiptLines.position),
@@ -1098,6 +1128,7 @@ class OrderRepository {
         'FROM purchase_order_lines l '
         'JOIN purchase_orders o ON o.id = l.order_id '
         'WHERE o.store_id = ? AND l.item_id = ? '
+        'AND l.deleted_at IS NULL AND o.deleted_at IS NULL '
         "AND o.status IN ('sent', 'partial')",
         variables: [Variable<String>(storeId), Variable<String>(itemId)],
         readsFrom: {_db.purchaseOrders, _db.purchaseOrderLines},

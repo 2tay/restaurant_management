@@ -1,4 +1,5 @@
 import 'package:clock/clock.dart';
+import 'package:drift/drift.dart';
 
 import '../../core/utils/busy_calendar.dart';
 import '../../core/utils/formatters.dart';
@@ -266,7 +267,7 @@ class NotificationEngine {
   ) async {
     final row = await (_db.select(
       _db.stores,
-    )..where((s) => s.id.equals(storeId))).getSingleOrNull();
+    )..where((s) => s.id.equals(storeId) & s.deletedAt.isNull())).getSingleOrNull();
     return row != null && preference(row);
   }
 
@@ -275,7 +276,7 @@ class NotificationEngine {
   Future<String> _unitOf(String unitId) async {
     final row = await (_db.select(
       _db.units,
-    )..where((u) => u.id.equals(unitId))).getSingleOrNull();
+    )..where((u) => u.id.equals(unitId) & u.deletedAt.isNull())).getSingleOrNull();
     return row?.abbreviation ?? '';
   }
 

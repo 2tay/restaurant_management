@@ -31,6 +31,10 @@
 //               `.password_hash`.
 //   v13 -> v14  the busy-day calendar: `stores.busyWeekdays`,
 //               `.busyReminderDays`, `.notifyBusyDays`, and `busy_dates`.
+//   v14 -> v15  ready for sync (SYNC_PLAN.md, Phase 1): `updated_at` and
+//               `deleted_at` on every synced table, `store_id` on the child
+//               tables, the stock baseline on `items` and `stock_movements`,
+//               the `*_touch` triggers, and real password hashes.
 //
 // The two branches that built v6–v9 each numbered their own steps v6–v9; on
 // merging, the stock steps kept those numbers and the pointage steps moved to
@@ -45,6 +49,7 @@
 import 'package:drift_dev/api/migrations_native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stock_inventory/data/database/app_database.dart';
+import 'package:stock_inventory/data/database/sync_tables.dart';
 import 'package:stock_inventory/data/repositories/repositories.dart';
 
 import '../support/sqlite.dart';
@@ -55,6 +60,7 @@ import 'schema/schema_v10.dart' as v10;
 import 'schema/schema_v11.dart' as v11;
 import 'schema/schema_v12.dart' as v12;
 import 'schema/schema_v13.dart' as v13;
+import 'schema/schema_v14.dart' as v14;
 
 void main() {
   setUpAll(useTestSqlite);
@@ -65,29 +71,29 @@ void main() {
     verifier = SchemaVerifier(GeneratedHelper());
   });
 
-  test('a fresh database matches the version 14 schema', () async {
-    final connection = await verifier.startAt(14);
+  test('a fresh database matches the version 15 schema', () async {
+    final connection = await verifier.startAt(15);
     final db = AppDatabase.withExecutor(connection);
-    await verifier.migrateAndValidate(db, 14);
+    await verifier.migrateAndValidate(db, 15);
     await db.close();
   });
 
   // The step every incremental migration gets wrong: an install that skipped a
   // release runs both branches back to back, and `onUpgrade` has to be written
   // so it can. There is no v1 -> v2 test any more, and there cannot be —
-  // `schemaVersion` is 14, so an older install is never asked to stop short.
-  test('a version 1 install upgrades all the way to version 14', () async {
+  // `schemaVersion` is 15, so an older install is never asked to stop short.
+  test('a version 1 install upgrades all the way to version 15', () async {
     final connection = await verifier.startAt(1);
     final db = AppDatabase.withExecutor(connection);
 
-    await verifier.migrateAndValidate(db, 14);
+    await verifier.migrateAndValidate(db, 15);
     await db.close();
   });
 
-  test('a version 2 install upgrades to version 14 cleanly', () async {
+  test('a version 2 install upgrades to version 15 cleanly', () async {
     final connection = await verifier.startAt(2);
     final db = AppDatabase.withExecutor(connection);
-    await verifier.migrateAndValidate(db, 14);
+    await verifier.migrateAndValidate(db, 15);
     await db.close();
   });
 
@@ -97,7 +103,7 @@ void main() {
   test('maxStock defaults to zero on an upgraded install', () async {
     final connection = await verifier.startAt(2);
     final db = AppDatabase.withExecutor(connection);
-    await verifier.migrateAndValidate(db, 14);
+    await verifier.migrateAndValidate(db, 15);
 
     final defaults = await db.customSelect('PRAGMA table_info(items)').get();
     final column = defaults.firstWhere(
@@ -108,41 +114,41 @@ void main() {
     await db.close();
   });
 
-  test('a version 3 install upgrades to version 14 cleanly', () async {
+  test('a version 3 install upgrades to version 15 cleanly', () async {
     final connection = await verifier.startAt(3);
     final db = AppDatabase.withExecutor(connection);
 
     // Runs AppDatabase.migration.onUpgrade(3 -> 13) and then checks every table,
     // column, default and index against drift_schema_v14.json.
-    await verifier.migrateAndValidate(db, 14);
+    await verifier.migrateAndValidate(db, 15);
     await db.close();
   });
 
-  test('a version 4 install upgrades to version 14 cleanly', () async {
+  test('a version 4 install upgrades to version 15 cleanly', () async {
     final connection = await verifier.startAt(4);
     final db = AppDatabase.withExecutor(connection);
-    await verifier.migrateAndValidate(db, 14);
+    await verifier.migrateAndValidate(db, 15);
     await db.close();
   });
 
-  test('a version 5 install upgrades to version 14 cleanly', () async {
+  test('a version 5 install upgrades to version 15 cleanly', () async {
     final connection = await verifier.startAt(5);
     final db = AppDatabase.withExecutor(connection);
-    await verifier.migrateAndValidate(db, 14);
+    await verifier.migrateAndValidate(db, 15);
     await db.close();
   });
 
-  test('a version 6 install upgrades to version 14 cleanly', () async {
+  test('a version 6 install upgrades to version 15 cleanly', () async {
     final connection = await verifier.startAt(6);
     final db = AppDatabase.withExecutor(connection);
-    await verifier.migrateAndValidate(db, 14);
+    await verifier.migrateAndValidate(db, 15);
     await db.close();
   });
 
-  test('a version 7 install upgrades to version 14 cleanly', () async {
+  test('a version 7 install upgrades to version 15 cleanly', () async {
     final connection = await verifier.startAt(7);
     final db = AppDatabase.withExecutor(connection);
-    await verifier.migrateAndValidate(db, 14);
+    await verifier.migrateAndValidate(db, 15);
     await db.close();
   });
 
@@ -154,7 +160,7 @@ void main() {
     () async {
       final connection = await verifier.startAt(7);
       final db = AppDatabase.withExecutor(connection);
-      await verifier.migrateAndValidate(db, 14);
+      await verifier.migrateAndValidate(db, 15);
 
       final columns = await db.customSelect('PRAGMA table_info(stores)').get();
       Object? defaultOf(String name) => columns
@@ -169,45 +175,45 @@ void main() {
     },
   );
 
-  test('a version 8 install upgrades to version 14 cleanly', () async {
+  test('a version 8 install upgrades to version 15 cleanly', () async {
     final connection = await verifier.startAt(8);
     final db = AppDatabase.withExecutor(connection);
-    await verifier.migrateAndValidate(db, 14);
+    await verifier.migrateAndValidate(db, 15);
     await db.close();
   });
 
-  test('a version 9 install upgrades to version 14 cleanly', () async {
+  test('a version 9 install upgrades to version 15 cleanly', () async {
     final connection = await verifier.startAt(9);
     final db = AppDatabase.withExecutor(connection);
-    await verifier.migrateAndValidate(db, 14);
+    await verifier.migrateAndValidate(db, 15);
     await db.close();
   });
 
-  test('a version 10 install upgrades to version 14 cleanly', () async {
+  test('a version 10 install upgrades to version 15 cleanly', () async {
     final connection = await verifier.startAt(10);
     final db = AppDatabase.withExecutor(connection);
-    await verifier.migrateAndValidate(db, 14);
+    await verifier.migrateAndValidate(db, 15);
     await db.close();
   });
 
-  test('a version 11 install upgrades to version 14 cleanly', () async {
+  test('a version 11 install upgrades to version 15 cleanly', () async {
     final connection = await verifier.startAt(11);
     final db = AppDatabase.withExecutor(connection);
-    await verifier.migrateAndValidate(db, 14);
+    await verifier.migrateAndValidate(db, 15);
     await db.close();
   });
 
-  test('a version 12 install upgrades to version 14 cleanly', () async {
+  test('a version 12 install upgrades to version 15 cleanly', () async {
     final connection = await verifier.startAt(12);
     final db = AppDatabase.withExecutor(connection);
-    await verifier.migrateAndValidate(db, 14);
+    await verifier.migrateAndValidate(db, 15);
     await db.close();
   });
 
-  test('a version 13 install upgrades to version 14 cleanly', () async {
+  test('a version 13 install upgrades to version 15 cleanly', () async {
     final connection = await verifier.startAt(13);
     final db = AppDatabase.withExecutor(connection);
-    await verifier.migrateAndValidate(db, 14);
+    await verifier.migrateAndValidate(db, 15);
     await db.close();
   });
 
@@ -225,7 +231,7 @@ void main() {
     await old.close();
 
     final db = AppDatabase.withExecutor(schema.newConnection());
-    await verifier.migrateAndValidate(db, 14);
+    await verifier.migrateAndValidate(db, 15);
 
     final calendar = await CalendarRepository(db).calendar('store-1');
     expect(calendar.weekdays, {DateTime.friday, DateTime.saturday, DateTime.sunday});
@@ -242,7 +248,7 @@ void main() {
   test('v8 -> v9 leaves every article without a busy-week minimum', () async {
     final connection = await verifier.startAt(8);
     final db = AppDatabase.withExecutor(connection);
-    await verifier.migrateAndValidate(db, 14);
+    await verifier.migrateAndValidate(db, 15);
 
     final columns = await db.customSelect('PRAGMA table_info(items)').get();
     final column = columns.firstWhere(
@@ -257,7 +263,7 @@ void main() {
   test('v6 -> v7 leaves existing receipts with no employee id', () async {
     final connection = await verifier.startAt(6);
     final db = AppDatabase.withExecutor(connection);
-    await verifier.migrateAndValidate(db, 14);
+    await verifier.migrateAndValidate(db, 15);
 
     final columns = await db
         .customSelect('PRAGMA table_info(goods_receipts)')
@@ -275,7 +281,7 @@ void main() {
   test('v5 -> v7 leaves existing movements with no employee id', () async {
     final connection = await verifier.startAt(5);
     final db = AppDatabase.withExecutor(connection);
-    await verifier.migrateAndValidate(db, 14);
+    await verifier.migrateAndValidate(db, 15);
 
     final columns = await db
         .customSelect('PRAGMA table_info(stock_movements)')
@@ -314,7 +320,7 @@ void main() {
       await old.close();
 
       final db = AppDatabase.withExecutor(schema.newConnection());
-      await verifier.migrateAndValidate(db, 14);
+      await verifier.migrateAndValidate(db, 15);
 
       final employee = await db
           .customSelect('SELECT pin FROM employees')
@@ -370,7 +376,7 @@ void main() {
       await old.close();
 
       final db = AppDatabase.withExecutor(schema.newConnection());
-      await verifier.migrateAndValidate(db, 14);
+      await verifier.migrateAndValidate(db, 15);
 
       Future<List<String>> columnsOf(String table) async => [
         for (final row
@@ -459,7 +465,7 @@ void main() {
     await old.close();
 
     final db = AppDatabase.withExecutor(schema.newConnection());
-    await verifier.migrateAndValidate(db, 14);
+    await verifier.migrateAndValidate(db, 15);
 
     final columns = await db.customSelect('PRAGMA table_info(employees)').get();
     expect(
@@ -505,7 +511,7 @@ void main() {
     await old.close();
 
     final db = AppDatabase.withExecutor(schema.newConnection());
-    await verifier.migrateAndValidate(db, 14);
+    await verifier.migrateAndValidate(db, 15);
 
     final sessions = await db
         .customSelect(
@@ -581,7 +587,7 @@ void main() {
     await old.close();
 
     final db = AppDatabase.withExecutor(schema.newConnection());
-    await verifier.migrateAndValidate(db, 14);
+    await verifier.migrateAndValidate(db, 15);
 
     // The schedule half of the v4 backfill is dropped again by v8; the break
     // allowance is what survives, frozen from the store for every day.
@@ -594,6 +600,114 @@ void main() {
 
     expect(byId['att-store']!['m'], 45);
     expect(byId['att-own']!['m'], 45);
+
+    await db.close();
+  });
+  // Every table is rebuilt in this step, so this one fills a version 14
+  // database with a row in every table and checks nothing was lost, the new
+  // columns were filled from the right place, and the foreign keys still hold.
+  test('v14 -> v15 keeps every row and fills the sync columns', () async {
+    final schema = await verifier.schemaAt(14);
+    final old = v14.DatabaseAtV14(schema.newConnection());
+    const t = "'2026-03-01T10:00:00.000'";
+    for (final sql in [
+      'INSERT INTO stores (id, name, address_line, postal_code, city, phone, '
+          "created_at) VALUES ('s1', 'S', 'a', '1000', 'c', 'p', $t)",
+      "INSERT INTO categories (id, store_id, name) VALUES ('c1', 's1', 'C')",
+      'INSERT INTO units (id, store_id, name, abbreviation) '
+          "VALUES ('u1', 's1', 'Kilo', 'kg')",
+      'INSERT INTO items (id, store_id, name, category_id, unit_id, quantity, '
+          'low_stock_threshold, updated_at, average_cost) '
+          "VALUES ('i1', 's1', 'I', 'c1', 'u1', 42, 5, $t, 2.5)",
+      'INSERT INTO suppliers (id, store_id, name, contact_name, email, phone, '
+          'address_line, postal_code, city) '
+          "VALUES ('f1', 's1', 'F', 'x', 'x', 'x', 'x', 'x', 'x')",
+      'INSERT INTO supplier_prices (id, item_id, supplier_id, price_per_unit, '
+          "effective_date, is_default) VALUES ('sp1', 'i1', 'f1', 2, $t, 1)",
+      'INSERT INTO price_history (id, item_id, supplier_id, old_price, '
+          'new_price, changed_at, changed_by_name) '
+          "VALUES ('ph1', 'i1', 'f1', 1, 2, $t, 'M')",
+      'INSERT INTO stock_movements (id, store_id, item_id, type, quantity, '
+          'occurred_at, user_name) '
+          "VALUES ('m1', 's1', 'i1', 'stockIn', 7, $t, 'M')",
+      'INSERT INTO purchase_orders (id, store_id, supplier_id, reference, '
+          'status, created_at) '
+          "VALUES ('o1', 's1', 'f1', 'CMD-1', 'received', $t)",
+      'INSERT INTO purchase_order_lines (id, order_id, item_id, '
+          'quantity_ordered, unit_price, position) '
+          "VALUES ('ol1', 'o1', 'i1', 7, 2, 0)",
+      'INSERT INTO goods_receipts (id, order_id, store_id, received_at, '
+          "received_by_name) VALUES ('r1', 'o1', 's1', $t, 'M')",
+      'INSERT INTO goods_receipt_lines (id, receipt_id, item_id, '
+          'quantity_ordered, quantity_received, actual_unit_price, position) '
+          "VALUES ('rl1', 'r1', 'i1', 7, 7, 2, 0)",
+      'INSERT INTO notifications (id, store_id, kind, title, body, created_at) '
+          "VALUES ('n1', 's1', 'lowStock', 'T', 'B', $t)",
+      'INSERT INTO employees (id, store_id, first_name, last_name, pin, phone, '
+          'email, hire_date, role, pay, created_at) '
+          "VALUES ('e1', 's1', 'A', 'B', 'PIN-1', 'p', 'e1@x.c', $t, "
+          "'manager', 15, $t)",
+      'INSERT INTO employee_credentials (id, employee_id, password_hash) '
+          "VALUES ('cr1', 'e1', 'password:1234')",
+      'INSERT INTO payroll_periods (id, employee_id, store_id, start_date, '
+          'end_date, worked_days, total_worked_hours, applied_rate, '
+          'computed_amount, status, created_at) '
+          "VALUES ('pp1', 'e1', 's1', $t, $t, 1, 8, 15, 120, 'paid', $t)",
+      'INSERT INTO attendances (id, store_id, employee_id, date, status) '
+          "VALUES ('a1', 's1', 'e1', $t, 'done')",
+      'INSERT INTO attendance_sessions (id, attendance_id, position, '
+          "clock_in_at) VALUES ('as1', 'a1', 0, $t)",
+      'INSERT INTO attendance_pauses (id, session_id, position, start_at) '
+          "VALUES ('ap1', 'as1', 0, $t)",
+      "INSERT INTO busy_dates (store_id, day) VALUES ('s1', '2026-12-24')",
+    ]) {
+      await old.customStatement(sql);
+    }
+    await old.close();
+
+    final db = AppDatabase.withExecutor(schema.newConnection());
+    await verifier.migrateAndValidate(db, 15);
+
+    for (final table in SyncTables.synced) {
+      final rows = await db.customSelect('SELECT * FROM $table').get();
+      expect(rows, hasLength(1), reason: '$table lost or gained a row');
+      expect(rows.single.read<String?>('updated_at'), isNotNull, reason: table);
+      expect(rows.single.read<String?>('deleted_at'), isNull, reason: table);
+    }
+    for (final table in SyncTables.withCopiedStore) {
+      final row = await db
+          .customSelect('SELECT store_id FROM $table')
+          .getSingle();
+      expect(row.read<String>('store_id'), 's1', reason: table);
+    }
+
+    // `updated_at` came from the row's own date, converted to UTC. The raw
+    // value had no offset, which SQLite reads as UTC already.
+    final store = await db.select(db.stores).getSingle();
+    expect(store.updatedAt, DateTime.parse('2026-03-01T10:00:00.000Z'));
+
+    // The stock baseline is today's stock, and the old history is part of it.
+    final item = await db.select(db.items).getSingle();
+    expect(item.baselineQuantity, 42);
+    expect(item.baselineAverageCost, 2.5);
+    final movement = await db.select(db.stockMovements).getSingle();
+    expect(movement.inBaseline, isTrue);
+    expect(await StockLedger(db).rebuildItem('i1'), isFalse);
+
+    // The marker password became a real hash, and it still logs in.
+    final credential = await db.select(db.employeeCredentials).getSingle();
+    expect(credential.passwordHash, startsWith(r'pbkdf2-sha256$'));
+    final login = await CredentialRepository(db).authenticate('PIN-1', '1234');
+    expect(login.outcome, LoginOutcome.success);
+
+    // Rebuilding `stores` with foreign keys on would have cascaded; nothing
+    // points anywhere it should not.
+    expect(await db.customSelect('PRAGMA foreign_key_check').get(), isEmpty);
+
+    // The triggers exist and fire.
+    await db.customStatement("UPDATE categories SET name = 'D' WHERE id = 'c1'");
+    final category = await db.select(db.categories).getSingle();
+    expect(category.updatedAt.year, DateTime.now().year);
 
     await db.close();
   });

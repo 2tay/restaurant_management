@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 
 import '../../../models/employee.dart';
 import 'stores.dart';
+import 'sync_columns.dart';
 
 /// A member of staff at one establishment.
 ///
@@ -14,7 +15,7 @@ import 'stores.dart';
 @TableIndex(name: 'employees_store', columns: {#storeId})
 @TableIndex(name: 'employees_pin', columns: {#pin}, unique: true)
 @TableIndex(name: 'employees_email', columns: {#email}, unique: true)
-class Employees extends Table {
+class Employees extends Table with Touched, Deletable {
   TextColumn get id => text().withLength(min: 1, max: 64)();
 
   /// `RESTRICT` — an establishment with staff on file cannot be deleted. The
@@ -59,13 +60,18 @@ class Employees extends Table {
 /// One employee's login secret and lockout state.
 ///
 /// A pay change and a failed-login counter have nothing to do with each other,
-/// which is why this is its own table and not columns on [Employees]. The hash
-/// is fake (`core/utils/credential_status.dart`) — Phase 6 stays offline; this
-/// just never holds the password in the clear.
+/// which is why this is its own table and not columns on [Employees]. The
+/// password is stored as a salted PBKDF2 hash (`core/utils/password_hash.dart`),
+/// never in the clear.
 @DataClassName('EmployeeCredentialRow')
 @TableIndex(name: 'employee_credentials_employee', columns: {#employeeId}, unique: true)
-class EmployeeCredentials extends Table {
+class EmployeeCredentials extends Table with Touched, Deletable {
   TextColumn get id => text().withLength(min: 1, max: 64)();
+
+  /// The establishment, copied from the parent row. Redundant locally, but it
+  /// lets the server check who may see this row without a join to its parent.
+  TextColumn get storeId =>
+      text().references(Stores, #id, onDelete: KeyAction.cascade)();
 
   /// `ON DELETE CASCADE` and unique — one credential per employee, and it goes
   /// when they do.

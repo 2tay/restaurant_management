@@ -66,6 +66,11 @@ dependencies:
   # counter, which collides across restarts the moment data persists.
   uuid: ^4.6.0
 
+  # Password hashing (PBKDF2-HMAC-SHA256, `core/utils/password_hash.dart`).
+  # Maintained by the Dart team and already in the lockfile through other
+  # packages; listed here because the app now uses it directly.
+  crypto: ^3.0.6
+
   # Choosing a product or employee photo. `file_picker` opens the OS file
   # dialog to choose an image; the file it returns is copied into the app's
   # own support directory by `data/images/product_images.dart` (products) and

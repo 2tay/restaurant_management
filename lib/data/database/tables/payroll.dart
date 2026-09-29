@@ -3,6 +3,7 @@ import 'package:drift/drift.dart';
 import '../../../models/payroll_period.dart';
 import 'employees.dart';
 import 'stores.dart';
+import 'sync_columns.dart';
 
 /// One payroll run for one employee — the days it covered, the figures it was
 /// computed from, and the amount, frozen at the moment "Payer" was tapped.
@@ -14,7 +15,7 @@ import 'stores.dart';
 @DataClassName('PayrollPeriodRow')
 @TableIndex(name: 'payroll_periods_employee', columns: {#employeeId, #paidAt})
 @TableIndex(name: 'payroll_periods_store', columns: {#storeId, #paidAt})
-class PayrollPeriods extends Table {
+class PayrollPeriods extends Table with Touched, Deletable {
   TextColumn get id => text().withLength(min: 1, max: 64)();
   TextColumn get employeeId =>
       text().references(Employees, #id, onDelete: KeyAction.cascade)();

@@ -267,12 +267,18 @@ record(
 # the seed and the movement repository both go through it, and neither decides
 # anything there.
 #
+# `stock_ledger.dart` is allowed because it writes nothing a movement does not
+# already explain: it recomputes both figures by replaying the movement log from
+# the article's baseline (SYNC_PLAN.md, Phase 1). It is the check on this rule,
+# not an exception to it.
+#
 # Matched by finding each `ItemsCompanion` and reading the call that follows it,
 # rather than line by line: a companion spans several lines, and `quantity:` on
 # its own also appears in perfectly legitimate calls to the movement repository.
 QUANTITY_WRITERS = (
     'lib/data/repositories/movement_repository.dart',
     'lib/data/mappers/item_mapper.dart',
+    'lib/data/repositories/stock_ledger.dart',
 )
 
 def companion_writes(path, text):

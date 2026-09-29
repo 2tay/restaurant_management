@@ -50,7 +50,7 @@ class AttendanceRepository {
   Future<Attendance?> attendance(String id) async {
     final row = await (_db.select(
       _db.attendances,
-    )..where((a) => a.id.equals(id))).getSingleOrNull();
+    )..where((a) => a.id.equals(id) & a.deletedAt.isNull())).getSingleOrNull();
     if (row == null) return null;
     return (await _assemble([row])).first;
   }
@@ -80,7 +80,12 @@ class AttendanceRepository {
   }) {
     final day = _dayOf(now ?? _clock());
     return (_db.select(_db.attendances)
-          ..where((a) => a.storeId.equals(storeId) & a.date.equals(day)))
+          ..where(
+            (a) =>
+                a.storeId.equals(storeId) &
+                a.date.equals(day) &
+                a.deletedAt.isNull(),
+          ))
         .watch()
         .asyncMap((rows) async {
           final assembled = await _assemble(rows);
@@ -231,6 +236,9 @@ class AttendanceRepository {
     final day = _dayOf(at);
 
     return _db.transaction(() async {
+      // Deleted rows included, here and in the two position counts below:
+      // `(employeeId, date)` and `(parent, position)` are unique across every
+      // row in the table, a soft-deleted one too.
       final existing = await (_db.select(_db.attendances)..where(
             (a) => a.employeeId.equals(employeeId) & a.date.equals(day),
           ))
@@ -259,6 +267,7 @@ class AttendanceRepository {
             .insert(
               sessionToRow(
                 AttendanceSession(clockInAt: at),
+                storeId: storeId,
                 attendanceId: attendanceId,
                 position: 0,
                 id: newId(),
@@ -276,6 +285,7 @@ class AttendanceRepository {
           .insert(
             sessionToRow(
               AttendanceSession(clockInAt: at),
+              storeId: existing.storeId,
               attendanceId: existing.id,
               position: count,
               id: newId(),
@@ -307,6 +317,7 @@ class AttendanceRepository {
           .insert(
             pauseToRow(
               AttendancePause(startAt: now ?? _clock()),
+              storeId: session.storeId,
               sessionId: session.id,
               position: count,
               id: newId(),
@@ -328,7 +339,10 @@ class AttendanceRepository {
       final open =
           await (_db.select(_db.attendancePauses)
                 ..where(
-                  (p) => p.sessionId.equals(session.id) & p.endAt.isNull(),
+                  (p) =>
+                      p.sessionId.equals(session.id) &
+                      p.endAt.isNull() &
+                      p.deletedAt.isNull(),
                 )
                 ..orderBy([(p) => OrderingTerm(expression: p.position)]))
               .get();
@@ -373,7 +387,7 @@ class AttendanceRepository {
     return _db.transaction(() async {
       final rows = await (_db.select(
         _db.attendances,
-      )..where((a) => a.id.isIn(ids))).get();
+      )..where((a) => a.id.isIn(ids) & a.deletedAt.isNull())).get();
 
       if (rows.length != ids.length) return false;
       if (rows.any((r) => r.payrollPeriodId != null)) return false;
@@ -394,9 +408,9 @@ class AttendanceRepository {
     Future<AttendanceStatus?> Function(AttendanceRow row) transition,
   ) {
     return _db.transaction(() async {
-      final row = await (_db.select(
-        _db.attendances,
-      )..where((a) => a.id.equals(attendanceId))).getSingleOrNull();
+      final row = await (_db.select(_db.attendances)
+            ..where((a) => a.id.equals(attendanceId) & a.deletedAt.isNull()))
+          .getSingleOrNull();
       if (row == null) return null;
       if (row.payrollPeriodId != null) return null;
 
@@ -432,7 +446,9 @@ class AttendanceRepository {
   /// mutation (`Pause`, `Reprendre`, `Fin de journée`) acts on.
   Future<AttendanceSessionRow?> _lastSession(String attendanceId) =>
       (_db.select(_db.attendanceSessions)
-            ..where((s) => s.attendanceId.equals(attendanceId))
+            ..where(
+              (s) => s.attendanceId.equals(attendanceId) & s.deletedAt.isNull(),
+            )
             ..orderBy([
               (s) => OrderingTerm(expression: s.position, mode: OrderingMode.desc),
             ])
@@ -447,14 +463,19 @@ class AttendanceRepository {
   ) {
     final day = _dayOf(now ?? _clock());
     return _db.select(_db.attendances)
-      ..where((a) => a.employeeId.equals(employeeId) & a.date.equals(day));
+      ..where(
+        (a) =>
+            a.employeeId.equals(employeeId) &
+            a.date.equals(day) &
+            a.deletedAt.isNull(),
+      );
   }
 
   SimpleSelectStatement<$AttendancesTable, AttendanceRow> _forEmployeeQuery(
     String employeeId,
   ) =>
       _db.select(_db.attendances)
-        ..where((a) => a.employeeId.equals(employeeId))
+        ..where((a) => a.employeeId.equals(employeeId) & a.deletedAt.isNull())
         ..orderBy([
           (a) => OrderingTerm(expression: a.date, mode: OrderingMode.desc),
           (a) => OrderingTerm(expression: a.id, mode: OrderingMode.desc),
@@ -468,7 +489,7 @@ class AttendanceRepository {
     String? employeeId,
   }) {
     final query = _db.select(_db.attendances)
-      ..where((a) => a.storeId.equals(storeId))
+      ..where((a) => a.storeId.equals(storeId) & a.deletedAt.isNull())
       ..orderBy([
         (a) => OrderingTerm(expression: a.date, mode: OrderingMode.desc),
         (a) => OrderingTerm(expression: a.id, mode: OrderingMode.desc),
@@ -500,7 +521,7 @@ class AttendanceRepository {
     final ids = rows.map((r) => r.id).toList();
     final sessionRows =
         await (_db.select(_db.attendanceSessions)
-              ..where((s) => s.attendanceId.isIn(ids))
+              ..where((s) => s.attendanceId.isIn(ids) & s.deletedAt.isNull())
               ..orderBy([(s) => OrderingTerm(expression: s.position)]))
             .get();
 
@@ -509,7 +530,7 @@ class AttendanceRepository {
         ? const <AttendancePauseRow>[]
         : await (_db.select(
             _db.attendancePauses,
-          )..where((p) => p.sessionId.isIn(sessionIds))).get();
+          )..where((p) => p.sessionId.isIn(sessionIds) & p.deletedAt.isNull())).get();
 
     final pausesBySession = <String, List<AttendancePauseRow>>{};
     for (final pause in pauseRows) {

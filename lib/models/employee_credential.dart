@@ -24,7 +24,7 @@ class EmployeeCredential {
   final String id;
   final String employeeId;
 
-  /// Never the password itself. See `fakePasswordHash`.
+  /// Never the password itself: a salted PBKDF2 hash. See `passwordHashOf`.
   final String passwordHash;
 
   /// Consecutive wrong passwords since the last success. Reset to zero on a correct

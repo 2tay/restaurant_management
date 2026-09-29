@@ -10,6 +10,7 @@ import '../images/product_images.dart';
 import 'movement_repository.dart';
 import 'new_id.dart';
 import 'order_repository.dart';
+import 'soft_delete.dart';
 
 /// What the inventory list is filtered by.
 ///
@@ -112,9 +113,13 @@ class ItemRepository {
     final query = _attentionFirst(storeId, filter).join([
       leftOuterJoin(
         _db.categories,
-        _db.categories.id.equalsExp(_db.items.categoryId),
+        _db.categories.id.equalsExp(_db.items.categoryId) &
+            _db.categories.deletedAt.isNull(),
       ),
-      leftOuterJoin(_db.units, _db.units.id.equalsExp(_db.items.unitId)),
+      leftOuterJoin(
+        _db.units,
+        _db.units.id.equalsExp(_db.items.unitId) & _db.units.deletedAt.isNull(),
+      ),
     ]);
 
     return query.watch().map(
@@ -155,6 +160,7 @@ class ItemRepository {
       'FROM purchase_order_lines l '
       'JOIN purchase_orders o ON o.id = l.order_id '
       'WHERE o.store_id = items.store_id AND l.item_id = items.id '
+      'AND l.deleted_at IS NULL AND o.deleted_at IS NULL '
       "AND o.status IN ('sent', 'partial'))",
       precedence: Precedence.primary,
     );
@@ -168,19 +174,26 @@ class ItemRepository {
         ).join([
           leftOuterJoin(
             _db.categories,
-            _db.categories.id.equalsExp(_db.items.categoryId),
+            _db.categories.id.equalsExp(_db.items.categoryId) &
+                _db.categories.deletedAt.isNull(),
           ),
-          leftOuterJoin(_db.units, _db.units.id.equalsExp(_db.items.unitId)),
+          leftOuterJoin(
+            _db.units,
+            _db.units.id.equalsExp(_db.items.unitId) &
+                _db.units.deletedAt.isNull(),
+          ),
           // The article's default offer, and whoever it belongs to. An article
           // with no offers joins to nothing and simply has no shortcut.
           leftOuterJoin(
             _db.supplierPrices,
             _db.supplierPrices.itemId.equalsExp(_db.items.id) &
-                _db.supplierPrices.isDefault.equals(true),
+                _db.supplierPrices.isDefault.equals(true) &
+                _db.supplierPrices.deletedAt.isNull(),
           ),
           leftOuterJoin(
             _db.suppliers,
-            _db.suppliers.id.equalsExp(_db.supplierPrices.supplierId),
+            _db.suppliers.id.equalsExp(_db.supplierPrices.supplierId) &
+                _db.suppliers.deletedAt.isNull(),
           ),
         ])..addColumns([onOrder]);
 
@@ -221,12 +234,18 @@ class ItemRepository {
   /// which the screen shows as an error with a way back to the list rather than
   /// as a blank page.
   Stream<ItemRowView?> watchItemRow(String id) {
-    final query = (_db.select(_db.items)..where((i) => i.id.equals(id))).join([
+    final query = (_db.select(
+      _db.items,
+    )..where((i) => i.id.equals(id) & i.deletedAt.isNull())).join([
       leftOuterJoin(
         _db.categories,
-        _db.categories.id.equalsExp(_db.items.categoryId),
+        _db.categories.id.equalsExp(_db.items.categoryId) &
+            _db.categories.deletedAt.isNull(),
       ),
-      leftOuterJoin(_db.units, _db.units.id.equalsExp(_db.items.unitId)),
+      leftOuterJoin(
+        _db.units,
+        _db.units.id.equalsExp(_db.items.unitId) & _db.units.deletedAt.isNull(),
+      ),
     ]);
 
     return query.watchSingleOrNull().map(
@@ -242,12 +261,14 @@ class ItemRepository {
   }
 
   Stream<Item?> watchItem(String id) =>
-      (_db.select(_db.items)..where((i) => i.id.equals(id)))
+      (_db.select(_db.items)
+            ..where((i) => i.id.equals(id) & i.deletedAt.isNull()))
           .watchSingleOrNull()
           .map(_toItemOrNull);
 
   Future<Item?> item(String id) =>
-      (_db.select(_db.items)..where((i) => i.id.equals(id)))
+      (_db.select(_db.items)
+            ..where((i) => i.id.equals(id) & i.deletedAt.isNull()))
           .getSingleOrNull()
           .then(_toItemOrNull);
 
@@ -267,7 +288,12 @@ class ItemRepository {
     if (needle.isEmpty) return const <Item>[];
 
     final rows = await (_db.select(_db.items)
-          ..where((i) => i.storeId.equals(storeId) & i.barcode.equals(needle)))
+          ..where(
+            (i) =>
+                i.storeId.equals(storeId) &
+                i.barcode.equals(needle) &
+                i.deletedAt.isNull(),
+          ))
         .get();
     return _toItems(rows);
   }
@@ -530,10 +556,7 @@ class ItemRepository {
     final removed = await _db.transaction(() async {
       if (await deleteBlockedBy(id) != null) return false;
 
-      final rows = await (_db.delete(
-        _db.items,
-      )..where((i) => i.id.equals(id))).go();
-      return rows > 0;
+      return await SoftDelete(_db).item(id) > 0;
     });
 
     // Outside the transaction, and only once it has committed: a rolled-back
@@ -570,7 +593,7 @@ class ItemRepository {
     ItemFilter filter,
   ) {
     final query = _db.select(_db.items)
-      ..where((i) => i.storeId.equals(storeId))
+      ..where((i) => i.storeId.equals(storeId) & i.deletedAt.isNull())
       ..orderBy([
         // false sorts before true, so "not a rupture" and "not low" both sink.
         (i) => OrderingTerm(expression: i.quantity.isBiggerThanValue(0)),
@@ -583,7 +606,7 @@ class ItemRepository {
 
   SimpleSelectStatement<$ItemsTable, ItemRow> _byName(String storeId) =>
       _db.select(_db.items)
-        ..where((i) => i.storeId.equals(storeId))
+        ..where((i) => i.storeId.equals(storeId) & i.deletedAt.isNull())
         ..orderBy([(i) => OrderingTerm(expression: i.name)]);
 
   void _applyFilter(
@@ -623,7 +646,8 @@ class ItemRepository {
       ..addColumns([_db.supplierPrices.id])
       ..where(
         _db.supplierPrices.itemId.equalsExp(items.id) &
-            _db.supplierPrices.supplierId.equals(supplierId),
+            _db.supplierPrices.supplierId.equals(supplierId) &
+            _db.supplierPrices.deletedAt.isNull(),
       );
     return existsQuery(subquery);
   }

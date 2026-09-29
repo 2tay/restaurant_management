@@ -13,9 +13,15 @@ EmployeeCredential credentialFromRow(EmployeeCredentialRow row) =>
       lastLoginAt: row.lastLoginAt,
     );
 
-EmployeeCredentialsCompanion credentialToRow(EmployeeCredential credential) =>
+/// The credential model does not carry its store; it is the employee's, and
+/// the caller supplies it.
+EmployeeCredentialsCompanion credentialToRow(
+  EmployeeCredential credential, {
+  required String storeId,
+}) =>
     EmployeeCredentialsCompanion.insert(
       id: credential.id,
+      storeId: storeId,
       employeeId: credential.employeeId,
       passwordHash: credential.passwordHash,
       failedAttempts: Value(credential.failedAttempts),

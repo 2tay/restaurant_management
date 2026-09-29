@@ -1,3 +1,4 @@
+import '../repositories/device_repository.dart';
 import '../seed/demo_seed.dart';
 import 'app_database.dart';
 
@@ -15,6 +16,9 @@ import 'app_database.dart';
 Future<AppDatabase> openAppDatabase() async {
   final AppDatabase db = AppDatabase();
   await seedIfEmpty(db);
+  // Made now rather than on first use, so the id exists from the install's
+  // very first launch, before anything could need to report it.
+  await DeviceRepository(db).deviceId();
   return db;
 }
 

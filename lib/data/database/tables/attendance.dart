@@ -4,6 +4,7 @@ import '../../../models/attendance.dart';
 import 'employees.dart';
 import 'payroll.dart';
 import 'stores.dart';
+import 'sync_columns.dart';
 
 /// One employee's attendance for one calendar day.
 ///
@@ -23,7 +24,7 @@ import 'stores.dart';
   unique: true,
 )
 @TableIndex(name: 'attendances_store_date', columns: {#storeId, #date})
-class Attendances extends Table {
+class Attendances extends Table with Touched, Deletable {
   TextColumn get id => text().withLength(min: 1, max: 64)();
   TextColumn get storeId =>
       text().references(Stores, #id, onDelete: KeyAction.cascade)();
@@ -70,8 +71,13 @@ class Attendances extends Table {
   columns: {#attendanceId, #position},
   unique: true,
 )
-class AttendanceSessions extends Table {
+class AttendanceSessions extends Table with Touched, Deletable {
   TextColumn get id => text().withLength(min: 1, max: 64)();
+
+  /// The establishment, copied from the parent row. Redundant locally, but it
+  /// lets the server check who may see this row without a join to its parent.
+  TextColumn get storeId =>
+      text().references(Stores, #id, onDelete: KeyAction.cascade)();
   TextColumn get attendanceId =>
       text().references(Attendances, #id, onDelete: KeyAction.cascade)();
   IntColumn get position => integer()();
@@ -95,8 +101,13 @@ class AttendanceSessions extends Table {
   columns: {#sessionId, #position},
   unique: true,
 )
-class AttendancePauses extends Table {
+class AttendancePauses extends Table with Touched, Deletable {
   TextColumn get id => text().withLength(min: 1, max: 64)();
+
+  /// The establishment, copied from the parent row. Redundant locally, but it
+  /// lets the server check who may see this row without a join to its parent.
+  TextColumn get storeId =>
+      text().references(Stores, #id, onDelete: KeyAction.cascade)();
   TextColumn get sessionId =>
       text().references(AttendanceSessions, #id, onDelete: KeyAction.cascade)();
   IntColumn get position => integer()();

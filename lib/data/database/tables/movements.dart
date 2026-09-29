@@ -3,6 +3,7 @@ import 'package:drift/drift.dart';
 import '../../../models/stock_movement.dart';
 import 'items.dart';
 import 'stores.dart';
+import 'sync_columns.dart';
 
 /// The log of everything that changed a quantity.
 ///
@@ -25,7 +26,7 @@ import 'stores.dart';
   columns: {#storeId, IndexedColumn(#occurredAt, orderBy: OrderingMode.desc)},
 )
 @TableIndex(name: 'stock_movements_receipt', columns: {#receiptId})
-class StockMovements extends Table {
+class StockMovements extends Table with Touched, Deletable {
   TextColumn get id => text().withLength(min: 1, max: 64)();
   TextColumn get storeId =>
       text().references(Stores, #id, onDelete: KeyAction.cascade)();
@@ -88,6 +89,16 @@ class StockMovements extends Table {
   TextColumn get receiptId => text().nullable()();
 
   TextColumn get note => text().nullable()();
+
+  /// Already counted in the article's baseline figures
+  /// ([Items.baselineQuantity]), so a stock rebuild does not replay it.
+  ///
+  /// True for the movements the demo seed writes and for every movement that
+  /// existed before the version 15 upgrade: that history is incomplete, and
+  /// the article's stock at that moment is the trusted starting point instead.
+  /// False for everything recorded since.
+  BoolColumn get inBaseline =>
+      boolean().withDefault(const Constant(false))();
 
   @override
   Set<Column<Object>> get primaryKey => {id};

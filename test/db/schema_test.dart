@@ -103,6 +103,7 @@ void main() {
     return db.into(db.supplierPrices).insert(
           SupplierPricesCompanion.insert(
             id: id,
+            storeId: 'store-1',
             itemId: 'item-1',
             supplierId: 'sup-1',
             pricePerUnit: 2.5,
@@ -197,8 +198,8 @@ void main() {
       ]);
     });
 
-    test('at schema version 14', () {
-      expect(db.schemaVersion, 14);
+    test('at schema version 15', () {
+      expect(db.schemaVersion, 15);
     });
 
     test('with foreign keys switched on', () async {
@@ -317,6 +318,7 @@ void main() {
       await db.into(db.purchaseOrderLines).insert(
             PurchaseOrderLinesCompanion.insert(
               id: 'line-1',
+              storeId: 'store-1',
               orderId: 'order-1',
               itemId: 'item-1',
               quantityOrdered: 4,
@@ -385,6 +387,7 @@ void main() {
       Future<void> cred(String id) => db.into(db.employeeCredentials).insert(
             EmployeeCredentialsCompanion.insert(
               id: id,
+              storeId: 'store-1',
               employeeId: 'emp-1',
               passwordHash: 'password:1234',
             ),
@@ -399,6 +402,7 @@ void main() {
       await db.into(db.employeeCredentials).insert(
             EmployeeCredentialsCompanion.insert(
               id: 'cred-1',
+              storeId: 'store-1',
               employeeId: 'emp-1',
               passwordHash: 'password:1234',
             ),
@@ -407,6 +411,7 @@ void main() {
       await db.into(db.attendanceSessions).insert(
             AttendanceSessionsCompanion.insert(
               id: 'session-1',
+              storeId: 'store-1',
               attendanceId: 'att-1',
               position: 0,
               clockInAt: DateTime(2026, 7, 1, 8),
@@ -415,6 +420,7 @@ void main() {
       await db.into(db.attendancePauses).insert(
             AttendancePausesCompanion.insert(
               id: 'pause-1',
+              storeId: 'store-1',
               sessionId: 'session-1',
               position: 0,
               startAt: DateTime(2026, 7, 1, 12),

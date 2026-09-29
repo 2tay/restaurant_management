@@ -59,10 +59,12 @@ PurchaseOrderLine orderLineFromRow(PurchaseOrderLineRow row) =>
 /// so the caller supplies both.
 PurchaseOrderLinesCompanion orderLineToRow(
   PurchaseOrderLine line, {
+  required String storeId,
   required String orderId,
   required int position,
 }) => PurchaseOrderLinesCompanion.insert(
   id: line.id,
+  storeId: storeId,
   orderId: orderId,
   position: position,
   itemId: line.itemId,

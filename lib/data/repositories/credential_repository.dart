@@ -8,6 +8,7 @@ import '../database/app_database.dart';
 import '../mappers/mappers.dart';
 import 'employee_repository.dart';
 import 'new_id.dart';
+import 'soft_delete.dart';
 
 /// How a [CredentialRepository.authenticate] call turned out.
 enum LoginOutcome {
@@ -70,30 +71,36 @@ class CredentialRepository {
     if (!isValidPassword(password)) return null;
 
     return _db.transaction(() async {
-      final employeeExists =
-          await (_db.select(_db.employees)
-                ..where((e) => e.id.equals(employeeId)))
-              .getSingleOrNull() !=
-          null;
-      if (!employeeExists) return null;
+      final employee = await (_db.select(
+        _db.employees,
+      )..where((e) => e.id.equals(employeeId) & e.deletedAt.isNull())).getSingleOrNull();
+      if (employee == null) return null;
 
-      final current = await _rowFor(employeeId);
+      // Including a credential removed by [clear]: it is still in the table,
+      // marked deleted, and there is one row per employee, so a new password
+      // brings that row back rather than adding a second.
+      final current = await _rowFor(employeeId, includeDeleted: true);
       final replacement = EmployeeCredential(
         id: current?.id ?? newId(),
         employeeId: employeeId,
-        passwordHash: fakePasswordHash(password),
+        passwordHash: passwordHashOf(password),
       );
 
       if (current == null) {
         await _db
             .into(_db.employeeCredentials)
-            .insert(credentialToRow(replacement));
+            .insert(credentialToRow(replacement, storeId: employee.storeId));
       } else {
         // A full write, so `failedAttempts` / `lockedUntil` / `lastLoginAt` all
         // return to their defaults — a fresh password wipes the lockout state.
         await (_db.update(_db.employeeCredentials)
               ..where((c) => c.employeeId.equals(employeeId)))
-            .write(credentialToRow(replacement));
+            .write(
+              credentialToRow(
+                replacement,
+                storeId: employee.storeId,
+              ).copyWith(deletedAt: const Value(null)),
+            );
       }
       return replacement;
     });
@@ -142,12 +149,8 @@ class CredentialRepository {
   /// Removes this employee's login credential altogether — they can no longer
   /// sign in. What a change to the Employé role does: an Employé never signs
   /// in, so nothing is kept for them. Returns whether there was one to remove.
-  Future<bool> clear(String employeeId) async {
-    final removed = await (_db.delete(
-      _db.employeeCredentials,
-    )..where((c) => c.employeeId.equals(employeeId))).go();
-    return removed > 0;
-  }
+  Future<bool> clear(String employeeId) async =>
+      await SoftDelete(_db).credential(employeeId) > 0;
 
   /// Lifts a lockout early — the "Débloquer" action a manager or owner takes.
   /// Returns false when there was nothing locked or counted.
@@ -227,8 +230,14 @@ class CredentialRepository {
 
   // ---------------------------------------------------------------------------
 
-  Future<EmployeeCredentialRow?> _rowFor(String employeeId) =>
-      (_db.select(_db.employeeCredentials)
-            ..where((c) => c.employeeId.equals(employeeId)))
+  Future<EmployeeCredentialRow?> _rowFor(
+    String employeeId, {
+    bool includeDeleted = false,
+  }) =>
+      (_db.select(_db.employeeCredentials)..where(
+            (c) => includeDeleted
+                ? c.employeeId.equals(employeeId)
+                : c.employeeId.equals(employeeId) & c.deletedAt.isNull(),
+          ))
           .getSingleOrNull();
 }

@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 
 import 'orders.dart';
 import 'stores.dart';
+import 'sync_columns.dart';
 
 /// A delivery, as received.
 ///
@@ -12,7 +13,7 @@ import 'stores.dart';
 @DataClassName('GoodsReceiptRow')
 @TableIndex(name: 'goods_receipts_order', columns: {#orderId})
 @TableIndex(name: 'goods_receipts_store', columns: {#storeId})
-class GoodsReceipts extends Table {
+class GoodsReceipts extends Table with Touched, Deletable {
   TextColumn get id => text().withLength(min: 1, max: 64)();
 
   /// Cascades, because a receipt has no meaning without its commande — the
@@ -47,8 +48,13 @@ class GoodsReceipts extends Table {
 @DataClassName('GoodsReceiptLineRow')
 @TableIndex(name: 'goods_receipt_lines_receipt', columns: {#receiptId})
 @TableIndex(name: 'goods_receipt_lines_item', columns: {#itemId})
-class GoodsReceiptLines extends Table {
+class GoodsReceiptLines extends Table with Touched, Deletable {
   TextColumn get id => text().withLength(min: 1, max: 64)();
+
+  /// The establishment, copied from the parent row. Redundant locally, but it
+  /// lets the server check who may see this row without a join to its parent.
+  TextColumn get storeId =>
+      text().references(Stores, #id, onDelete: KeyAction.cascade)();
   TextColumn get receiptId =>
       text().references(GoodsReceipts, #id, onDelete: KeyAction.cascade)();
 

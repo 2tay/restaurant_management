@@ -1,7 +1,7 @@
 /// The keys used in the `meta` table.
 ///
-/// Constants rather than string literals at the call sites: there are two of
-/// them, they are read and written from different layers, and a typo in one
+/// Constants rather than string literals at the call sites: there are several
+/// of them, they are read and written from different layers, and a typo in one
 /// place produces a silent miss rather than an error.
 abstract final class MetaKeys {
   /// When the demo dataset was written, ISO-8601.
@@ -23,4 +23,13 @@ abstract final class MetaKeys {
   /// it so a widget test opens as the account owner, the same default
   /// `MockSession` gave the mock-backed suites.
   static const String currentEmployeeId = 'currentEmployeeId';
+
+  /// This installation's id, a UUID made the first time the app opens its
+  /// database and never changed after (SYNC_PLAN.md, Phase 1, step 10).
+  ///
+  /// Local only, never synced: it is how the server will tell devices apart,
+  /// so two devices must never share it. It survives a demo reset, because it
+  /// names the installation rather than anything in the dataset. See
+  /// `DeviceRepository`.
+  static const String deviceId = 'deviceId';
 }

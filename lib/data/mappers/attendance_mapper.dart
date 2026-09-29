@@ -69,11 +69,13 @@ AttendanceSession attendanceSessionFromRow(
 /// repository passes a fresh uuid instead when a cycle is opened at runtime.
 AttendanceSessionsCompanion sessionToRow(
   AttendanceSession session, {
+  required String storeId,
   required String attendanceId,
   required int position,
   String? id,
 }) => AttendanceSessionsCompanion.insert(
   id: id ?? '$attendanceId-session-$position',
+  storeId: storeId,
   attendanceId: attendanceId,
   position: position,
   clockInAt: session.clockInAt,
@@ -92,11 +94,13 @@ AttendancePause pauseFromRow(AttendancePauseRow row) =>
 /// repository passes a fresh uuid instead when a break is opened at runtime.
 AttendancePausesCompanion pauseToRow(
   AttendancePause pause, {
+  required String storeId,
   required String sessionId,
   required int position,
   String? id,
 }) => AttendancePausesCompanion.insert(
   id: id ?? '$sessionId-pause-$position',
+  storeId: storeId,
   sessionId: sessionId,
   position: position,
   startAt: pause.startAt,

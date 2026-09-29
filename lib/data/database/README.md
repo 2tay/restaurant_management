@@ -14,6 +14,39 @@ stores them as their **name string** — the property that mattered, since an in
 the day somebody reorders the enum and the database outlives the source file. Hand-written
 `TypeConverter`s would be the same behaviour spelled out at length.
 
+## Ready for sync (schema version 15)
+
+Phase 3 syncs this database between devices. Version 15 prepared it, with no network
+involved yet. See `SYNC_PLAN.md` at the repository root, Phase 1.
+
+**Every table is synced or local.** The two lists are in `sync_tables.dart`, and a test
+fails when a new table is in neither.
+
+| Synced (shared by every device) | Local (this installation only) |
+|---|---|
+| `stores`, `categories`, `units`, `items`, `suppliers`, `supplier_prices`, `price_history`, `stock_movements`, `purchase_orders`, `purchase_order_lines`, `goods_receipts`, `goods_receipt_lines`, `notifications`, `employees`, `employee_credentials`, `payroll_periods`, `attendances`, `attendance_sessions`, `attendance_pauses`, `busy_dates` | `meta`: the signed-in employee, the device id, later the sync cursors |
+
+A synced table follows four rules:
+
+- **It has `updated_at` and `deleted_at`** (`tables/sync_columns.dart`). An insert gets
+  `updated_at` from a client default. An update gets it from the `*_touch` trigger in
+  `sync_triggers.drift`, unless the write set it itself.
+- **Nothing is deleted from it.** A delete sets `deleted_at`, through
+  `repositories/soft_delete.dart`, which also writes out the cascades the foreign keys
+  used to do. The demo reset is the one exception: the demo never syncs.
+- **Every read skips deleted rows.** Each query says `deletedAt IS NULL`, joins included
+  (in the `ON` clause of a left join, so the left row survives). The three reads that must
+  see deleted rows, because a unique index does, say so in a comment: the attendance day
+  lookup before a clock-in and the two position counts.
+- **A child row carries its store**, copied from its parent, so the server can check who
+  may see it without a join.
+
+**Stock is derived.** `items.quantity` and `items.average_cost` are what replaying the
+movements not marked `in_baseline` on top of `baseline_quantity` and
+`baseline_average_cost` produces. `repositories/stock_ledger.dart` does the replay. The
+version 15 upgrade and the demo seed set the baseline to the stock the article already
+held, because the history before that is incomplete.
+
 ## Two things that are easy to get wrong
 
 **Foreign keys are off by default in SQLite.** Every `references()` in `tables/` is

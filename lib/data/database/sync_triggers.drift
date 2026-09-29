@@ -1,0 +1,175 @@
+-- Stamps `updated_at` on every synced table.
+--
+-- A row inserted gets the column's client default (`clock.now()`, see
+-- `tables/sync_columns.dart`). A row updated gets the current time from one of
+-- the `*_touch` triggers below, unless the write set `updated_at` itself — the
+-- `WHEN` clause is what lets a movement stamp an article with the movement's own
+-- time, and what stops the trigger's own UPDATE from firing it again.
+--
+-- Triggers rather than a line in every repository, because a repository that
+-- forgot would produce a change no other device ever hears about.
+
+import 'tables/account.dart';
+import 'tables/attendance.dart';
+import 'tables/busy_dates.dart';
+import 'tables/catalog.dart';
+import 'tables/employees.dart';
+import 'tables/items.dart';
+import 'tables/movements.dart';
+import 'tables/orders.dart';
+import 'tables/payroll.dart';
+import 'tables/receipts.dart';
+import 'tables/stores.dart';
+import 'tables/suppliers.dart';
+
+-- The current time in UTC, in the format drift writes a UTC DateTime
+-- (`2026-09-29T12:03:12.345Z`), which is the format `syncStampNow()` produces
+-- on the Dart side. Not local time: SQLite's `localtime` depends on how the
+-- library was built, and the Windows one returns NULL.
+CREATE VIEW sync_clock AS
+  SELECT strftime('%Y-%m-%dT%H:%M:%fZ', 'now') AS now;
+
+CREATE TRIGGER stores_touch AFTER UPDATE ON stores
+  WHEN NEW.updated_at IS OLD.updated_at
+BEGIN
+  UPDATE stores SET updated_at = (SELECT now FROM sync_clock)
+    WHERE rowid = NEW.rowid;
+END;
+
+CREATE TRIGGER categories_touch AFTER UPDATE ON categories
+  WHEN NEW.updated_at IS OLD.updated_at
+BEGIN
+  UPDATE categories SET updated_at = (SELECT now FROM sync_clock)
+    WHERE rowid = NEW.rowid;
+END;
+
+CREATE TRIGGER units_touch AFTER UPDATE ON units
+  WHEN NEW.updated_at IS OLD.updated_at
+BEGIN
+  UPDATE units SET updated_at = (SELECT now FROM sync_clock)
+    WHERE rowid = NEW.rowid;
+END;
+
+-- An article's `updated_at` also means "last stock change" to the screens, and
+-- every write that moves the stock sets it to the movement's own time. That
+-- time can equal the old value to the microsecond (an article created and
+-- given its opening stock in one go), which the general rule would read as
+-- "not set" and overwrite. So a write that changes the quantity is left alone.
+CREATE TRIGGER items_touch AFTER UPDATE ON items
+  WHEN NEW.updated_at IS OLD.updated_at AND NEW.quantity IS OLD.quantity
+BEGIN
+  UPDATE items SET updated_at = (SELECT now FROM sync_clock)
+    WHERE rowid = NEW.rowid;
+END;
+
+CREATE TRIGGER suppliers_touch AFTER UPDATE ON suppliers
+  WHEN NEW.updated_at IS OLD.updated_at
+BEGIN
+  UPDATE suppliers SET updated_at = (SELECT now FROM sync_clock)
+    WHERE rowid = NEW.rowid;
+END;
+
+CREATE TRIGGER supplier_prices_touch AFTER UPDATE ON supplier_prices
+  WHEN NEW.updated_at IS OLD.updated_at
+BEGIN
+  UPDATE supplier_prices SET updated_at = (SELECT now FROM sync_clock)
+    WHERE rowid = NEW.rowid;
+END;
+
+CREATE TRIGGER price_history_touch AFTER UPDATE ON price_history
+  WHEN NEW.updated_at IS OLD.updated_at
+BEGIN
+  UPDATE price_history SET updated_at = (SELECT now FROM sync_clock)
+    WHERE rowid = NEW.rowid;
+END;
+
+CREATE TRIGGER stock_movements_touch AFTER UPDATE ON stock_movements
+  WHEN NEW.updated_at IS OLD.updated_at
+BEGIN
+  UPDATE stock_movements SET updated_at = (SELECT now FROM sync_clock)
+    WHERE rowid = NEW.rowid;
+END;
+
+CREATE TRIGGER purchase_orders_touch AFTER UPDATE ON purchase_orders
+  WHEN NEW.updated_at IS OLD.updated_at
+BEGIN
+  UPDATE purchase_orders SET updated_at = (SELECT now FROM sync_clock)
+    WHERE rowid = NEW.rowid;
+END;
+
+CREATE TRIGGER purchase_order_lines_touch AFTER UPDATE ON purchase_order_lines
+  WHEN NEW.updated_at IS OLD.updated_at
+BEGIN
+  UPDATE purchase_order_lines SET updated_at = (SELECT now FROM sync_clock)
+    WHERE rowid = NEW.rowid;
+END;
+
+CREATE TRIGGER goods_receipts_touch AFTER UPDATE ON goods_receipts
+  WHEN NEW.updated_at IS OLD.updated_at
+BEGIN
+  UPDATE goods_receipts SET updated_at = (SELECT now FROM sync_clock)
+    WHERE rowid = NEW.rowid;
+END;
+
+CREATE TRIGGER goods_receipt_lines_touch AFTER UPDATE ON goods_receipt_lines
+  WHEN NEW.updated_at IS OLD.updated_at
+BEGIN
+  UPDATE goods_receipt_lines SET updated_at = (SELECT now FROM sync_clock)
+    WHERE rowid = NEW.rowid;
+END;
+
+CREATE TRIGGER notifications_touch AFTER UPDATE ON notifications
+  WHEN NEW.updated_at IS OLD.updated_at
+BEGIN
+  UPDATE notifications SET updated_at = (SELECT now FROM sync_clock)
+    WHERE rowid = NEW.rowid;
+END;
+
+CREATE TRIGGER employees_touch AFTER UPDATE ON employees
+  WHEN NEW.updated_at IS OLD.updated_at
+BEGIN
+  UPDATE employees SET updated_at = (SELECT now FROM sync_clock)
+    WHERE rowid = NEW.rowid;
+END;
+
+CREATE TRIGGER employee_credentials_touch AFTER UPDATE ON employee_credentials
+  WHEN NEW.updated_at IS OLD.updated_at
+BEGIN
+  UPDATE employee_credentials SET updated_at = (SELECT now FROM sync_clock)
+    WHERE rowid = NEW.rowid;
+END;
+
+CREATE TRIGGER payroll_periods_touch AFTER UPDATE ON payroll_periods
+  WHEN NEW.updated_at IS OLD.updated_at
+BEGIN
+  UPDATE payroll_periods SET updated_at = (SELECT now FROM sync_clock)
+    WHERE rowid = NEW.rowid;
+END;
+
+CREATE TRIGGER attendances_touch AFTER UPDATE ON attendances
+  WHEN NEW.updated_at IS OLD.updated_at
+BEGIN
+  UPDATE attendances SET updated_at = (SELECT now FROM sync_clock)
+    WHERE rowid = NEW.rowid;
+END;
+
+CREATE TRIGGER attendance_sessions_touch AFTER UPDATE ON attendance_sessions
+  WHEN NEW.updated_at IS OLD.updated_at
+BEGIN
+  UPDATE attendance_sessions SET updated_at = (SELECT now FROM sync_clock)
+    WHERE rowid = NEW.rowid;
+END;
+
+CREATE TRIGGER attendance_pauses_touch AFTER UPDATE ON attendance_pauses
+  WHEN NEW.updated_at IS OLD.updated_at
+BEGIN
+  UPDATE attendance_pauses SET updated_at = (SELECT now FROM sync_clock)
+    WHERE rowid = NEW.rowid;
+END;
+
+CREATE TRIGGER busy_dates_touch AFTER UPDATE ON busy_dates
+  WHEN NEW.updated_at IS OLD.updated_at
+BEGIN
+  UPDATE busy_dates SET updated_at = (SELECT now FROM sync_clock)
+    WHERE rowid = NEW.rowid;
+END;

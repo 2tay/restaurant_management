@@ -2,11 +2,12 @@ import 'package:drift/drift.dart';
 
 import 'items.dart';
 import 'stores.dart';
+import 'sync_columns.dart';
 
 /// A supplier the establishment buys from.
 @DataClassName('SupplierRow')
 @TableIndex(name: 'suppliers_store', columns: {#storeId})
-class Suppliers extends Table {
+class Suppliers extends Table with Touched, Deletable {
   TextColumn get id => text().withLength(min: 1, max: 64)();
   TextColumn get storeId =>
       text().references(Stores, #id, onDelete: KeyAction.cascade)();
@@ -41,8 +42,13 @@ class Suppliers extends Table {
   columns: {#itemId, #supplierId},
   unique: true,
 )
-class SupplierPrices extends Table {
+class SupplierPrices extends Table with Touched, Deletable {
   TextColumn get id => text().withLength(min: 1, max: 64)();
+
+  /// The establishment, copied from the parent row. Redundant locally, but it
+  /// lets the server check who may see this row without a join to its parent.
+  TextColumn get storeId =>
+      text().references(Stores, #id, onDelete: KeyAction.cascade)();
   TextColumn get itemId =>
       text().references(Items, #id, onDelete: KeyAction.cascade)();
   TextColumn get supplierId =>
@@ -79,8 +85,13 @@ class SupplierPrices extends Table {
     IndexedColumn(#changedAt, orderBy: OrderingMode.desc),
   },
 )
-class PriceHistory extends Table {
+class PriceHistory extends Table with Touched, Deletable {
   TextColumn get id => text().withLength(min: 1, max: 64)();
+
+  /// The establishment, copied from the parent row. Redundant locally, but it
+  /// lets the server check who may see this row without a join to its parent.
+  TextColumn get storeId =>
+      text().references(Stores, #id, onDelete: KeyAction.cascade)();
   TextColumn get itemId =>
       text().references(Items, #id, onDelete: KeyAction.cascade)();
   TextColumn get supplierId =>

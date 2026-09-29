@@ -506,12 +506,14 @@ void main() {
       await db.customStatement(
         'INSERT INTO stock_movements '
         '(id, store_id, item_id, type, quantity, occurred_at, user_name, '
-        ' reason, unit_cost) '
-        "VALUES ('mov-window', ?, ?, 'stockOut', -4, ?, 'Sophie', 'sale', 3.5)",
+        ' reason, unit_cost, updated_at) '
+        "VALUES ('mov-window', ?, ?, 'stockOut', -4, ?, 'Sophie', 'sale', 3.5, "
+        '?)',
         [
           StoreIds.sablon,
           DatasetQueries.itemsForStore(StoreIds.sablon).first.id,
           seedInstant.subtract(const Duration(days: 2)).toIso8601String(),
+          seedInstant.toUtc().toIso8601String(),
         ],
       );
 

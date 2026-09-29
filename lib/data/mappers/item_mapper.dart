@@ -13,7 +13,9 @@ Item itemFromRow(ItemRow row) => Item(
   lowStockThreshold: row.lowStockThreshold,
   maxStock: row.maxStock,
   holidayLowStockThreshold: row.holidayLowStockThreshold,
-  updatedAt: row.updatedAt,
+  // Local, whichever way it was stored: the app writes local times, and the
+  // `items_touch` trigger writes UTC for a write that did not set it.
+  updatedAt: row.updatedAt.toLocal(),
   averageCost: row.averageCost,
   defaultSupplierId: row.defaultSupplierId,
   barcode: row.barcode,

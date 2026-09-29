@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 
 import 'catalog.dart';
 import 'stores.dart';
+import 'sync_columns.dart';
 
 /// A stocked product.
 ///
@@ -16,7 +17,7 @@ import 'stores.dart';
 @TableIndex(name: 'items_store_barcode', columns: {#storeId, #barcode})
 @TableIndex(name: 'items_category', columns: {#categoryId})
 @TableIndex(name: 'items_unit', columns: {#unitId})
-class Items extends Table {
+class Items extends Table with Deletable {
   TextColumn get id => text().withLength(min: 1, max: 64)();
   TextColumn get storeId =>
       text().references(Stores, #id, onDelete: KeyAction.cascade)();
@@ -70,6 +71,18 @@ class Items extends Table {
   /// no supplier on file contributes nothing to the valuation. Understating
   /// beats inventing.
   RealColumn get averageCost => real().nullable()();
+
+  /// The stock and cost the movement log starts from.
+  ///
+  /// `quantity` and `averageCost` are derived: they are what replaying every
+  /// movement not marked [StockMovements.inBaseline] on top of these two
+  /// figures produces (`repositories/stock_ledger.dart`). For an article created
+  /// in the app they are zero and unknown, because its first stock arrives as a
+  /// movement. The demo seed and the version 15 upgrade set them to the stock
+  /// the article already held, since the history before that is incomplete.
+  RealColumn get baselineQuantity =>
+      real().withDefault(const Constant(0.0))();
+  RealColumn get baselineAverageCost => real().nullable()();
 
   /// The supplier pre-selected when receiving a delivery.
   ///

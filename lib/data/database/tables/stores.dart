@@ -1,5 +1,7 @@
 import 'package:drift/drift.dart';
 
+import 'sync_columns.dart';
+
 /// An establishment. Everything else in the schema hangs off one.
 ///
 /// Ids are `TEXT`, not autoincrementing integers, and stay that way: they are
@@ -7,7 +9,7 @@ import 'package:drift/drift.dart';
 /// `xById` lookup takes, and the seed's readable slugs are what makes a debug
 /// dump legible. An integer key would rewrite the router for no gain.
 @DataClassName('StoreRow')
-class Stores extends Table {
+class Stores extends Table with Touched, Deletable {
   TextColumn get id => text().withLength(min: 1, max: 64)();
   TextColumn get name => text()();
   TextColumn get addressLine => text()();

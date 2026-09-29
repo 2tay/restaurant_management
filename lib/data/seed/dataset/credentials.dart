@@ -1,4 +1,3 @@
-import '../../../core/utils/credential_status.dart';
 import '../../../models/employee.dart';
 import '../../../models/employee_credential.dart';
 import 'employees.dart';
@@ -14,6 +13,17 @@ import 'employees.dart';
 ///
 /// Nobody starts locked or with failed attempts — those states are produced by
 /// `CredentialMutations` during the walkthrough, not seeded.
+/// `1234`, hashed once and written down.
+///
+/// The same PBKDF2 hash `passwordHashOf('1234')` would produce, but with a
+/// fixed salt so it can be a constant: hashing is deliberately slow, and every
+/// test that seeds the demo would otherwise pay for it once per manager. A
+/// fixed salt is harmless for a password printed on the login screen; real
+/// passwords get a random one.
+const String demoPasswordHash =
+    r'pbkdf2-sha256$60000$AwoRGB8mLTQ7QklQV15lbA==$'
+    r'wz4ctIKCF7VdVco5rgxzyJGhd9mYO7pEnkTOSD2Z+2U=';
+
 final List<EmployeeCredential> mockCredentials = [
   for (final employee in mockEmployees)
     // An Employé never signs in (their pointage is at the kiosk, with their
@@ -23,6 +33,6 @@ final List<EmployeeCredential> mockCredentials = [
       EmployeeCredential(
         id: 'cred-${employee.id}',
         employeeId: employee.id,
-        passwordHash: fakePasswordHash('1234'),
+        passwordHash: demoPasswordHash,
       ),
 ];

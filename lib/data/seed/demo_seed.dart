@@ -53,6 +53,15 @@ Future<void> seedDemoData(AppDatabase db, {DateTime? at}) async {
       Value(original == null ? null : movedByDays(original));
   DateTime movedDay(DateTime original) => midnight(movedByDays(original));
 
+  // The child rows below carry their store (version 15, for sync); the dataset
+  // models do not, so it is looked up from the parent.
+  final Map<String, String> itemStore = {
+    for (final item in mockItems) item.id: item.storeId,
+  };
+  final Map<String, String> employeeStore = {
+    for (final employee in mockEmployees) employee.id: employee.storeId,
+  };
+
   await db.batch((Batch batch) {
     // Insertion order is foreign-key order. With `PRAGMA foreign_keys = ON` the
     // constraints are immediate, not deferred, so a category inserted after the
@@ -70,25 +79,35 @@ Future<void> seedDemoData(AppDatabase db, {DateTime? at}) async {
 
     batch.insertAll(db.items, [
       for (final item in mockItems)
-        itemToRow(item).copyWith(updatedAt: Value(moved(item.updatedAt))),
+        // The stock the article holds is the baseline a rebuild starts from:
+        // the seeded history is a sample, not the whole story, so it does not
+        // add up to that stock. See `repositories/stock_ledger.dart`.
+        itemToRow(item).copyWith(
+          updatedAt: Value(moved(item.updatedAt)),
+          baselineQuantity: Value(item.quantity),
+          baselineAverageCost: Value(item.averageCost),
+        ),
     ]);
     batch.insertAll(db.supplierPrices, [
       for (final price in mockSupplierPrices)
         supplierPriceToRow(
           price,
+          storeId: itemStore[price.itemId]!,
         ).copyWith(effectiveDate: Value(moved(price.effectiveDate))),
     ]);
     batch.insertAll(db.priceHistory, [
       for (final entry in mockPriceHistory)
         priceHistoryToRow(
           entry,
+          storeId: itemStore[entry.itemId]!,
         ).copyWith(changedAt: Value(moved(entry.changedAt))),
     ]);
     batch.insertAll(db.stockMovements, [
       for (final movement in mockStockMovements)
-        movementToRow(
-          movement,
-        ).copyWith(occurredAt: Value(moved(movement.occurredAt))),
+        movementToRow(movement).copyWith(
+          occurredAt: Value(moved(movement.occurredAt)),
+          inBaseline: const Value(true),
+        ),
     ]);
 
     batch.insertAll(db.purchaseOrders, [
@@ -102,7 +121,12 @@ Future<void> seedDemoData(AppDatabase db, {DateTime? at}) async {
     batch.insertAll(db.purchaseOrderLines, [
       for (final order in mockPurchaseOrders)
         for (final (int index, line) in order.lines.indexed)
-          orderLineToRow(line, orderId: order.id, position: index),
+          orderLineToRow(
+            line,
+            storeId: order.storeId,
+            orderId: order.id,
+            position: index,
+          ),
     ]);
 
     batch.insertAll(db.goodsReceipts, [
@@ -114,7 +138,12 @@ Future<void> seedDemoData(AppDatabase db, {DateTime? at}) async {
     batch.insertAll(db.goodsReceiptLines, [
       for (final receipt in mockGoodsReceipts)
         for (final (int index, line) in receipt.lines.indexed)
-          receiptLineToRow(line, receiptId: receipt.id, position: index),
+          receiptLineToRow(
+            line,
+            storeId: receipt.storeId,
+            receiptId: receipt.id,
+            position: index,
+          ),
     ]);
 
     // --- Gestion Employée (Phase 2 employé) --------------------------------
@@ -130,7 +159,13 @@ Future<void> seedDemoData(AppDatabase db, {DateTime? at}) async {
           archivedAt: movedByDaysValue(employee.archivedAt),
         ),
     ]);
-    batch.insertAll(db.employeeCredentials, mockCredentials.map(credentialToRow));
+    batch.insertAll(db.employeeCredentials, [
+      for (final credential in mockCredentials)
+        credentialToRow(
+          credential,
+          storeId: employeeStore[credential.employeeId]!,
+        ),
+    ]);
     batch.insertAll(db.payrollPeriods, [
       for (final period in mockPayrollPeriods)
         payrollPeriodToRow(period).copyWith(
@@ -159,6 +194,7 @@ Future<void> seedDemoData(AppDatabase db, {DateTime? at}) async {
         for (final (int index, session) in attendance.sessions.indexed)
           sessionToRow(
             session,
+            storeId: attendance.storeId,
             attendanceId: attendance.id,
             position: index,
           ).copyWith(
@@ -172,6 +208,7 @@ Future<void> seedDemoData(AppDatabase db, {DateTime? at}) async {
           for (final (int pauseIndex, pause) in session.pauses.indexed)
             pauseToRow(
               pause,
+              storeId: attendance.storeId,
               sessionId: '${attendance.id}-session-$sessionIndex',
               position: pauseIndex,
             ).copyWith(
@@ -214,9 +251,13 @@ Future<void> seedDemoData(AppDatabase db, {DateTime? at}) async {
 /// rather than `PRAGMA foreign_keys = OFF`: switching the constraints off to do
 /// a delete is a habit that eventually gets used somewhere it hides a real bug,
 /// and this is fifteen lines.
+///
+/// These are real deletes, not the soft deletes every repository uses: the
+/// demo never syncs, and a reset is meant to leave nothing behind. The one row
+/// kept is the device's id, which belongs to the installation, not the demo.
 Future<void> clearAllData(AppDatabase db) async {
   await db.batch((Batch batch) {
-    batch.deleteAll(db.meta);
+    batch.deleteWhere(db.meta, (m) => m.key.equals(MetaKeys.deviceId).not());
     batch.deleteAll(db.notifications);
     batch.deleteAll(db.busyDates);
 

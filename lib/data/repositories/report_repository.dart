@@ -65,7 +65,7 @@ class ReportRepository {
           '  SUM(i.quantity * COALESCE(i.average_cost, 0)) AS total '
           'FROM items i '
           'JOIN categories c ON c.id = i.category_id '
-          'WHERE i.store_id = ? '
+          'WHERE i.store_id = ? AND i.deleted_at IS NULL '
           'GROUP BY i.category_id, c.name '
           'ORDER BY total DESC, c.name',
           variables: [Variable<String>(storeId)],
@@ -104,7 +104,7 @@ class ReportRepository {
         .customSelect(
           'SELECT name AS label, quantity, '
           '  quantity * COALESCE(average_cost, 0) AS total '
-          'FROM items WHERE store_id = ? '
+          'FROM items WHERE store_id = ? AND deleted_at IS NULL '
           'ORDER BY total DESC, name',
           variables: [Variable<String>(storeId)],
           readsFrom: {_db.items},
@@ -229,6 +229,7 @@ class ReportRepository {
     final movements = await (_db.select(_db.stockMovements)..where(
           (m) =>
               m.storeId.equals(storeId) &
+              m.deletedAt.isNull() &
               m.type.equalsValue(StockMovementType.stockOut) &
               m.occurredAt.isBiggerOrEqualValue(from),
         ))
@@ -280,13 +281,15 @@ class ReportRepository {
           'SELECT COALESCE(SUM(m.quantity * ('
           '  d.price_per_unit - ('
           '    SELECT MIN(p.price_per_unit) FROM supplier_prices p '
-          '    WHERE p.item_id = d.item_id'
+          '    WHERE p.item_id = d.item_id AND p.deleted_at IS NULL'
           '  )'
           ')), 0) AS saving '
           'FROM stock_movements m '
-          'JOIN items i ON i.id = m.item_id '
+          'JOIN items i ON i.id = m.item_id AND i.deleted_at IS NULL '
           'JOIN supplier_prices d ON d.item_id = i.id AND d.is_default = 1 '
+          '  AND d.deleted_at IS NULL '
           "WHERE m.store_id = ? AND m.type = 'stockIn' "
+          'AND m.deleted_at IS NULL '
           'AND m.occurred_at >= ?',
           variables: [
             Variable<String>(storeId),
@@ -308,9 +311,11 @@ class ReportRepository {
           'SELECT d.item_id AS item_id, '
           '  d.price_per_unit - MIN(p.price_per_unit) AS gap '
           'FROM supplier_prices d '
-          'JOIN items i ON i.id = d.item_id '
+          'JOIN items i ON i.id = d.item_id AND i.deleted_at IS NULL '
           'JOIN supplier_prices p ON p.item_id = d.item_id '
+          '  AND p.deleted_at IS NULL '
           'WHERE i.store_id = ? AND d.is_default = 1 '
+          'AND d.deleted_at IS NULL '
           'GROUP BY d.item_id, d.price_per_unit '
           'HAVING gap > 0 '
           'ORDER BY gap DESC, d.item_id '
@@ -324,8 +329,8 @@ class ReportRepository {
     final competing = await _db
         .customSelect(
           'SELECT p.item_id AS item_id FROM supplier_prices p '
-          'JOIN items i ON i.id = p.item_id '
-          'WHERE i.store_id = ? '
+          'JOIN items i ON i.id = p.item_id AND i.deleted_at IS NULL '
+          'WHERE i.store_id = ? AND p.deleted_at IS NULL '
           'GROUP BY p.item_id HAVING COUNT(*) > 1 '
           'ORDER BY p.item_id LIMIT 1',
           variables: [Variable<String>(storeId)],
@@ -335,7 +340,7 @@ class ReportRepository {
     if (competing != null) return competing.read<String>('item_id');
 
     final any = await (_db.select(_db.items)
-          ..where((i) => i.storeId.equals(storeId))
+          ..where((i) => i.storeId.equals(storeId) & i.deletedAt.isNull())
           ..orderBy([(i) => OrderingTerm(expression: i.name)])
           ..limit(1))
         .getSingleOrNull();
@@ -349,7 +354,7 @@ class ReportRepository {
     final value = _stockValue.sum();
     final query = _db.selectOnly(_db.items)
       ..addColumns([value])
-      ..where(_db.items.storeId.equals(storeId));
+      ..where(_db.items.storeId.equals(storeId) & _db.items.deletedAt.isNull());
     return (query, (TypedResult row) => row.read(value) ?? 0);
   }
 
@@ -390,7 +395,7 @@ class ReportRepository {
                 coalesce([movements.unitCost, const Constant<double>(0)]))
             .sum();
 
-    var where = predicate;
+    var where = predicate & movements.deletedAt.isNull();
     if (from != null) {
       where = where & movements.occurredAt.isBiggerOrEqualValue(from);
     }

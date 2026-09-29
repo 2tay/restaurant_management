@@ -7,6 +7,7 @@ import '../database/app_database.dart';
 import '../mappers/mappers.dart';
 import '../view_models/catalog_row_views.dart';
 import 'new_id.dart';
+import 'soft_delete.dart';
 
 /// Categories and units of measure — the establishment's own vocabulary.
 ///
@@ -28,7 +29,8 @@ class CatalogRepository {
       _categoryQuery(storeId).get().then(_toCategories);
 
   Future<Category?> category(String id) =>
-      (_db.select(_db.categories)..where((c) => c.id.equals(id)))
+      (_db.select(_db.categories)
+            ..where((c) => c.id.equals(id) & c.deletedAt.isNull()))
           .getSingleOrNull()
           .then((row) => row == null ? null : categoryFromRow(row));
 
@@ -99,7 +101,8 @@ class CatalogRepository {
       _unitQuery(storeId).get().then(_toUnits);
 
   Future<UnitOfMeasure?> unit(String id) =>
-      (_db.select(_db.units)..where((u) => u.id.equals(id)))
+      (_db.select(_db.units)
+            ..where((u) => u.id.equals(id) & u.deletedAt.isNull()))
           .getSingleOrNull()
           .then((row) => row == null ? null : unitFromRow(row));
 
@@ -216,10 +219,7 @@ class CatalogRepository {
     return _db.transaction(() async {
       if (await itemCountInCategory(id) > 0) return false;
 
-      final removed = await (_db.delete(
-        _db.categories,
-      )..where((c) => c.id.equals(id))).go();
-      return removed > 0;
+      return await SoftDelete(_db).category(id) > 0;
     });
   }
 
@@ -297,10 +297,7 @@ class CatalogRepository {
     return _db.transaction(() async {
       if (await itemCountUsingUnit(id) > 0) return false;
 
-      final removed = await (_db.delete(
-        _db.units,
-      )..where((u) => u.id.equals(id))).go();
-      return removed > 0;
+      return await SoftDelete(_db).unit(id) > 0;
     });
   }
   // ---------------------------------------------------------------------------
@@ -325,7 +322,7 @@ class CatalogRepository {
     final count = _db.items.id.count();
     final query = _db.selectOnly(_db.items)
       ..addColumns([count])
-      ..where(predicate);
+      ..where(predicate & _db.items.deletedAt.isNull());
     return (await query.getSingle()).read(count) ?? 0;
   }
 
@@ -339,10 +336,19 @@ class CatalogRepository {
     Expression<int> count,
   ) {
     final query = _db.select(_db.categories).join([
-      leftOuterJoin(_db.items, _db.items.categoryId.equalsExp(_db.categories.id)),
+      // The deleted-article test sits in the join, not the WHERE: in the WHERE
+      // it would drop the category's row instead of dropping the article.
+      leftOuterJoin(
+        _db.items,
+        _db.items.categoryId.equalsExp(_db.categories.id) &
+            _db.items.deletedAt.isNull(),
+      ),
     ]);
     query
-      ..where(_db.categories.storeId.equals(storeId))
+      ..where(
+        _db.categories.storeId.equals(storeId) &
+            _db.categories.deletedAt.isNull(),
+      )
       ..addColumns([count])
       ..groupBy([_db.categories.id])
       ..orderBy([OrderingTerm(expression: _db.categories.name)]);
@@ -354,10 +360,13 @@ class CatalogRepository {
     Expression<int> count,
   ) {
     final query = _db.select(_db.units).join([
-      leftOuterJoin(_db.items, _db.items.unitId.equalsExp(_db.units.id)),
+      leftOuterJoin(
+        _db.items,
+        _db.items.unitId.equalsExp(_db.units.id) & _db.items.deletedAt.isNull(),
+      ),
     ]);
     query
-      ..where(_db.units.storeId.equals(storeId))
+      ..where(_db.units.storeId.equals(storeId) & _db.units.deletedAt.isNull())
       ..addColumns([count])
       ..groupBy([_db.units.id])
       ..orderBy([OrderingTerm(expression: _db.units.name)]);
@@ -368,12 +377,12 @@ class CatalogRepository {
     String storeId,
   ) =>
       _db.select(_db.categories)
-        ..where((c) => c.storeId.equals(storeId))
+        ..where((c) => c.storeId.equals(storeId) & c.deletedAt.isNull())
         ..orderBy([(c) => OrderingTerm(expression: c.name)]);
 
   SimpleSelectStatement<$UnitsTable, UnitRow> _unitQuery(String storeId) =>
       _db.select(_db.units)
-        ..where((u) => u.storeId.equals(storeId))
+        ..where((u) => u.storeId.equals(storeId) & u.deletedAt.isNull())
         ..orderBy([(u) => OrderingTerm(expression: u.name)]);
 
   List<Category> _toCategories(List<CategoryRow> rows) =>

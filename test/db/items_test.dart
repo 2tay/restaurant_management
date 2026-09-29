@@ -423,10 +423,12 @@ void main() {
 
       final history = await db
           .customSelect(
-            'SELECT id FROM price_history WHERE item_id = ?',
+            'SELECT id FROM price_history '
+            'WHERE item_id = ? AND deleted_at IS NULL',
             variables: [const Variable<String>(id)],
           )
           .get();
+      // Kept in the table, marked deleted (schema version 15, for sync).
       expect(history, isEmpty);
     });
 

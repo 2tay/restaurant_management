@@ -91,6 +91,7 @@ class AccountRepository {
               ..where(
                 (n) =>
                     n.storeId.equals(storeId) &
+                    n.deletedAt.isNull() &
                     n.kind.equalsValue(kind) &
                     n.createdAt.isBiggerThanValue(since) &
                     (relatedItemId == null
@@ -136,7 +137,10 @@ class AccountRepository {
   /// to do.
   Future<int> markAllRead(String storeId) =>
       (_db.update(_db.notifications)..where(
-            (n) => n.storeId.equals(storeId) & n.isRead.equals(false),
+            (n) =>
+                n.storeId.equals(storeId) &
+                n.isRead.equals(false) &
+                n.deletedAt.isNull(),
           ))
           .write(const NotificationsCompanion(isRead: Value(true)));
 
@@ -149,6 +153,7 @@ class AccountRepository {
       ..addColumns([count])
       ..where(
         _db.notifications.storeId.equals(storeId) &
+            _db.notifications.deletedAt.isNull() &
             _db.notifications.isRead.equals(false),
       );
     return (query, (TypedResult row) => row.read(count) ?? 0);
@@ -157,7 +162,7 @@ class AccountRepository {
   SimpleSelectStatement<$NotificationsTable, NotificationRow> _notifications(
     String storeId,
   ) => _db.select(_db.notifications)
-    ..where((n) => n.storeId.equals(storeId))
+    ..where((n) => n.storeId.equals(storeId) & n.deletedAt.isNull())
     ..orderBy([
       (n) => OrderingTerm(expression: n.createdAt, mode: OrderingMode.desc),
       (n) => OrderingTerm(expression: n.id, mode: OrderingMode.desc),

@@ -327,7 +327,9 @@ void main() {
 
       final orphans = await db
           .customSelect(
-            'SELECT id FROM purchase_order_lines WHERE order_id = ?',
+            // Kept in the table, marked deleted (schema version 15, for sync).
+            'SELECT id FROM purchase_order_lines '
+            'WHERE order_id = ? AND deleted_at IS NULL',
             variables: [const Variable<String>(OrderIds.draftMaraicher)],
           )
           .get();

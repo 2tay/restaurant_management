@@ -4,6 +4,7 @@ import '../../core/utils/busy_calendar.dart';
 import '../../models/busy_calendar.dart';
 import '../database/app_database.dart';
 import '../notifications/notification_engine.dart';
+import 'soft_delete.dart';
 
 /// The busy-day calendar: which weekdays are busy every week, which dates are
 /// busy on their own, and how early to be reminded.
@@ -30,10 +31,10 @@ class CalendarRepository {
   Future<BusyCalendar> calendar(String storeId) async {
     final store = await (_db.select(
       _db.stores,
-    )..where((s) => s.id.equals(storeId))).getSingleOrNull();
+    )..where((s) => s.id.equals(storeId) & s.deletedAt.isNull())).getSingleOrNull();
     final dates = await (_db.select(
       _db.busyDates,
-    )..where((d) => d.storeId.equals(storeId))).get();
+    )..where((d) => d.storeId.equals(storeId) & d.deletedAt.isNull())).get();
 
     return BusyCalendar(
       storeId: storeId,
@@ -59,16 +60,25 @@ class CalendarRepository {
   }
 
   /// Marks [day] as busy, or unmarks it when it already is.
+  ///
+  /// Unmarking only marks the row deleted (see [SoftDelete]), so marking the
+  /// same day again brings that row back: the store and the day are its key.
   Future<void> toggleDate(String storeId, DateTime day) async {
     final key = _formatDay(day);
-    final deleted = await (_db.delete(
-      _db.busyDates,
-    )..where((d) => d.storeId.equals(storeId) & d.day.equals(key))).go();
-    if (deleted > 0) return;
+    await _db.transaction(() async {
+      final unmarked = await SoftDelete(_db).busyDate(storeId, key);
+      if (unmarked > 0) return;
 
-    await _db
-        .into(_db.busyDates)
-        .insert(BusyDatesCompanion.insert(storeId: storeId, day: key));
+      await _db
+          .into(_db.busyDates)
+          .insertOnConflictUpdate(
+            BusyDatesCompanion.insert(
+              storeId: storeId,
+              day: key,
+              deletedAt: const Value(null),
+            ),
+          );
+    });
   }
 
   /// Refuses anything under one day: a reminder on the day itself is the

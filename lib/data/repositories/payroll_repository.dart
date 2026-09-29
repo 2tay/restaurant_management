@@ -80,7 +80,8 @@ class PayrollRepository {
   final AppDatabase _db;
 
   Future<PayrollPeriod?> period(String id) =>
-      (_db.select(_db.payrollPeriods)..where((p) => p.id.equals(id)))
+      (_db.select(_db.payrollPeriods)
+            ..where((p) => p.id.equals(id) & p.deletedAt.isNull()))
           .getSingleOrNull()
           .then((row) => row == null ? null : payrollPeriodFromRow(row));
 
@@ -158,6 +159,7 @@ class PayrollRepository {
         await (_db.select(_db.attendances)..where(
               (a) =>
                   a.storeId.equals(storeId) &
+                  a.deletedAt.isNull() &
                   a.status.equalsValue(AttendanceStatus.done),
             ))
             .get();
@@ -214,7 +216,9 @@ class PayrollRepository {
         ? const <PayrollPeriod>[]
         : _toPeriods(
             await (_db.select(_db.payrollPeriods)
-                  ..where((p) => p.id.isIn(periodIds.toList())))
+                  ..where(
+                    (p) => p.id.isIn(periodIds.toList()) & p.deletedAt.isNull(),
+                  ))
                 .get(),
           );
 
@@ -243,6 +247,7 @@ class PayrollRepository {
       ..addColumns([count])
       ..where(
         _db.attendances.storeId.equals(storeId) &
+            _db.attendances.deletedAt.isNull() &
             _db.attendances.status.equalsValue(AttendanceStatus.done) &
             _db.attendances.payrollPeriodId.isNull(),
       );
@@ -377,6 +382,7 @@ class PayrollRepository {
               (a) =>
                   a.employeeId.equals(employeeId) &
                   a.storeId.equals(storeId) &
+                  a.deletedAt.isNull() &
                   a.status.equalsValue(AttendanceStatus.done) &
                   a.payrollPeriodId.isNull(),
             ))
@@ -406,7 +412,7 @@ class PayrollRepository {
     String? employeeId,
   ) async {
     final query = _db.select(_db.employees)
-      ..where((e) => e.storeId.equals(storeId));
+      ..where((e) => e.storeId.equals(storeId) & e.deletedAt.isNull());
     if (employeeId != null) {
       query.where((e) => e.id.equals(employeeId));
     } else {
@@ -427,7 +433,7 @@ class PayrollRepository {
     final needle = (employeeQuery ?? '').trim().toLowerCase();
 
     final rows = await (_db.select(_db.payrollPeriods)
-          ..where((p) => p.storeId.equals(storeId))
+          ..where((p) => p.storeId.equals(storeId) & p.deletedAt.isNull())
           ..orderBy([
             (p) => OrderingTerm(
               expression: coalesce([p.paidAt, p.createdAt]),
@@ -442,7 +448,7 @@ class PayrollRepository {
         : {
             for (final e in await (_db.select(
               _db.employees,
-            )..where((e) => e.storeId.equals(storeId))).get())
+            )..where((e) => e.storeId.equals(storeId) & e.deletedAt.isNull())).get())
               e.id: '${e.firstName} ${e.lastName}'.toLowerCase(),
           };
 
@@ -470,7 +476,7 @@ class PayrollRepository {
   SimpleSelectStatement<$PayrollPeriodsTable, PayrollPeriodRow>
   _forEmployeeQuery(String employeeId) =>
       _db.select(_db.payrollPeriods)
-        ..where((p) => p.employeeId.equals(employeeId))
+        ..where((p) => p.employeeId.equals(employeeId) & p.deletedAt.isNull())
         ..orderBy([
           (p) => OrderingTerm(
             expression: coalesce([p.paidAt, p.createdAt]),
@@ -484,7 +490,7 @@ class PayrollRepository {
     final ids = rows.map((r) => r.id).toList();
     final sessionRows =
         await (_db.select(_db.attendanceSessions)
-              ..where((s) => s.attendanceId.isIn(ids))
+              ..where((s) => s.attendanceId.isIn(ids) & s.deletedAt.isNull())
               ..orderBy([(s) => OrderingTerm(expression: s.position)]))
             .get();
 
@@ -493,7 +499,7 @@ class PayrollRepository {
         ? const <AttendancePauseRow>[]
         : await (_db.select(
             _db.attendancePauses,
-          )..where((p) => p.sessionId.isIn(sessionIds))).get();
+          )..where((p) => p.sessionId.isIn(sessionIds) & p.deletedAt.isNull())).get();
 
     final pausesBySession = <String, List<AttendancePauseRow>>{};
     for (final pause in pauseRows) {

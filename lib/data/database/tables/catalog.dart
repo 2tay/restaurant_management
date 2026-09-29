@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 
 import 'stores.dart';
+import 'sync_columns.dart';
 
 /// A grouping for articles — Légumes, Viandes, Boissons.
 ///
@@ -14,7 +15,7 @@ import 'stores.dart';
 /// different rule than the one the app states. It stays in the repository,
 /// where it can say so in French.
 @DataClassName('CategoryRow')
-class Categories extends Table {
+class Categories extends Table with Touched, Deletable {
   TextColumn get id => text().withLength(min: 1, max: 64)();
   TextColumn get storeId =>
       text().references(Stores, #id, onDelete: KeyAction.cascade)();
@@ -29,7 +30,7 @@ class Categories extends Table {
 /// [abbreviation] is what appears next to every quantity in the app; [name] is
 /// what appears in the picker. Both are the store's own wording.
 @DataClassName('UnitRow')
-class Units extends Table {
+class Units extends Table with Touched, Deletable {
   TextColumn get id => text().withLength(min: 1, max: 64)();
   TextColumn get storeId =>
       text().references(Stores, #id, onDelete: KeyAction.cascade)();

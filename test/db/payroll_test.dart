@@ -80,6 +80,7 @@ void main() {
                 clockOut.$2,
               ),
             ),
+            storeId: StoreIds.sablon,
             attendanceId: id,
             position: 0,
           ),

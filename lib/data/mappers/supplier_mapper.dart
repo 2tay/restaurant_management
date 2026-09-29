@@ -41,9 +41,15 @@ SupplierPrice supplierPriceFromRow(SupplierPriceRow row) => SupplierPrice(
   isDefault: row.isDefault,
 );
 
-SupplierPricesCompanion supplierPriceToRow(SupplierPrice price) =>
+/// The price model does not carry its store; it is the article's, and the
+/// caller supplies it.
+SupplierPricesCompanion supplierPriceToRow(
+  SupplierPrice price, {
+  required String storeId,
+}) =>
     SupplierPricesCompanion.insert(
       id: price.id,
+      storeId: storeId,
       itemId: price.itemId,
       supplierId: price.supplierId,
       pricePerUnit: price.pricePerUnit,
@@ -61,9 +67,13 @@ PriceHistoryEntry priceHistoryFromRow(PriceHistoryRow row) => PriceHistoryEntry(
   changedByName: row.changedByName,
 );
 
-PriceHistoryCompanion priceHistoryToRow(PriceHistoryEntry entry) =>
+PriceHistoryCompanion priceHistoryToRow(
+  PriceHistoryEntry entry, {
+  required String storeId,
+}) =>
     PriceHistoryCompanion.insert(
       id: entry.id,
+      storeId: storeId,
       itemId: entry.itemId,
       supplierId: entry.supplierId,
       oldPrice: entry.oldPrice,

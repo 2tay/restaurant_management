@@ -1,8 +1,6 @@
 import 'package:clock/clock.dart';
 import 'package:drift/drift.dart';
 
-import '../../core/utils/stock_cost.dart';
-import '../../models/item.dart';
 import '../../models/stock_movement.dart';
 import '../database/app_database.dart';
 import '../mappers/mappers.dart';
@@ -10,6 +8,7 @@ import '../notifications/notification_engine.dart';
 import '../view_models/item_detail_views.dart';
 import 'account_repository.dart';
 import 'new_id.dart';
+import 'stock_ledger.dart';
 
 /// The stock movement log.
 ///
@@ -31,8 +30,9 @@ import 'new_id.dart';
 /// advances it. Every movement records both the cost it applied and the average
 /// it produced, so the number stays auditable and rebuildable.
 ///
-/// The arithmetic lives in `core/utils/stock_cost.dart` and is used here
-/// unchanged, so it can be tested without writing to anything.
+/// The arithmetic lives in `core/utils/stock_cost.dart` and is applied through
+/// `appliedCostOf` in `stock_ledger.dart`, the same function the stock rebuild
+/// replays, so the live path and the rebuild cannot disagree.
 class MovementRepository {
   const MovementRepository(this._db);
 
@@ -88,19 +88,26 @@ class MovementRepository {
         _db.select(_db.stockMovements).join([
             leftOuterJoin(
               _db.items,
-              _db.items.id.equalsExp(_db.stockMovements.itemId),
+              _db.items.id.equalsExp(_db.stockMovements.itemId) &
+                  _db.items.deletedAt.isNull(),
             ),
-            leftOuterJoin(_db.units, _db.units.id.equalsExp(_db.items.unitId)),
+            leftOuterJoin(
+              _db.units,
+              _db.units.id.equalsExp(_db.items.unitId) &
+                  _db.units.deletedAt.isNull(),
+            ),
             leftOuterJoin(
               _db.suppliers,
-              _db.suppliers.id.equalsExp(_db.stockMovements.supplierId),
+              _db.suppliers.id.equalsExp(_db.stockMovements.supplierId) &
+                  _db.suppliers.deletedAt.isNull(),
             ),
             leftOuterJoin(
               _db.purchaseOrders,
-              _db.purchaseOrders.id.equalsExp(_db.stockMovements.orderId),
+              _db.purchaseOrders.id.equalsExp(_db.stockMovements.orderId) &
+                  _db.purchaseOrders.deletedAt.isNull(),
             ),
           ])
-          ..where(predicate)
+          ..where(predicate & _db.stockMovements.deletedAt.isNull())
           // Newest first, with the id breaking ties: two movements in the same
           // millisecond are ordinary inside one delivery.
           ..orderBy([
@@ -313,9 +320,9 @@ class MovementRepository {
   /// half-applied delivery impossible rather than merely unlikely.
   Future<StockMovement> _record(StockMovement draft) {
     return _db.transaction(() async {
-      final row = await (_db.select(
-        _db.items,
-      )..where((i) => i.id.equals(draft.itemId))).getSingleOrNull();
+      final row = await (_db.select(_db.items)
+            ..where((i) => i.id.equals(draft.itemId) & i.deletedAt.isNull()))
+          .getSingleOrNull();
 
       if (row == null) {
         // Phase 1 filed the movement anyway, with no cost figures, because a
@@ -328,7 +335,11 @@ class MovementRepository {
       }
 
       final item = itemFromRow(row);
-      final applied = _costOf(item, draft);
+      final applied = appliedCostOf(
+        quantityBefore: item.quantity,
+        averageCostBefore: item.averageCost,
+        movement: draft,
+      );
 
       // The cost is worked out from the quantity *before* the movement is
       // applied, because that is what the weighted average averages against.
@@ -391,48 +402,6 @@ class MovementRepository {
     });
   }
 
-  /// What this movement does to the article's cost, and at what unit cost.
-  _AppliedCost _costOf(Item item, StockMovement movement) {
-    switch (movement.type) {
-      case StockMovementType.stockIn:
-        // A delivery with no price recorded is not a free delivery, it is an
-        // unrecorded price. Falling back to what the stock already cost leaves
-        // the average where it was rather than dragging it towards zero, which
-        // would quietly destroy the article's value.
-        final unitCost = movement.unitPrice ?? item.averageCost;
-        if (unitCost == null) return const _AppliedCost(null, null);
-
-        return _AppliedCost(
-          costAfterStockIn(
-            oldQuantity: item.quantity,
-            oldAverageCost: item.averageCost,
-            inQuantity: movement.quantity,
-            inUnitPrice: unitCost,
-          ),
-          unitCost,
-        );
-
-      case StockMovementType.stockOut:
-        // Unchanged, always. What left is valued at what it cost, which is what
-        // makes a waste line answer "how many euros went in the bin".
-        return _AppliedCost(
-          costAfterStockOut(item.averageCost),
-          item.averageCost,
-        );
-
-      case StockMovementType.adjustment:
-        // Also unchanged — no invoice was involved — except on an article whose
-        // cost is still unknown, where there is nothing to preserve. That is the
-        // opening balance, and the rule is stated in `stock_cost.dart` rather
-        // than special-cased for one caller.
-        final cost = costAfterAdjustmentWithOpening(
-          oldAverageCost: item.averageCost,
-          unitCost: movement.unitCost,
-        );
-        return _AppliedCost(cost, cost);
-    }
-  }
-
   Future<String> _defaultUserName() => AccountRepository(_db).currentUserName();
   // ---------------------------------------------------------------------------
 
@@ -449,13 +418,13 @@ class MovementRepository {
   SimpleSelectStatement<$StockMovementsTable, StockMovementRow> _forStore(
     String storeId,
   ) => _db.select(_db.stockMovements)
-    ..where((m) => m.storeId.equals(storeId))
+    ..where((m) => m.storeId.equals(storeId) & m.deletedAt.isNull())
     ..orderBy(_newestFirst);
 
   SimpleSelectStatement<$StockMovementsTable, StockMovementRow> _forItem(
     String itemId,
   ) => _db.select(_db.stockMovements)
-    ..where((m) => m.itemId.equals(itemId))
+    ..where((m) => m.itemId.equals(itemId) & m.deletedAt.isNull())
     ..orderBy(_newestFirst);
 
   static final List<OrderClauseGenerator<$StockMovementsTable>> _newestFirst =
@@ -466,15 +435,4 @@ class MovementRepository {
 
   List<StockMovement> _toMovements(List<StockMovementRow> rows) =>
       rows.map(movementFromRow).toList();
-}
-
-/// The cost figures a movement produced, on their way onto the movement.
-class _AppliedCost {
-  const _AppliedCost(this.averageCost, this.unitCost);
-
-  /// The article's average once the movement landed.
-  final double? averageCost;
-
-  /// The cost per unit this movement itself applied.
-  final double? unitCost;
 }

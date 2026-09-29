@@ -69,6 +69,11 @@ final Provider<ReportRepository> reportRepositoryProvider =
       (ref) => ReportRepository(ref.watch(databaseProvider)),
     );
 
+final Provider<DeviceRepository> deviceRepositoryProvider =
+    Provider<DeviceRepository>(
+      (ref) => DeviceRepository(ref.watch(databaseProvider)),
+    );
+
 final Provider<DemoRepository> demoRepositoryProvider =
     Provider<DemoRepository>((ref) => DemoRepository(ref.watch(databaseProvider)));
 
