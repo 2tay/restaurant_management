@@ -72,7 +72,11 @@ part 'app_database.g.dart';
     Outbox,
     SyncErrors,
   ],
-  include: {'sync_triggers.drift', 'outbox_triggers.drift'},
+  include: {
+    'sync_triggers.drift',
+    'outbox_triggers.drift',
+    'sync_indexes.drift',
+  },
 )
 class AppDatabase extends _$AppDatabase {
   /// The real one: a file, where the platform says application data belongs.
@@ -94,7 +98,7 @@ class AppDatabase extends _$AppDatabase {
   static const String databaseName = 'stock_inventory';
 
   @override
-  int get schemaVersion => 18;
+  int get schemaVersion => 19;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -374,6 +378,30 @@ class AppDatabase extends _$AppDatabase {
           if (!trigger.entityName.endsWith('_touch')) continue;
           await customStatement('DROP TRIGGER IF EXISTS ${trigger.entityName}');
           await m.create(trigger);
+        }
+      }
+
+      // v18 -> v19: the three "one per" rules count live rows only
+      // (SYNC_PLAN.md, Phase 7), and receive conflicts logged before now are
+      // replayed through the new rules by pulling their stores again.
+      if (from < 19) {
+        for (final index in [
+          attendancesEmployeeDate,
+          supplierPricesPair,
+          employeeCredentialsEmployee,
+        ]) {
+          await customStatement('DROP INDEX IF EXISTS ${index.entityName}');
+          await m.create(index);
+        }
+        if (from >= 17) {
+          await customStatement('''
+            DELETE FROM meta WHERE key IN (
+              SELECT 'syncCursor:' || store_id FROM sync_errors
+               WHERE reason = 'receive_conflict')
+          ''');
+          await customStatement(
+            "DELETE FROM sync_errors WHERE reason = 'receive_conflict'",
+          );
         }
       }
     },

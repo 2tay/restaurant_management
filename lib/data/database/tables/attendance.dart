@@ -18,11 +18,8 @@ import 'sync_columns.dart';
 /// `payrollPeriodId == null ? unpaid : paid`. One nullable FK is the source of
 /// truth.
 @DataClassName('AttendanceRow')
-@TableIndex(
-  name: 'attendances_employee_date',
-  columns: {#employeeId, #date},
-  unique: true,
-)
+// One live day per employee and date: `attendances_employee_date`, a partial
+// unique index in `sync_indexes.drift`.
 @TableIndex(name: 'attendances_store_date', columns: {#storeId, #date})
 class Attendances extends Table with Touched, Deletable {
   TextColumn get id => text().withLength(min: 1, max: 64)();

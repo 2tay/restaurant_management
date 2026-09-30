@@ -300,6 +300,49 @@ class CatalogRepository {
       return await SoftDelete(_db).unit(id) > 0;
     });
   }
+
+  // ---------------------------------------------------------------------------
+  // Merging duplicates (SYNC_PLAN.md, Phase 7)
+  // ---------------------------------------------------------------------------
+  //
+  // Two tablets working offline can each create "Boissons". The name rule
+  // above cannot stop that: neither tablet knew about the other. Nobody is
+  // blocked offline; the screens point out the duplicate and offer to merge.
+
+  /// Moves every article of category [fromId] to [intoId], then deletes the
+  /// emptied one. Returns false when either is missing or they are the same.
+  Future<bool> mergeCategories(String fromId, String intoId) {
+    return _db.transaction(() async {
+      if (fromId == intoId) return false;
+      final from = await category(fromId);
+      final into = await category(intoId);
+      if (from == null || into == null || from.storeId != into.storeId) {
+        return false;
+      }
+      await (_db.update(_db.items)..where(
+            (i) => i.categoryId.equals(fromId) & i.deletedAt.isNull(),
+          ))
+          .write(ItemsCompanion(categoryId: Value(intoId)));
+      return await SoftDelete(_db).category(fromId) > 0;
+    });
+  }
+
+  /// The same for units.
+  Future<bool> mergeUnits(String fromId, String intoId) {
+    return _db.transaction(() async {
+      if (fromId == intoId) return false;
+      final from = await unit(fromId);
+      final into = await unit(intoId);
+      if (from == null || into == null || from.storeId != into.storeId) {
+        return false;
+      }
+      await (_db.update(_db.items)..where(
+            (i) => i.unitId.equals(fromId) & i.deletedAt.isNull(),
+          ))
+          .write(ItemsCompanion(unitId: Value(intoId)));
+      return await SoftDelete(_db).unit(fromId) > 0;
+    });
+  }
   // ---------------------------------------------------------------------------
 
   Future<UnitOfMeasure?> _findUnit(

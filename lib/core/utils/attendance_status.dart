@@ -100,6 +100,26 @@ enum AttendanceAnomaly {
 
   /// A day in the past is still open — clocked in and never clocked out.
   oubliDePointage,
+
+  /// Two sessions of the day overlap in time. One tablet cannot do that; two
+  /// tablets clocking the same person in offline can, and sync merges their
+  /// days into one without trimming anything (SYNC_PLAN.md, Phase 7). A
+  /// manager decides which hours count.
+  doublePointage,
+}
+
+/// Whether two sessions of [entry] overlap: one starts before the other
+/// ends, or while the other is still open.
+bool hasOverlappingSessions(Attendance entry) {
+  final sessions = [...entry.sessions]
+    ..sort((a, b) => a.clockInAt.compareTo(b.clockInAt));
+  for (var i = 1; i < sessions.length; i++) {
+    final previousEnd = sessions[i - 1].clockOutAt;
+    if (previousEnd == null || sessions[i].clockInAt.isBefore(previousEnd)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 DateTime _dayOnly(DateTime v) => DateTime(v.year, v.month, v.day);
@@ -125,6 +145,9 @@ List<AttendanceAnomaly> attendanceAnomalies(
       last.clockOutAt == null &&
       _dayOnly(entry.date).isBefore(today)) {
     result.add(AttendanceAnomaly.oubliDePointage);
+  }
+  if (hasOverlappingSessions(entry)) {
+    result.add(AttendanceAnomaly.doublePointage);
   }
   return result;
 }

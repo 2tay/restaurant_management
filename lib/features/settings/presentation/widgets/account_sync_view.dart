@@ -160,8 +160,12 @@ class AccountSyncView extends ConsumerWidget {
                   for (final error in rejected)
                     ListTile(
                       leading: Icon(
-                        LucideIcons.circleAlert,
-                        color: AppColors.outOfStock.foreground,
+                        error.isResolution
+                            ? LucideIcons.gitMerge
+                            : LucideIcons.circleAlert,
+                        color: error.isResolution
+                            ? AppColors.lowStock.foreground
+                            : AppColors.outOfStock.foreground,
                       ),
                       title: Text(l10n.syncTableName(error.table)),
                       subtitle: Text(
@@ -204,6 +208,15 @@ class AccountSyncView extends ConsumerWidget {
         'no_access' => l10n.syncReasonNoAccess,
         'owner_only' => l10n.syncReasonOwnerOnly,
         'store_changed' => l10n.syncReasonStoreChanged,
+        'receive_conflict' => l10n.syncReasonReceiveConflict,
+        'resolved_double_clock_in' => l10n.syncResolvedDoubleClockIn(
+          (error.details['employee'] as String?) ?? '',
+          switch (DateTime.tryParse((error.details['date'] as String?) ?? '')) {
+            final date? => Formatters.date(date),
+            null => '',
+          },
+        ),
+        'resolved_duplicate_link' => l10n.syncResolvedDuplicateLink,
         _ => l10n.syncReasonInvalid,
       };
 

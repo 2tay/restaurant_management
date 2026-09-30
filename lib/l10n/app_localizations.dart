@@ -7142,7 +7142,7 @@ abstract class AppLocalizations {
   /// Sync page: changes the server refused.
   ///
   /// In fr, this message translates to:
-  /// **'Modifications refusées'**
+  /// **'À vérifier'**
   String get syncRejectedTitle;
 
   /// Dismiss one refused change.
@@ -7222,6 +7222,66 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Cet appareil est relié à {restaurant}. Ses données arrivent du serveur ; l\'application s\'ouvrira dès qu\'elles seront là.'**
   String waitingBodyNow(String restaurant);
+
+  /// Catalog pages: a name used twice.
+  ///
+  /// In fr, this message translates to:
+  /// **'« {name} » existe en double, souvent parce qu\'il a été créé sur deux tablettes hors ligne.'**
+  String catalogDuplicate(String name);
+
+  /// Merge duplicated categories or units.
+  ///
+  /// In fr, this message translates to:
+  /// **'Fusionner'**
+  String get catalogMerge;
+
+  /// Merge confirmation heading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Fusionner « {name} » ?'**
+  String catalogMergeTitle(String name);
+
+  /// Merge confirmation body.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =0{Les doublons, vides, seront supprimés.} =1{1 article sera déplacé, puis les doublons supprimés.} other{{count} articles seront déplacés, puis les doublons supprimés.}}'**
+  String catalogMergeBody(int count);
+
+  /// Snackbar after a merge.
+  ///
+  /// In fr, this message translates to:
+  /// **'Doublons fusionnés.'**
+  String get catalogMerged;
+
+  /// Attendance alert: two sessions overlap.
+  ///
+  /// In fr, this message translates to:
+  /// **'Double pointage'**
+  String get attendanceAnomalyDoubleClockIn;
+
+  /// Attendance alert detail.
+  ///
+  /// In fr, this message translates to:
+  /// **'Deux tablettes ont pointé cette journée en même temps. Vérifiez les heures qui se chevauchent avant la paie.'**
+  String get attendanceAnomalyDoubleClockInDetail;
+
+  /// Sync page: a received row the device refused.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cette donnée reçue n\'a pas pu être enregistrée sur cet appareil.'**
+  String get syncReasonReceiveConflict;
+
+  /// Sync page: two clock-ins merged.
+  ///
+  /// In fr, this message translates to:
+  /// **'Deux pointages de {name} le {date} ont été regroupés. À vérifier dans l\'historique.'**
+  String syncResolvedDoubleClockIn(String name, String date);
+
+  /// Sync page: a duplicate supplier link settled.
+  ///
+  /// In fr, this message translates to:
+  /// **'Un fournisseur était lié deux fois au même article : le lien le plus récent a été gardé.'**
+  String get syncResolvedDuplicateLink;
 }
 
 class _AppLocalizationsDelegate

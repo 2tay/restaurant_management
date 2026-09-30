@@ -13,6 +13,7 @@ String attendanceAnomalyLabel(AppLocalizations l10n, AttendanceAnomaly a) =>
     switch (a) {
       AttendanceAnomaly.pauseDepassee => l10n.attendanceBreakOverrun,
       AttendanceAnomaly.oubliDePointage => l10n.attendanceAnomalyMissingPunch,
+      AttendanceAnomaly.doublePointage => l10n.attendanceAnomalyDoubleClockIn,
     };
 
 /// The full sentence for one anomaly — the detail drawer.
@@ -26,6 +27,7 @@ String attendanceAnomalyDetail(
     Formatters.duration(totalBreakOverrun(entry, maxBreakMinutes)),
   ),
   AttendanceAnomaly.oubliDePointage => l10n.attendanceAnomalyMissingPunchDetail,
+  AttendanceAnomaly.doublePointage => l10n.attendanceAnomalyDoubleClockInDetail,
 };
 
 /// The anomalies of a day, or a dash. Compact amber chips in a table cell;

@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:drift/drift.dart';
 
 import '../database/app_database.dart';
@@ -10,6 +12,7 @@ class RejectedChange {
     required this.reason,
     required this.rejectedAt,
     this.message,
+    this.details = const {},
   });
 
   final int id;
@@ -21,6 +24,13 @@ class RejectedChange {
   final String reason;
   final String? message;
   final DateTime rejectedAt;
+
+  /// For a conflict settled on receipt (`resolved_*`): what the sentence
+  /// names, like the employee and the day of a merged clock-in.
+  final Map<String, Object?> details;
+
+  /// A conflict sync settled by itself, as opposed to a change refused.
+  bool get isResolution => reason.startsWith('resolved_');
 }
 
 /// The changes the server refused (SYNC_PLAN.md, Phase 5). Filled by
@@ -41,6 +51,9 @@ class SyncErrorRepository {
           reason: row.reason,
           message: row.message,
           rejectedAt: row.rejectedAt.toLocal(),
+          details: row.reason.startsWith('resolved_')
+              ? _details(row.payload)
+              : const {},
         ),
     ],
   );
@@ -57,6 +70,15 @@ class SyncErrorRepository {
   Future<List<SyncErrorRow>> all() => (_db.select(
     _db.syncErrors,
   )..orderBy([(e) => OrderingTerm(expression: e.id)])).get();
+
+  static Map<String, Object?> _details(String payload) {
+    try {
+      final decoded = jsonDecode(payload);
+      return decoded is Map<String, Object?> ? decoded : const {};
+    } on FormatException {
+      return const {};
+    }
+  }
 
   Future<int> dismiss(int id) =>
       (_db.delete(_db.syncErrors)..where((e) => e.id.equals(id))).go();

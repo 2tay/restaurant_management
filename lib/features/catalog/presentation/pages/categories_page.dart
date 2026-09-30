@@ -12,6 +12,7 @@ import '../../../../l10n/app_localizations.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 import '../widgets/create_sheets.dart';
+import '../widgets/duplicate_notice.dart';
 
 /// Manage the store's categories.
 ///
@@ -75,20 +76,35 @@ class CategoriesPage extends ConsumerWidget {
               onAction: () => _create(context),
             ),
           ),
-          builder: (context, rows) => AppCard(
-            padding: EdgeInsets.zero,
-            child: Column(
-              children: [
-                for (final row in rows)
-                  _CatalogTile(
-                    icon: LucideIcons.tag,
-                    title: row.category.name,
-                    subtitle: l10n.categoriesItemCount(row.itemCount),
-                    onEdit: () => _edit(context, row.category),
-                    onDelete: () => _delete(context, ref, row),
-                  ),
-              ],
-            ),
+          builder: (context, rows) => Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (final group in duplicateGroups<CategoryRowView>(
+                rows,
+                name: (r) => r.category.name,
+                id: (r) => r.category.id,
+                itemCount: (r) => r.itemCount,
+              ))
+                DuplicateNotice(
+                  name: group.keep.category.name,
+                  onMerge: () => _merge(context, ref, group),
+                ),
+              AppCard(
+                padding: EdgeInsets.zero,
+                child: Column(
+                  children: [
+                    for (final row in rows)
+                      _CatalogTile(
+                        icon: LucideIcons.tag,
+                        title: row.category.name,
+                        subtitle: l10n.categoriesItemCount(row.itemCount),
+                        onEdit: () => _edit(context, row.category),
+                        onDelete: () => _delete(context, ref, row),
+                      ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -109,6 +125,32 @@ class CategoriesPage extends ConsumerWidget {
     );
     if (renamed == null || !context.mounted) return;
     AppSnackBar.success(context, AppLocalizations.of(context).categoryUpdated);
+  }
+
+  /// Merges a duplicated name into the category that holds the most
+  /// articles (Phase 7).
+  Future<void> _merge(
+    BuildContext context,
+    WidgetRef ref,
+    DuplicateGroup<CategoryRowView> group,
+  ) async {
+    final l10n = AppLocalizations.of(context);
+    final moved = group.others.fold<int>(0, (sum, r) => sum + r.itemCount);
+    final confirmed = await ConfirmDialog.show(
+      context,
+      title: l10n.catalogMergeTitle(group.keep.category.name),
+      message: l10n.catalogMergeBody(moved),
+      confirmLabel: l10n.catalogMerge,
+      isDestructive: false,
+    );
+    if (!confirmed || !context.mounted) return;
+
+    final catalog = ref.read(catalogRepositoryProvider);
+    for (final other in group.others) {
+      await catalog.mergeCategories(other.category.id, group.keep.category.id);
+    }
+    if (!context.mounted) return;
+    AppSnackBar.success(context, l10n.catalogMerged);
   }
 
   Future<void> _delete(

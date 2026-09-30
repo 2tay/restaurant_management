@@ -9,6 +9,7 @@ import '../../../../l10n/app_localizations.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 import '../widgets/create_sheets.dart';
+import '../widgets/duplicate_notice.dart';
 import 'categories_page.dart';
 
 /// Manage the store's units of measure.
@@ -77,21 +78,36 @@ class UnitsPage extends ConsumerWidget {
               onAction: () => _create(context),
             ),
           ),
-          builder: (context, rows) => AppCard(
-            padding: EdgeInsets.zero,
-            child: Column(
-              children: [
-                for (final row in rows)
-                  CatalogTile(
-                    icon: LucideIcons.scale,
-                    title: row.unit.name,
-                    subtitle: l10n.categoriesItemCount(row.itemCount),
-                    trailingLabel: row.unit.abbreviation,
-                    onEdit: () => _edit(context, row.unit),
-                    onDelete: () => _delete(context, ref, row),
-                  ),
-              ],
-            ),
+          builder: (context, rows) => Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (final group in duplicateGroups<UnitRowView>(
+                rows,
+                name: (r) => r.unit.name,
+                id: (r) => r.unit.id,
+                itemCount: (r) => r.itemCount,
+              ))
+                DuplicateNotice(
+                  name: group.keep.unit.name,
+                  onMerge: () => _merge(context, ref, group),
+                ),
+              AppCard(
+                padding: EdgeInsets.zero,
+                child: Column(
+                  children: [
+                    for (final row in rows)
+                      CatalogTile(
+                        icon: LucideIcons.scale,
+                        title: row.unit.name,
+                        subtitle: l10n.categoriesItemCount(row.itemCount),
+                        trailingLabel: row.unit.abbreviation,
+                        onEdit: () => _edit(context, row.unit),
+                        onDelete: () => _delete(context, ref, row),
+                      ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -112,6 +128,31 @@ class UnitsPage extends ConsumerWidget {
     );
     if (updated == null || !context.mounted) return;
     AppSnackBar.success(context, AppLocalizations.of(context).unitUpdated);
+  }
+
+  /// Merges a duplicated name into the unit that holds the most articles.
+  Future<void> _merge(
+    BuildContext context,
+    WidgetRef ref,
+    DuplicateGroup<UnitRowView> group,
+  ) async {
+    final l10n = AppLocalizations.of(context);
+    final moved = group.others.fold<int>(0, (sum, r) => sum + r.itemCount);
+    final confirmed = await ConfirmDialog.show(
+      context,
+      title: l10n.catalogMergeTitle(group.keep.unit.name),
+      message: l10n.catalogMergeBody(moved),
+      confirmLabel: l10n.catalogMerge,
+      isDestructive: false,
+    );
+    if (!confirmed || !context.mounted) return;
+
+    final catalog = ref.read(catalogRepositoryProvider);
+    for (final other in group.others) {
+      await catalog.mergeUnits(other.unit.id, group.keep.unit.id);
+    }
+    if (!context.mounted) return;
+    AppSnackBar.success(context, l10n.catalogMerged);
   }
 
   Future<void> _delete(

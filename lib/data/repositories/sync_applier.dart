@@ -1,3 +1,6 @@
+import 'dart:convert';
+
+import 'package:clock/clock.dart';
 import 'package:drift/drift.dart';
 
 import '../../services/auth_service.dart';
@@ -21,9 +24,26 @@ import 'sync_quiet.dart';
 /// - **the store's cursor is saved with the rows**, so a crash can neither
 ///   skip nor repeat a change.
 ///
-/// A row the local database refuses for another reason (a unique rule that
-/// only the server does not have, like two tablets clocking the same employee
-/// in on the same day) is kept out, logged in `sync_errors` as
+/// ## Conflicts settled on receipt (Phase 7)
+///
+/// The device has three "one per" rules the server does not: one live day
+/// per employee and date, one live link per article and supplier, one live
+/// credential per employee. Two tablets working offline can both create "the"
+/// row. When a received row meets a live local one for the same key, the
+/// same rule runs on every device, so every device ends the same:
+///
+/// - **two days for one employee**: the day linked to a pay period is kept,
+///   otherwise the one with the smaller id. The other day is marked deleted
+///   and its sessions move to the kept day, untouched. Overlapping hours are
+///   flagged for a manager, never trimmed (`AttendanceAnomaly.doublePointage`);
+/// - **two supplier links, two credentials**: the most recently changed one
+///   is kept (the larger id on a tie), the other is marked deleted.
+///
+/// Those resolutions are real changes: they are written with the queue on
+/// ([SyncQuiet.loud]) and sent like any other, and logged in `sync_errors`
+/// as `resolved_*` so the sync page can say what happened.
+///
+/// A row the local database still refuses is kept out, logged as
 /// `receive_conflict`, and the page goes on.
 class SyncApplier {
   SyncApplier(this._db);
@@ -65,7 +85,9 @@ class SyncApplier {
 
         try {
           // A savepoint per row: a row refused locally rolls back alone.
-          await _db.transaction(() => _upsert(table, change.row));
+          await _db.transaction(
+            () => _applyRow(table, change.table, change.row, storeId),
+          );
           written++;
           if (change.table == 'stock_movements') {
             rebuild.add(change.row['item_id'] as String);
@@ -80,7 +102,7 @@ class SyncApplier {
                   changedTable: change.table,
                   rowKey: key,
                   storeId: storeId,
-                  payload: change.row.toString(),
+                  payload: jsonEncode(change.row),
                   reason: 'receive_conflict',
                   message: Value(error.toString()),
                   rejectedAt: DateTime.now().toUtc(),
@@ -103,6 +125,310 @@ class SyncApplier {
     return written;
   }
 
+  // ---------------------------------------------------------------------------
+  // Conflicts settled on receipt (Phase 7)
+  // ---------------------------------------------------------------------------
+
+  /// Offset added to the position of a session moved into another day, so it
+  /// never takes the position of one of that day's own sessions, including
+  /// ones that have not arrived yet. The same on every device.
+  static const int movedSessionOffset = 1000;
+
+  Future<void> _applyRow(
+    TableInfo<Table, dynamic> table,
+    String name,
+    Map<String, dynamic> row,
+    String storeId,
+  ) async {
+    final live = row['deleted_at'] == null;
+    switch (name) {
+      case 'attendances' when live:
+        return _applyAttendance(table, row, storeId);
+      case 'attendance_sessions':
+        return _applySession(table, row);
+      case 'supplier_prices' when live:
+        return _applyKeepRecent(
+          table,
+          row,
+          storeId,
+          existing: () =>
+              (_db.select(_db.supplierPrices)..where(
+                    (p) =>
+                        p.itemId.equals(row['item_id'] as String) &
+                        p.supplierId.equals(row['supplier_id'] as String) &
+                        p.deletedAt.isNull() &
+                        p.id.equals(row['id'] as String).not(),
+                  ))
+                  .map((p) => (id: p.id, updatedAt: p.updatedAt))
+                  .getSingleOrNull(),
+          markDeleted: (id, at) =>
+              (_db.update(_db.supplierPrices)..where((p) => p.id.equals(id)))
+                  .write(SupplierPricesCompanion(deletedAt: Value(at))),
+          resolution: 'resolved_duplicate_link',
+          afterwards: () => _ensureDefaultPrice(row['item_id'] as String),
+        );
+      case 'employee_credentials' when live:
+        return _applyKeepRecent(
+          table,
+          row,
+          storeId,
+          existing: () =>
+              (_db.select(_db.employeeCredentials)..where(
+                    (c) =>
+                        c.employeeId.equals(row['employee_id'] as String) &
+                        c.deletedAt.isNull() &
+                        c.id.equals(row['id'] as String).not(),
+                  ))
+                  .map((c) => (id: c.id, updatedAt: c.updatedAt))
+                  .getSingleOrNull(),
+          markDeleted: (id, at) =>
+              (_db.update(_db.employeeCredentials)
+                    ..where((c) => c.id.equals(id)))
+                  .write(EmployeeCredentialsCompanion(deletedAt: Value(at))),
+          resolution: null,
+        );
+      default:
+        return _upsert(table, row);
+    }
+  }
+
+  /// Two days for one employee and date.
+  Future<void> _applyAttendance(
+    TableInfo<Table, dynamic> table,
+    Map<String, dynamic> row,
+    String storeId,
+  ) async {
+    final incomingId = row['id'] as String;
+    final date =
+        _convert('attendances', _db.attendances.date, row['date'])! as DateTime;
+    final local =
+        await (_db.select(_db.attendances)..where(
+              (a) =>
+                  a.employeeId.equals(row['employee_id'] as String) &
+                  a.date.equals(date) &
+                  a.deletedAt.isNull() &
+                  a.id.equals(incomingId).not(),
+            ))
+            .getSingleOrNull();
+    if (local == null) return _upsert(table, row);
+
+    final incomingPaid = row['payroll_period_id'] != null;
+    final localPaid = local.payrollPeriodId != null;
+    final keepIncoming = incomingPaid != localPaid
+        ? incomingPaid
+        : incomingId.compareTo(local.id) < 0;
+    final now = clock.now();
+
+    if (keepIncoming) {
+      await SyncQuiet.loud(_db, () async {
+        await (_db.update(_db.attendances)..where((a) => a.id.equals(local.id)))
+            .write(AttendancesCompanion(deletedAt: Value(now)));
+      });
+      await _upsert(table, row);
+      await SyncQuiet.loud(_db, () => _moveSessions(local.id, incomingId));
+    } else {
+      await SyncQuiet.loud(_db, () async {
+        await _upsert(table, {
+          ...row,
+          'deleted_at': now.toUtc().toIso8601String(),
+        });
+        await _moveSessions(incomingId, local.id);
+      });
+    }
+
+    await _logResolution(
+      'resolved_double_clock_in',
+      table: 'attendances',
+      rowKey: keepIncoming ? incomingId : local.id,
+      storeId: storeId,
+      details: {
+        'employee': await _employeeName(row['employee_id'] as String),
+        'date': date.toIso8601String(),
+      },
+    );
+  }
+
+  /// A session of a day that was merged away goes to the kept day.
+  Future<void> _applySession(
+    TableInfo<Table, dynamic> table,
+    Map<String, dynamic> row,
+  ) async {
+    final day =
+        await (_db.select(_db.attendances)
+              ..where((a) => a.id.equals(row['attendance_id'] as String)))
+            .getSingleOrNull();
+    if (day == null || day.deletedAt == null || row['deleted_at'] != null) {
+      return _upsert(table, row);
+    }
+    final kept =
+        await (_db.select(_db.attendances)..where(
+              (a) =>
+                  a.employeeId.equals(day.employeeId) &
+                  a.date.equals(day.date) &
+                  a.deletedAt.isNull(),
+            ))
+            .getSingleOrNull();
+    if (kept == null) return _upsert(table, row);
+
+    final position = (row['position'] as num).toInt();
+    await SyncQuiet.loud(
+      _db,
+      () => _upsert(table, {
+        ...row,
+        'attendance_id': kept.id,
+        'position': position >= movedSessionOffset
+            ? position
+            : position + movedSessionOffset,
+      }),
+    );
+    await SyncQuiet.loud(_db, () => _refreshDayStatus(kept.id));
+  }
+
+  /// Moves every session of day [fromId] to day [toId], and gives the kept
+  /// day the status its sessions now imply.
+  Future<void> _moveSessions(String fromId, String toId) async {
+    final sessions = await (_db.select(
+      _db.attendanceSessions,
+    )..where((s) => s.attendanceId.equals(fromId))).get();
+    for (final session in sessions) {
+      await (_db.update(
+        _db.attendanceSessions,
+      )..where((s) => s.id.equals(session.id))).write(
+        AttendanceSessionsCompanion(
+          attendanceId: Value(toId),
+          position: Value(
+            session.position >= movedSessionOffset
+                ? session.position
+                : session.position + movedSessionOffset,
+          ),
+        ),
+      );
+    }
+    if (sessions.isNotEmpty) await _refreshDayStatus(toId);
+  }
+
+  /// A day with a session still open is being worked (or is on a break);
+  /// otherwise it is done.
+  Future<void> _refreshDayStatus(String attendanceId) async {
+    final sessions =
+        await (_db.select(_db.attendanceSessions)..where(
+              (s) => s.attendanceId.equals(attendanceId) & s.deletedAt.isNull(),
+            ))
+            .get();
+    final open = sessions.where((s) => s.clockOutAt == null).toList();
+    final String status;
+    if (open.isEmpty) {
+      status = 'done';
+    } else {
+      final openPause =
+          await (_db.select(_db.attendancePauses)..where(
+                (p) =>
+                    p.sessionId.isIn(open.map((s) => s.id)) &
+                    p.endAt.isNull() &
+                    p.deletedAt.isNull(),
+              ))
+              .get();
+      status = openPause.isEmpty ? 'working' : 'onBreak';
+    }
+    await _db.customUpdate(
+      'UPDATE attendances SET status = ? WHERE id = ? AND status <> ?',
+      variables: [
+        Variable<String>(status),
+        Variable<String>(attendanceId),
+        Variable<String>(status),
+      ],
+      updates: {_db.attendances},
+    );
+  }
+
+  /// Two rows for one key where the most recent change wins: supplier links
+  /// and credentials.
+  Future<void> _applyKeepRecent(
+    TableInfo<Table, dynamic> table,
+    Map<String, dynamic> row,
+    String storeId, {
+    required Future<({String id, DateTime updatedAt})?> Function() existing,
+    required Future<void> Function(String id, DateTime at) markDeleted,
+    required String? resolution,
+    Future<void> Function()? afterwards,
+  }) async {
+    final local = await existing();
+    if (local == null) return _upsert(table, row);
+
+    final incomingId = row['id'] as String;
+    final incomingAt = DateTime.parse(row['updated_at'] as String);
+    final byTime = incomingAt.compareTo(local.updatedAt);
+    final keepIncoming = byTime != 0
+        ? byTime > 0
+        : incomingId.compareTo(local.id) > 0;
+    final now = clock.now();
+
+    if (keepIncoming) {
+      await SyncQuiet.loud(_db, () => markDeleted(local.id, now));
+      await _upsert(table, row);
+    } else {
+      await SyncQuiet.loud(
+        _db,
+        () => _upsert(table, {
+          ...row,
+          'deleted_at': now.toUtc().toIso8601String(),
+        }),
+      );
+    }
+    if (afterwards != null) await SyncQuiet.loud(_db, afterwards);
+    if (resolution != null) {
+      await _logResolution(
+        resolution,
+        table: table.actualTableName,
+        rowKey: keepIncoming ? incomingId : local.id,
+        storeId: storeId,
+        details: const {},
+      );
+    }
+  }
+
+  /// An article keeps a default supplier after one of two links went.
+  Future<void> _ensureDefaultPrice(String itemId) async {
+    final prices =
+        await (_db.select(_db.supplierPrices)
+              ..where((p) => p.itemId.equals(itemId) & p.deletedAt.isNull())
+              ..orderBy([
+                (p) => OrderingTerm(expression: p.pricePerUnit),
+                (p) => OrderingTerm(expression: p.id),
+              ]))
+            .get();
+    if (prices.isEmpty || prices.any((p) => p.isDefault)) return;
+    await (_db.update(_db.supplierPrices)
+          ..where((p) => p.id.equals(prices.first.id)))
+        .write(const SupplierPricesCompanion(isDefault: Value(true)));
+  }
+
+  Future<String> _employeeName(String employeeId) async {
+    final employee = await (_db.select(
+      _db.employees,
+    )..where((e) => e.id.equals(employeeId))).getSingleOrNull();
+    return employee == null ? '' : '${employee.firstName} ${employee.lastName}';
+  }
+
+  Future<void> _logResolution(
+    String reason, {
+    required String table,
+    required String rowKey,
+    required String storeId,
+    required Map<String, Object?> details,
+  }) => _db
+      .into(_db.syncErrors)
+      .insert(
+        SyncErrorsCompanion.insert(
+          changedTable: table,
+          rowKey: rowKey,
+          storeId: storeId,
+          payload: jsonEncode(details),
+          reason: reason,
+          rejectedAt: DateTime.now().toUtc(),
+        ),
+      );
+
   late final Map<String, TableInfo<Table, dynamic>> _tables = {
     for (final table in _db.allTables) table.actualTableName: table,
   };
@@ -115,13 +441,15 @@ class SyncApplier {
       : row['id'] as String?;
 
   Future<bool> _hasPendingChange(String table, String key) async =>
-      await (_db.select(_db.outbox)..where(
-            (o) => o.changedTable.equals(table) & o.rowKey.equals(key),
-          ))
+      await (_db.select(_db.outbox)
+            ..where((o) => o.changedTable.equals(table) & o.rowKey.equals(key)))
           .getSingleOrNull() !=
       null;
 
-  Future<void> _upsert(TableInfo<Table, dynamic> table, Map<String, dynamic> row) {
+  Future<void> _upsert(
+    TableInfo<Table, dynamic> table,
+    Map<String, dynamic> row,
+  ) {
     final name = table.actualTableName;
     final localOnly = _localOnly[name] ?? const {};
     final keys = {for (final column in table.primaryKey) column.name};

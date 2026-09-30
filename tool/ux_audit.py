@@ -325,6 +325,12 @@ record(
 # there. Same exemption `item_mapper.dart` gets above. `attendance_repository`
 # is allowed to write `AttendancesCompanion` because it owns both the pointage
 # and the `payrollPeriodId` lock that `PayrollRepository.pay` calls into.
+#
+# `sync_applier.dart` is the one other writer, for the rows it receives from
+# the server and the conflicts it settles on receipt (SYNC_PLAN.md, Phases 6
+# and 7): a day merged into another, a duplicate credential marked deleted.
+# It decides nothing a repository would; it makes two devices agree.
+SYNC_APPLIER = 'lib/data/repositories/sync_applier.dart'
 SINGLE_WRITER_COMPANIONS = {
     'EmployeesCompanion': (
         'lib/data/repositories/employee_repository.dart',
@@ -333,10 +339,12 @@ SINGLE_WRITER_COMPANIONS = {
     'EmployeeCredentialsCompanion': (
         'lib/data/repositories/credential_repository.dart',
         'lib/data/mappers/credential_mapper.dart',
+        SYNC_APPLIER,
     ),
     'AttendancesCompanion': (
         'lib/data/repositories/attendance_repository.dart',
         'lib/data/mappers/attendance_mapper.dart',
+        SYNC_APPLIER,
     ),
     'AttendancePausesCompanion': (
         'lib/data/repositories/attendance_repository.dart',

@@ -64,7 +64,8 @@ class Employees extends Table with Touched, Deletable {
 /// password is stored as a salted PBKDF2 hash (`core/utils/password_hash.dart`),
 /// never in the clear.
 @DataClassName('EmployeeCredentialRow')
-@TableIndex(name: 'employee_credentials_employee', columns: {#employeeId}, unique: true)
+// One live credential per employee: `employee_credentials_employee`, a
+// partial unique index in `sync_indexes.drift`.
 class EmployeeCredentials extends Table with Touched, Deletable {
   TextColumn get id => text().withLength(min: 1, max: 64)();
 

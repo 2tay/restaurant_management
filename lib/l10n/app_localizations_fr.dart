@@ -4377,7 +4377,7 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get syncRejectedTitle => 'Modifications refusées';
+  String get syncRejectedTitle => 'À vérifier';
 
   @override
   String get syncRejectedDismiss => 'Compris';
@@ -4457,4 +4457,52 @@ class AppLocalizationsFr extends AppLocalizations {
   String waitingBodyNow(String restaurant) {
     return 'Cet appareil est relié à $restaurant. Ses données arrivent du serveur ; l\'application s\'ouvrira dès qu\'elles seront là.';
   }
+
+  @override
+  String catalogDuplicate(String name) {
+    return '« $name » existe en double, souvent parce qu\'il a été créé sur deux tablettes hors ligne.';
+  }
+
+  @override
+  String get catalogMerge => 'Fusionner';
+
+  @override
+  String catalogMergeTitle(String name) {
+    return 'Fusionner « $name » ?';
+  }
+
+  @override
+  String catalogMergeBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count articles seront déplacés, puis les doublons supprimés.',
+      one: '1 article sera déplacé, puis les doublons supprimés.',
+      zero: 'Les doublons, vides, seront supprimés.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get catalogMerged => 'Doublons fusionnés.';
+
+  @override
+  String get attendanceAnomalyDoubleClockIn => 'Double pointage';
+
+  @override
+  String get attendanceAnomalyDoubleClockInDetail =>
+      'Deux tablettes ont pointé cette journée en même temps. Vérifiez les heures qui se chevauchent avant la paie.';
+
+  @override
+  String get syncReasonReceiveConflict =>
+      'Cette donnée reçue n\'a pas pu être enregistrée sur cet appareil.';
+
+  @override
+  String syncResolvedDoubleClockIn(String name, String date) {
+    return 'Deux pointages de $name le $date ont été regroupés. À vérifier dans l\'historique.';
+  }
+
+  @override
+  String get syncResolvedDuplicateLink =>
+      'Un fournisseur était lié deux fois au même article : le lien le plus récent a été gardé.';
 }

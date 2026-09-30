@@ -41,6 +41,33 @@ abstract final class SyncQuiet {
     });
   }
 
+  /// Runs [body] with queueing back on, inside a quiet write.
+  ///
+  /// For the one kind of change a quiet write makes that other devices must
+  /// hear about: a conflict settled on receipt (SYNC_PLAN.md, Phase 7). The
+  /// row marked deleted, the session moved to the kept day — every device has
+  /// to end the same, so these go out like any change. Must run inside the
+  /// transaction of the surrounding [run].
+  static Future<T> loud<T>(AppDatabase db, Future<T> Function() body) async {
+    final wasOn = await isOn(db);
+    if (wasOn) {
+      await (db.delete(
+        db.meta,
+      )..where((m) => m.key.equals(MetaKeys.syncQuiet))).go();
+    }
+    try {
+      return await body();
+    } finally {
+      if (wasOn) {
+        await db
+            .into(db.meta)
+            .insertOnConflictUpdate(
+              MetaCompanion.insert(key: MetaKeys.syncQuiet, value: '1'),
+            );
+      }
+    }
+  }
+
   /// Whether queueing is switched off right now.
   static Future<bool> isOn(AppDatabase db) async =>
       await (db.select(

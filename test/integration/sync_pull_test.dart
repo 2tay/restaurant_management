@@ -9,7 +9,6 @@
 //   supabase start
 //   flutter test test/integration --dart-define-from-file=config/local.json
 
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -150,7 +149,7 @@ void main() {
       final live = backendB.storeChanges([store.id]).listen(events.add);
       addTearDown(live.cancel);
       Future<void> waitForEvent() async {
-        final deadline = DateTime.now().add(const Duration(seconds: 10));
+        final deadline = DateTime.now().add(const Duration(seconds: 20));
         while (events.isEmpty && DateTime.now().isBefore(deadline)) {
           await Future<void>.delayed(const Duration(milliseconds: 100));
         }

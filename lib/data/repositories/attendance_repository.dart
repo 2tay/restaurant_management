@@ -236,11 +236,16 @@ class AttendanceRepository {
     final day = _dayOf(at);
 
     return _db.transaction(() async {
-      // Deleted rows included, here and in the two position counts below:
-      // `(employeeId, date)` and `(parent, position)` are unique across every
-      // row in the table, a soft-deleted one too.
+      // The live day only: one live day per employee and date is the rule
+      // (`attendances_employee_date` counts live rows, schema v19), and a day
+      // merged into another by sync stays behind, deleted. The two position
+      // counts below still include deleted rows: `(parent, position)` is
+      // unique across every row, a soft-deleted one too.
       final existing = await (_db.select(_db.attendances)..where(
-            (a) => a.employeeId.equals(employeeId) & a.date.equals(day),
+            (a) =>
+                a.employeeId.equals(employeeId) &
+                a.date.equals(day) &
+                a.deletedAt.isNull(),
           ))
           .getSingleOrNull();
 

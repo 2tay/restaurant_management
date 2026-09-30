@@ -37,11 +37,8 @@ class Suppliers extends Table with Touched, Deletable {
 @DataClassName('SupplierPriceRow')
 @TableIndex(name: 'supplier_prices_item', columns: {#itemId})
 @TableIndex(name: 'supplier_prices_supplier', columns: {#supplierId})
-@TableIndex(
-  name: 'supplier_prices_pair',
-  columns: {#itemId, #supplierId},
-  unique: true,
-)
+// One live link per article and supplier: `supplier_prices_pair`, a partial
+// unique index in `sync_indexes.drift` (deleted links do not count).
 class SupplierPrices extends Table with Touched, Deletable {
   TextColumn get id => text().withLength(min: 1, max: 64)();
 

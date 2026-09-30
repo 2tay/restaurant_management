@@ -8,7 +8,7 @@ depends on the ones before it.
 
 ## Progress so far (read this first in a new session)
 
-Last updated: 2026-09-30. Branch: `14-sync-phase-1` (pushed to GitHub). Local schema: v18.
+Last updated: 2026-09-30. Branch: `14-sync-phase-1` (pushed to GitHub). Local schema: v19.
 
 | Phase | What | Status |
 |---|---|---|
@@ -19,8 +19,8 @@ Last updated: 2026-09-30. Branch: `14-sync-phase-1` (pushed to GitHub). Local sc
 | 4 | Real login (account + employee PIN) | Done, tested locally |
 | 5 | Sending changes (push) | Done, tested locally |
 | 6 | Receiving changes (pull) | Done, tested locally (with live updates) |
-| 7 | Conflict rules | **Next.** Done on the server: delete wins, order status forward, paid payroll final, last write wins. Left: clashes the device refuses on receipt (see below). |
-| 8 | Photos | Bucket exists on the server. App side to do. |
+| 7 | Conflict rules | Done, tested locally |
+| 8 | Photos | **Next.** The `photos` bucket exists on the server; app side to do. |
 | 9 | First connection and existing data | To do |
 | 10 | Screens and messages | Partly done: account screens (Phase 4), a working sync page for account devices (Phase 5). Final design to do. |
 | 11 | Testing and release | To do |
@@ -36,7 +36,8 @@ the first plan. Read those notes before changing anything in that area.
   `device_access_repository.dart`, `device_repository.dart`).
 - **App, sync:** `lib/services/sync_service.dart` (`SyncRunner`: one pass, send then receive;
   `SyncController`: when passes run, live updates, and the state the screens show),
-  `lib/data/repositories/sync_applier.dart` (writes received rows locally),
+  `lib/data/repositories/sync_applier.dart` (writes received rows locally, and settles the
+  conflicts the device finds on receipt),
   `lib/features/settings/presentation/widgets/account_sync_view.dart` (sync page, account mode).
 - **App, accounts:** `lib/services/auth_service.dart` (Supabase backend behind the
   `AccountBackend` interface), `lib/data/device_access.dart` (demo / account mode and every
@@ -55,13 +56,15 @@ supabase start                                   # local server (Docker must be 
 supabase test db                                 # server tests: 49
 flutter analyze                                  # must say "No issues found"
 python tool/ux_audit.py                          # 2 old findings only (colour, fontSize)
-flutter test test/db test/password_hash_test.dart            # 475 tests
-flutter test test/integration --dart-define-from-file=config/local.json   # real server: 4
+flutter test test/db test/password_hash_test.dart            # 483 tests
+flutter test test/integration --concurrency=1 --dart-define-from-file=config/local.json   # real server: 5
 flutter test --concurrency=2 <every test/*.dart except responsive_test.dart>  # screens
 flutter run -d windows --dart-define-from-file=config/local.json
 ```
 
-The full screen suite uses a lot of memory; `--concurrency=2` keeps it stable.
+The full screen suite uses a lot of memory; `--concurrency=2` keeps it stable. Run the
+integration tests one file at a time (`--concurrency=1`): in parallel against one local server,
+the live-update check can miss its event.
 
 ### Known issues, not caused by this work
 
@@ -86,31 +89,33 @@ The full screen suite uses a lot of memory; `--concurrency=2` keeps it stable.
 - **Cloud project:** create "dev" on supabase.com when real devices must share data, then
   `supabase link` and `supabase db push`, and put its URL and publishable key in a config file.
 
-### Next step: Phase 7, the conflicts that are left
+### Next step: Phase 8, photos
 
-Sync works both ways (Phases 5 and 6). The server already settles most clashes: delete wins, a
-commande's status only moves forward, a paid pay period is final, otherwise the last change to
-arrive wins. What is left are clashes **the device** refuses when it receives a row, because the
-local database has a unique rule the server does not. Today such a row is kept out and logged in
-`sync_errors` with the reason `receive_conflict` (see `SyncApplier`). In order:
+Every row syncs, but product and employee photos are still files on one device. The server side
+is ready: a private `photos` bucket with one folder per store and the same access rule as the
+tables (`supabase/migrations/…_photos.sql`). In order:
 
-1. **Two clock-ins for one employee on one day** (two tablets, offline). Locally
-   `attendances (employee_id, date)` is unique, so the second day row is refused on receipt.
-   Decide the rule: merge the second day's sessions into the first (sessions are add-only, so
-   nothing is lost), and flag the overlap on the attendance history page for the manager.
-2. **The same supplier linked twice to one article** (two tablets, offline):
-   `supplier_prices (item_id, supplier_id)` is unique locally. Keep the most recent link, mark
-   the other deleted, and push that.
-3. **Two categories or units with the same name** (two tablets, offline). Allowed by the schema
-   (no unique index) but the screens assume names are unique. Add a "merge" action in settings;
-   do not block anyone offline.
-4. **Show receive conflicts on the sync page** in words (they are in `sync_errors` already, with
-   reason `receive_conflict`), next to the refused sends.
-5. **Tests for each rule** with two devices on the fake server, and one against the local
-   server.
+1. **Fix what the rows store.** `items.image_path` holds a file name (good), but
+   `employees.photo_asset` holds an **absolute path** on this device (see
+   `lib/data/employee_photo_store.dart`), which means nothing on another tablet. Store a file
+   name for both, with a migration that keeps existing photos working.
+2. **The cloud path is derived, not stored:** `<store_id>/items/<file>` and
+   `<store_id>/employees/<file>`. File names are unique already (they carry an id and a time).
+3. **Upload after saving.** The screens keep saving the photo locally as today; a small photo
+   queue (a local table, like the outbox) uploads it when online, from the sync pass. The row
+   itself already syncs through the outbox.
+4. **Smaller files first:** resize to about 1024 px and compress before upload.
+5. **Download when missing.** When a screen shows a photo this device does not have, fetch it
+   once into the same local folder; offline, show the usual placeholder. Received rows can also
+   trigger a background download.
+6. **Delete from the cloud** when a photo is replaced or its article deleted, once the change has
+   been accepted by the server.
+7. **Add upload / download / remove to `AccountBackend`** (Supabase Storage) and to the fake.
+8. **Tests:** the photo queue with the fake (upload, retry offline, replace, delete); two devices:
+   a photo added on A appears on B. Then one test against the local server's storage.
 
-After Phase 7: Phase 8 (photos: the `photos` bucket exists), Phase 9 (first connection with
-existing data), Phase 10 (final screens), Phase 11 (release), and Phase 0's cloud project.
+After Phase 8: Phase 9 (first connection with existing data), Phase 10 (final screens), Phase 11
+(release), and Phase 0's cloud project.
 
 ## Where we start
 
@@ -709,6 +714,24 @@ online, and after reconnecting when one was offline.
 
 Goal: when two devices change the same thing, the result is predictable and correct. The server
 checks these rules in `push_changes` (Step 3.4).
+
+> **Status: built, tested locally.** Steps 7.1 to 7.5 and 7.8 were done in Phase 3 (server rules).
+> What Phase 7 added, for the clashes the **device** meets on receipt (`SyncApplier`):
+>
+> - **Schema v19:** the three "one per" rules are partial unique indexes on live rows only
+>   (`lib/data/database/sync_indexes.drift`): one day per employee and date, one link per
+>   article and supplier, one credential per employee. A row merged away stays, deleted.
+> - **Two clock-ins, one day:** the day linked to a pay period is kept, otherwise the smaller id.
+>   The other day is deleted and its sessions move to the kept one (position + 1000), untouched.
+>   The day is flagged `AttendanceAnomaly.doublePointage` ("Double pointage") when sessions
+>   overlap. Nothing is trimmed: a manager decides (Step 7.6).
+> - **Duplicate supplier link or credential:** the most recently changed row wins, the other is
+>   deleted; an article keeps a default supplier.
+> - **These resolutions are real changes**, written with the queue on (`SyncQuiet.loud`) so every
+>   device converges, and noted on the sync page ("À vérifier").
+> - **Duplicate category or unit names (Step 7.7):** allowed offline; the catalog pages show a
+>   notice with "Fusionner", which moves the articles to the name holding the most.
+> - **Receive conflicts logged before v19** are replayed: their stores are pulled again.
 
 **Step 7.1: Add-only records never conflict.**
 `StockMovements`, `GoodsReceipts` and their lines, `PriceHistory`, `AttendanceSessions` and
