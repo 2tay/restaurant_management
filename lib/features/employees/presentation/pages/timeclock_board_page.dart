@@ -1,4 +1,3 @@
-import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -10,6 +9,7 @@ import '../../../../core/utils/employee_status.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/utils/responsive.dart';
 import '../../../../data/providers.dart';
+import '../../../../data/repositories/repositories.dart' show BoardDay;
 import '../../../../l10n/app_localizations.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
@@ -18,7 +18,9 @@ import '../../../../shared/widgets/widgets.dart';
 /// drawer behind "Voir détails", not on the card.
 const double _cardHeight = 348;
 
-/// The pointage kiosk — today's live board, one card per active employee.
+/// The pointage kiosk — the journée de service's live board, one card per
+/// active employee. Past midnight it stays on the journée still open; once
+/// today's journée is closed, every Pointer is disabled until tomorrow.
 ///
 /// Reached from the sidebar dropdown, so it is a `goSection` destination with
 /// no back control. Built for a tablet mounted by the door: a full-screen
@@ -53,12 +55,17 @@ class _TimeclockBoardPageState extends ConsumerState<TimeclockBoardPage> {
     _fullScreen = ref.read(isFullScreenProvider.notifier);
 
     final l10n = AppLocalizations.of(context);
-    final data = asyncAll3(
+    final data = asyncAll4(
       ref.watch(activeEmployeesProvider(widget.storeId)),
       ref.watch(attendanceBoardProvider(widget.storeId)),
       ref.watch(storeSettingsProvider(widget.storeId)),
-      (employees, board, settings) =>
-          (employees: employees, board: board, settings: settings),
+      ref.watch(boardDayProvider(widget.storeId)),
+      (employees, board, settings, day) => (
+        employees: employees,
+        board: board,
+        settings: settings,
+        day: day,
+      ),
     );
 
     return ShellPage(
@@ -75,6 +82,7 @@ class _TimeclockBoardPageState extends ConsumerState<TimeclockBoardPage> {
           List<Employee> employees,
           Map<String, Attendance> board,
           StoreSettings settings,
+          BoardDay day,
         })
       >(
         value: data,
@@ -83,9 +91,15 @@ class _TimeclockBoardPageState extends ConsumerState<TimeclockBoardPage> {
           ref.invalidate(activeEmployeesProvider(widget.storeId));
           ref.invalidate(attendanceBoardProvider(widget.storeId));
           ref.invalidate(storeSettingsProvider(widget.storeId));
+          ref.invalidate(boardDayProvider(widget.storeId));
         },
-        builder: (context, data) =>
-            _buildBoard(l10n, data.employees, data.board, data.settings),
+        builder: (context, data) => _buildBoard(
+          l10n,
+          data.employees,
+          data.board,
+          data.settings,
+          data.day,
+        ),
       ),
     );
   }
@@ -95,7 +109,10 @@ class _TimeclockBoardPageState extends ConsumerState<TimeclockBoardPage> {
     List<Employee> employees,
     Map<String, Attendance> board,
     StoreSettings settings,
+    BoardDay day,
   ) {
+    final closed = day.businessDay?.closedAt != null;
+
     // The owner does not clock in — the board shows only the staff who do.
     final all = employees.where((e) => e.role != EmployeeRole.owner).toList()
       ..sort((a, b) {
@@ -126,6 +143,10 @@ class _TimeclockBoardPageState extends ConsumerState<TimeclockBoardPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        if (day.businessDay case final businessDay?) ...[
+          _BusinessDayNotice(businessDay: businessDay),
+          const SizedBox(height: AppSpacing.lg),
+        ],
         ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 420),
           child: EmployeeSelector(
@@ -146,6 +167,7 @@ class _TimeclockBoardPageState extends ConsumerState<TimeclockBoardPage> {
               entry: board[pinned.id],
               settings: settings,
               storeId: widget.storeId,
+              closed: closed,
             ),
           )
         else
@@ -159,6 +181,7 @@ class _TimeclockBoardPageState extends ConsumerState<TimeclockBoardPage> {
                   entry: board[employee.id],
                   settings: settings,
                   storeId: widget.storeId,
+                  closed: closed,
                 ),
             ],
           ),
@@ -174,6 +197,42 @@ class _TimeclockBoardPageState extends ConsumerState<TimeclockBoardPage> {
         AttendanceStatus.done => 2,
       };
 }
+
+/// The journée de service the board is on: open (with its date, which stays
+/// yesterday's past midnight), or closed until tomorrow.
+class _BusinessDayNotice extends StatelessWidget {
+  const _BusinessDayNotice({required this.businessDay});
+
+  final BusinessDay businessDay;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final date = _lowerFirst(Formatters.dateLongWeekday(businessDay.date));
+    final closedAt = businessDay.closedAt;
+
+    if (closedAt == null) {
+      return NoticeBanner(
+        key: const ValueKey('timeclock-business-day-open'),
+        icon: LucideIcons.calendarClock,
+        title: l10n.timeclockBusinessDayOpen(
+          date,
+          Formatters.time(businessDay.openedAt),
+        ),
+      );
+    }
+    return NoticeBanner(
+      key: const ValueKey('timeclock-business-day-closed'),
+      icon: LucideIcons.lock,
+      title: l10n.timeclockBusinessDayClosed(date, Formatters.time(closedAt)),
+      message: l10n.timeclockBusinessDayClosedBody,
+      colors: AppColors.lowStock,
+    );
+  }
+}
+
+String _lowerFirst(String s) =>
+    s.isEmpty ? s : s[0].toLowerCase() + s.substring(1);
 
 class _FullScreenToggleButton extends ConsumerWidget {
   const _FullScreenToggleButton();
@@ -202,12 +261,16 @@ class _EmployeeCard extends StatelessWidget {
     required this.entry,
     required this.settings,
     required this.storeId,
+    required this.closed,
   });
 
   final Employee employee;
   final Attendance? entry;
   final StoreSettings settings;
   final String storeId;
+
+  /// Today's journée is closed — no Pointer until tomorrow.
+  final bool closed;
 
   void _openDetail(BuildContext context) {
     // Bare: the day detail — date and live time included — is the heading.
@@ -257,6 +320,7 @@ class _EmployeeCard extends StatelessWidget {
                 employee: employee,
                 settings: settings,
                 storeId: storeId,
+                closed: closed,
               ),
             ],
           ),
@@ -303,13 +367,18 @@ class _BoardDetail extends ConsumerWidget {
         .firstOrNull;
     final entry = ref.watch(attendanceBoardProvider(storeId)).value?[employeeId];
     final settings = ref.watch(storeSettingsProvider(storeId)).value;
-    if (employee == null || settings == null) return const SizedBox.shrink();
+    final day = ref.watch(boardDayProvider(storeId)).value;
+    if (employee == null || settings == null || day == null) {
+      return const SizedBox.shrink();
+    }
 
     if (entry == null || entry.sessions.isEmpty) {
       return _StartDayPrompt(
         employee: employee,
         settings: settings,
         storeId: storeId,
+        date: day.date,
+        closed: day.businessDay?.closedAt != null,
       );
     }
 
@@ -333,11 +402,17 @@ class _StartDayPrompt extends StatelessWidget {
     required this.employee,
     required this.settings,
     required this.storeId,
+    required this.date,
+    required this.closed,
   });
 
   final Employee employee;
   final StoreSettings settings;
   final String storeId;
+
+  /// The board's day — the open journée's, not the clock's.
+  final DateTime date;
+  final bool closed;
 
   /// The bare drawer's close bar and bottom padding — what the body's
   /// height leaves for this block to centre in.
@@ -348,8 +423,7 @@ class _StartDayPrompt extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final media = MediaQuery.of(context);
-    final day = Formatters.dateLongWeekday(clock.now());
-    final dayLower = day.isEmpty ? day : day[0].toLowerCase() + day.substring(1);
+    final dayLower = _lowerFirst(Formatters.dateLongWeekday(date));
 
     return ConstrainedBox(
       key: const ValueKey('timeclock-start-day'),
@@ -383,6 +457,7 @@ class _StartDayPrompt extends StatelessWidget {
                 employee: employee,
                 settings: settings,
                 storeId: storeId,
+                closed: closed,
               ),
             ),
           ],
@@ -399,12 +474,18 @@ class _ActionArea extends ConsumerWidget {
     required this.employee,
     required this.settings,
     required this.storeId,
+    required this.closed,
   });
 
   final Attendance? entry;
   final Employee employee;
   final StoreSettings settings;
   final String storeId;
+
+  /// Today's journée is closed: `Pointer` gives way to a disabled
+  /// `Journée fermée`. Nobody is in service on a closed journée — closing
+  /// refuses until they are out — so the other buttons never meet it.
+  final bool closed;
 
   /// Every board action is attributed to a person, so each one asks for that
   /// employee's PIN first — the dialog owns the wrong-attempt / lockout loop.
@@ -430,7 +511,13 @@ class _ActionArea extends ConsumerWidget {
     if (!ok || !context.mounted) return;
 
     final result = await action();
-    if (!context.mounted || result == null) return;
+    if (!context.mounted) return;
+    if (result == null) {
+      // Refused by the database — the card was stale, or the journée closed
+      // in between. Said aloud rather than leaving the tap looking dead.
+      AppSnackBar.error(context, l10n.timeclockActionRefused);
+      return;
+    }
     AppSnackBar.success(context, message(employeeDisplayName(employee)));
   }
 
@@ -441,6 +528,7 @@ class _ActionArea extends ConsumerWidget {
     final repo = ref.read(attendanceRepositoryProvider);
 
     if (current == null) {
+      if (closed) return const _DayClosedButton();
       return _BigButton(
         label: l10n.timeclockClockIn,
         icon: LucideIcons.circle,
@@ -512,18 +600,21 @@ class _ActionArea extends ConsumerWidget {
           children: [
             const _DoneSummary(),
             const SizedBox(height: AppSpacing.xs),
-            _BigButton(
-              label: l10n.timeclockClockIn,
-              icon: LucideIcons.circle,
-              outlined: true,
-              onPressed: () => _run(
-                context,
-                ref,
-                l10n.timeclockClockIn,
-                () => repo.clockIn(employee.id, storeId),
-                l10n.timeclockClockInDone,
+            if (closed)
+              const _DayClosedButton()
+            else
+              _BigButton(
+                label: l10n.timeclockClockIn,
+                icon: LucideIcons.circle,
+                outlined: true,
+                onPressed: () => _run(
+                  context,
+                  ref,
+                  l10n.timeclockClockIn,
+                  () => repo.clockIn(employee.id, storeId),
+                  l10n.timeclockClockInDone,
+                ),
               ),
-            ),
           ],
         );
     }
@@ -541,6 +632,7 @@ class _ActionArea extends ConsumerWidget {
 ///   thing a not-yet-clocked-in card asks does not shout.
 class _BigButton extends StatelessWidget {
   const _BigButton({
+    super.key,
     required this.label,
     required this.icon,
     required this.onPressed,
@@ -596,6 +688,23 @@ class _BigButton extends StatelessWidget {
         icon: iconWidget,
         label: child,
       ),
+    );
+  }
+}
+
+/// `JOURNÉE FERMÉE`, disabled, where `Pointer` would be once today's journée
+/// is closed.
+class _DayClosedButton extends StatelessWidget {
+  const _DayClosedButton();
+
+  @override
+  Widget build(BuildContext context) {
+    return _BigButton(
+      key: const ValueKey('timeclock-day-closed'),
+      label: AppLocalizations.of(context).timeclockDayClosed,
+      icon: LucideIcons.lock,
+      outlined: true,
+      onPressed: null,
     );
   }
 }

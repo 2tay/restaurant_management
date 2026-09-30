@@ -364,4 +364,100 @@ void main() {
     expect(await perLine(const Size(1280, 800)), 3);
     expect(await perLine(const Size(1440, 900)), 4);
   });
+
+  // The journée de service (audit L1 / L2). The day after the seed has no
+  // journée: each test opens one with its first Pointer.
+
+  _testBoard('the first Pointer opens the journée, and the notice says when', (
+    tester,
+  ) async {
+    final db = await _openBoard(tester);
+    expect(
+      find.byKey(const ValueKey('timeclock-business-day-open')),
+      findsNothing,
+    );
+
+    await AttendanceRepository(
+      db,
+    ).clockIn(EmployeeIds.amelie, StoreIds.sablon, now: _today(8));
+    await tester.pumpAndSettle();
+
+    final notice = find.byKey(const ValueKey('timeclock-business-day-open'));
+    expect(notice, findsOneWidget);
+    expect(
+      find.descendant(of: notice, matching: find.textContaining('ouverte à 08:00')),
+      findsOneWidget,
+    );
+  });
+
+  _testBoard('past midnight the board stays on the journée still open', (
+    tester,
+  ) async {
+    final db = await _openBoard(tester);
+    final opened = _today(11);
+    await AttendanceRepository(
+      db,
+    ).clockIn(EmployeeIds.amelie, StoreIds.sablon, now: opened);
+    await tester.pumpAndSettle();
+    expect(find.text('FIN DE JOURNÉE'), findsOneWidget);
+
+    // 12:00 → 01:00 the next day: the calendar ticks over, the journée does
+    // not, and Amélie can still end her shift from her card.
+    await tester.pump(const Duration(hours: 13));
+    await tester.pumpAndSettle();
+
+    expect(find.text('FIN DE JOURNÉE'), findsOneWidget);
+    final notice = find.byKey(const ValueKey('timeclock-business-day-open'));
+    expect(
+      find.descendant(
+        of: notice,
+        matching: find.textContaining(Formatters.date(opened)),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  _testBoard('a closed journée disables Pointer until the next day', (
+    tester,
+  ) async {
+    final db = await _openBoard(tester);
+    final attendance = AttendanceRepository(db);
+    final row = await attendance.clockIn(
+      EmployeeIds.amelie,
+      StoreIds.sablon,
+      now: _today(8),
+    );
+    await attendance.clockOut(row!.id, now: _today(11));
+    final days = BusinessDayRepository(db);
+    final journee = await days.current(StoreIds.sablon);
+    await days.close(journee!.id, closedByEmployeeId: EmployeeIds.marc);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('timeclock-business-day-closed')),
+      findsOneWidget,
+    );
+    expect(find.text('Le pointage reprendra demain.'), findsOneWidget);
+    expect(find.widgetWithText(OutlinedButton, 'POINTER'), findsNothing);
+    final closed = find.byKey(const ValueKey('timeclock-day-closed'));
+    expect(closed, findsWidgets);
+    expect(
+      tester
+          .widget<OutlinedButton>(
+            find.descendant(of: closed.first, matching: find.byType(OutlinedButton)),
+          )
+          .onPressed,
+      isNull,
+    );
+
+    // Past midnight, a new day: Pointer is back, the closed notice gone.
+    await tester.pump(const Duration(hours: 13));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('timeclock-business-day-closed')),
+      findsNothing,
+    );
+    expect(find.widgetWithText(OutlinedButton, 'POINTER'), findsWidgets);
+  });
 }

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:clock/clock.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -596,14 +598,60 @@ final attendanceTodayProvider = StreamProvider.family<Attendance?, String>(
       ref.watch(attendanceRepositoryProvider).watchToday(employeeId),
 );
 
-/// Every today's-row for a store, keyed by employee id — the pointage board
-/// joins this against `activeEmployeesProvider`.
+/// Today's calendar date, ticking over at midnight — so a board left open
+/// overnight moves to the new day by itself (audit L2). Reads the pointage
+/// clock, which a test pins.
+class CurrentDay extends Notifier<DateTime> {
+  Timer? _timer;
+
+  @override
+  DateTime build() {
+    final now = ref.watch(attendanceClockProvider);
+    ref.onDispose(() => _timer?.cancel());
+    _scheduleNext(now);
+    return _dayOf(now());
+  }
+
+  void _scheduleNext(DateTime Function() now) {
+    _timer?.cancel();
+    final at = now();
+    final midnight = DateTime(at.year, at.month, at.day + 1);
+    // A second past midnight, so the tick never lands on the day it leaves.
+    _timer = Timer(midnight.difference(at) + const Duration(seconds: 1), () {
+      state = _dayOf(now());
+      _scheduleNext(now);
+    });
+  }
+
+  static DateTime _dayOf(DateTime v) => DateTime(v.year, v.month, v.day);
+}
+
+final currentDayProvider = NotifierProvider<CurrentDay, DateTime>(
+  CurrentDay.new,
+);
+
+/// The pointage board's day and the journée de service behind it — the open
+/// journée, even past midnight; else today's (closed, or not opened yet).
+final boardDayProvider = StreamProvider.family<BoardDay, String>(
+  (ref, storeId) => ref
+      .watch(businessDayRepositoryProvider)
+      .watchBoardDay(storeId, ref.watch(currentDayProvider)),
+);
+
+/// Every row of the board's day for a store, keyed by employee id — the
+/// pointage board joins this against `activeEmployeesProvider`. Rebuilt only
+/// when the board's date changes, not on every open / close of the journée.
 final attendanceBoardProvider =
-    StreamProvider.family<Map<String, Attendance>, String>(
-      (ref, storeId) => ref
-          .watch(attendanceRepositoryProvider)
-          .watchTodayForStore(storeId),
-    );
+    StreamProvider.family<Map<String, Attendance>, String>((
+      ref,
+      storeId,
+    ) async* {
+      final repo = ref.watch(attendanceRepositoryProvider);
+      final date = await ref.watch(
+        boardDayProvider(storeId).selectAsync((d) => d.date),
+      );
+      yield* repo.watchStoreDay(storeId, date);
+    });
 
 /// The filter bundle for the Historique de pointage table.
 typedef AttendanceLogKey = ({

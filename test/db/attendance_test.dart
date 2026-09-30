@@ -66,6 +66,71 @@ void main() {
     });
   });
 
+  // The journée de service (audit L1): the day a Pointer lands on is the open
+  // journée's, not the clock's. The seed has no journée, so the first Pointer
+  // of each test opens one.
+  group('the journée de service', () {
+    final evening = DateTime(2026, 9, 29, 18);
+    final afterMidnight = DateTime(2026, 9, 30, 0, 30);
+
+    test('the first Pointer opens today\'s journée, in that employee\'s name',
+        () async {
+      await repo().clockIn(_fresh, StoreIds.sablon, now: evening);
+
+      final journee = await BusinessDayRepository(db).current(StoreIds.sablon);
+      expect(journee!.date, DateTime(2026, 9, 29));
+      expect(journee.openedAt, evening);
+      expect(journee.openedByEmployeeId, _fresh);
+    });
+
+    test('a shift that runs past midnight stays on the evening it started',
+        () async {
+      final r = repo();
+      final row = (await r.clockIn(_fresh, StoreIds.sablon, now: evening))!;
+
+      final done = (await r.clockOut(row.id, now: afterMidnight))!;
+      expect(done.date, DateTime(2026, 9, 29));
+      expect(workedDuration(done), const Duration(hours: 6, minutes: 30));
+    });
+
+    test('a Pointer after midnight joins the journée still open', () async {
+      final r = repo();
+      await r.clockIn(_fresh, StoreIds.sablon, now: evening);
+
+      final late = (await r.clockIn(
+        EmployeeIds.amelie,
+        StoreIds.sablon,
+        now: afterMidnight,
+      ))!;
+      expect(late.date, DateTime(2026, 9, 29));
+    });
+
+    test('once today\'s journée is closed, Pointer is refused until tomorrow',
+        () async {
+      final r = repo();
+      final row = (await r.clockIn(_fresh, StoreIds.sablon, now: evening))!;
+      await r.clockOut(row.id, now: DateTime(2026, 9, 29, 22));
+      final days = BusinessDayRepository(db);
+      final journee = (await days.current(StoreIds.sablon))!;
+      await days.close(journee.id, closedByEmployeeId: EmployeeIds.marc);
+
+      expect(
+        await r.clockIn(
+          _fresh,
+          StoreIds.sablon,
+          now: DateTime(2026, 9, 29, 23),
+        ),
+        isNull,
+      );
+      final tomorrow = await r.clockIn(
+        _fresh,
+        StoreIds.sablon,
+        now: DateTime(2026, 9, 30, 8),
+      );
+      expect(tomorrow!.date, DateTime(2026, 9, 30));
+    });
+  });
+
   group('the state machine has no back door', () {
     test('a break before clocking in is refused', () async {
       expect(await repo().startPause('no-such-row'), isNull);

@@ -149,6 +149,65 @@ void main() {
     });
   });
 
+  group('the board day', () {
+    Future<BoardDay> boardDay(DateTime today) =>
+        repo().watchBoardDay(_store, today).first;
+
+    test('with no journée yet is today, with nothing behind it', () async {
+      final day = await boardDay(afterMidnight);
+      expect(day.date, DateTime(2026, 9, 30));
+      expect(day.businessDay, isNull);
+    });
+
+    test('stays on the open journée past midnight', () async {
+      final open = (await repo().open(_store))!;
+
+      final day = await boardDay(afterMidnight);
+      expect(day.date, DateTime(2026, 9, 29));
+      expect(day.businessDay!.id, open.id);
+    });
+
+    test('shows today\'s journée once closed, and moves on the next day',
+        () async {
+      final open = (await repo().open(_store))!;
+      await repo().close(open.id, closedByEmployeeId: _manager);
+
+      final sameDay = await boardDay(DateTime(2026, 9, 29, 23));
+      expect(sameDay.date, DateTime(2026, 9, 29));
+      expect(sameDay.businessDay!.closedAt, isNotNull);
+
+      final nextDay = await boardDay(afterMidnight);
+      expect(nextDay.date, DateTime(2026, 9, 30));
+      expect(nextDay.businessDay, isNull);
+    });
+  });
+
+  group('currentOrOpen', () {
+    test('returns the open journée rather than opening another', () async {
+      final open = (await repo().open(_store))!;
+      final again = await repo(afterMidnight).currentOrOpen(_store);
+      expect(again!.id, open.id);
+    });
+
+    test('opens today\'s when none is open', () async {
+      final opened = await repo().currentOrOpen(
+        _store,
+        openedByEmployeeId: _staff,
+      );
+      expect(opened!.date, DateTime(2026, 9, 29));
+      expect(opened.openedByEmployeeId, _staff);
+    });
+
+    test('is null once today\'s journée is closed', () async {
+      final open = (await repo().open(_store))!;
+      await repo().close(open.id, closedByEmployeeId: _manager);
+      expect(
+        await repo(DateTime(2026, 9, 29, 23)).currentOrOpen(_store),
+        isNull,
+      );
+    });
+  });
+
   test('watchCurrent follows an open and a close', () async {
     final seen = <String?>[];
     final subscription = repo()

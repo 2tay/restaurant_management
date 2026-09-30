@@ -12,6 +12,11 @@ import 'new_id.dart';
 /// constructor's `clock` parameter hides the package's getter.
 DateTime _systemNow() => clock.now();
 
+/// What the pointage board works on: the [date] its cards read, and the
+/// journée behind it — the open one; else today's, already closed; else none
+/// yet (the first Pointer opens it).
+typedef BoardDay = ({DateTime date, BusinessDay? businessDay});
+
 /// The journées de service — opening one, closing it, and reading the one that
 /// is open.
 ///
@@ -49,6 +54,46 @@ class BusinessDayRepository {
   Stream<BusinessDay?> watchCurrent(String storeId) => _openQuery(
     storeId,
   ).watchSingleOrNull().map((row) => row == null ? null : businessDayFromRow(row));
+
+  /// The board's day, re-emitted whenever a journée opens or closes. [today]
+  /// is the calendar day the caller is on — used only when no journée is
+  /// open, so a journée running past midnight keeps the board on its date.
+  Stream<BoardDay> watchBoardDay(String storeId, DateTime today) {
+    final day = _dayOf(today);
+    return (_db.select(_db.businessDays)..where(
+          (d) =>
+              d.storeId.equals(storeId) &
+              (d.closedAt.isNull() | d.date.equals(day)),
+        ))
+        .watch()
+        .map((rows) {
+          final chosen =
+              rows.where((r) => r.closedAt == null).firstOrNull ??
+              rows.firstOrNull;
+          return (
+            date: chosen?.date ?? day,
+            businessDay: chosen == null ? null : businessDayFromRow(chosen),
+          );
+        });
+  }
+
+  /// The journée a Pointer lands in: the open one, else a new one opened by
+  /// [openedByEmployeeId]. Null when today's journée was already closed — one
+  /// journée per date, and a closed one is not reopened.
+  Future<BusinessDay?> currentOrOpen(
+    String storeId, {
+    String? openedByEmployeeId,
+    DateTime? now,
+  }) {
+    return _db.transaction(() async {
+      return await current(storeId) ??
+          await open(
+            storeId,
+            openedByEmployeeId: openedByEmployeeId,
+            now: now,
+          );
+    });
+  }
 
   /// Opens a journée dated today (by [now]). Refuses while another journée of
   /// the store is open, and when the store already had a journée on today's

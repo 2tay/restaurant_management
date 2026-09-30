@@ -3181,6 +3181,26 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String timeclockBusinessDayOpen(String date, String time) {
+    return 'Journée du $date · ouverte à $time';
+  }
+
+  @override
+  String timeclockBusinessDayClosed(String date, String time) {
+    return 'Journée du $date fermée à $time';
+  }
+
+  @override
+  String get timeclockBusinessDayClosedBody => 'Le pointage reprendra demain.';
+
+  @override
+  String get timeclockDayClosed => 'Journée fermée';
+
+  @override
+  String get timeclockActionRefused =>
+      'Action non enregistrée : le pointage a changé entre-temps ou la journée est fermée.';
+
+  @override
   String timeclockSessionTitle(int number) {
     return 'Session N° $number';
   }

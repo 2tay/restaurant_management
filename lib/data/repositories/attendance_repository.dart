@@ -5,6 +5,7 @@ import '../../core/utils/attendance_status.dart';
 import '../../models/attendance.dart';
 import '../database/app_database.dart';
 import '../mappers/mappers.dart';
+import 'business_day_repository.dart';
 import 'new_id.dart';
 import 'store_repository.dart';
 
@@ -73,12 +74,15 @@ class AttendanceRepository {
   /// Every today's-row for a store, keyed by employee id — the pointage board
   /// reads this once and joins it against the active roster, rather than
   /// opening a `watchToday` per card (8 cards × a stream each is the shape to
-  /// avoid). An employee with no entry today is simply absent from the map.
-  Stream<Map<String, Attendance>> watchTodayForStore(
-    String storeId, {
-    DateTime? now,
-  }) {
-    final day = _dayOf(now ?? _clock());
+  /// avoid). An employee with no entry that day is simply absent from the map.
+  ///
+  /// [date] is the board's day (`BusinessDayRepository.watchBoardDay`), not
+  /// the clock's: past midnight the board keeps reading the journée still open.
+  Stream<Map<String, Attendance>> watchStoreDay(
+    String storeId,
+    DateTime date,
+  ) {
+    final day = _dayOf(date);
     return (_db.select(_db.attendances)
           ..where((a) => a.storeId.equals(storeId) & a.date.equals(day)))
         .watch()
@@ -220,17 +224,30 @@ class AttendanceRepository {
   /// `Pointer`. Opens a new session. When this is the day's first cycle it
   /// also creates the `attendances` row; when the previous cycle already
   /// finished (`done`) it opens another one — a day can hold several Pointer →
-  /// Fin de journée cycles. Refuses (returns null) only while a cycle is
-  /// already open (`working` / `onBreak`) or the day is locked by payroll.
+  /// Fin de journée cycles. Refuses (returns null) while a cycle is already
+  /// open (`working` / `onBreak`), when the day is locked by payroll, or when
+  /// today's journée de service is already closed.
+  ///
+  /// The row's date is the open journée's — opened here, by this employee,
+  /// when none is — so a Pointer after midnight stays on the evening's day.
   Future<Attendance?> clockIn(
     String employeeId,
     String storeId, {
     DateTime? now,
   }) {
     final at = now ?? _clock();
-    final day = _dayOf(at);
 
     return _db.transaction(() async {
+      // The day is the open journée's, not the clock's: a Pointer at 00:30
+      // still lands on the evening it belongs to. No journée open → this
+      // Pointer opens today's; today's already closed → refused.
+      final businessDay = await BusinessDayRepository(
+        _db,
+        clock: _clock,
+      ).currentOrOpen(storeId, openedByEmployeeId: employeeId, now: at);
+      if (businessDay == null) return null;
+      final day = businessDay.date;
+
       final existing = await (_db.select(_db.attendances)..where(
             (a) => a.employeeId.equals(employeeId) & a.date.equals(day),
           ))

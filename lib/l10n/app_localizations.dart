@@ -5200,6 +5200,36 @@ abstract class AppLocalizations {
   /// **'Vous n\'avez pas encore commencé votre journée du {date}. Pointez pour la démarrer.'**
   String timeclockStartDayPrompt(String date);
 
+  /// Board notice while a journée de service is open. {date} is e.g. 'mardi 29/09/2026' — still yesterday's date after midnight until the journée is closed.
+  ///
+  /// In fr, this message translates to:
+  /// **'Journée du {date} · ouverte à {time}'**
+  String timeclockBusinessDayOpen(String date, String time);
+
+  /// Board notice once today's journée de service is closed.
+  ///
+  /// In fr, this message translates to:
+  /// **'Journée du {date} fermée à {time}'**
+  String timeclockBusinessDayClosed(String date, String time);
+
+  /// Line under the closed-journée notice: no punch until the next day.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le pointage reprendra demain.'**
+  String get timeclockBusinessDayClosedBody;
+
+  /// Disabled button in place of Pointer once the journée is closed.
+  ///
+  /// In fr, this message translates to:
+  /// **'Journée fermée'**
+  String get timeclockDayClosed;
+
+  /// Snackbar when a board action is refused by the database (stale state, closed journée).
+  ///
+  /// In fr, this message translates to:
+  /// **'Action non enregistrée : le pointage a changé entre-temps ou la journée est fermée.'**
+  String get timeclockActionRefused;
+
   /// Divider above each session of a day, even when there is only one.
   ///
   /// In fr, this message translates to:
