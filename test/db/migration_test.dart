@@ -31,6 +31,8 @@
 //               `.password_hash`.
 //   v13 -> v14  the journée de service: a new `business_days` table, no
 //               existing row touched.
+//   v14 -> v15  `stores.business_day_auto_open_minutes`, the time of day a
+//               journée may open by itself (05:00 by default).
 //
 // The two branches that built v6–v9 each numbered their own steps v6–v9; on
 // merging, the stock steps kept those numbers and the pointage steps moved to
@@ -65,29 +67,29 @@ void main() {
     verifier = SchemaVerifier(GeneratedHelper());
   });
 
-  test('a fresh database matches the version 14 schema', () async {
-    final connection = await verifier.startAt(14);
+  test('a fresh database matches the version 15 schema', () async {
+    final connection = await verifier.startAt(15);
     final db = AppDatabase.withExecutor(connection);
-    await verifier.migrateAndValidate(db, 14);
+    await verifier.migrateAndValidate(db, 15);
     await db.close();
   });
 
   // The step every incremental migration gets wrong: an install that skipped a
   // release runs both branches back to back, and `onUpgrade` has to be written
   // so it can. There is no v1 -> v2 test any more, and there cannot be —
-  // `schemaVersion` is 14, so an older install is never asked to stop short.
-  test('a version 1 install upgrades all the way to version 14', () async {
+  // `schemaVersion` is 15, so an older install is never asked to stop short.
+  test('a version 1 install upgrades all the way to version 15', () async {
     final connection = await verifier.startAt(1);
     final db = AppDatabase.withExecutor(connection);
 
-    await verifier.migrateAndValidate(db, 14);
+    await verifier.migrateAndValidate(db, 15);
     await db.close();
   });
 
-  test('a version 2 install upgrades to version 14 cleanly', () async {
+  test('a version 2 install upgrades to version 15 cleanly', () async {
     final connection = await verifier.startAt(2);
     final db = AppDatabase.withExecutor(connection);
-    await verifier.migrateAndValidate(db, 14);
+    await verifier.migrateAndValidate(db, 15);
     await db.close();
   });
 
@@ -97,7 +99,7 @@ void main() {
   test('maxStock defaults to zero on an upgraded install', () async {
     final connection = await verifier.startAt(2);
     final db = AppDatabase.withExecutor(connection);
-    await verifier.migrateAndValidate(db, 14);
+    await verifier.migrateAndValidate(db, 15);
 
     final defaults = await db.customSelect('PRAGMA table_info(items)').get();
     final column = defaults.firstWhere(
@@ -108,41 +110,41 @@ void main() {
     await db.close();
   });
 
-  test('a version 3 install upgrades to version 14 cleanly', () async {
+  test('a version 3 install upgrades to version 15 cleanly', () async {
     final connection = await verifier.startAt(3);
     final db = AppDatabase.withExecutor(connection);
 
-    // Runs AppDatabase.migration.onUpgrade(3 -> 14) and then checks every table,
-    // column, default and index against drift_schema_v14.json.
-    await verifier.migrateAndValidate(db, 14);
+    // Runs AppDatabase.migration.onUpgrade(3 -> 15) and then checks every table,
+    // column, default and index against drift_schema_v15.json.
+    await verifier.migrateAndValidate(db, 15);
     await db.close();
   });
 
-  test('a version 4 install upgrades to version 14 cleanly', () async {
+  test('a version 4 install upgrades to version 15 cleanly', () async {
     final connection = await verifier.startAt(4);
     final db = AppDatabase.withExecutor(connection);
-    await verifier.migrateAndValidate(db, 14);
+    await verifier.migrateAndValidate(db, 15);
     await db.close();
   });
 
-  test('a version 5 install upgrades to version 14 cleanly', () async {
+  test('a version 5 install upgrades to version 15 cleanly', () async {
     final connection = await verifier.startAt(5);
     final db = AppDatabase.withExecutor(connection);
-    await verifier.migrateAndValidate(db, 14);
+    await verifier.migrateAndValidate(db, 15);
     await db.close();
   });
 
-  test('a version 6 install upgrades to version 14 cleanly', () async {
+  test('a version 6 install upgrades to version 15 cleanly', () async {
     final connection = await verifier.startAt(6);
     final db = AppDatabase.withExecutor(connection);
-    await verifier.migrateAndValidate(db, 14);
+    await verifier.migrateAndValidate(db, 15);
     await db.close();
   });
 
-  test('a version 7 install upgrades to version 14 cleanly', () async {
+  test('a version 7 install upgrades to version 15 cleanly', () async {
     final connection = await verifier.startAt(7);
     final db = AppDatabase.withExecutor(connection);
-    await verifier.migrateAndValidate(db, 14);
+    await verifier.migrateAndValidate(db, 15);
     await db.close();
   });
 
@@ -154,7 +156,7 @@ void main() {
     () async {
       final connection = await verifier.startAt(7);
       final db = AppDatabase.withExecutor(connection);
-      await verifier.migrateAndValidate(db, 14);
+      await verifier.migrateAndValidate(db, 15);
 
       final columns = await db.customSelect('PRAGMA table_info(stores)').get();
       Object? defaultOf(String name) => columns
@@ -169,44 +171,59 @@ void main() {
     },
   );
 
-  test('a version 8 install upgrades to version 14 cleanly', () async {
+  test('a version 8 install upgrades to version 15 cleanly', () async {
     final connection = await verifier.startAt(8);
     final db = AppDatabase.withExecutor(connection);
-    await verifier.migrateAndValidate(db, 14);
+    await verifier.migrateAndValidate(db, 15);
     await db.close();
   });
 
-  test('a version 9 install upgrades to version 14 cleanly', () async {
+  test('a version 9 install upgrades to version 15 cleanly', () async {
     final connection = await verifier.startAt(9);
     final db = AppDatabase.withExecutor(connection);
-    await verifier.migrateAndValidate(db, 14);
+    await verifier.migrateAndValidate(db, 15);
     await db.close();
   });
 
-  test('a version 10 install upgrades to version 14 cleanly', () async {
+  test('a version 10 install upgrades to version 15 cleanly', () async {
     final connection = await verifier.startAt(10);
     final db = AppDatabase.withExecutor(connection);
-    await verifier.migrateAndValidate(db, 14);
+    await verifier.migrateAndValidate(db, 15);
     await db.close();
   });
 
-  test('a version 11 install upgrades to version 14 cleanly', () async {
+  test('a version 11 install upgrades to version 15 cleanly', () async {
     final connection = await verifier.startAt(11);
     final db = AppDatabase.withExecutor(connection);
-    await verifier.migrateAndValidate(db, 14);
+    await verifier.migrateAndValidate(db, 15);
     await db.close();
   });
 
-  test('a version 12 install upgrades to version 14 cleanly', () async {
+  test('a version 12 install upgrades to version 15 cleanly', () async {
     final connection = await verifier.startAt(12);
     final db = AppDatabase.withExecutor(connection);
-    await verifier.migrateAndValidate(db, 14);
+    await verifier.migrateAndValidate(db, 15);
     await db.close();
   });
 
   // No journée is backfilled: the past needs none, and an in-progress day is
   // picked up by the first Pointer after the upgrade. The attendance rows stay
   // exactly where they were.
+  // The default is the 05:00 every store read while it was a constant, so an
+  // upgraded install keeps the same night rule.
+  test('v14 -> v15 gives every store the 05:00 auto-open time', () async {
+    final connection = await verifier.startAt(14);
+    final db = AppDatabase.withExecutor(connection);
+    await verifier.migrateAndValidate(db, 15);
+
+    final columns = await db.customSelect('PRAGMA table_info(stores)').get();
+    final column = columns.firstWhere(
+      (row) => row.read<String>('name') == 'business_day_auto_open_minutes',
+    );
+    expect(column.read<String?>('dflt_value'), '300');
+    await db.close();
+  });
+
   test(
     'v13 -> v14 adds an empty business_days table and moves nothing',
     () async {
@@ -234,7 +251,7 @@ void main() {
       await old.close();
 
       final db = AppDatabase.withExecutor(schema.newConnection());
-      await verifier.migrateAndValidate(db, 14);
+      await verifier.migrateAndValidate(db, 15);
 
       final days = await db
           .customSelect('SELECT COUNT(*) n FROM business_days')
@@ -255,7 +272,7 @@ void main() {
   test('v8 -> v9 leaves every article without a busy-week minimum', () async {
     final connection = await verifier.startAt(8);
     final db = AppDatabase.withExecutor(connection);
-    await verifier.migrateAndValidate(db, 14);
+    await verifier.migrateAndValidate(db, 15);
 
     final columns = await db.customSelect('PRAGMA table_info(items)').get();
     final column = columns.firstWhere(
@@ -270,7 +287,7 @@ void main() {
   test('v6 -> v7 leaves existing receipts with no employee id', () async {
     final connection = await verifier.startAt(6);
     final db = AppDatabase.withExecutor(connection);
-    await verifier.migrateAndValidate(db, 14);
+    await verifier.migrateAndValidate(db, 15);
 
     final columns = await db
         .customSelect('PRAGMA table_info(goods_receipts)')
@@ -288,7 +305,7 @@ void main() {
   test('v5 -> v7 leaves existing movements with no employee id', () async {
     final connection = await verifier.startAt(5);
     final db = AppDatabase.withExecutor(connection);
-    await verifier.migrateAndValidate(db, 14);
+    await verifier.migrateAndValidate(db, 15);
 
     final columns = await db
         .customSelect('PRAGMA table_info(stock_movements)')
@@ -327,7 +344,7 @@ void main() {
       await old.close();
 
       final db = AppDatabase.withExecutor(schema.newConnection());
-      await verifier.migrateAndValidate(db, 14);
+      await verifier.migrateAndValidate(db, 15);
 
       final employee = await db
           .customSelect('SELECT pin FROM employees')
@@ -383,7 +400,7 @@ void main() {
       await old.close();
 
       final db = AppDatabase.withExecutor(schema.newConnection());
-      await verifier.migrateAndValidate(db, 14);
+      await verifier.migrateAndValidate(db, 15);
 
       Future<List<String>> columnsOf(String table) async => [
         for (final row
@@ -472,7 +489,7 @@ void main() {
     await old.close();
 
     final db = AppDatabase.withExecutor(schema.newConnection());
-    await verifier.migrateAndValidate(db, 14);
+    await verifier.migrateAndValidate(db, 15);
 
     final columns = await db.customSelect('PRAGMA table_info(employees)').get();
     expect(
@@ -518,7 +535,7 @@ void main() {
     await old.close();
 
     final db = AppDatabase.withExecutor(schema.newConnection());
-    await verifier.migrateAndValidate(db, 14);
+    await verifier.migrateAndValidate(db, 15);
 
     final sessions = await db
         .customSelect(
@@ -594,7 +611,7 @@ void main() {
     await old.close();
 
     final db = AppDatabase.withExecutor(schema.newConnection());
-    await verifier.migrateAndValidate(db, 14);
+    await verifier.migrateAndValidate(db, 15);
 
     // The schedule half of the v4 backfill is dropped again by v8; the break
     // allowance is what survives, frozen from the store for every day.

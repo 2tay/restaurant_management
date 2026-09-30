@@ -670,4 +670,29 @@ void main() {
     );
     expect(find.widgetWithText(OutlinedButton, 'POINTER'), findsWidgets);
   });
+
+  _testBoard("the night lock follows the store's auto-open time", (
+    tester,
+  ) async {
+    final db = await _openBoard(tester);
+    await StoreRepository(
+      db,
+    ).updateStoreSettings(StoreIds.sablon, businessDayAutoOpenMinutes: 7 * 60);
+
+    // 12:00 -> 06:00 the next day: still before 07:00, locked.
+    await tester.pump(const Duration(hours: 18));
+    await tester.pumpAndSettle();
+    final notice = find.byKey(const ValueKey('timeclock-business-day-none'));
+    expect(
+      find.descendant(of: notice, matching: find.textContaining('07:00')),
+      findsWidgets,
+    );
+    expect(find.widgetWithText(OutlinedButton, 'POINTER'), findsNothing);
+
+    // 07:00: unlocked by itself.
+    await tester.pump(const Duration(hours: 1));
+    await tester.pumpAndSettle();
+    expect(notice, findsNothing);
+    expect(find.widgetWithText(OutlinedButton, 'POINTER'), findsWidgets);
+  });
 }

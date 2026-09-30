@@ -119,8 +119,12 @@ class _TimeclockBoardPageState extends ConsumerState<TimeclockBoardPage> {
     if (businessDay == null) {
       // No journée yet: at night Pointer waits for the auto-open hour (or a
       // manager's "Ouvrir la journée"), and unlocks by itself when it comes.
+      final opensAt = businessDayAutoOpenAt(
+        day.date,
+        settings.businessDayAutoOpenMinutes,
+      );
       return _Deadline(
-        at: businessDayAutoOpenAt(day.date),
+        at: opensAt,
         now: ref.read(attendanceClockProvider),
         builder: (context, passed) => _buildCards(
           l10n,
@@ -130,7 +134,11 @@ class _TimeclockBoardPageState extends ConsumerState<TimeclockBoardPage> {
           lock: passed ? null : _PointerLock.notOpenYet,
           notice: passed
               ? null
-              : _NoBusinessDayNotice(date: day.date, storeId: widget.storeId),
+              : _NoBusinessDayNotice(
+                  date: day.date,
+                  opensAt: opensAt,
+                  storeId: widget.storeId,
+                ),
         ),
       );
     }
@@ -343,9 +351,16 @@ class _BusinessDayNotice extends ConsumerWidget {
 /// At night with no journée open: why Pointer waits, and "Ouvrir la
 /// journée" for a real night need — opened on purpose, by the signed-in user.
 class _NoBusinessDayNotice extends ConsumerWidget {
-  const _NoBusinessDayNotice({required this.date, required this.storeId});
+  const _NoBusinessDayNotice({
+    required this.date,
+    required this.opensAt,
+    required this.storeId,
+  });
 
   final DateTime date;
+
+  /// When the first Pointer opens the journée by itself (store setting).
+  final DateTime opensAt;
   final String storeId;
 
   Future<void> _open(BuildContext context, WidgetRef ref) async {
@@ -381,9 +396,7 @@ class _NoBusinessDayNotice extends ConsumerWidget {
       key: const ValueKey('timeclock-business-day-none'),
       icon: LucideIcons.moon,
       title: l10n.timeclockNoBusinessDay,
-      message: l10n.timeclockNoBusinessDayBody(
-        AttendanceRules.businessDayAutoOpenHour,
-      ),
+      message: l10n.timeclockNoBusinessDayBody(Formatters.time(opensAt)),
       action: OutlinedButton.icon(
         key: const ValueKey('timeclock-open-day'),
         onPressed: () => _open(context, ref),
@@ -590,7 +603,11 @@ class _BoardDetail extends ConsumerWidget {
         settings: settings,
         storeId: storeId,
         date: day.date,
-        lock: _pointerLock(day, ref.read(attendanceClockProvider)()),
+        lock: _pointerLock(
+          day,
+          ref.read(attendanceClockProvider)(),
+          settings.businessDayAutoOpenMinutes,
+        ),
       );
     }
 
@@ -910,15 +927,16 @@ enum _PointerLock {
   /// Today's journée is closed — until tomorrow.
   dayClosed,
 
-  /// No journée open, and before the auto-open hour.
+  /// No journée open, and before the store's auto-open time.
   notOpenYet,
 }
 
 /// The board's lock for [day] at [now], or null when Pointer is available.
-_PointerLock? _pointerLock(BoardDay day, DateTime now) {
+/// [autoOpenMinutes] is the store's `businessDayAutoOpenMinutes`.
+_PointerLock? _pointerLock(BoardDay day, DateTime now, int autoOpenMinutes) {
   final businessDay = day.businessDay;
   if (businessDay == null) {
-    return now.isBefore(businessDayAutoOpenAt(day.date))
+    return now.isBefore(businessDayAutoOpenAt(day.date, autoOpenMinutes))
         ? _PointerLock.notOpenYet
         : null;
   }

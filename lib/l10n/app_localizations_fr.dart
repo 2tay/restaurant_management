@@ -3209,8 +3209,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get timeclockNoBusinessDay => 'Aucune journée ouverte';
 
   @override
-  String timeclockNoBusinessDayBody(int hour) {
-    return 'Avant $hour h, un pointage n\'ouvre pas la journée tout seul. Elle s\'ouvrira au premier pointage à partir de $hour h, ou tout de suite avec « Ouvrir la journée ».';
+  String timeclockNoBusinessDayBody(String time) {
+    return 'Avant $time, un pointage n\'ouvre pas la journée tout seul. Elle s\'ouvrira au premier pointage à partir de $time, ou tout de suite avec « Ouvrir la journée ».';
   }
 
   @override
@@ -3290,6 +3290,18 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get storeSettingsHours => 'Pauses';
+
+  @override
+  String get storeSettingsBusinessDay => 'Journée de service';
+
+  @override
+  String storeSettingsAutoOpen(String time) {
+    return 'Ouverture automatique à partir de $time';
+  }
+
+  @override
+  String get storeSettingsAutoOpenHelp =>
+      'Avant cette heure, un pointage n\'ouvre pas la journée tout seul ; un gérant peut toujours l\'ouvrir depuis le tableau de pointage. À 00:00, la journée s\'ouvre au premier pointage, à toute heure.';
 
   @override
   String get storeSettingsMaxBreak => 'Pause max (minutes)';

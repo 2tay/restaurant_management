@@ -27,6 +27,7 @@ StoreSettings storeSettingsFromRow(StoreRow row) => StoreSettings(
   notifyPriceChange: row.notifyPriceChange,
   notifyLargeAdjustment: row.notifyLargeAdjustment,
   notifyDeliveries: row.notifyDeliveries,
+  businessDayAutoOpenMinutes: row.businessDayAutoOpenMinutes,
 );
 
 /// [settings] is optional: when omitted the settings columns take their
@@ -50,4 +51,7 @@ StoresCompanion storeToRow(Store store, [StoreSettings? settings]) =>
       maxBreakMinutes: settings == null
           ? const Value.absent()
           : Value(settings.maxBreakMinutes),
+      businessDayAutoOpenMinutes: settings == null
+          ? const Value.absent()
+          : Value(settings.businessDayAutoOpenMinutes),
     );

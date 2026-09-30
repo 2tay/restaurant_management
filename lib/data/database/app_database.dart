@@ -89,7 +89,7 @@ class AppDatabase extends _$AppDatabase {
   static const String databaseName = 'stock_inventory';
 
   @override
-  int get schemaVersion => 14;
+  int get schemaVersion => 15;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -326,6 +326,14 @@ class AppDatabase extends _$AppDatabase {
       if (from < 14) {
         await m.createTable(businessDays);
         await m.create(businessDaysStoreDate);
+      }
+
+      // v14 → v15: the time of day a journée de service may open by itself,
+      // per store. The column default (05:00) is what every store read
+      // before, when it was a constant — an upgraded install behaves exactly
+      // as it did. `stores` exists from v1, so no `from >= 2` guard.
+      if (from < 15) {
+        await m.addColumn(stores, stores.businessDayAutoOpenMinutes);
       }
     },
 

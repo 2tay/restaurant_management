@@ -311,6 +311,24 @@ void main() {
       expect((await repo(afterMidnight).currentOrOpen(_store))!.id, open.id);
     });
 
+    test('follows the store\'s auto-open time', () async {
+      final settings = StoreRepository(db);
+      final sixAm = DateTime(2026, 9, 30, 6);
+
+      await settings.updateStoreSettings(
+        _store,
+        businessDayAutoOpenMinutes: 7 * 60,
+      );
+      expect(await repo(sixAm).currentOrOpen(_store), isNull);
+
+      // 00:00: any time — the night rule is off.
+      await settings.updateStoreSettings(_store, businessDayAutoOpenMinutes: 0);
+      final night = await repo(
+        DateTime(2026, 9, 30, 1, 10),
+      ).currentOrOpen(_store);
+      expect(night!.date, DateTime(2026, 9, 30));
+    });
+
     test('at night, opening by hand still works', () async {
       final night = DateTime(2026, 9, 30, 1, 10);
       final opened = await repo(

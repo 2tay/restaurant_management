@@ -58,6 +58,33 @@ void main() {
       expect(after.maxBreakMinutes, before.maxBreakMinutes);
     });
 
+    test('the journée auto-open time: 05:00 by default, editable, and a '
+        'time outside the day is ignored', () async {
+      expect(
+        (await stores.settings(StoreIds.sablon)).businessDayAutoOpenMinutes,
+        5 * 60,
+      );
+
+      final after = await stores.updateStoreSettings(
+        StoreIds.sablon,
+        businessDayAutoOpenMinutes: 7 * 60 + 30,
+      );
+      expect(after.businessDayAutoOpenMinutes, 7 * 60 + 30);
+      expect(after.maxBreakMinutes, isNot(0));
+
+      final midnight = await stores.updateStoreSettings(
+        StoreIds.sablon,
+        businessDayAutoOpenMinutes: 0,
+      );
+      expect(midnight.businessDayAutoOpenMinutes, 0);
+
+      final nonsense = await stores.updateStoreSettings(
+        StoreIds.sablon,
+        businessDayAutoOpenMinutes: 24 * 60,
+      );
+      expect(nonsense.businessDayAutoOpenMinutes, 0);
+    });
+
     test('another establishment is unaffected', () async {
       final liegeBefore = await stores.settings(StoreIds.liege);
       await stores.updateStoreSettings(StoreIds.sablon, maxBreakMinutes: 90);

@@ -16,21 +16,22 @@ abstract final class AttendanceRules {
   /// Nothing closes it on its own — that would invent exit times.
   static const Duration businessDayAlertAfter = Duration(hours: 18);
 
-  /// Before this hour a Pointer does **not** open a journée by itself: a
-  /// punch in the night, after the evening's journée was closed, would
-  /// otherwise open (and could get closed) the next day's only journée.
-  /// "Ouvrir la journée" on the board still opens one on purpose.
-  static const int businessDayAutoOpenHour = 5;
+  /// Before this time of day (minutes after midnight) a Pointer does **not**
+  /// open a journée by itself: a punch in the night, after the evening's
+  /// journée was closed, would otherwise open (and could get closed) the next
+  /// day's only journée. "Ouvrir la journée" on the board still opens one on
+  /// purpose. The default for a new store — each store sets its own
+  /// (`StoreSettings.businessDayAutoOpenMinutes`); 05:00.
+  static const int defaultBusinessDayAutoOpenMinutes = 5 * 60;
+
+  /// The last settable minute of the day, 23:59.
+  static const int lastMinuteOfDay = 24 * 60 - 1;
 }
 
-/// From when, on [day], a Pointer opens the journée by itself —
-/// [AttendanceRules.businessDayAutoOpenHour] o'clock.
-DateTime businessDayAutoOpenAt(DateTime day) => DateTime(
-  day.year,
-  day.month,
-  day.day,
-  AttendanceRules.businessDayAutoOpenHour,
-);
+/// From when, on [day], a Pointer opens the journée by itself — [minutes]
+/// after midnight (the store's `businessDayAutoOpenMinutes`).
+DateTime businessDayAutoOpenAt(DateTime day, int minutes) =>
+    DateTime(day.year, day.month, day.day, 0, minutes);
 
 /// When the board starts flagging [day] as left open —
 /// [AttendanceRules.businessDayAlertAfter] after it opened.

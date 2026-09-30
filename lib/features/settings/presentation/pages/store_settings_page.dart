@@ -118,6 +118,10 @@ class _StoreSettingsFormState extends ConsumerState<_StoreSettingsForm> {
     text: '${widget.settings.maxBreakMinutes}',
   );
 
+  /// The journée's auto-open time, minutes after midnight. Picked with the
+  /// time picker, so it is always valid.
+  late int _autoOpenMinutes = widget.settings.businessDayAutoOpenMinutes;
+
   /// Which unit a new article starts with. Local to this screen: there is no
   /// column behind it, because "the unit the form pre-selects" is a convenience
   /// rather than a fact about the establishment.
@@ -279,14 +283,59 @@ class _StoreSettingsFormState extends ConsumerState<_StoreSettingsForm> {
                 ],
               ),
             ),
+            const SizedBox(height: AppSpacing.xl),
+
+            SectionHeader(title: l10n.storeSettingsBusinessDay),
+            AppCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  OutlinedButton.icon(
+                    key: const ValueKey('store-settings-auto-open'),
+                    onPressed: canEdit ? _pickAutoOpen : null,
+                    icon: const Icon(LucideIcons.sunrise, size: AppSizing.iconSm),
+                    label: Text(
+                      l10n.storeSettingsAutoOpen(
+                        _formatMinutes(_autoOpenMinutes),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  Text(
+                    l10n.storeSettingsAutoOpenHelp,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  /// Saves the establishment, the stale-order threshold and the break
-  /// allowance. Each survives closing the app now — which is the only way
+  static String _formatMinutes(int minutes) =>
+      '${(minutes ~/ 60).toString().padLeft(2, '0')}:'
+      '${(minutes % 60).toString().padLeft(2, '0')}';
+
+  Future<void> _pickAutoOpen() async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay(
+        hour: _autoOpenMinutes ~/ 60,
+        minute: _autoOpenMinutes % 60,
+      ),
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
+        child: child!,
+      ),
+    );
+    if (picked == null || !mounted) return;
+    setState(() => _autoOpenMinutes = picked.hour * 60 + picked.minute);
+  }
+
+  /// Saves the establishment, the stale-order threshold, the break allowance
+  /// and the journée's auto-open time. Each survives closing the app now — which is the only way
   /// the dashboard warning and the "pause dépassée" mark it drives can be
   /// demonstrated properly.
   Future<void> _save() async {
@@ -321,6 +370,7 @@ class _StoreSettingsFormState extends ConsumerState<_StoreSettingsForm> {
     final updated = await stores.updateStoreSettings(
       widget.store.id,
       maxBreakMinutes: maxBreak,
+      businessDayAutoOpenMinutes: _autoOpenMinutes,
     );
 
     // Reflect what actually stuck.

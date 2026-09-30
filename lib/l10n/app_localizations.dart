@@ -5242,11 +5242,11 @@ abstract class AppLocalizations {
   /// **'Aucune journée ouverte'**
   String get timeclockNoBusinessDay;
 
-  /// Line under the no-journée night notice.
+  /// Line under the no-journée night notice. {time} is the store's auto-open time, e.g. '05:00'.
   ///
   /// In fr, this message translates to:
-  /// **'Avant {hour} h, un pointage n\'ouvre pas la journée tout seul. Elle s\'ouvrira au premier pointage à partir de {hour} h, ou tout de suite avec « Ouvrir la journée ».'**
-  String timeclockNoBusinessDayBody(int hour);
+  /// **'Avant {time}, un pointage n\'ouvre pas la journée tout seul. Elle s\'ouvrira au premier pointage à partir de {time}, ou tout de suite avec « Ouvrir la journée ».'**
+  String timeclockNoBusinessDayBody(String time);
 
   /// Button on the night notice: opens the journée on purpose.
   ///
@@ -5367,6 +5367,24 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Pauses'**
   String get storeSettingsHours;
+
+  /// Store settings section: when the pointage journée opens by itself.
+  ///
+  /// In fr, this message translates to:
+  /// **'Journée de service'**
+  String get storeSettingsBusinessDay;
+
+  /// Button showing the auto-open time of the journée; tapping it picks another.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ouverture automatique à partir de {time}'**
+  String storeSettingsAutoOpen(String time);
+
+  /// Help under the auto-open time setting.
+  ///
+  /// In fr, this message translates to:
+  /// **'Avant cette heure, un pointage n\'ouvre pas la journée tout seul ; un gérant peut toujours l\'ouvrir depuis le tableau de pointage. À 00:00, la journée s\'ouvre au premier pointage, à toute heure.'**
+  String get storeSettingsAutoOpenHelp;
 
   /// Store setting — the longest a single break may run before it is flagged.
   ///

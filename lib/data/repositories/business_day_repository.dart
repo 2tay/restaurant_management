@@ -8,6 +8,7 @@ import '../database/app_database.dart';
 import '../mappers/mappers.dart';
 import 'attendance_repository.dart';
 import 'new_id.dart';
+import 'store_repository.dart';
 
 /// The app-wide clock (`package:clock`), read afresh on every call so a test
 /// running under `withClock` is seen. A function of its own because the
@@ -82,7 +83,7 @@ class BusinessDayRepository {
   /// The journée a Pointer lands in: the open one, else a new one opened by
   /// [openedByEmployeeId]. Null when today's journée was already closed — one
   /// journée per date, and a closed one is not reopened — and, with none
-  /// open, before `AttendanceRules.businessDayAutoOpenHour`: a punch in the
+  /// open, before the store's `businessDayAutoOpenMinutes`: a punch in the
   /// night does not open the next day's journée by accident.
   Future<BusinessDay?> currentOrOpen(
     String storeId, {
@@ -93,7 +94,12 @@ class BusinessDayRepository {
     return _db.transaction(() async {
       final open = await current(storeId);
       if (open != null) return open;
-      if (at.isBefore(businessDayAutoOpenAt(at))) return null;
+      final settings = await StoreRepository(_db).settings(storeId);
+      final opensAt = businessDayAutoOpenAt(
+        at,
+        settings.businessDayAutoOpenMinutes,
+      );
+      if (at.isBefore(opensAt)) return null;
       return this.open(storeId, openedByEmployeeId: openedByEmployeeId, now: at);
     });
   }

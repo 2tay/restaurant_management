@@ -126,6 +126,18 @@ class $StoresTable extends Stores with TableInfo<$StoresTable, StoreRow> {
     requiredDuringInsert: false,
     defaultValue: const Constant(30),
   );
+  static const VerificationMeta _businessDayAutoOpenMinutesMeta =
+      const VerificationMeta('businessDayAutoOpenMinutes');
+  @override
+  late final GeneratedColumn<int> businessDayAutoOpenMinutes =
+      GeneratedColumn<int>(
+        'business_day_auto_open_minutes',
+        aliasedName,
+        false,
+        type: DriftSqlType.int,
+        requiredDuringInsert: false,
+        defaultValue: const Constant(300),
+      );
   static const VerificationMeta _notifyLowStockMeta = const VerificationMeta(
     'notifyLowStock',
   );
@@ -199,6 +211,7 @@ class $StoresTable extends Stores with TableInfo<$StoresTable, StoreRow> {
     imageAsset,
     stalePartialOrderDays,
     maxBreakMinutes,
+    businessDayAutoOpenMinutes,
     notifyLowStock,
     notifyPriceChange,
     notifyLargeAdjustment,
@@ -302,6 +315,15 @@ class $StoresTable extends Stores with TableInfo<$StoresTable, StoreRow> {
         ),
       );
     }
+    if (data.containsKey('business_day_auto_open_minutes')) {
+      context.handle(
+        _businessDayAutoOpenMinutesMeta,
+        businessDayAutoOpenMinutes.isAcceptableOrUnknown(
+          data['business_day_auto_open_minutes']!,
+          _businessDayAutoOpenMinutesMeta,
+        ),
+      );
+    }
     if (data.containsKey('notify_low_stock')) {
       context.handle(
         _notifyLowStockMeta,
@@ -391,6 +413,10 @@ class $StoresTable extends Stores with TableInfo<$StoresTable, StoreRow> {
         DriftSqlType.int,
         data['${effectivePrefix}max_break_minutes'],
       )!,
+      businessDayAutoOpenMinutes: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}business_day_auto_open_minutes'],
+      )!,
       notifyLowStock: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}notify_low_stock'],
@@ -442,6 +468,13 @@ class StoreRow extends DataClass implements Insertable<StoreRow> {
   /// A single break segment longer than this is flagged "pause dépassée".
   /// `AttendanceRules.defaultMaxBreakMinutes`.
   final int maxBreakMinutes;
+
+  /// From when in the day (minutes after midnight) a Pointer opens the
+  /// journée de service by itself when none is open — before it, a punch in
+  /// the night is refused rather than opening the next day's only journée.
+  /// Zero: any time. `AttendanceRules.defaultBusinessDayAutoOpenMinutes`
+  /// (05:00). Schema v15.
+  final int businessDayAutoOpenMinutes;
   final bool notifyLowStock;
   final bool notifyPriceChange;
   final bool notifyLargeAdjustment;
@@ -458,6 +491,7 @@ class StoreRow extends DataClass implements Insertable<StoreRow> {
     this.imageAsset,
     required this.stalePartialOrderDays,
     required this.maxBreakMinutes,
+    required this.businessDayAutoOpenMinutes,
     required this.notifyLowStock,
     required this.notifyPriceChange,
     required this.notifyLargeAdjustment,
@@ -481,6 +515,9 @@ class StoreRow extends DataClass implements Insertable<StoreRow> {
     }
     map['stale_partial_order_days'] = Variable<int>(stalePartialOrderDays);
     map['max_break_minutes'] = Variable<int>(maxBreakMinutes);
+    map['business_day_auto_open_minutes'] = Variable<int>(
+      businessDayAutoOpenMinutes,
+    );
     map['notify_low_stock'] = Variable<bool>(notifyLowStock);
     map['notify_price_change'] = Variable<bool>(notifyPriceChange);
     map['notify_large_adjustment'] = Variable<bool>(notifyLargeAdjustment);
@@ -505,6 +542,7 @@ class StoreRow extends DataClass implements Insertable<StoreRow> {
           : Value(imageAsset),
       stalePartialOrderDays: Value(stalePartialOrderDays),
       maxBreakMinutes: Value(maxBreakMinutes),
+      businessDayAutoOpenMinutes: Value(businessDayAutoOpenMinutes),
       notifyLowStock: Value(notifyLowStock),
       notifyPriceChange: Value(notifyPriceChange),
       notifyLargeAdjustment: Value(notifyLargeAdjustment),
@@ -531,6 +569,9 @@ class StoreRow extends DataClass implements Insertable<StoreRow> {
         json['stalePartialOrderDays'],
       ),
       maxBreakMinutes: serializer.fromJson<int>(json['maxBreakMinutes']),
+      businessDayAutoOpenMinutes: serializer.fromJson<int>(
+        json['businessDayAutoOpenMinutes'],
+      ),
       notifyLowStock: serializer.fromJson<bool>(json['notifyLowStock']),
       notifyPriceChange: serializer.fromJson<bool>(json['notifyPriceChange']),
       notifyLargeAdjustment: serializer.fromJson<bool>(
@@ -554,6 +595,9 @@ class StoreRow extends DataClass implements Insertable<StoreRow> {
       'imageAsset': serializer.toJson<String?>(imageAsset),
       'stalePartialOrderDays': serializer.toJson<int>(stalePartialOrderDays),
       'maxBreakMinutes': serializer.toJson<int>(maxBreakMinutes),
+      'businessDayAutoOpenMinutes': serializer.toJson<int>(
+        businessDayAutoOpenMinutes,
+      ),
       'notifyLowStock': serializer.toJson<bool>(notifyLowStock),
       'notifyPriceChange': serializer.toJson<bool>(notifyPriceChange),
       'notifyLargeAdjustment': serializer.toJson<bool>(notifyLargeAdjustment),
@@ -573,6 +617,7 @@ class StoreRow extends DataClass implements Insertable<StoreRow> {
     Value<String?> imageAsset = const Value.absent(),
     int? stalePartialOrderDays,
     int? maxBreakMinutes,
+    int? businessDayAutoOpenMinutes,
     bool? notifyLowStock,
     bool? notifyPriceChange,
     bool? notifyLargeAdjustment,
@@ -589,6 +634,8 @@ class StoreRow extends DataClass implements Insertable<StoreRow> {
     imageAsset: imageAsset.present ? imageAsset.value : this.imageAsset,
     stalePartialOrderDays: stalePartialOrderDays ?? this.stalePartialOrderDays,
     maxBreakMinutes: maxBreakMinutes ?? this.maxBreakMinutes,
+    businessDayAutoOpenMinutes:
+        businessDayAutoOpenMinutes ?? this.businessDayAutoOpenMinutes,
     notifyLowStock: notifyLowStock ?? this.notifyLowStock,
     notifyPriceChange: notifyPriceChange ?? this.notifyPriceChange,
     notifyLargeAdjustment: notifyLargeAdjustment ?? this.notifyLargeAdjustment,
@@ -617,6 +664,9 @@ class StoreRow extends DataClass implements Insertable<StoreRow> {
       maxBreakMinutes: data.maxBreakMinutes.present
           ? data.maxBreakMinutes.value
           : this.maxBreakMinutes,
+      businessDayAutoOpenMinutes: data.businessDayAutoOpenMinutes.present
+          ? data.businessDayAutoOpenMinutes.value
+          : this.businessDayAutoOpenMinutes,
       notifyLowStock: data.notifyLowStock.present
           ? data.notifyLowStock.value
           : this.notifyLowStock,
@@ -646,6 +696,7 @@ class StoreRow extends DataClass implements Insertable<StoreRow> {
           ..write('imageAsset: $imageAsset, ')
           ..write('stalePartialOrderDays: $stalePartialOrderDays, ')
           ..write('maxBreakMinutes: $maxBreakMinutes, ')
+          ..write('businessDayAutoOpenMinutes: $businessDayAutoOpenMinutes, ')
           ..write('notifyLowStock: $notifyLowStock, ')
           ..write('notifyPriceChange: $notifyPriceChange, ')
           ..write('notifyLargeAdjustment: $notifyLargeAdjustment, ')
@@ -667,6 +718,7 @@ class StoreRow extends DataClass implements Insertable<StoreRow> {
     imageAsset,
     stalePartialOrderDays,
     maxBreakMinutes,
+    businessDayAutoOpenMinutes,
     notifyLowStock,
     notifyPriceChange,
     notifyLargeAdjustment,
@@ -687,6 +739,7 @@ class StoreRow extends DataClass implements Insertable<StoreRow> {
           other.imageAsset == this.imageAsset &&
           other.stalePartialOrderDays == this.stalePartialOrderDays &&
           other.maxBreakMinutes == this.maxBreakMinutes &&
+          other.businessDayAutoOpenMinutes == this.businessDayAutoOpenMinutes &&
           other.notifyLowStock == this.notifyLowStock &&
           other.notifyPriceChange == this.notifyPriceChange &&
           other.notifyLargeAdjustment == this.notifyLargeAdjustment &&
@@ -705,6 +758,7 @@ class StoresCompanion extends UpdateCompanion<StoreRow> {
   final Value<String?> imageAsset;
   final Value<int> stalePartialOrderDays;
   final Value<int> maxBreakMinutes;
+  final Value<int> businessDayAutoOpenMinutes;
   final Value<bool> notifyLowStock;
   final Value<bool> notifyPriceChange;
   final Value<bool> notifyLargeAdjustment;
@@ -722,6 +776,7 @@ class StoresCompanion extends UpdateCompanion<StoreRow> {
     this.imageAsset = const Value.absent(),
     this.stalePartialOrderDays = const Value.absent(),
     this.maxBreakMinutes = const Value.absent(),
+    this.businessDayAutoOpenMinutes = const Value.absent(),
     this.notifyLowStock = const Value.absent(),
     this.notifyPriceChange = const Value.absent(),
     this.notifyLargeAdjustment = const Value.absent(),
@@ -740,6 +795,7 @@ class StoresCompanion extends UpdateCompanion<StoreRow> {
     this.imageAsset = const Value.absent(),
     this.stalePartialOrderDays = const Value.absent(),
     this.maxBreakMinutes = const Value.absent(),
+    this.businessDayAutoOpenMinutes = const Value.absent(),
     this.notifyLowStock = const Value.absent(),
     this.notifyPriceChange = const Value.absent(),
     this.notifyLargeAdjustment = const Value.absent(),
@@ -764,6 +820,7 @@ class StoresCompanion extends UpdateCompanion<StoreRow> {
     Expression<String>? imageAsset,
     Expression<int>? stalePartialOrderDays,
     Expression<int>? maxBreakMinutes,
+    Expression<int>? businessDayAutoOpenMinutes,
     Expression<bool>? notifyLowStock,
     Expression<bool>? notifyPriceChange,
     Expression<bool>? notifyLargeAdjustment,
@@ -783,6 +840,8 @@ class StoresCompanion extends UpdateCompanion<StoreRow> {
       if (stalePartialOrderDays != null)
         'stale_partial_order_days': stalePartialOrderDays,
       if (maxBreakMinutes != null) 'max_break_minutes': maxBreakMinutes,
+      if (businessDayAutoOpenMinutes != null)
+        'business_day_auto_open_minutes': businessDayAutoOpenMinutes,
       if (notifyLowStock != null) 'notify_low_stock': notifyLowStock,
       if (notifyPriceChange != null) 'notify_price_change': notifyPriceChange,
       if (notifyLargeAdjustment != null)
@@ -804,6 +863,7 @@ class StoresCompanion extends UpdateCompanion<StoreRow> {
     Value<String?>? imageAsset,
     Value<int>? stalePartialOrderDays,
     Value<int>? maxBreakMinutes,
+    Value<int>? businessDayAutoOpenMinutes,
     Value<bool>? notifyLowStock,
     Value<bool>? notifyPriceChange,
     Value<bool>? notifyLargeAdjustment,
@@ -823,6 +883,8 @@ class StoresCompanion extends UpdateCompanion<StoreRow> {
       stalePartialOrderDays:
           stalePartialOrderDays ?? this.stalePartialOrderDays,
       maxBreakMinutes: maxBreakMinutes ?? this.maxBreakMinutes,
+      businessDayAutoOpenMinutes:
+          businessDayAutoOpenMinutes ?? this.businessDayAutoOpenMinutes,
       notifyLowStock: notifyLowStock ?? this.notifyLowStock,
       notifyPriceChange: notifyPriceChange ?? this.notifyPriceChange,
       notifyLargeAdjustment:
@@ -870,6 +932,11 @@ class StoresCompanion extends UpdateCompanion<StoreRow> {
     if (maxBreakMinutes.present) {
       map['max_break_minutes'] = Variable<int>(maxBreakMinutes.value);
     }
+    if (businessDayAutoOpenMinutes.present) {
+      map['business_day_auto_open_minutes'] = Variable<int>(
+        businessDayAutoOpenMinutes.value,
+      );
+    }
     if (notifyLowStock.present) {
       map['notify_low_stock'] = Variable<bool>(notifyLowStock.value);
     }
@@ -904,6 +971,7 @@ class StoresCompanion extends UpdateCompanion<StoreRow> {
           ..write('imageAsset: $imageAsset, ')
           ..write('stalePartialOrderDays: $stalePartialOrderDays, ')
           ..write('maxBreakMinutes: $maxBreakMinutes, ')
+          ..write('businessDayAutoOpenMinutes: $businessDayAutoOpenMinutes, ')
           ..write('notifyLowStock: $notifyLowStock, ')
           ..write('notifyPriceChange: $notifyPriceChange, ')
           ..write('notifyLargeAdjustment: $notifyLargeAdjustment, ')
