@@ -261,6 +261,7 @@ Future<void> seedDemoData(AppDatabase db, {DateTime? at}) async {
 Future<void> clearAllData(AppDatabase db) async {
   await db.batch((Batch batch) {
     batch.deleteWhere(db.meta, (m) => m.key.equals(MetaKeys.deviceId).not());
+    batch.deleteAll(db.photoUploads);
     batch.deleteAll(db.notifications);
     batch.deleteAll(db.busyDates);
 

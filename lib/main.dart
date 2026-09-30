@@ -11,6 +11,7 @@ import 'data/current_employee.dart';
 import 'data/database/app_database.dart';
 import 'data/database/bootstrap.dart';
 import 'data/device_access.dart';
+import 'data/employee_photo_store.dart';
 import 'data/providers.dart';
 import 'services/auth_service.dart';
 import 'services/sync_service.dart';
@@ -38,6 +39,14 @@ Future<void> main() async {
   // here because a restart was the only other way back; a re-seed writes the
   // dataset again from `data/seed/dataset/`, and survives the restart too.
   final AppDatabase database = await openAppDatabase();
+
+  // The employee photo folder, resolved once so avatars can read it without
+  // waiting (`employeePhotoImage`).
+  try {
+    await EmployeePhotoStore().directory();
+  } catch (_) {
+    // No folder: avatars show initials.
+  }
 
   // Resolve the session before the first frame. `router.dart`'s `_guard` reads
   // `currentEmployeeProvider` synchronously on every navigation, so it must

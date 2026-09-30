@@ -74,6 +74,21 @@ class _ProductImageState extends State<ProductImage> {
   void initState() {
     super.initState();
     _resolve();
+    ProductImages.revision.addListener(_onPhotoArrived);
+  }
+
+  @override
+  void dispose() {
+    ProductImages.revision.removeListener(_onPhotoArrived);
+    super.dispose();
+  }
+
+  /// A photo downloaded from the server may be this one: drop any cached
+  /// failure and look again.
+  void _onPhotoArrived() {
+    final file = _file;
+    if (file != null) FileImage(file).evict();
+    _resolve();
   }
 
   @override

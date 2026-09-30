@@ -6,6 +6,7 @@
 
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:stock_inventory/services/auth_service.dart';
 
@@ -334,6 +335,42 @@ class FakeAccountBackend implements AccountBackend {
   @override
   Stream<void> storeChanges(List<String> storeIds) =>
       _live.stream.where(storeIds.contains).map((_) {});
+
+  // --- Photos (Phase 8) ------------------------------------------------------
+
+  /// The photo store: path -> bytes.
+  final Map<String, Uint8List> photos = {};
+
+  /// Paths removed, in call order.
+  final List<String> removedPhotos = [];
+
+  @override
+  Future<void> uploadPhoto(
+    String path,
+    Uint8List bytes, {
+    required String contentType,
+  }) async {
+    _maybeFail();
+    _signedIn();
+    photos[path] = bytes;
+  }
+
+  @override
+  Future<Uint8List?> downloadPhoto(String path) async {
+    _maybeFail();
+    _signedIn();
+    return photos[path];
+  }
+
+  @override
+  Future<void> removePhotos(List<String> paths) async {
+    _maybeFail();
+    _signedIn();
+    for (final path in paths) {
+      photos.remove(path);
+      removedPhotos.add(path);
+    }
+  }
 }
 
 class _FakeUser {

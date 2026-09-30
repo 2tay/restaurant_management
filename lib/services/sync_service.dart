@@ -13,6 +13,7 @@ import '../data/repositories/device_repository.dart';
 import '../data/repositories/outbox_repository.dart';
 import '../data/repositories/sync_applier.dart';
 import 'auth_service.dart';
+import 'photo_sync.dart';
 
 /// Sending the outbox to the server (SYNC_PLAN.md, Phase 5).
 ///
@@ -70,8 +71,13 @@ class SyncRunner {
     required AppDatabase db,
     required AccountBackend backend,
     this.pageSize = defaultPageSize,
+    PhotoFiles? photoFiles,
   }) : _db = db,
-       _backend = backend;
+       _backend = backend,
+       _photoFiles = photoFiles;
+
+  /// Where photo files live; the app's folders unless a test says otherwise.
+  final PhotoFiles? _photoFiles;
 
   final AppDatabase _db;
   final AccountBackend _backend;
@@ -93,10 +99,46 @@ class SyncRunner {
   /// this device's own changes must be on the server before it reads.
   /// [onReceived] is told the running total of rows received, for the first
   /// download's progress line.
+  ///
+  /// Photos ride along (Phase 8): new photos go up first, so a tablet that
+  /// receives a row can find its file; old ones leave the server once the
+  /// change that dropped them has been sent; missing ones come down last.
+  /// A photo problem never fails the pass, except being offline.
   Future<SyncRunResult> run({void Function(int received)? onReceived}) async {
+    final photos = PhotoSync(db: _db, backend: _backend, files: _photoFiles);
+
+    try {
+      await photos.upload();
+    } on AccountException catch (error) {
+      if (error.code == AccountErrorCode.network) {
+        return SyncRunResult(SyncOutcome.offline, detail: error.detail);
+      }
+    } on Object {
+      // A photo that cannot be read or shrunk waits for the next pass.
+    }
+
     final sent = await _push();
     if (sent.outcome != SyncOutcome.done) return sent;
-    return _pull(sent, onReceived);
+
+    // Again, now the rows are on the server: a photo of a brand-new store
+    // is refused until its store exists there.
+    await _quietly(photos.upload);
+    await _quietly(photos.removeOld);
+
+    final received = await _pull(sent, onReceived);
+    if (received.outcome != SyncOutcome.done) return received;
+
+    await _quietly(photos.downloadMissing);
+    return received;
+  }
+
+  /// Runs a photo step whose failure only means "next pass".
+  static Future<void> _quietly(Future<int> Function() step) async {
+    try {
+      await step();
+    } on Object {
+      // Offline, or a file problem: the next pass tries again.
+    }
   }
 
   Future<SyncRunResult> _pull(

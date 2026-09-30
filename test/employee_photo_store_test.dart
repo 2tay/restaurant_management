@@ -30,16 +30,19 @@ void main() {
     return file.path;
   }
 
-  test('save copies the file under the employee id and returns its path',
+  // A bare file name since schema v20 (SYNC_PLAN.md, Phase 8): the row
+  // syncs to other tablets, where this device's path would mean nothing.
+  test('save copies the file under the employee id and returns its name',
       () async {
-    final path = await store.save(
+    final name = await store.save(
       employeeId: 'emp-1',
       sourcePath: await makeImage('a.png'),
     );
 
-    expect(File(path).existsSync(), isTrue);
-    expect(p.basename(path), startsWith('emp-1-'));
-    expect(p.extension(path), '.png');
+    expect(name, isNot(contains(p.separator)));
+    expect((await store.fileFor(name)).existsSync(), isTrue);
+    expect(name, startsWith('emp-1-'));
+    expect(p.extension(name), '.png');
   });
 
   test('a second save replaces the first file', () async {
@@ -53,8 +56,8 @@ void main() {
     );
 
     expect(first, isNot(second));
-    expect(File(first).existsSync(), isFalse);
-    expect(File(second).existsSync(), isTrue);
+    expect((await store.fileFor(first)).existsSync(), isFalse);
+    expect((await store.fileFor(second)).existsSync(), isTrue);
   });
 
   test('deleteFor removes the stored photo', () async {
@@ -64,7 +67,7 @@ void main() {
     );
 
     await store.deleteFor('emp-1');
-    expect(File(path).existsSync(), isFalse);
+    expect((await store.fileFor(path)).existsSync(), isFalse);
   });
 
   test('deleteFor leaves other employees untouched', () async {
@@ -75,7 +78,7 @@ void main() {
     await store.save(employeeId: 'emp-1', sourcePath: await makeImage('b.png'));
 
     await store.deleteFor('emp-1');
-    expect(File(keep).existsSync(), isTrue);
+    expect((await store.fileFor(keep)).existsSync(), isTrue);
   });
 
   test('deleteFor on an employee with no photo is a no-op', () async {

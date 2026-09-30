@@ -42,6 +42,8 @@
 //               row received from the server keeps its stamp (Phase 6).
 //   v18 -> v19  the three "one per" unique indexes count live rows only, and
 //               receive conflicts logged before are replayed (Phase 7).
+//   v19 -> v20  the photo queue and its triggers; employee photos stored by
+//               file name (Phase 8).
 //
 // The two branches that built v6–v9 each numbered their own steps v6–v9; on
 // merging, the stock steps kept those numbers and the pointage steps moved to
@@ -70,6 +72,7 @@ import 'schema/schema_v13.dart' as v13;
 import 'schema/schema_v14.dart' as v14;
 import 'schema/schema_v15.dart' as v15;
 import 'schema/schema_v18.dart' as v18;
+import 'schema/schema_v19.dart' as v19;
 
 void main() {
   setUpAll(useTestSqlite);
@@ -80,29 +83,29 @@ void main() {
     verifier = SchemaVerifier(GeneratedHelper());
   });
 
-  test('a fresh database matches the version 19 schema', () async {
-    final connection = await verifier.startAt(19);
+  test('a fresh database matches the version 20 schema', () async {
+    final connection = await verifier.startAt(20);
     final db = AppDatabase.withExecutor(connection);
-    await verifier.migrateAndValidate(db, 19);
+    await verifier.migrateAndValidate(db, 20);
     await db.close();
   });
 
   // The step every incremental migration gets wrong: an install that skipped a
   // release runs both branches back to back, and `onUpgrade` has to be written
   // so it can. There is no v1 -> v2 test any more, and there cannot be —
-  // `schemaVersion` is 19, so an older install is never asked to stop short.
-  test('a version 1 install upgrades all the way to version 19', () async {
+  // `schemaVersion` is 20, so an older install is never asked to stop short.
+  test('a version 1 install upgrades all the way to version 20', () async {
     final connection = await verifier.startAt(1);
     final db = AppDatabase.withExecutor(connection);
 
-    await verifier.migrateAndValidate(db, 19);
+    await verifier.migrateAndValidate(db, 20);
     await db.close();
   });
 
-  test('a version 2 install upgrades to version 19 cleanly', () async {
+  test('a version 2 install upgrades to version 20 cleanly', () async {
     final connection = await verifier.startAt(2);
     final db = AppDatabase.withExecutor(connection);
-    await verifier.migrateAndValidate(db, 19);
+    await verifier.migrateAndValidate(db, 20);
     await db.close();
   });
 
@@ -112,7 +115,7 @@ void main() {
   test('maxStock defaults to zero on an upgraded install', () async {
     final connection = await verifier.startAt(2);
     final db = AppDatabase.withExecutor(connection);
-    await verifier.migrateAndValidate(db, 19);
+    await verifier.migrateAndValidate(db, 20);
 
     final defaults = await db.customSelect('PRAGMA table_info(items)').get();
     final column = defaults.firstWhere(
@@ -123,41 +126,41 @@ void main() {
     await db.close();
   });
 
-  test('a version 3 install upgrades to version 19 cleanly', () async {
+  test('a version 3 install upgrades to version 20 cleanly', () async {
     final connection = await verifier.startAt(3);
     final db = AppDatabase.withExecutor(connection);
 
     // Runs AppDatabase.migration.onUpgrade(3 -> 13) and then checks every table,
     // column, default and index against drift_schema_v14.json.
-    await verifier.migrateAndValidate(db, 19);
+    await verifier.migrateAndValidate(db, 20);
     await db.close();
   });
 
-  test('a version 4 install upgrades to version 19 cleanly', () async {
+  test('a version 4 install upgrades to version 20 cleanly', () async {
     final connection = await verifier.startAt(4);
     final db = AppDatabase.withExecutor(connection);
-    await verifier.migrateAndValidate(db, 19);
+    await verifier.migrateAndValidate(db, 20);
     await db.close();
   });
 
-  test('a version 5 install upgrades to version 19 cleanly', () async {
+  test('a version 5 install upgrades to version 20 cleanly', () async {
     final connection = await verifier.startAt(5);
     final db = AppDatabase.withExecutor(connection);
-    await verifier.migrateAndValidate(db, 19);
+    await verifier.migrateAndValidate(db, 20);
     await db.close();
   });
 
-  test('a version 6 install upgrades to version 19 cleanly', () async {
+  test('a version 6 install upgrades to version 20 cleanly', () async {
     final connection = await verifier.startAt(6);
     final db = AppDatabase.withExecutor(connection);
-    await verifier.migrateAndValidate(db, 19);
+    await verifier.migrateAndValidate(db, 20);
     await db.close();
   });
 
-  test('a version 7 install upgrades to version 19 cleanly', () async {
+  test('a version 7 install upgrades to version 20 cleanly', () async {
     final connection = await verifier.startAt(7);
     final db = AppDatabase.withExecutor(connection);
-    await verifier.migrateAndValidate(db, 19);
+    await verifier.migrateAndValidate(db, 20);
     await db.close();
   });
 
@@ -169,7 +172,7 @@ void main() {
     () async {
       final connection = await verifier.startAt(7);
       final db = AppDatabase.withExecutor(connection);
-      await verifier.migrateAndValidate(db, 19);
+      await verifier.migrateAndValidate(db, 20);
 
       final columns = await db.customSelect('PRAGMA table_info(stores)').get();
       Object? defaultOf(String name) => columns
@@ -184,45 +187,45 @@ void main() {
     },
   );
 
-  test('a version 8 install upgrades to version 19 cleanly', () async {
+  test('a version 8 install upgrades to version 20 cleanly', () async {
     final connection = await verifier.startAt(8);
     final db = AppDatabase.withExecutor(connection);
-    await verifier.migrateAndValidate(db, 19);
+    await verifier.migrateAndValidate(db, 20);
     await db.close();
   });
 
-  test('a version 9 install upgrades to version 19 cleanly', () async {
+  test('a version 9 install upgrades to version 20 cleanly', () async {
     final connection = await verifier.startAt(9);
     final db = AppDatabase.withExecutor(connection);
-    await verifier.migrateAndValidate(db, 19);
+    await verifier.migrateAndValidate(db, 20);
     await db.close();
   });
 
-  test('a version 10 install upgrades to version 19 cleanly', () async {
+  test('a version 10 install upgrades to version 20 cleanly', () async {
     final connection = await verifier.startAt(10);
     final db = AppDatabase.withExecutor(connection);
-    await verifier.migrateAndValidate(db, 19);
+    await verifier.migrateAndValidate(db, 20);
     await db.close();
   });
 
-  test('a version 11 install upgrades to version 19 cleanly', () async {
+  test('a version 11 install upgrades to version 20 cleanly', () async {
     final connection = await verifier.startAt(11);
     final db = AppDatabase.withExecutor(connection);
-    await verifier.migrateAndValidate(db, 19);
+    await verifier.migrateAndValidate(db, 20);
     await db.close();
   });
 
-  test('a version 12 install upgrades to version 19 cleanly', () async {
+  test('a version 12 install upgrades to version 20 cleanly', () async {
     final connection = await verifier.startAt(12);
     final db = AppDatabase.withExecutor(connection);
-    await verifier.migrateAndValidate(db, 19);
+    await verifier.migrateAndValidate(db, 20);
     await db.close();
   });
 
-  test('a version 13 install upgrades to version 19 cleanly', () async {
+  test('a version 13 install upgrades to version 20 cleanly', () async {
     final connection = await verifier.startAt(13);
     final db = AppDatabase.withExecutor(connection);
-    await verifier.migrateAndValidate(db, 19);
+    await verifier.migrateAndValidate(db, 20);
     await db.close();
   });
 
@@ -240,7 +243,7 @@ void main() {
     await old.close();
 
     final db = AppDatabase.withExecutor(schema.newConnection());
-    await verifier.migrateAndValidate(db, 19);
+    await verifier.migrateAndValidate(db, 20);
 
     final calendar = await CalendarRepository(db).calendar('store-1');
     expect(calendar.weekdays, {DateTime.friday, DateTime.saturday, DateTime.sunday});
@@ -257,7 +260,7 @@ void main() {
   test('v8 -> v9 leaves every article without a busy-week minimum', () async {
     final connection = await verifier.startAt(8);
     final db = AppDatabase.withExecutor(connection);
-    await verifier.migrateAndValidate(db, 19);
+    await verifier.migrateAndValidate(db, 20);
 
     final columns = await db.customSelect('PRAGMA table_info(items)').get();
     final column = columns.firstWhere(
@@ -272,7 +275,7 @@ void main() {
   test('v6 -> v7 leaves existing receipts with no employee id', () async {
     final connection = await verifier.startAt(6);
     final db = AppDatabase.withExecutor(connection);
-    await verifier.migrateAndValidate(db, 19);
+    await verifier.migrateAndValidate(db, 20);
 
     final columns = await db
         .customSelect('PRAGMA table_info(goods_receipts)')
@@ -290,7 +293,7 @@ void main() {
   test('v5 -> v7 leaves existing movements with no employee id', () async {
     final connection = await verifier.startAt(5);
     final db = AppDatabase.withExecutor(connection);
-    await verifier.migrateAndValidate(db, 19);
+    await verifier.migrateAndValidate(db, 20);
 
     final columns = await db
         .customSelect('PRAGMA table_info(stock_movements)')
@@ -329,7 +332,7 @@ void main() {
       await old.close();
 
       final db = AppDatabase.withExecutor(schema.newConnection());
-      await verifier.migrateAndValidate(db, 19);
+      await verifier.migrateAndValidate(db, 20);
 
       final employee = await db
           .customSelect('SELECT pin FROM employees')
@@ -385,7 +388,7 @@ void main() {
       await old.close();
 
       final db = AppDatabase.withExecutor(schema.newConnection());
-      await verifier.migrateAndValidate(db, 19);
+      await verifier.migrateAndValidate(db, 20);
 
       Future<List<String>> columnsOf(String table) async => [
         for (final row
@@ -474,7 +477,7 @@ void main() {
     await old.close();
 
     final db = AppDatabase.withExecutor(schema.newConnection());
-    await verifier.migrateAndValidate(db, 19);
+    await verifier.migrateAndValidate(db, 20);
 
     final columns = await db.customSelect('PRAGMA table_info(employees)').get();
     expect(
@@ -520,7 +523,7 @@ void main() {
     await old.close();
 
     final db = AppDatabase.withExecutor(schema.newConnection());
-    await verifier.migrateAndValidate(db, 19);
+    await verifier.migrateAndValidate(db, 20);
 
     final sessions = await db
         .customSelect(
@@ -596,7 +599,7 @@ void main() {
     await old.close();
 
     final db = AppDatabase.withExecutor(schema.newConnection());
-    await verifier.migrateAndValidate(db, 19);
+    await verifier.migrateAndValidate(db, 20);
 
     // The schedule half of the v4 backfill is dropped again by v8; the break
     // allowance is what survives, frozen from the store for every day.
@@ -675,7 +678,7 @@ void main() {
     await old.close();
 
     final db = AppDatabase.withExecutor(schema.newConnection());
-    await verifier.migrateAndValidate(db, 19);
+    await verifier.migrateAndValidate(db, 20);
 
     for (final table in SyncTables.synced) {
       final rows = await db.customSelect('SELECT * FROM $table').get();
@@ -739,7 +742,7 @@ void main() {
     await old.close();
 
     final db = AppDatabase.withExecutor(schema.newConnection());
-    await verifier.migrateAndValidate(db, 19);
+    await verifier.migrateAndValidate(db, 20);
 
     expect(await OutboxRepository(db).pendingCount(), 0);
 
@@ -771,7 +774,7 @@ void main() {
     await old.close();
 
     final db = AppDatabase.withExecutor(schema.newConnection());
-    await verifier.migrateAndValidate(db, 19);
+    await verifier.migrateAndValidate(db, 20);
 
     final cursors = {
       for (final row in await db
@@ -787,6 +790,39 @@ void main() {
         row.read<String>('reason'),
     ];
     expect(reasons, ['deleted'], reason: 'refused sends stay listed');
+    await db.close();
+  });
+
+  // An employee photo saved before v20 held this device's absolute path; it
+  // becomes the bare file name, and every existing photo is queued to go up.
+  test('v19 -> v20 stores employee photos by name and queues them', () async {
+    final schema = await verifier.schemaAt(19);
+    final old = v19.DatabaseAtV19(schema.newConnection());
+    await old.customStatement('''
+      INSERT INTO stores (id, name, address_line, postal_code, city, phone,
+        created_at, updated_at)
+      VALUES ('s1', 'S', 'a', '1000', 'c', 'p', '2026-01-01T00:00:00.000',
+        '2026-01-01T00:00:00.000Z')
+    ''');
+    await old.customStatement(r'''
+      INSERT INTO employees (id, store_id, first_name, last_name, pin, phone,
+        email, hire_date, role, pay, created_at, updated_at, photo_asset)
+      VALUES ('e1', 's1', 'A', 'B', 'PIN-1', 'p', 'e1@x.c',
+        '2026-01-01T00:00:00.000', 'manager', 15, '2026-01-01T00:00:00.000',
+        '2026-01-01T00:00:00.000Z',
+        'C:\Users\x\AppData\Roaming\app\employee_photos\e1-123.png')
+    ''');
+    await old.close();
+
+    final db = AppDatabase.withExecutor(schema.newConnection());
+    await verifier.migrateAndValidate(db, 20);
+
+    final employee = await db.select(db.employees).getSingle();
+    expect(employee.photoAsset, 'e1-123.png');
+    final queued = await db.select(db.photoUploads).getSingle();
+    expect(queued.kind, 'employees');
+    expect(queued.fileName, 'e1-123.png');
+    expect(queued.operation, 'upload');
     await db.close();
   });
 }

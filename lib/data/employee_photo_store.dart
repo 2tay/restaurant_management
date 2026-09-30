@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
@@ -24,13 +25,33 @@ class EmployeePhotoStore {
 
   static const String _folder = 'employee_photos';
 
+  /// The folder, once resolved: what the avatar reads synchronously
+  /// (`employeePhotoImage`). `main()` resolves it before the first frame.
+  static Directory? cachedDirectory;
+
+  /// Bumped when a photo file arrives from the server (SYNC_PLAN.md,
+  /// Phase 8), so avatars already on screen show it.
+  static final ValueNotifier<int> revision = ValueNotifier<int>(0);
+
+  Future<Directory> directory() => _dir();
+
   Future<Directory> _dir() async {
     final base = await _baseDir();
     final dir = Directory(p.join(base.path, _folder));
     if (!await dir.exists()) {
       await dir.create(recursive: true);
     }
+    cachedDirectory = dir;
     return dir;
+  }
+
+  /// The file behind a stored photo name.
+  Future<File> fileFor(String name) async => File(p.join((await _dir()).path, name));
+
+  /// Writes a photo received from the server under its name.
+  Future<void> write(String name, List<int> bytes) async {
+    await (await fileFor(name)).writeAsBytes(bytes, flush: true);
+    revision.value++;
   }
 
   /// Copies [sourcePath] into the store as this employee's photo and returns the
@@ -51,7 +72,9 @@ class EmployeePhotoStore {
       '$employeeId-${DateTime.now().microsecondsSinceEpoch}$safeExt',
     );
     await File(sourcePath).copy(dest);
-    return dest;
+    // The bare name, not the path: the row syncs to other tablets, where this
+    // device's path means nothing (SYNC_PLAN.md, Phase 8).
+    return p.basename(dest);
   }
 
   /// Removes every stored photo for [employeeId]. Safe to call when there is

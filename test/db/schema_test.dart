@@ -188,6 +188,7 @@ void main() {
         'notifications',
         'outbox',
         'payroll_periods',
+        'photo_uploads',
         'price_history',
         'purchase_order_lines',
         'purchase_orders',
@@ -200,8 +201,8 @@ void main() {
       ]);
     });
 
-    test('at schema version 19', () {
-      expect(db.schemaVersion, 19);
+    test('at schema version 20', () {
+      expect(db.schemaVersion, 20);
     });
 
     test('with foreign keys switched on', () async {

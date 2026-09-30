@@ -8,7 +8,7 @@ depends on the ones before it.
 
 ## Progress so far (read this first in a new session)
 
-Last updated: 2026-09-30. Branch: `14-sync-phase-1` (pushed to GitHub). Local schema: v19.
+Last updated: 2026-09-30. Branch: `14-sync-phase-1` (pushed to GitHub). Local schema: v20.
 
 | Phase | What | Status |
 |---|---|---|
@@ -20,8 +20,8 @@ Last updated: 2026-09-30. Branch: `14-sync-phase-1` (pushed to GitHub). Local sc
 | 5 | Sending changes (push) | Done, tested locally |
 | 6 | Receiving changes (pull) | Done, tested locally (with live updates) |
 | 7 | Conflict rules | Done, tested locally |
-| 8 | Photos | **Next.** The `photos` bucket exists on the server; app side to do. |
-| 9 | First connection and existing data | To do |
+| 8 | Photos | Done, tested locally |
+| 9 | First connection and existing data | **Next.** Partly done in Phase 4 (demo data is wiped when joining an account). |
 | 10 | Screens and messages | Partly done: account screens (Phase 4), a working sync page for account devices (Phase 5). Final design to do. |
 | 11 | Testing and release | To do |
 
@@ -37,7 +37,8 @@ the first plan. Read those notes before changing anything in that area.
 - **App, sync:** `lib/services/sync_service.dart` (`SyncRunner`: one pass, send then receive;
   `SyncController`: when passes run, live updates, and the state the screens show),
   `lib/data/repositories/sync_applier.dart` (writes received rows locally, and settles the
-  conflicts the device finds on receipt),
+  conflicts the device finds on receipt), `lib/services/photo_sync.dart` (photo files: shrink,
+  upload, remove, download; queued by `lib/data/database/photo_triggers.drift`),
   `lib/features/settings/presentation/widgets/account_sync_view.dart` (sync page, account mode).
 - **App, accounts:** `lib/services/auth_service.dart` (Supabase backend behind the
   `AccountBackend` interface), `lib/data/device_access.dart` (demo / account mode and every
@@ -56,15 +57,18 @@ supabase start                                   # local server (Docker must be 
 supabase test db                                 # server tests: 49
 flutter analyze                                  # must say "No issues found"
 python tool/ux_audit.py                          # 2 old findings only (colour, fontSize)
-flutter test test/db test/password_hash_test.dart            # 483 tests
-flutter test test/integration --concurrency=1 --dart-define-from-file=config/local.json   # real server: 5
+flutter test test/db test/password_hash_test.dart            # 495 tests
+flutter test test/integration --concurrency=1 --dart-define-from-file=config/local.json   # real server: 6
 flutter test --concurrency=2 <every test/*.dart except responsive_test.dart>  # screens
 flutter run -d windows --dart-define-from-file=config/local.json
 ```
 
 The full screen suite uses a lot of memory; `--concurrency=2` keeps it stable. Run the
-integration tests one file at a time (`--concurrency=1`): in parallel against one local server,
-the live-update check can miss its event.
+integration tests one file at a time (`--concurrency=1`). Even so, the live-update check in
+`test/integration/sync_pull_test.dart` fails now and then when the machine is busy (seen twice in
+about ten full runs; it passes alone every time). Live updates are only a speed-up: every change
+still arrives through the regular passes. Treat a single failure of that check as noise, and
+investigate only if it fails repeatedly.
 
 ### Known issues, not caused by this work
 
@@ -89,33 +93,33 @@ the live-update check can miss its event.
 - **Cloud project:** create "dev" on supabase.com when real devices must share data, then
   `supabase link` and `supabase db push`, and put its URL and publishable key in a config file.
 
-### Next step: Phase 8, photos
+### Next step: Phase 9, first connection with data already on the device
 
-Every row syncs, but product and employee photos are still files on one device. The server side
-is ready: a private `photos` bucket with one folder per store and the same access rule as the
-tables (`supabase/migrations/…_photos.sql`). In order:
+Sync, conflicts and photos all work. What is left before real restaurants can switch: a device
+that **already holds real data** when it first connects to an account. Today (Phase 4) joining an
+account simply wipes the device, which is right for the demo but would lose a restaurant that has
+been using the app offline. In order:
 
-1. **Fix what the rows store.** `items.image_path` holds a file name (good), but
-   `employees.photo_asset` holds an **absolute path** on this device (see
-   `lib/data/employee_photo_store.dart`), which means nothing on another tablet. Store a file
-   name for both, with a migration that keeps existing photos working.
-2. **The cloud path is derived, not stored:** `<store_id>/items/<file>` and
-   `<store_id>/employees/<file>`. File names are unique already (they carry an id and a time).
-3. **Upload after saving.** The screens keep saving the photo locally as today; a small photo
-   queue (a local table, like the outbox) uploads it when online, from the sync pass. The row
-   itself already syncs through the outbox.
-4. **Smaller files first:** resize to about 1024 px and compress before upload.
-5. **Download when missing.** When a screen shows a photo this device does not have, fetch it
-   once into the same local folder; offline, show the usual placeholder. Received rows can also
-   trigger a background download.
-6. **Delete from the cloud** when a photo is replaced or its article deleted, once the change has
-   been accepted by the server.
-7. **Add upload / download / remove to `AccountBackend`** (Supabase Storage) and to the fake.
-8. **Tests:** the photo queue with the fake (upload, retry offline, replace, delete); two devices:
-   a photo added on A appears on B. Then one test against the local server's storage.
+1. **Tell demo data from real data.** The demo is known by `MetaKeys.seededAt` and the seed's
+   readable ids (`store-sablon`, `item-tomates`…). Anything else in the database is the
+   restaurant's own. Record how the data started (seeded, or created by hand) so the check stays
+   reliable after edits.
+2. **Three cases at first connection:**
+   - only the demo: wipe it, as today;
+   - real data, and the restaurant is new on the server: **upload it** ("Envoyer mes données");
+   - real data, and the restaurant already has data on the server: **keep the server's**, after
+     saving the device's data to a backup file the owner can keep.
+3. **Uploading existing data:** queue every live row of every synced table in the outbox (parents
+   first: stores, catalog, items, suppliers, then movements, orders, receipts, employees,
+   attendance, payroll), and every photo in `photo_uploads`, then run a normal pass with a
+   progress line.
+4. **Fix the known gap in `createRestaurant`:** a retry after a network failure can create a
+   second local establishment. Make it resumable by reusing the establishment already created.
+5. **Demo mode stays available** from the welcome screen, and never syncs.
+6. **Tests:** each case, with the fake server and once against the local server.
 
-After Phase 8: Phase 9 (first connection with existing data), Phase 10 (final screens), Phase 11
-(release), and Phase 0's cloud project.
+After Phase 9: Phase 10 (final screens and wording, including the outdated demo notice on the PIN
+login), Phase 11 (release), and Phase 0's cloud project.
 
 ## Where we start
 
@@ -781,6 +785,23 @@ Each rule gets a server test (Step 3.8) and a two-device app test (Step 6.10).
 ## Phase 8: Photos
 
 Goal: product and employee photos appear on every device.
+
+> **Status: built, tested against the local server.** What differs from the first plan, or was
+> decided on the way:
+>
+> - **Employee photos are stored by file name** (schema v20), like product photos; the upgrade
+>   turned the old absolute paths into names. The online place is derived:
+>   `<store>/<items|employees>/<file>`.
+> - **Triggers queue the files** (`photo_triggers.drift` into the local `photo_uploads` table)
+>   when a photo is set, replaced, dropped, or its row deleted. Silent for received rows.
+> - **Each pass:** upload new photos (shrunk to 1024 px, JPEG) → send rows → upload again (a new
+>   store's photos are refused until the store exists on the server) → remove replaced photos →
+>   receive rows → download every missing photo in the background (asked again each pass while
+>   the server does not have it yet).
+> - **Screens refresh when a photo arrives**: `ProductImages.revision` and
+>   `EmployeePhotoStore.revision` notify the product image and the avatar.
+> - **Known limit:** a photo arriving on the server does not trigger a live update on the other
+>   tablets (storage is not a table); it shows up on their next pass.
 
 **Step 8.1: Upload after saving.**
 When a photo is chosen, `lib/data/images/product_images.dart` and

@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
@@ -56,6 +57,18 @@ abstract final class ProductImages {
   /// original file name: two products photographed as `IMG_0042.jpg` must not
   /// land on each other, and a name the user chose is not a name this
   /// directory has to honour.
+  /// Bumped when a photo file arrives from the server (SYNC_PLAN.md,
+  /// Phase 8), so product images already on screen show it.
+  static final ValueNotifier<int> revision = ValueNotifier<int>(0);
+
+  /// Writes a photo received from the server under its name.
+  static Future<void> write(String name, List<int> bytes) async {
+    final file = await fileFor(name);
+    if (file == null) return;
+    await file.writeAsBytes(bytes, flush: true);
+    revision.value++;
+  }
+
   static Future<String?> save(File source) async {
     try {
       final extension = p.extension(source.path).toLowerCase();

@@ -22,6 +22,7 @@ import 'tables/items.dart';
 import 'tables/movements.dart';
 import 'tables/orders.dart';
 import 'tables/outbox.dart';
+import 'tables/photo_uploads.dart';
 import 'tables/payroll.dart';
 import 'tables/receipts.dart';
 import 'tables/stores.dart';
@@ -71,11 +72,13 @@ part 'app_database.g.dart';
     BusyDates,
     Outbox,
     SyncErrors,
+    PhotoUploads,
   ],
   include: {
     'sync_triggers.drift',
     'outbox_triggers.drift',
     'sync_indexes.drift',
+    'photo_triggers.drift',
   },
 )
 class AppDatabase extends _$AppDatabase {
@@ -98,7 +101,7 @@ class AppDatabase extends _$AppDatabase {
   static const String databaseName = 'stock_inventory';
 
   @override
-  int get schemaVersion => 19;
+  int get schemaVersion => 20;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -404,6 +407,11 @@ class AppDatabase extends _$AppDatabase {
           );
         }
       }
+
+      // v19 -> v20: photos (SYNC_PLAN.md, Phase 8). See [_migrateToVersion20].
+      if (from < 20) {
+        await _migrateToVersion20(m);
+      }
     },
 
     beforeOpen: (OpeningDetails details) async {
@@ -631,5 +639,53 @@ class AppDatabase extends _$AppDatabase {
     for (final trigger in allSchemaEntities.whereType<Trigger>()) {
       if (trigger.entityName.endsWith('_touch')) await m.create(trigger);
     }
+  }
+
+  /// The photo queue and its triggers, employee photos stored by file name,
+  /// and every photo already on the device queued for upload.
+  ///
+  /// `employees.photo_asset` used to hold an absolute path on this device,
+  /// which means nothing on another tablet. It becomes the bare file name,
+  /// like `items.image_path`; the file stays where it is. That update is a
+  /// real change, and the outbox queues it like any other.
+  Future<void> _migrateToVersion20(Migrator m) async {
+    await m.createTable(photoUploads);
+    await m.create(photoUploadsFile);
+
+    final photos = await customSelect(
+      "SELECT id, photo_asset FROM employees WHERE photo_asset LIKE '%employee_photos%'",
+    ).get();
+    for (final row in photos) {
+      final path = row.read<String>('photo_asset');
+      // Either separator: the path was written on Windows or elsewhere.
+      final name = path.split(RegExp(r'[\\/]')).last;
+      await customStatement(
+        'UPDATE employees SET photo_asset = ? WHERE id = ?',
+        [name, row.read<String>('id')],
+      );
+    }
+
+    for (final trigger in allSchemaEntities.whereType<Trigger>()) {
+      if (trigger.entityName.contains('_photo_')) await m.create(trigger);
+    }
+
+    // What the device already holds goes up with the first sync.
+    await customStatement(r'''
+      INSERT OR IGNORE INTO photo_uploads
+        (kind, store_id, file_name, operation, queued_at)
+      SELECT 'items', store_id, image_path, 'upload', (SELECT now FROM sync_clock)
+        FROM items
+       WHERE image_path IS NOT NULL AND deleted_at IS NULL
+         AND instr(image_path, '/') = 0 AND instr(image_path, '\') = 0
+    ''');
+    await customStatement(r'''
+      INSERT OR IGNORE INTO photo_uploads
+        (kind, store_id, file_name, operation, queued_at)
+      SELECT 'employees', store_id, photo_asset, 'upload',
+             (SELECT now FROM sync_clock)
+        FROM employees
+       WHERE photo_asset IS NOT NULL AND deleted_at IS NULL
+         AND instr(photo_asset, '/') = 0 AND instr(photo_asset, '\') = 0
+    ''');
   }
 }

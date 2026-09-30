@@ -1,0 +1,96 @@
+-- Queue photo files for the server (SYNC_PLAN.md, Phase 8, schema v20).
+--
+-- When an article's `image_path` or an employee's `photo_asset` is set, the
+-- file must be uploaded; when it is replaced, or the row deleted, the old file
+-- must go. Triggers, like the outbox, so no screen can forget.
+--
+-- Silent during quiet writes: a photo named by a row received from the server
+-- is already on the server (it is downloaded instead, by `PhotoSync`), and a
+-- demo seed has nothing to send.
+--
+-- Only bare file names are queued. A legacy absolute path or a bundled asset
+-- path (containing a slash or a backslash) is not a file this app can upload.
+
+import 'tables/employees.dart';
+import 'tables/items.dart';
+import 'tables/photo_uploads.dart';
+import 'tables/stores.dart';
+import 'sync_triggers.drift';
+
+CREATE TRIGGER items_photo_insert AFTER INSERT ON items
+  WHEN NEW.image_path IS NOT NULL
+    AND instr(NEW.image_path, '/') = 0 AND instr(NEW.image_path, '\') = 0
+    AND NOT EXISTS (SELECT 1 FROM meta WHERE "key" = 'syncQuiet')
+BEGIN
+  INSERT INTO photo_uploads (kind, store_id, file_name, operation, queued_at)
+  VALUES ('items', NEW.store_id, NEW.image_path, 'upload',
+          (SELECT now FROM sync_clock))
+  ON CONFLICT (kind, file_name) DO UPDATE SET
+    operation = 'upload', queued_at = excluded.queued_at, attempts = 0,
+    last_error = NULL;
+END;
+
+CREATE TRIGGER items_photo_update AFTER UPDATE OF image_path, deleted_at
+  ON items
+  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = 'syncQuiet')
+BEGIN
+  -- The old file goes when it was replaced, dropped, or its article deleted.
+  INSERT INTO photo_uploads (kind, store_id, file_name, operation, queued_at)
+  SELECT 'items', OLD.store_id, OLD.image_path, 'remove',
+         (SELECT now FROM sync_clock)
+  WHERE OLD.image_path IS NOT NULL
+    AND instr(OLD.image_path, '/') = 0 AND instr(OLD.image_path, '\') = 0
+    AND (NEW.image_path IS NOT OLD.image_path
+         OR (NEW.deleted_at IS NOT NULL AND OLD.deleted_at IS NULL))
+  ON CONFLICT (kind, file_name) DO UPDATE SET
+    operation = 'remove', queued_at = excluded.queued_at, attempts = 0,
+    last_error = NULL;
+  -- The new file comes.
+  INSERT INTO photo_uploads (kind, store_id, file_name, operation, queued_at)
+  SELECT 'items', NEW.store_id, NEW.image_path, 'upload',
+         (SELECT now FROM sync_clock)
+  WHERE NEW.image_path IS NOT NULL AND NEW.deleted_at IS NULL
+    AND instr(NEW.image_path, '/') = 0 AND instr(NEW.image_path, '\') = 0
+    AND NEW.image_path IS NOT OLD.image_path
+  ON CONFLICT (kind, file_name) DO UPDATE SET
+    operation = 'upload', queued_at = excluded.queued_at, attempts = 0,
+    last_error = NULL;
+END;
+
+CREATE TRIGGER employees_photo_insert AFTER INSERT ON employees
+  WHEN NEW.photo_asset IS NOT NULL
+    AND instr(NEW.photo_asset, '/') = 0 AND instr(NEW.photo_asset, '\') = 0
+    AND NOT EXISTS (SELECT 1 FROM meta WHERE "key" = 'syncQuiet')
+BEGIN
+  INSERT INTO photo_uploads (kind, store_id, file_name, operation, queued_at)
+  VALUES ('employees', NEW.store_id, NEW.photo_asset, 'upload',
+          (SELECT now FROM sync_clock))
+  ON CONFLICT (kind, file_name) DO UPDATE SET
+    operation = 'upload', queued_at = excluded.queued_at, attempts = 0,
+    last_error = NULL;
+END;
+
+CREATE TRIGGER employees_photo_update AFTER UPDATE OF photo_asset, deleted_at
+  ON employees
+  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = 'syncQuiet')
+BEGIN
+  INSERT INTO photo_uploads (kind, store_id, file_name, operation, queued_at)
+  SELECT 'employees', OLD.store_id, OLD.photo_asset, 'remove',
+         (SELECT now FROM sync_clock)
+  WHERE OLD.photo_asset IS NOT NULL
+    AND instr(OLD.photo_asset, '/') = 0 AND instr(OLD.photo_asset, '\') = 0
+    AND (NEW.photo_asset IS NOT OLD.photo_asset
+         OR (NEW.deleted_at IS NOT NULL AND OLD.deleted_at IS NULL))
+  ON CONFLICT (kind, file_name) DO UPDATE SET
+    operation = 'remove', queued_at = excluded.queued_at, attempts = 0,
+    last_error = NULL;
+  INSERT INTO photo_uploads (kind, store_id, file_name, operation, queued_at)
+  SELECT 'employees', NEW.store_id, NEW.photo_asset, 'upload',
+         (SELECT now FROM sync_clock)
+  WHERE NEW.photo_asset IS NOT NULL AND NEW.deleted_at IS NULL
+    AND instr(NEW.photo_asset, '/') = 0 AND instr(NEW.photo_asset, '\') = 0
+    AND NEW.photo_asset IS NOT OLD.photo_asset
+  ON CONFLICT (kind, file_name) DO UPDATE SET
+    operation = 'upload', queued_at = excluded.queued_at, attempts = 0,
+    last_error = NULL;
+END;

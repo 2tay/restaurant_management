@@ -5,18 +5,24 @@ import 'package:path/path.dart' as p;
 
 import '../../core/theme/app_colors.dart';
 import '../../core/utils/employee_status.dart';
+import '../../data/employee_photo_store.dart';
 import '../../models/models.dart';
 
 /// The image behind an `Employee.photoAsset` string.
 ///
-/// The value is an absolute path to a file `EmployeePhotoStore` owns once a
-/// photo has been chosen, and a bundled asset path otherwise (the shape the
-/// field always had). An absolute path that no longer exists on disk — a photo
-/// deleted under the app's feet — falls through to `AssetImage`, which the
-/// caller's `errorBuilder` then turns into initials.
+/// Since schema v20 the value is a bare file name in `EmployeePhotoStore`'s
+/// folder, the same on every tablet (SYNC_PLAN.md, Phase 8). Before, it was an
+/// absolute path on one device; that still resolves while the file exists. A
+/// value with a separator that is not an existing file is a bundled asset
+/// path. Anything that fails to load becomes initials (the caller's
+/// `errorBuilder`), including a photo still on its way from the server.
 ImageProvider employeePhotoImage(String path) {
   if (p.isAbsolute(path) && File(path).existsSync()) {
     return FileImage(File(path));
+  }
+  final folder = EmployeePhotoStore.cachedDirectory;
+  if (!path.contains('/') && !path.contains(r'\') && folder != null) {
+    return FileImage(File(p.join(folder.path, path)));
   }
   return AssetImage(path);
 }
@@ -64,12 +70,21 @@ class EmployeeAvatar extends StatelessWidget {
         shape: BoxShape.circle,
       ),
       child: photo != null
-          ? Image(
-              image: employeePhotoImage(photo),
-              fit: BoxFit.cover,
-              width: size,
-              height: size,
-              errorBuilder: (_, _, _) => initials,
+          // Rebuilt when a photo arrives from the server, so a tile that was
+          // showing initials picks it up.
+          ? ValueListenableBuilder<int>(
+              valueListenable: EmployeePhotoStore.revision,
+              builder: (context, _, _) {
+                final image = employeePhotoImage(photo);
+                return Image(
+                  key: ValueKey(EmployeePhotoStore.revision.value),
+                  image: image,
+                  fit: BoxFit.cover,
+                  width: size,
+                  height: size,
+                  errorBuilder: (_, _, _) => initials,
+                );
+              },
             )
           : initials,
     );

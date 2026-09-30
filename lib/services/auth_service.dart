@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -74,6 +75,21 @@ abstract interface class AccountBackend {
   /// between is missed. A dropped connection is also caught up by the
   /// periodic pass.
   Stream<void> storeChanges(List<String> storeIds);
+
+  /// Puts a photo in the private `photos` store at [path]
+  /// (`<store>/<items|employees>/<file>`), replacing any file there
+  /// (Phase 8).
+  Future<void> uploadPhoto(
+    String path,
+    Uint8List bytes, {
+    required String contentType,
+  });
+
+  /// The photo at [path], or null when the server has none.
+  Future<Uint8List?> downloadPhoto(String path);
+
+  /// Removes photos from the server. Missing ones are not an error.
+  Future<void> removePhotos(List<String> paths);
 }
 
 /// One page of changes from the server.
@@ -271,6 +287,19 @@ class UnconfiguredAccountBackend implements AccountBackend {
 
   @override
   Stream<void> storeChanges(List<String> storeIds) => const Stream.empty();
+
+  @override
+  Future<void> uploadPhoto(
+    String path,
+    Uint8List bytes, {
+    required String contentType,
+  }) => Future.error(_refusal);
+
+  @override
+  Future<Uint8List?> downloadPhoto(String path) => Future.error(_refusal);
+
+  @override
+  Future<void> removePhotos(List<String> paths) => Future.error(_refusal);
 }
 
 /// The real one, over `supabase_flutter`. Supabase keeps the session on the
@@ -490,6 +519,43 @@ class SupabaseAccountBackend implements AccountBackend {
     return controller.stream;
   }
 
+  static const String _photoBucket = 'photos';
+
+  @override
+  Future<void> uploadPhoto(
+    String path,
+    Uint8List bytes, {
+    required String contentType,
+  }) => _guard(
+    () => _client.storage
+        .from(_photoBucket)
+        .uploadBinary(
+          path,
+          bytes,
+          fileOptions: FileOptions(upsert: true, contentType: contentType),
+        ),
+  );
+
+  @override
+  Future<Uint8List?> downloadPhoto(String path) => _guard(() async {
+    try {
+      return await _client.storage.from(_photoBucket).download(path);
+    } on StorageException catch (error) {
+      if (error.statusCode == '404' ||
+          error.statusCode == '400' ||
+          error.message.toLowerCase().contains('not found')) {
+        return null;
+      }
+      rethrow;
+    }
+  });
+
+  @override
+  Future<void> removePhotos(List<String> paths) => _guard(() async {
+    if (paths.isEmpty) return;
+    await _client.storage.from(_photoBucket).remove(paths);
+  });
+
   AccountUser _userOf(User? user) {
     if (user == null) throw const AccountException(AccountErrorCode.unknown);
     return AccountUser(id: user.id, email: user.email ?? '');
@@ -505,6 +571,13 @@ class SupabaseAccountBackend implements AccountBackend {
       throw AccountException(_authCode(error), error.message);
     } on PostgrestException catch (error) {
       throw AccountException(_databaseCode(error.code), error.message);
+    } on StorageException catch (error) {
+      throw AccountException(
+        error.statusCode == '403'
+            ? AccountErrorCode.notAllowed
+            : AccountErrorCode.unknown,
+        error.message,
+      );
     } catch (error) {
       // Socket errors, timeouts: the server was not reached.
       final text = error.toString();
