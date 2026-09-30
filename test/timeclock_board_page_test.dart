@@ -452,12 +452,28 @@ void main() {
       isNull,
     );
 
-    // Past midnight, a new day: Pointer is back, the closed notice gone.
+    // 01:00 the next day: the closed notice is gone, but it is night — no
+    // journée opens by itself before 05:00.
     await tester.pump(const Duration(hours: 13));
     await tester.pumpAndSettle();
 
     expect(
       find.byKey(const ValueKey('timeclock-business-day-closed')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('timeclock-business-day-none')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('timeclock-day-not-open')), findsWidgets);
+    expect(find.widgetWithText(OutlinedButton, 'POINTER'), findsNothing);
+
+    // 05:00: Pointer is back by itself, the night notice gone.
+    await tester.pump(const Duration(hours: 4));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('timeclock-business-day-none')),
       findsNothing,
     );
     expect(find.widgetWithText(OutlinedButton, 'POINTER'), findsWidgets);
@@ -629,5 +645,29 @@ void main() {
       findsOneWidget,
     );
     expect(find.byKey(const ValueKey('timeclock-close-day')), findsOneWidget);
+  });
+
+  _testBoard('at night a manager can still open the journée on purpose', (
+    tester,
+  ) async {
+    await _openBoard(tester);
+    // 12:00 → 02:00 the next day, no journée open.
+    await tester.pump(const Duration(hours: 14));
+    await tester.pumpAndSettle();
+    expect(find.widgetWithText(OutlinedButton, 'POINTER'), findsNothing);
+
+    final open = find.byKey(const ValueKey('timeclock-open-day'));
+    await tester.ensureVisible(open);
+    await tester.tap(open);
+    await tester.pumpAndSettle();
+    await enterPin(tester);
+
+    final notice = find.byKey(const ValueKey('timeclock-business-day-open'));
+    expect(notice, findsOneWidget);
+    expect(
+      find.descendant(of: notice, matching: find.textContaining('ouverte à 02:00')),
+      findsOneWidget,
+    );
+    expect(find.widgetWithText(OutlinedButton, 'POINTER'), findsWidgets);
   });
 }

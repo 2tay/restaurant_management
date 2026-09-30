@@ -297,6 +297,28 @@ void main() {
       expect(opened.openedByEmployeeId, _staff);
     });
 
+    test('does not open a journée by itself before 05:00', () async {
+      final night = DateTime(2026, 9, 30, 1, 10);
+      expect(await repo(night).currentOrOpen(_store), isNull);
+      expect(await repo().current(_store), isNull);
+
+      final dawn = await repo(DateTime(2026, 9, 30, 5)).currentOrOpen(_store);
+      expect(dawn!.date, DateTime(2026, 9, 30));
+    });
+
+    test('before 05:00, still returns the journée already open', () async {
+      final open = (await repo().open(_store))!;
+      expect((await repo(afterMidnight).currentOrOpen(_store))!.id, open.id);
+    });
+
+    test('at night, opening by hand still works', () async {
+      final night = DateTime(2026, 9, 30, 1, 10);
+      final opened = await repo(
+        night,
+      ).open(_store, openedByEmployeeId: _manager);
+      expect(opened!.date, DateTime(2026, 9, 30));
+    });
+
     test('is null once today\'s journée is closed', () async {
       final open = (await repo().open(_store))!;
       await repo().close(open.id, closedByEmployeeId: _manager);

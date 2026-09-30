@@ -5236,6 +5236,42 @@ abstract class AppLocalizations {
   /// **'Action non enregistrée : le pointage a changé entre-temps ou la journée est fermée.'**
   String get timeclockActionRefused;
 
+  /// Board notice at night (before the auto-open hour) with no journée open.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucune journée ouverte'**
+  String get timeclockNoBusinessDay;
+
+  /// Line under the no-journée night notice.
+  ///
+  /// In fr, this message translates to:
+  /// **'Avant {hour} h, un pointage n\'ouvre pas la journée tout seul. Elle s\'ouvrira au premier pointage à partir de {hour} h, ou tout de suite avec « Ouvrir la journée ».'**
+  String timeclockNoBusinessDayBody(int hour);
+
+  /// Button on the night notice: opens the journée on purpose.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ouvrir la journée'**
+  String get timeclockOpenDay;
+
+  /// Disabled button in place of Pointer at night, before any journée is open.
+  ///
+  /// In fr, this message translates to:
+  /// **'Journée non ouverte'**
+  String get timeclockDayNotOpen;
+
+  /// Snackbar after opening the journée by hand.
+  ///
+  /// In fr, this message translates to:
+  /// **'Journée du {date} ouverte.'**
+  String timeclockOpenDayDone(String date);
+
+  /// Snackbar when opening the journée is refused (one already open, or already one on this date).
+  ///
+  /// In fr, this message translates to:
+  /// **'La journée n\'a pas été ouverte : une journée existe déjà pour cette date.'**
+  String get timeclockOpenDayFailed;
+
   /// Button on the open-journée notice, and the confirm button of its dialog.
   ///
   /// In fr, this message translates to:
@@ -6370,6 +6406,12 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'{action} · saisissez le numéro PIN de {name}'**
   String identityPromptPointageSubtitle(String action, String name);
+
+  /// PIN prompt before opening the journée de service by hand.
+  ///
+  /// In fr, this message translates to:
+  /// **'Saisissez votre numéro PIN pour ouvrir la journée du {date}'**
+  String identityPromptOpenDaySubtitle(String date);
 
   /// PIN prompt before closing the journée de service.
   ///

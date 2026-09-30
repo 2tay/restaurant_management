@@ -15,7 +15,22 @@ abstract final class AttendanceRules {
   /// most likely forgot to close it, and every Pointer keeps landing on it.
   /// Nothing closes it on its own — that would invent exit times.
   static const Duration businessDayAlertAfter = Duration(hours: 18);
+
+  /// Before this hour a Pointer does **not** open a journée by itself: a
+  /// punch in the night, after the evening's journée was closed, would
+  /// otherwise open (and could get closed) the next day's only journée.
+  /// "Ouvrir la journée" on the board still opens one on purpose.
+  static const int businessDayAutoOpenHour = 5;
 }
+
+/// From when, on [day], a Pointer opens the journée by itself —
+/// [AttendanceRules.businessDayAutoOpenHour] o'clock.
+DateTime businessDayAutoOpenAt(DateTime day) => DateTime(
+  day.year,
+  day.month,
+  day.day,
+  AttendanceRules.businessDayAutoOpenHour,
+);
 
 /// When the board starts flagging [day] as left open —
 /// [AttendanceRules.businessDayAlertAfter] after it opened.

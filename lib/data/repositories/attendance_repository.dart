@@ -225,8 +225,9 @@ class AttendanceRepository {
   /// also creates the `attendances` row; when the previous cycle already
   /// finished (`done`) it opens another one — a day can hold several Pointer →
   /// Fin de journée cycles. Refuses (returns null) while a cycle is already
-  /// open (`working` / `onBreak`), when the day is locked by payroll, or when
-  /// today's journée de service is already closed.
+  /// open (`working` / `onBreak`), when the day is locked by payroll, when
+  /// today's journée de service is already closed, or when none is open
+  /// before `AttendanceRules.businessDayAutoOpenHour`.
   ///
   /// The row's date is the open journée's — opened here, by this employee,
   /// when none is — so a Pointer after midnight stays on the evening's day.

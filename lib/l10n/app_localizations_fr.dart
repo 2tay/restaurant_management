@@ -3206,6 +3206,29 @@ class AppLocalizationsFr extends AppLocalizations {
       'Action non enregistrée : le pointage a changé entre-temps ou la journée est fermée.';
 
   @override
+  String get timeclockNoBusinessDay => 'Aucune journée ouverte';
+
+  @override
+  String timeclockNoBusinessDayBody(int hour) {
+    return 'Avant $hour h, un pointage n\'ouvre pas la journée tout seul. Elle s\'ouvrira au premier pointage à partir de $hour h, ou tout de suite avec « Ouvrir la journée ».';
+  }
+
+  @override
+  String get timeclockOpenDay => 'Ouvrir la journée';
+
+  @override
+  String get timeclockDayNotOpen => 'Journée non ouverte';
+
+  @override
+  String timeclockOpenDayDone(String date) {
+    return 'Journée du $date ouverte.';
+  }
+
+  @override
+  String get timeclockOpenDayFailed =>
+      'La journée n\'a pas été ouverte : une journée existe déjà pour cette date.';
+
+  @override
   String get timeclockCloseDay => 'Fermer la journée';
 
   @override
@@ -3897,6 +3920,11 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String identityPromptPointageSubtitle(String action, String name) {
     return '$action · saisissez le numéro PIN de $name';
+  }
+
+  @override
+  String identityPromptOpenDaySubtitle(String date) {
+    return 'Saisissez votre numéro PIN pour ouvrir la journée du $date';
   }
 
   @override

@@ -105,6 +105,12 @@ void main() {
       expect(late.date, DateTime(2026, 9, 29));
     });
 
+    test('a Pointer in the night, with no journée open, is refused', () async {
+      final night = DateTime(2026, 9, 30, 1, 10);
+      expect(await repo().clockIn(_fresh, StoreIds.sablon, now: night), isNull);
+      expect(await BusinessDayRepository(db).current(StoreIds.sablon), isNull);
+    });
+
     test('once today\'s journée is closed, Pointer is refused until tomorrow',
         () async {
       final r = repo();

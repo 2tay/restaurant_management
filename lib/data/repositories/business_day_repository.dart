@@ -1,6 +1,7 @@
 import 'package:clock/clock.dart';
 import 'package:drift/drift.dart';
 
+import '../../core/utils/attendance_status.dart';
 import '../../models/attendance.dart';
 import '../../models/business_day.dart';
 import '../database/app_database.dart';
@@ -80,19 +81,20 @@ class BusinessDayRepository {
 
   /// The journée a Pointer lands in: the open one, else a new one opened by
   /// [openedByEmployeeId]. Null when today's journée was already closed — one
-  /// journée per date, and a closed one is not reopened.
+  /// journée per date, and a closed one is not reopened — and, with none
+  /// open, before `AttendanceRules.businessDayAutoOpenHour`: a punch in the
+  /// night does not open the next day's journée by accident.
   Future<BusinessDay?> currentOrOpen(
     String storeId, {
     String? openedByEmployeeId,
     DateTime? now,
   }) {
+    final at = now ?? _clock();
     return _db.transaction(() async {
-      return await current(storeId) ??
-          await open(
-            storeId,
-            openedByEmployeeId: openedByEmployeeId,
-            now: now,
-          );
+      final open = await current(storeId);
+      if (open != null) return open;
+      if (at.isBefore(businessDayAutoOpenAt(at))) return null;
+      return this.open(storeId, openedByEmployeeId: openedByEmployeeId, now: at);
     });
   }
 

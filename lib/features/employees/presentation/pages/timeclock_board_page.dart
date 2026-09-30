@@ -115,8 +115,46 @@ class _TimeclockBoardPageState extends ConsumerState<TimeclockBoardPage> {
     StoreSettings settings,
     BoardDay day,
   ) {
-    final closed = day.businessDay?.closedAt != null;
+    final businessDay = day.businessDay;
+    if (businessDay == null) {
+      // No journée yet: at night Pointer waits for the auto-open hour (or a
+      // manager's "Ouvrir la journée"), and unlocks by itself when it comes.
+      return _Deadline(
+        at: businessDayAutoOpenAt(day.date),
+        now: ref.read(attendanceClockProvider),
+        builder: (context, passed) => _buildCards(
+          l10n,
+          employees,
+          board,
+          settings,
+          lock: passed ? null : _PointerLock.notOpenYet,
+          notice: passed
+              ? null
+              : _NoBusinessDayNotice(date: day.date, storeId: widget.storeId),
+        ),
+      );
+    }
+    return _buildCards(
+      l10n,
+      employees,
+      board,
+      settings,
+      lock: businessDay.closedAt == null ? null : _PointerLock.dayClosed,
+      notice: _BusinessDayNotice(
+        businessDay: businessDay,
+        storeId: widget.storeId,
+      ),
+    );
+  }
 
+  Widget _buildCards(
+    AppLocalizations l10n,
+    List<Employee> employees,
+    Map<String, Attendance> board,
+    StoreSettings settings, {
+    required _PointerLock? lock,
+    required Widget? notice,
+  }) {
     // The owner does not clock in — the board shows only the staff who do.
     final all = employees.where((e) => e.role != EmployeeRole.owner).toList()
       ..sort((a, b) {
@@ -147,13 +185,7 @@ class _TimeclockBoardPageState extends ConsumerState<TimeclockBoardPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (day.businessDay case final businessDay?) ...[
-          _BusinessDayNotice(
-            businessDay: businessDay,
-            storeId: widget.storeId,
-          ),
-          const SizedBox(height: AppSpacing.lg),
-        ],
+        if (notice != null) ...[notice, const SizedBox(height: AppSpacing.lg)],
         ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 420),
           child: EmployeeSelector(
@@ -174,7 +206,7 @@ class _TimeclockBoardPageState extends ConsumerState<TimeclockBoardPage> {
               entry: board[pinned.id],
               settings: settings,
               storeId: widget.storeId,
-              closed: closed,
+              lock: lock,
             ),
           )
         else
@@ -188,7 +220,7 @@ class _TimeclockBoardPageState extends ConsumerState<TimeclockBoardPage> {
                   entry: board[employee.id],
                   settings: settings,
                   storeId: widget.storeId,
-                  closed: closed,
+                  lock: lock,
                 ),
             ],
           ),
@@ -308,6 +340,60 @@ class _BusinessDayNotice extends ConsumerWidget {
   }
 }
 
+/// At night with no journée open: why Pointer waits, and "Ouvrir la
+/// journée" for a real night need — opened on purpose, by the signed-in user.
+class _NoBusinessDayNotice extends ConsumerWidget {
+  const _NoBusinessDayNotice({required this.date, required this.storeId});
+
+  final DateTime date;
+  final String storeId;
+
+  Future<void> _open(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context);
+    final actor = ref.read(currentEmployeeProvider);
+    if (actor == null) return;
+    final label = _lowerFirst(Formatters.dateLongWeekday(date));
+
+    final ok = await IdentityPromptDialog.show(
+      context,
+      title: l10n.identityPromptTitle,
+      subtitle: l10n.identityPromptOpenDaySubtitle(label),
+      verify: (pin) =>
+          ref.read(credentialRepositoryProvider).verifyPin(pin, actor.id),
+    );
+    if (!ok || !context.mounted) return;
+
+    final opened = await ref
+        .read(businessDayRepositoryProvider)
+        .open(storeId, openedByEmployeeId: actor.id);
+    if (!context.mounted) return;
+    if (opened == null) {
+      AppSnackBar.error(context, l10n.timeclockOpenDayFailed);
+      return;
+    }
+    AppSnackBar.success(context, l10n.timeclockOpenDayDone(label));
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    return NoticeBanner(
+      key: const ValueKey('timeclock-business-day-none'),
+      icon: LucideIcons.moon,
+      title: l10n.timeclockNoBusinessDay,
+      message: l10n.timeclockNoBusinessDayBody(
+        AttendanceRules.businessDayAutoOpenHour,
+      ),
+      action: OutlinedButton.icon(
+        key: const ValueKey('timeclock-open-day'),
+        onPressed: () => _open(context, ref),
+        icon: const Icon(LucideIcons.lockOpen, size: AppSizing.iconSm),
+        label: Text(l10n.timeclockOpenDay),
+      ),
+    );
+  }
+}
+
 /// Builds with whether [at] has passed, and rebuilds by itself the moment it
 /// does — one timer, not a per-second tick.
 class _Deadline extends StatefulWidget {
@@ -387,7 +473,7 @@ class _EmployeeCard extends StatelessWidget {
     required this.entry,
     required this.settings,
     required this.storeId,
-    required this.closed,
+    required this.lock,
   });
 
   final Employee employee;
@@ -395,8 +481,8 @@ class _EmployeeCard extends StatelessWidget {
   final StoreSettings settings;
   final String storeId;
 
-  /// Today's journée is closed — no Pointer until tomorrow.
-  final bool closed;
+  /// Why Pointer is unavailable, if it is.
+  final _PointerLock? lock;
 
   void _openDetail(BuildContext context) {
     // Bare: the day detail — date and live time included — is the heading.
@@ -446,7 +532,7 @@ class _EmployeeCard extends StatelessWidget {
                 employee: employee,
                 settings: settings,
                 storeId: storeId,
-                closed: closed,
+                lock: lock,
               ),
             ],
           ),
@@ -504,7 +590,7 @@ class _BoardDetail extends ConsumerWidget {
         settings: settings,
         storeId: storeId,
         date: day.date,
-        closed: day.businessDay?.closedAt != null,
+        lock: _pointerLock(day, ref.read(attendanceClockProvider)()),
       );
     }
 
@@ -529,7 +615,7 @@ class _StartDayPrompt extends StatelessWidget {
     required this.settings,
     required this.storeId,
     required this.date,
-    required this.closed,
+    required this.lock,
   });
 
   final Employee employee;
@@ -538,7 +624,7 @@ class _StartDayPrompt extends StatelessWidget {
 
   /// The board's day — the open journée's, not the clock's.
   final DateTime date;
-  final bool closed;
+  final _PointerLock? lock;
 
   /// The bare drawer's close bar and bottom padding — what the body's
   /// height leaves for this block to centre in.
@@ -583,7 +669,7 @@ class _StartDayPrompt extends StatelessWidget {
                 employee: employee,
                 settings: settings,
                 storeId: storeId,
-                closed: closed,
+                lock: lock,
               ),
             ),
           ],
@@ -600,7 +686,7 @@ class _ActionArea extends ConsumerWidget {
     required this.employee,
     required this.settings,
     required this.storeId,
-    required this.closed,
+    required this.lock,
   });
 
   final Attendance? entry;
@@ -608,10 +694,11 @@ class _ActionArea extends ConsumerWidget {
   final StoreSettings settings;
   final String storeId;
 
-  /// Today's journée is closed: `Pointer` gives way to a disabled
-  /// `Journée fermée`. Nobody is in service on a closed journée — closing
-  /// refuses until they are out — so the other buttons never meet it.
-  final bool closed;
+  /// Set when `Pointer` is unavailable — it gives way to a disabled button
+  /// saying why. Nobody is in service on a closed journée (closing refuses
+  /// until they are out) nor before one opens, so the other buttons never
+  /// meet it.
+  final _PointerLock? lock;
 
   /// Every board action is attributed to a person, so each one asks for that
   /// employee's PIN first — the dialog owns the wrong-attempt / lockout loop.
@@ -654,7 +741,7 @@ class _ActionArea extends ConsumerWidget {
     final repo = ref.read(attendanceRepositoryProvider);
 
     if (current == null) {
-      if (closed) return const _DayClosedButton();
+      if (lock != null) return _PointerLockedButton(lock: lock!);
       return _BigButton(
         label: l10n.timeclockClockIn,
         icon: LucideIcons.circle,
@@ -726,8 +813,8 @@ class _ActionArea extends ConsumerWidget {
           children: [
             const _DoneSummary(),
             const SizedBox(height: AppSpacing.xs),
-            if (closed)
-              const _DayClosedButton()
+            if (lock != null)
+              _PointerLockedButton(lock: lock!)
             else
               _BigButton(
                 label: l10n.timeclockClockIn,
@@ -818,16 +905,45 @@ class _BigButton extends StatelessWidget {
   }
 }
 
-/// `JOURNÉE FERMÉE`, disabled, where `Pointer` would be once today's journée
-/// is closed.
-class _DayClosedButton extends StatelessWidget {
-  const _DayClosedButton();
+/// Why `Pointer` is unavailable on the board.
+enum _PointerLock {
+  /// Today's journée is closed — until tomorrow.
+  dayClosed,
+
+  /// No journée open, and before the auto-open hour.
+  notOpenYet,
+}
+
+/// The board's lock for [day] at [now], or null when Pointer is available.
+_PointerLock? _pointerLock(BoardDay day, DateTime now) {
+  final businessDay = day.businessDay;
+  if (businessDay == null) {
+    return now.isBefore(businessDayAutoOpenAt(day.date))
+        ? _PointerLock.notOpenYet
+        : null;
+  }
+  return businessDay.closedAt == null ? null : _PointerLock.dayClosed;
+}
+
+/// `JOURNÉE FERMÉE` / `JOURNÉE NON OUVERTE`, disabled, where `Pointer` would
+/// be.
+class _PointerLockedButton extends StatelessWidget {
+  const _PointerLockedButton({required this.lock});
+
+  final _PointerLock lock;
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return _BigButton(
-      key: const ValueKey('timeclock-day-closed'),
-      label: AppLocalizations.of(context).timeclockDayClosed,
+      key: ValueKey(switch (lock) {
+        _PointerLock.dayClosed => 'timeclock-day-closed',
+        _PointerLock.notOpenYet => 'timeclock-day-not-open',
+      }),
+      label: switch (lock) {
+        _PointerLock.dayClosed => l10n.timeclockDayClosed,
+        _PointerLock.notOpenYet => l10n.timeclockDayNotOpen,
+      },
       icon: LucideIcons.lock,
       outlined: true,
       onPressed: null,
