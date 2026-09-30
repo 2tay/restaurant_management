@@ -8,11 +8,13 @@ import '../../../../core/utils/attendance_status.dart';
 import '../../../../core/utils/employee_status.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/utils/responsive.dart';
+import '../../../../data/current_employee.dart';
 import '../../../../data/providers.dart';
 import '../../../../data/repositories/repositories.dart' show BoardDay;
 import '../../../../l10n/app_localizations.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
+import '../widgets/close_business_day_dialog.dart';
 
 /// Identity, status and the buttons — the day's timestamps live in the
 /// drawer behind "Voir détails", not on the card.
@@ -144,7 +146,10 @@ class _TimeclockBoardPageState extends ConsumerState<TimeclockBoardPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (day.businessDay case final businessDay?) ...[
-          _BusinessDayNotice(businessDay: businessDay),
+          _BusinessDayNotice(
+            businessDay: businessDay,
+            storeId: widget.storeId,
+          ),
           const SizedBox(height: AppSpacing.lg),
         ],
         ConstrainedBox(
@@ -199,17 +204,69 @@ class _TimeclockBoardPageState extends ConsumerState<TimeclockBoardPage> {
 }
 
 /// The journée de service the board is on: open (with its date, which stays
-/// yesterday's past midnight), or closed until tomorrow.
-class _BusinessDayNotice extends StatelessWidget {
-  const _BusinessDayNotice({required this.businessDay});
+/// yesterday's past midnight, and "Fermer la journée"), or closed until
+/// tomorrow.
+class _BusinessDayNotice extends ConsumerWidget {
+  const _BusinessDayNotice({required this.businessDay, required this.storeId});
 
   final BusinessDay businessDay;
+  final String storeId;
+
+  /// The exits for whoever is still in, then the signed-in user's PIN, then
+  /// the close — all or nothing (`BusinessDayRepository.close`).
+  Future<void> _close(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context);
+    final actor = ref.read(currentEmployeeProvider);
+    if (actor == null) return;
+    final date = _lowerFirst(Formatters.dateLongWeekday(businessDay.date));
+
+    final board = ref.read(attendanceBoardProvider(storeId)).value ?? const {};
+    final openShifts = [
+      for (final entry in board.values)
+        if (entry.status == AttendanceStatus.working ||
+            entry.status == AttendanceStatus.onBreak)
+          entry,
+    ];
+    // The whole roster, archived included: an archived employee's open shift
+    // still has to be ended before the journée can close. Watched by [build],
+    // so it is loaded by the time the button is tapped.
+    final roster = ref.read(employeesProvider(storeId)).value ?? const [];
+
+    final exits = await CloseBusinessDayDialog.show(
+      context,
+      businessDay: businessDay,
+      openShifts: openShifts,
+      employees: {for (final e in roster) e.id: e},
+      now: ref.read(attendanceClockProvider)(),
+    );
+    if (exits == null || !context.mounted) return;
+
+    final ok = await IdentityPromptDialog.show(
+      context,
+      title: l10n.identityPromptTitle,
+      subtitle: l10n.identityPromptCloseDaySubtitle(date),
+      verify: (pin) =>
+          ref.read(credentialRepositoryProvider).verifyPin(pin, actor.id),
+    );
+    if (!ok || !context.mounted) return;
+
+    final closed = await ref
+        .read(businessDayRepositoryProvider)
+        .close(businessDay.id, closedByEmployeeId: actor.id, exits: exits);
+    if (!context.mounted) return;
+    if (closed == null) {
+      AppSnackBar.error(context, l10n.timeclockCloseDayFailed);
+      return;
+    }
+    AppSnackBar.success(context, l10n.timeclockCloseDayDone(date));
+  }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final date = _lowerFirst(Formatters.dateLongWeekday(businessDay.date));
     final closedAt = businessDay.closedAt;
+    if (closedAt == null) ref.watch(employeesProvider(storeId));
 
     if (closedAt == null) {
       return NoticeBanner(
@@ -218,6 +275,12 @@ class _BusinessDayNotice extends StatelessWidget {
         title: l10n.timeclockBusinessDayOpen(
           date,
           Formatters.time(businessDay.openedAt),
+        ),
+        action: OutlinedButton.icon(
+          key: const ValueKey('timeclock-close-day'),
+          onPressed: () => _close(context, ref),
+          icon: const Icon(LucideIcons.lock, size: AppSizing.iconSm),
+          label: Text(l10n.timeclockCloseDay),
         ),
       );
     }

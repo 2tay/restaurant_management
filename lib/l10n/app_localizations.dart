@@ -5230,6 +5230,66 @@ abstract class AppLocalizations {
   /// **'Action non enregistrée : le pointage a changé entre-temps ou la journée est fermée.'**
   String get timeclockActionRefused;
 
+  /// Button on the open-journée notice, and the confirm button of its dialog.
+  ///
+  /// In fr, this message translates to:
+  /// **'Fermer la journée'**
+  String get timeclockCloseDay;
+
+  /// Close-journée dialog title. {date} is e.g. 'mardi 29/09/2026'.
+  ///
+  /// In fr, this message translates to:
+  /// **'Fermer la journée du {date}'**
+  String timeclockCloseDayTitle(String date);
+
+  /// Close-journée dialog, above the list of shifts still open.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ces employés sont encore en service. Indiquez l\'heure de sortie de chacun :'**
+  String get timeclockCloseDayStillIn;
+
+  /// Close-journée dialog when nobody is in service.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tout le monde a terminé son service.'**
+  String get timeclockCloseDayAllOut;
+
+  /// Close-journée dialog, warning under the body.
+  ///
+  /// In fr, this message translates to:
+  /// **'Une fois fermée, la journée ne peut plus être rouverte.'**
+  String get timeclockCloseDayFinal;
+
+  /// Button showing an exit time in the close-journée dialog; tapping it picks another.
+  ///
+  /// In fr, this message translates to:
+  /// **'Sortie à {time}'**
+  String timeclockCloseDayExit(String time);
+
+  /// Close-journée dialog, invalid exit time: earlier than the clock-in.
+  ///
+  /// In fr, this message translates to:
+  /// **'Avant son arrivée ({time})'**
+  String timeclockCloseDayExitBeforeStart(String time);
+
+  /// Close-journée dialog, invalid exit time: earlier than the running break's start.
+  ///
+  /// In fr, this message translates to:
+  /// **'Avant le début de sa pause ({time})'**
+  String timeclockCloseDayExitBeforePause(String time);
+
+  /// Snackbar after closing the journée.
+  ///
+  /// In fr, this message translates to:
+  /// **'Journée du {date} fermée.'**
+  String timeclockCloseDayDone(String date);
+
+  /// Snackbar when the database refuses the close (a shift changed meanwhile).
+  ///
+  /// In fr, this message translates to:
+  /// **'La journée n\'a pas été fermée : le pointage a changé entre-temps. Réessayez.'**
+  String get timeclockCloseDayFailed;
+
   /// Divider above each session of a day, even when there is only one.
   ///
   /// In fr, this message translates to:
@@ -6304,6 +6364,12 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'{action} · saisissez le numéro PIN de {name}'**
   String identityPromptPointageSubtitle(String action, String name);
+
+  /// PIN prompt before closing the journée de service.
+  ///
+  /// In fr, this message translates to:
+  /// **'Saisissez votre numéro PIN pour fermer la journée du {date}'**
+  String identityPromptCloseDaySubtitle(String date);
 
   /// Subtitle of the identity dialog before settling an employee's payroll days — the signed-in user confirms with their own PIN.
   ///

@@ -12,7 +12,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:stock_inventory/data/database/app_database.dart';
 import 'package:stock_inventory/data/repositories/repositories.dart';
 import 'package:stock_inventory/data/seed/dataset/dataset.dart'
-    show EmployeeIds, StoreIds;
+    show AttendanceIds, EmployeeIds, StoreIds;
+import 'package:stock_inventory/models/models.dart';
 
 import '../support/db_fixture.dart';
 
@@ -137,6 +138,104 @@ void main() {
         await repo().close(day.id, closedByEmployeeId: _manager),
         isNotNull,
       );
+    });
+
+    group('with exit times for the shifts still open', () {
+      late AttendanceRepository attendance;
+      late BusinessDay day;
+
+      setUp(() async {
+        attendance = AttendanceRepository(db, clock: () => afterMidnight);
+        day = (await repo().open(_store))!;
+      });
+
+      Future<String> clockIn(String employeeId) async =>
+          (await attendance.clockIn(employeeId, _store, now: evening))!.id;
+
+      test('ends each shift at its exit, a running break with it, then closes',
+          () async {
+        final working = await clockIn(_staff);
+        final onBreak = await clockIn(EmployeeIds.amelie);
+        await attendance.startPause(
+          onBreak,
+          now: DateTime(2026, 9, 29, 23),
+        );
+
+        final exit = DateTime(2026, 9, 29, 23, 30);
+        final closed = await repo(afterMidnight).close(
+          day.id,
+          closedByEmployeeId: _manager,
+          exits: {working: exit, onBreak: exit},
+        );
+
+        expect(closed!.closedAt, afterMidnight);
+        final a = (await attendance.attendance(working))!;
+        expect(a.status, AttendanceStatus.done);
+        expect(a.sessions.single.clockOutAt, exit);
+        final b = (await attendance.attendance(onBreak))!;
+        expect(b.status, AttendanceStatus.done);
+        expect(b.sessions.single.pauses.single.endAt, exit);
+        expect(b.sessions.single.clockOutAt, exit);
+      });
+
+      test('an exit before the clock-in writes nothing', () async {
+        final id = await clockIn(_staff);
+
+        final closed = await repo(afterMidnight).close(
+          day.id,
+          closedByEmployeeId: _manager,
+          exits: {id: DateTime(2026, 9, 29, 17)},
+        );
+
+        expect(closed, isNull);
+        expect(
+          (await attendance.attendance(id))!.status,
+          AttendanceStatus.working,
+        );
+        expect((await repo().current(_store))!.id, day.id);
+      });
+
+      test('an exit in the future is refused', () async {
+        final id = await clockIn(_staff);
+        expect(
+          await repo(afterMidnight).close(
+            day.id,
+            closedByEmployeeId: _manager,
+            exits: {id: DateTime(2026, 9, 30, 2)},
+          ),
+          isNull,
+        );
+      });
+
+      test('a shift left without an exit rolls the others back', () async {
+        final first = await clockIn(_staff);
+        await clockIn(EmployeeIds.amelie);
+
+        final closed = await repo(afterMidnight).close(
+          day.id,
+          closedByEmployeeId: _manager,
+          exits: {first: DateTime(2026, 9, 29, 23)},
+        );
+
+        expect(closed, isNull);
+        expect(
+          (await attendance.attendance(first))!.status,
+          AttendanceStatus.working,
+          reason: 'the exit already written is rolled back',
+        );
+      });
+
+      test('an exit for a row outside the journée is refused', () async {
+        await clockIn(_staff);
+        expect(
+          await repo(afterMidnight).close(
+            day.id,
+            closedByEmployeeId: _manager,
+            exits: {AttendanceIds.karimToday: DateTime(2026, 9, 29, 23)},
+          ),
+          isNull,
+        );
+      });
     });
 
     test('lets the next day open its own journée', () async {

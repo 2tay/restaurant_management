@@ -11,6 +11,8 @@ import 'package:stock_inventory/core/utils/formatters.dart';
 import 'package:stock_inventory/data/database/app_database.dart';
 import 'package:stock_inventory/data/repositories/repositories.dart';
 import 'package:stock_inventory/data/seed/dataset/dataset.dart';
+import 'package:stock_inventory/features/employees/presentation/widgets/close_business_day_dialog.dart';
+import 'package:stock_inventory/models/models.dart';
 import 'package:stock_inventory/shared/widgets/widgets.dart';
 
 import 'support/app_harness.dart';
@@ -459,5 +461,143 @@ void main() {
       findsNothing,
     );
     expect(find.widgetWithText(OutlinedButton, 'POINTER'), findsWidgets);
+  });
+
+  // Fermer la journée (step 3): the exits for whoever is still in, the
+  // signed-in user's PIN, then the close — all or nothing.
+
+  Future<void> enterPin(WidgetTester tester) async {
+    // Marc, the signed-in owner, carries the seeded PIN.
+    await tester.enterText(
+      find.descendant(
+        of: find.byType(IdentityPromptDialog),
+        matching: find.byType(TextField),
+      ),
+      '78.02.14-153.24',
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(
+        of: find.byType(IdentityPromptDialog),
+        matching: find.widgetWithText(FilledButton, 'Valider'),
+      ),
+    );
+    await tester.pumpAndSettle();
+  }
+
+  Future<void> tapCloseDay(WidgetTester tester) async {
+    final button = find.byKey(const ValueKey('timeclock-close-day'));
+    await tester.ensureVisible(button);
+    await tester.tap(button);
+    await tester.pumpAndSettle();
+  }
+
+  _testBoard('Fermer la journée with nobody in: confirm, PIN, then closed', (
+    tester,
+  ) async {
+    final db = await _openBoard(tester);
+    final attendance = AttendanceRepository(db);
+    final row = await attendance.clockIn(
+      EmployeeIds.amelie,
+      StoreIds.sablon,
+      now: _today(8),
+    );
+    await attendance.clockOut(row!.id, now: _today(10));
+    await tester.pumpAndSettle();
+
+    await tapCloseDay(tester);
+    expect(find.byType(CloseBusinessDayDialog), findsOneWidget);
+    expect(find.text('Tout le monde a terminé son service.'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('close-day-confirm')));
+    await tester.pumpAndSettle();
+    expect(find.byType(IdentityPromptDialog), findsOneWidget);
+    await enterPin(tester);
+
+    expect(
+      find.byKey(const ValueKey('timeclock-business-day-closed')),
+      findsOneWidget,
+    );
+    // A one-shot read: a drift stream never delivers under the widget test's
+    // fake clock without a pump.
+    final journee = await db.select(db.businessDays).getSingle();
+    expect(journee.closedAt, isNotNull);
+    expect(journee.closedByEmployeeId, EmployeeIds.marc);
+  });
+
+  _testBoard('an employee still in gets the exit time entered, then the day '
+      'closes with their shift ended there', (tester) async {
+    final db = await _openBoard(tester);
+    final attendance = AttendanceRepository(db);
+    final row = await attendance.clockIn(
+      EmployeeIds.amelie,
+      StoreIds.sablon,
+      now: _today(8),
+    );
+    await tester.pumpAndSettle();
+
+    await tapCloseDay(tester);
+    final shift = find.byKey(ValueKey('close-day-shift-${row!.id}'));
+    expect(shift, findsOneWidget);
+    expect(
+      find.descendant(of: shift, matching: find.text(_name(EmployeeIds.amelie))),
+      findsOneWidget,
+    );
+    // Now (12:00) by default.
+    expect(
+      find.descendant(of: shift, matching: find.text('Sortie à 12:00')),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('close-day-confirm')));
+    await tester.pumpAndSettle();
+    await enterPin(tester);
+
+    final ended = await attendance.attendance(row.id);
+    expect(ended!.status, AttendanceStatus.done);
+    expect(ended.sessions.single.clockOutAt, _today(12));
+    expect(
+      find.byKey(const ValueKey('timeclock-business-day-closed')),
+      findsOneWidget,
+    );
+  });
+
+  _testBoard('an exit before the arrival is flagged and blocks the close', (
+    tester,
+  ) async {
+    final db = await _openBoard(tester);
+    final row = await AttendanceRepository(
+      db,
+    ).clockIn(EmployeeIds.amelie, StoreIds.sablon, now: _today(11, 30));
+    await tester.pumpAndSettle();
+
+    await tapCloseDay(tester);
+    await tester.tap(find.byKey(const ValueKey('close-day-exit')));
+    await tester.pumpAndSettle();
+
+    // Type the time rather than drag the dial.
+    await tester.tap(find.byIcon(Icons.keyboard_outlined));
+    await tester.pumpAndSettle();
+    final fields = find.descendant(
+      of: find.byType(TimePickerDialog),
+      matching: find.byType(TextField),
+    );
+    await tester.enterText(fields.at(0), '11');
+    await tester.enterText(fields.at(1), '00');
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
+
+    final shift = find.byKey(ValueKey('close-day-shift-${row!.id}'));
+    expect(
+      find.descendant(of: shift, matching: find.text('Sortie à 11:00')),
+      findsOneWidget,
+    );
+    expect(find.text('Avant son arrivée (11:30)'), findsOneWidget);
+    expect(
+      tester
+          .widget<FilledButton>(find.byKey(const ValueKey('close-day-confirm')))
+          .onPressed,
+      isNull,
+    );
   });
 }

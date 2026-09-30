@@ -3201,6 +3201,49 @@ class AppLocalizationsFr extends AppLocalizations {
       'Action non enregistrée : le pointage a changé entre-temps ou la journée est fermée.';
 
   @override
+  String get timeclockCloseDay => 'Fermer la journée';
+
+  @override
+  String timeclockCloseDayTitle(String date) {
+    return 'Fermer la journée du $date';
+  }
+
+  @override
+  String get timeclockCloseDayStillIn =>
+      'Ces employés sont encore en service. Indiquez l\'heure de sortie de chacun :';
+
+  @override
+  String get timeclockCloseDayAllOut => 'Tout le monde a terminé son service.';
+
+  @override
+  String get timeclockCloseDayFinal =>
+      'Une fois fermée, la journée ne peut plus être rouverte.';
+
+  @override
+  String timeclockCloseDayExit(String time) {
+    return 'Sortie à $time';
+  }
+
+  @override
+  String timeclockCloseDayExitBeforeStart(String time) {
+    return 'Avant son arrivée ($time)';
+  }
+
+  @override
+  String timeclockCloseDayExitBeforePause(String time) {
+    return 'Avant le début de sa pause ($time)';
+  }
+
+  @override
+  String timeclockCloseDayDone(String date) {
+    return 'Journée du $date fermée.';
+  }
+
+  @override
+  String get timeclockCloseDayFailed =>
+      'La journée n\'a pas été fermée : le pointage a changé entre-temps. Réessayez.';
+
+  @override
   String timeclockSessionTitle(int number) {
     return 'Session N° $number';
   }
@@ -3849,6 +3892,11 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String identityPromptPointageSubtitle(String action, String name) {
     return '$action · saisissez le numéro PIN de $name';
+  }
+
+  @override
+  String identityPromptCloseDaySubtitle(String date) {
+    return 'Saisissez votre numéro PIN pour fermer la journée du $date';
   }
 
   @override

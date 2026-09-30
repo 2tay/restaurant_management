@@ -374,6 +374,39 @@ class AttendanceRepository {
     });
   }
 
+  /// Ends a shift still open at the closing of the journée, at the exit time
+  /// the manager enters: a running break ends at [at], then the session.
+  /// **Called only by `BusinessDayRepository.close`**, inside its transaction.
+  ///
+  /// Refuses unless the day is `working` / `onBreak`, and when [at] is in the
+  /// future or before the session's clock-in or the running break's start —
+  /// an exit time that would make negative hours is never written.
+  Future<Attendance?> endShift(String attendanceId, DateTime at) {
+    return _mutate(attendanceId, (row) async {
+      if (row.status != AttendanceStatus.working &&
+          row.status != AttendanceStatus.onBreak) {
+        return null;
+      }
+      if (at.isAfter(_clock())) return null;
+      final session = await _lastSession(attendanceId);
+      if (session == null || at.isBefore(session.clockInAt)) return null;
+
+      final open = await (_db.select(
+        _db.attendancePauses,
+      )..where((p) => p.sessionId.equals(session.id) & p.endAt.isNull())).get();
+      if (open.any((p) => at.isBefore(p.startAt))) return null;
+
+      await (_db.update(_db.attendancePauses)..where(
+            (p) => p.sessionId.equals(session.id) & p.endAt.isNull(),
+          ))
+          .write(AttendancePausesCompanion(endAt: Value(at)));
+      await (_db.update(_db.attendanceSessions)
+            ..where((s) => s.id.equals(session.id)))
+          .write(AttendanceSessionsCompanion(clockOutAt: Value(at)));
+      return AttendanceStatus.done;
+    });
+  }
+
   /// Locks a set of finished days against a payroll run — stamps
   /// [payrollPeriodId] on each. **Called only by `PayrollRepository.pay`**,
   /// inside its transaction, so the attendance rows still have exactly one

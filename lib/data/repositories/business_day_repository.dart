@@ -5,6 +5,7 @@ import '../../models/attendance.dart';
 import '../../models/business_day.dart';
 import '../database/app_database.dart';
 import '../mappers/mappers.dart';
+import 'attendance_repository.dart';
 import 'new_id.dart';
 
 /// The app-wide clock (`package:clock`), read afresh on every call so a test
@@ -127,42 +128,67 @@ class BusinessDayRepository {
     });
   }
 
-  /// Closes the journée. Refuses when it is already closed, or while any
-  /// attendance on its date is still `working` / `onBreak` — those shifts get
-  /// their exit time first, so a closed journée never hides an open shift.
+  /// Closes the journée — **all or nothing**. [exits] gives the exit time of
+  /// each shift still open on it (attendance id → time): each is ended there
+  /// (`AttendanceRepository.endShift`), then the journée is stamped closed.
+  ///
+  /// Refuses, writing nothing, when the journée is missing or already closed,
+  /// when an exit names a row outside the journée or an impossible time
+  /// (future, before the clock-in or the running break), or when a shift would
+  /// still be open afterwards — a closed journée never hides an open shift.
   Future<BusinessDay?> close(
     String businessDayId, {
     required String closedByEmployeeId,
+    Map<String, DateTime> exits = const {},
     DateTime? now,
-  }) {
-    return _db.transaction(() async {
-      final row = await (_db.select(
-        _db.businessDays,
-      )..where((d) => d.id.equals(businessDayId))).getSingleOrNull();
-      if (row == null || row.closedAt != null) return null;
+  }) async {
+    try {
+      return await _db.transaction(() async {
+        final row = await (_db.select(
+          _db.businessDays,
+        )..where((d) => d.id.equals(businessDayId))).getSingleOrNull();
+        if (row == null || row.closedAt != null) return null;
 
-      final stillIn = await (_db.select(_db.attendances)..where(
-            (a) =>
-                a.storeId.equals(row.storeId) &
-                a.date.equals(row.date) &
-                a.status.isInValues(const [
-                  AttendanceStatus.working,
-                  AttendanceStatus.onBreak,
-                ]),
-          ))
-          .get();
-      if (stillIn.isNotEmpty) return null;
+        final attendance = AttendanceRepository(_db, clock: _clock);
+        for (final MapEntry(key: id, value: at) in exits.entries) {
+          final entry = await attendance.attendance(id);
+          if (entry == null ||
+              entry.storeId != row.storeId ||
+              entry.date != row.date) {
+            throw const _CloseRefused();
+          }
+          if (await attendance.endShift(id, at) == null) {
+            throw const _CloseRefused();
+          }
+        }
 
-      await (_db.update(
-        _db.businessDays,
-      )..where((d) => d.id.equals(businessDayId))).write(
-        BusinessDaysCompanion(
-          closedAt: Value(now ?? _clock()),
-          closedByEmployeeId: Value(closedByEmployeeId),
-        ),
-      );
-      return businessDay(businessDayId);
-    });
+        final stillIn = await (_db.select(_db.attendances)..where(
+              (a) =>
+                  a.storeId.equals(row.storeId) &
+                  a.date.equals(row.date) &
+                  a.status.isInValues(const [
+                    AttendanceStatus.working,
+                    AttendanceStatus.onBreak,
+                  ]),
+            ))
+            .get();
+        if (stillIn.isNotEmpty) throw const _CloseRefused();
+
+        await (_db.update(
+          _db.businessDays,
+        )..where((d) => d.id.equals(businessDayId))).write(
+          BusinessDaysCompanion(
+            closedAt: Value(now ?? _clock()),
+            closedByEmployeeId: Value(closedByEmployeeId),
+          ),
+        );
+        return businessDay(businessDayId);
+      });
+    } on _CloseRefused {
+      // Thrown rather than returned so the transaction rolls back the exits
+      // already written.
+      return null;
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -173,4 +199,9 @@ class BusinessDayRepository {
     ..where((d) => d.storeId.equals(storeId) & d.closedAt.isNull());
 
   static DateTime _dayOf(DateTime v) => DateTime(v.year, v.month, v.day);
+}
+
+/// A close refused after some of its writes — thrown to roll them back.
+class _CloseRefused implements Exception {
+  const _CloseRefused();
 }
