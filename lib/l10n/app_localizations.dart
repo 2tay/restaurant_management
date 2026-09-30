@@ -6869,12 +6869,6 @@ abstract class AppLocalizations {
   /// **'Presque prêt'**
   String get waitingTitle;
 
-  /// Account device with no local data yet.
-  ///
-  /// In fr, this message translates to:
-  /// **'Cet appareil est relié à {restaurant}. Ses données arriveront avec la synchronisation, ajoutée dans une prochaine version.'**
-  String waitingBody(String restaurant);
-
   /// Account error.
   ///
   /// In fr, this message translates to:
@@ -7210,6 +7204,24 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'{table, select, stores{Établissement} categories{Catégorie} units{Unité} items{Article} suppliers{Fournisseur} supplier_prices{Prix fournisseur} price_history{Historique de prix} stock_movements{Mouvement de stock} purchase_orders{Commande} purchase_order_lines{Ligne de commande} goods_receipts{Réception} goods_receipt_lines{Ligne de réception} notifications{Notification} employees{Employé} employee_credentials{Accès employé} payroll_periods{Période de paie} attendances{Pointage} attendance_sessions{Pointage} attendance_pauses{Pause} busy_dates{Jour chargé} other{Donnée}}'**
   String syncTableName(String table);
+
+  /// Waiting screen: first download progress.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =0{Téléchargement des données…} =1{Téléchargement des données… 1 élément} other{Téléchargement des données… {count} éléments}}'**
+  String waitingDownloading(int count);
+
+  /// Waiting screen: run a sync now.
+  ///
+  /// In fr, this message translates to:
+  /// **'Réessayer maintenant'**
+  String get waitingRetry;
+
+  /// Waiting screen body, now that data is received (Phase 6).
+  ///
+  /// In fr, this message translates to:
+  /// **'Cet appareil est relié à {restaurant}. Ses données arrivent du serveur ; l\'application s\'ouvrira dès qu\'elles seront là.'**
+  String waitingBodyNow(String restaurant);
 }
 
 class _AppLocalizationsDelegate

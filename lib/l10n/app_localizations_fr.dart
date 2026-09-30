@@ -4205,11 +4205,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get waitingTitle => 'Presque prêt';
 
   @override
-  String waitingBody(String restaurant) {
-    return 'Cet appareil est relié à $restaurant. Ses données arriveront avec la synchronisation, ajoutée dans une prochaine version.';
-  }
-
-  @override
   String get accountErrorUnavailable => 'Aucun serveur n\'est configuré.';
 
   @override
@@ -4441,5 +4436,25 @@ class AppLocalizationsFr extends AppLocalizations {
       'other': 'Donnée',
     });
     return '$_temp0';
+  }
+
+  @override
+  String waitingDownloading(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Téléchargement des données… $count éléments',
+      one: 'Téléchargement des données… 1 élément',
+      zero: 'Téléchargement des données…',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get waitingRetry => 'Réessayer maintenant';
+
+  @override
+  String waitingBodyNow(String restaurant) {
+    return 'Cet appareil est relié à $restaurant. Ses données arrivent du serveur ; l\'application s\'ouvrira dès qu\'elles seront là.';
   }
 }

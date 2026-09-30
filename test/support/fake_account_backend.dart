@@ -4,6 +4,7 @@
 // per user, owners invite with a one-time code, devices register to one
 // organization. `failNext` makes the next call throw, to test error paths.
 
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:stock_inventory/services/auth_service.dart';
@@ -249,12 +250,90 @@ class FakeAccountBackend implements AccountBackend {
               reason: reason,
             );
           }
-          serverRows['${change['table']}|${change['row_key']}'] =
+          final key = '${change['table']}|${change['row_key']}';
+          final row =
               jsonDecode(change['payload']! as String) as Map<String, Object?>;
+          serverRows[key] = row;
+          final storeId = change['store_id']! as String;
+          if (change['table'] == 'stores') {
+            _storeOrganization[storeId] = _signedIn().organizationId!;
+          }
+          _pullable[key] = (
+            seq: ++_seq,
+            storeId: storeId,
+            table: change['table']! as String,
+            row: row,
+          );
+          _live.add(storeId);
           return PushResult(id: change['id']! as int, accepted: true);
         }(),
     ];
   }
+
+  // --- Handing changes back (Phase 6) --------------------------------------
+
+  int _seq = 0;
+  final Map<String, String> _storeOrganization = {};
+  final Map<
+    String,
+    ({int seq, String storeId, String table, Map<String, Object?> row})
+  >
+  _pullable = {};
+  final StreamController<String> _live = StreamController<String>.broadcast();
+
+  /// Pages handed out by `pullChanges`, in call order: `(storeId, after)`.
+  final List<(String, int)> pulls = [];
+
+  /// Fails the pull after this many pages, once, to test a resumed download.
+  int? failPullAfterPages;
+
+  @override
+  Future<List<String>> storeIds() async {
+    _maybeFail();
+    final organization = _signedIn().organizationId;
+    return [
+      for (final entry in _storeOrganization.entries)
+        if (entry.value == organization) entry.key,
+    ];
+  }
+
+  @override
+  Future<PullPage> pullChanges(
+    String storeId, {
+    required int after,
+    int limit = 500,
+  }) async {
+    _maybeFail();
+    _signedIn();
+    final remaining = failPullAfterPages;
+    if (remaining != null) {
+      if (remaining == 0) {
+        failPullAfterPages = null;
+        throw const AccountException(AccountErrorCode.network);
+      }
+      failPullAfterPages = remaining - 1;
+    }
+    pulls.add((storeId, after));
+
+    final newer =
+        _pullable.values
+            .where((r) => r.storeId == storeId && r.seq > after)
+            .toList()
+          ..sort((a, b) => a.seq.compareTo(b.seq));
+    final page = newer.take(limit).toList();
+    return PullPage(
+      changes: [
+        for (final r in page)
+          PulledChange(seq: r.seq, table: r.table, row: Map.of(r.row)),
+      ],
+      nextAfter: page.isEmpty ? after : page.last.seq,
+      hasMore: newer.length > limit,
+    );
+  }
+
+  @override
+  Stream<void> storeChanges(List<String> storeIds) =>
+      _live.stream.where(storeIds.contains).map((_) {});
 }
 
 class _FakeUser {

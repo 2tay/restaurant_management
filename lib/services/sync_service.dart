@@ -11,6 +11,7 @@ import '../data/device_access.dart';
 import '../data/providers.dart';
 import '../data/repositories/device_repository.dart';
 import '../data/repositories/outbox_repository.dart';
+import '../data/repositories/sync_applier.dart';
 import 'auth_service.dart';
 
 /// Sending the outbox to the server (SYNC_PLAN.md, Phase 5).
@@ -50,20 +51,27 @@ class SyncRunResult {
     this.outcome, {
     this.accepted = 0,
     this.rejected = 0,
+    this.received = 0,
     this.detail,
   });
 
   final SyncOutcome outcome;
   final int accepted;
   final int rejected;
+
+  /// Rows received from the server and written locally (Phase 6).
+  final int received;
   final String? detail;
 }
 
-/// One pass over the outbox.
+/// One pass: send the outbox, then receive what the other devices changed.
 class SyncRunner {
-  SyncRunner({required AppDatabase db, required AccountBackend backend})
-    : _db = db,
-      _backend = backend;
+  SyncRunner({
+    required AppDatabase db,
+    required AccountBackend backend,
+    this.pageSize = defaultPageSize,
+  }) : _db = db,
+       _backend = backend;
 
   final AppDatabase _db;
   final AccountBackend _backend;
@@ -75,7 +83,65 @@ class SyncRunner {
   /// can be sent cannot keep one pass going forever. The next pass picks up.
   static const int maxBatches = 50;
 
-  Future<SyncRunResult> run() async {
+  /// Rows per page when receiving. The server allows up to 1 000.
+  static const int defaultPageSize = 500;
+
+  /// Rows per page for this runner; tests use small pages.
+  final int pageSize;
+
+  /// Sends, then receives. Receiving only happens once sending went through:
+  /// this device's own changes must be on the server before it reads.
+  /// [onReceived] is told the running total of rows received, for the first
+  /// download's progress line.
+  Future<SyncRunResult> run({void Function(int received)? onReceived}) async {
+    final sent = await _push();
+    if (sent.outcome != SyncOutcome.done) return sent;
+    return _pull(sent, onReceived);
+  }
+
+  Future<SyncRunResult> _pull(
+    SyncRunResult sent,
+    void Function(int received)? onReceived,
+  ) async {
+    final applier = SyncApplier(_db);
+    var received = 0;
+    try {
+      for (final storeId in await _backend.storeIds()) {
+        var after = await applier.cursorOf(storeId);
+        while (true) {
+          final page = await _backend.pullChanges(
+            storeId,
+            after: after,
+            limit: pageSize,
+          );
+          received += await applier.apply(storeId, page);
+          onReceived?.call(received);
+          if (!page.hasMore || page.nextAfter <= after) break;
+          after = page.nextAfter;
+        }
+      }
+    } on AccountException catch (error) {
+      return SyncRunResult(
+        switch (error.code) {
+          AccountErrorCode.network => SyncOutcome.offline,
+          AccountErrorCode.sessionExpired => SyncOutcome.sessionExpired,
+          _ => SyncOutcome.failed,
+        },
+        accepted: sent.accepted,
+        rejected: sent.rejected,
+        received: received,
+        detail: error.detail,
+      );
+    }
+    return SyncRunResult(
+      SyncOutcome.done,
+      accepted: sent.accepted,
+      rejected: sent.rejected,
+      received: received,
+    );
+  }
+
+  Future<SyncRunResult> _push() async {
     final outbox = OutboxRepository(_db);
     final deviceId = await DeviceRepository(_db).deviceId();
     var accepted = 0;
@@ -162,7 +228,12 @@ enum SyncStatus {
 }
 
 class SyncState {
-  const SyncState({required this.status, this.lastSyncAt, this.problem});
+  const SyncState({
+    required this.status,
+    this.lastSyncAt,
+    this.problem,
+    this.received = 0,
+  });
 
   static const SyncState disabled = SyncState(status: SyncStatus.disabled);
 
@@ -174,14 +245,19 @@ class SyncState {
   /// Why syncing stopped, when [status] is [SyncStatus.error].
   final SyncOutcome? problem;
 
+  /// Rows received so far in the running pass: the first download's progress.
+  final int received;
+
   SyncState copyWith({
     SyncStatus? status,
     DateTime? lastSyncAt,
     SyncOutcome? problem,
+    int? received,
   }) => SyncState(
     status: status ?? this.status,
     lastSyncAt: lastSyncAt ?? this.lastSyncAt,
     problem: problem,
+    received: received ?? 0,
   );
 }
 
@@ -213,6 +289,8 @@ class SyncController extends Notifier<SyncState> {
   Timer? _periodic;
   StreamSubscription<int>? _pending;
   StreamSubscription<bool>? _network;
+  StreamSubscription<void>? _live;
+  List<String> _liveStores = const [];
   AppLifecycleListener? _lifecycle;
   Future<SyncRunResult>? _running;
   int _failures = 0;
@@ -277,11 +355,14 @@ class SyncController extends Notifier<SyncState> {
     _periodic?.cancel();
     _pending?.cancel();
     _network?.cancel();
+    _live?.cancel();
     _lifecycle?.dispose();
     _scheduled = null;
     _periodic = null;
     _pending = null;
     _network = null;
+    _live = null;
+    _liveStores = const [];
     _lifecycle = null;
     _lastPending = 0;
   }
@@ -308,12 +389,24 @@ class SyncController extends Notifier<SyncState> {
   }
 
   Future<SyncRunResult> _pass() async {
-    state = state.copyWith(status: SyncStatus.syncing);
-    final result = await SyncRunner(
-      db: _db,
-      backend: ref.read(accountBackendProvider),
-    ).run();
+    state = state.copyWith(status: SyncStatus.syncing, problem: state.problem);
+    final result =
+        await SyncRunner(db: _db, backend: ref.read(accountBackendProvider))
+            .run(
+              onReceived: (received) {
+                if (ref.mounted) {
+                  state = state.copyWith(received: received);
+                }
+              },
+            );
     if (!ref.mounted) return result;
+
+    // New rows can mean the first establishments arrived: the waiting
+    // screen gives way once the device has data.
+    if (result.received > 0) {
+      await ref.read(deviceAccessProvider.notifier).hydrate();
+      if (!ref.mounted) return result;
+    }
 
     switch (result.outcome) {
       case SyncOutcome.done:
@@ -325,6 +418,7 @@ class SyncController extends Notifier<SyncState> {
         if (await OutboxRepository(_db).pendingCount() > 0) {
           schedule(changeDelay);
         }
+        await _listenLive();
       case SyncOutcome.offline:
       case SyncOutcome.failed:
         _failures++;
@@ -347,6 +441,33 @@ class SyncController extends Notifier<SyncState> {
         );
     }
     return result;
+  }
+
+  /// Live updates (Supabase realtime on `store_changes`): a pass shortly
+  /// after another device's change reaches the server. Re-subscribed when the
+  /// restaurant's establishments change. A lost connection is caught up by
+  /// the periodic pass.
+  Future<void> _listenLive() async {
+    final backend = ref.read(accountBackendProvider);
+    final List<String> stores;
+    try {
+      stores = await backend.storeIds();
+    } on AccountException {
+      return;
+    }
+    if (!ref.mounted || !_active) return;
+    if (stores.length == _liveStores.length &&
+        stores.every(_liveStores.contains)) {
+      return;
+    }
+    await _live?.cancel();
+    _liveStores = stores;
+    _live = backend
+        .storeChanges(stores)
+        .listen(
+          (_) => schedule(const Duration(milliseconds: 500)),
+          onError: (Object _) {},
+        );
   }
 
   Future<void> _loadLastSync() async {

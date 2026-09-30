@@ -94,7 +94,7 @@ class AppDatabase extends _$AppDatabase {
   static const String databaseName = 'stock_inventory';
 
   @override
-  int get schemaVersion => 17;
+  int get schemaVersion => 18;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -364,6 +364,17 @@ class AppDatabase extends _$AppDatabase {
       // v16 -> v17: the changes the server refused (SYNC_PLAN.md, Phase 5).
       if (from < 17) {
         await m.createTable(syncErrors);
+      }
+
+      // v17 -> v18: the `*_touch` triggers stay silent during quiet writes
+      // (SYNC_PLAN.md, Phase 6), so a row received from the server keeps the
+      // server's `updated_at`. Recreated from their current definition.
+      if (from >= 15 && from < 18) {
+        for (final trigger in allSchemaEntities.whereType<Trigger>()) {
+          if (!trigger.entityName.endsWith('_touch')) continue;
+          await customStatement('DROP TRIGGER IF EXISTS ${trigger.entityName}');
+          await m.create(trigger);
+        }
       }
     },
 

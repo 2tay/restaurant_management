@@ -24,5 +24,6 @@ export 'soft_delete.dart';
 export 'stock_ledger.dart';
 export 'store_repository.dart';
 export 'supplier_repository.dart';
+export 'sync_applier.dart';
 export 'sync_error_repository.dart';
 export 'sync_quiet.dart';

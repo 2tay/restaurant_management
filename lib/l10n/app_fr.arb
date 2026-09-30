@@ -2497,8 +2497,6 @@
   "@forgotAccountBack": {"description": "Link back to the welcome screen."},
   "waitingTitle": "Presque prêt",
   "@waitingTitle": {"description": "Waiting screen heading."},
-  "waitingBody": "Cet appareil est relié à {restaurant}. Ses données arriveront avec la synchronisation, ajoutée dans une prochaine version.",
-  "@waitingBody": {"description": "Account device with no local data yet.", "placeholders": {"restaurant": {"type": "String"}}},
   "accountErrorUnavailable": "Aucun serveur n'est configuré.",
   "@accountErrorUnavailable": {"description": "Account error."},
   "accountErrorNetwork": "Le serveur est injoignable. Vérifiez la connexion et réessayez.",
@@ -2611,5 +2609,12 @@
   "syncReasonInvalid": "Le serveur n'a pas accepté cette modification.",
   "@syncReasonInvalid": {"description": "Refusal reason."},
   "syncTableName": "{table, select, stores{Établissement} categories{Catégorie} units{Unité} items{Article} suppliers{Fournisseur} supplier_prices{Prix fournisseur} price_history{Historique de prix} stock_movements{Mouvement de stock} purchase_orders{Commande} purchase_order_lines{Ligne de commande} goods_receipts{Réception} goods_receipt_lines{Ligne de réception} notifications{Notification} employees{Employé} employee_credentials{Accès employé} payroll_periods{Période de paie} attendances{Pointage} attendance_sessions{Pointage} attendance_pauses{Pause} busy_dates{Jour chargé} other{Donnée}}",
-  "@syncTableName": {"description": "What a refused change was about.", "placeholders": {"table": {"type": "String"}}}
+  "@syncTableName": {"description": "What a refused change was about.", "placeholders": {"table": {"type": "String"}}},
+
+  "waitingDownloading": "{count, plural, =0{Téléchargement des données…} =1{Téléchargement des données… 1 élément} other{Téléchargement des données… {count} éléments}}",
+  "@waitingDownloading": {"description": "Waiting screen: first download progress.", "placeholders": {"count": {"type": "int"}}},
+  "waitingRetry": "Réessayer maintenant",
+  "@waitingRetry": {"description": "Waiting screen: run a sync now."},
+  "waitingBodyNow": "Cet appareil est relié à {restaurant}. Ses données arrivent du serveur ; l'application s'ouvrira dès qu'elles seront là.",
+  "@waitingBodyNow": {"description": "Waiting screen body, now that data is received (Phase 6).", "placeholders": {"restaurant": {"type": "String"}}}
 }

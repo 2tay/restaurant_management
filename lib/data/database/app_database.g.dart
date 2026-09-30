@@ -15607,6 +15607,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     'CREATE TRIGGER busy_dates_outbox_update AFTER UPDATE ON busy_dates WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT \'busy_dates\', store_id || \'|\' || day, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'store_id\', store_id, \'day\', day), (SELECT now FROM sync_clock) FROM busy_dates WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
     'busy_dates_outbox_update',
   );
+  late final $SyncErrorsTable syncErrors = $SyncErrorsTable(this);
   late final Index suppliersStore = Index(
     'suppliers_store',
     'CREATE INDEX suppliers_store ON suppliers (store_id)',
@@ -15736,86 +15737,85 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     'CREATE UNIQUE INDEX outbox_row ON outbox (changed_table, row_key)',
   );
   late final Trigger storesTouch = Trigger(
-    'CREATE TRIGGER stores_touch AFTER UPDATE ON stores WHEN NEW.updated_at IS OLD.updated_at BEGIN UPDATE stores SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
+    'CREATE TRIGGER stores_touch AFTER UPDATE ON stores WHEN NEW.updated_at IS OLD.updated_at AND NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN UPDATE stores SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
     'stores_touch',
   );
   late final Trigger categoriesTouch = Trigger(
-    'CREATE TRIGGER categories_touch AFTER UPDATE ON categories WHEN NEW.updated_at IS OLD.updated_at BEGIN UPDATE categories SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
+    'CREATE TRIGGER categories_touch AFTER UPDATE ON categories WHEN NEW.updated_at IS OLD.updated_at AND NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN UPDATE categories SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
     'categories_touch',
   );
   late final Trigger unitsTouch = Trigger(
-    'CREATE TRIGGER units_touch AFTER UPDATE ON units WHEN NEW.updated_at IS OLD.updated_at BEGIN UPDATE units SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
+    'CREATE TRIGGER units_touch AFTER UPDATE ON units WHEN NEW.updated_at IS OLD.updated_at AND NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN UPDATE units SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
     'units_touch',
   );
   late final Trigger itemsTouch = Trigger(
-    'CREATE TRIGGER items_touch AFTER UPDATE ON items WHEN NEW.updated_at IS OLD.updated_at AND NEW.quantity IS OLD.quantity BEGIN UPDATE items SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
+    'CREATE TRIGGER items_touch AFTER UPDATE ON items WHEN NEW.updated_at IS OLD.updated_at AND NEW.quantity IS OLD.quantity AND NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN UPDATE items SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
     'items_touch',
   );
   late final Trigger suppliersTouch = Trigger(
-    'CREATE TRIGGER suppliers_touch AFTER UPDATE ON suppliers WHEN NEW.updated_at IS OLD.updated_at BEGIN UPDATE suppliers SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
+    'CREATE TRIGGER suppliers_touch AFTER UPDATE ON suppliers WHEN NEW.updated_at IS OLD.updated_at AND NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN UPDATE suppliers SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
     'suppliers_touch',
   );
   late final Trigger supplierPricesTouch = Trigger(
-    'CREATE TRIGGER supplier_prices_touch AFTER UPDATE ON supplier_prices WHEN NEW.updated_at IS OLD.updated_at BEGIN UPDATE supplier_prices SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
+    'CREATE TRIGGER supplier_prices_touch AFTER UPDATE ON supplier_prices WHEN NEW.updated_at IS OLD.updated_at AND NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN UPDATE supplier_prices SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
     'supplier_prices_touch',
   );
   late final Trigger priceHistoryTouch = Trigger(
-    'CREATE TRIGGER price_history_touch AFTER UPDATE ON price_history WHEN NEW.updated_at IS OLD.updated_at BEGIN UPDATE price_history SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
+    'CREATE TRIGGER price_history_touch AFTER UPDATE ON price_history WHEN NEW.updated_at IS OLD.updated_at AND NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN UPDATE price_history SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
     'price_history_touch',
   );
   late final Trigger stockMovementsTouch = Trigger(
-    'CREATE TRIGGER stock_movements_touch AFTER UPDATE ON stock_movements WHEN NEW.updated_at IS OLD.updated_at BEGIN UPDATE stock_movements SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
+    'CREATE TRIGGER stock_movements_touch AFTER UPDATE ON stock_movements WHEN NEW.updated_at IS OLD.updated_at AND NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN UPDATE stock_movements SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
     'stock_movements_touch',
   );
   late final Trigger purchaseOrdersTouch = Trigger(
-    'CREATE TRIGGER purchase_orders_touch AFTER UPDATE ON purchase_orders WHEN NEW.updated_at IS OLD.updated_at BEGIN UPDATE purchase_orders SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
+    'CREATE TRIGGER purchase_orders_touch AFTER UPDATE ON purchase_orders WHEN NEW.updated_at IS OLD.updated_at AND NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN UPDATE purchase_orders SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
     'purchase_orders_touch',
   );
   late final Trigger purchaseOrderLinesTouch = Trigger(
-    'CREATE TRIGGER purchase_order_lines_touch AFTER UPDATE ON purchase_order_lines WHEN NEW.updated_at IS OLD.updated_at BEGIN UPDATE purchase_order_lines SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
+    'CREATE TRIGGER purchase_order_lines_touch AFTER UPDATE ON purchase_order_lines WHEN NEW.updated_at IS OLD.updated_at AND NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN UPDATE purchase_order_lines SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
     'purchase_order_lines_touch',
   );
   late final Trigger goodsReceiptsTouch = Trigger(
-    'CREATE TRIGGER goods_receipts_touch AFTER UPDATE ON goods_receipts WHEN NEW.updated_at IS OLD.updated_at BEGIN UPDATE goods_receipts SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
+    'CREATE TRIGGER goods_receipts_touch AFTER UPDATE ON goods_receipts WHEN NEW.updated_at IS OLD.updated_at AND NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN UPDATE goods_receipts SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
     'goods_receipts_touch',
   );
   late final Trigger goodsReceiptLinesTouch = Trigger(
-    'CREATE TRIGGER goods_receipt_lines_touch AFTER UPDATE ON goods_receipt_lines WHEN NEW.updated_at IS OLD.updated_at BEGIN UPDATE goods_receipt_lines SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
+    'CREATE TRIGGER goods_receipt_lines_touch AFTER UPDATE ON goods_receipt_lines WHEN NEW.updated_at IS OLD.updated_at AND NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN UPDATE goods_receipt_lines SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
     'goods_receipt_lines_touch',
   );
   late final Trigger notificationsTouch = Trigger(
-    'CREATE TRIGGER notifications_touch AFTER UPDATE ON notifications WHEN NEW.updated_at IS OLD.updated_at BEGIN UPDATE notifications SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
+    'CREATE TRIGGER notifications_touch AFTER UPDATE ON notifications WHEN NEW.updated_at IS OLD.updated_at AND NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN UPDATE notifications SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
     'notifications_touch',
   );
   late final Trigger employeesTouch = Trigger(
-    'CREATE TRIGGER employees_touch AFTER UPDATE ON employees WHEN NEW.updated_at IS OLD.updated_at BEGIN UPDATE employees SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
+    'CREATE TRIGGER employees_touch AFTER UPDATE ON employees WHEN NEW.updated_at IS OLD.updated_at AND NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN UPDATE employees SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
     'employees_touch',
   );
   late final Trigger employeeCredentialsTouch = Trigger(
-    'CREATE TRIGGER employee_credentials_touch AFTER UPDATE ON employee_credentials WHEN NEW.updated_at IS OLD.updated_at BEGIN UPDATE employee_credentials SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
+    'CREATE TRIGGER employee_credentials_touch AFTER UPDATE ON employee_credentials WHEN NEW.updated_at IS OLD.updated_at AND NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN UPDATE employee_credentials SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
     'employee_credentials_touch',
   );
   late final Trigger payrollPeriodsTouch = Trigger(
-    'CREATE TRIGGER payroll_periods_touch AFTER UPDATE ON payroll_periods WHEN NEW.updated_at IS OLD.updated_at BEGIN UPDATE payroll_periods SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
+    'CREATE TRIGGER payroll_periods_touch AFTER UPDATE ON payroll_periods WHEN NEW.updated_at IS OLD.updated_at AND NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN UPDATE payroll_periods SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
     'payroll_periods_touch',
   );
   late final Trigger attendancesTouch = Trigger(
-    'CREATE TRIGGER attendances_touch AFTER UPDATE ON attendances WHEN NEW.updated_at IS OLD.updated_at BEGIN UPDATE attendances SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
+    'CREATE TRIGGER attendances_touch AFTER UPDATE ON attendances WHEN NEW.updated_at IS OLD.updated_at AND NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN UPDATE attendances SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
     'attendances_touch',
   );
   late final Trigger attendanceSessionsTouch = Trigger(
-    'CREATE TRIGGER attendance_sessions_touch AFTER UPDATE ON attendance_sessions WHEN NEW.updated_at IS OLD.updated_at BEGIN UPDATE attendance_sessions SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
+    'CREATE TRIGGER attendance_sessions_touch AFTER UPDATE ON attendance_sessions WHEN NEW.updated_at IS OLD.updated_at AND NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN UPDATE attendance_sessions SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
     'attendance_sessions_touch',
   );
   late final Trigger attendancePausesTouch = Trigger(
-    'CREATE TRIGGER attendance_pauses_touch AFTER UPDATE ON attendance_pauses WHEN NEW.updated_at IS OLD.updated_at BEGIN UPDATE attendance_pauses SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
+    'CREATE TRIGGER attendance_pauses_touch AFTER UPDATE ON attendance_pauses WHEN NEW.updated_at IS OLD.updated_at AND NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN UPDATE attendance_pauses SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
     'attendance_pauses_touch',
   );
   late final Trigger busyDatesTouch = Trigger(
-    'CREATE TRIGGER busy_dates_touch AFTER UPDATE ON busy_dates WHEN NEW.updated_at IS OLD.updated_at BEGIN UPDATE busy_dates SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
+    'CREATE TRIGGER busy_dates_touch AFTER UPDATE ON busy_dates WHEN NEW.updated_at IS OLD.updated_at AND NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN UPDATE busy_dates SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
     'busy_dates_touch',
   );
-  late final $SyncErrorsTable syncErrors = $SyncErrorsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -15884,6 +15884,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     busyDates,
     busyDatesOutboxInsert,
     busyDatesOutboxUpdate,
+    syncErrors,
     suppliersStore,
     supplierPricesItem,
     supplierPricesSupplier,
@@ -15936,7 +15937,6 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     attendanceSessionsTouch,
     attendancePausesTouch,
     busyDatesTouch,
-    syncErrors,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([

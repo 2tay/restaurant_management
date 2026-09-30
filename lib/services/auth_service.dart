@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Real authentication against the sync server (SYNC_PLAN.md, Phase 4).
@@ -57,6 +59,53 @@ abstract interface class AccountBackend {
     String deviceId,
     List<Map<String, Object?>> changes,
   );
+
+  /// The ids of every establishment of the account's restaurant (Phase 6).
+  /// Asked of the server, not the device: a device that just joined has none.
+  Future<List<String>> storeIds();
+
+  /// One page of the server's `pull_changes`: what changed in [storeId]
+  /// after change number [after], oldest first.
+  Future<PullPage> pullChanges(String storeId, {required int after, int limit});
+
+  /// Fires when the server's newest change number moves for one of
+  /// [storeIds] (Supabase realtime on `store_changes`), and once each time
+  /// the live connection opens or reopens, so nothing that changed in
+  /// between is missed. A dropped connection is also caught up by the
+  /// periodic pass.
+  Stream<void> storeChanges(List<String> storeIds);
+}
+
+/// One page of changes from the server.
+class PullPage {
+  const PullPage({
+    required this.changes,
+    required this.nextAfter,
+    required this.hasMore,
+  });
+
+  final List<PulledChange> changes;
+
+  /// The change number to ask after next time.
+  final int nextAfter;
+  final bool hasMore;
+}
+
+/// One row as the server has it now, deleted ones included.
+class PulledChange {
+  const PulledChange({
+    required this.seq,
+    required this.table,
+    required this.row,
+  });
+
+  final int seq;
+
+  /// The SQL name of the table, as in `SyncTables.synced`.
+  final String table;
+
+  /// The whole row, as the server's JSON.
+  final Map<String, dynamic> row;
 }
 
 /// The server's answer for one outbox entry.
@@ -209,6 +258,19 @@ class UnconfiguredAccountBackend implements AccountBackend {
     String deviceId,
     List<Map<String, Object?>> changes,
   ) => Future.error(_refusal);
+
+  @override
+  Future<List<String>> storeIds() => Future.error(_refusal);
+
+  @override
+  Future<PullPage> pullChanges(
+    String storeId, {
+    required int after,
+    int limit = 500,
+  }) => Future.error(_refusal);
+
+  @override
+  Stream<void> storeChanges(List<String> storeIds) => const Stream.empty();
 }
 
 /// The real one, over `supabase_flutter`. Supabase keeps the session on the
@@ -352,6 +414,81 @@ class SupabaseAccountBackend implements AccountBackend {
         ),
     ];
   });
+
+  @override
+  Future<List<String>> storeIds() => _guard(() async {
+    if (_client.auth.currentSession == null) {
+      throw const AccountException(AccountErrorCode.sessionExpired);
+    }
+    // Row level security returns the caller's organization's stores only.
+    final rows = await _client.from('stores').select('id').order('created_at');
+    return [for (final row in rows) row['id'] as String];
+  });
+
+  @override
+  Future<PullPage> pullChanges(
+    String storeId, {
+    required int after,
+    int limit = 500,
+  }) => _guard(() async {
+    if (_client.auth.currentSession == null) {
+      throw const AccountException(AccountErrorCode.sessionExpired);
+    }
+    final answer =
+        await _client.rpc(
+              'pull_changes',
+              params: {'p_store_id': storeId, 'p_after': after, 'p_limit': limit},
+            )
+            as Map<String, dynamic>;
+    return PullPage(
+      changes: [
+        for (final item in (answer['changes'] as List).cast<Map<String, dynamic>>())
+          PulledChange(
+            seq: (item['seq'] as num).toInt(),
+            table: item['table'] as String,
+            row: (item['row'] as Map).cast<String, dynamic>(),
+          ),
+      ],
+      nextAfter: (answer['next_after'] as num).toInt(),
+      hasMore: answer['has_more'] == true,
+    );
+  });
+
+  @override
+  Stream<void> storeChanges(List<String> storeIds) {
+    if (storeIds.isEmpty) return const Stream.empty();
+    late final RealtimeChannel channel;
+    late final StreamController<void> controller;
+    controller = StreamController<void>(
+      onListen: () {
+        channel = _client
+            .channel('store-changes-${storeIds.join(',').hashCode}')
+            .onPostgresChanges(
+              event: PostgresChangeEvent.all,
+              schema: 'public',
+              table: 'store_changes',
+              filter: PostgresChangeFilter(
+                type: PostgresChangeFilterType.inFilter,
+                column: 'store_id',
+                value: storeIds,
+              ),
+              callback: (_) => controller.add(null),
+            )
+            // Also fires once the channel is open, and again after every
+            // reconnection: whatever changed while it was not listening is
+            // caught up by the pass this triggers.
+            .subscribe((status, [_]) {
+              if (status == RealtimeSubscribeStatus.subscribed) {
+                controller.add(null);
+              }
+            });
+      },
+      onCancel: () async {
+        await _client.removeChannel(channel);
+      },
+    );
+    return controller.stream;
+  }
 
   AccountUser _userOf(User? user) {
     if (user == null) throw const AccountException(AccountErrorCode.unknown);

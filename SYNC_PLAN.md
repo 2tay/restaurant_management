@@ -8,7 +8,7 @@ depends on the ones before it.
 
 ## Progress so far (read this first in a new session)
 
-Last updated: 2026-09-30. Branch: `14-sync-phase-1` (pushed to GitHub). Local schema: v17.
+Last updated: 2026-09-30. Branch: `14-sync-phase-1` (pushed to GitHub). Local schema: v18.
 
 | Phase | What | Status |
 |---|---|---|
@@ -18,8 +18,8 @@ Last updated: 2026-09-30. Branch: `14-sync-phase-1` (pushed to GitHub). Local sc
 | 3 | Server tables, rules, push and pull functions | Done, tested locally |
 | 4 | Real login (account + employee PIN) | Done, tested locally |
 | 5 | Sending changes (push) | Done, tested locally |
-| 6 | Receiving changes (pull) | **Next** |
-| 7 | Conflict rules | Partly done in Phase 3 (delete wins, order status forward, paid payroll final). Rest to do. |
+| 6 | Receiving changes (pull) | Done, tested locally (with live updates) |
+| 7 | Conflict rules | **Next.** Done on the server: delete wins, order status forward, paid payroll final, last write wins. Left: clashes the device refuses on receipt (see below). |
 | 8 | Photos | Bucket exists on the server. App side to do. |
 | 9 | First connection and existing data | To do |
 | 10 | Screens and messages | Partly done: account screens (Phase 4), a working sync page for account devices (Phase 5). Final design to do. |
@@ -34,8 +34,9 @@ the first plan. Read those notes before changing anything in that area.
   `outbox_triggers.drift`, `sync_tables.dart`), `lib/data/repositories/` (`soft_delete.dart`,
   `stock_ledger.dart`, `outbox_repository.dart`, `sync_quiet.dart`, `sync_error_repository.dart`,
   `device_access_repository.dart`, `device_repository.dart`).
-- **App, sending:** `lib/services/sync_service.dart` (`SyncRunner`: one pass; `SyncController`:
-  when passes run, and the state the sync page shows),
+- **App, sync:** `lib/services/sync_service.dart` (`SyncRunner`: one pass, send then receive;
+  `SyncController`: when passes run, live updates, and the state the screens show),
+  `lib/data/repositories/sync_applier.dart` (writes received rows locally),
   `lib/features/settings/presentation/widgets/account_sync_view.dart` (sync page, account mode).
 - **App, accounts:** `lib/services/auth_service.dart` (Supabase backend behind the
   `AccountBackend` interface), `lib/data/device_access.dart` (demo / account mode and every
@@ -54,8 +55,8 @@ supabase start                                   # local server (Docker must be 
 supabase test db                                 # server tests: 49
 flutter analyze                                  # must say "No issues found"
 python tool/ux_audit.py                          # 2 old findings only (colour, fontSize)
-flutter test test/db test/password_hash_test.dart            # 465 tests
-flutter test test/integration --dart-define-from-file=config/local.json   # real server: 3
+flutter test test/db test/password_hash_test.dart            # 475 tests
+flutter test test/integration --dart-define-from-file=config/local.json   # real server: 4
 flutter test --concurrency=2 <every test/*.dart except responsive_test.dart>  # screens
 flutter run -d windows --dart-define-from-file=config/local.json
 ```
@@ -85,41 +86,31 @@ The full screen suite uses a lot of memory; `--concurrency=2` keeps it stable.
 - **Cloud project:** create "dev" on supabase.com when real devices must share data, then
   `supabase link` and `supabase db push`, and put its URL and publishable key in a config file.
 
-### Next step: Phase 6, receiving changes
+### Next step: Phase 7, the conflicts that are left
 
-Sending works (Phase 5). Phase 6 brings the other devices' changes into the local database, and
-ends the waiting screen for a device that joined a restaurant. In order:
+Sync works both ways (Phases 5 and 6). The server already settles most clashes: delete wins, a
+commande's status only moves forward, a paid pay period is final, otherwise the last change to
+arrive wins. What is left are clashes **the device** refuses when it receives a row, because the
+local database has a unique rule the server does not. Today such a row is kept out and logged in
+`sync_errors` with the reason `receive_conflict` (see `SyncApplier`). In order:
 
-1. **Which stores to pull.** An account device reads its organization's store ids from the
-   server (`stores` is readable through row level security: `select id from stores`). A device
-   that just joined has none locally yet, so this must not come from the local database.
-2. **A cursor per store**, in `meta`: `syncCursor:<storeId>`, the last `server_seq` received.
-   Starts at 0.
-3. **A `pullChanges` method on `AccountBackend`**, calling the server's
-   `pull_changes(p_store_id, p_after, p_limit)`, which returns
-   `{changes: [{seq, table, row}], next_after, has_more}`. Add it to the test fake too.
-4. **Push first, then pull**, in the same pass of `SyncRunner`, so this device's own changes are
-   on the server before it reads.
-5. **Apply each page in one transaction**, inside `SyncQuiet.run` (so nothing is queued back),
-   with `PRAGMA defer_foreign_keys = ON` (a child can arrive before its parent, for example an
-   attendance linked to a pay period). For each row: convert the server's JSON to local values
-   (booleans to 1/0; `timestamptz` strings to drift's text format, UTC with `Z`), then insert or
-   update by primary key. **Skip a row that still has an outbox entry here**: the local change
-   is newer and will be sent. **Never overwrite `items.quantity` / `items.average_cost`**: the
-   server does not have them. Save the new cursor in the same transaction.
-6. **After a page:** run `StockLedger.rebuildItems` for every article that received movements
-   or a new baseline, then `deviceAccessProvider.notifier.hydrate()` so `hasLocalData` turns
-   true and the waiting screen gives way to the PIN login.
-7. **Live updates:** subscribe to `store_changes` (Supabase realtime) for the device's stores,
-   and schedule a pass when `last_seq` moves. The 5-minute timer stays as a safety net.
-8. **Tests:** two devices sharing one fake server (A creates, B receives; A deletes, B stops
-   showing it; both add 5 kg offline and both end at +10 kg; an interrupted pull resumes from
-   its cursor; a received row does not come back in B's outbox). Then an integration test with
-   two local databases and the real server.
+1. **Two clock-ins for one employee on one day** (two tablets, offline). Locally
+   `attendances (employee_id, date)` is unique, so the second day row is refused on receipt.
+   Decide the rule: merge the second day's sessions into the first (sessions are add-only, so
+   nothing is lost), and flag the overlap on the attendance history page for the manager.
+2. **The same supplier linked twice to one article** (two tablets, offline):
+   `supplier_prices (item_id, supplier_id)` is unique locally. Keep the most recent link, mark
+   the other deleted, and push that.
+3. **Two categories or units with the same name** (two tablets, offline). Allowed by the schema
+   (no unique index) but the screens assume names are unique. Add a "merge" action in settings;
+   do not block anyone offline.
+4. **Show receive conflicts on the sync page** in words (they are in `sync_errors` already, with
+   reason `receive_conflict`), next to the refused sends.
+5. **Tests for each rule** with two devices on the fake server, and one against the local
+   server.
 
-**Also check in Phase 6:** a `busy_dates` row has no single id (key `store_id|day`), and a
-`stores` row pulled from the server must not create a second store when the owner's first
-device already has it.
+After Phase 7: Phase 8 (photos: the `photos` bucket exists), Phase 9 (first connection with
+existing data), Phase 10 (final screens), Phase 11 (release), and Phase 0's cloud project.
 
 ## Where we start
 
@@ -633,6 +624,24 @@ count drops to zero.
 ## Phase 6: Receiving changes (pull)
 
 Goal: each device receives what other devices changed, and the screens update by themselves.
+
+> **Status: built, tested against the local server.** What differs from the first plan, or was
+> decided on the way:
+>
+> - **The applier is `SyncApplier`** (`lib/data/repositories/sync_applier.dart`). It converts
+>   the server's JSON by local column type: booleans to 0/1, dates to local time with offset
+>   (so a date anchored to a day stays on it), `updated_at` stamps kept in UTC.
+> - **Each row gets its own savepoint.** A row the local database refuses (a unique rule only
+>   the device has) is logged in `sync_errors` as `receive_conflict`, and the page goes on.
+>   Phase 7 turns those into rules.
+> - **Schema v18:** the `*_touch` triggers stay silent during quiet writes, so a received row
+>   keeps the server's `updated_at` and a stock rebuild changes no stamp.
+> - **Stores to pull come from the server** (`AccountBackend.storeIds`), so a device that just
+>   joined finds them.
+> - **Live updates** subscribe to `store_changes` and also fire when the connection opens or
+>   reopens, which catches up anything missed while connecting.
+> - **The waiting screen** shows "Téléchargement des données… N éléments", a "Réessayer
+>   maintenant" button, and moves to the PIN login once an establishment exists locally.
 
 **Step 6.1: Store a cursor per store.**
 In `Meta`, save `syncCursor:<storeId>`, the last `server_seq` received. It starts at 0.
