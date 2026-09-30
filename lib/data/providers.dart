@@ -95,6 +95,16 @@ final Provider<AttendanceRepository> attendanceRepositoryProvider =
       ),
     );
 
+/// The journées de service. Same clock as the pointage, so a test that pins
+/// the attendance clock pins this one too.
+final Provider<BusinessDayRepository> businessDayRepositoryProvider =
+    Provider<BusinessDayRepository>(
+      (ref) => BusinessDayRepository(
+        ref.watch(databaseProvider),
+        clock: ref.watch(attendanceClockProvider),
+      ),
+    );
+
 final Provider<PayrollRepository> payrollRepositoryProvider =
     Provider<PayrollRepository>(
       (ref) => PayrollRepository(ref.watch(databaseProvider)),

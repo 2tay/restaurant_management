@@ -14,6 +14,7 @@ import '../../models/purchase_order.dart';
 import '../../models/stock_movement.dart';
 import 'tables/account.dart';
 import 'tables/attendance.dart';
+import 'tables/business_days.dart';
 import 'tables/catalog.dart';
 import 'tables/employees.dart';
 import 'tables/items.dart';
@@ -41,6 +42,8 @@ part 'app_database.g.dart';
 /// [Employees] and their [EmployeeCredentials], [Attendances] with
 /// [AttendancePauses], and [PayrollPeriods]. The pointage / paie half of
 /// `StoreSettings` moved onto the [Stores] row in the same version.
+/// [AttendanceSessions] joined at v11, and [BusinessDays] — the journées de
+/// service the pointage board works in — at v14.
 @DriftDatabase(
   tables: [
     Stores,
@@ -63,6 +66,7 @@ part 'app_database.g.dart';
     Attendances,
     AttendanceSessions,
     AttendancePauses,
+    BusinessDays,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -85,7 +89,7 @@ class AppDatabase extends _$AppDatabase {
   static const String databaseName = 'stock_inventory';
 
   @override
-  int get schemaVersion => 13;
+  int get schemaVersion => 14;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -312,6 +316,16 @@ class AppDatabase extends _$AppDatabase {
           SET password_hash = 'password:' || substr(password_hash, 5)
           WHERE password_hash LIKE 'pin:%'
         ''');
+      }
+
+      // v13 → v14: the journée de service. A new table and nothing else —
+      // attendance rows join it on their date, so no existing row moves, and
+      // no journée is backfilled: the past needs none, and the board opens
+      // today's on the first Pointer. Not guarded `from >= 2`: the `from < 2`
+      // branch does not create this table.
+      if (from < 14) {
+        await m.createTable(businessDays);
+        await m.create(businessDaysStoreDate);
       }
     },
 
