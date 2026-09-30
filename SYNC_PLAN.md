@@ -8,7 +8,7 @@ depends on the ones before it.
 
 ## Progress so far (read this first in a new session)
 
-Last updated: 2026-09-29. Branch: `14-sync-phase-1` (pushed to GitHub).
+Last updated: 2026-09-30. Branch: `14-sync-phase-1` (pushed to GitHub). Local schema: v17.
 
 | Phase | What | Status |
 |---|---|---|
@@ -17,12 +17,12 @@ Last updated: 2026-09-29. Branch: `14-sync-phase-1` (pushed to GitHub).
 | 2 | Outbox (schema v16) | Done |
 | 3 | Server tables, rules, push and pull functions | Done, tested locally |
 | 4 | Real login (account + employee PIN) | Done, tested locally |
-| 5 | Sending changes (push) | **Next** |
-| 6 | Receiving changes (pull) | To do |
+| 5 | Sending changes (push) | Done, tested locally |
+| 6 | Receiving changes (pull) | **Next** |
 | 7 | Conflict rules | Partly done in Phase 3 (delete wins, order status forward, paid payroll final). Rest to do. |
 | 8 | Photos | Bucket exists on the server. App side to do. |
 | 9 | First connection and existing data | To do |
-| 10 | Screens and messages | Partly done in Phase 4 (account screens). Sync page still to do. |
+| 10 | Screens and messages | Partly done: account screens (Phase 4), a working sync page for account devices (Phase 5). Final design to do. |
 | 11 | Testing and release | To do |
 
 Each finished phase below has a **Status** note saying what was built and where it differs from
@@ -32,8 +32,11 @@ the first plan. Read those notes before changing anything in that area.
 
 - **App, local database:** `lib/data/database/` (tables, `sync_triggers.drift`,
   `outbox_triggers.drift`, `sync_tables.dart`), `lib/data/repositories/` (`soft_delete.dart`,
-  `stock_ledger.dart`, `outbox_repository.dart`, `sync_quiet.dart`,
+  `stock_ledger.dart`, `outbox_repository.dart`, `sync_quiet.dart`, `sync_error_repository.dart`,
   `device_access_repository.dart`, `device_repository.dart`).
+- **App, sending:** `lib/services/sync_service.dart` (`SyncRunner`: one pass; `SyncController`:
+  when passes run, and the state the sync page shows),
+  `lib/features/settings/presentation/widgets/account_sync_view.dart` (sync page, account mode).
 - **App, accounts:** `lib/services/auth_service.dart` (Supabase backend behind the
   `AccountBackend` interface), `lib/data/device_access.dart` (demo / account mode and every
   account flow), `lib/features/auth/presentation/pages/` (welcome, sign-up, set-up, forgot,
@@ -51,8 +54,8 @@ supabase start                                   # local server (Docker must be 
 supabase test db                                 # server tests: 49
 flutter analyze                                  # must say "No issues found"
 python tool/ux_audit.py                          # 2 old findings only (colour, fontSize)
-flutter test test/db test/password_hash_test.dart            # 452 tests
-flutter test test/integration --dart-define-from-file=config/local.json   # real server: 2
+flutter test test/db test/password_hash_test.dart            # 465 tests
+flutter test test/integration --dart-define-from-file=config/local.json   # real server: 3
 flutter test --concurrency=2 <every test/*.dart except responsive_test.dart>  # screens
 flutter run -d windows --dart-define-from-file=config/local.json
 ```
@@ -82,31 +85,41 @@ The full screen suite uses a lot of memory; `--concurrency=2` keeps it stable.
 - **Cloud project:** create "dev" on supabase.com when real devices must share data, then
   `supabase link` and `supabase db push`, and put its URL and publishable key in a config file.
 
-### Next step: Phase 5, sending changes
+### Next step: Phase 6, receiving changes
 
-The queue (Phase 2) and the receive function (Phase 3) both exist; Phase 5 connects them.
-In order:
+Sending works (Phase 5). Phase 6 brings the other devices' changes into the local database, and
+ends the waiting screen for a device that joined a restaurant. In order:
 
-1. **`SyncService`** in `lib/services/sync_service.dart`: state (idle, syncing, offline, error),
-   last sync time, one sync at a time. Exposed by a provider.
-2. **Only for account devices.** Do nothing in demo mode (`deviceAccessProvider`).
-3. **Send the queue in batches:** read `OutboxRepository.pending(limit: 100)`, call the server's
-   `push_changes(p_device_id, p_changes)` with entries shaped
-   `{id, table, row_key, store_id, payload}` (`payload` can stay the JSON text). Add a
-   `pushChanges` method to `AccountBackend` (Supabase RPC) and to the test fake.
-4. **Handle each answer.** Accepted: delete that outbox entry, **but only if its payload has not
-   changed since it was read** (a row edited during the send must stay queued). Rejected: move
-   it to a new local `sync_errors` table with the reason, and remove it from the outbox.
-   Network error: keep everything, retry later (5 s, 15 s, 1 min, 5 min).
-5. **When to sync:** a few seconds after a local write, on app resume, when the network comes
-   back (`connectivity_plus`), every few minutes, and from a button.
-6. **Tests:** a fake server that accepts, rejects or fails on demand; batching; retry; an entry
-   edited mid-send stays queued; rejected entries land in `sync_errors`. Then one integration
-   test against the local server: create a restaurant, sync, and read the rows back with
-   `pull_changes`.
+1. **Which stores to pull.** An account device reads its organization's store ids from the
+   server (`stores` is readable through row level security: `select id from stores`). A device
+   that just joined has none locally yet, so this must not come from the local database.
+2. **A cursor per store**, in `meta`: `syncCursor:<storeId>`, the last `server_seq` received.
+   Starts at 0.
+3. **A `pullChanges` method on `AccountBackend`**, calling the server's
+   `pull_changes(p_store_id, p_after, p_limit)`, which returns
+   `{changes: [{seq, table, row}], next_after, has_more}`. Add it to the test fake too.
+4. **Push first, then pull**, in the same pass of `SyncRunner`, so this device's own changes are
+   on the server before it reads.
+5. **Apply each page in one transaction**, inside `SyncQuiet.run` (so nothing is queued back),
+   with `PRAGMA defer_foreign_keys = ON` (a child can arrive before its parent, for example an
+   attendance linked to a pay period). For each row: convert the server's JSON to local values
+   (booleans to 1/0; `timestamptz` strings to drift's text format, UTC with `Z`), then insert or
+   update by primary key. **Skip a row that still has an outbox entry here**: the local change
+   is newer and will be sent. **Never overwrite `items.quantity` / `items.average_cost`**: the
+   server does not have them. Save the new cursor in the same transaction.
+6. **After a page:** run `StockLedger.rebuildItems` for every article that received movements
+   or a new baseline, then `deviceAccessProvider.notifier.hydrate()` so `hasLocalData` turns
+   true and the waiting screen gives way to the PIN login.
+7. **Live updates:** subscribe to `store_changes` (Supabase realtime) for the device's stores,
+   and schedule a pass when `last_seq` moves. The 5-minute timer stays as a safety net.
+8. **Tests:** two devices sharing one fake server (A creates, B receives; A deletes, B stops
+   showing it; both add 5 kg offline and both end at +10 kg; an interrupted pull resumes from
+   its cursor; a received row does not come back in B's outbox). Then an integration test with
+   two local databases and the real server.
 
-Phase 6 (pulling changes into the local database, with `SyncQuiet` and `StockLedger`) comes
-after, and ends the waiting screen for devices that joined a restaurant.
+**Also check in Phase 6:** a `busy_dates` row has no single id (key `store_id|day`), and a
+`stores` row pulled from the server must not create a second store when the owner's first
+device already has it.
 
 ## Where we start
 
@@ -556,6 +569,24 @@ same organization. Demo mode still works with no account.
 ## Phase 5: Sending changes (push)
 
 Goal: the outbox empties itself to the server whenever the device is online.
+
+> **Status: built, tested against the local server.** What differs from the first plan, or was
+> decided on the way:
+>
+> - **Two layers:** `SyncRunner` (one pass, no timers, tested directly) and `SyncController`
+>   (a Riverpod notifier: when passes run, and the `SyncState` the screens show). It watches
+>   the device mode: on in account mode, off in the demo and on sign-out.
+> - **Passes run** 3 seconds after a local change, on app resume, when the network returns
+>   (`connectivity_plus`), every 5 minutes, and from "Synchroniser maintenant". Retries after
+>   failures: 5 s, 15 s, 1 min, then 5 min.
+> - **An accepted entry is removed only if its payload and time are unchanged**, so a row
+>   edited during the send stays queued with its new version.
+> - **Refused entries go to the local `sync_errors` table** (schema v17) and leave the queue.
+>   The sync page lists them in French with a "Compris" button.
+> - **A removed device or an expired session stops syncing** without retrying. The sync page
+>   says why; for an expired session it offers "Se reconnecter" (password only, nothing wiped).
+> - **On an account device, the sync page hides the demo reset and the offline toggle**: the
+>   reset would erase real data.
 
 **Step 5.1: Build the `SyncService` skeleton.**
 In `lib/services/sync_service.dart`. It holds a state: `idle`, `syncing`, `offline`, `error`,

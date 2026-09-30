@@ -18,11 +18,16 @@ import 'package:stock_inventory/data/database/app_database.dart';
 import 'package:stock_inventory/data/device_access.dart';
 import 'package:stock_inventory/data/providers.dart';
 import 'package:stock_inventory/data/repositories/device_access_repository.dart';
+import 'package:stock_inventory/data/repositories/device_repository.dart';
 import 'package:stock_inventory/features/auth/presentation/pages/account_setup_page.dart';
 import 'package:stock_inventory/features/auth/presentation/pages/account_waiting_page.dart';
 import 'package:stock_inventory/features/auth/presentation/pages/login_page.dart';
 import 'package:stock_inventory/features/auth/presentation/pages/welcome_page.dart';
+import 'package:stock_inventory/data/repositories/session_repository.dart';
+import 'package:stock_inventory/data/seed/dataset/dataset.dart'
+    show EmployeeIds, StoreIds;
 import 'package:stock_inventory/services/auth_service.dart';
+import 'package:stock_inventory/services/sync_service.dart';
 
 import 'support/app_harness.dart';
 import 'support/db_fixture.dart';
@@ -52,6 +57,7 @@ void main() {
         overrides: [
           databaseProvider.overrideWithValue(db),
           accountBackendProvider.overrideWithValue(backend ?? server),
+          networkChangesProvider.overrideWithValue(const Stream.empty()),
         ],
         child: const StockInventoryApp(),
       ),
@@ -93,8 +99,9 @@ void main() {
     expect(find.text('Essayer la démo'), findsOneWidget);
   });
 
-  testApp('an account with no data yet waits for the first sync',
-      (tester) async {
+  testApp('an account with no data yet waits for the first sync', (
+    tester,
+  ) async {
     final db = openEmptyDatabase();
     await DeviceAccessRepository(db).writeAccount(
       email: 'manager@resto.be',
@@ -129,12 +136,16 @@ void main() {
 
     appRouter.go(Routes.welcome);
     await tester.pumpAndSettle();
-    expect(find.byType(LoginPage), findsOneWidget,
-        reason: 'an account device does not go back to the welcome screen');
+    expect(
+      find.byType(LoginPage),
+      findsOneWidget,
+      reason: 'an account device does not go back to the welcome screen',
+    );
   });
 
-  testApp('signing in without a restaurant leads to set-up, then joining',
-      (tester) async {
+  testApp('signing in without a restaurant leads to set-up, then joining', (
+    tester,
+  ) async {
     final db = openEmptyDatabase();
     server.addUser('manager@resto.be', 'motdepasse');
     final code = server.codeFor(server.addOrganization('Brasserie'));
@@ -170,5 +181,36 @@ void main() {
       findsOneWidget,
     );
     expect(find.byType(WelcomePage), findsOneWidget);
+  });
+
+  testApp('an account device shows the real sync state, and no demo reset', (
+    tester,
+  ) async {
+    final db = await openSeededDatabase();
+    final organization = server.addOrganization('Brasserie');
+    server.addUser(
+      'owner@resto.be',
+      'motdepasse',
+      organizationId: organization,
+    );
+    await server.signIn(email: 'owner@resto.be', password: 'motdepasse');
+    await server.registerDevice(await DeviceRepository(db).deviceId());
+    await DeviceAccessRepository(db).writeAccount(
+      email: 'owner@resto.be',
+      organizationId: organization,
+      organizationName: 'Brasserie',
+      role: 'owner',
+    );
+    await pumpDevice(tester, db);
+    seedCurrentEmployeeSnapshot(
+      await SessionRepository(db).signIn(EmployeeIds.marc),
+    );
+
+    appRouter.go(Routes.toSyncStatus(StoreIds.sablon));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Synchroniser maintenant'), findsOneWidget);
+    expect(find.text('À jour'), findsOneWidget);
+    expect(find.text('Réinitialiser la démonstration'), findsNothing);
   });
 }

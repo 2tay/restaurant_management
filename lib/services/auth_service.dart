@@ -49,6 +49,34 @@ abstract interface class AccountBackend {
 
   /// Unregisters a device. Owners only.
   Future<bool> removeDevice(String deviceId);
+
+  /// Sends outbox entries to the server's `push_changes` (Phase 5). Each
+  /// entry is `{id, table, row_key, store_id, payload}`; the answer has one
+  /// [PushResult] per entry, in the same order.
+  Future<List<PushResult>> pushChanges(
+    String deviceId,
+    List<Map<String, Object?>> changes,
+  );
+}
+
+/// The server's answer for one outbox entry.
+class PushResult {
+  const PushResult({
+    required this.id,
+    required this.accepted,
+    this.reason,
+    this.message,
+  });
+
+  /// The outbox entry's id, as sent.
+  final int id;
+  final bool accepted;
+
+  /// Why it was refused: `deleted`, `already_paid`, `device_unknown`, …
+  final String? reason;
+
+  /// The server's message, for `invalid`.
+  final String? message;
 }
 
 class AccountUser {
@@ -107,6 +135,9 @@ enum AccountErrorCode {
   invalidCode,
   alreadyMember,
   notAllowed,
+
+  /// The account's session ended and could not be renewed: sign in again.
+  sessionExpired,
   unknown,
 }
 
@@ -172,6 +203,12 @@ class UnconfiguredAccountBackend implements AccountBackend {
 
   @override
   Future<bool> removeDevice(String deviceId) => Future.error(_refusal);
+
+  @override
+  Future<List<PushResult>> pushChanges(
+    String deviceId,
+    List<Map<String, Object?>> changes,
+  ) => Future.error(_refusal);
 }
 
 /// The real one, over `supabase_flutter`. Supabase keeps the session on the
@@ -291,6 +328,31 @@ class SupabaseAccountBackend implements AccountBackend {
             as bool,
   );
 
+  @override
+  Future<List<PushResult>> pushChanges(
+    String deviceId,
+    List<Map<String, Object?>> changes,
+  ) => _guard(() async {
+    if (_client.auth.currentSession == null) {
+      throw const AccountException(AccountErrorCode.sessionExpired);
+    }
+    final answer =
+        await _client.rpc(
+              'push_changes',
+              params: {'p_device_id': deviceId, 'p_changes': changes},
+            )
+            as List<dynamic>;
+    return [
+      for (final item in answer.cast<Map<String, dynamic>>())
+        PushResult(
+          id: (item['id'] as num).toInt(),
+          accepted: item['status'] == 'accepted',
+          reason: item['reason'] as String?,
+          message: item['message'] as String?,
+        ),
+    ];
+  });
+
   AccountUser _userOf(User? user) {
     if (user == null) throw const AccountException(AccountErrorCode.unknown);
     return AccountUser(id: user.id, email: user.email ?? '');
@@ -330,6 +392,11 @@ class SupabaseAccountBackend implements AccountBackend {
         return AccountErrorCode.weakPassword;
       case 'email_not_confirmed':
         return AccountErrorCode.confirmEmail;
+      case 'refresh_token_not_found':
+      case 'refresh_token_already_used':
+      case 'session_not_found':
+      case 'session_expired':
+        return AccountErrorCode.sessionExpired;
     }
     if (error is AuthRetryableFetchException) return AccountErrorCode.network;
     return AccountErrorCode.unknown;
@@ -344,6 +411,10 @@ class SupabaseAccountBackend implements AccountBackend {
         return AccountErrorCode.alreadyMember;
       case '42501':
         return AccountErrorCode.notAllowed;
+      // PostgREST: the access token expired or is invalid.
+      case 'PGRST301':
+      case 'PGRST303':
+        return AccountErrorCode.sessionExpired;
     }
     return AccountErrorCode.unknown;
   }

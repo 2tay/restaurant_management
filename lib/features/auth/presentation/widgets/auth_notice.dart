@@ -66,6 +66,7 @@ String accountErrorMessage(AppLocalizations l10n, Object error) {
     AccountErrorCode.invalidCode => l10n.accountErrorInvalidCode,
     AccountErrorCode.alreadyMember => l10n.accountErrorAlreadyMember,
     AccountErrorCode.notAllowed => l10n.accountErrorNotAllowed,
+    AccountErrorCode.sessionExpired => l10n.accountErrorSessionExpired,
     AccountErrorCode.unknown => l10n.accountErrorUnknown,
   };
 }

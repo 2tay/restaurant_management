@@ -34,9 +34,9 @@ abstract final class SyncTables {
   };
 
   /// Facts about this installation: who is signed in on this tablet, the
-  /// device id, the queue of changes to send, and later the sync cursors.
-  /// Never sent anywhere.
-  static const Set<String> local = {'meta', 'outbox'};
+  /// device id, the queue of changes to send, the changes the server refused,
+  /// and later the sync cursors. Never sent anywhere.
+  static const Set<String> local = {'meta', 'outbox', 'sync_errors'};
 
   /// Synced tables whose parent is not a store, so they carry a copy of the
   /// store id for the server's permission checks.

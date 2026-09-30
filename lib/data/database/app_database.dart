@@ -26,6 +26,7 @@ import 'tables/payroll.dart';
 import 'tables/receipts.dart';
 import 'tables/stores.dart';
 import 'tables/sync_columns.dart';
+import 'tables/sync_errors.dart';
 import 'tables/suppliers.dart';
 
 part 'app_database.g.dart';
@@ -69,6 +70,7 @@ part 'app_database.g.dart';
     AttendancePauses,
     BusyDates,
     Outbox,
+    SyncErrors,
   ],
   include: {'sync_triggers.drift', 'outbox_triggers.drift'},
 )
@@ -92,7 +94,7 @@ class AppDatabase extends _$AppDatabase {
   static const String databaseName = 'stock_inventory';
 
   @override
-  int get schemaVersion => 16;
+  int get schemaVersion => 17;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -357,6 +359,11 @@ class AppDatabase extends _$AppDatabase {
         for (final trigger in allSchemaEntities.whereType<Trigger>()) {
           if (trigger.entityName.contains('_outbox_')) await m.create(trigger);
         }
+      }
+
+      // v16 -> v17: the changes the server refused (SYNC_PLAN.md, Phase 5).
+      if (from < 17) {
+        await m.createTable(syncErrors);
       }
     },
 

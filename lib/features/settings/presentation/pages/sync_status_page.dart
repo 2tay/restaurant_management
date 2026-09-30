@@ -7,15 +7,22 @@ import '../../../../app/routes.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/formatters.dart';
+import '../../../../data/device_access.dart';
 import '../../../../data/providers.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../shared/widgets/widgets.dart';
+import '../widgets/account_sync_view.dart';
 import '../widgets/settings_tabs.dart';
 
-/// Sync status, and the demo toggle for offline mode.
+/// Sync status.
 ///
-/// Nothing here syncs — Phase 3 owns that — and the screen says so at the
-/// bottom rather than presenting fictional timestamps as real.
+/// On a device signed in to a restaurant account, the real thing: what the
+/// sync service is doing, when it last sent, what is waiting and what the
+/// server refused ([AccountSyncView], SYNC_PLAN.md Phase 5).
+///
+/// In the demo, nothing syncs and the screen says so, with the offline
+/// toggle and the demo reset. Neither is offered on an account device: the
+/// reset would erase real data.
 ///
 /// The offline toggle is the one the brief asks for explicitly: it lets the
 /// offline experience be demoed on demand instead of by turning off the
@@ -29,6 +36,19 @@ class SyncStatusPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+
+    if (ref.watch(deviceAccessProvider).isAccount) {
+      return ShellPage(
+        tabs: SettingsTabs(
+          storeId: storeId,
+          currentPath: Routes.toSyncStatus(storeId),
+        ),
+        sideTabsOnWide: true,
+        title: l10n.syncTitle,
+        subtitle: l10n.syncSubtitle,
+        child: const AccountSyncView(),
+      );
+    }
 
     final isOffline = ref.watch(offlineModeProvider);
     final pending = ref.watch(pendingChangesProvider);

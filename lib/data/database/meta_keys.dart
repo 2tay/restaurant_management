@@ -53,4 +53,8 @@ abstract final class MetaKeys {
 
   /// `owner` or `manager`.
   static const String accountRole = 'accountRole';
+
+  /// When the outbox was last emptied into the server, ISO-8601 UTC. Shown on
+  /// the sync page, and kept across restarts (Phase 5).
+  static const String lastSyncAt = 'lastSyncAt';
 }

@@ -13,6 +13,7 @@ import 'data/database/bootstrap.dart';
 import 'data/device_access.dart';
 import 'data/providers.dart';
 import 'services/auth_service.dart';
+import 'services/sync_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -64,6 +65,11 @@ Future<void> main() async {
   );
   await container.read(deviceAccessProvider.notifier).hydrate();
   await container.read(currentEmployeeProvider.notifier).hydrate();
+
+  // Starts sending the outbox on an account device (SYNC_PLAN.md, Phase 5).
+  // It watches the device mode, so it also starts when the device joins a
+  // restaurant later, and stops on sign-out; in the demo it does nothing.
+  container.read(syncControllerProvider);
 
   // Orientation is deliberately left unconstrained. The app is designed
   // landscape-first for ~10" tablets, but the brief requires portrait to remain

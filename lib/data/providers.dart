@@ -91,6 +91,17 @@ final StreamProvider<int> outboxPendingCountProvider = StreamProvider<int>(
   (ref) => ref.watch(outboxRepositoryProvider).watchPendingCount(),
 );
 
+final Provider<SyncErrorRepository> syncErrorRepositoryProvider =
+    Provider<SyncErrorRepository>(
+      (ref) => SyncErrorRepository(ref.watch(databaseProvider)),
+    );
+
+/// The changes the server refused, newest first (Phase 5).
+final StreamProvider<List<RejectedChange>> syncErrorsProvider =
+    StreamProvider<List<RejectedChange>>(
+      (ref) => ref.watch(syncErrorRepositoryProvider).watchRejected(),
+    );
+
 final Provider<DemoRepository> demoRepositoryProvider =
     Provider<DemoRepository>((ref) => DemoRepository(ref.watch(databaseProvider)));
 

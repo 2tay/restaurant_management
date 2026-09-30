@@ -124,6 +124,7 @@ class DeviceAccessRepository {
     await _db.transaction(() async {
       await clearAllData(_db);
       await OutboxRepository(_db).clear();
+      await _db.delete(_db.syncErrors).go();
     });
 
     // Files after the rows, and never fatal: a photo that cannot be deleted

@@ -4,6 +4,8 @@
 // per user, owners invite with a one-time code, devices register to one
 // organization. `failNext` makes the next call throw, to test error paths.
 
+import 'dart:convert';
+
 import 'package:stock_inventory/services/auth_service.dart';
 
 class FakeAccountBackend implements AccountBackend {
@@ -198,6 +200,60 @@ class FakeAccountBackend implements AccountBackend {
     _maybeFail();
     _deviceOrganization.remove(deviceId);
     return registeredDevices.remove(deviceId) != null;
+  }
+
+  // --- Receiving changes (Phase 5) -----------------------------------------
+
+  /// What the server holds, by `table|row_key`: the last accepted payload.
+  final Map<String, Map<String, Object?>> serverRows = {};
+
+  /// Entries per `pushChanges` call, in call order.
+  final List<int> batchSizes = [];
+
+  /// Returns a refusal reason for a change, or null to accept it.
+  String? Function(Map<String, Object?> change)? rejectWhen;
+
+  /// Runs inside `pushChanges` before it answers: a test uses it to edit a
+  /// row while its change is travelling.
+  Future<void> Function()? duringPush;
+
+  @override
+  Future<List<PushResult>> pushChanges(
+    String deviceId,
+    List<Map<String, Object?>> changes,
+  ) async {
+    _maybeFail();
+    _signedIn();
+    batchSizes.add(changes.length);
+    await duringPush?.call();
+
+    if (!registeredDevices.containsKey(deviceId)) {
+      return [
+        for (final change in changes)
+          PushResult(
+            id: change['id']! as int,
+            accepted: false,
+            reason: 'device_unknown',
+          ),
+      ];
+    }
+
+    return [
+      for (final change in changes)
+        () {
+          final reason = rejectWhen?.call(change);
+          if (reason != null) {
+            return PushResult(
+              id: change['id']! as int,
+              accepted: false,
+              reason: reason,
+            );
+          }
+          serverRows['${change['table']}|${change['row_key']}'] =
+              jsonDecode(change['payload']! as String) as Map<String, Object?>;
+          return PushResult(id: change['id']! as int, accepted: true);
+        }(),
+    ];
   }
 }
 

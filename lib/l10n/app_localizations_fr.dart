@@ -4317,4 +4317,129 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get signUpDone => 'Compte créé.';
+
+  @override
+  String get accountErrorSessionExpired =>
+      'La session du compte a expiré. Reconnectez-vous.';
+
+  @override
+  String get syncStateIdle => 'À jour';
+
+  @override
+  String get syncStateSyncing => 'Synchronisation…';
+
+  @override
+  String get syncStateOffline => 'Hors ligne — nouvel essai automatique';
+
+  @override
+  String get syncStateError => 'Synchronisation arrêtée';
+
+  @override
+  String get syncStateDisabled => 'Démonstration — rien n\'est envoyé';
+
+  @override
+  String get syncLastSyncedNever => 'Jamais';
+
+  @override
+  String get syncDone => 'Tout est envoyé.';
+
+  @override
+  String syncDoneWithRejections(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Envoyé. $count modifications ont été refusées.',
+      one: 'Envoyé. 1 modification a été refusée.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get syncProblemOffline =>
+      'Le serveur est injoignable. Les modifications restent sur l\'appareil et partiront au retour de la connexion.';
+
+  @override
+  String get syncProblemSessionExpired =>
+      'La session du compte a expiré. Reconnectez-vous pour reprendre l\'envoi.';
+
+  @override
+  String get syncProblemDeviceRemoved =>
+      'Le propriétaire a retiré cet appareil du restaurant. Les modifications restent sur l\'appareil.';
+
+  @override
+  String get syncProblemFailed =>
+      'Le serveur a refusé l\'envoi. Nouvel essai automatique.';
+
+  @override
+  String get syncReconnect => 'Se reconnecter';
+
+  @override
+  String get syncReconnectTitle => 'Reconnecter le compte';
+
+  @override
+  String syncReconnectBody(String email) {
+    return 'Mot de passe de $email';
+  }
+
+  @override
+  String get syncRejectedTitle => 'Modifications refusées';
+
+  @override
+  String get syncRejectedDismiss => 'Compris';
+
+  @override
+  String get syncReasonDeleted => 'Supprimé entre-temps sur un autre appareil.';
+
+  @override
+  String get syncReasonStatusBackwards =>
+      'Le statut de la commande ne peut pas revenir en arrière.';
+
+  @override
+  String get syncReasonStatusClosed => 'La commande était déjà clôturée.';
+
+  @override
+  String get syncReasonAlreadyPaid => 'Cette période de paie était déjà payée.';
+
+  @override
+  String get syncReasonNoAccess => 'Pas d\'accès à cet établissement.';
+
+  @override
+  String get syncReasonOwnerOnly =>
+      'Seul le propriétaire peut modifier un établissement.';
+
+  @override
+  String get syncReasonStoreChanged =>
+      'Cette donnée ne peut pas changer d\'établissement.';
+
+  @override
+  String get syncReasonInvalid =>
+      'Le serveur n\'a pas accepté cette modification.';
+
+  @override
+  String syncTableName(String table) {
+    String _temp0 = intl.Intl.selectLogic(table, {
+      'stores': 'Établissement',
+      'categories': 'Catégorie',
+      'units': 'Unité',
+      'items': 'Article',
+      'suppliers': 'Fournisseur',
+      'supplier_prices': 'Prix fournisseur',
+      'price_history': 'Historique de prix',
+      'stock_movements': 'Mouvement de stock',
+      'purchase_orders': 'Commande',
+      'purchase_order_lines': 'Ligne de commande',
+      'goods_receipts': 'Réception',
+      'goods_receipt_lines': 'Ligne de réception',
+      'notifications': 'Notification',
+      'employees': 'Employé',
+      'employee_credentials': 'Accès employé',
+      'payroll_periods': 'Période de paie',
+      'attendances': 'Pointage',
+      'attendance_sessions': 'Pointage',
+      'attendance_pauses': 'Pause',
+      'busy_dates': 'Jour chargé',
+      'other': 'Donnée',
+    });
+    return '$_temp0';
+  }
 }

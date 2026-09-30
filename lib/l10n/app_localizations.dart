@@ -7048,6 +7048,168 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Compte créé.'**
   String get signUpDone;
+
+  /// Account error: the session could not be renewed.
+  ///
+  /// In fr, this message translates to:
+  /// **'La session du compte a expiré. Reconnectez-vous.'**
+  String get accountErrorSessionExpired;
+
+  /// Sync page: everything sent.
+  ///
+  /// In fr, this message translates to:
+  /// **'À jour'**
+  String get syncStateIdle;
+
+  /// Sync page: a pass is running.
+  ///
+  /// In fr, this message translates to:
+  /// **'Synchronisation…'**
+  String get syncStateSyncing;
+
+  /// Sync page: the server could not be reached.
+  ///
+  /// In fr, this message translates to:
+  /// **'Hors ligne — nouvel essai automatique'**
+  String get syncStateOffline;
+
+  /// Sync page: stopped until someone acts.
+  ///
+  /// In fr, this message translates to:
+  /// **'Synchronisation arrêtée'**
+  String get syncStateError;
+
+  /// Sync page in demo mode.
+  ///
+  /// In fr, this message translates to:
+  /// **'Démonstration — rien n\'est envoyé'**
+  String get syncStateDisabled;
+
+  /// Sync page: nothing sent yet.
+  ///
+  /// In fr, this message translates to:
+  /// **'Jamais'**
+  String get syncLastSyncedNever;
+
+  /// Snackbar after a manual sync.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tout est envoyé.'**
+  String get syncDone;
+
+  /// Snackbar after a sync with refusals.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =1{Envoyé. 1 modification a été refusée.} other{Envoyé. {count} modifications ont été refusées.}}'**
+  String syncDoneWithRejections(int count);
+
+  /// Sync page note while offline.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le serveur est injoignable. Les modifications restent sur l\'appareil et partiront au retour de la connexion.'**
+  String get syncProblemOffline;
+
+  /// Sync page note.
+  ///
+  /// In fr, this message translates to:
+  /// **'La session du compte a expiré. Reconnectez-vous pour reprendre l\'envoi.'**
+  String get syncProblemSessionExpired;
+
+  /// Sync page note.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le propriétaire a retiré cet appareil du restaurant. Les modifications restent sur l\'appareil.'**
+  String get syncProblemDeviceRemoved;
+
+  /// Sync page note.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le serveur a refusé l\'envoi. Nouvel essai automatique.'**
+  String get syncProblemFailed;
+
+  /// Button: sign the account in again.
+  ///
+  /// In fr, this message translates to:
+  /// **'Se reconnecter'**
+  String get syncReconnect;
+
+  /// Dialog heading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Reconnecter le compte'**
+  String get syncReconnectTitle;
+
+  /// Dialog label.
+  ///
+  /// In fr, this message translates to:
+  /// **'Mot de passe de {email}'**
+  String syncReconnectBody(String email);
+
+  /// Sync page: changes the server refused.
+  ///
+  /// In fr, this message translates to:
+  /// **'Modifications refusées'**
+  String get syncRejectedTitle;
+
+  /// Dismiss one refused change.
+  ///
+  /// In fr, this message translates to:
+  /// **'Compris'**
+  String get syncRejectedDismiss;
+
+  /// Refusal reason.
+  ///
+  /// In fr, this message translates to:
+  /// **'Supprimé entre-temps sur un autre appareil.'**
+  String get syncReasonDeleted;
+
+  /// Refusal reason.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le statut de la commande ne peut pas revenir en arrière.'**
+  String get syncReasonStatusBackwards;
+
+  /// Refusal reason.
+  ///
+  /// In fr, this message translates to:
+  /// **'La commande était déjà clôturée.'**
+  String get syncReasonStatusClosed;
+
+  /// Refusal reason.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cette période de paie était déjà payée.'**
+  String get syncReasonAlreadyPaid;
+
+  /// Refusal reason.
+  ///
+  /// In fr, this message translates to:
+  /// **'Pas d\'accès à cet établissement.'**
+  String get syncReasonNoAccess;
+
+  /// Refusal reason.
+  ///
+  /// In fr, this message translates to:
+  /// **'Seul le propriétaire peut modifier un établissement.'**
+  String get syncReasonOwnerOnly;
+
+  /// Refusal reason.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cette donnée ne peut pas changer d\'établissement.'**
+  String get syncReasonStoreChanged;
+
+  /// Refusal reason.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le serveur n\'a pas accepté cette modification.'**
+  String get syncReasonInvalid;
+
+  /// What a refused change was about.
+  ///
+  /// In fr, this message translates to:
+  /// **'{table, select, stores{Établissement} categories{Catégorie} units{Unité} items{Article} suppliers{Fournisseur} supplier_prices{Prix fournisseur} price_history{Historique de prix} stock_movements{Mouvement de stock} purchase_orders{Commande} purchase_order_lines{Ligne de commande} goods_receipts{Réception} goods_receipt_lines{Ligne de réception} notifications{Notification} employees{Employé} employee_credentials{Accès employé} payroll_periods{Période de paie} attendances{Pointage} attendance_sessions{Pointage} attendance_pauses{Pause} busy_dates{Jour chargé} other{Donnée}}'**
+  String syncTableName(String table);
 }
 
 class _AppLocalizationsDelegate

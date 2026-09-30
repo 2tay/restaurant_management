@@ -195,12 +195,13 @@ void main() {
         'stores',
         'supplier_prices',
         'suppliers',
+        'sync_errors',
         'units',
       ]);
     });
 
-    test('at schema version 16', () {
-      expect(db.schemaVersion, 16);
+    test('at schema version 17', () {
+      expect(db.schemaVersion, 17);
     });
 
     test('with foreign keys switched on', () async {

@@ -14905,6 +14905,517 @@ class BusyDatesCompanion extends UpdateCompanion<BusyDateRow> {
   }
 }
 
+class $SyncErrorsTable extends SyncErrors
+    with TableInfo<$SyncErrorsTable, SyncErrorRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SyncErrorsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _changedTableMeta = const VerificationMeta(
+    'changedTable',
+  );
+  @override
+  late final GeneratedColumn<String> changedTable = GeneratedColumn<String>(
+    'changed_table',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _rowKeyMeta = const VerificationMeta('rowKey');
+  @override
+  late final GeneratedColumn<String> rowKey = GeneratedColumn<String>(
+    'row_key',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _storeIdMeta = const VerificationMeta(
+    'storeId',
+  );
+  @override
+  late final GeneratedColumn<String> storeId = GeneratedColumn<String>(
+    'store_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _payloadMeta = const VerificationMeta(
+    'payload',
+  );
+  @override
+  late final GeneratedColumn<String> payload = GeneratedColumn<String>(
+    'payload',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _reasonMeta = const VerificationMeta('reason');
+  @override
+  late final GeneratedColumn<String> reason = GeneratedColumn<String>(
+    'reason',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _messageMeta = const VerificationMeta(
+    'message',
+  );
+  @override
+  late final GeneratedColumn<String> message = GeneratedColumn<String>(
+    'message',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _rejectedAtMeta = const VerificationMeta(
+    'rejectedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> rejectedAt = GeneratedColumn<DateTime>(
+    'rejected_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    changedTable,
+    rowKey,
+    storeId,
+    payload,
+    reason,
+    message,
+    rejectedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'sync_errors';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<SyncErrorRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('changed_table')) {
+      context.handle(
+        _changedTableMeta,
+        changedTable.isAcceptableOrUnknown(
+          data['changed_table']!,
+          _changedTableMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_changedTableMeta);
+    }
+    if (data.containsKey('row_key')) {
+      context.handle(
+        _rowKeyMeta,
+        rowKey.isAcceptableOrUnknown(data['row_key']!, _rowKeyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_rowKeyMeta);
+    }
+    if (data.containsKey('store_id')) {
+      context.handle(
+        _storeIdMeta,
+        storeId.isAcceptableOrUnknown(data['store_id']!, _storeIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_storeIdMeta);
+    }
+    if (data.containsKey('payload')) {
+      context.handle(
+        _payloadMeta,
+        payload.isAcceptableOrUnknown(data['payload']!, _payloadMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_payloadMeta);
+    }
+    if (data.containsKey('reason')) {
+      context.handle(
+        _reasonMeta,
+        reason.isAcceptableOrUnknown(data['reason']!, _reasonMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_reasonMeta);
+    }
+    if (data.containsKey('message')) {
+      context.handle(
+        _messageMeta,
+        message.isAcceptableOrUnknown(data['message']!, _messageMeta),
+      );
+    }
+    if (data.containsKey('rejected_at')) {
+      context.handle(
+        _rejectedAtMeta,
+        rejectedAt.isAcceptableOrUnknown(data['rejected_at']!, _rejectedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_rejectedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  SyncErrorRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return SyncErrorRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      changedTable: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}changed_table'],
+      )!,
+      rowKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}row_key'],
+      )!,
+      storeId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}store_id'],
+      )!,
+      payload: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}payload'],
+      )!,
+      reason: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}reason'],
+      )!,
+      message: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}message'],
+      ),
+      rejectedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}rejected_at'],
+      )!,
+    );
+  }
+
+  @override
+  $SyncErrorsTable createAlias(String alias) {
+    return $SyncErrorsTable(attachedDatabase, alias);
+  }
+}
+
+class SyncErrorRow extends DataClass implements Insertable<SyncErrorRow> {
+  final int id;
+
+  /// The outbox entry, as it was sent.
+  final String changedTable;
+  final String rowKey;
+  final String storeId;
+  final String payload;
+
+  /// The server's reason code (`deleted`, `already_paid`, …; see
+  /// `supabase/migrations/…_push_changes.sql`), and its message for `invalid`.
+  final String reason;
+  final String? message;
+  final DateTime rejectedAt;
+  const SyncErrorRow({
+    required this.id,
+    required this.changedTable,
+    required this.rowKey,
+    required this.storeId,
+    required this.payload,
+    required this.reason,
+    this.message,
+    required this.rejectedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['changed_table'] = Variable<String>(changedTable);
+    map['row_key'] = Variable<String>(rowKey);
+    map['store_id'] = Variable<String>(storeId);
+    map['payload'] = Variable<String>(payload);
+    map['reason'] = Variable<String>(reason);
+    if (!nullToAbsent || message != null) {
+      map['message'] = Variable<String>(message);
+    }
+    map['rejected_at'] = Variable<DateTime>(rejectedAt);
+    return map;
+  }
+
+  SyncErrorsCompanion toCompanion(bool nullToAbsent) {
+    return SyncErrorsCompanion(
+      id: Value(id),
+      changedTable: Value(changedTable),
+      rowKey: Value(rowKey),
+      storeId: Value(storeId),
+      payload: Value(payload),
+      reason: Value(reason),
+      message: message == null && nullToAbsent
+          ? const Value.absent()
+          : Value(message),
+      rejectedAt: Value(rejectedAt),
+    );
+  }
+
+  factory SyncErrorRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return SyncErrorRow(
+      id: serializer.fromJson<int>(json['id']),
+      changedTable: serializer.fromJson<String>(json['changedTable']),
+      rowKey: serializer.fromJson<String>(json['rowKey']),
+      storeId: serializer.fromJson<String>(json['storeId']),
+      payload: serializer.fromJson<String>(json['payload']),
+      reason: serializer.fromJson<String>(json['reason']),
+      message: serializer.fromJson<String?>(json['message']),
+      rejectedAt: serializer.fromJson<DateTime>(json['rejectedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'changedTable': serializer.toJson<String>(changedTable),
+      'rowKey': serializer.toJson<String>(rowKey),
+      'storeId': serializer.toJson<String>(storeId),
+      'payload': serializer.toJson<String>(payload),
+      'reason': serializer.toJson<String>(reason),
+      'message': serializer.toJson<String?>(message),
+      'rejectedAt': serializer.toJson<DateTime>(rejectedAt),
+    };
+  }
+
+  SyncErrorRow copyWith({
+    int? id,
+    String? changedTable,
+    String? rowKey,
+    String? storeId,
+    String? payload,
+    String? reason,
+    Value<String?> message = const Value.absent(),
+    DateTime? rejectedAt,
+  }) => SyncErrorRow(
+    id: id ?? this.id,
+    changedTable: changedTable ?? this.changedTable,
+    rowKey: rowKey ?? this.rowKey,
+    storeId: storeId ?? this.storeId,
+    payload: payload ?? this.payload,
+    reason: reason ?? this.reason,
+    message: message.present ? message.value : this.message,
+    rejectedAt: rejectedAt ?? this.rejectedAt,
+  );
+  SyncErrorRow copyWithCompanion(SyncErrorsCompanion data) {
+    return SyncErrorRow(
+      id: data.id.present ? data.id.value : this.id,
+      changedTable: data.changedTable.present
+          ? data.changedTable.value
+          : this.changedTable,
+      rowKey: data.rowKey.present ? data.rowKey.value : this.rowKey,
+      storeId: data.storeId.present ? data.storeId.value : this.storeId,
+      payload: data.payload.present ? data.payload.value : this.payload,
+      reason: data.reason.present ? data.reason.value : this.reason,
+      message: data.message.present ? data.message.value : this.message,
+      rejectedAt: data.rejectedAt.present
+          ? data.rejectedAt.value
+          : this.rejectedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SyncErrorRow(')
+          ..write('id: $id, ')
+          ..write('changedTable: $changedTable, ')
+          ..write('rowKey: $rowKey, ')
+          ..write('storeId: $storeId, ')
+          ..write('payload: $payload, ')
+          ..write('reason: $reason, ')
+          ..write('message: $message, ')
+          ..write('rejectedAt: $rejectedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    changedTable,
+    rowKey,
+    storeId,
+    payload,
+    reason,
+    message,
+    rejectedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SyncErrorRow &&
+          other.id == this.id &&
+          other.changedTable == this.changedTable &&
+          other.rowKey == this.rowKey &&
+          other.storeId == this.storeId &&
+          other.payload == this.payload &&
+          other.reason == this.reason &&
+          other.message == this.message &&
+          other.rejectedAt == this.rejectedAt);
+}
+
+class SyncErrorsCompanion extends UpdateCompanion<SyncErrorRow> {
+  final Value<int> id;
+  final Value<String> changedTable;
+  final Value<String> rowKey;
+  final Value<String> storeId;
+  final Value<String> payload;
+  final Value<String> reason;
+  final Value<String?> message;
+  final Value<DateTime> rejectedAt;
+  const SyncErrorsCompanion({
+    this.id = const Value.absent(),
+    this.changedTable = const Value.absent(),
+    this.rowKey = const Value.absent(),
+    this.storeId = const Value.absent(),
+    this.payload = const Value.absent(),
+    this.reason = const Value.absent(),
+    this.message = const Value.absent(),
+    this.rejectedAt = const Value.absent(),
+  });
+  SyncErrorsCompanion.insert({
+    this.id = const Value.absent(),
+    required String changedTable,
+    required String rowKey,
+    required String storeId,
+    required String payload,
+    required String reason,
+    this.message = const Value.absent(),
+    required DateTime rejectedAt,
+  }) : changedTable = Value(changedTable),
+       rowKey = Value(rowKey),
+       storeId = Value(storeId),
+       payload = Value(payload),
+       reason = Value(reason),
+       rejectedAt = Value(rejectedAt);
+  static Insertable<SyncErrorRow> custom({
+    Expression<int>? id,
+    Expression<String>? changedTable,
+    Expression<String>? rowKey,
+    Expression<String>? storeId,
+    Expression<String>? payload,
+    Expression<String>? reason,
+    Expression<String>? message,
+    Expression<DateTime>? rejectedAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (changedTable != null) 'changed_table': changedTable,
+      if (rowKey != null) 'row_key': rowKey,
+      if (storeId != null) 'store_id': storeId,
+      if (payload != null) 'payload': payload,
+      if (reason != null) 'reason': reason,
+      if (message != null) 'message': message,
+      if (rejectedAt != null) 'rejected_at': rejectedAt,
+    });
+  }
+
+  SyncErrorsCompanion copyWith({
+    Value<int>? id,
+    Value<String>? changedTable,
+    Value<String>? rowKey,
+    Value<String>? storeId,
+    Value<String>? payload,
+    Value<String>? reason,
+    Value<String?>? message,
+    Value<DateTime>? rejectedAt,
+  }) {
+    return SyncErrorsCompanion(
+      id: id ?? this.id,
+      changedTable: changedTable ?? this.changedTable,
+      rowKey: rowKey ?? this.rowKey,
+      storeId: storeId ?? this.storeId,
+      payload: payload ?? this.payload,
+      reason: reason ?? this.reason,
+      message: message ?? this.message,
+      rejectedAt: rejectedAt ?? this.rejectedAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (changedTable.present) {
+      map['changed_table'] = Variable<String>(changedTable.value);
+    }
+    if (rowKey.present) {
+      map['row_key'] = Variable<String>(rowKey.value);
+    }
+    if (storeId.present) {
+      map['store_id'] = Variable<String>(storeId.value);
+    }
+    if (payload.present) {
+      map['payload'] = Variable<String>(payload.value);
+    }
+    if (reason.present) {
+      map['reason'] = Variable<String>(reason.value);
+    }
+    if (message.present) {
+      map['message'] = Variable<String>(message.value);
+    }
+    if (rejectedAt.present) {
+      map['rejected_at'] = Variable<DateTime>(rejectedAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SyncErrorsCompanion(')
+          ..write('id: $id, ')
+          ..write('changedTable: $changedTable, ')
+          ..write('rowKey: $rowKey, ')
+          ..write('storeId: $storeId, ')
+          ..write('payload: $payload, ')
+          ..write('reason: $reason, ')
+          ..write('message: $message, ')
+          ..write('rejectedAt: $rejectedAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   late final $StoresTable stores = $StoresTable(this);
@@ -15304,6 +15815,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     'CREATE TRIGGER busy_dates_touch AFTER UPDATE ON busy_dates WHEN NEW.updated_at IS OLD.updated_at BEGIN UPDATE busy_dates SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
     'busy_dates_touch',
   );
+  late final $SyncErrorsTable syncErrors = $SyncErrorsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -15424,6 +15936,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     attendanceSessionsTouch,
     attendancePausesTouch,
     busyDatesTouch,
+    syncErrors,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
