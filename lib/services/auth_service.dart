@@ -69,12 +69,14 @@ abstract interface class AccountBackend {
   /// after change number [after], oldest first.
   Future<PullPage> pullChanges(String storeId, {required int after, int limit});
 
-  /// Fires when the server's newest change number moves for one of
-  /// [storeIds] (Supabase realtime on `store_changes`), and once each time
-  /// the live connection opens or reopens, so nothing that changed in
-  /// between is missed. A dropped connection is also caught up by the
+  /// Live updates for [storeIds] (Supabase realtime on `store_changes`).
+  ///
+  /// Emits [LiveSignal.changed] when the server's newest change number moves
+  /// for one of them, and [LiveSignal.ready] each time the live connection
+  /// is (re)established **and** actually watching, so whatever changed in
+  /// between can be caught up. A dropped connection is also caught up by the
   /// periodic pass.
-  Stream<void> storeChanges(List<String> storeIds);
+  Stream<LiveSignal> storeChanges(List<String> storeIds);
 
   /// Puts a photo in the private `photos` store at [path]
   /// (`<store>/<items|employees>/<file>`), replacing any file there
@@ -90,6 +92,15 @@ abstract interface class AccountBackend {
 
   /// Removes photos from the server. Missing ones are not an error.
   Future<void> removePhotos(List<String> paths);
+}
+
+/// What the live connection says (Phase 6).
+enum LiveSignal {
+  /// The connection is watching for changes, after opening or reopening.
+  ready,
+
+  /// Another device's change reached the server.
+  changed,
 }
 
 /// One page of changes from the server.
@@ -286,7 +297,8 @@ class UnconfiguredAccountBackend implements AccountBackend {
   }) => Future.error(_refusal);
 
   @override
-  Stream<void> storeChanges(List<String> storeIds) => const Stream.empty();
+  Stream<LiveSignal> storeChanges(List<String> storeIds) =>
+      const Stream.empty();
 
   @override
   Future<void> uploadPhoto(
@@ -466,12 +478,17 @@ class SupabaseAccountBackend implements AccountBackend {
     final answer =
         await _client.rpc(
               'pull_changes',
-              params: {'p_store_id': storeId, 'p_after': after, 'p_limit': limit},
+              params: {
+                'p_store_id': storeId,
+                'p_after': after,
+                'p_limit': limit,
+              },
             )
             as Map<String, dynamic>;
     return PullPage(
       changes: [
-        for (final item in (answer['changes'] as List).cast<Map<String, dynamic>>())
+        for (final item
+            in (answer['changes'] as List).cast<Map<String, dynamic>>())
           PulledChange(
             seq: (item['seq'] as num).toInt(),
             table: item['table'] as String,
@@ -484,14 +501,22 @@ class SupabaseAccountBackend implements AccountBackend {
   });
 
   @override
-  Stream<void> storeChanges(List<String> storeIds) {
+  Stream<LiveSignal> storeChanges(List<String> storeIds) {
     if (storeIds.isEmpty) return const Stream.empty();
     late final RealtimeChannel channel;
-    late final StreamController<void> controller;
-    controller = StreamController<void>(
+    late final StreamController<LiveSignal> controller;
+    controller = StreamController<LiveSignal>(
       onListen: () {
         channel = _client
-            .channel('store-changes-${storeIds.join(',').hashCode}')
+            .channel(
+              'store-changes-${storeIds.join(',').hashCode}',
+              // "Subscribed" arrives before the server is actually watching
+              // the table: its replication starts a moment later, and a
+              // change in between is missed. With this, the server says when
+              // it is really ready (a `system` event), and that is when the
+              // catch-up pass runs.
+              opts: const RealtimeChannelConfig(replicationReady: true),
+            )
             .onPostgresChanges(
               event: PostgresChangeEvent.all,
               schema: 'public',
@@ -501,16 +526,14 @@ class SupabaseAccountBackend implements AccountBackend {
                 column: 'store_id',
                 value: storeIds,
               ),
-              callback: (_) => controller.add(null),
+              callback: (_) => controller.add(LiveSignal.changed),
             )
-            // Also fires once the channel is open, and again after every
-            // reconnection: whatever changed while it was not listening is
-            // caught up by the pass this triggers.
-            .subscribe((status, [_]) {
-              if (status == RealtimeSubscribeStatus.subscribed) {
-                controller.add(null);
+            .onSystemEvents((payload) {
+              if (payload is Map && payload['status'] == 'ok') {
+                controller.add(LiveSignal.ready);
               }
-            });
+            })
+            .subscribe();
       },
       onCancel: () async {
         await _client.removeChannel(channel);

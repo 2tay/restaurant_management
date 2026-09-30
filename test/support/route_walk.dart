@@ -35,6 +35,7 @@ List<WalkableRoute> allRoutes() {
     (label: 'account sign-up', path: Routes.accountSignUp, inShell: false),
     (label: 'account set-up', path: Routes.accountSetup, inShell: false),
     (label: 'account password reset', path: Routes.accountForgot, inShell: false),
+    (label: 'account existing data', path: Routes.accountExistingData, inShell: false),
     (label: 'store selector', path: Routes.stores, inShell: false),
     (label: 'add store', path: Routes.addStore, inShell: false),
 

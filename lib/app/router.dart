@@ -21,6 +21,7 @@ import '../features/settings/presentation/pages/account_settings_page.dart';
 import '../features/settings/presentation/pages/notification_preferences_page.dart';
 import '../features/settings/presentation/pages/store_settings_page.dart';
 import '../features/settings/presentation/pages/sync_status_page.dart';
+import '../features/auth/presentation/pages/account_existing_data_page.dart';
 import '../features/auth/presentation/pages/account_forgot_page.dart';
 import '../features/auth/presentation/pages/account_setup_page.dart';
 import '../features/auth/presentation/pages/account_sign_up_page.dart';
@@ -82,6 +83,7 @@ const Set<String> _accountRoutes = {
   Routes.accountSignUp,
   Routes.accountSetup,
   Routes.accountForgot,
+  Routes.accountExistingData,
 };
 
 /// The device level of the guard, before anything about employees.
@@ -229,6 +231,10 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: Routes.accountWaiting,
       builder: (context, state) => const AccountWaitingPage(),
+    ),
+    GoRoute(
+      path: Routes.accountExistingData,
+      builder: (context, state) => const AccountExistingDataPage(),
     ),
     GoRoute(
       path: Routes.forgotPassword,

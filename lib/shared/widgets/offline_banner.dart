@@ -4,8 +4,10 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../data/device_access.dart';
 import '../../data/providers.dart';
 import '../../l10n/app_localizations.dart';
+import '../../services/sync_service.dart';
 
 /// Whether the app is pretending to be offline.
 ///
@@ -40,6 +42,18 @@ final Provider<int> pendingChangesProvider = Provider<int>(
   (ref) => ref.watch(outboxPendingCountProvider).value ?? 0,
 );
 
+/// Whether the app should say it is offline (SYNC_PLAN.md, Phase 10).
+///
+/// On a restaurant's account device, the truth: the last sync could not reach
+/// the server. In the demo, which never syncs, the switch on the sync page
+/// that lets a walkthrough show the offline experience on demand.
+final Provider<bool> isOfflineProvider = Provider<bool>((ref) {
+  if (ref.watch(deviceAccessProvider).isAccount) {
+    return ref.watch(syncControllerProvider).status == SyncStatus.offline;
+  }
+  return ref.watch(offlineModeProvider);
+});
+
 /// A slim persistent bar shown above the content area when offline.
 ///
 /// Deliberately steel rather than red. For this app offline is the normal
@@ -50,8 +64,9 @@ class OfflineBanner extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isOffline = ref.watch(offlineModeProvider);
+    final isOffline = ref.watch(isOfflineProvider);
     if (!isOffline) return const SizedBox.shrink();
+    final isAccount = ref.watch(deviceAccessProvider).isAccount;
 
     final l10n = AppLocalizations.of(context);
     final pending = ref.watch(pendingChangesProvider);
@@ -72,7 +87,7 @@ class OfflineBanner extends ConsumerWidget {
             ),
             const SizedBox(width: AppSpacing.md),
             Text(
-              l10n.offlineBannerTitle,
+              isAccount ? l10n.offlineBannerServer : l10n.offlineBannerTitle,
               style: Theme.of(
                 context,
               ).textTheme.labelLarge?.copyWith(color: AppColors.offline),

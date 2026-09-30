@@ -1,5 +1,9 @@
+import 'dart:io';
+
 import 'package:clock/clock.dart';
+import 'package:drift/drift.dart' show BaseAggregate;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path_provider/path_provider.dart';
 
 import '../core/utils/busy_calendar.dart';
 import '../models/models.dart';
@@ -81,6 +85,13 @@ final Provider<DeviceRepository> deviceRepositoryProvider =
 final Provider<AccountBackend> accountBackendProvider =
     Provider<AccountBackend>((ref) => const UnconfiguredAccountBackend());
 
+/// Where backups of a device's data are written before an account's data
+/// replaces it (Phase 9): the user's documents folder. Overridden in tests.
+final Provider<Future<Directory> Function()> backupDirectoryProvider =
+    Provider<Future<Directory> Function()>(
+      (ref) => getApplicationDocumentsDirectory,
+    );
+
 final Provider<OutboxRepository> outboxRepositoryProvider =
     Provider<OutboxRepository>(
       (ref) => OutboxRepository(ref.watch(databaseProvider)),
@@ -95,6 +106,18 @@ final Provider<SyncErrorRepository> syncErrorRepositoryProvider =
     Provider<SyncErrorRepository>(
       (ref) => SyncErrorRepository(ref.watch(databaseProvider)),
     );
+
+/// Photos waiting to be uploaded, live (Phase 8): the sync page shows it.
+final StreamProvider<int> photoUploadsPendingProvider = StreamProvider<int>((
+  ref,
+) {
+  final db = ref.watch(databaseProvider);
+  final count = db.photoUploads.id.count();
+  final query = db.selectOnly(db.photoUploads)
+    ..addColumns([count])
+    ..where(db.photoUploads.operation.equals('upload'));
+  return query.watchSingle().map((row) => row.read(count) ?? 0);
+});
 
 /// The changes the server refused, newest first (Phase 5).
 final StreamProvider<List<RejectedChange>> syncErrorsProvider =

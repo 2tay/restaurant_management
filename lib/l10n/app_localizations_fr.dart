@@ -253,7 +253,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get loginDemoNotice =>
-      'Prototype de démonstration — aucune authentification réelle.';
+      'Mode démonstration : restaurant fictif, rien n\'est envoyé.';
 
   @override
   String get forgotTitle => 'Réinitialiser le mot de passe';
@@ -1896,7 +1896,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get syncLocalOnlyNote =>
-      'Les données sont enregistrées sur cet appareil. La synchronisation entre appareils sera ajoutée en phase 3.';
+      'Démonstration : les données restent sur cet appareil. Connectez le compte de votre restaurant (Paramètres → Compte) pour les partager entre appareils.';
 
   @override
   String get searchTitle => 'Recherche';
@@ -4505,4 +4505,62 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get syncResolvedDuplicateLink =>
       'Un fournisseur était lié deux fois au même article : le lien le plus récent a été gardé.';
+
+  @override
+  String get existingDataTitle => 'Données déjà sur cet appareil';
+
+  @override
+  String existingDataAccountEmpty(String restaurant, String stores) {
+    return 'Le compte « $restaurant » est encore vide. Cet appareil contient déjà : $stores. Vous pouvez envoyer ces données vers le compte.';
+  }
+
+  @override
+  String existingDataAccountFull(String restaurant, String stores) {
+    return 'Le compte « $restaurant » contient déjà des données. Celles de cet appareil ($stores) seront enregistrées dans un fichier de sauvegarde, puis remplacées par celles du compte.';
+  }
+
+  @override
+  String get existingDataSend => 'Envoyer mes données';
+
+  @override
+  String get existingDataBackupAndContinue => 'Sauvegarder et continuer';
+
+  @override
+  String get existingDataStartEmpty => 'Commencer vide';
+
+  @override
+  String get existingDataUse => 'Utiliser ces données';
+
+  @override
+  String existingDataOnDevice(String stores) {
+    return 'Cet appareil contient déjà : $stores. Créez le restaurant avec ces données, ou commencez vide (elles seront sauvegardées dans un fichier).';
+  }
+
+  @override
+  String existingDataJoinNotice(String stores) {
+    return 'Cet appareil contient déjà : $stores. Elles seront sauvegardées dans un fichier, puis remplacées par les données du restaurant rejoint.';
+  }
+
+  @override
+  String get existingDataSent => 'Vos données partent vers le compte.';
+
+  @override
+  String existingDataBackedUp(String path) {
+    return 'Sauvegarde enregistrée : $path';
+  }
+
+  @override
+  String get syncDeviceLabel => 'Cet appareil';
+
+  @override
+  String get syncAccountLabel => 'Compte';
+
+  @override
+  String get syncRestaurantLabel => 'Restaurant';
+
+  @override
+  String get syncPhotosPending => 'Photos en attente d\'envoi';
+
+  @override
+  String get offlineBannerServer => 'Serveur injoignable';
 }

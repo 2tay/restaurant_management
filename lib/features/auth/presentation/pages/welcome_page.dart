@@ -161,6 +161,13 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
         context.goSection(Routes.accountSetup);
         return;
       }
+      // The restaurant's own data on this device is never wiped silently:
+      // it is sent to the account, or backed up first (Phase 9).
+      if (await controller.localData() == LocalDataKind.own) {
+        if (!mounted) return;
+        context.goSection(Routes.accountExistingData);
+        return;
+      }
       await controller.finishWithAccount(summary);
       if (!mounted) return;
       context.goSection(Routes.login);

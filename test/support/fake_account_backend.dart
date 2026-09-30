@@ -333,8 +333,8 @@ class FakeAccountBackend implements AccountBackend {
   }
 
   @override
-  Stream<void> storeChanges(List<String> storeIds) =>
-      _live.stream.where(storeIds.contains).map((_) {});
+  Stream<LiveSignal> storeChanges(List<String> storeIds) =>
+      _live.stream.where(storeIds.contains).map((_) => LiveSignal.changed);
 
   // --- Photos (Phase 8) ------------------------------------------------------
 

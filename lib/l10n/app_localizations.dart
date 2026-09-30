@@ -547,7 +547,7 @@ abstract class AppLocalizations {
   /// Honest notice on the login screen. Phase 1 authenticates nothing and the demo should not imply otherwise.
   ///
   /// In fr, this message translates to:
-  /// **'Prototype de démonstration — aucune authentification réelle.'**
+  /// **'Mode démonstration : restaurant fictif, rien n\'est envoyé.'**
   String get loginDemoNotice;
 
   /// Password reset screen heading.
@@ -3187,7 +3187,7 @@ abstract class AppLocalizations {
   /// Honest note that sync between devices is not implemented yet.
   ///
   /// In fr, this message translates to:
-  /// **'Les données sont enregistrées sur cet appareil. La synchronisation entre appareils sera ajoutée en phase 3.'**
+  /// **'Démonstration : les données restent sur cet appareil. Connectez le compte de votre restaurant (Paramètres → Compte) pour les partager entre appareils.'**
   String get syncLocalOnlyNote;
 
   /// Global search screen heading.
@@ -7282,6 +7282,102 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Un fournisseur était lié deux fois au même article : le lien le plus récent a été gardé.'**
   String get syncResolvedDuplicateLink;
+
+  /// Heading: signing in with the restaurant's own data on the device.
+  ///
+  /// In fr, this message translates to:
+  /// **'Données déjà sur cet appareil'**
+  String get existingDataTitle;
+
+  /// The account has no data yet.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le compte « {restaurant} » est encore vide. Cet appareil contient déjà : {stores}. Vous pouvez envoyer ces données vers le compte.'**
+  String existingDataAccountEmpty(String restaurant, String stores);
+
+  /// The account already has data.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le compte « {restaurant} » contient déjà des données. Celles de cet appareil ({stores}) seront enregistrées dans un fichier de sauvegarde, puis remplacées par celles du compte.'**
+  String existingDataAccountFull(String restaurant, String stores);
+
+  /// Send the device's data to the account.
+  ///
+  /// In fr, this message translates to:
+  /// **'Envoyer mes données'**
+  String get existingDataSend;
+
+  /// Back up the device's data, then use the account's.
+  ///
+  /// In fr, this message translates to:
+  /// **'Sauvegarder et continuer'**
+  String get existingDataBackupAndContinue;
+
+  /// Back up the device's data, then start with an empty restaurant.
+  ///
+  /// In fr, this message translates to:
+  /// **'Commencer vide'**
+  String get existingDataStartEmpty;
+
+  /// Create the restaurant from the device's own data.
+  ///
+  /// In fr, this message translates to:
+  /// **'Utiliser ces données'**
+  String get existingDataUse;
+
+  /// Set-up page, create tab, own data on the device.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cet appareil contient déjà : {stores}. Créez le restaurant avec ces données, ou commencez vide (elles seront sauvegardées dans un fichier).'**
+  String existingDataOnDevice(String stores);
+
+  /// Set-up page, join tab, own data on the device.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cet appareil contient déjà : {stores}. Elles seront sauvegardées dans un fichier, puis remplacées par les données du restaurant rejoint.'**
+  String existingDataJoinNotice(String stores);
+
+  /// After choosing to send the device's data.
+  ///
+  /// In fr, this message translates to:
+  /// **'Vos données partent vers le compte.'**
+  String get existingDataSent;
+
+  /// Where the backup file was written.
+  ///
+  /// In fr, this message translates to:
+  /// **'Sauvegarde enregistrée : {path}'**
+  String existingDataBackedUp(String path);
+
+  /// Sync page: this device's name.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cet appareil'**
+  String get syncDeviceLabel;
+
+  /// Sync page: the account's e-mail.
+  ///
+  /// In fr, this message translates to:
+  /// **'Compte'**
+  String get syncAccountLabel;
+
+  /// Sync page: the restaurant's name.
+  ///
+  /// In fr, this message translates to:
+  /// **'Restaurant'**
+  String get syncRestaurantLabel;
+
+  /// Sync page: photos not uploaded yet.
+  ///
+  /// In fr, this message translates to:
+  /// **'Photos en attente d\'envoi'**
+  String get syncPhotosPending;
+
+  /// Offline banner on an account device: the server cannot be reached.
+  ///
+  /// In fr, this message translates to:
+  /// **'Serveur injoignable'**
+  String get offlineBannerServer;
 }
 
 class _AppLocalizationsDelegate

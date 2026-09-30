@@ -1,4 +1,4 @@
-import 'dart:io' show Platform;
+import 'dart:io' show File, Platform;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -10,10 +10,12 @@ import 'providers.dart';
 import 'repositories/device_access_repository.dart';
 import 'repositories/device_repository.dart';
 import 'repositories/employee_repository.dart';
+import 'repositories/local_data_repository.dart';
 import 'repositories/store_repository.dart';
 
 export 'repositories/device_access_repository.dart'
     show DeviceAccess, DeviceMode;
+export 'repositories/local_data_repository.dart' show LocalDataKind;
 
 /// A synchronous snapshot of [deviceAccessProvider], for the router's guard,
 /// which runs inside a go_router `redirect` and cannot await. Same pattern as
@@ -138,6 +140,67 @@ class DeviceAccessController extends Notifier<DeviceAccess> {
     return owner;
   }
 
+  // ---------------------------------------------------------------------------
+  // Data already on the device (SYNC_PLAN.md, Phase 9)
+  // ---------------------------------------------------------------------------
+
+  LocalDataRepository get _local =>
+      LocalDataRepository(ref.read(databaseProvider));
+
+  /// Whether the device holds nothing, only the demo, or its own data.
+  Future<LocalDataKind> localData() => _local.kind();
+
+  /// The names of the device's own establishments.
+  Future<List<String>> ownStoreNames() => _local.ownStoreNames();
+
+  /// Whether the account's restaurant already has establishments on the
+  /// server.
+  Future<bool> accountHasData() async =>
+      (await _backend.storeIds()).isNotEmpty;
+
+  /// Saves the device's data to a backup file, before the account's data
+  /// replaces it. Returns the file, for the screen to name.
+  Future<File> backupLocalData() async =>
+      _local.exportBackup(await ref.read(backupDirectoryProvider)());
+
+  /// Keeps the device's own data and sends it to the account: "Envoyer mes
+  /// données". The demo establishments, if any, are removed first; every
+  /// remaining row and photo is queued, and the next sync sends them.
+  Future<void> adoptLocalData(AccountSummary summary) async {
+    final db = ref.read(databaseProvider);
+    await _backend.registerDevice(
+      await DeviceRepository(db).deviceId(),
+      name: deviceDisplayName(),
+    );
+    await _local.removeDemo();
+    await _repository.writeAccount(
+      email: summary.email,
+      organizationId: summary.organizationId!,
+      organizationName: summary.organizationName ?? '',
+      role: summary.role ?? 'manager',
+    );
+    await _local.queueEverything();
+    await hydrate();
+  }
+
+  /// A new restaurant made of the device's own data.
+  Future<void> createRestaurantFromLocalData(String restaurantName) async {
+    var summary = await _backend.myAccount();
+    if (!summary.hasOrganization) {
+      await _backend.createOrganization(restaurantName.trim());
+      summary = await _backend.myAccount();
+    }
+    await adoptLocalData(summary);
+  }
+
+  /// Saves the device's data to a file, then ties the device to the account,
+  /// whose data replaces it. Returns the backup file.
+  Future<File> backupAndFinish(AccountSummary summary) async {
+    final file = await backupLocalData();
+    await finishWithAccount(summary);
+    return file;
+  }
+
   /// Joins the restaurant behind an owner's code, then ties the device to it.
   Future<void> joinWithCode(String code) async {
     await _backend.joinOrganization(code);
@@ -173,7 +236,7 @@ class DeviceAccessController extends Notifier<DeviceAccess> {
     final db = ref.read(databaseProvider);
     await _backend.registerDevice(
       await DeviceRepository(db).deviceId(),
-      name: _deviceName(),
+      name: deviceDisplayName(),
     );
 
     // The demo never mixes with a restaurant's real data.
@@ -192,16 +255,20 @@ class DeviceAccessController extends Notifier<DeviceAccess> {
     );
   }
 
-  static String _deviceName() {
-    try {
-      return '${Platform.localHostname} (${Platform.operatingSystem})';
-    } catch (_) {
-      return '';
-    }
-  }
+
 }
 
 final NotifierProvider<DeviceAccessController, DeviceAccess>
 deviceAccessProvider = NotifierProvider<DeviceAccessController, DeviceAccess>(
   DeviceAccessController.new,
 );
+
+/// This installation's name as the server and the sync page show it: the
+/// computer's name and its system, like `CUISINE-PC (windows)`.
+String deviceDisplayName() {
+  try {
+    return '${Platform.localHostname} (${Platform.operatingSystem})';
+  } catch (_) {
+    return '';
+  }
+}

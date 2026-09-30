@@ -144,25 +144,29 @@ void main() {
       final storeOnB = (await StoreRepository(b).stores()).single;
       expect(storeOnB.createdAt, storeOnA.createdAt);
 
-      // Live: B hears about A's next change without asking.
-      final events = <void>[];
-      final live = backendB.storeChanges([store.id]).listen(events.add);
+      // Live: B hears about A's next change without asking. First wait until
+      // the server says it is really watching (LiveSignal.ready), then change.
+      final signals = <LiveSignal>[];
+      final live = backendB.storeChanges([store.id]).listen(signals.add);
       addTearDown(live.cancel);
-      Future<void> waitForEvent() async {
+      Future<void> waitFor(LiveSignal wanted) async {
         final deadline = DateTime.now().add(const Duration(seconds: 20));
-        while (events.isEmpty && DateTime.now().isBefore(deadline)) {
+        while (!signals.contains(wanted) && DateTime.now().isBefore(deadline)) {
           await Future<void>.delayed(const Duration(milliseconds: 100));
         }
       }
 
-      await waitForEvent();
-      expect(events, isNotEmpty, reason: 'the live connection never opened');
-      events.clear();
+      await waitFor(LiveSignal.ready);
+      expect(signals, contains(LiveSignal.ready), reason: 'never ready');
 
       await CatalogRepository(a).renameCategory(category.id, 'Légumes bio');
       await SyncRunner(db: a, backend: backendA).run();
-      await waitForEvent();
-      expect(events, isNotEmpty, reason: "no live event for A's change");
+      await waitFor(LiveSignal.changed);
+      expect(
+        signals,
+        contains(LiveSignal.changed),
+        reason: "no live event for A's change",
+      );
     },
     skip: skip,
     timeout: const Timeout(Duration(minutes: 2)),

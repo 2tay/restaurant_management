@@ -27,6 +27,7 @@ class AccountSyncView extends ConsumerWidget {
     final sync = ref.watch(syncControllerProvider);
     final pending = ref.watch(pendingChangesProvider);
     final rejected = ref.watch(syncErrorsProvider).value ?? const [];
+    final access = ref.watch(deviceAccessProvider);
 
     final (
       IconData icon,
@@ -144,6 +145,29 @@ class AccountSyncView extends ConsumerWidget {
                 ),
                 const Divider(height: AppSpacing.xl),
                 _Stat(label: l10n.syncPending, value: '$pending'),
+                const Divider(height: AppSpacing.xl),
+                _Stat(
+                  label: l10n.syncPhotosPending,
+                  value: '${ref.watch(photoUploadsPendingProvider).value ?? 0}',
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          AppCard(
+            child: Column(
+              children: [
+                _Stat(
+                  label: l10n.syncRestaurantLabel,
+                  value: access.organizationName ?? '',
+                ),
+                const Divider(height: AppSpacing.xl),
+                _Stat(
+                  label: l10n.syncAccountLabel,
+                  value: access.accountEmail ?? '',
+                ),
+                const Divider(height: AppSpacing.xl),
+                _Stat(label: l10n.syncDeviceLabel, value: deviceDisplayName()),
               ],
             ),
           ),

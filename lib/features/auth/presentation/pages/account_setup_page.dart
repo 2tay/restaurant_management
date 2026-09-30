@@ -35,6 +35,28 @@ class _AccountSetupPageState extends ConsumerState<AccountSetupPage> {
   bool _busy = false;
   String? _error;
 
+  /// The device's own establishments, when it holds some (Phase 9). Empty
+  /// for a fresh install or the demo.
+  List<String> _ownStores = const [];
+
+  /// Create the restaurant from the device's own data, rather than empty.
+  bool _useLocalData = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadOwnStores();
+  }
+
+  Future<void> _loadOwnStores() async {
+    final controller = ref.read(deviceAccessProvider.notifier);
+    if (await controller.localData() != LocalDataKind.own) return;
+    final names = await controller.ownStoreNames();
+    if (mounted) setState(() => _ownStores = names);
+  }
+
+  bool get _fromLocalData => !_joining && _ownStores.isNotEmpty && _useLocalData;
+
   final _restaurant = TextEditingController();
   final _city = TextEditingController();
   final _phone = TextEditingController();
@@ -111,11 +133,45 @@ class _AccountSetupPageState extends ConsumerState<AccountSetupPage> {
                 }),
               ),
               const SizedBox(height: AppSpacing.xl),
-              if (ref.watch(deviceAccessProvider).mode == DeviceMode.demo) ...[
+              if (_ownStores.isNotEmpty) ...[
+                AuthNotice.info(
+                  _joining
+                      ? l10n.existingDataJoinNotice(_ownStores.join(', '))
+                      : l10n.existingDataOnDevice(_ownStores.join(', ')),
+                ),
+                const SizedBox(height: AppSpacing.md),
+                if (!_joining) ...[
+                  SegmentedButton<bool>(
+                    segments: [
+                      ButtonSegment(
+                        value: true,
+                        label: Text(l10n.existingDataUse),
+                        icon: const Icon(LucideIcons.cloudUpload),
+                      ),
+                      ButtonSegment(
+                        value: false,
+                        label: Text(l10n.existingDataStartEmpty),
+                        icon: const Icon(LucideIcons.archive),
+                      ),
+                    ],
+                    selected: {_useLocalData},
+                    onSelectionChanged: (value) => setState(() {
+                      _useLocalData = value.first;
+                      _error = null;
+                    }),
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                ],
+              ] else if (ref.watch(deviceAccessProvider).mode ==
+                  DeviceMode.demo) ...[
                 AuthNotice.info(l10n.accountDemoWipeWarning),
                 const SizedBox(height: AppSpacing.lg),
               ],
-              ...(_joining ? _joinForm(l10n) : _createForm(l10n)),
+              ...(_joining
+                  ? _joinForm(l10n)
+                  : _fromLocalData
+                  ? _nameOnlyForm(l10n)
+                  : _createForm(l10n)),
               if (_error != null) ...[
                 const SizedBox(height: AppSpacing.md),
                 AuthNotice.error(_error!),
@@ -196,6 +252,18 @@ class _AccountSetupPageState extends ConsumerState<AccountSetupPage> {
     ),
   ];
 
+  /// Creating from the device's own data: only the restaurant's name; its
+  /// establishments and staff are already here.
+  List<Widget> _nameOnlyForm(AppLocalizations l10n) => [
+    AppTextField(
+      label: l10n.setupRestaurantName,
+      controller: _restaurant,
+      prefixIcon: LucideIcons.store,
+      textInputAction: TextInputAction.done,
+      onSubmitted: (_) => _create(),
+    ),
+  ];
+
   List<Widget> _joinForm(AppLocalizations l10n) => [
     AppTextField(
       label: l10n.setupJoinCode,
@@ -209,6 +277,21 @@ class _AccountSetupPageState extends ConsumerState<AccountSetupPage> {
 
   Future<void> _create() async {
     final l10n = AppLocalizations.of(context);
+    if (_fromLocalData) {
+      if (_restaurant.text.trim().isEmpty) {
+        setState(() => _error = l10n.setupFieldsRequired);
+        return;
+      }
+      await _run(() async {
+        await ref
+            .read(deviceAccessProvider.notifier)
+            .createRestaurantFromLocalData(_restaurant.text);
+        if (!mounted) return;
+        AppSnackBar.success(context, l10n.existingDataSent);
+        context.goSection(Routes.login);
+      });
+      return;
+    }
     final required = [
       _restaurant,
       _city,
@@ -228,6 +311,7 @@ class _AccountSetupPageState extends ConsumerState<AccountSetupPage> {
     }
 
     await _run(() async {
+      await _backupOwnData();
       final owner = await ref
           .read(deviceAccessProvider.notifier)
           .createRestaurant(
@@ -255,10 +339,23 @@ class _AccountSetupPageState extends ConsumerState<AccountSetupPage> {
       return;
     }
     await _run(() async {
+      await _backupOwnData();
       await ref.read(deviceAccessProvider.notifier).joinWithCode(_code.text);
       if (!mounted) return;
       context.goSection(Routes.login);
     });
+  }
+
+  /// Before the device's own data is replaced, a copy goes to a file, and
+  /// the screen says where.
+  Future<void> _backupOwnData() async {
+    if (_ownStores.isEmpty) return;
+    final file = await ref.read(deviceAccessProvider.notifier).backupLocalData();
+    if (!mounted) return;
+    AppSnackBar.success(
+      context,
+      AppLocalizations.of(context).existingDataBackedUp(file.path),
+    );
   }
 
   Future<void> _run(Future<void> Function() body) async {

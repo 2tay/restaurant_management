@@ -21,9 +21,9 @@ Last updated: 2026-09-30. Branch: `14-sync-phase-1` (pushed to GitHub). Local sc
 | 6 | Receiving changes (pull) | Done, tested locally (with live updates) |
 | 7 | Conflict rules | Done, tested locally |
 | 8 | Photos | Done, tested locally |
-| 9 | First connection and existing data | **Next.** Partly done in Phase 4 (demo data is wiped when joining an account). |
-| 10 | Screens and messages | Partly done: account screens (Phase 4), a working sync page for account devices (Phase 5). Final design to do. |
-| 11 | Testing and release | To do |
+| 9 | First connection and existing data | Done, tested locally |
+| 10 | Screens and messages | Done, tested locally |
+| 11 | Testing and release | **Next**, with Phase 0's cloud project |
 
 Each finished phase below has a **Status** note saying what was built and where it differs from
 the first plan. Read those notes before changing anything in that area.
@@ -57,18 +57,21 @@ supabase start                                   # local server (Docker must be 
 supabase test db                                 # server tests: 49
 flutter analyze                                  # must say "No issues found"
 python tool/ux_audit.py                          # 2 old findings only (colour, fontSize)
-flutter test test/db test/password_hash_test.dart            # 495 tests
-flutter test test/integration --concurrency=1 --dart-define-from-file=config/local.json   # real server: 6
+flutter test test/db test/password_hash_test.dart            # 499 tests
+flutter test test/integration --concurrency=1 --dart-define-from-file=config/local.json   # real server: 7
 flutter test --concurrency=2 <every test/*.dart except responsive_test.dart>  # screens
 flutter run -d windows --dart-define-from-file=config/local.json
 ```
 
 The full screen suite uses a lot of memory; `--concurrency=2` keeps it stable. Run the
-integration tests one file at a time (`--concurrency=1`). Even so, the live-update check in
-`test/integration/sync_pull_test.dart` fails now and then when the machine is busy (seen twice in
-about ten full runs; it passes alone every time). Live updates are only a speed-up: every change
-still arrives through the regular passes. Treat a single failure of that check as noise, and
-investigate only if it fails repeatedly.
+integration tests one file at a time (`--concurrency=1`).
+
+**Live updates, a fixed timing issue.** The live-update check used to fail now and then on a busy
+machine. The cause: Supabase reports a realtime channel as "subscribed" before its database
+replication is actually live, so a change made in that gap was missed (the library says so in
+`realtime_channel.dart`). The channel now asks for `replicationReady`, and the server sends a
+"ready" system event once it is really watching; that is when the catch-up pass runs
+(`LiveSignal.ready`). Since the fix: five full runs out of five passed.
 
 ### Known issues, not caused by this work
 
@@ -79,47 +82,38 @@ investigate only if it fails repeatedly.
 
 ### Open points to remember
 
-- **The demo notice on the PIN login** ("Prototype de démonstration — aucune authentification
-  réelle") is outdated wording. It only shows in demo mode now; suggested text: "Mode
-  démonstration : restaurant fictif, rien n'est envoyé."
 - **Existing installs open in demo mode** (their data was seeded before Phase 4). To reach the
   account screens: Paramètres → Compte → "Connecter un compte", or delete the local database
   file `stock_inventory.sqlite` under `AppData\Roaming`.
-- **`createRestaurant` is resumable only up to the server step.** If the network fails after
-  the local establishment is created, a retry creates a second one. Rare; fix in Phase 9.
+- **`createRestaurant` retries are safe.** A retry after a failure wipes the half-made local
+  data before creating it again (the device only becomes an account device at the very end),
+  and reuses an organization an earlier attempt created on the server.
 - **Changing a synced table** now means: new drift schema version and dump, then
   `python tool/generate_outbox_triggers.py`, then a **new** server migration altering the
   server table (never edit an applied migration).
 - **Cloud project:** create "dev" on supabase.com when real devices must share data, then
   `supabase link` and `supabase db push`, and put its URL and publishable key in a config file.
 
-### Next step: Phase 9, first connection with data already on the device
+### Next step: the cloud project, then real devices (Phases 0 and 11)
 
-Sync, conflicts and photos all work. What is left before real restaurants can switch: a device
-that **already holds real data** when it first connects to an account. Today (Phase 4) joining an
-account simply wipes the device, which is right for the demo but would lose a restaurant that has
-been using the app offline. In order:
+Everything is built and tested against the local server. What is left is running it for real.
 
-1. **Tell demo data from real data.** The demo is known by `MetaKeys.seededAt` and the seed's
-   readable ids (`store-sablon`, `item-tomates`…). Anything else in the database is the
-   restaurant's own. Record how the data started (seeded, or created by hand) so the check stays
-   reliable after edits.
-2. **Three cases at first connection:**
-   - only the demo: wipe it, as today;
-   - real data, and the restaurant is new on the server: **upload it** ("Envoyer mes données");
-   - real data, and the restaurant already has data on the server: **keep the server's**, after
-     saving the device's data to a backup file the owner can keep.
-3. **Uploading existing data:** queue every live row of every synced table in the outbox (parents
-   first: stores, catalog, items, suppliers, then movements, orders, receipts, employees,
-   attendance, payroll), and every photo in `photo_uploads`, then run a normal pass with a
-   progress line.
-4. **Fix the known gap in `createRestaurant`:** a retry after a network failure can create a
-   second local establishment. Make it resumable by reusing the establishment already created.
-5. **Demo mode stays available** from the welcome screen, and never syncs.
-6. **Tests:** each case, with the fake server and once against the local server.
-
-After Phase 9: Phase 10 (final screens and wording, including the outdated demo notice on the PIN
-login), Phase 11 (release), and Phase 0's cloud project.
+1. **Create the cloud project** (supabase.com, free tier): one project named "dev". In its
+   settings, keep e-mail confirmation on (the app handles "confirm your e-mail") or turn it off
+   for the first tests, and set the minimum password length to 8, like `supabase/config.toml`.
+2. **Send the server schema to it:** `supabase link --project-ref <ref>`, then
+   `supabase db push`. That applies every file in `supabase/migrations/`.
+3. **A config file for it:** `config/dev.json`, shaped like `config/example.json`, with the
+   project's URL and publishable key (not committed). Build with
+   `flutter run --dart-define-from-file=config/dev.json`.
+4. **The manual test on two real devices** (Phase 11, Step 11.2): a Windows PC and an Android
+   tablet on the same account, the Wi-Fi turned off and on, stock, orders, attendance, photos,
+   deletes, the double clock-in.
+5. **An app update over existing data** (Step 11.4): install the version from before these
+   phases with data in it, update, and check nothing is lost.
+6. **A small beta** (Step 11.5): one restaurant for two weeks, watching the sync page's
+   "À vérifier" list and the server logs.
+7. **Later, a "prod" project**, set up the same way, before anyone else uses it.
 
 ## Where we start
 
@@ -647,8 +641,9 @@ Goal: each device receives what other devices changed, and the screens update by
 >   keeps the server's `updated_at` and a stock rebuild changes no stamp.
 > - **Stores to pull come from the server** (`AccountBackend.storeIds`), so a device that just
 >   joined finds them.
-> - **Live updates** subscribe to `store_changes` and also fire when the connection opens or
->   reopens, which catches up anything missed while connecting.
+> - **Live updates** subscribe to `store_changes` and also fire (`LiveSignal.ready`) when the
+>   connection is really watching, after opening or reopening, which catches up anything
+>   missed while connecting. `replicationReady` makes the server say when that is.
 > - **The waiting screen** shows "Téléchargement des données… N éléments", a "Réessayer
 >   maintenant" button, and moves to the PIN login once an establishment exists locally.
 
@@ -831,6 +826,21 @@ accepted by the server.
 
 Goal: people who already use the app locally do not lose their data.
 
+> **Status: built, tested against the local server.**
+>
+> - **What the device holds** (`LocalDataRepository.kind`): nothing, only the demo (every live
+>   establishment is a demo id), or its own data (any other establishment).
+> - **Only the demo:** wiped when joining an account, as in Phase 4.
+> - **Own data, account empty:** "Envoyer mes données". The demo establishments are removed,
+>   every remaining row is queued parents first (by "touching" it, so the normal triggers
+>   queue it) along with every photo, and the next sync sends it all. From the set-up screen
+>   this is "Utiliser ces données", which asks only for the restaurant's name.
+> - **Own data, account already has data:** a backup JSON file of every synced table goes to the
+>   documents folder (the screen shows where), then the account's data replaces the device's.
+>   Joining with a code, or choosing "Commencer vide", backs up the same way.
+> - **New screen:** `/welcome/existing-data`, shown after an account sign-in on a device with
+>   its own data.
+
 **Step 9.1: Three starting cases.**
 At first account login, the device is in one of these cases:
 
@@ -857,6 +867,18 @@ Demo mode never syncs. The reset button stays available only in demo mode.
 ## Phase 10: Screens and user messages
 
 Goal: the user always knows the sync state, without technical words.
+
+> **Status: built, tested.** Most of it arrived with Phases 4 to 8; Phase 10 finished it:
+>
+> - **Sync page (account device):** state in words, last sync, changes and photos waiting, the
+>   restaurant, the account e-mail and this device's name, "Synchroniser maintenant", the
+>   "À vérifier" list, "Se reconnecter" after an expired session. No demo reset there.
+> - **Offline banner:** on an account device it follows the real state ("Serveur injoignable"
+>   when the last sync could not reach the server); in the demo it still follows the switch
+>   that shows the offline experience on demand.
+> - **Texts:** the demo notice on the PIN login now reads "Mode démonstration : restaurant
+>   fictif, rien n'est envoyé.", and the demo sync page no longer promises a future phase.
+> - **Widget tests** for each sync state, the banner, the list, and the demo page.
 
 **Step 10.1: The sync page.**
 Rewrite `lib/features/settings/presentation/pages/sync_status_page.dart`:

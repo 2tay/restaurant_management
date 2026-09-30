@@ -14,6 +14,7 @@ export 'device_access_repository.dart';
 export 'device_repository.dart';
 export 'employee_repository.dart';
 export 'item_repository.dart';
+export 'local_data_repository.dart';
 export 'movement_repository.dart';
 export 'order_repository.dart';
 export 'outbox_repository.dart';

@@ -27,7 +27,7 @@ class SettingsTabs extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final syncNeedsAttention =
-        ref.watch(offlineModeProvider) || ref.watch(pendingChangesProvider) > 0;
+        ref.watch(isOfflineProvider) || ref.watch(pendingChangesProvider) > 0;
 
     return SectionTabs(
       currentPath: currentPath,
