@@ -10,7 +10,17 @@ import '../../models/models.dart';
 abstract final class AttendanceRules {
   /// A single break longer than this is flagged "pause dépassée".
   static const int defaultMaxBreakMinutes = 30;
+
+  /// A journée de service open this long is flagged on the board: somebody
+  /// most likely forgot to close it, and every Pointer keeps landing on it.
+  /// Nothing closes it on its own — that would invent exit times.
+  static const Duration businessDayAlertAfter = Duration(hours: 18);
 }
+
+/// When the board starts flagging [day] as left open —
+/// [AttendanceRules.businessDayAlertAfter] after it opened.
+DateTime businessDayAlertAt(BusinessDay day) =>
+    day.openedAt.add(AttendanceRules.businessDayAlertAfter);
 
 /// Every pause across every session of the day, in session order.
 Iterable<AttendancePause> _allPauses(Attendance entry) =>

@@ -1933,6 +1933,8 @@
   "@timeclockStartDayPrompt": {"description": "Board drawer, before the day's first punch. {date} is e.g. 'jeudi 24/12/2026'.", "placeholders": {"date": {"type": "String"}}},
   "timeclockBusinessDayOpen": "Journée du {date} · ouverte à {time}",
   "@timeclockBusinessDayOpen": {"description": "Board notice while a journée de service is open. {date} is e.g. 'mardi 29/09/2026' — still yesterday's date after midnight until the journée is closed.", "placeholders": {"date": {"type": "String"}, "time": {"type": "String"}}},
+  "timeclockBusinessDayOverdue": "Ouverte depuis plus de {hours} h. Pensez à la fermer : tant qu'elle reste ouverte, chaque nouveau pointage y est rattaché.",
+  "@timeclockBusinessDayOverdue": {"description": "Warning under the open-journée notice once it has been open too long (likely forgotten).", "placeholders": {"hours": {"type": "int"}}},
   "timeclockBusinessDayClosed": "Journée du {date} fermée à {time}",
   "@timeclockBusinessDayClosed": {"description": "Board notice once today's journée de service is closed.", "placeholders": {"date": {"type": "String"}, "time": {"type": "String"}}},
   "timeclockBusinessDayClosedBody": "Le pointage reprendra demain.",

@@ -600,4 +600,34 @@ void main() {
       isNull,
     );
   });
+
+  _testBoard('a journée left open 18 h turns the notice into a warning', (
+    tester,
+  ) async {
+    final db = await _openBoard(tester);
+    // Opened at 08:00; the board starts at 12:00.
+    await AttendanceRepository(
+      db,
+    ).clockIn(EmployeeIds.amelie, StoreIds.sablon, now: _today(8));
+    await tester.pumpAndSettle();
+    final warning = find.textContaining('Ouverte depuis plus de 18 h');
+    expect(warning, findsNothing);
+
+    // 01:00 the next day — 17 h open, still fine.
+    await tester.pump(const Duration(hours: 13));
+    await tester.pumpAndSettle();
+    expect(warning, findsNothing);
+
+    // 02:01 — past 18 h: the notice flags itself, with nothing tapped.
+    await tester.pump(const Duration(hours: 1, minutes: 1));
+    await tester.pumpAndSettle();
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('timeclock-business-day-open')),
+        matching: warning,
+      ),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('timeclock-close-day')), findsOneWidget);
+  });
 }

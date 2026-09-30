@@ -3186,6 +3186,11 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String timeclockBusinessDayOverdue(int hours) {
+    return 'Ouverte depuis plus de $hours h. Pensez à la fermer : tant qu\'elle reste ouverte, chaque nouveau pointage y est rattaché.';
+  }
+
+  @override
   String timeclockBusinessDayClosed(String date, String time) {
     return 'Journée du $date fermée à $time';
   }

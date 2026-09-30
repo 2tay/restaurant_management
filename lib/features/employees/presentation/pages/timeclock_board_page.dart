@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -269,18 +271,30 @@ class _BusinessDayNotice extends ConsumerWidget {
     if (closedAt == null) ref.watch(employeesProvider(storeId));
 
     if (closedAt == null) {
-      return NoticeBanner(
-        key: const ValueKey('timeclock-business-day-open'),
-        icon: LucideIcons.calendarClock,
-        title: l10n.timeclockBusinessDayOpen(
-          date,
-          Formatters.time(businessDay.openedAt),
-        ),
-        action: OutlinedButton.icon(
-          key: const ValueKey('timeclock-close-day'),
-          onPressed: () => _close(context, ref),
-          icon: const Icon(LucideIcons.lock, size: AppSizing.iconSm),
-          label: Text(l10n.timeclockCloseDay),
+      // Turns amber on its own once the journée has been open too long — a
+      // forgotten close, which would leave tomorrow's punches on it.
+      return _Deadline(
+        at: businessDayAlertAt(businessDay),
+        now: ref.watch(attendanceClockProvider),
+        builder: (context, overdue) => NoticeBanner(
+          key: const ValueKey('timeclock-business-day-open'),
+          icon: overdue ? LucideIcons.triangleAlert : LucideIcons.calendarClock,
+          title: l10n.timeclockBusinessDayOpen(
+            date,
+            Formatters.time(businessDay.openedAt),
+          ),
+          message: overdue
+              ? l10n.timeclockBusinessDayOverdue(
+                  AttendanceRules.businessDayAlertAfter.inHours,
+                )
+              : null,
+          colors: overdue ? AppColors.lowStock : null,
+          action: OutlinedButton.icon(
+            key: const ValueKey('timeclock-close-day'),
+            onPressed: () => _close(context, ref),
+            icon: const Icon(LucideIcons.lock, size: AppSizing.iconSm),
+            label: Text(l10n.timeclockCloseDay),
+          ),
         ),
       );
     }
@@ -292,6 +306,55 @@ class _BusinessDayNotice extends ConsumerWidget {
       colors: AppColors.lowStock,
     );
   }
+}
+
+/// Builds with whether [at] has passed, and rebuilds by itself the moment it
+/// does — one timer, not a per-second tick.
+class _Deadline extends StatefulWidget {
+  const _Deadline({required this.at, required this.now, required this.builder});
+
+  final DateTime at;
+  final DateTime Function() now;
+  final Widget Function(BuildContext context, bool passed) builder;
+
+  @override
+  State<_Deadline> createState() => _DeadlineState();
+}
+
+class _DeadlineState extends State<_Deadline> {
+  Timer? _timer;
+
+  bool get _passed => !widget.now().isBefore(widget.at);
+
+  void _schedule() {
+    _timer?.cancel();
+    _timer = null;
+    if (_passed) return;
+    _timer = Timer(widget.at.difference(widget.now()), () {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _schedule();
+  }
+
+  @override
+  void didUpdateWidget(_Deadline oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.at != widget.at) _schedule();
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.builder(context, _passed);
 }
 
 String _lowerFirst(String s) =>

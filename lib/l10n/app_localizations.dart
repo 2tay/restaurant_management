@@ -5206,6 +5206,12 @@ abstract class AppLocalizations {
   /// **'Journée du {date} · ouverte à {time}'**
   String timeclockBusinessDayOpen(String date, String time);
 
+  /// Warning under the open-journée notice once it has been open too long (likely forgotten).
+  ///
+  /// In fr, this message translates to:
+  /// **'Ouverte depuis plus de {hours} h. Pensez à la fermer : tant qu\'elle reste ouverte, chaque nouveau pointage y est rattaché.'**
+  String timeclockBusinessDayOverdue(int hours);
+
   /// Board notice once today's journée de service is closed.
   ///
   /// In fr, this message translates to:
