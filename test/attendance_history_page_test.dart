@@ -6,7 +6,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:stock_inventory/app/router.dart';
 import 'package:stock_inventory/app/routes.dart';
+import 'package:stock_inventory/data/database/app_database.dart';
+import 'package:stock_inventory/data/repositories/repositories.dart';
 import 'package:stock_inventory/data/seed/dataset/dataset.dart';
+import 'package:stock_inventory/features/employees/presentation/widgets/correct_exit_dialog.dart';
+import 'package:stock_inventory/models/models.dart';
 import 'package:stock_inventory/shared/widgets/widgets.dart';
 
 import 'support/app_harness.dart';
@@ -19,6 +23,90 @@ Future<void> _open(
   appRouter.go(Routes.toAttendanceHistory(StoreIds.sablon));
   await tester.pumpAndSettle();
 }
+
+/// A day Noah never clocked out of, four days before the seed's "now"
+/// (2026-08-29 12:00) — from before the journée de service, nothing on the
+/// board can end it any more.
+const _forgottenId = 'att-forgotten';
+final _forgottenIn = DateTime(2026, 8, 25, 18);
+
+/// [breakAt] leaves a break running from that time — the exit cannot come
+/// before it.
+Future<void> _addForgottenDay(AppDatabase db, {DateTime? breakAt}) async {
+  await db.into(db.attendances).insert(
+    AttendancesCompanion.insert(
+      id: _forgottenId,
+      storeId: StoreIds.sablon,
+      employeeId: EmployeeIds.noah,
+      date: DateTime(2026, 8, 25),
+      status: breakAt == null
+          ? AttendanceStatus.working
+          : AttendanceStatus.onBreak,
+    ),
+  );
+  await db.into(db.attendanceSessions).insert(
+    AttendanceSessionsCompanion.insert(
+      id: '$_forgottenId-session-0',
+      attendanceId: _forgottenId,
+      position: 0,
+      clockInAt: _forgottenIn,
+    ),
+  );
+  if (breakAt != null) {
+    await db.into(db.attendancePauses).insert(
+      AttendancePausesCompanion.insert(
+        id: '$_forgottenId-pause-0',
+        sessionId: '$_forgottenId-session-0',
+        position: 0,
+        startAt: breakAt,
+      ),
+    );
+  }
+}
+
+/// Filtered to Noah, so the day is on the first page. Through Personnel
+/// first: the router outlives a test, and a page it reuses would keep the
+/// previous test's (unfiltered) state — the filter is read when it is built.
+Future<void> _openFilteredToNoah(WidgetTester tester) async {
+  appRouter.go(Routes.toEmployees(StoreIds.sablon));
+  await tester.pumpAndSettle();
+  appRouter.go(
+    Routes.toAttendanceHistory(StoreIds.sablon, employeeId: EmployeeIds.noah),
+  );
+  await tester.pumpAndSettle();
+}
+
+Future<void> _openForgottenDrawer(WidgetTester tester) async {
+  final chip = find.descendant(
+    of: find.byType(DataTable),
+    matching: find.text('Oubli de pointage'),
+  );
+  await tester.ensureVisible(chip.first);
+  await tester.tap(chip.first);
+  await tester.pumpAndSettle();
+}
+
+Future<void> _pickTime(WidgetTester tester, String hour, String minute) async {
+  await tester.tap(find.byKey(const ValueKey('correct-exit-time')));
+  await tester.pumpAndSettle();
+  // Type the time rather than drag the dial.
+  await tester.tap(find.byIcon(Icons.keyboard_outlined));
+  await tester.pumpAndSettle();
+  final fields = find.descendant(
+    of: find.byType(TimePickerDialog),
+    matching: find.byType(TextField),
+  );
+  await tester.enterText(fields.at(0), hour);
+  await tester.enterText(fields.at(1), minute);
+  await tester.tap(find.text('OK'));
+  await tester.pumpAndSettle();
+}
+
+bool _confirmEnabled(WidgetTester tester) =>
+    tester
+        .widget<FilledButton>(find.byKey(const ValueKey('correct-exit-confirm')))
+        .onPressed !=
+    null;
 
 void main() {
   testApp('opens with the compact table and no export button', (tester) async {
@@ -231,5 +319,99 @@ void main() {
         tester.getTopLeft(find.byWidget(e.widget)).dx,
     };
     expect(lefts, hasLength(1));
+  });
+
+  // L3: a day left open that the board can no longer end — « Corriger la
+  // sortie » in its drawer, signed by the PIN of whoever is signed in.
+
+  testApp('a finished day offers no correction', (tester) async {
+    await _open(tester);
+    final row = find
+        .descendant(
+          of: find.byType(DataTable),
+          matching: find.byType(AttendanceStatusBadge),
+        )
+        .first;
+    await tester.ensureVisible(row);
+    await tester.tap(row);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(DetailDrawer), findsOneWidget);
+    expect(find.byKey(const ValueKey('attendance-correct-exit')), findsNothing);
+  });
+
+  testApp('a forgotten exit is corrected past midnight, signed and traced', (
+    tester,
+  ) async {
+    final db = await pumpApp(tester, size: const Size(1400, 900));
+    await _addForgottenDay(db);
+    await _openFilteredToNoah(tester);
+
+    await _openForgottenDrawer(tester);
+    await tester.tap(find.byKey(const ValueKey('attendance-correct-exit')));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(CorrectExitDialog), findsOneWidget);
+    expect(find.text("Choisir l'heure"), findsOneWidget);
+    expect(_confirmEnabled(tester), isFalse, reason: 'no time picked yet');
+
+    // 00:30 after an 18:00 clock-in is the next day.
+    await _pickTime(tester, '00', '30');
+    expect(find.text('Sortie à 00:30'), findsOneWidget);
+    expect(find.textContaining('Le lendemain'), findsOneWidget);
+    expect(_confirmEnabled(tester), isTrue);
+
+    await tester.tap(find.byKey(const ValueKey('correct-exit-confirm')));
+    await tester.pumpAndSettle();
+    expect(find.byType(IdentityPromptDialog), findsOneWidget);
+    await tester.enterText(
+      find.descendant(
+        of: find.byType(IdentityPromptDialog),
+        matching: find.byType(TextField),
+      ),
+      '78.02.14-153.24', // Marc, the signed-in owner
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(
+        of: find.byType(IdentityPromptDialog),
+        matching: find.widgetWithText(FilledButton, 'Valider'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(DetailDrawer), findsNothing);
+    expect(find.textContaining('corrigée'), findsOneWidget);
+
+    final fixed = (await AttendanceRepository(db).attendance(_forgottenId))!;
+    expect(fixed.status, AttendanceStatus.done);
+    expect(fixed.sessions.single.clockOutAt, DateTime(2026, 8, 26, 0, 30));
+    expect(fixed.sessions.single.exitSetByEmployeeId, EmployeeIds.marc);
+  });
+
+  testApp('an exit before the running break is refused; Annuler writes '
+      'nothing', (tester) async {
+    final db = await pumpApp(tester, size: const Size(1400, 900));
+    await _addForgottenDay(db, breakAt: DateTime(2026, 8, 25, 22));
+    await _openFilteredToNoah(tester);
+
+    await _openForgottenDrawer(tester);
+    await tester.tap(find.byKey(const ValueKey('attendance-correct-exit')));
+    await tester.pumpAndSettle();
+
+    await _pickTime(tester, '21', '00');
+    expect(find.text('Avant le début de sa pause (22:00)'), findsOneWidget);
+    expect(_confirmEnabled(tester), isFalse);
+
+    await _pickTime(tester, '23', '00');
+    expect(find.textContaining('Avant le début'), findsNothing);
+    expect(_confirmEnabled(tester), isTrue);
+
+    await tester.tap(find.text('Annuler'));
+    await tester.pumpAndSettle();
+    expect(
+      (await AttendanceRepository(db).attendance(_forgottenId))!.status,
+      AttendanceStatus.onBreak,
+    );
   });
 }

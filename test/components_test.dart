@@ -1138,17 +1138,50 @@ void main() {
       paymentStatus: PaymentStatus.unpaid,
     );
 
-    Future<void> pump(WidgetTester tester, Attendance entry) async {
+    Future<void> pump(
+      WidgetTester tester,
+      Attendance entry, {
+      Map<String, String> exitAuthors = const {},
+    }) async {
       await initializeDateFormatting(Formatters.locale);
       await tester.pumpWidget(
         _host(
           SizedBox(
             width: 400,
-            child: AttendanceSessions(entry: entry, maxBreakMinutes: 30),
+            child: AttendanceSessions(
+              entry: entry,
+              maxBreakMinutes: 30,
+              exitAuthors: exitAuthors,
+            ),
           ),
         ),
       );
     }
+
+    testWidgets("a Départ entered in the employee's place says who", (
+      tester,
+    ) async {
+      await pump(
+        tester,
+        day([
+          AttendanceSession(clockInAt: at(8, 0), clockOutAt: at(12, 0)),
+          AttendanceSession(
+            clockInAt: at(14, 0),
+            clockOutAt: at(18, 0),
+            exitSetByEmployeeId: 'marc',
+          ),
+          AttendanceSession(
+            clockInAt: at(19, 0),
+            clockOutAt: at(20, 0),
+            exitSetByEmployeeId: 'gone',
+          ),
+        ]),
+        exitAuthors: const {'marc': 'Marc Delvaux'},
+      );
+      expect(find.text('Départ'), findsOneWidget, reason: 'clocked out alone');
+      expect(find.text('Départ · saisi par Marc Delvaux'), findsOneWidget);
+      expect(find.text('Départ · saisi par un responsable'), findsOneWidget);
+    });
 
     testWidgets('one session: titled Session N° 1, like a split day', (
       tester,

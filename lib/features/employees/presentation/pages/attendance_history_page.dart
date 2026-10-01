@@ -8,11 +8,13 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/attendance_status.dart';
 import '../../../../core/utils/employee_status.dart';
 import '../../../../core/utils/formatters.dart';
+import '../../../../data/current_employee.dart';
 import '../../../../data/providers.dart';
 import '../../../../data/repositories/repositories.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
+import '../widgets/correct_exit_dialog.dart';
 
 /// How far back the range picker opens on first load.
 const int _defaultRangeDays = 30;
@@ -245,7 +247,7 @@ class _AttendanceHistoryPageState extends ConsumerState<AttendanceHistoryPage> {
             builder: (context, constraints) {
               void onOpen(Attendance a) => _openDrawer(
                 a,
-                employeesById[a.employeeId],
+                employeesById,
                 settings,
               );
               return constraints.maxWidth >= _tableMinWidth
@@ -281,24 +283,102 @@ class _AttendanceHistoryPageState extends ConsumerState<AttendanceHistoryPage> {
   }
 
   /// Bare panel: the day itself is the heading — see [AttendanceDayDetail].
+  ///
+  /// A day left open (oubli de pointage) that the board can no longer end —
+  /// it is not the journée still open — gets « Corriger la sortie ».
   Future<void> _openDrawer(
     Attendance a,
-    Employee? employee,
+    Map<String, Employee> employeesById,
     StoreSettings settings,
-  ) {
+  ) async {
+    final l10n = AppLocalizations.of(context);
+    final employee = employeesById[a.employeeId];
+    final maxBreakMinutes = resolvedMaxBreakMinutes(
+      a,
+      fallback: settings.maxBreakMinutes,
+    );
+    final now = ref.read(attendanceClockProvider)();
+    final forgotten = attendanceAnomalies(
+      a,
+      maxBreakMinutes: maxBreakMinutes,
+      now: now,
+    ).contains(AttendanceAnomaly.oubliDePointage);
+    final open = forgotten
+        ? await ref.read(businessDayRepositoryProvider).current(a.storeId)
+        : null;
+    if (!mounted) return;
+    final correctable = forgotten && (open == null || open.date != a.date);
+
     return DetailDrawer.show(
       context,
       children: [
         AttendanceDayDetail(
           entry: a,
           employee: employee,
-          maxBreakMinutes: resolvedMaxBreakMinutes(
-            a,
-            fallback: settings.maxBreakMinutes,
-          ),
+          maxBreakMinutes: maxBreakMinutes,
+          exitAuthors: {
+            for (final e in employeesById.values) e.id: employeeDisplayName(e),
+          },
         ),
+        if (correctable) ...[
+          const SizedBox(height: AppSpacing.xxl),
+          Builder(
+            builder: (drawerContext) => FilledButton.icon(
+              key: const ValueKey('attendance-correct-exit'),
+              onPressed: () => _correctExit(drawerContext, a, employee),
+              icon: const Icon(LucideIcons.clockAlert, size: AppSizing.iconSm),
+              label: Text(l10n.attendanceCorrectExit),
+            ),
+          ),
+        ],
       ],
     );
+  }
+
+  /// The exit time, then the signed-in user's PIN, then the correction —
+  /// signed with their id. Closes the drawer on success: the row it showed
+  /// is now finished.
+  Future<void> _correctExit(
+    BuildContext drawerContext,
+    Attendance a,
+    Employee? employee,
+  ) async {
+    final l10n = AppLocalizations.of(drawerContext);
+    final actor = ref.read(currentEmployeeProvider);
+    if (actor == null) return;
+    final date = Formatters.dateLongWeekday(a.date);
+    final dateLower = date.isEmpty
+        ? date
+        : date[0].toLowerCase() + date.substring(1);
+
+    final exit = await CorrectExitDialog.show(
+      drawerContext,
+      entry: a,
+      employee: employee,
+      now: ref.read(attendanceClockProvider)(),
+    );
+    if (exit == null || !drawerContext.mounted) return;
+
+    final ok = await IdentityPromptDialog.show(
+      drawerContext,
+      title: l10n.identityPromptTitle,
+      subtitle: l10n.identityPromptCorrectExitSubtitle(dateLower),
+      verify: (pin) =>
+          ref.read(credentialRepositoryProvider).verifyPin(pin, actor.id),
+    );
+    if (!ok || !drawerContext.mounted) return;
+
+    final fixed = await ref
+        .read(attendanceRepositoryProvider)
+        .correctExit(a.id, exit, correctedByEmployeeId: actor.id);
+    if (!drawerContext.mounted) return;
+    if (fixed == null) {
+      AppSnackBar.error(drawerContext, l10n.attendanceCorrectExitFailed);
+      return;
+    }
+    Navigator.of(drawerContext).pop();
+    if (!mounted) return;
+    AppSnackBar.success(context, l10n.attendanceCorrectExitDone(dateLower));
   }
 
   bool get _dateRangeIsDefault => _from == _defaultFrom && _to == _defaultTo;

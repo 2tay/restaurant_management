@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
-import '../../../../core/utils/employee_status.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/utils/responsive.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -140,8 +138,9 @@ class _CloseBusinessDayDialogState extends State<CloseBusinessDayDialog> {
             ),
             for (final shift in widget.openShifts) ...[
               const SizedBox(height: AppSpacing.md),
-              _ShiftRow(
+              OpenShiftExitRow(
                 key: ValueKey('close-day-shift-${shift.id}'),
+                buttonKey: const ValueKey('close-day-exit'),
                 shift: shift,
                 employee: widget.employees[shift.employeeId],
                 exit: _exits[shift.id]!,
@@ -178,78 +177,6 @@ class _CloseBusinessDayDialogState extends State<CloseBusinessDayDialog> {
               : null,
           child: Text(l10n.timeclockCloseDay),
         ),
-      ],
-    );
-  }
-}
-
-/// One open shift: who, where they stand, and their exit time.
-class _ShiftRow extends StatelessWidget {
-  const _ShiftRow({
-    required this.shift,
-    required this.employee,
-    required this.exit,
-    required this.problem,
-    required this.onPick,
-    super.key,
-  });
-
-  final Attendance shift;
-  final Employee? employee;
-  final DateTime exit;
-  final String? problem;
-  final VoidCallback onPick;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-    final person = employee;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Name and badge, the exit time beside them — or under them when the
-        // dialog is narrow.
-        Wrap(
-          spacing: AppSpacing.md,
-          runSpacing: AppSpacing.sm,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (person != null) ...[
-                  EmployeeAvatar(employee: person, size: 32),
-                  const SizedBox(width: AppSpacing.sm),
-                ],
-                Flexible(
-                  child: Text(
-                    person == null ? '—' : employeeDisplayName(person),
-                    style: theme.textTheme.titleSmall,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.sm),
-                AttendanceStatusBadge(status: shift.status),
-              ],
-            ),
-            OutlinedButton.icon(
-              key: const ValueKey('close-day-exit'),
-              onPressed: onPick,
-              icon: const Icon(LucideIcons.clock, size: AppSizing.iconSm),
-              label: Text(l10n.timeclockCloseDayExit(Formatters.time(exit))),
-            ),
-          ],
-        ),
-        if (problem case final message?)
-          Padding(
-            padding: const EdgeInsets.only(top: AppSpacing.xs),
-            child: Text(
-              message,
-              style: theme.textTheme.bodySmall?.copyWith(color: AppColors.error),
-            ),
-          ),
       ],
     );
   }

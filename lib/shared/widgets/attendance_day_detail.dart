@@ -32,6 +32,7 @@ class AttendanceDayDetail extends StatelessWidget {
     this.showPin = true,
     this.dateLine,
     this.now,
+    this.exitAuthors = const {},
     super.key,
   });
 
@@ -49,6 +50,9 @@ class AttendanceDayDetail extends StatelessWidget {
 
   /// Pins "today" for the oubli-de-pointage rule in tests.
   final DateTime? now;
+
+  /// Display names by employee id — see [AttendanceSessions.exitAuthors].
+  final Map<String, String> exitAuthors;
 
   @override
   Widget build(BuildContext context) {
@@ -80,7 +84,11 @@ class AttendanceDayDetail extends StatelessWidget {
           ),
         ),
         const SizedBox(height: AppSpacing.xxl),
-        AttendanceSessions(entry: entry, maxBreakMinutes: maxBreakMinutes),
+        AttendanceSessions(
+          entry: entry,
+          maxBreakMinutes: maxBreakMinutes,
+          exitAuthors: exitAuthors,
+        ),
         const SizedBox(height: AppSpacing.xxl),
         Text(
           l10n.attendanceDaySummary,

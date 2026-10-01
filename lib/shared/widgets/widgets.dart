@@ -50,6 +50,7 @@ export 'live_date_time.dart';
 export 'loading_state.dart';
 export 'notice_banner.dart';
 export 'offline_banner.dart';
+export 'open_shift_exit_row.dart';
 export 'paginator.dart';
 export 'payment_status_badge.dart';
 export 'payroll_day_detail.dart';

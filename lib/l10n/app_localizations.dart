@@ -5368,6 +5368,66 @@ abstract class AppLocalizations {
   /// **'Départ'**
   String get timeclockLogDeparture;
 
+  /// Timestamp log label — a clock-out a manager entered in the employee's place (closing the journée, or correcting a forgotten exit).
+  ///
+  /// In fr, this message translates to:
+  /// **'Départ · saisi par {name}'**
+  String timeclockLogDepartureSetBy(String name);
+
+  /// Timestamp log label — a clock-out entered in the employee's place by someone no longer resolvable.
+  ///
+  /// In fr, this message translates to:
+  /// **'Départ · saisi par un responsable'**
+  String get timeclockLogDepartureSetByUnknown;
+
+  /// History drawer button and dialog title/confirm: end a day the employee forgot to clock out of.
+  ///
+  /// In fr, this message translates to:
+  /// **'Corriger la sortie'**
+  String get attendanceCorrectExit;
+
+  /// Correct-exit dialog: the exit-time button before any time is picked.
+  ///
+  /// In fr, this message translates to:
+  /// **'Choisir l\'heure'**
+  String get attendanceCorrectExitPick;
+
+  /// Correct-exit dialog body.
+  ///
+  /// In fr, this message translates to:
+  /// **'La sortie du {date} n\'a jamais été pointée (arrivée à {time}). Indiquez l\'heure à laquelle le service s\'est terminé :'**
+  String attendanceCorrectExitBody(String date, String time);
+
+  /// Correct-exit dialog: the picked exit is after now.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cette heure n\'est pas encore passée'**
+  String get attendanceCorrectExitFuture;
+
+  /// Correct-exit dialog: under the exit button when the exit falls after midnight.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le lendemain, {date}'**
+  String attendanceCorrectExitNextDay(String date);
+
+  /// Correct-exit dialog footer: the correction is traced.
+  ///
+  /// In fr, this message translates to:
+  /// **'L\'heure saisie est enregistrée à votre nom.'**
+  String get attendanceCorrectExitSigned;
+
+  /// Snackbar after a forgotten exit was corrected.
+  ///
+  /// In fr, this message translates to:
+  /// **'Sortie du {date} corrigée.'**
+  String attendanceCorrectExitDone(String date);
+
+  /// Snackbar when correctExit was refused.
+  ///
+  /// In fr, this message translates to:
+  /// **'La sortie n\'a pas été corrigée : le pointage a changé entre-temps. Réessayez.'**
+  String get attendanceCorrectExitFailed;
+
   /// Store settings section header for the break allowance.
   ///
   /// In fr, this message translates to:
@@ -6448,6 +6508,12 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Saisissez votre numéro PIN pour fermer la journée du {date}'**
   String identityPromptCloseDaySubtitle(String date);
+
+  /// PIN prompt before correcting a forgotten exit.
+  ///
+  /// In fr, this message translates to:
+  /// **'Saisissez votre numéro PIN pour corriger la sortie du {date}'**
+  String identityPromptCorrectExitSubtitle(String date);
 
   /// Subtitle of the identity dialog before settling an employee's payroll days — the signed-in user confirms with their own PIN.
   ///

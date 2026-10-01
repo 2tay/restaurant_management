@@ -3292,6 +3292,48 @@ class AppLocalizationsFr extends AppLocalizations {
   String get timeclockLogDeparture => 'Départ';
 
   @override
+  String timeclockLogDepartureSetBy(String name) {
+    return 'Départ · saisi par $name';
+  }
+
+  @override
+  String get timeclockLogDepartureSetByUnknown =>
+      'Départ · saisi par un responsable';
+
+  @override
+  String get attendanceCorrectExit => 'Corriger la sortie';
+
+  @override
+  String get attendanceCorrectExitPick => 'Choisir l\'heure';
+
+  @override
+  String attendanceCorrectExitBody(String date, String time) {
+    return 'La sortie du $date n\'a jamais été pointée (arrivée à $time). Indiquez l\'heure à laquelle le service s\'est terminé :';
+  }
+
+  @override
+  String get attendanceCorrectExitFuture =>
+      'Cette heure n\'est pas encore passée';
+
+  @override
+  String attendanceCorrectExitNextDay(String date) {
+    return 'Le lendemain, $date';
+  }
+
+  @override
+  String get attendanceCorrectExitSigned =>
+      'L\'heure saisie est enregistrée à votre nom.';
+
+  @override
+  String attendanceCorrectExitDone(String date) {
+    return 'Sortie du $date corrigée.';
+  }
+
+  @override
+  String get attendanceCorrectExitFailed =>
+      'La sortie n\'a pas été corrigée : le pointage a changé entre-temps. Réessayez.';
+
+  @override
   String get storeSettingsHours => 'Pauses';
 
   @override
@@ -3949,6 +3991,11 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String identityPromptCloseDaySubtitle(String date) {
     return 'Saisissez votre numéro PIN pour fermer la journée du $date';
+  }
+
+  @override
+  String identityPromptCorrectExitSubtitle(String date) {
+    return 'Saisissez votre numéro PIN pour corriger la sortie du $date';
   }
 
   @override
