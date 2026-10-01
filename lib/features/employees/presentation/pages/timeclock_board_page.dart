@@ -164,8 +164,12 @@ class _TimeclockBoardPageState extends ConsumerState<TimeclockBoardPage> {
     required Widget? notice,
   }) {
     // The owner does not clock in — the board shows only the staff who do.
+    // Managers first, then by where each one stands, then by name.
     final all = employees.where((e) => e.role != EmployeeRole.owner).toList()
       ..sort((a, b) {
+        final managerA = a.role == EmployeeRole.manager ? 0 : 1;
+        final managerB = b.role == EmployeeRole.manager ? 0 : 1;
+        if (managerA != managerB) return managerA.compareTo(managerB);
         final rankA = _rank(board[a.id]);
         final rankB = _rank(board[b.id]);
         if (rankA != rankB) return rankA.compareTo(rankB);
@@ -514,6 +518,11 @@ class _EmployeeCard extends StatelessWidget {
     final status = entry?.status ?? AttendanceStatus.notClockedIn;
 
     return AppCard(
+      // A manager's card is outlined in the brand green — the colour of the
+      // « Journée fermée » notice and the hourly rate on Personnel.
+      borderColor: employee.role == EmployeeRole.manager
+          ? AppColors.brandTint.solid
+          : null,
       child: Stack(
         children: [
           Column(

@@ -22,6 +22,7 @@ class AppCard extends StatefulWidget {
     this.accentColor,
     this.bordered = true,
     this.dashedBorderColor,
+    this.borderColor,
     super.key,
   });
 
@@ -46,6 +47,13 @@ class AppCard extends StatefulWidget {
   /// Draws a dashed outline in this colour instead of the resting hairline —
   /// a record that is no longer active (a retired employee).
   final Color? dashedBorderColor;
+
+  /// Draws a solid outline in this colour, [selectedBorderWidth] thick,
+  /// instead of the resting hairline — a card set apart from its neighbours
+  /// (a manager on the pointage board). Selection and focus still win. The
+  /// content does not move: it is inset by the hairline's width, like every
+  /// other card in the row.
+  final Color? borderColor;
 
   /// The hairline a resting card is drawn with.
   static const double borderWidth = 1;
@@ -106,6 +114,14 @@ class _AppCardState extends State<AppCard> {
                   color: AppColors.primary600,
                   width: AppCard.selectedBorderWidth,
                 )
+              : widget.borderColor != null
+              // The hairline's width in the layout, so the content sits
+              // exactly where its neighbours' does; the foreground draws the
+              // rest of the stroke on top.
+              ? Border.all(
+                  color: widget.borderColor!,
+                  width: AppCard.borderWidth,
+                )
               : widget.bordered && widget.dashedBorderColor == null
               ? Border.all(
                   color: AppColors.hairline,
@@ -120,6 +136,16 @@ class _AppCardState extends State<AppCard> {
               ? AppElevation.cardHovered
               : AppElevation.card,
         ),
+        foregroundDecoration:
+            widget.borderColor != null && !widget.selected && !_focused
+            ? BoxDecoration(
+                borderRadius: AppRadius.lgAll,
+                border: Border.all(
+                  color: widget.borderColor!,
+                  width: AppCard.selectedBorderWidth,
+                ),
+              )
+            : null,
         child: ClipRRect(
           borderRadius: AppRadius.lgAll,
           child: Material(

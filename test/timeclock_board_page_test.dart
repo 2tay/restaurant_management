@@ -6,8 +6,8 @@ import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stock_inventory/app/router.dart';
-import 'package:stock_inventory/core/theme/app_colors.dart';
 import 'package:stock_inventory/app/routes.dart';
+import 'package:stock_inventory/core/theme/app_colors.dart';
 import 'package:stock_inventory/core/utils/formatters.dart';
 import 'package:stock_inventory/data/database/app_database.dart';
 import 'package:stock_inventory/data/repositories/repositories.dart';
@@ -64,6 +64,46 @@ String _name(String id) {
 }
 
 void main() {
+  _testBoard('managers come first, outlined in the brand green', (
+    tester,
+  ) async {
+    await _openBoard(tester);
+
+    AppCard cardOf(String id) => tester.widget<AppCard>(
+      find
+          .ancestor(
+            of: find.text(_name(id)),
+            matching: find.byType(AppCard),
+          )
+          .first,
+    );
+    final managers = mockEmployees
+        .where(
+          (e) =>
+              e.storeId == StoreIds.sablon &&
+              e.role == EmployeeRole.manager &&
+              e.archivedAt == null,
+        )
+        .toList();
+    expect(managers, isNotEmpty);
+
+    // Card order, top-left first.
+    final cards = find.descendant(
+      of: find.byType(ResponsiveCardGrid),
+      matching: find.byType(AppCard),
+    );
+    final first = tester.widgetList<AppCard>(cards).take(managers.length);
+    expect(
+      first.every((c) => c.borderColor == AppColors.brandTint.solid),
+      isTrue,
+      reason: 'the first cards are the managers',
+    );
+    for (final m in managers) {
+      expect(cardOf(m.id).borderColor, AppColors.brandTint.solid);
+    }
+    expect(cardOf(EmployeeIds.noah).borderColor, isNull);
+  });
+
   _testBoard('cards show the name but never the PIN', (tester) async {
     await _openBoard(tester);
 
