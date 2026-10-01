@@ -57,6 +57,7 @@ export 'payroll_day_detail.dart';
 export 'primary_button.dart';
 export 'product_image.dart';
 export 'quantity_stepper.dart';
+export 'retired_chip.dart';
 export 'search_field.dart';
 export 'searchable_dropdown.dart';
 export 'section_header.dart';

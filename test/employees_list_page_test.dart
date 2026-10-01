@@ -385,7 +385,12 @@ void main() {
     await _toList(tester);
 
     final chip = tester.widget<LabelChip>(
-      find.byKey(const ValueKey('employee-row-retired')).first,
+      find
+          .descendant(
+            of: find.byKey(const ValueKey('employee-row-retired')).first,
+            matching: find.byType(LabelChip),
+          )
+          .first,
     );
     expect(chip.foreground, const Color(0xFF8E1B1B));
 
@@ -951,5 +956,41 @@ void main() {
     await _toList(tester);
     expect(find.byType(DataTable), findsOneWidget);
     expect(find.byType(Paginator), findsOneWidget);
+  });
+
+  // Audit L10: a warning, not a refusal, for someone in service or still owed
+  // days. (Retiring yourself or the last owner is refused in the repository —
+  // and unreachable here anyway: only the owner manages Personnel, and the
+  // owner has no card on it.)
+
+  Future<void> openArchive(WidgetTester tester, String id) async {
+    final card = find.byKey(ValueKey('employee-card-$id'));
+    await tester.ensureVisible(card);
+    await tester.tap(
+      find.descendant(
+        of: card,
+        matching: find.byKey(const ValueKey('employee-card-menu')),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Retirer'));
+    await tester.pumpAndSettle();
+  }
+
+  testApp('Retirer warns about a shift in progress and unpaid days, then '
+      'archives anyway', (tester) async {
+    final db = await _open(tester);
+    // Karim is clocked in today in the seed, and has unpaid finished days.
+    await openArchive(tester, EmployeeIds.karim);
+
+    expect(find.byType(ConfirmDialog), findsOneWidget);
+    expect(find.textContaining('est en service'), findsOneWidget);
+    expect(find.textContaining('pas encore payé'), findsOneWidget);
+    expect(find.textContaining('resteront payables'), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(FilledButton, 'Retirer').last);
+    await tester.pumpAndSettle();
+    final karim = await EmployeeRepository(db).employee(EmployeeIds.karim);
+    expect(karim!.archivedAt, isNotNull);
   });
 }

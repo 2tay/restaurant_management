@@ -128,7 +128,8 @@ class PayrollRepository {
 
   /// Finished (`done`) days for the Historique de paiement screen.
   ///
-  /// [employeeId] null means every **active** employee of the store; a value
+  /// [employeeId] null means every employee [watchPayableEmployees] lists —
+  /// the active ones, and a retired one still owed finished days; a value
   /// scopes to one person (retired employees still resolve). [from] / [to] bound
   /// the range (inclusive calendar days), null meaning unbounded on that side;
   /// the lower bound is never earlier than each employee's own hire date.
@@ -402,14 +403,39 @@ class PayrollRepository {
     String storeId,
     String? employeeId,
   ) async {
-    final query = _db.select(_db.employees)
-      ..where((e) => e.storeId.equals(storeId));
-    if (employeeId != null) {
-      query.where((e) => e.id.equals(employeeId));
-    } else {
-      query.where((e) => e.archivedAt.isNull());
+    if (employeeId == null) {
+      return _payableEmployeesQuery(
+        storeId,
+      ).get().then((rows) => rows.map(employeeFromRow).toList());
     }
+    final query = _db.select(_db.employees)
+      ..where((e) => e.storeId.equals(storeId) & e.id.equals(employeeId));
     return query.get().then((rows) => rows.map(employeeFromRow).toList());
+  }
+
+  /// The people the payroll screen lists: every active employee of the
+  /// store, and a retired one who still has finished days to pay — they are
+  /// owed, so they stay payable until they are paid, then drop off.
+  Stream<List<Employee>> watchPayableEmployees(String storeId) =>
+      _payableEmployeesQuery(
+        storeId,
+      ).watch().map((rows) => rows.map(employeeFromRow).toList());
+
+  SimpleSelectStatement<$EmployeesTable, EmployeeRow> _payableEmployeesQuery(
+    String storeId,
+  ) {
+    final a = _db.attendances;
+    final owed = existsQuery(
+      _db.selectOnly(a)
+        ..addColumns([a.id])
+        ..where(
+          a.employeeId.equalsExp(_db.employees.id) &
+              a.status.equalsValue(AttendanceStatus.done) &
+              a.payrollPeriodId.isNull(),
+        ),
+    );
+    return _db.select(_db.employees)
+      ..where((e) => e.storeId.equals(storeId) & (e.archivedAt.isNull() | owed));
   }
 
   Future<List<PayrollPeriod>> _pageMatches(

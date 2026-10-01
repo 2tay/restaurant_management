@@ -408,14 +408,7 @@ class _EmployeeTable extends StatelessWidget {
             employee: employee,
             dimmed: archived,
             trailing: archived
-                ? LabelChip(
-                    key: const ValueKey('employee-row-retired'),
-                    label: l10n.employeesArchivedPill,
-                    background: AppColors.outOfStock.container,
-                    foreground: AppColors.outOfStock.foreground,
-                    dense: true,
-                    borderRadius: AppRadius.smAll,
-                  )
+                ? const RetiredChip(key: ValueKey('employee-row-retired'))
                 : null,
           ),
         ),

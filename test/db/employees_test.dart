@@ -240,6 +240,57 @@ void main() {
       expect(await employees.archive(id), isFalse);
     });
 
+    // Audit L10.
+    test('nobody archives themselves', () async {
+      expect(
+        await employees.archiveRefusal(
+          EmployeeIds.amelie,
+          byEmployeeId: EmployeeIds.amelie,
+        ),
+        ArchiveRefusal.self,
+      );
+      expect(
+        await employees.archive(
+          EmployeeIds.amelie,
+          byEmployeeId: EmployeeIds.amelie,
+        ),
+        isFalse,
+      );
+      expect((await employees.employee(EmployeeIds.amelie))!.archivedAt, isNull);
+      // Somebody else may.
+      expect(
+        await employees.archive(
+          EmployeeIds.amelie,
+          byEmployeeId: EmployeeIds.marc,
+        ),
+        isTrue,
+      );
+    });
+
+    test('the last active owner cannot be archived; with a second one, '
+        'either can', () async {
+      expect(
+        await employees.archiveRefusal(EmployeeIds.marc),
+        ArchiveRefusal.lastOwner,
+      );
+      expect(await employees.archive(EmployeeIds.marc), isFalse);
+
+      final second = (await create(
+        role: EmployeeRole.owner,
+        password: '4321',
+      ))!;
+      expect(await employees.archiveRefusal(EmployeeIds.marc), isNull);
+      expect(
+        await employees.archive(EmployeeIds.marc, byEmployeeId: second.id),
+        isTrue,
+      );
+      // Now `second` is the last one.
+      expect(
+        await employees.archiveRefusal(second.id),
+        ArchiveRefusal.lastOwner,
+      );
+    });
+
     test('restore clears archivedAt and refuses when not archived', () async {
       expect(await employees.restore(EmployeeIds.karim), isFalse);
 

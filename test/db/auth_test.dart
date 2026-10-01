@@ -19,6 +19,7 @@ import '../support/db_fixture.dart';
 /// PINs from the seed roster.
 const _marcPin = '78.02.14-153.24'; // owner
 const _eliePin = '03.06.09-334.02'; // Élise — staff, no app access
+const _ameliePin = '89.07.30-201.44'; // manager
 
 void main() {
   late AppDatabase db;
@@ -145,24 +146,25 @@ void main() {
   });
 
   group('archived employees', () {
+    // Amélie, a manager — Marc, the only owner, cannot be archived at all.
     test('an archived employee is refused, even with the right password',
         () async {
-      await EmployeeRepository(db).archive(EmployeeIds.marc);
+      await EmployeeRepository(db).archive(EmployeeIds.amelie);
 
-      final attempt = await credentials.authenticate(_marcPin, '1234');
+      final attempt = await credentials.authenticate(_ameliePin, '1234');
       expect(attempt.outcome, LoginOutcome.archived);
-      expect(attempt.employee?.id, EmployeeIds.marc);
-      final credential = (await credentials.forEmployee(EmployeeIds.marc))!;
+      expect(attempt.employee?.id, EmployeeIds.amelie);
+      final credential = (await credentials.forEmployee(EmployeeIds.amelie))!;
       expect(credential.failedAttempts, 0, reason: 'nothing counted');
       expect(credential.lastLoginAt, isNull, reason: 'no login stamped');
     });
 
     test('restoring gives access back with the same password', () async {
       final repo = EmployeeRepository(db);
-      await repo.archive(EmployeeIds.marc);
-      await repo.restore(EmployeeIds.marc);
+      await repo.archive(EmployeeIds.amelie);
+      await repo.restore(EmployeeIds.amelie);
 
-      final attempt = await credentials.authenticate(_marcPin, '1234');
+      final attempt = await credentials.authenticate(_ameliePin, '1234');
       expect(attempt.outcome, LoginOutcome.success);
     });
   });

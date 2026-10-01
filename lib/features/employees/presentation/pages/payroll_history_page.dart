@@ -110,7 +110,7 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final data = asyncAll2(
-      ref.watch(activeEmployeesProvider(widget.storeId)),
+      ref.watch(payableEmployeesProvider(widget.storeId)),
       ref.watch(storeSettingsProvider(widget.storeId)),
       (employees, settings) => (employees: employees, settings: settings),
     );
@@ -124,7 +124,7 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
       >(
         value: data,
         onRetry: () {
-          ref.invalidate(activeEmployeesProvider(widget.storeId));
+          ref.invalidate(payableEmployeesProvider(widget.storeId));
           ref.invalidate(storeSettingsProvider(widget.storeId));
         },
         builder: (context, base) {
@@ -657,7 +657,15 @@ class _DaysTable extends StatelessWidget {
       onSelectChanged: (_) => onOpen(a),
       cells: [
         if (showEmployee)
-          DataCell(EmployeeCell(employee: employee)),
+          DataCell(
+            EmployeeCell(
+              employee: employee,
+              dimmed: employee?.archivedAt != null,
+              trailing: employee?.archivedAt != null
+                  ? const RetiredChip(key: ValueKey('payroll-row-retired'))
+                  : null,
+            ),
+          ),
         DataCell(WeekdayDate(a.date)),
         DataCell(
           pauses == 0
@@ -804,13 +812,24 @@ class _PayrollDayCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
-                      showEmployee && employee != null
-                          ? employeeDisplayName(employee)
-                          : Formatters.dateLong(attendance.date),
-                      style: theme.textTheme.titleSmall,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                    // A Wrap, not a Row: on a narrow card « Retiré » drops
+                    // under the name instead of pushing past the edge.
+                    Wrap(
+                      spacing: AppSpacing.sm,
+                      runSpacing: AppSpacing.xs,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        Text(
+                          showEmployee && employee != null
+                              ? employeeDisplayName(employee)
+                              : Formatters.dateLong(attendance.date),
+                          style: theme.textTheme.titleSmall,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        if (showEmployee && employee?.archivedAt != null)
+                          const RetiredChip(),
+                      ],
                     ),
                     Text(
                       showEmployee

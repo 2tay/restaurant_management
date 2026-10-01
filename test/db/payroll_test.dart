@@ -525,4 +525,50 @@ void main() {
       expect(covered, isNotEmpty, reason: period.id);
     }
   });
+
+  // Audit L6: a retired employee still owed finished days stays on the payroll
+  // screen — listed, counted and payable — until those days are paid. The seed
+  // has one: Camille, archived with a finished day still unpaid.
+  group('a retired employee still owed days', () {
+    test('stays in the payable list, and drops off once paid', () async {
+      final camille = (await employees.employee(EmployeeIds.camille))!;
+      expect(camille.archivedAt, isNotNull);
+      final owed = await payroll.preview(EmployeeIds.camille, StoreIds.sablon);
+      expect(owed.isEmpty, isFalse, reason: 'the seed owes Camille a day');
+
+      final listed = await payroll.watchPayableEmployees(StoreIds.sablon).first;
+      expect(listed.map((e) => e.id), contains(EmployeeIds.camille));
+
+      await payroll.pay(
+        EmployeeIds.camille,
+        StoreIds.sablon,
+        paidByEmployeeId: EmployeeIds.marc,
+        now: seedInstant,
+      );
+      final after = await payroll.watchPayableEmployees(StoreIds.sablon).first;
+      expect(after.map((e) => e.id), isNot(contains(EmployeeIds.camille)));
+    });
+
+    test('their unpaid days count in the all-employees view', () async {
+      final all = await payroll.days(StoreIds.sablon, pageSize: 1000);
+      expect(all.employeesById.keys, contains(EmployeeIds.camille));
+      expect(
+        all.rows.where(
+          (a) =>
+              a.employeeId == EmployeeIds.camille &&
+              a.paymentStatus == PaymentStatus.unpaid,
+        ),
+        isNotEmpty,
+      );
+    });
+
+    test('an active employee is listed even when owed nothing', () async {
+      final listed = await payroll.watchPayableEmployees(StoreIds.sablon).first;
+      final active = await employees.activeEmployees(StoreIds.sablon);
+      expect(
+        listed.map((e) => e.id),
+        containsAll(active.map((e) => e.id)),
+      );
+    });
+  });
 }

@@ -566,6 +566,14 @@ final employeesProvider = StreamProvider.family<List<Employee>, String>(
       ref.watch(employeeRepositoryProvider).watchEmployees(storeId),
 );
 
+/// The payroll screen's people: the active roster, plus anyone retired who is
+/// still owed finished days (audit L6) — see
+/// `PayrollRepository.watchPayableEmployees`.
+final payableEmployeesProvider = StreamProvider.family<List<Employee>, String>(
+  (ref, storeId) =>
+      ref.watch(payrollRepositoryProvider).watchPayableEmployees(storeId),
+);
+
 /// The roster without the archived — the pointage board and the paie pickers.
 final activeEmployeesProvider = StreamProvider.family<List<Employee>, String>(
   (ref, storeId) =>

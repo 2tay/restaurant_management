@@ -265,8 +265,40 @@ class EmployeeRepository {
   /// `false` if already archived. History — attendance, payroll — is left
   /// exactly as it was, the same as a removed supplier keeping its movements.
   /// There is no hard delete.
-  Future<bool> archive(String id, {DateTime? at}) =>
-      _setArchivedAt(id, at ?? clock.now());
+  ///
+  /// Also refuses what [archiveRefusal] names — retiring yourself
+  /// ([byEmployeeId] is who asks), or the last active owner.
+  Future<bool> archive(String id, {String? byEmployeeId, DateTime? at}) {
+    return _db.transaction(() async {
+      if (await archiveRefusal(id, byEmployeeId: byEmployeeId) != null) {
+        return false;
+      }
+      return _setArchivedAt(id, at ?? clock.now());
+    });
+  }
+
+  /// Why [id] cannot be archived by [byEmployeeId], or null when it can:
+  /// - [ArchiveRefusal.self] — nobody retires themselves: the session would
+  ///   stay open, then never open again (an archived employee cannot sign in);
+  /// - [ArchiveRefusal.lastOwner] — the only active owner holds the payroll
+  ///   and every store; without one, nobody could pay or restore them.
+  Future<ArchiveRefusal?> archiveRefusal(
+    String id, {
+    String? byEmployeeId,
+  }) async {
+    if (id == byEmployeeId) return ArchiveRefusal.self;
+    final existing = await employee(id);
+    if (existing == null || existing.role != EmployeeRole.owner) return null;
+    final otherOwners = await (_db.select(_db.employees)
+          ..where(
+            (e) =>
+                e.role.equalsValue(EmployeeRole.owner) &
+                e.archivedAt.isNull() &
+                e.id.equals(id).not(),
+          ))
+        .get();
+    return otherOwners.isEmpty ? ArchiveRefusal.lastOwner : null;
+  }
 
   /// Brings a retired employee back. Returns `false` if not archived.
   Future<bool> restore(String id) => _setArchivedAt(id, null);
@@ -309,4 +341,14 @@ class EmployeeRepository {
 
   Employee? _toEmployeeOrNull(EmployeeRow? row) =>
       row == null ? null : employeeFromRow(row);
+}
+
+/// Why an employee cannot be archived — see
+/// [EmployeeRepository.archiveRefusal].
+enum ArchiveRefusal {
+  /// The one asking is the one being archived.
+  self,
+
+  /// The only active owner left on the account.
+  lastOwner,
 }

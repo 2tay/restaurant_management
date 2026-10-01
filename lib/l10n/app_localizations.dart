@@ -5044,6 +5044,36 @@ abstract class AppLocalizations {
   /// **'Cette personne n\'apparaîtra plus dans le personnel actif. Son historique de pointage et de paie reste conservé.'**
   String get employeeArchiveBody;
 
+  /// Archive confirm: warning when the employee is still working or on a break.
+  ///
+  /// In fr, this message translates to:
+  /// **'{name} est en service : sa journée restera ouverte jusqu\'à la fermeture de la journée de service.'**
+  String employeeArchiveWarnInService(String name);
+
+  /// Archive confirm: warning when finished days are still unpaid.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =1{1 jour terminé n\'est pas encore payé} other{{count} jours terminés ne sont pas encore payés}} ({amount}). Ils resteront payables dans Paiement.'**
+  String employeeArchiveWarnUnpaid(int count, String amount);
+
+  /// Snackbar when the signed-in user tries to archive their own record.
+  ///
+  /// In fr, this message translates to:
+  /// **'Vous ne pouvez pas vous retirer vous-même.'**
+  String get employeeArchiveRefusedSelf;
+
+  /// Snackbar when archiving the only active owner.
+  ///
+  /// In fr, this message translates to:
+  /// **'Impossible de retirer le dernier propriétaire : lui seul peut payer et voir tous les établissements.'**
+  String get employeeArchiveRefusedLastOwner;
+
+  /// Snackbar when the archive was refused after the confirm.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cette personne n\'a pas été retirée. Réessayez.'**
+  String get employeeArchiveFailed;
+
   /// Confirms archiving an employee. Deliberately not 'Supprimer' — this is a soft removal.
   ///
   /// In fr, this message translates to:

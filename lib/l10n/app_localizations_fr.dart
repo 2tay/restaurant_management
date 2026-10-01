@@ -3086,6 +3086,34 @@ class AppLocalizationsFr extends AppLocalizations {
       'Cette personne n\'apparaîtra plus dans le personnel actif. Son historique de pointage et de paie reste conservé.';
 
   @override
+  String employeeArchiveWarnInService(String name) {
+    return '$name est en service : sa journée restera ouverte jusqu\'à la fermeture de la journée de service.';
+  }
+
+  @override
+  String employeeArchiveWarnUnpaid(int count, String amount) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count jours terminés ne sont pas encore payés',
+      one: '1 jour terminé n\'est pas encore payé',
+    );
+    return '$_temp0 ($amount). Ils resteront payables dans Paiement.';
+  }
+
+  @override
+  String get employeeArchiveRefusedSelf =>
+      'Vous ne pouvez pas vous retirer vous-même.';
+
+  @override
+  String get employeeArchiveRefusedLastOwner =>
+      'Impossible de retirer le dernier propriétaire : lui seul peut payer et voir tous les établissements.';
+
+  @override
+  String get employeeArchiveFailed =>
+      'Cette personne n\'a pas été retirée. Réessayez.';
+
+  @override
   String get employeeArchiveConfirm => 'Retirer';
 
   @override
