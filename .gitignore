@@ -47,3 +47,6 @@ app.*.map.json
 # Claude Code — keep the project brief, drop machine-local permission settings
 .claude/settings.local.json
 docs/
+
+# Audit reports — kept locally, not versioned
+models_rapport/
