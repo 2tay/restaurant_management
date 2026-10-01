@@ -11,7 +11,7 @@ enum PayrollStatus {
 ///
 /// Immutable, no logic — same contract as every other model. Same permanence
 /// as a confirmed goods receipt: once `paid`, it is never edited or deleted,
-/// and the days it covers can no longer be touched by `AttendanceMutations`.
+/// and the days it covers can no longer be touched by `AttendanceRepository`.
 /// A later change to the employee's pay rate does not move a paid period —
 /// that is what [appliedRate] captures.
 class PayrollPeriod {
@@ -42,8 +42,8 @@ class PayrollPeriod {
   final int workedDays;
   final double totalWorkedHours;
 
-  /// Snapshot of the employee's pay (monthly € for a fixed contract, €/h for
-  /// an extra) at pay time — so a later raise cannot rewrite history.
+  /// Snapshot of the employee's hourly rate (€/h) at pay time — so a later
+  /// raise cannot rewrite history.
   final double appliedRate;
 
   final double computedAmount;

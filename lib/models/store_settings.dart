@@ -3,8 +3,8 @@
 /// A real record rather than a bag of static globals: it maps 1:1 onto the
 /// `settings` row a store gets in Phase 2's storage, it is per-store (an owner
 /// runs several), and the pointage break allowance needs somewhere to live
-/// that a manager can edit. Read through `MockQueries.storeSettings(storeId)`,
-/// written through `AccountMutations.updateStoreSettings`.
+/// that a manager can edit. Read through `StoreRepository.settings(storeId)`,
+/// written through `StoreRepository.updateStoreSettings`.
 ///
 /// Immutable, no logic — same contract as every other model. A brand-new
 /// store gets a default row from `AccountMutations.createStore`; the default

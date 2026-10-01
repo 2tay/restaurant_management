@@ -57,7 +57,7 @@ class AttendanceSession {
 ///
 /// Created lazily on the first `Pointer` of the day — a day with no row
 /// simply means not clocked in yet, which needs no row. One row per employee
-/// per day: `(storeId, employeeId, date)` is unique — but that one row can
+/// per day: `(employeeId, date)` is unique — but that one row can
 /// hold several [sessions], since an employee may clock in, clock out for a
 /// few hours, and clock back in the same day.
 ///
@@ -88,20 +88,21 @@ class Attendance {
 
   final AttendanceStatus status;
 
-  /// Oldest first. Empty means not clocked in yet today.
+  /// Oldest first. Never empty: a row only exists once the first `Pointer`
+  /// opened its first session.
   final List<AttendanceSession> sessions;
 
   final PaymentStatus paymentStatus;
 
-  /// Set when a `PayrollPeriod` locks this day (Phase 5). While set, the day
-  /// is immutable — `AttendanceMutations` refuses every write against it.
+  /// Set when a `PayrollPeriod` locks this day. While set, the day is
+  /// immutable — `AttendanceRepository` refuses every write against it.
   final String? payrollPeriodId;
 
   /// The break allowance this day is judged against, frozen when the row was
   /// created so a later change to the store's setting never rewrites what
   /// "pause dépassée" meant for it.
   ///
-  /// Null on rows from before schema v3 that predate the backfill, and
+  /// Null on rows from before schema v4 that predate the backfill, and
   /// whenever the writer could not resolve one — callers fall back to the
   /// store's live `maxBreakMinutes`.
   final int? maxBreakMinutes;

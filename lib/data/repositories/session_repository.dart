@@ -6,9 +6,9 @@ import 'employee_repository.dart';
 
 /// The signed-in employee, as a `meta` row.
 ///
-/// This is `mock_session.dart` moved onto the database. The session is
-/// [MetaKeys.currentEmployeeId] — a plain id, not a token, because Phase 3 owns
-/// real auth. Absent means signed out.
+/// The session is [MetaKeys.currentEmployeeId] — a plain id, not a token: the
+/// app runs on one device with no server to issue one. Absent means signed
+/// out.
 ///
 /// [signIn] / [signOut] are the *only* writers of that key;
 /// `currentEmployeeProvider` (the `Notifier` the guard and the shell read)

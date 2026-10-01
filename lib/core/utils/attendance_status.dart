@@ -111,7 +111,7 @@ Duration? workedDuration(Attendance entry) {
 ///
 /// Prefers the value frozen on the row when it was created — so a later
 /// change to the store's setting cannot rewrite a past day's figure. Falls
-/// back to the caller-supplied live value for a row from before schema v3, or
+/// back to the caller-supplied live value for a row from before schema v4, or
 /// one the writer could not stamp: pass the store's live `maxBreakMinutes`.
 int resolvedMaxBreakMinutes(Attendance entry, {required int fallback}) =>
     entry.maxBreakMinutes ?? fallback;

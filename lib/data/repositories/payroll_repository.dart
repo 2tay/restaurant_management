@@ -73,7 +73,7 @@ typedef PayrollDays = ({
 /// [PayrollPeriod.appliedRate] freezes the rate at pay time, and the days it
 /// covers can no longer be touched.
 ///
-/// [days] and [preview] fold `workedDuration` / `overtimeBy` with the unchanged
+/// [days] and [preview] fold `workedDuration` with the unchanged
 /// `attendance_status.dart` / `payroll_math.dart` — SQL for the fetch, Dart for
 /// the arithmetic, so that arithmetic stays one definition.
 class PayrollRepository {

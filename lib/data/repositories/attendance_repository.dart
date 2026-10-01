@@ -22,27 +22,29 @@ typedef AttendancePage = ({
   int pageCount,
 });
 
-/// The pointage — attendance rows, their pauses, and the figures derived from
-/// the two.
-///
-/// **The only file that writes `attendances` and `attendance_pauses`**, the same
-/// single-writer discipline every other aggregate keeps; `ux_audit.py` enforces
-/// it. `PayrollRepository.pay` reaches the `payrollPeriodId` lock through
-/// [lockForPayroll] here rather than writing the column itself.
-///
-/// Every write refuses the wrong prior state (returns `null` / `false`) rather
-/// than coercing it, and **refuses any write against a day a payroll run has
-/// locked** — a paid day is immutable.
-///
-/// **The clock is injected.** "Today" is resolved when a query runs, and a test
-/// pins it between two calls. [clock] defaults to `clock.now()`; the provider
-/// supplies that, `db_fixture.dart` supplies a fixed function, and the
-/// today-scoped reads take an optional `now` override on top.
 /// The app-wide clock (`package:clock`), read afresh on every call so a test
 /// running under `withClock` is seen. A function of its own because the
 /// constructor's `clock` parameter hides the package's getter.
 DateTime _systemNow() => clock.now();
 
+/// The pointage — attendance rows, their sessions and pauses, and the figures
+/// derived from them.
+///
+/// **The only file that writes `attendances`, `attendance_sessions` and
+/// `attendance_pauses`**, the same single-writer discipline every other
+/// aggregate keeps; `ux_audit.py` enforces it. `PayrollRepository.pay`
+/// reaches the `payrollPeriodId` lock through [lockForPayroll] here rather
+/// than writing the column itself, and `BusinessDayRepository.close` ends the
+/// shifts still open through [endShift].
+///
+/// Every write refuses the wrong prior state (returns `null` / `false`) rather
+/// than coercing it, and **refuses any write against a day a payroll run has
+/// locked** — a paid day is immutable.
+///
+/// **The clock is injected.** "Now" is resolved when a write runs, and a test
+/// pins it between two calls. [clock] defaults to `clock.now()`; the provider
+/// supplies that, `db_fixture.dart` supplies a fixed function, and the writes
+/// take an optional `now` override on top.
 class AttendanceRepository {
   AttendanceRepository(this._db, {DateTime Function()? clock})
     : _clock = clock ?? _systemNow;

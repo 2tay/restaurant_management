@@ -23,8 +23,8 @@ Employee employeeFromRow(EmployeeRow row) => Employee(
 ///
 /// Safe here because the caller always has a whole employee in hand — the seed,
 /// or the employee repository, which builds the archived transition itself.
-/// `EmployeeRepository.update` has no `archivedAt` parameter, exactly as
-/// `EmployeeMutations.update` had none: archiving is its own method.
+/// `EmployeeRepository.update` has no `archivedAt` parameter: archiving is its
+/// own method.
 EmployeesCompanion employeeToRow(Employee employee) => EmployeesCompanion.insert(
   id: employee.id,
   storeId: employee.storeId,

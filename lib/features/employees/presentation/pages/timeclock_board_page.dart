@@ -735,7 +735,8 @@ class _ActionArea extends ConsumerWidget {
   final _PointerLock? lock;
 
   /// Every board action is attributed to a person, so each one asks for that
-  /// employee's PIN first — the dialog owns the wrong-attempt / lockout loop.
+  /// employee's PIN first — the dialog asks again after a wrong one, with no
+  /// limit and no lockout.
   /// Only on a confirmed PIN does the pointage write run.
   Future<void> _run(
     BuildContext context,

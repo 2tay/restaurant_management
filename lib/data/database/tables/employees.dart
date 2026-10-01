@@ -5,7 +5,7 @@ import 'stores.dart';
 
 /// A member of staff at one establishment.
 ///
-/// The single "person" model: the employment facts (contract, pay, PIN) and the
+/// The single "person" model: the employment facts (hourly rate, PIN) and the
 /// application access ([role]) on one record. One establishment per person — see
 /// `.claude/phase_gestion_employee.md` decision 2; an owner spans stores by
 /// navigating, not by a list on this row. Soft-removed only: [archivedAt] is the
@@ -37,7 +37,7 @@ class Employees extends Table {
   /// Unique across the whole account.
   TextColumn get email => text()();
 
-  /// Mocked, like `stores.imageAsset`: a nullable path with no picker behind it.
+  /// The photo file `EmployeePhotoStore` copied in; null renders initials.
   TextColumn get photoAsset => text().nullable()();
 
   DateTimeColumn get hireDate => dateTime()();

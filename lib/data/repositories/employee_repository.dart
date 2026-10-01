@@ -308,7 +308,7 @@ class EmployeeRepository {
       final existing = await employee(id);
       if (existing == null) return false;
       // Refuse the no-op transition — archiving an archived record, restoring
-      // an active one — exactly as `EmployeeMutations` did.
+      // an active one.
       if ((existing.archivedAt == null) == (value == null)) return false;
 
       await (_db.update(_db.employees)..where((e) => e.id.equals(id))).write(
@@ -320,8 +320,8 @@ class EmployeeRepository {
 
   // ---------------------------------------------------------------------------
 
-  /// Trimmed and case-folded, no accent folding — the same comparison
-  /// `MockQueries._normalise` used, so "  78.02.14-153.24 " still resolves.
+  /// Trimmed and case-folded, no accent folding — so "  78.02.14-153.24 "
+  /// still resolves.
   static String _normalise(String value) => value.trim().toLowerCase();
 
   Future<List<Employee>> _all() =>
