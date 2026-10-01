@@ -163,28 +163,6 @@ class CredentialRepository {
     return removed > 0;
   }
 
-  /// Lifts a lockout early — the "Débloquer" action a manager or owner takes.
-  /// Returns false when there was nothing locked or counted.
-  Future<bool> unlock(String employeeId) {
-    return _db.transaction(() async {
-      final current = await _rowFor(employeeId);
-      if (current == null) return false;
-      if (current.failedAttempts == 0 && current.lockedUntil == null) {
-        return false;
-      }
-
-      await (_db.update(_db.employeeCredentials)
-            ..where((c) => c.employeeId.equals(employeeId)))
-          .write(
-            const EmployeeCredentialsCompanion(
-              failedAttempts: Value(0),
-              lockedUntil: Value(null),
-            ),
-          );
-      return true;
-    });
-  }
-
   /// The whole login check, composed from the primitives above.
   ///
   /// **Does not touch the session** — the login screen (stage 9) signs the user

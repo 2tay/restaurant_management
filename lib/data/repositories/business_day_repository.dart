@@ -2,6 +2,7 @@ import 'package:clock/clock.dart';
 import 'package:drift/drift.dart';
 
 import '../../core/utils/attendance_status.dart';
+import '../../core/utils/dates.dart';
 import '../../models/attendance.dart';
 import '../../models/business_day.dart';
 import '../database/app_database.dart';
@@ -62,7 +63,7 @@ class BusinessDayRepository {
   /// is the calendar day the caller is on — used only when no journée is
   /// open, so a journée running past midnight keeps the board on its date.
   Stream<BoardDay> watchBoardDay(String storeId, DateTime today) {
-    final day = _dayOf(today);
+    final day = dayOf(today);
     return (_db.select(_db.businessDays)..where(
           (d) =>
               d.storeId.equals(storeId) &
@@ -113,7 +114,7 @@ class BusinessDayRepository {
     DateTime? now,
   }) {
     final at = now ?? _clock();
-    final day = _dayOf(at);
+    final day = dayOf(at);
 
     return _db.transaction(() async {
       if (await _openQuery(storeId).getSingleOrNull() != null) return null;
@@ -211,7 +212,6 @@ class BusinessDayRepository {
   ) => _db.select(_db.businessDays)
     ..where((d) => d.storeId.equals(storeId) & d.closedAt.isNull());
 
-  static DateTime _dayOf(DateTime v) => DateTime(v.year, v.month, v.day);
 }
 
 /// A close refused after some of its writes — thrown to roll them back.

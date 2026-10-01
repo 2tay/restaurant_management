@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:clock/clock.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/utils/dates.dart';
 import '../models/models.dart';
 import 'database/app_database.dart';
 import 'employee_photo_store.dart';
@@ -585,27 +586,6 @@ final employeeProvider = StreamProvider.family<Employee?, String>(
   (ref, id) => ref.watch(employeeRepositoryProvider).watchEmployee(id),
 );
 
-/// One employee's login credential, for the detail screen's security row.
-final credentialForEmployeeProvider =
-    FutureProvider.family<EmployeeCredential?, String>(
-      (ref, employeeId) =>
-          ref.watch(credentialRepositoryProvider).forEmployee(employeeId),
-    );
-
-/// One employee's attendance history — most recent day first.
-final attendanceForEmployeeProvider =
-    StreamProvider.family<List<Attendance>, String>(
-      (ref, employeeId) => ref
-          .watch(attendanceRepositoryProvider)
-          .watchForEmployee(employeeId),
-    );
-
-/// Today's attendance row for one employee — the pointage board card.
-final attendanceTodayProvider = StreamProvider.family<Attendance?, String>(
-  (ref, employeeId) =>
-      ref.watch(attendanceRepositoryProvider).watchToday(employeeId),
-);
-
 /// Today's calendar date, ticking over at midnight — so a board left open
 /// overnight moves to the new day by itself (audit L2). Reads the pointage
 /// clock, which a test pins.
@@ -617,7 +597,7 @@ class CurrentDay extends Notifier<DateTime> {
     final now = ref.watch(attendanceClockProvider);
     ref.onDispose(() => _timer?.cancel());
     _scheduleNext(now);
-    return _dayOf(now());
+    return dayOf(now());
   }
 
   void _scheduleNext(DateTime Function() now) {
@@ -626,12 +606,11 @@ class CurrentDay extends Notifier<DateTime> {
     final midnight = DateTime(at.year, at.month, at.day + 1);
     // A second past midnight, so the tick never lands on the day it leaves.
     _timer = Timer(midnight.difference(at) + const Duration(seconds: 1), () {
-      state = _dayOf(now());
+      state = dayOf(now());
       _scheduleNext(now);
     });
   }
 
-  static DateTime _dayOf(DateTime v) => DateTime(v.year, v.month, v.day);
 }
 
 final currentDayProvider = NotifierProvider<CurrentDay, DateTime>(
@@ -704,13 +683,6 @@ final attendanceStatsProvider =
       ),
     );
 
-/// One employee's paid payroll periods — most recent first.
-final payrollForEmployeeProvider =
-    StreamProvider.family<List<PayrollPeriod>, String>(
-      (ref, employeeId) =>
-          ref.watch(payrollRepositoryProvider).watchForEmployee(employeeId),
-    );
-
 /// The filter bundle for the Historique de paiement day table.
 typedef PayrollDaysKey = ({
   String storeId,
@@ -738,20 +710,3 @@ final payrollDaysProvider =
       ),
     );
 
-/// The filter bundle for the paginated payroll-period list.
-typedef PayrollPageKey = ({
-  String storeId,
-  int? withinDays,
-  String? employeeQuery,
-  int page,
-});
-
-final payrollPageProvider =
-    FutureProvider.family<PayrollPage, PayrollPageKey>(
-      (ref, key) => ref.watch(payrollRepositoryProvider).page(
-        key.storeId,
-        withinDays: key.withinDays,
-        employeeQuery: key.employeeQuery,
-        page: key.page,
-      ),
-    );

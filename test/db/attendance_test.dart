@@ -44,7 +44,10 @@ void main() {
 
       final second = await repo().clockIn(_fresh, StoreIds.sablon);
       expect(second, isNull);
-      expect((await repo().today(_fresh))!.id, first.id);
+      expect(
+        (await repo().attendance(first.id))!.status,
+        AttendanceStatus.working,
+      );
     });
 
     test('two simultaneous first pauses append exactly one break', () async {
@@ -370,11 +373,11 @@ void main() {
 
   group('the store log (Historique)', () {
     test('a from bound excludes an older day and keeps a recent one', () async {
-      final since3 = await repo().page(
+      final since3 = await repo().watchPage(
         StoreIds.sablon,
         from: daysBefore(3),
         pageSize: 100,
-      );
+      ).first;
       final ids = since3.rows.map((a) => a.id).toSet();
       expect(ids.contains(AttendanceIds.camille5), isFalse); // 5 days ago
       expect(ids.contains(AttendanceIds.karim1), isTrue); // yesterday
@@ -382,22 +385,22 @@ void main() {
 
     test('a to bound excludes a more recent day and keeps an older one',
         () async {
-      final until3 = await repo().page(
+      final until3 = await repo().watchPage(
         StoreIds.sablon,
         to: daysBefore(3),
         pageSize: 100,
-      );
+      ).first;
       final ids = until3.rows.map((a) => a.id).toSet();
       expect(ids.contains(AttendanceIds.karim1), isFalse); // yesterday
       expect(ids.contains(AttendanceIds.camille5), isTrue); // 5 days ago
     });
 
     test('the status filter alone keeps only matching rows', () async {
-      final onBreak = await repo().page(
+      final onBreak = await repo().watchPage(
         StoreIds.sablon,
         status: AttendanceStatus.onBreak,
         pageSize: 100,
-      );
+      ).first;
       expect(onBreak.rows, isNotEmpty);
       expect(
         onBreak.rows.every((a) => a.status == AttendanceStatus.onBreak),
@@ -406,23 +409,23 @@ void main() {
     });
 
     test('the employee filter narrows to a single employee', () async {
-      final karim = await repo().page(
+      final karim = await repo().watchPage(
         StoreIds.sablon,
         employeeId: EmployeeIds.karim,
         pageSize: 100,
-      );
+      ).first;
       expect(karim.rows, isNotEmpty);
       expect(karim.rows.every((a) => a.employeeId == EmployeeIds.karim), isTrue);
     });
 
     test('filters combine with AND and rows sort most-recent-first', () async {
-      final result = await repo().page(
+      final result = await repo().watchPage(
         StoreIds.sablon,
         from: daysBefore(30),
         status: AttendanceStatus.done,
         employeeId: EmployeeIds.karim,
         pageSize: 100,
-      );
+      ).first;
       expect(result.rows, isNotEmpty);
       for (final a in result.rows) {
         expect(a.employeeId, EmployeeIds.karim);
@@ -434,17 +437,17 @@ void main() {
     });
 
     test('pagination slices the rows and clamps an out-of-range page', () async {
-      final all = await repo().page(StoreIds.sablon, pageSize: 100);
+      final all = await repo().watchPage(StoreIds.sablon, pageSize: 100).first;
       final total = all.totalCount;
       expect(total, greaterThan(3));
 
       final firstPage =
-          await repo().page(StoreIds.sablon, page: 0, pageSize: 3);
+          await repo().watchPage(StoreIds.sablon, page: 0, pageSize: 3).first;
       expect(firstPage.rows, hasLength(3));
       expect(firstPage.pageCount, (total + 2) ~/ 3);
 
       final lastPage =
-          await repo().page(StoreIds.sablon, page: 999, pageSize: 3);
+          await repo().watchPage(StoreIds.sablon, page: 999, pageSize: 3).first;
       expect(lastPage.page, firstPage.pageCount - 1);
       expect(lastPage.rows, isNotEmpty);
       expect(
@@ -457,7 +460,7 @@ void main() {
     });
 
     test('an empty result still reports one page', () async {
-      final none = await repo().page(StoreIds.saintGilles);
+      final none = await repo().watchPage(StoreIds.saintGilles).first;
       expect(none.rows, isEmpty);
       expect(none.totalCount, 0);
       expect(none.pageCount, 1);
@@ -590,7 +593,7 @@ void main() {
   });
 
   test('the seed covers every state the walkthrough needs', () async {
-    final sablon = await repo().page(StoreIds.sablon, pageSize: 100);
+    final sablon = await repo().watchPage(StoreIds.sablon, pageSize: 100).first;
     final rows = sablon.rows;
 
     expect(rows.where((a) => totalPauseCount(a) >= 2), isNotEmpty);

@@ -2,9 +2,11 @@ import 'package:clock/clock.dart';
 import 'package:drift/drift.dart';
 
 import '../../core/utils/attendance_status.dart';
+import '../../core/utils/dates.dart';
 import '../../models/attendance.dart';
 import '../database/app_database.dart';
 import '../mappers/mappers.dart';
+import 'attendance_assembler.dart';
 import 'business_day_repository.dart';
 import 'new_id.dart';
 import 'store_repository.dart';
@@ -56,21 +58,6 @@ class AttendanceRepository {
     return (await _assemble([row])).first;
   }
 
-  /// This employee's row for today, or null when they have neither clocked in
-  /// nor been marked absent — a day with no row means
-  /// [AttendanceStatus.notClockedIn].
-  Future<Attendance?> today(String employeeId, {DateTime? now}) async {
-    final row = await _todayQuery(employeeId, now).getSingleOrNull();
-    if (row == null) return null;
-    return (await _assemble([row])).first;
-  }
-
-  Stream<Attendance?> watchToday(String employeeId, {DateTime? now}) =>
-      _todayQuery(employeeId, now).watchSingleOrNull().asyncMap((row) async {
-        if (row == null) return null;
-        return (await _assemble([row])).first;
-      });
-
   /// Every today's-row for a store, keyed by employee id — the pointage board
   /// reads this once and joins it against the active roster, rather than
   /// opening a `watchToday` per card (8 cards × a stream each is the shape to
@@ -82,7 +69,7 @@ class AttendanceRepository {
     String storeId,
     DateTime date,
   ) {
-    final day = _dayOf(date);
+    final day = dayOf(date);
     return (_db.select(_db.attendances)
           ..where((a) => a.storeId.equals(storeId) & a.date.equals(day)))
         .watch()
@@ -92,57 +79,8 @@ class AttendanceRepository {
         });
   }
 
-  /// One employee's attendance, **most recent day first** — `date` descending,
-  /// then `id` descending for a stable order between rows on the same date.
-  Stream<List<Attendance>> watchForEmployee(String employeeId) =>
-      _forEmployeeQuery(employeeId).watch().asyncMap(_assemble);
-
   Future<List<Attendance>> forEmployee(String employeeId) =>
       _forEmployeeQuery(employeeId).get().then(_assemble);
-
-  /// The store's attendance log for the Historique page — filtered on a
-  /// [from]–[to] day range, a [status] and one [employeeId] (combined with
-  /// AND), most-recent-day-first, sliced into a page.
-  ///
-  /// [from] / [to] are inclusive day bounds, each null meaning "no bound on that
-  /// side". [page] is clamped into range.
-  Future<AttendancePage> page(
-    String storeId, {
-    DateTime? from,
-    DateTime? to,
-    AttendanceStatus? status,
-    String? employeeId,
-    int page = 0,
-    int pageSize = 25,
-  }) async {
-    final base = _logQuery(
-      storeId,
-      from: from,
-      to: to,
-      status: status,
-      employeeId: employeeId,
-    );
-
-    final total = await base.get().then((rows) => rows.length);
-    final pageCount = total == 0 ? 1 : (total + pageSize - 1) ~/ pageSize;
-    final safePage = page.clamp(0, pageCount - 1);
-
-    final pageQuery = _logQuery(
-        storeId,
-        from: from,
-        to: to,
-        status: status,
-        employeeId: employeeId,
-      )
-      ..limit(pageSize, offset: safePage * pageSize);
-
-    return (
-      rows: await pageQuery.get().then(_assemble),
-      totalCount: total,
-      page: safePage,
-      pageCount: pageCount,
-    );
-  }
 
   Stream<AttendancePage> watchPage(
     String storeId, {
@@ -527,15 +465,6 @@ class AttendanceRepository {
 
   // ---------------------------------------------------------------------------
 
-  SimpleSelectStatement<$AttendancesTable, AttendanceRow> _todayQuery(
-    String employeeId,
-    DateTime? now,
-  ) {
-    final day = _dayOf(now ?? _clock());
-    return _db.select(_db.attendances)
-      ..where((a) => a.employeeId.equals(employeeId) & a.date.equals(day));
-  }
-
   SimpleSelectStatement<$AttendancesTable, AttendanceRow> _forEmployeeQuery(
     String employeeId,
   ) =>
@@ -561,11 +490,11 @@ class AttendanceRepository {
       ]);
 
     if (from != null) {
-      final lower = _dayOf(from);
+      final lower = dayOf(from);
       query.where((a) => a.date.isBiggerOrEqualValue(lower));
     }
     if (to != null) {
-      final upper = _dayOf(to);
+      final upper = dayOf(to);
       query.where((a) => a.date.isSmallerOrEqualValue(upper));
     }
     if (status != null) {
@@ -577,43 +506,8 @@ class AttendanceRepository {
     return query;
   }
 
-  /// Rebuilds `Attendance` objects for a set of rows, in the same order,
-  /// attaching each one's sessions and each session's pauses. Two extra
-  /// queries total, not one per row.
-  Future<List<Attendance>> _assemble(List<AttendanceRow> rows) async {
-    if (rows.isEmpty) return const <Attendance>[];
+  /// See [assembleAttendances].
+  Future<List<Attendance>> _assemble(List<AttendanceRow> rows) =>
+      assembleAttendances(_db, rows);
 
-    final ids = rows.map((r) => r.id).toList();
-    final sessionRows =
-        await (_db.select(_db.attendanceSessions)
-              ..where((s) => s.attendanceId.isIn(ids))
-              ..orderBy([(s) => OrderingTerm(expression: s.position)]))
-            .get();
-
-    final sessionIds = sessionRows.map((s) => s.id).toList();
-    final pauseRows = sessionIds.isEmpty
-        ? const <AttendancePauseRow>[]
-        : await (_db.select(
-            _db.attendancePauses,
-          )..where((p) => p.sessionId.isIn(sessionIds))).get();
-
-    final pausesBySession = <String, List<AttendancePauseRow>>{};
-    for (final pause in pauseRows) {
-      (pausesBySession[pause.sessionId] ??= <AttendancePauseRow>[]).add(pause);
-    }
-
-    final sessionsByAttendance = <String, List<AttendanceSession>>{};
-    for (final row in sessionRows) {
-      (sessionsByAttendance[row.attendanceId] ??= <AttendanceSession>[]).add(
-        attendanceSessionFromRow(row, pausesBySession[row.id] ?? const []),
-      );
-    }
-
-    return [
-      for (final row in rows)
-        attendanceFromRows(row, sessionsByAttendance[row.id] ?? const []),
-    ];
-  }
-
-  static DateTime _dayOf(DateTime v) => DateTime(v.year, v.month, v.day);
 }

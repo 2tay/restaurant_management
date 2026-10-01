@@ -7,6 +7,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/attendance_status.dart';
+import '../../../../core/utils/dates.dart';
 import '../../../../core/utils/employee_status.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/utils/payroll_math.dart';
@@ -19,9 +20,6 @@ import '../../../../shared/widgets/widgets.dart';
 
 /// How far back the range picker opens on first load.
 const int _defaultRangeDays = 90;
-
-DateTime _dayOnly(DateTime value) =>
-    DateTime(value.year, value.month, value.day);
 
 /// The payroll history, day by day: every active employee's finished days over
 /// a chosen date range (or one employee's, once picked in the filter), paid or
@@ -75,7 +73,7 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
   @override
   void initState() {
     super.initState();
-    _defaultTo = _dayOnly(clock.now());
+    _defaultTo = dayOf(clock.now());
     _defaultFrom = _defaultTo.subtract(const Duration(days: _defaultRangeDays));
     _from = _defaultFrom;
     _to = _defaultTo;
@@ -92,9 +90,9 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
       _statusFilter = null;
       _page = 0;
       if (employee == null) return;
-      final hire = _dayOnly(employee.hireDate);
+      final hire = dayOf(employee.hireDate);
       if (_from.isBefore(hire)) _from = hire;
-      if (_to.isBefore(_from)) _to = _dayOnly(clock.now());
+      if (_to.isBefore(_from)) _to = dayOf(clock.now());
     });
   }
 
@@ -143,9 +141,9 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
                 .firstOrNull;
             if (employee != null) {
               _selectedEmployee = employee;
-              final hire = _dayOnly(employee.hireDate);
+              final hire = dayOf(employee.hireDate);
               if (_from.isBefore(hire)) _from = hire;
-              if (_to.isBefore(_from)) _to = _dayOnly(clock.now());
+              if (_to.isBefore(_from)) _to = dayOf(clock.now());
             }
           }
           return _buildBody(l10n, _employees, base.settings);
@@ -207,12 +205,12 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
           defaultTo: _defaultTo,
           onEmployee: _onEmployeeChanged,
           onFrom: (d) => setState(() {
-            _from = _dayOnly(d);
+            _from = dayOf(d);
             if (_to.isBefore(_from)) _to = _from;
             _page = 0;
           }),
           onTo: (d) => setState(() {
-            _to = _dayOnly(d);
+            _to = dayOf(d);
             if (_from.isAfter(_to)) _from = _to;
             _page = 0;
           }),
@@ -365,9 +363,9 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
   /// never later than the current [_from].
   DateTime _pickerFloor(List<Employee> employees) {
     if (_selectedEmployee != null) {
-      return _dayOnly(_selectedEmployee!.hireDate);
+      return dayOf(_selectedEmployee!.hireDate);
     }
-    final hires = employees.map((e) => _dayOnly(e.hireDate));
+    final hires = employees.map((e) => dayOf(e.hireDate));
     final earliest = hires.isEmpty
         ? _from
         : hires.reduce((a, b) => a.isBefore(b) ? a : b);
@@ -551,7 +549,7 @@ class _Filters extends StatelessWidget {
           label: l10n.historyFilterTo,
           value: to,
           firstDate: from,
-          lastDate: _dayOnly(clock.now()),
+          lastDate: dayOf(clock.now()),
           isDefault: to == defaultTo,
           onChanged: onTo,
         ),
@@ -737,7 +735,7 @@ _PayrollRowData _payrollRowData(
       : periodsById[a.payrollPeriodId!];
   final rate = employee == null
       ? period?.appliedRate ?? 0.0
-      : dayRate(employee, settings, period);
+      : dayRate(employee, period);
 
   return (
     employee: employee,

@@ -91,16 +91,14 @@ void main() {
 
   group('the maths', () {
     test('every employee is paid their own hourly rate', () async {
-      final settings = await StoreRepository(db).settings(StoreIds.sablon);
       final julien = (await employees.employee(EmployeeIds.julien))!;
       final karim = (await employees.employee(EmployeeIds.karim))!;
 
-      expect(hourlyRate(julien, settings), julien.pay);
-      expect(hourlyRate(karim, settings), karim.pay);
+      expect(hourlyRate(julien), julien.pay);
+      expect(hourlyRate(karim), karim.pay);
     });
 
     test('a day that is not done is worth nothing', () async {
-      final settings = await StoreRepository(db).settings(StoreIds.sablon);
       final julien = (await employees.employee(EmployeeIds.julien))!;
       final open = Attendance(
         id: 'x',
@@ -111,7 +109,7 @@ void main() {
         sessions: [AttendanceSession(clockInAt: DateTime(2026, 1, 5, 9))],
         paymentStatus: PaymentStatus.unpaid,
       );
-      expect(dayAmount(open, julien, settings), 0);
+      expect(dayAmount(open, julien), 0);
     });
 
     test('a day is worth its rate × the time worked over every session',
@@ -139,7 +137,6 @@ void main() {
 
     test('a paid day keeps the rate frozen on its run, an unpaid one follows '
         'the current rate', () async {
-      final settings = await StoreRepository(db).settings(StoreIds.sablon);
       final karim = (await employees.employee(EmployeeIds.karim))!;
       final run = (await payroll.period(PayrollPeriodIds.karimSeed))!;
       // The same run, as if Karim had been paid at a rate he no longer has.
@@ -159,8 +156,8 @@ void main() {
         createdAt: run.createdAt,
       );
 
-      expect(dayRate(karim, settings, null), karim.pay);
-      expect(dayRate(karim, settings, older), karim.pay - 2);
+      expect(dayRate(karim, null), karim.pay);
+      expect(dayRate(karim, older), karim.pay - 2);
     });
 
     test("the seeded run's frozen rate is Karim's hourly rate", () async {
@@ -584,24 +581,6 @@ void main() {
         pageSize: 500,
       );
       expect(data.worked, greaterThanOrEqualTo(const Duration(hours: 8)));
-    });
-  });
-
-  group('unpaidFinishedDayCount', () {
-    test('counts only finished, not-yet-locked days at the store', () async {
-      final base = await payroll.unpaidFinishedDayCount(StoreIds.sablon);
-
-      await seedDoneDay(3, employeeId: EmployeeIds.marc, clockIn: (8, 0),
-          clockOut: (17, 0));
-      expect(await payroll.unpaidFinishedDayCount(StoreIds.sablon), base + 1);
-
-      // A paid day does not count.
-      await seedDoneDay(4, employeeId: EmployeeIds.marc, clockIn: (8, 0),
-          clockOut: (17, 0), payrollPeriodId: PayrollPeriodIds.karimSeed);
-      expect(await payroll.unpaidFinishedDayCount(StoreIds.sablon), base + 1);
-
-      // Another store is unaffected.
-      expect(await payroll.unpaidFinishedDayCount(StoreIds.liege), 0);
     });
   });
 

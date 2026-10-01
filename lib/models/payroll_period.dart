@@ -1,9 +1,7 @@
-/// Where a payroll run stands.
+/// Where a payroll run stands. A run is only ever stored once paid — the
+/// preview is figured on the fly, never written — so this has one value; it
+/// stays an enum (a `text` column) so a later state needs no schema change.
 enum PayrollStatus {
-  /// Figured but not yet validated — never actually persisted in this phase
-  /// (the preview is not stored), kept for Phase 2's storage layer.
-  computed,
-
   /// Paid. The covered attendance days are locked.
   paid,
 }

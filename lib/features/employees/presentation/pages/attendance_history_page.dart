@@ -6,6 +6,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/attendance_status.dart';
+import '../../../../core/utils/dates.dart';
 import '../../../../core/utils/employee_status.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../data/current_employee.dart';
@@ -23,9 +24,6 @@ const int _defaultRangeDays = 30;
 /// six columns — a card per day reads better on a touch screen than a
 /// sideways-scrolling table, so the history switches to cards instead.
 const double _tableMinWidth = 740;
-
-DateTime _dayOnly(DateTime value) =>
-    DateTime(value.year, value.month, value.day);
 
 /// The filterable attendance log across every employee and day — reached from
 /// the Gestion Employée dropdown, so a `goSection` destination with no back
@@ -67,7 +65,7 @@ class _AttendanceHistoryPageState extends ConsumerState<AttendanceHistoryPage> {
   @override
   void initState() {
     super.initState();
-    _defaultTo = _dayOnly(clock.now());
+    _defaultTo = dayOf(clock.now());
     _defaultFrom = _defaultTo.subtract(const Duration(days: _defaultRangeDays));
     _from = _defaultFrom;
     _to = _defaultTo;
@@ -194,12 +192,12 @@ class _AttendanceHistoryPageState extends ConsumerState<AttendanceHistoryPage> {
             _page = 0;
           }),
           onFrom: (d) => setState(() {
-            _from = _dayOnly(d);
+            _from = dayOf(d);
             if (_to.isBefore(_from)) _to = _from;
             _page = 0;
           }),
           onTo: (d) => setState(() {
-            _to = _dayOnly(d);
+            _to = dayOf(d);
             if (_from.isAfter(_to)) _from = _to;
             _page = 0;
           }),
@@ -517,7 +515,7 @@ class _Filters extends StatelessWidget {
           label: l10n.historyFilterTo,
           value: to,
           firstDate: from,
-          lastDate: _dayOnly(clock.now()),
+          lastDate: dayOf(clock.now()),
           isDefault: to == defaultTo,
           onChanged: onTo,
         ),

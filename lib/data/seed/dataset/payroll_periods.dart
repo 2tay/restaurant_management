@@ -3,7 +3,6 @@ import '../../../models/payroll_period.dart';
 import 'attendances.dart';
 import 'employees.dart';
 import 'reference.dart';
-import 'store_settings.dart';
 import 'stores.dart';
 
 abstract final class PayrollPeriodIds {
@@ -56,7 +55,6 @@ PayrollPeriod _seedPeriod(
   required DateTime paidAt,
 }) {
   final employee = mockEmployees.firstWhere((e) => e.id == employeeId);
-  final settings = storeSettingsOrDefault(storeId);
   final days =
       mockAttendances.where((a) => a.payrollPeriodId == id).toList()
         ..sort((a, b) => a.date.compareTo(b.date));
@@ -72,7 +70,7 @@ PayrollPeriod _seedPeriod(
     workedDays: totals.days,
     totalWorkedHours: totals.workedHours,
     appliedRate: employee.pay,
-    computedAmount: periodAmount(days, employee, settings),
+    computedAmount: periodAmount(days, employee),
     status: PayrollStatus.paid,
     paidByEmployeeId: EmployeeIds.marc,
     paidAt: paidAt,

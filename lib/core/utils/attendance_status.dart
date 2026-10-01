@@ -1,6 +1,7 @@
 import 'package:clock/clock.dart';
 
 import '../../models/models.dart';
+import 'dates.dart';
 
 /// Constants the pointage rules are written against.
 ///
@@ -56,10 +57,6 @@ Duration totalBreak(Attendance entry) {
 
 /// The number of pauses taken across every session of the day.
 int totalPauseCount(Attendance entry) => _allPauses(entry).length;
-
-/// Whether a break is currently open (the employee is `onBreak`).
-bool hasOpenBreak(Attendance entry) =>
-    _allPauses(entry).any((p) => p.endAt == null);
 
 /// How far a single **ended** break ran past [maxBreakMinutes]. Zero while it
 /// is within the allowance or still running.
@@ -129,8 +126,6 @@ enum AttendanceAnomaly {
   oubliDePointage,
 }
 
-DateTime _dayOnly(DateTime v) => DateTime(v.year, v.month, v.day);
-
 /// The anomalies of one day, in display order. Purely derived from the
 /// existing rules ([hasLateBreak], the clock timestamps) — no new state, no
 /// "absent" concept.
@@ -150,15 +145,15 @@ List<AttendanceAnomaly> attendanceAnomalies(
   if (hasLateBreak(entry, maxBreakMinutes)) {
     result.add(AttendanceAnomaly.pauseDepassee);
   }
-  final today = _dayOnly(now ?? clock.now());
+  final today = dayOf(now ?? clock.now());
   final last = entry.sessions.lastOrNull;
   final inOpenJournee =
       openBusinessDay != null &&
-      _dayOnly(entry.date) == _dayOnly(openBusinessDay);
+      dayOf(entry.date) == dayOf(openBusinessDay);
   if (last != null &&
       last.clockOutAt == null &&
       !inOpenJournee &&
-      _dayOnly(entry.date).isBefore(today)) {
+      dayOf(entry.date).isBefore(today)) {
     result.add(AttendanceAnomaly.oubliDePointage);
   }
   return result;

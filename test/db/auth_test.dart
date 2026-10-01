@@ -169,7 +169,7 @@ void main() {
     });
   });
 
-  group('setPassword / unlock', () {
+  group('setPassword / clear', () {
     test('setPassword replaces the password and clears any lockout', () async {
       for (var i = 0; i < AuthRules.maxFailedAttempts; i++) {
         await credentials.authenticate(_marcPin, '0000');
@@ -208,19 +208,6 @@ void main() {
       expect(await credentials.clear(EmployeeIds.amelie), isFalse);
     });
 
-    test('unlock lifts a lockout early', () async {
-      for (var i = 0; i < AuthRules.maxFailedAttempts; i++) {
-        await credentials.authenticate(_marcPin, '0000');
-      }
-
-      expect(await credentials.unlock(EmployeeIds.marc), isTrue);
-      final credential = (await credentials.forEmployee(EmployeeIds.marc))!;
-      expect(credential.failedAttempts, 0);
-      expect(credential.lockedUntil, isNull);
-
-      // Nothing to lift the second time.
-      expect(await credentials.unlock(EmployeeIds.marc), isFalse);
-    });
   });
 
   // The identity confirmation the pointage board and the payroll screen ask
