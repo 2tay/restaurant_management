@@ -106,6 +106,16 @@ abstract final class AppColors {
     container: primaryContainer,
   );
 
+  /// A brand-tinted block on a white card: [primary600] at 8 % behind
+  /// [primary600] text — the hourly rate on a Personnel card
+  /// (`HighlightTile`), and the board's « journée fermée » notice, which reads
+  /// as information rather than a warning.
+  static const StockStatusColors brandTint = StockStatusColors(
+    solid: primary600,
+    foreground: primary600,
+    container: Color(0x140F766E),
+  );
+
   // ---------------------------------------------------------------------------
   // Feedback — snackbars, banners, form validation.
   // ---------------------------------------------------------------------------

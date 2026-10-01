@@ -130,6 +130,12 @@ class _AttendanceHistoryPageState extends ConsumerState<AttendanceHistoryPage> {
     );
     final statsAsync = ref.watch(attendanceStatsProvider(key));
     final pageAsync = ref.watch(attendancePageProvider(key));
+    // While it loads (or with none open), every open past day reads as an
+    // oubli — the same as before the journée de service existed.
+    final openBusinessDay = ref
+        .watch(openBusinessDayProvider(widget.storeId))
+        .value
+        ?.date;
 
     return AsyncContent<AttendancePage>(
       value: pageAsync,
@@ -156,6 +162,7 @@ class _AttendanceHistoryPageState extends ConsumerState<AttendanceHistoryPage> {
           stats,
           result,
           storeEmpty,
+          openBusinessDay,
         );
       },
     );
@@ -169,6 +176,7 @@ class _AttendanceHistoryPageState extends ConsumerState<AttendanceHistoryPage> {
     AttendanceStats stats,
     AttendancePage result,
     bool storeEmpty,
+    DateTime? openBusinessDay,
   ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -249,18 +257,21 @@ class _AttendanceHistoryPageState extends ConsumerState<AttendanceHistoryPage> {
                 a,
                 employeesById,
                 settings,
+                openBusinessDay,
               );
               return constraints.maxWidth >= _tableMinWidth
                   ? _HistoryTable(
                       rows: result.rows,
                       employeesById: employeesById,
                       settings: settings,
+                      openBusinessDay: openBusinessDay,
                       onOpen: onOpen,
                     )
                   : _HistoryCards(
                       rows: result.rows,
                       employeesById: employeesById,
                       settings: settings,
+                      openBusinessDay: openBusinessDay,
                       onOpen: onOpen,
                     );
             },
@@ -290,6 +301,7 @@ class _AttendanceHistoryPageState extends ConsumerState<AttendanceHistoryPage> {
     Attendance a,
     Map<String, Employee> employeesById,
     StoreSettings settings,
+    DateTime? openBusinessDay,
   ) async {
     final l10n = AppLocalizations.of(context);
     final employee = employeesById[a.employeeId];
@@ -298,16 +310,14 @@ class _AttendanceHistoryPageState extends ConsumerState<AttendanceHistoryPage> {
       fallback: settings.maxBreakMinutes,
     );
     final now = ref.read(attendanceClockProvider)();
-    final forgotten = attendanceAnomalies(
+    // The rule already leaves out the journée still open: an oubli is a day
+    // the board can no longer end.
+    final correctable = attendanceAnomalies(
       a,
       maxBreakMinutes: maxBreakMinutes,
       now: now,
+      openBusinessDay: openBusinessDay,
     ).contains(AttendanceAnomaly.oubliDePointage);
-    final open = forgotten
-        ? await ref.read(businessDayRepositoryProvider).current(a.storeId)
-        : null;
-    if (!mounted) return;
-    final correctable = forgotten && (open == null || open.date != a.date);
 
     return DetailDrawer.show(
       context,
@@ -319,6 +329,7 @@ class _AttendanceHistoryPageState extends ConsumerState<AttendanceHistoryPage> {
           exitAuthors: {
             for (final e in employeesById.values) e.id: employeeDisplayName(e),
           },
+          openBusinessDay: openBusinessDay,
         ),
         if (correctable) ...[
           const SizedBox(height: AppSpacing.xxl),
@@ -590,12 +601,14 @@ class _HistoryTable extends StatelessWidget {
     required this.rows,
     required this.employeesById,
     required this.settings,
+    required this.openBusinessDay,
     required this.onOpen,
   });
 
   final List<Attendance> rows;
   final Map<String, Employee> employeesById;
   final StoreSettings settings;
+  final DateTime? openBusinessDay;
   final ValueChanged<Attendance> onOpen;
 
   @override
@@ -616,7 +629,12 @@ class _HistoryTable extends StatelessWidget {
   }
 
   DataRow _row(BuildContext context, AppLocalizations l10n, Attendance a) {
-    final data = _attendanceRowData(a, employeesById, settings);
+    final data = _attendanceRowData(
+      a,
+      employeesById,
+      settings,
+      openBusinessDay,
+    );
     final employee = data.employee;
 
     return DataRow(
@@ -629,7 +647,11 @@ class _HistoryTable extends StatelessWidget {
         ),
         DataCell(AttendanceStatusBadge(status: a.status)),
         DataCell(
-          AttendanceAlerts(entry: a, maxBreakMinutes: data.maxBreakMinutes),
+          AttendanceAlerts(
+            entry: a,
+            maxBreakMinutes: data.maxBreakMinutes,
+            openBusinessDay: data.openBusinessDay,
+          ),
         ),
       ],
     );
@@ -644,12 +666,14 @@ typedef _AttendanceRowData = ({
   Duration totalPause,
   int pauseCount,
   int maxBreakMinutes,
+  DateTime? openBusinessDay,
 });
 
 _AttendanceRowData _attendanceRowData(
   Attendance a,
   Map<String, Employee> employeesById,
   StoreSettings settings,
+  DateTime? openBusinessDay,
 ) {
   final employee = employeesById[a.employeeId];
   final maxBreak = resolvedMaxBreakMinutes(
@@ -662,6 +686,7 @@ _AttendanceRowData _attendanceRowData(
     totalPause: totalBreak(a),
     pauseCount: totalPauseCount(a),
     maxBreakMinutes: maxBreak,
+    openBusinessDay: openBusinessDay,
   );
 }
 
@@ -678,12 +703,14 @@ class _HistoryCards extends StatelessWidget {
     required this.rows,
     required this.employeesById,
     required this.settings,
+    required this.openBusinessDay,
     required this.onOpen,
   });
 
   final List<Attendance> rows;
   final Map<String, Employee> employeesById;
   final StoreSettings settings;
+  final DateTime? openBusinessDay;
   final ValueChanged<Attendance> onOpen;
 
   @override
@@ -693,7 +720,12 @@ class _HistoryCards extends StatelessWidget {
         for (final a in rows)
           _AttendanceCard(
             attendance: a,
-            data: _attendanceRowData(a, employeesById, settings),
+            data: _attendanceRowData(
+              a,
+              employeesById,
+              settings,
+              openBusinessDay,
+            ),
             onTap: () => onOpen(a),
           ),
       ],
@@ -726,6 +758,7 @@ class _AttendanceCard extends StatelessWidget {
     final anomalies = attendanceAnomalies(
       attendance,
       maxBreakMinutes: data.maxBreakMinutes,
+      openBusinessDay: data.openBusinessDay,
     );
 
     return AppCard(
@@ -831,6 +864,7 @@ class _AttendanceCard extends StatelessWidget {
             AttendanceAlerts(
               entry: attendance,
               maxBreakMinutes: data.maxBreakMinutes,
+              openBusinessDay: data.openBusinessDay,
             ),
           ],
         ],

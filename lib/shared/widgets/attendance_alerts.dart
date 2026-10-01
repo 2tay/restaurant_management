@@ -36,6 +36,7 @@ class AttendanceAlerts extends StatelessWidget {
     required this.maxBreakMinutes,
     this.detailed = false,
     this.now,
+    this.openBusinessDay,
     super.key,
   });
 
@@ -43,6 +44,9 @@ class AttendanceAlerts extends StatelessWidget {
   final int maxBreakMinutes;
   final bool detailed;
   final DateTime? now;
+
+  /// The open journée's date — see [attendanceAnomalies].
+  final DateTime? openBusinessDay;
 
   @override
   Widget build(BuildContext context) {
@@ -52,6 +56,7 @@ class AttendanceAlerts extends StatelessWidget {
       entry,
       maxBreakMinutes: maxBreakMinutes,
       now: now,
+      openBusinessDay: openBusinessDay,
     );
 
     if (anomalies.isEmpty) {

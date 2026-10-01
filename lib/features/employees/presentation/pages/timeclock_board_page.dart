@@ -343,7 +343,9 @@ class _BusinessDayNotice extends ConsumerWidget {
       icon: LucideIcons.lock,
       title: l10n.timeclockBusinessDayClosed(date, Formatters.time(closedAt)),
       message: l10n.timeclockBusinessDayClosedBody,
-      colors: AppColors.lowStock,
+      // The tint of the hourly rate on a Personnel card: a closed journée is
+      // the normal end of the day, not a warning.
+      colors: AppColors.brandTint,
     );
   }
 }
@@ -593,6 +595,8 @@ class _BoardDetail extends ConsumerWidget {
     final entry = ref.watch(attendanceBoardProvider(storeId)).value?[employeeId];
     final settings = ref.watch(storeSettingsProvider(storeId)).value;
     final day = ref.watch(boardDayProvider(storeId)).value;
+    // The whole roster, archived included, to name whoever entered an exit.
+    final roster = ref.watch(employeesProvider(storeId)).value ?? const [];
     if (employee == null || settings == null || day == null) {
       return const SizedBox.shrink();
     }
@@ -620,6 +624,10 @@ class _BoardDetail extends ConsumerWidget {
         fallback: settings.maxBreakMinutes,
       ),
       dateLine: AttendanceDayDate(date: entry.date, trailing: const LiveTime()),
+      exitAuthors: {for (final e in roster) e.id: employeeDisplayName(e)},
+      openBusinessDay: day.businessDay?.closedAt == null
+          ? day.businessDay?.date
+          : null,
     );
   }
 }

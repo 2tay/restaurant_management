@@ -638,6 +638,13 @@ final boardDayProvider = StreamProvider.family<BoardDay, String>(
       .watchBoardDay(storeId, ref.watch(currentDayProvider)),
 );
 
+/// The store's journée de service still open, or null — the history reads its
+/// date so a shift running past midnight is not an oubli de pointage.
+final openBusinessDayProvider = StreamProvider.family<BusinessDay?, String>(
+  (ref, storeId) =>
+      ref.watch(businessDayRepositoryProvider).watchCurrent(storeId),
+);
+
 /// Every row of the board's day for a store, keyed by employee id — the
 /// pointage board joins this against `activeEmployeesProvider`. Rebuilt only
 /// when the board's date changes, not on every open / close of the journée.

@@ -124,7 +124,8 @@ enum AttendanceAnomaly {
   /// One break ran past the store's allowance.
   pauseDepassee,
 
-  /// A day in the past is still open — clocked in and never clocked out.
+  /// A day in the past is still open — clocked in and never clocked out —
+  /// and it is not the journée de service still running past midnight.
   oubliDePointage,
 }
 
@@ -135,11 +136,15 @@ DateTime _dayOnly(DateTime v) => DateTime(v.year, v.month, v.day);
 /// "absent" concept.
 ///
 /// [now] defaults to the wall clock; a test pins it. A day that is still today
-/// and legitimately open (someone is working) is not [oubliDePointage].
+/// and legitimately open (someone is working) is not [oubliDePointage], and
+/// neither is a day of [openBusinessDay] — the date of the journée de service
+/// still open, which runs past midnight: at 00:30 an evening shift begun
+/// yesterday is still in service, not forgotten.
 List<AttendanceAnomaly> attendanceAnomalies(
   Attendance entry, {
   required int maxBreakMinutes,
   DateTime? now,
+  DateTime? openBusinessDay,
 }) {
   final result = <AttendanceAnomaly>[];
   if (hasLateBreak(entry, maxBreakMinutes)) {
@@ -147,8 +152,12 @@ List<AttendanceAnomaly> attendanceAnomalies(
   }
   final today = _dayOnly(now ?? clock.now());
   final last = entry.sessions.lastOrNull;
+  final inOpenJournee =
+      openBusinessDay != null &&
+      _dayOnly(entry.date) == _dayOnly(openBusinessDay);
   if (last != null &&
       last.clockOutAt == null &&
+      !inOpenJournee &&
       _dayOnly(entry.date).isBefore(today)) {
     result.add(AttendanceAnomaly.oubliDePointage);
   }

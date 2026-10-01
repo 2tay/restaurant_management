@@ -280,12 +280,16 @@ void main() {
   });
 
   group('derived anomalies', () {
-    List<AttendanceAnomaly> anomalies(Attendance a, {DateTime? now}) =>
-        attendanceAnomalies(
-          a,
-          maxBreakMinutes: 30,
-          now: now,
-        );
+    List<AttendanceAnomaly> anomalies(
+      Attendance a, {
+      DateTime? now,
+      DateTime? openBusinessDay,
+    }) => attendanceAnomalies(
+      a,
+      maxBreakMinutes: 30,
+      now: now,
+      openBusinessDay: openBusinessDay,
+    );
 
     test('a clean finished day has none', () {
       final clean = _finished(clockIn: const (8, 0), clockOut: const (17, 0));
@@ -326,6 +330,40 @@ void main() {
       expect(
         anomalies(today, now: DateTime(2026, 1, 5, 14)),
         isNot(contains(AttendanceAnomaly.oubliDePointage)),
+      );
+    });
+
+    // The journée de service runs past midnight: at 00:30 an evening shift
+    // begun yesterday is still in service, not forgotten.
+    test('a shift of the journée still open past midnight is not '
+        'oubliDePointage', () {
+      final evening = Attendance(
+        id: 't',
+        storeId: StoreIds.sablon,
+        employeeId: _fresh,
+        date: DateTime(2026, 1, 5),
+        status: AttendanceStatus.working,
+        sessions: [AttendanceSession(clockInAt: DateTime(2026, 1, 5, 18))],
+        paymentStatus: PaymentStatus.unpaid,
+      );
+      final halfPastMidnight = DateTime(2026, 1, 6, 0, 30);
+
+      expect(
+        anomalies(
+          evening,
+          now: halfPastMidnight,
+          openBusinessDay: DateTime(2026, 1, 5),
+        ),
+        isNot(contains(AttendanceAnomaly.oubliDePointage)),
+      );
+      // Another journée open (a later one): this day is forgotten after all.
+      expect(
+        anomalies(
+          evening,
+          now: DateTime(2026, 1, 7, 9),
+          openBusinessDay: DateTime(2026, 1, 7),
+        ),
+        contains(AttendanceAnomaly.oubliDePointage),
       );
     });
   });

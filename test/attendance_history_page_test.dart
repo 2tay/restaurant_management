@@ -414,4 +414,36 @@ void main() {
       AttendanceStatus.onBreak,
     );
   });
+
+  testApp('a shift of the journée still open (past midnight) is no oubli, '
+      'and offers no correction', (tester) async {
+    final db = await pumpApp(tester, size: const Size(1400, 900));
+    // The journée of the 25th opened at 18:00 and is still open — the same
+    // shape as an evening service still running at 00:30.
+    await BusinessDayRepository(
+      db,
+      clock: () => _forgottenIn,
+    ).open(StoreIds.sablon, openedByEmployeeId: EmployeeIds.marc);
+    await _addForgottenDay(db);
+    await _openFilteredToNoah(tester);
+
+    expect(
+      find.descendant(
+        of: find.byType(DataTable),
+        matching: find.text('Oubli de pointage'),
+      ),
+      findsNothing,
+    );
+    final row = find
+        .descendant(
+          of: find.byType(DataTable),
+          matching: find.byType(AttendanceStatusBadge),
+        )
+        .first;
+    await tester.ensureVisible(row);
+    await tester.tap(row);
+    await tester.pumpAndSettle();
+    expect(find.byType(DetailDrawer), findsOneWidget);
+    expect(find.byKey(const ValueKey('attendance-correct-exit')), findsNothing);
+  });
 }

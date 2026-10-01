@@ -6,6 +6,7 @@ import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stock_inventory/app/router.dart';
+import 'package:stock_inventory/core/theme/app_colors.dart';
 import 'package:stock_inventory/app/routes.dart';
 import 'package:stock_inventory/core/utils/formatters.dart';
 import 'package:stock_inventory/data/database/app_database.dart';
@@ -435,9 +436,12 @@ void main() {
     await days.close(journee!.id, closedByEmployeeId: EmployeeIds.marc);
     await tester.pumpAndSettle();
 
+    final notice = find.byKey(const ValueKey('timeclock-business-day-closed'));
+    expect(notice, findsOneWidget);
+    // The tint of the hourly rate on a Personnel card, not the amber warning.
     expect(
-      find.byKey(const ValueKey('timeclock-business-day-closed')),
-      findsOneWidget,
+      tester.widget<NoticeBanner>(notice).colors,
+      same(AppColors.brandTint),
     );
     expect(find.text('Le pointage reprendra demain.'), findsOneWidget);
     expect(find.widgetWithText(OutlinedButton, 'POINTER'), findsNothing);
@@ -572,9 +576,48 @@ void main() {
     final ended = await attendance.attendance(row.id);
     expect(ended!.status, AttendanceStatus.done);
     expect(ended.sessions.single.clockOutAt, _today(12));
+    expect(ended.sessions.single.exitSetByEmployeeId, EmployeeIds.marc);
     expect(
       find.byKey(const ValueKey('timeclock-business-day-closed')),
       findsOneWidget,
+    );
+
+    // Her drawer names whoever entered the exit.
+    await _openDetail(tester, EmployeeIds.amelie);
+    expect(
+      find.descendant(
+        of: find.byType(DetailDrawer),
+        matching: find.text('Départ · saisi par ${_name(EmployeeIds.marc)}'),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  _testBoard('past midnight, a shift of the journée still open is not an '
+      'oubli de pointage', (tester) async {
+    final db = await _openBoard(tester, size: const Size(1280, 1400));
+    await AttendanceRepository(
+      db,
+    ).clockIn(EmployeeIds.amelie, StoreIds.sablon, now: _today(8));
+    await tester.pumpAndSettle();
+
+    // 01:00 the next day, the journée still open: Amélie is still in service.
+    await tester.pump(const Duration(hours: 13));
+    await tester.pumpAndSettle();
+    await _openDetail(tester, EmployeeIds.amelie);
+
+    final drawer = find.byType(DetailDrawer);
+    expect(drawer, findsOneWidget);
+    expect(
+      find.descendant(of: drawer, matching: find.text('Oubli de pointage')),
+      findsNothing,
+    );
+    expect(
+      find.descendant(
+        of: drawer,
+        matching: find.byKey(const ValueKey('attendance-day-alerts')),
+      ),
+      findsNothing,
     );
   });
 

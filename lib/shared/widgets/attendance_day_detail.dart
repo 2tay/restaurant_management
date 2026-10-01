@@ -33,6 +33,7 @@ class AttendanceDayDetail extends StatelessWidget {
     this.dateLine,
     this.now,
     this.exitAuthors = const {},
+    this.openBusinessDay,
     super.key,
   });
 
@@ -54,6 +55,10 @@ class AttendanceDayDetail extends StatelessWidget {
   /// Display names by employee id — see [AttendanceSessions.exitAuthors].
   final Map<String, String> exitAuthors;
 
+  /// The open journée's date, so a shift still in service past midnight is
+  /// not shown as an oubli de pointage — see [attendanceAnomalies].
+  final DateTime? openBusinessDay;
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -63,6 +68,7 @@ class AttendanceDayDetail extends StatelessWidget {
       entry,
       maxBreakMinutes: maxBreakMinutes,
       now: now,
+      openBusinessDay: openBusinessDay,
     ).isNotEmpty;
 
     return Column(
@@ -122,6 +128,7 @@ class AttendanceDayDetail extends StatelessWidget {
             maxBreakMinutes: maxBreakMinutes,
             detailed: true,
             now: now,
+            openBusinessDay: openBusinessDay,
           ),
         ],
       ],
