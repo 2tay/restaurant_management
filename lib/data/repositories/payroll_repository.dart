@@ -19,6 +19,14 @@ class _PayrollAborted implements Exception {
   const _PayrollAborted();
 }
 
+/// Thrown by [PayrollRepository.pay] when the days payable no longer match
+/// the [PayrollPreview] the payer confirmed — a day finished, corrected or
+/// paid in between, or the rate changed. Nothing is written; the screen says
+/// so and the payer looks at the new figure before confirming again.
+class PayrollPreviewOutdated implements Exception {
+  const PayrollPreviewOutdated();
+}
+
 /// What [PayrollRepository.preview] hands the screen — figured, never stored.
 class PayrollPreview {
   const PayrollPreview({
@@ -298,12 +306,19 @@ class PayrollRepository {
   /// day slipped into `paid` between the preview and here: in that last case the
   /// period insert is rolled back with it, so `pay` never leaves a run whose
   /// days are not all locked to it.
+  ///
+  /// With [expected] — the preview the payer confirmed — it pays exactly that
+  /// or nothing: when the payable days or the amount differ (a day finished,
+  /// corrected or paid in between, a rate changed), it throws
+  /// [PayrollPreviewOutdated] and writes nothing. Checked inside the
+  /// transaction, so nothing can slip in between the check and the write.
   Future<PayrollPeriod?> pay(
     String employeeId,
     String storeId, {
     DateTime? from,
     DateTime? to,
     required String paidByEmployeeId,
+    PayrollPreview? expected,
     DateTime? now,
   }) async {
     final employee = await EmployeeRepository(_db).employee(employeeId);
@@ -320,6 +335,10 @@ class PayrollRepository {
           from: from,
           to: to,
         );
+        final amount = periodAmount(days, employee, settings);
+        if (expected != null && !_sameRun(expected, days, amount)) {
+          throw const PayrollPreviewOutdated();
+        }
         if (days.isEmpty) return null;
 
         final totals = periodTotals(days);
@@ -333,7 +352,7 @@ class PayrollRepository {
           workedDays: totals.days,
           totalWorkedHours: totals.workedHours,
           appliedRate: employee.pay,
-          computedAmount: periodAmount(days, employee, settings),
+          computedAmount: amount,
           status: PayrollStatus.paid,
           paidByEmployeeId: paidByEmployeeId,
           paidAt: at,
@@ -357,6 +376,20 @@ class PayrollRepository {
     } on _PayrollAborted {
       return null;
     }
+  }
+
+  /// Whether [days] at [amount] is the run [expected] showed: the same days,
+  /// and the same amount to the cent.
+  static bool _sameRun(
+    PayrollPreview expected,
+    List<Attendance> days,
+    double amount,
+  ) {
+    final shown = expected.days.map((d) => d.id).toSet();
+    final now = days.map((d) => d.id).toSet();
+    return shown.length == now.length &&
+        shown.containsAll(now) &&
+        (expected.amount - amount).abs() < 0.005;
   }
 
   /// Unpaid, finished days for this employee at this store — most recent first.

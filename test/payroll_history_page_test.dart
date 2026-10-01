@@ -252,6 +252,30 @@ void main() {
     );
   });
 
+  // Audit L9: what was confirmed is what gets paid — or nothing.
+  testApp('a rate changed during the PIN: nothing is paid, and it says so', (
+    tester,
+  ) async {
+    final db = await _openPayroll(tester);
+    await _pickKarim(tester);
+    await _confirmPay(tester);
+    expect(find.text('Numéro PIN'), findsOneWidget);
+
+    // Somebody edits Karim's rate while the payer types the PIN.
+    final employees = EmployeeRepository(db);
+    final karim = (await employees.employee(EmployeeIds.karim))!;
+    await employees.update(karim.id, pay: karim.pay + 1);
+    await _enterPin(tester, _marcPin);
+
+    expect(find.textContaining("ont changé depuis l'aperçu"), findsOneWidget);
+    expect(find.text('Paiement enregistré'), findsNothing);
+    expect(
+      (await AttendanceRepository(db).attendance(AttendanceIds.karim1))!
+          .paymentStatus,
+      PaymentStatus.unpaid,
+    );
+  });
+
   testApp('a wrong PIN leaves the days unpaid', (tester) async {
     final db = await _openPayroll(tester);
     await _pickKarim(tester);

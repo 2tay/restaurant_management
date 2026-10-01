@@ -350,6 +350,97 @@ void main() {
       );
     });
 
+    // Audit L9: pay exactly what was confirmed, or nothing.
+    group('against the confirmed preview', () {
+      Future<int> periodCount() async =>
+          (await db.select(db.payrollPeriods).get()).length;
+
+      test('pays it when nothing changed', () async {
+        await seedDoneDay(4, employeeId: EmployeeIds.julien, clockIn: (9, 0),
+            clockOut: (15, 0));
+        final shown = await payroll.preview(EmployeeIds.julien, StoreIds.sablon);
+
+        final period = await payroll.pay(
+          EmployeeIds.julien,
+          StoreIds.sablon,
+          paidByEmployeeId: EmployeeIds.marc,
+          expected: shown,
+          now: seedInstant,
+        );
+        expect(period!.computedAmount, closeTo(shown.amount, 0.001));
+      });
+
+      test('a day finished since the preview: nothing is paid', () async {
+        await seedDoneDay(4, employeeId: EmployeeIds.julien, clockIn: (9, 0),
+            clockOut: (15, 0));
+        final shown = await payroll.preview(EmployeeIds.julien, StoreIds.sablon);
+        final before = await periodCount();
+
+        // Julien clocks out of another day while the payer types the PIN.
+        await seedDoneDay(5, employeeId: EmployeeIds.julien, clockIn: (9, 0),
+            clockOut: (16, 0));
+
+        await expectLater(
+          payroll.pay(
+            EmployeeIds.julien,
+            StoreIds.sablon,
+            paidByEmployeeId: EmployeeIds.marc,
+            expected: shown,
+            now: seedInstant,
+          ),
+          throwsA(isA<PayrollPreviewOutdated>()),
+        );
+        expect(await periodCount(), before);
+        final now = await payroll.preview(EmployeeIds.julien, StoreIds.sablon);
+        expect(now.days, hasLength(2), reason: 'both days still unpaid');
+      });
+
+      test('a rate changed since the preview: nothing is paid', () async {
+        await seedDoneDay(4, employeeId: EmployeeIds.julien, clockIn: (9, 0),
+            clockOut: (15, 0));
+        final shown = await payroll.preview(EmployeeIds.julien, StoreIds.sablon);
+        final julien = (await employees.employee(EmployeeIds.julien))!;
+        await employees.update(julien.id, pay: julien.pay + 2);
+
+        await expectLater(
+          payroll.pay(
+            EmployeeIds.julien,
+            StoreIds.sablon,
+            paidByEmployeeId: EmployeeIds.marc,
+            expected: shown,
+            now: seedInstant,
+          ),
+          throwsA(isA<PayrollPreviewOutdated>()),
+        );
+      });
+
+      test('the shown days paid elsewhere in between: refused, not empty',
+          () async {
+        await seedDoneDay(4, employeeId: EmployeeIds.julien, clockIn: (9, 0),
+            clockOut: (15, 0));
+        final shown = await payroll.preview(EmployeeIds.julien, StoreIds.sablon);
+        await payroll.pay(
+          EmployeeIds.julien,
+          StoreIds.sablon,
+          paidByEmployeeId: EmployeeIds.marc,
+          now: seedInstant,
+        );
+        final before = await periodCount();
+
+        await expectLater(
+          payroll.pay(
+            EmployeeIds.julien,
+            StoreIds.sablon,
+            paidByEmployeeId: EmployeeIds.marc,
+            expected: shown,
+            now: seedInstant,
+          ),
+          throwsA(isA<PayrollPreviewOutdated>()),
+        );
+        expect(await periodCount(), before);
+      });
+    });
+
     test('two concurrent pay calls leave exactly one period, whole', () async {
       await seedDoneDay(4, employeeId: EmployeeIds.julien, clockIn: (9, 0),
           clockOut: (17, 0));

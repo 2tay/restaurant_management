@@ -5806,6 +5806,18 @@ abstract class AppLocalizations {
   /// **'Paiement enregistré'**
   String get payrollPaid;
 
+  /// Snackbar when the payable days or amount changed between the confirm and the payment — nothing was paid.
+  ///
+  /// In fr, this message translates to:
+  /// **'Les jours à payer ont changé depuis l\'aperçu : rien n\'a été payé. Vérifiez le nouveau montant puis payez à nouveau.'**
+  String get payrollPreviewOutdated;
+
+  /// Snackbar when the payment was refused for another reason (nothing left to pay, a day locked meanwhile).
+  ///
+  /// In fr, this message translates to:
+  /// **'Le paiement n\'a pas été enregistré. Réessayez.'**
+  String get payrollPayFailed;
+
   /// Payroll table column — how many breaks the day had, with their total time underneath.
   ///
   /// In fr, this message translates to:

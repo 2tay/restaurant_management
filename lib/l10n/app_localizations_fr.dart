@@ -3587,6 +3587,14 @@ class AppLocalizationsFr extends AppLocalizations {
   String get payrollPaid => 'Paiement enregistré';
 
   @override
+  String get payrollPreviewOutdated =>
+      'Les jours à payer ont changé depuis l\'aperçu : rien n\'a été payé. Vérifiez le nouveau montant puis payez à nouveau.';
+
+  @override
+  String get payrollPayFailed =>
+      'Le paiement n\'a pas été enregistré. Réessayez.';
+
+  @override
   String get payrollColumnBreaks => 'Pauses';
 
   @override

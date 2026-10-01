@@ -441,8 +441,8 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
     final actorId = ref.read(currentEmployeeProvider)?.id;
     if (actorId == null) return false;
 
-    // The person settling the days confirms with their own PIN — same
-    // wrong-attempt / 5-minute lockout as the pointage board.
+    // The person settling the days confirms with their own PIN — the same
+    // check as the pointage board: unlimited tries, no lockout.
     final identityOk = await IdentityPromptDialog.show(
       context,
       title: l10n.identityPromptTitle,
@@ -452,14 +452,28 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
     );
     if (!identityOk || !mounted) return false;
 
-    final period = await payroll.pay(
-      employee.id,
-      widget.storeId,
-      from: from,
-      to: to,
-      paidByEmployeeId: actorId,
-    );
-    if (!mounted || period == null) return false;
+    // Pays exactly what was confirmed, or nothing (audit L9).
+    final PayrollPeriod? period;
+    try {
+      period = await payroll.pay(
+        employee.id,
+        widget.storeId,
+        from: from,
+        to: to,
+        paidByEmployeeId: actorId,
+        expected: preview,
+      );
+    } on PayrollPreviewOutdated {
+      if (!mounted) return false;
+      ref.invalidate(payrollDaysProvider);
+      AppSnackBar.error(context, l10n.payrollPreviewOutdated);
+      return false;
+    }
+    if (!mounted) return false;
+    if (period == null) {
+      AppSnackBar.error(context, l10n.payrollPayFailed);
+      return false;
+    }
 
     // A `FutureProvider` — nudge it so the table reflects the settled days.
     ref.invalidate(payrollDaysProvider);
