@@ -98,6 +98,39 @@ void main() {
       expect(credential.lockedUntil, isNull);
     });
 
+    // Audit L8: the count used to survive the lockout, so the first miss
+    // after it locked again — one try per window instead of three.
+    test('once a lockout has run out, the full ${AuthRules.maxFailedAttempts} '
+        'tries are back', () async {
+      final locked = DateTime(2026, 8, 30, 9);
+      for (var i = 0; i < AuthRules.maxFailedAttempts; i++) {
+        await credentials.authenticate(_marcPin, '0000', now: locked);
+      }
+      final later = locked
+          .add(AuthRules.lockoutDuration)
+          .add(const Duration(minutes: 1));
+
+      final firstMiss = await credentials.authenticate(
+        _marcPin,
+        '0000',
+        now: later,
+      );
+      expect(firstMiss.outcome, LoginOutcome.wrongPassword);
+      final credential = (await credentials.forEmployee(EmployeeIds.marc))!;
+      expect(credential.failedAttempts, 1);
+      expect(credential.lockedUntil, isNull, reason: 'the old lock is cleared');
+
+      LoginAttempt? last;
+      for (var i = 1; i < AuthRules.maxFailedAttempts; i++) {
+        last = await credentials.authenticate(_marcPin, '0000', now: later);
+      }
+      expect(
+        last!.outcome,
+        LoginOutcome.locked,
+        reason: 'locks again on the ${AuthRules.maxFailedAttempts}th miss',
+      );
+    });
+
     test('a staff account has no password and is refused whatever is typed',
         () async {
       // No login secret for an Employé.

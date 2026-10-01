@@ -174,9 +174,16 @@ class EmployeeRepository {
   /// audit-relevant transition should not be reachable by a field on a routine
   /// form. [clearPhoto] removes the photo.
   ///
+  /// The login credential changes **in the same transaction**, so a role
+  /// change and its password land together or not at all — never a Gérant
+  /// left without a password because the second write failed:
+  /// - [password] sets (or replaces) the password;
+  /// - [clearCredential] removes any password on file (an Employé holds none).
+  ///
   /// Returns null, writing nothing, when the id is unknown, a supplied text
-  /// field is blank, [pay] is not a valid hourly rate, or the PIN / email
-  /// would now collide with another employee.
+  /// field is blank, [pay] is not a valid hourly rate, the PIN / email would
+  /// now collide with another employee, [password] is not
+  /// [AuthRules.passwordLength] digits, or both credential changes are asked.
   Future<Employee?> update(
     String id, {
     String? firstName,
@@ -188,7 +195,12 @@ class EmployeeRepository {
     double? pay,
     String? photoAsset,
     bool clearPhoto = false,
+    String? password,
+    bool clearCredential = false,
   }) async {
+    if (password != null && (clearCredential || !isValidPassword(password))) {
+      return null;
+    }
     final first = firstName?.trim();
     if (first != null && first.isEmpty) return null;
     final last = lastName?.trim();
@@ -233,6 +245,18 @@ class EmployeeRepository {
       await (_db.update(
         _db.employees,
       )..where((e) => e.id.equals(id))).write(employeeToRow(updated));
+
+      final credentials = CredentialRepository(_db);
+      if (clearCredential) {
+        await credentials.clear(id);
+      } else if (password != null) {
+        // Checked above and the employee exists, so this cannot fail — but if
+        // that ever stops holding, rolling the details back with it is the
+        // whole point.
+        if (await credentials.setPassword(id, password) == null) {
+          throw StateError('setPassword refused a validated password for $id');
+        }
+      }
       return updated;
     });
   }
