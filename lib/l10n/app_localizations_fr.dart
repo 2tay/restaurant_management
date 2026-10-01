@@ -3010,9 +3010,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get employeeFormPayHint => 'Ex. 15,50';
 
   @override
-  String employeeFormPayInvalid(String max) {
-    return 'Saisissez un taux entre 0 et $max €/h.';
-  }
+  String get employeeFormPayInvalid => 'Saisissez un taux horaire positif.';
 
   @override
   String get employeeFormPasswordConfirmHint => 'Répétez les 4 chiffres';

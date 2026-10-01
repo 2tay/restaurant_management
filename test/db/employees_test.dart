@@ -85,25 +85,20 @@ void main() {
       );
     });
 
-    test('refuses a negative, NaN, infinite or oversized hourly rate',
-        () async {
-      for (final pay in [
-        -12.0,
-        double.nan,
-        double.infinity,
-        EmployeeRules.maxHourlyRate + 1,
-      ]) {
+    test('refuses a negative, NaN or infinite hourly rate', () async {
+      for (final pay in [-12.0, double.nan, double.infinity]) {
         expect(await create(pay: pay), isNull, reason: '$pay');
       }
     });
 
-    test('accepts a zero rate and the cap itself', () async {
+    test('accepts a zero rate and a very high one — there is no ceiling',
+        () async {
       expect(await create(pay: 0), isNotNull);
       expect(
         await create(
           pin: '11.11.11-111.11',
-          email: 'cap@example.be',
-          pay: EmployeeRules.maxHourlyRate,
+          email: 'haut@example.be',
+          pay: 50000,
         ),
         isNotNull,
       );

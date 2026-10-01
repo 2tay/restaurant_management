@@ -4906,11 +4906,11 @@ abstract class AppLocalizations {
   /// **'Ex. 15,50'**
   String get employeeFormPayHint;
 
-  /// Employee wizard, pay step: error under the hourly-rate field when the typed rate is negative, not a number or above the cap.
+  /// Employee wizard, pay step: error under the hourly-rate field when the typed rate is negative or not a number.
   ///
   /// In fr, this message translates to:
-  /// **'Saisissez un taux entre 0 et {max} €/h.'**
-  String employeeFormPayInvalid(String max);
+  /// **'Saisissez un taux horaire positif.'**
+  String get employeeFormPayInvalid;
 
   /// Placeholder of the confirm-password field.
   ///

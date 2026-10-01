@@ -144,25 +144,27 @@ void main() {
     expect(find.byKey(_owner), findsNothing);
   });
 
-  testApp('a negative or oversized rate says why and blocks Suivant', (
+  testApp('a negative or non-numeric rate says why and blocks Suivant', (
     tester,
   ) async {
     await _openAdd(tester);
     await _fillIdentity(tester);
     await _tap(tester, 'Suivant');
 
-    const error = 'Saisissez un taux entre 0 et 1000 €/h.';
-    for (final typed in ['-12', '1500', '1e9']) {
+    const error = 'Saisissez un taux horaire positif.';
+    for (final typed in ['-12', 'abc', 'Infinity']) {
       await tester.enterText(_fields.first, typed);
       await tester.pumpAndSettle();
       expect(find.text(error), findsOneWidget, reason: typed);
       expect(_enabled(tester, 'Suivant'), isFalse, reason: typed);
     }
 
-    await tester.enterText(_fields.first, '18,5');
-    await tester.pumpAndSettle();
-    expect(find.text(error), findsNothing);
-    expect(_enabled(tester, 'Suivant'), isTrue);
+    for (final typed in ['18,5', '50000']) {
+      await tester.enterText(_fields.first, typed);
+      await tester.pumpAndSettle();
+      expect(find.text(error), findsNothing, reason: typed);
+      expect(_enabled(tester, 'Suivant'), isTrue, reason: typed);
+    }
   });
 
   testApp('an Employé is asked for no password; a Gérant is', (tester) async {

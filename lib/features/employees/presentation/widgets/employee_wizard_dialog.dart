@@ -206,9 +206,7 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
   String? _payError(AppLocalizations l10n) =>
       _pay.text.trim().isEmpty || _payValid
           ? null
-          : l10n.employeeFormPayInvalid(
-              EmployeeRules.maxHourlyRate.toStringAsFixed(0),
-            );
+          : l10n.employeeFormPayInvalid;
 
   bool get _isDirty =>
       _initialText.entries.any((e) => e.key.text.trim() != e.value.trim()) ||

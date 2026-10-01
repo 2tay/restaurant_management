@@ -10,20 +10,12 @@ import '../../models/models.dart';
 /// Active unless soft-removed. The one source of truth is [Employee.archivedAt].
 bool isEmployeeActive(Employee employee) => employee.archivedAt == null;
 
-/// Limits on what an employee record may hold.
-abstract final class EmployeeRules {
-  /// The highest hourly rate the form and the repository accept, in €/h.
-  /// Well above any real wage — it only catches a slipped key (`1e9`, `1500`
-  /// for `15,00`) before it is frozen into a paid `payroll_periods` row.
-  static const double maxHourlyRate = 1000;
-}
-
-/// A rate the payroll maths can use: a real number, from 0 (an unpaid
-/// trainee) to [EmployeeRules.maxHourlyRate]. Refuses a negative rate, `NaN`
-/// and `Infinity`, which `double.tryParse` all accept and which would poison
-/// every amount computed from them.
-bool isValidHourlyRate(double pay) =>
-    pay.isFinite && pay >= 0 && pay <= EmployeeRules.maxHourlyRate;
+/// A rate the payroll maths can use: a real, positive number — 0 included
+/// (an unpaid trainee). No ceiling: the owner sets whatever rate they agree.
+/// Refuses a negative rate, `NaN` and `Infinity`, which `double.tryParse` all
+/// accept and which would poison every amount computed from them, frozen in a
+/// paid `payroll_periods` row.
+bool isValidHourlyRate(double pay) => pay.isFinite && pay >= 0;
 
 /// "Prénom Nom", trimmed, each word starting with a capital — "amélie
 /// vandenberghe" as typed still reads "Amélie Vandenberghe". Only the first
