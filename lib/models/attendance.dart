@@ -35,6 +35,7 @@ class AttendanceSession {
   const AttendanceSession({
     required this.clockInAt,
     this.clockOutAt,
+    this.exitSetByEmployeeId,
     this.pauses = const [],
   });
 
@@ -42,6 +43,11 @@ class AttendanceSession {
 
   /// Null while this cycle is still running.
   final DateTime? clockOutAt;
+
+  /// Who entered [clockOutAt] in the employee's place (closing the journée,
+  /// or correcting a forgotten exit). Null when the employee clocked out
+  /// themselves.
+  final String? exitSetByEmployeeId;
 
   /// Oldest first. Empty until the first `Pause` of this cycle.
   final List<AttendancePause> pauses;

@@ -10862,6 +10862,17 @@ class $AttendanceSessionsTable extends AttendanceSessions
     type: DriftSqlType.dateTime,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _exitSetByEmployeeIdMeta =
+      const VerificationMeta('exitSetByEmployeeId');
+  @override
+  late final GeneratedColumn<String> exitSetByEmployeeId =
+      GeneratedColumn<String>(
+        'exit_set_by_employee_id',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -10869,6 +10880,7 @@ class $AttendanceSessionsTable extends AttendanceSessions
     position,
     clockInAt,
     clockOutAt,
+    exitSetByEmployeeId,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -10923,6 +10935,15 @@ class $AttendanceSessionsTable extends AttendanceSessions
         ),
       );
     }
+    if (data.containsKey('exit_set_by_employee_id')) {
+      context.handle(
+        _exitSetByEmployeeIdMeta,
+        exitSetByEmployeeId.isAcceptableOrUnknown(
+          data['exit_set_by_employee_id']!,
+          _exitSetByEmployeeIdMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -10952,6 +10973,10 @@ class $AttendanceSessionsTable extends AttendanceSessions
         DriftSqlType.dateTime,
         data['${effectivePrefix}clock_out_at'],
       ),
+      exitSetByEmployeeId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}exit_set_by_employee_id'],
+      ),
     );
   }
 
@@ -10968,12 +10993,19 @@ class AttendanceSessionRow extends DataClass
   final int position;
   final DateTime clockInAt;
   final DateTime? clockOutAt;
+
+  /// Who entered [clockOutAt] in the employee's place — the manager closing
+  /// the journée, or correcting a forgotten exit from the history. Null when
+  /// the employee clocked out themselves, and on sessions from before v16.
+  /// No foreign key, for the same reason as `goods_receipts.receivedByEmployeeId`.
+  final String? exitSetByEmployeeId;
   const AttendanceSessionRow({
     required this.id,
     required this.attendanceId,
     required this.position,
     required this.clockInAt,
     this.clockOutAt,
+    this.exitSetByEmployeeId,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -10984,6 +11016,9 @@ class AttendanceSessionRow extends DataClass
     map['clock_in_at'] = Variable<DateTime>(clockInAt);
     if (!nullToAbsent || clockOutAt != null) {
       map['clock_out_at'] = Variable<DateTime>(clockOutAt);
+    }
+    if (!nullToAbsent || exitSetByEmployeeId != null) {
+      map['exit_set_by_employee_id'] = Variable<String>(exitSetByEmployeeId);
     }
     return map;
   }
@@ -10997,6 +11032,9 @@ class AttendanceSessionRow extends DataClass
       clockOutAt: clockOutAt == null && nullToAbsent
           ? const Value.absent()
           : Value(clockOutAt),
+      exitSetByEmployeeId: exitSetByEmployeeId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(exitSetByEmployeeId),
     );
   }
 
@@ -11011,6 +11049,9 @@ class AttendanceSessionRow extends DataClass
       position: serializer.fromJson<int>(json['position']),
       clockInAt: serializer.fromJson<DateTime>(json['clockInAt']),
       clockOutAt: serializer.fromJson<DateTime?>(json['clockOutAt']),
+      exitSetByEmployeeId: serializer.fromJson<String?>(
+        json['exitSetByEmployeeId'],
+      ),
     );
   }
   @override
@@ -11022,6 +11063,7 @@ class AttendanceSessionRow extends DataClass
       'position': serializer.toJson<int>(position),
       'clockInAt': serializer.toJson<DateTime>(clockInAt),
       'clockOutAt': serializer.toJson<DateTime?>(clockOutAt),
+      'exitSetByEmployeeId': serializer.toJson<String?>(exitSetByEmployeeId),
     };
   }
 
@@ -11031,12 +11073,16 @@ class AttendanceSessionRow extends DataClass
     int? position,
     DateTime? clockInAt,
     Value<DateTime?> clockOutAt = const Value.absent(),
+    Value<String?> exitSetByEmployeeId = const Value.absent(),
   }) => AttendanceSessionRow(
     id: id ?? this.id,
     attendanceId: attendanceId ?? this.attendanceId,
     position: position ?? this.position,
     clockInAt: clockInAt ?? this.clockInAt,
     clockOutAt: clockOutAt.present ? clockOutAt.value : this.clockOutAt,
+    exitSetByEmployeeId: exitSetByEmployeeId.present
+        ? exitSetByEmployeeId.value
+        : this.exitSetByEmployeeId,
   );
   AttendanceSessionRow copyWithCompanion(AttendanceSessionsCompanion data) {
     return AttendanceSessionRow(
@@ -11049,6 +11095,9 @@ class AttendanceSessionRow extends DataClass
       clockOutAt: data.clockOutAt.present
           ? data.clockOutAt.value
           : this.clockOutAt,
+      exitSetByEmployeeId: data.exitSetByEmployeeId.present
+          ? data.exitSetByEmployeeId.value
+          : this.exitSetByEmployeeId,
     );
   }
 
@@ -11059,14 +11108,21 @@ class AttendanceSessionRow extends DataClass
           ..write('attendanceId: $attendanceId, ')
           ..write('position: $position, ')
           ..write('clockInAt: $clockInAt, ')
-          ..write('clockOutAt: $clockOutAt')
+          ..write('clockOutAt: $clockOutAt, ')
+          ..write('exitSetByEmployeeId: $exitSetByEmployeeId')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, attendanceId, position, clockInAt, clockOutAt);
+  int get hashCode => Object.hash(
+    id,
+    attendanceId,
+    position,
+    clockInAt,
+    clockOutAt,
+    exitSetByEmployeeId,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -11075,7 +11131,8 @@ class AttendanceSessionRow extends DataClass
           other.attendanceId == this.attendanceId &&
           other.position == this.position &&
           other.clockInAt == this.clockInAt &&
-          other.clockOutAt == this.clockOutAt);
+          other.clockOutAt == this.clockOutAt &&
+          other.exitSetByEmployeeId == this.exitSetByEmployeeId);
 }
 
 class AttendanceSessionsCompanion
@@ -11085,6 +11142,7 @@ class AttendanceSessionsCompanion
   final Value<int> position;
   final Value<DateTime> clockInAt;
   final Value<DateTime?> clockOutAt;
+  final Value<String?> exitSetByEmployeeId;
   final Value<int> rowid;
   const AttendanceSessionsCompanion({
     this.id = const Value.absent(),
@@ -11092,6 +11150,7 @@ class AttendanceSessionsCompanion
     this.position = const Value.absent(),
     this.clockInAt = const Value.absent(),
     this.clockOutAt = const Value.absent(),
+    this.exitSetByEmployeeId = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   AttendanceSessionsCompanion.insert({
@@ -11100,6 +11159,7 @@ class AttendanceSessionsCompanion
     required int position,
     required DateTime clockInAt,
     this.clockOutAt = const Value.absent(),
+    this.exitSetByEmployeeId = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        attendanceId = Value(attendanceId),
@@ -11111,6 +11171,7 @@ class AttendanceSessionsCompanion
     Expression<int>? position,
     Expression<DateTime>? clockInAt,
     Expression<DateTime>? clockOutAt,
+    Expression<String>? exitSetByEmployeeId,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -11119,6 +11180,8 @@ class AttendanceSessionsCompanion
       if (position != null) 'position': position,
       if (clockInAt != null) 'clock_in_at': clockInAt,
       if (clockOutAt != null) 'clock_out_at': clockOutAt,
+      if (exitSetByEmployeeId != null)
+        'exit_set_by_employee_id': exitSetByEmployeeId,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -11129,6 +11192,7 @@ class AttendanceSessionsCompanion
     Value<int>? position,
     Value<DateTime>? clockInAt,
     Value<DateTime?>? clockOutAt,
+    Value<String?>? exitSetByEmployeeId,
     Value<int>? rowid,
   }) {
     return AttendanceSessionsCompanion(
@@ -11137,6 +11201,7 @@ class AttendanceSessionsCompanion
       position: position ?? this.position,
       clockInAt: clockInAt ?? this.clockInAt,
       clockOutAt: clockOutAt ?? this.clockOutAt,
+      exitSetByEmployeeId: exitSetByEmployeeId ?? this.exitSetByEmployeeId,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -11159,6 +11224,11 @@ class AttendanceSessionsCompanion
     if (clockOutAt.present) {
       map['clock_out_at'] = Variable<DateTime>(clockOutAt.value);
     }
+    if (exitSetByEmployeeId.present) {
+      map['exit_set_by_employee_id'] = Variable<String>(
+        exitSetByEmployeeId.value,
+      );
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -11173,6 +11243,7 @@ class AttendanceSessionsCompanion
           ..write('position: $position, ')
           ..write('clockInAt: $clockInAt, ')
           ..write('clockOutAt: $clockOutAt, ')
+          ..write('exitSetByEmployeeId: $exitSetByEmployeeId, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();

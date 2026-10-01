@@ -89,7 +89,7 @@ class AppDatabase extends _$AppDatabase {
   static const String databaseName = 'stock_inventory';
 
   @override
-  int get schemaVersion => 15;
+  int get schemaVersion => 16;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -334,6 +334,18 @@ class AppDatabase extends _$AppDatabase {
       // as it did. `stores` exists from v1, so no `from >= 2` guard.
       if (from < 15) {
         await m.addColumn(stores, stores.businessDayAutoOpenMinutes);
+      }
+
+      // v15 → v16: `attendance_sessions.exit_set_by_employee_id`, who entered
+      // an exit in the employee's place. Null on every existing session —
+      // nobody knows who did, and a null reads "clocked out themselves" or
+      // "from before". Guarded `from >= 11`: an older install's `createTable`
+      // calls (v1 → v2, v10 → v11) already build the current shape.
+      if (from >= 11 && from < 16) {
+        await m.addColumn(
+          attendanceSessions,
+          attendanceSessions.exitSetByEmployeeId,
+        );
       }
     },
 

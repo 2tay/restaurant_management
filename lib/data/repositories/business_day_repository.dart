@@ -165,7 +165,12 @@ class BusinessDayRepository {
               entry.date != row.date) {
             throw const _CloseRefused();
           }
-          if (await attendance.endShift(id, at) == null) {
+          if (await attendance.endShift(
+                id,
+                at,
+                setByEmployeeId: closedByEmployeeId,
+              ) ==
+              null) {
             throw const _CloseRefused();
           }
         }

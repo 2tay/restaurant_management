@@ -176,6 +176,11 @@ void main() {
         expect(b.status, AttendanceStatus.done);
         expect(b.sessions.single.pauses.single.endAt, exit);
         expect(b.sessions.single.clockOutAt, exit);
+        expect(
+          a.sessions.single.exitSetByEmployeeId,
+          _manager,
+          reason: 'the exit is signed by whoever closed the journée',
+        );
       });
 
       test('an exit before the clock-in writes nothing', () async {
@@ -344,6 +349,123 @@ void main() {
         await repo(DateTime(2026, 9, 29, 23)).currentOrOpen(_store),
         isNull,
       );
+    });
+  });
+
+  // A day left open from before the journée de service (or by an archived
+  // employee): nothing on the board can end it any more, so the history does.
+  group('correcting a forgotten exit', () {
+    late AttendanceRepository attendance;
+    final forgotten = DateTime(2026, 9, 20);
+    final forgottenIn = DateTime(2026, 9, 20, 18);
+    const forgottenId = 'att-forgotten';
+
+    setUp(() async {
+      attendance = AttendanceRepository(db, clock: () => evening);
+      await db.into(db.attendances).insert(
+        AttendancesCompanion.insert(
+          id: forgottenId,
+          storeId: _store,
+          employeeId: _staff,
+          date: forgotten,
+          status: AttendanceStatus.working,
+        ),
+      );
+      await db.into(db.attendanceSessions).insert(
+        AttendanceSessionsCompanion.insert(
+          id: '$forgottenId-session-0',
+          attendanceId: forgottenId,
+          position: 0,
+          clockInAt: forgottenIn,
+        ),
+      );
+    });
+
+    test('ends the day at the exit, signed by the corrector, payable',
+        () async {
+      // Past midnight: the exit lands on the next calendar day.
+      final exit = DateTime(2026, 9, 21, 0, 30);
+      final fixed = await attendance.correctExit(
+        forgottenId,
+        exit,
+        correctedByEmployeeId: _manager,
+      );
+
+      expect(fixed!.status, AttendanceStatus.done);
+      expect(fixed.sessions.single.clockOutAt, exit);
+      expect(fixed.sessions.single.exitSetByEmployeeId, _manager);
+    });
+
+    test('works while another journée is open', () async {
+      await repo().open(_store);
+      expect(
+        await attendance.correctExit(
+          forgottenId,
+          DateTime(2026, 9, 20, 23),
+          correctedByEmployeeId: _manager,
+        ),
+        isNotNull,
+      );
+    });
+
+    test('refuses an exit before the clock-in or in the future', () async {
+      for (final at in [DateTime(2026, 9, 20, 17), DateTime(2026, 9, 29, 19)]) {
+        expect(
+          await attendance.correctExit(
+            forgottenId,
+            at,
+            correctedByEmployeeId: _manager,
+          ),
+          isNull,
+          reason: '$at',
+        );
+      }
+      expect(
+        (await attendance.attendance(forgottenId))!.status,
+        AttendanceStatus.working,
+      );
+    });
+
+    test('refuses a shift of the journée still open — the board ends it',
+        () async {
+      await repo().open(_store);
+      final id = (await attendance.clockIn(_staff, _store, now: evening))!.id;
+
+      expect(
+        await attendance.correctExit(
+          id,
+          evening,
+          correctedByEmployeeId: _manager,
+        ),
+        isNull,
+      );
+    });
+
+    test('refuses a day already finished', () async {
+      await attendance.correctExit(
+        forgottenId,
+        DateTime(2026, 9, 20, 23),
+        correctedByEmployeeId: _manager,
+      );
+      expect(
+        await attendance.correctExit(
+          forgottenId,
+          DateTime(2026, 9, 20, 23, 30),
+          correctedByEmployeeId: _manager,
+        ),
+        isNull,
+      );
+    });
+
+    test('a clock-out by the employee themselves carries no author',
+        () async {
+      await repo().open(_store);
+      final id = (await attendance.clockIn(_staff, _store, now: evening))!.id;
+      final out = await attendance.clockOut(
+        id,
+        now: DateTime(2026, 9, 29, 18, 5),
+      );
+      expect(out!.sessions.single.exitSetByEmployeeId, isNull);
     });
   });
 

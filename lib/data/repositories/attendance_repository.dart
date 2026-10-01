@@ -375,14 +375,44 @@ class AttendanceRepository {
     });
   }
 
-  /// Ends a shift still open at the closing of the journée, at the exit time
-  /// the manager enters: a running break ends at [at], then the session.
-  /// **Called only by `BusinessDayRepository.close`**, inside its transaction.
+  /// Corrects a forgotten exit from the history: ends a day left open, at the
+  /// time [correctedByEmployeeId] enters, and records them as the one who set
+  /// it. The day becomes `done`, so payable.
+  ///
+  /// Only for a day **outside** the journée de service still open — that one
+  /// is still running, and is ended by closing the journée on the board.
+  /// Otherwise refuses exactly as [endShift] does (not open, paid, an exit in
+  /// the future or before the clock-in / the running break).
+  Future<Attendance?> correctExit(
+    String attendanceId,
+    DateTime at, {
+    required String correctedByEmployeeId,
+  }) {
+    return _db.transaction(() async {
+      final entry = await attendance(attendanceId);
+      if (entry == null) return null;
+      final open = await BusinessDayRepository(
+        _db,
+        clock: _clock,
+      ).current(entry.storeId);
+      if (open != null && open.date == entry.date) return null;
+      return endShift(attendanceId, at, setByEmployeeId: correctedByEmployeeId);
+    });
+  }
+
+  /// Ends a shift still open at the exit time a manager enters: a running
+  /// break ends at [at], then the session, stamped with [setByEmployeeId].
+  /// **Called only by `BusinessDayRepository.close`** (inside its
+  /// transaction) and [correctExit].
   ///
   /// Refuses unless the day is `working` / `onBreak`, and when [at] is in the
   /// future or before the session's clock-in or the running break's start —
   /// an exit time that would make negative hours is never written.
-  Future<Attendance?> endShift(String attendanceId, DateTime at) {
+  Future<Attendance?> endShift(
+    String attendanceId,
+    DateTime at, {
+    required String setByEmployeeId,
+  }) {
     return _mutate(attendanceId, (row) async {
       if (row.status != AttendanceStatus.working &&
           row.status != AttendanceStatus.onBreak) {
@@ -403,7 +433,12 @@ class AttendanceRepository {
           .write(AttendancePausesCompanion(endAt: Value(at)));
       await (_db.update(_db.attendanceSessions)
             ..where((s) => s.id.equals(session.id)))
-          .write(AttendanceSessionsCompanion(clockOutAt: Value(at)));
+          .write(
+            AttendanceSessionsCompanion(
+              clockOutAt: Value(at),
+              exitSetByEmployeeId: Value(setByEmployeeId),
+            ),
+          );
       return AttendanceStatus.done;
     });
   }
