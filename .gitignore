@@ -48,4 +48,5 @@ app.*.map.json
 .claude/settings.local.json
 docs/
 # Local server address and key for `flutter run --dart-define-from-file=config/local.json`.
-config/local.json
+#config/local.json
+#config/dev.json
