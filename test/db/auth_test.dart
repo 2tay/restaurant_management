@@ -111,6 +111,29 @@ void main() {
     });
   });
 
+  group('archived employees', () {
+    test('an archived employee is refused, even with the right password',
+        () async {
+      await EmployeeRepository(db).archive(EmployeeIds.marc);
+
+      final attempt = await credentials.authenticate(_marcPin, '1234');
+      expect(attempt.outcome, LoginOutcome.archived);
+      expect(attempt.employee?.id, EmployeeIds.marc);
+      final credential = (await credentials.forEmployee(EmployeeIds.marc))!;
+      expect(credential.failedAttempts, 0, reason: 'nothing counted');
+      expect(credential.lastLoginAt, isNull, reason: 'no login stamped');
+    });
+
+    test('restoring gives access back with the same password', () async {
+      final repo = EmployeeRepository(db);
+      await repo.archive(EmployeeIds.marc);
+      await repo.restore(EmployeeIds.marc);
+
+      final attempt = await credentials.authenticate(_marcPin, '1234');
+      expect(attempt.outcome, LoginOutcome.success);
+    });
+  });
+
   group('setPassword / unlock', () {
     test('setPassword replaces the password and clears any lockout', () async {
       for (var i = 0; i < AuthRules.maxFailedAttempts; i++) {

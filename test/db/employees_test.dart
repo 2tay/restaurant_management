@@ -34,7 +34,7 @@ void main() {
     String phone = '+32 400 00 00 00',
     String email = 'test.personne@example.be',
     EmployeeRole role = EmployeeRole.staff,
-    double pay = 2000,
+    double pay = 15,
     String? password,
   }) => employees.create(
     storeId: storeId,
@@ -82,6 +82,30 @@ void main() {
           email: existing.email.toUpperCase(),
         ),
         isNull,
+      );
+    });
+
+    test('refuses a negative, NaN, infinite or oversized hourly rate',
+        () async {
+      for (final pay in [
+        -12.0,
+        double.nan,
+        double.infinity,
+        EmployeeRules.maxHourlyRate + 1,
+      ]) {
+        expect(await create(pay: pay), isNull, reason: '$pay');
+      }
+    });
+
+    test('accepts a zero rate and the cap itself', () async {
+      expect(await create(pay: 0), isNotNull);
+      expect(
+        await create(
+          pin: '11.11.11-111.11',
+          email: 'cap@example.be',
+          pay: EmployeeRules.maxHourlyRate,
+        ),
+        isNotNull,
       );
     });
 
@@ -134,6 +158,20 @@ void main() {
         a.pin,
         reason: 'a refused edit must not half-apply',
       );
+    });
+
+    test('refuses an invalid hourly rate and keeps the old one', () async {
+      final e = (await employees.employee(EmployeeIds.marc))!;
+      for (final pay in [-1.0, double.nan, double.negativeInfinity]) {
+        expect(
+          await employees.update(e.id, firstName: 'Autre', pay: pay),
+          isNull,
+          reason: '$pay',
+        );
+      }
+      final after = (await employees.employee(e.id))!;
+      expect(after.pay, e.pay);
+      expect(after.firstName, e.firstName);
     });
 
   });

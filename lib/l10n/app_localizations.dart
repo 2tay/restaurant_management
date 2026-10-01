@@ -4906,6 +4906,12 @@ abstract class AppLocalizations {
   /// **'Ex. 15,50'**
   String get employeeFormPayHint;
 
+  /// Employee wizard, pay step: error under the hourly-rate field when the typed rate is negative, not a number or above the cap.
+  ///
+  /// In fr, this message translates to:
+  /// **'Saisissez un taux entre 0 et {max} €/h.'**
+  String employeeFormPayInvalid(String max);
+
   /// Placeholder of the confirm-password field.
   ///
   /// In fr, this message translates to:
@@ -5799,6 +5805,12 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Ce compte n\'a pas accès à l\'application. Le pointage se fait au tableau de bord partagé.'**
   String get loginErrorNoAccess;
+
+  /// Login error when an archived (retired) employee tries to sign in.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ce compte a été retiré de l\'équipe et n\'a plus accès à l\'application.'**
+  String get loginErrorArchived;
 
   /// Section heading on the employee form for the login password.
   ///

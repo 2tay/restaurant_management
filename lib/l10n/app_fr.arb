@@ -1830,6 +1830,8 @@
   "@employeeFormEmailHint": {"description": "Placeholder of the email field."},
   "employeeFormPayHint": "Ex. 15,50",
   "@employeeFormPayHint": {"description": "Placeholder of the hourly-rate field."},
+  "employeeFormPayInvalid": "Saisissez un taux entre 0 et {max} €/h.",
+  "@employeeFormPayInvalid": {"description": "Employee wizard, pay step: error under the hourly-rate field when the typed rate is negative, not a number or above the cap.", "placeholders": {"max": {"type": "String"}}},
   "employeeFormPasswordConfirmHint": "Répétez les 4 chiffres",
   "@employeeFormPasswordConfirmHint": {"description": "Placeholder of the confirm-password field."},
   "employeeFormPhoto": "Photo",
@@ -2136,6 +2138,8 @@
   "@loginErrorLocked": {"description": "Login error when the credential is locked out after too many failed attempts."},
   "loginErrorNoAccess": "Ce compte n'a pas accès à l'application. Le pointage se fait au tableau de bord partagé.",
   "@loginErrorNoAccess": {"description": "Login error when a staff account, which has no active app access, tries to sign in."},
+  "loginErrorArchived": "Ce compte a été retiré de l'équipe et n'a plus accès à l'application.",
+  "@loginErrorArchived": {"description": "Login error when an archived (retired) employee tries to sign in."},
 
   "employeeFormCredentials": "Identifiants",
   "@employeeFormCredentials": {"description": "Section heading on the employee form for the login password."},

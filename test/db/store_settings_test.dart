@@ -135,14 +135,17 @@ void main() {
       expect(await session.currentEmployeeId(), EmployeeIds.marc);
     });
 
-    test('a stored id pointing at an archived employee still resolves',
+    test('an archived employee cannot be signed in', () async {
+      // Camille is archived in the seed.
+      expect(await session.signIn(EmployeeIds.camille), isNull);
+      expect(await session.currentEmployeeId(), EmployeeIds.marc);
+    });
+
+    test('a session left open by someone since archived does not resolve',
         () async {
-      // Camille is archived in the seed. Archiving does not sign you out —
-      // that is Phase 3's problem.
-      await session.signIn(EmployeeIds.camille);
-      final resolved = await session.currentEmployee();
-      expect(resolved?.id, EmployeeIds.camille);
-      expect(resolved?.archivedAt, isNotNull);
+      await session.signIn(EmployeeIds.amelie);
+      await EmployeeRepository(db).archive(EmployeeIds.amelie);
+      expect(await session.currentEmployee(), isNull);
     });
 
     test('a fresh repository over the same database reads the stored session',

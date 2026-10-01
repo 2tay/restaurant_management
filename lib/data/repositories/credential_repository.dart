@@ -27,6 +27,11 @@ enum LoginOutcome {
   /// kiosk), whatever password was typed — an Employé holds none. Counters
   /// untouched.
   noAppAccess,
+
+  /// The employee is archived (retired): their credential stays on file so a
+  /// restore needs no new password, but it no longer opens the app. Refused
+  /// whatever password was typed, counters untouched.
+  archived,
 }
 
 /// The result of an authentication attempt. [employee] is set whenever the PIN
@@ -182,6 +187,12 @@ class CredentialRepository {
   }) async {
     final employee = await EmployeeRepository(_db).employeeByPin(pin.trim());
     if (employee == null) return const LoginAttempt(LoginOutcome.unknownPin);
+
+    // A retired employee keeps their PIN and password on file, but neither
+    // signs in any more — checked first, so nothing typed is even weighed.
+    if (employee.archivedAt != null) {
+      return LoginAttempt(LoginOutcome.archived, employee);
+    }
 
     // An Employé never has app access — and, since the role holds no password
     // at all, the answer must not depend on what was typed. Nothing counted.

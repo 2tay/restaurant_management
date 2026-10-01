@@ -196,7 +196,19 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
       !_pinTaken &&
       !_emailTaken;
 
-  bool get _payValid => _parsedPay != null;
+  bool get _payValid {
+    final pay = _parsedPay;
+    return pay != null && isValidHourlyRate(pay);
+  }
+
+  /// Shown once something is typed: an empty field just keeps "Suivant"
+  /// disabled, but anything typed that is not a usable rate says why.
+  String? _payError(AppLocalizations l10n) =>
+      _pay.text.trim().isEmpty || _payValid
+          ? null
+          : l10n.employeeFormPayInvalid(
+              EmployeeRules.maxHourlyRate.toStringAsFixed(0),
+            );
 
   bool get _isDirty =>
       _initialText.entries.any((e) => e.key.text.trim() != e.value.trim()) ||
@@ -416,6 +428,7 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
           label: l10n.employeeFormPayHourly,
           hint: l10n.employeeFormPayHint,
           controller: _pay,
+          errorText: _payError(l10n),
           prefixIcon: LucideIcons.wallet,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           onChanged: (_) => setState(() {}),
@@ -519,7 +532,7 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
   Future<void> _submit() async {
     final l10n = AppLocalizations.of(context);
     final pay = _parsedPay;
-    if (pay == null) return;
+    if (pay == null || !isValidHourlyRate(pay)) return;
 
     final employees = ref.read(employeeRepositoryProvider);
     final existingId = widget.employee?.id;

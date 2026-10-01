@@ -32,21 +32,23 @@ class SessionRepository {
   }
 
   /// The signed-in employee, resolved. Null when signed out, and also null
-  /// when the stored id no longer resolves (a deleted row — archiving does
-  /// not delete, so in practice only a corrupt `meta` value).
+  /// when the stored id no longer resolves (a corrupt `meta` value) or names
+  /// an archived employee — a session left open by someone since retired
+  /// does not survive the next start.
   Future<Employee?> currentEmployee() async {
     final id = await currentEmployeeId();
     if (id == null) return null;
-    return EmployeeRepository(_db).employee(id);
+    final employee = await EmployeeRepository(_db).employee(id);
+    return employee == null || employee.archivedAt != null ? null : employee;
   }
 
   /// Signs [employeeId] in — writes the session row and refreshes the acting
   /// name. Returns the resolved employee, or null when the id does not exist
-  /// (nothing is written in that case).
+  /// or the employee is archived (nothing is written in either case).
   Future<Employee?> signIn(String employeeId) async {
     return _db.transaction(() async {
       final employee = await EmployeeRepository(_db).employee(employeeId);
-      if (employee == null) return null;
+      if (employee == null || employee.archivedAt != null) return null;
 
       await _put(MetaKeys.currentEmployeeId, employeeId);
       await _put(MetaKeys.currentUserName, employeeDisplayName(employee));

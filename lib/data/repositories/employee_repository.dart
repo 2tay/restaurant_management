@@ -2,6 +2,7 @@ import 'package:clock/clock.dart';
 import 'package:drift/drift.dart';
 
 import '../../core/utils/credential_status.dart';
+import '../../core/utils/employee_status.dart';
 import '../../models/employee.dart';
 import '../database/app_database.dart';
 import '../mappers/mappers.dart';
@@ -89,9 +90,10 @@ class EmployeeRepository {
   /// the same transaction.
   ///
   /// Returns null, writing nothing, when a required text field is empty, when
-  /// the PIN or the email is already used by another employee anywhere on the
-  /// account (both are unique account-wide, and the PIN is the login
-  /// identifier), or when [password] is set but is not [AuthRules.passwordLength] digits.
+  /// [pay] is not a valid hourly rate ([isValidHourlyRate]), when the PIN or
+  /// the email is already used by another employee anywhere on the account
+  /// (both are unique account-wide, and the PIN is the login identifier), or
+  /// when [password] is set but is not [AuthRules.passwordLength] digits.
   ///
   /// The add-employee form creates the person and their password in one submit: an
   /// employee row with no credential is somebody who cannot sign in, which
@@ -122,6 +124,7 @@ class EmployeeRepository {
         trimmedEmail.isEmpty) {
       return null;
     }
+    if (!isValidHourlyRate(pay)) return null;
     if (password != null && !isValidPassword(password)) return null;
 
     final now = clock.now();
@@ -172,8 +175,8 @@ class EmployeeRepository {
   /// form. [clearPhoto] removes the photo.
   ///
   /// Returns null, writing nothing, when the id is unknown, a supplied text
-  /// field is blank, or the PIN / email would now collide with another
-  /// employee.
+  /// field is blank, [pay] is not a valid hourly rate, or the PIN / email
+  /// would now collide with another employee.
   Future<Employee?> update(
     String id, {
     String? firstName,
@@ -196,6 +199,7 @@ class EmployeeRepository {
     if (trimmedPhone != null && trimmedPhone.isEmpty) return null;
     final trimmedEmail = email?.trim();
     if (trimmedEmail != null && trimmedEmail.isEmpty) return null;
+    if (pay != null && !isValidHourlyRate(pay)) return null;
 
     return _db.transaction(() async {
       final existing = await employee(id);

@@ -187,6 +187,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         setState(() => _error = l10n.loginErrorLocked);
       case LoginOutcome.noAppAccess:
         setState(() => _error = l10n.loginErrorNoAccess);
+      case LoginOutcome.archived:
+        setState(() => _error = l10n.loginErrorArchived);
     }
   }
 }

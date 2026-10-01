@@ -3010,6 +3010,11 @@ class AppLocalizationsFr extends AppLocalizations {
   String get employeeFormPayHint => 'Ex. 15,50';
 
   @override
+  String employeeFormPayInvalid(String max) {
+    return 'Saisissez un taux entre 0 et $max €/h.';
+  }
+
+  @override
   String get employeeFormPasswordConfirmHint => 'Répétez les 4 chiffres';
 
   @override
@@ -3563,6 +3568,10 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get loginErrorNoAccess =>
       'Ce compte n\'a pas accès à l\'application. Le pointage se fait au tableau de bord partagé.';
+
+  @override
+  String get loginErrorArchived =>
+      'Ce compte a été retiré de l\'équipe et n\'a plus accès à l\'application.';
 
   @override
   String get employeeFormCredentials => 'Identifiants';
