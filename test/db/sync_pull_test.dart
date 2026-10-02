@@ -109,6 +109,32 @@ void main() {
     expect(login.outcome, LoginOutcome.success);
   });
 
+  test('a screen watching B sees what A adds, without a restart', () async {
+    final a = await newDevice();
+    final b = await newDevice();
+    final day = await firstDay(a);
+    await sync(a);
+    await sync(b);
+
+    final seen = <List<String>>[];
+    final subscription =
+        (b.select(b.categories)..where((c) => c.storeId.equals(day.store.id)))
+            .watch()
+            .listen((rows) => seen.add([for (final r in rows) r.name]..sort()));
+    addTearDown(subscription.cancel);
+    await pumpEventQueue();
+    expect(seen.last, ['Légumes']);
+
+    await CatalogRepository(
+      a,
+    ).createCategory(storeId: day.store.id, name: 'Fruits');
+    await sync(a);
+    await sync(b);
+    await pumpEventQueue();
+
+    expect(seen.last, ['Fruits', 'Légumes']);
+  });
+
   test('a received row keeps the server\'s change stamp', () async {
     final a = await newDevice();
     final b = await newDevice();
@@ -293,6 +319,40 @@ void main() {
 
       expect(container.read(deviceAccessProvider).hasLocalData, isTrue);
     });
+
+    test(
+      'data that arrived before anyone listened still ends the wait',
+      () async {
+        final a = await newDevice();
+        await firstDay(a);
+        await sync(a);
+
+        final b = await newDevice();
+        final container = ProviderContainer(
+          overrides: [
+            databaseProvider.overrideWithValue(b),
+            accountBackendProvider.overrideWithValue(server),
+            networkChangesProvider.overrideWithValue(const Stream.empty()),
+          ],
+        );
+        addTearDown(container.dispose);
+        addTearDown(() => seedDeviceAccessSnapshot(DeviceAccess.demo));
+        await container.read(deviceAccessProvider.notifier).hydrate();
+        expect(container.read(deviceAccessProvider).hasLocalData, isFalse);
+
+        // The download happens without the controller hearing of it.
+        await sync(b);
+
+        container.listen(syncControllerProvider, (_, _) {});
+        await pumpEventQueue();
+        final pass = await container
+            .read(syncControllerProvider.notifier)
+            .syncNow();
+
+        expect(pass.received, 0);
+        expect(container.read(deviceAccessProvider).hasLocalData, isTrue);
+      },
+    );
 
     test(
       'another device\'s change arrives on its own, live',

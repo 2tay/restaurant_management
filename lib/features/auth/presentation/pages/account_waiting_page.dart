@@ -28,6 +28,19 @@ class _AccountWaitingPageState extends ConsumerState<AccountWaitingPage> {
   bool _busy = false;
 
   @override
+  void initState() {
+    super.initState();
+    // The listener below only hears changes made from now on: data that
+    // arrived before this screen opened is checked for here.
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await ref.read(deviceAccessProvider.notifier).hydrate();
+      if (mounted && ref.read(deviceAccessProvider).hasLocalData) {
+        context.goSection(Routes.login);
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final access = ref.watch(deviceAccessProvider);
