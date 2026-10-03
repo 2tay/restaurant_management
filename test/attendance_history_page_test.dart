@@ -1,6 +1,7 @@
 // Historique de pointage after the redesign: the compact table, the employee
 // selector filter, and the right-side detail drawer with its timeline.
 
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -389,6 +390,82 @@ void main() {
     expect(fixed.status, AttendanceStatus.done);
     expect(fixed.sessions.single.clockOutAt, DateTime(2026, 8, 26, 0, 30));
     expect(fixed.sessions.single.exitSetByEmployeeId, EmployeeIds.marc);
+  });
+
+  // Rule P1 (SYNC_PERSONNEL_PLAN.md, step 6): a day two tablets clocked
+  // twice offers to remove the arrival in excess, signed by the PIN.
+  testApp('« Supprimer ce pointage en double » removes one arrival', (
+    tester,
+  ) async {
+    final db = await pumpApp(tester, size: const Size(1400, 900));
+    const id = 'att-double';
+    await db.into(db.attendances).insert(
+      AttendancesCompanion.insert(
+        id: id,
+        storeId: StoreIds.sablon,
+        employeeId: EmployeeIds.noah,
+        date: DateTime(2026, 8, 25),
+        status: AttendanceStatus.done,
+      ),
+    );
+    for (final (position, minute) in [(0, 0), (1000, 5)]) {
+      await db.into(db.attendanceSessions).insert(
+        AttendanceSessionsCompanion.insert(
+          id: '$id-$position',
+          storeId: StoreIds.sablon,
+          attendanceId: id,
+          position: position,
+          clockInAt: DateTime(2026, 8, 25, 9, minute),
+          clockOutAt: Value(DateTime(2026, 8, 25, 17)),
+        ),
+      );
+    }
+    await _openFilteredToNoah(tester);
+
+    final chip = find.descendant(
+      of: find.byType(DataTable),
+      matching: find.text('Double pointage'),
+    );
+    await tester.ensureVisible(chip.first);
+    await tester.tap(chip.first);
+    await tester.pumpAndSettle();
+    final second = find.byKey(const ValueKey('attendance-delete-duplicate-1'));
+    await tester.scrollUntilVisible(
+      second,
+      200,
+      scrollable: find
+          .descendant(
+            of: find.byType(DetailDrawer),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    expect(find.text('Pointage en double'), findsOneWidget);
+    await tester.tap(second);
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Supprimer'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.descendant(
+        of: find.byType(IdentityPromptDialog),
+        matching: find.byType(TextField),
+      ),
+      '78.02.14-153.24', // Marc, the signed-in owner
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(
+        of: find.byType(IdentityPromptDialog),
+        matching: find.widgetWithText(FilledButton, 'Valider'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(DetailDrawer), findsNothing);
+    expect(find.textContaining('supprimé'), findsOneWidget);
+    final kept = (await AttendanceRepository(db).attendance(id))!;
+    expect(kept.sessions, hasLength(1));
+    expect(kept.sessions.single.id, '$id-0');
   });
 
   testApp('an exit before the running break is refused; Annuler writes '

@@ -3362,6 +3362,43 @@ class AppLocalizationsFr extends AppLocalizations {
       'La sortie n\'a pas été corrigée : le pointage a changé entre-temps. Réessayez.';
 
   @override
+  String get attendanceDuplicateHeading => 'Pointage en double';
+
+  @override
+  String get attendanceDuplicateHint =>
+      'Deux arrivées ont été pointées pour ce jour. Supprimez celle qui est en trop : ses heures ne compteront plus.';
+
+  @override
+  String attendanceDeleteDuplicate(String times) {
+    return 'Supprimer ce pointage en double ($times)';
+  }
+
+  @override
+  String get attendanceDeleteDuplicateTitle =>
+      'Supprimer ce pointage en double ?';
+
+  @override
+  String attendanceDeleteDuplicateMessage(String times) {
+    return 'Le pointage $times sera retiré de la journée, avec ses pauses. Ses heures ne seront plus comptées.';
+  }
+
+  @override
+  String get attendanceDeleteDuplicateConfirm => 'Supprimer';
+
+  @override
+  String attendanceDeleteDuplicateDone(String times) {
+    return 'Pointage $times supprimé.';
+  }
+
+  @override
+  String get attendanceDeleteDuplicateFailed =>
+      'Le pointage n\'a pas été supprimé : la journée a changé entre-temps (payée, ou un seul pointage restant). Réessayez.';
+
+  @override
+  String get identityPromptDeleteDuplicateSubtitle =>
+      'Saisissez votre numéro PIN pour supprimer ce pointage en double';
+
+  @override
   String get storeSettingsHours => 'Pauses';
 
   @override

@@ -319,17 +319,17 @@ class AttendanceRepository {
   }
 
   /// `Fin de journée`. Refuses unless the day is `working` — in particular it
-  /// refuses while `onBreak`, so nobody clocks out mid-break. Closes the
-  /// current (last) session; `Pointer` can open a new one afterwards.
+  /// refuses while `onBreak`, so nobody clocks out mid-break. Closes **every**
+  /// session still open on the day — after two arrivals on two tablets sync
+  /// merged into one day, one exit ends both (SYNC_PERSONNEL_PLAN.md, rule
+  /// P1) — and any break left open on them ends there too (rule P3).
+  /// `Pointer` can open a new session afterwards.
   Future<Attendance?> clockOut(String attendanceId, {DateTime? now}) {
     return _mutate(attendanceId, (row) async {
       if (row.status != AttendanceStatus.working) return null;
-      final session = await _lastSession(attendanceId);
-      if (session == null) return null;
-
-      await (_db.update(_db.attendanceSessions)
-            ..where((s) => s.id.equals(session.id)))
-          .write(AttendanceSessionsCompanion(clockOutAt: Value(now ?? _clock())));
+      final open = await _openSessions(attendanceId);
+      if (open.isEmpty) return null;
+      await _closeSessions(open, now ?? _clock());
       return AttendanceStatus.done;
     });
   }
@@ -359,13 +359,14 @@ class AttendanceRepository {
     });
   }
 
-  /// Ends a shift still open at the exit time a manager enters: a running
-  /// break ends at [at], then the session, stamped with [setByEmployeeId].
-  /// **Called only by `BusinessDayRepository.close`** (inside its
-  /// transaction) and [correctExit].
+  /// Ends a shift still open at the exit time a manager enters: every session
+  /// still open on the day (rule P1), and every break running on them, end
+  /// at [at], stamped with [setByEmployeeId]. **Called only by
+  /// `BusinessDayRepository.close`** (inside its transaction) and
+  /// [correctExit].
   ///
   /// Refuses unless the day is `working` / `onBreak`, and when [at] is in the
-  /// future or before the session's clock-in or the running break's start —
+  /// future or before an open session's clock-in or a running break's start —
   /// an exit time that would make negative hours is never written.
   Future<Attendance?> endShift(
     String attendanceId,
@@ -378,28 +379,117 @@ class AttendanceRepository {
         return null;
       }
       if (at.isAfter(_clock())) return null;
-      final session = await _lastSession(attendanceId);
-      if (session == null || at.isBefore(session.clockInAt)) return null;
+      final open = await _openSessions(attendanceId);
+      if (open.isEmpty || open.any((s) => at.isBefore(s.clockInAt))) {
+        return null;
+      }
+      final pauses = await _openPauses(open.map((s) => s.id));
+      if (pauses.any((p) => at.isBefore(p.startAt))) return null;
 
-      final open = await (_db.select(
-        _db.attendancePauses,
-      )..where((p) => p.sessionId.equals(session.id) & p.endAt.isNull())).get();
-      if (open.any((p) => at.isBefore(p.startAt))) return null;
-
-      await (_db.update(_db.attendancePauses)..where(
-            (p) => p.sessionId.equals(session.id) & p.endAt.isNull(),
-          ))
-          .write(AttendancePausesCompanion(endAt: Value(at)));
-      await (_db.update(_db.attendanceSessions)
-            ..where((s) => s.id.equals(session.id)))
-          .write(
-            AttendanceSessionsCompanion(
-              clockOutAt: Value(at),
-              exitSetByEmployeeId: Value(setByEmployeeId),
-            ),
-          );
+      await _closeSessions(open, at, setByEmployeeId: setByEmployeeId);
       return AttendanceStatus.done;
     });
+  }
+
+  /// Removes one of the sessions a double pointage left on a day
+  /// (« Supprimer ce pointage en double », rule P1): the session and its
+  /// breaks are marked deleted, and the day's status follows what is left.
+  /// For a manager or the owner, from the history.
+  ///
+  /// Refuses when the day is paid (frozen), when the session is not one of
+  /// the day's, or when it is the day's only session — removing the arrival
+  /// itself is not what this is for.
+  Future<Attendance?> deleteDuplicateSession(
+    String attendanceId,
+    String sessionId, {
+    DateTime? now,
+  }) {
+    return _db.transaction(() async {
+      final row = await (_db.select(_db.attendances)
+            ..where((a) => a.id.equals(attendanceId) & a.deletedAt.isNull()))
+          .getSingleOrNull();
+      if (row == null || row.payrollPeriodId != null) return null;
+      final sessions = await (_db.select(_db.attendanceSessions)..where(
+            (s) => s.attendanceId.equals(attendanceId) & s.deletedAt.isNull(),
+          ))
+          .get();
+      if (sessions.length < 2 || !sessions.any((s) => s.id == sessionId)) {
+        return null;
+      }
+
+      final at = now ?? _clock();
+      await (_db.update(_db.attendancePauses)..where(
+            (p) => p.sessionId.equals(sessionId) & p.deletedAt.isNull(),
+          ))
+          .write(AttendancePausesCompanion(deletedAt: Value(at)));
+      await (_db.update(_db.attendanceSessions)
+            ..where((s) => s.id.equals(sessionId)))
+          .write(AttendanceSessionsCompanion(deletedAt: Value(at)));
+      await refreshStatus(attendanceId);
+      return attendance(attendanceId);
+    });
+  }
+
+  /// Gives the day the status its sessions and breaks imply: a session still
+  /// open is being worked, or is on a break if a break runs on it; otherwise
+  /// the day is done. The status is never trusted from another tablet — sync
+  /// recomputes it after every received change (rule P3), the same on every
+  /// tablet, so nothing is sent.
+  Future<void> refreshStatus(String attendanceId) async {
+    final open = await _openSessions(attendanceId);
+    final AttendanceStatus status;
+    if (open.isEmpty) {
+      status = AttendanceStatus.done;
+    } else {
+      final pauses = await _openPauses(open.map((s) => s.id));
+      status = pauses.isEmpty
+          ? AttendanceStatus.working
+          : AttendanceStatus.onBreak;
+    }
+    await (_db.update(_db.attendances)..where(
+          (a) => a.id.equals(attendanceId) & a.status.equalsValue(status).not(),
+        ))
+        .write(AttendancesCompanion(status: Value(status)));
+  }
+
+  Future<List<AttendanceSessionRow>> _openSessions(String attendanceId) =>
+      (_db.select(_db.attendanceSessions)..where(
+            (s) =>
+                s.attendanceId.equals(attendanceId) &
+                s.clockOutAt.isNull() &
+                s.deletedAt.isNull(),
+          ))
+          .get();
+
+  Future<List<AttendancePauseRow>> _openPauses(Iterable<String> sessionIds) =>
+      (_db.select(_db.attendancePauses)..where(
+            (p) =>
+                p.sessionId.isIn(sessionIds) &
+                p.endAt.isNull() &
+                p.deletedAt.isNull(),
+          ))
+          .get();
+
+  /// Ends [sessions] at [at], and every break still running on them.
+  Future<void> _closeSessions(
+    List<AttendanceSessionRow> sessions,
+    DateTime at, {
+    String? setByEmployeeId,
+  }) async {
+    final ids = sessions.map((s) => s.id).toList();
+    await (_db.update(_db.attendancePauses)..where(
+          (p) => p.sessionId.isIn(ids) & p.endAt.isNull() & p.deletedAt.isNull(),
+        ))
+        .write(AttendancePausesCompanion(endAt: Value(at)));
+    await (_db.update(_db.attendanceSessions)..where((s) => s.id.isIn(ids)))
+        .write(
+          AttendanceSessionsCompanion(
+            clockOutAt: Value(at),
+            exitSetByEmployeeId: setByEmployeeId == null
+                ? const Value.absent()
+                : Value(setByEmployeeId),
+          ),
+        );
   }
 
   /// Locks a set of finished days against a payroll run — stamps

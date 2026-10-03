@@ -387,6 +387,196 @@ void main() {
     });
   });
 
+  // SYNC_PERSONNEL_PLAN.md, step 6: the pointage board and the history on
+  // two tablets.
+  group('the pointage on two tablets', () {
+    final morning = DateTime(2026, 10, 12, 8);
+    DateTime at(int hour, [int minute = 0]) =>
+        DateTime(2026, 10, 12, hour, minute);
+
+    Future<Attendance> dayOf(AppDatabase db, String employeeId) async =>
+        (await AttendanceRepository(db).forEmployee(employeeId)).single;
+
+    Future<List<NotificationItem>> flags(AppDatabase db, String storeId) async =>
+        [
+          for (final n in await AccountRepository(db).notifications(storeId))
+            if (n.kind == NotificationKind.personnel) n,
+        ];
+
+    test('after a double arrival, one exit ends both arrivals (P1, P3)',
+        () async {
+      final a = await newDevice();
+      final b = await newDevice();
+      final day = await shared(a, b);
+      await AttendanceRepository(a).clockIn(day.cook.id, day.store.id, now: morning);
+      await AttendanceRepository(b).clockIn(day.cook.id, day.store.id, now: morning);
+      await settle(a, b);
+
+      final merged = await dayOf(a, day.cook.id);
+      expect(merged.sessions, hasLength(2));
+      expect(merged.status, AttendanceStatus.working);
+      await AttendanceRepository(a).clockOut(merged.id, now: at(17));
+      await settle(a, b);
+
+      for (final db in [a, b]) {
+        final entry = await dayOf(db, day.cook.id);
+        expect(entry.status, AttendanceStatus.done);
+        expect(entry.sessions.every((s) => s.clockOutAt == at(17)), isTrue);
+      }
+    });
+
+    test('a pause on one tablet, the exit on the other (P3)', () async {
+      final a = await newDevice();
+      final b = await newDevice();
+      final day = await shared(a, b);
+      final id = (await AttendanceRepository(
+        a,
+      ).clockIn(day.cook.id, day.store.id, now: morning))!.id;
+      await settle(a, b);
+
+      await AttendanceRepository(a).startPause(id, now: at(12));
+      await AttendanceRepository(b).clockOut(id, now: at(14));
+      await settle(a, b);
+
+      for (final db in [a, b]) {
+        final entry = await dayOf(db, day.cook.id);
+        expect(entry.status, AttendanceStatus.done);
+        // 8:00–14:00, the break from 12:00 runs to the exit.
+        expect(workedDuration(entry), const Duration(hours: 4));
+      }
+    });
+
+    test('two exits for one arrival: the earliest, signalled (P4)', () async {
+      final a = await newDevice();
+      final b = await newDevice();
+      final day = await shared(a, b);
+      final id = (await AttendanceRepository(
+        a,
+      ).clockIn(day.cook.id, day.store.id, now: morning))!.id;
+      await settle(a, b);
+
+      await AttendanceRepository(a).clockOut(id, now: at(17));
+      await AttendanceRepository(b).clockOut(id, now: at(17, 30));
+      await settle(a, b);
+
+      for (final db in [a, b]) {
+        expect((await dayOf(db, day.cook.id)).sessions.single.clockOutAt, at(17));
+        final signalled = await flags(db, day.store.id);
+        expect(signalled, hasLength(1));
+        expect(signalled.single.title, contains('Deux départs'));
+      }
+    });
+
+    test('two exits a few minutes apart: the earliest, quietly', () async {
+      final a = await newDevice();
+      final b = await newDevice();
+      final day = await shared(a, b);
+      final id = (await AttendanceRepository(
+        a,
+      ).clockIn(day.cook.id, day.store.id, now: morning))!.id;
+      await settle(a, b);
+
+      await AttendanceRepository(b).clockOut(id, now: at(17, 5));
+      await AttendanceRepository(a).clockOut(id, now: at(17));
+      // B sends first this time: the earlier exit arrives last and still wins.
+      await settle(b, a);
+
+      for (final db in [a, b]) {
+        expect((await dayOf(db, day.cook.id)).sessions.single.clockOutAt, at(17));
+        expect(await flags(db, day.store.id), isEmpty);
+      }
+    });
+
+    test('two managers set the exit: the earliest, always signalled (H1)',
+        () async {
+      final a = await newDevice();
+      final b = await newDevice();
+      final day = await shared(a, b);
+      await AttendanceRepository(a).clockIn(day.cook.id, day.store.id, now: morning);
+      await settle(a, b);
+      final journee = (await BusinessDayRepository(a).current(day.store.id))!;
+      final id = (await dayOf(a, day.cook.id)).id;
+
+      // Both close the journée, each entering a forgotten exit for Karim.
+      await BusinessDayRepository(a, clock: () => at(23)).close(
+        journee.id,
+        closedByEmployeeId: day.owner.id,
+        exits: {id: at(17)},
+      );
+      await BusinessDayRepository(b, clock: () => at(23)).close(
+        journee.id,
+        closedByEmployeeId: day.owner.id,
+        exits: {id: at(17, 10)},
+      );
+      await settle(a, b);
+
+      for (final db in [a, b]) {
+        final session = (await dayOf(db, day.cook.id)).sessions.single;
+        expect(session.clockOutAt, at(17));
+        expect(session.exitSetByEmployeeId, day.owner.id);
+        expect(await flags(db, day.store.id), hasLength(1));
+      }
+    });
+
+    test('a pointage on a journée closed on the other tablet (P6)', () async {
+      final a = await newDevice();
+      final b = await newDevice();
+      final day = await shared(a, b);
+      final id = (await AttendanceRepository(
+        a,
+      ).clockIn(day.cook.id, day.store.id, now: morning))!.id;
+      await settle(a, b);
+      final journee = (await BusinessDayRepository(a).current(day.store.id))!;
+
+      // A ends the day and closes the journée; B, offline, still sees it
+      // open and Léa clocks in there.
+      await AttendanceRepository(a).clockOut(id, now: at(17));
+      await BusinessDayRepository(a, clock: () => at(17, 30)).close(
+        journee.id,
+        closedByEmployeeId: day.owner.id,
+      );
+      expect(
+        await AttendanceRepository(
+          b,
+        ).clockIn(day.owner.id, day.store.id, now: at(17, 45)),
+        isNotNull,
+      );
+      await settle(a, b);
+
+      for (final db in [a, b]) {
+        final kept = await BusinessDayRepository(db).businessDay(journee.id);
+        expect(kept!.closedAt, isNotNull);
+        final lea = await dayOf(db, day.owner.id);
+        expect(lea.sessions.single.clockOutAt, isNull);
+        final signalled = await flags(db, day.store.id);
+        expect(signalled, hasLength(1));
+        expect(signalled.single.title, contains('après la fermeture'));
+        expect(signalled.single.relatedEmployeeId, day.owner.id);
+      }
+    });
+
+    test('a removed duplicate is removed on every tablet (P1)', () async {
+      final a = await newDevice();
+      final b = await newDevice();
+      final day = await shared(a, b);
+      await AttendanceRepository(a).clockIn(day.cook.id, day.store.id, now: morning);
+      await AttendanceRepository(b).clockIn(day.cook.id, day.store.id, now: morning);
+      await settle(a, b);
+
+      final merged = await dayOf(a, day.cook.id);
+      await AttendanceRepository(
+        a,
+      ).deleteDuplicateSession(merged.id, merged.sessions.last.id!);
+      await settle(a, b);
+
+      for (final db in [a, b]) {
+        final entry = await dayOf(db, day.cook.id);
+        expect(entry.sessions, hasLength(1));
+        expect(entry.status, AttendanceStatus.working);
+      }
+    });
+  });
+
   // Rule P5 (SYNC_PERSONNEL_PLAN.md): one journée per store and date.
   group('two journées opened for one store and date', () {
     Future<List<BusinessDayRow>> liveDays(AppDatabase db) =>

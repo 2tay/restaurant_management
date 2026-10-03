@@ -5458,6 +5458,60 @@ abstract class AppLocalizations {
   /// **'La sortie n\'a pas été corrigée : le pointage a changé entre-temps. Réessayez.'**
   String get attendanceCorrectExitFailed;
 
+  /// History drawer: heading over the arrivals of a day with a double pointage (two tablets).
+  ///
+  /// In fr, this message translates to:
+  /// **'Pointage en double'**
+  String get attendanceDuplicateHeading;
+
+  /// History drawer: explains the double pointage block.
+  ///
+  /// In fr, this message translates to:
+  /// **'Deux arrivées ont été pointées pour ce jour. Supprimez celle qui est en trop : ses heures ne compteront plus.'**
+  String get attendanceDuplicateHint;
+
+  /// History drawer: button removing one arrival of a double pointage.
+  ///
+  /// In fr, this message translates to:
+  /// **'Supprimer ce pointage en double ({times})'**
+  String attendanceDeleteDuplicate(String times);
+
+  /// Confirm dialog title before removing a duplicate arrival.
+  ///
+  /// In fr, this message translates to:
+  /// **'Supprimer ce pointage en double ?'**
+  String get attendanceDeleteDuplicateTitle;
+
+  /// Confirm dialog body before removing a duplicate arrival.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le pointage {times} sera retiré de la journée, avec ses pauses. Ses heures ne seront plus comptées.'**
+  String attendanceDeleteDuplicateMessage(String times);
+
+  /// Confirm button: remove the duplicate arrival.
+  ///
+  /// In fr, this message translates to:
+  /// **'Supprimer'**
+  String get attendanceDeleteDuplicateConfirm;
+
+  /// Snackbar after a duplicate arrival was removed.
+  ///
+  /// In fr, this message translates to:
+  /// **'Pointage {times} supprimé.'**
+  String attendanceDeleteDuplicateDone(String times);
+
+  /// Snackbar when deleteDuplicateSession was refused.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le pointage n\'a pas été supprimé : la journée a changé entre-temps (payée, ou un seul pointage restant). Réessayez.'**
+  String get attendanceDeleteDuplicateFailed;
+
+  /// PIN prompt before removing a duplicate arrival.
+  ///
+  /// In fr, this message translates to:
+  /// **'Saisissez votre numéro PIN pour supprimer ce pointage en double'**
+  String get identityPromptDeleteDuplicateSubtitle;
+
   /// Store settings section header for the break allowance.
   ///
   /// In fr, this message translates to:

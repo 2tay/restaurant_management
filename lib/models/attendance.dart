@@ -37,7 +37,12 @@ class AttendanceSession {
     this.clockOutAt,
     this.exitSetByEmployeeId,
     this.pauses = const [],
+    this.id,
   });
+
+  /// The row's id when read from the database; null on a session being
+  /// built to insert. What « Supprimer ce pointage en double » targets.
+  final String? id;
 
   final DateTime clockInAt;
 

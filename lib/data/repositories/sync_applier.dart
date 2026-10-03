@@ -7,6 +7,7 @@ import '../../services/auth_service.dart';
 import '../database/app_database.dart';
 import '../database/sync_tables.dart';
 import 'account_repository.dart';
+import 'attendance_repository.dart';
 import 'credential_repository.dart';
 import 'stock_ledger.dart';
 import 'sync_quiet.dart';
@@ -43,6 +44,18 @@ import 'sync_quiet.dart';
 ///   attendance rows join a journée by its date, not its id. A close is never
 ///   lost: when only the dropped journée was closed, the kept one takes its
 ///   close;
+///
+/// ## The pointage across tablets (SYNC_PERSONNEL_PLAN.md, step 6)
+///
+/// - **the status is recomputed** from the sessions and breaks after every
+///   received day, session or break, never copied (rule P3);
+/// - **two exits for one session**: the earliest is kept, everywhere — a
+///   later one arriving here is put back to the earlier, and sent. Signalled
+///   when the gap passes [doubleExitGap], or always when one of them was a
+///   manager's correction (rules P4, H1, H2). Two ends for one break: the
+///   earliest, silently;
+/// - **a pointage on a journée closed on another tablet**: the close stays,
+///   the pointage stays, and it is signalled (rule P6);
 /// - **two supplier links, two credentials**: the most recently changed one
 ///   is kept (the larger id on a tie), the other is marked deleted.
 ///
@@ -155,11 +168,15 @@ class SyncApplier {
     final live = row['deleted_at'] == null;
     switch (name) {
       case 'attendances' when live:
-        return _applyAttendance(table, row, storeId);
+        await _applyAttendance(table, row, storeId);
+        return _refreshStatus(row['id'] as String);
       case 'attendance_sessions':
-        return _applySession(table, row);
+        return _applySession(table, row, storeId);
+      case 'attendance_pauses':
+        return _applyPause(table, row);
       case 'business_days' when live:
-        return _applyBusinessDay(table, row, storeId);
+        await _applyBusinessDay(table, row, storeId);
+        return _signalPunchesAfterClose(row['store_id'] as String, row['date']);
       case 'notifications':
         return _applyNotification(table, row);
       case 'supplier_prices' when live:
@@ -400,17 +417,27 @@ class SyncApplier {
     );
   }
 
-  /// A session of a day that was merged away goes to the kept day.
+  /// A session: its exit merged with this tablet's (the earliest wins), the
+  /// day's status recomputed, a punch on a closed journée signalled. One of
+  /// a day merged away goes to the kept day.
   Future<void> _applySession(
     TableInfo<Table, dynamic> table,
     Map<String, dynamic> row,
+    String storeId,
   ) async {
     final day =
         await (_db.select(_db.attendances)
               ..where((a) => a.id.equals(row['attendance_id'] as String)))
             .getSingleOrNull();
     if (day == null || day.deletedAt == null || row['deleted_at'] != null) {
-      return _upsert(table, row);
+      await _applySessionExit(table, row, day);
+      if (day != null) {
+        await _refreshStatus(day.id);
+        if (row['deleted_at'] == null) {
+          await _signalPunchesAfterClose(day.storeId, day.date);
+        }
+      }
+      return;
     }
     final kept =
         await (_db.select(_db.attendances)..where(
@@ -433,7 +460,7 @@ class SyncApplier {
             : position + movedSessionOffset,
       }),
     );
-    await SyncQuiet.loud(_db, () => _refreshDayStatus(kept.id));
+    await _refreshStatus(kept.id);
   }
 
   /// Moves every session of day [fromId] to day [toId], and gives the kept
@@ -456,41 +483,189 @@ class SyncApplier {
         ),
       );
     }
-    if (sessions.isNotEmpty) await _refreshDayStatus(toId);
+    if (sessions.isNotEmpty) await _refreshStatus(toId);
   }
 
-  /// A day with a session still open is being worked (or is on a break);
-  /// otherwise it is done.
-  Future<void> _refreshDayStatus(String attendanceId) async {
-    final sessions =
-        await (_db.select(_db.attendanceSessions)..where(
-              (s) => s.attendanceId.equals(attendanceId) & s.deletedAt.isNull(),
-            ))
-            .get();
-    final open = sessions.where((s) => s.clockOutAt == null).toList();
-    final String status;
-    if (open.isEmpty) {
-      status = 'done';
-    } else {
-      final openPause =
-          await (_db.select(_db.attendancePauses)..where(
-                (p) =>
-                    p.sessionId.isIn(open.map((s) => s.id)) &
-                    p.endAt.isNull() &
-                    p.deletedAt.isNull(),
-              ))
-              .get();
-      status = openPause.isEmpty ? 'working' : 'onBreak';
+  /// The gap between two exits of one session past which it is signalled.
+  static const Duration doubleExitGap = Duration(minutes: 15);
+
+  Future<void> _refreshStatus(String attendanceId) =>
+      AttendanceRepository(_db).refreshStatus(attendanceId);
+
+  /// Writes a received session, keeping the earliest of two exits (rules P4,
+  /// H1, H2). When this tablet's exit is the earlier one, it is put back and
+  /// sent, so the server and every tablet end on it.
+  Future<void> _applySessionExit(
+    TableInfo<Table, dynamic> table,
+    Map<String, dynamic> row,
+    AttendanceRow? day,
+  ) async {
+    final id = row['id'] as String;
+    final local = await (_db.select(
+      _db.attendanceSessions,
+    )..where((s) => s.id.equals(id))).getSingleOrNull();
+    final mine = local?.clockOutAt;
+    final theirs =
+        _convert('attendance_sessions', _db.attendanceSessions.clockOutAt,
+                row['clock_out_at'])
+            as DateTime?;
+    if (local == null || mine == null || mine == theirs) {
+      return _upsert(table, row);
     }
-    await _db.customUpdate(
-      'UPDATE attendances SET status = ? WHERE id = ? AND status <> ?',
-      variables: [
-        Variable<String>(status),
-        Variable<String>(attendanceId),
-        Variable<String>(status),
-      ],
-      updates: {_db.attendances},
+    if (theirs == null) {
+      // An exit is never taken back: this tablet's stays.
+      return _upsert(table, {
+        ...row,
+        'clock_out_at': mine.toIso8601String(),
+        'exit_set_by_employee_id': local.exitSetByEmployeeId,
+      });
+    }
+
+    final keepMine = mine.isBefore(theirs);
+    await _upsert(table, row);
+    if (keepMine) {
+      await SyncQuiet.loud(
+        _db,
+        () =>
+            (_db.update(_db.attendanceSessions)..where((s) => s.id.equals(id)))
+                .write(
+                  AttendanceSessionsCompanion(
+                    clockOutAt: Value(mine),
+                    exitSetByEmployeeId: Value(local.exitSetByEmployeeId),
+                  ),
+                ),
+      );
+    }
+
+    final corrected =
+        local.exitSetByEmployeeId != null ||
+        row['exit_set_by_employee_id'] != null;
+    final earliest = keepMine ? mine : theirs;
+    final latest = keepMine ? theirs : mine;
+    if (day == null ||
+        (!corrected && latest.difference(earliest) <= doubleExitGap)) {
+      return;
+    }
+    final name = await _employeeName(day.employeeId);
+    await SyncQuiet.loud(
+      _db,
+      () => AccountRepository(_db).signal(
+        storeId: day.storeId,
+        key: 'double_exit:$id',
+        title: 'Deux départs : $name',
+        body:
+            'Le ${_numericDate(day.date)}, deux départs différents ont été '
+            'enregistrés pour la même arrivée (${_time(earliest)} et '
+            '${_time(latest)}). Le plus tôt, ${_time(earliest)}, est gardé : '
+            'vérifiez dans l\'historique.',
+        employeeId: day.employeeId,
+        at: clock.now(),
+      ),
     );
+  }
+
+  /// A received break: two ends for one break keep the earliest, silently.
+  /// The day's status follows.
+  Future<void> _applyPause(
+    TableInfo<Table, dynamic> table,
+    Map<String, dynamic> row,
+  ) async {
+    final id = row['id'] as String;
+    final local = await (_db.select(
+      _db.attendancePauses,
+    )..where((p) => p.id.equals(id))).getSingleOrNull();
+    final mine = local?.endAt;
+    final theirs =
+        _convert('attendance_pauses', _db.attendancePauses.endAt, row['end_at'])
+            as DateTime?;
+    if (mine != null && (theirs == null || mine.isBefore(theirs))) {
+      await _upsert(table, {...row, 'end_at': mine.toIso8601String()});
+      if (theirs != null) {
+        // Sent, so the server ends on the earlier end too.
+        await SyncQuiet.loud(
+          _db,
+          () => (_db.update(_db.attendancePauses)..where((p) => p.id.equals(id)))
+              .write(AttendancePausesCompanion(endAt: Value(mine))),
+        );
+      }
+    } else {
+      await _upsert(table, row);
+    }
+
+    final session = await (_db.select(_db.attendanceSessions)
+          ..where((s) => s.id.equals(row['session_id'] as String)))
+        .getSingleOrNull();
+    if (session != null) await _refreshStatus(session.attendanceId);
+  }
+
+  /// Rule P6: a journée closed on one tablet while somebody was still
+  /// pointing on another. The close stays and so does the pointage; each
+  /// session still open on it, or begun after the close, is signalled once.
+  Future<void> _signalPunchesAfterClose(String storeId, Object? date) async {
+    final day = date is DateTime
+        ? date
+        : _convert('business_days', _db.businessDays.date, date) as DateTime?;
+    if (day == null) return;
+    final journee =
+        await (_db.select(_db.businessDays)..where(
+              (d) =>
+                  d.storeId.equals(storeId) &
+                  d.date.equals(day) &
+                  d.deletedAt.isNull() &
+                  d.closedAt.isNotNull(),
+            ))
+            .getSingleOrNull();
+    final closedAt = journee?.closedAt;
+    if (closedAt == null) return;
+
+    final late =
+        await (_db.select(_db.attendanceSessions).join([
+                innerJoin(
+                  _db.attendances,
+                  _db.attendances.id.equalsExp(
+                    _db.attendanceSessions.attendanceId,
+                  ),
+                ),
+              ])
+              ..where(
+                _db.attendances.storeId.equals(storeId) &
+                    _db.attendances.date.equals(day) &
+                    _db.attendances.deletedAt.isNull() &
+                    _db.attendanceSessions.deletedAt.isNull() &
+                    (_db.attendanceSessions.clockOutAt.isNull() |
+                        _db.attendanceSessions.clockInAt.isBiggerThanValue(
+                          closedAt,
+                        )),
+              ))
+            .get();
+    for (final match in late) {
+      final session = match.readTable(_db.attendanceSessions);
+      final attendance = match.readTable(_db.attendances);
+      final name = await _employeeName(attendance.employeeId);
+      await SyncQuiet.loud(
+        _db,
+        () => AccountRepository(_db).signal(
+          storeId: storeId,
+          key: 'after_close:${session.id}',
+          title: 'Pointage après la fermeture : $name',
+          body:
+              'La journée du ${_numericDate(day)} a été fermée à '
+              '${_time(closedAt)} sur une autre tablette pendant que $name '
+              'pointait (arrivée ${_time(session.clockInAt)}). La fermeture '
+              'est gardée, le pointage aussi : vérifiez son départ dans '
+              'l\'historique.',
+          employeeId: attendance.employeeId,
+          at: clock.now(),
+        ),
+      );
+    }
+  }
+
+  /// HH:mm, by hand, for the same reason as [_numericDate].
+  static String _time(DateTime at) {
+    final local = at.toLocal();
+    return '${local.hour.toString().padLeft(2, '0')}:'
+        '${local.minute.toString().padLeft(2, '0')}';
   }
 
   /// Two rows for one key where the most recent change wins: supplier links

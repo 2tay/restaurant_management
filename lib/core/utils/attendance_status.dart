@@ -39,9 +39,20 @@ DateTime businessDayAutoOpenAt(DateTime day, int minutes) =>
 DateTime businessDayAlertAt(BusinessDay day) =>
     day.openedAt.add(AttendanceRules.businessDayAlertAfter);
 
+/// [session]'s pauses as they count: one never ended stops at the
+/// session's exit, once there is one (SYNC_PERSONNEL_PLAN.md, rule P3 — a
+/// pause on one tablet, the exit on another). Still open while the session
+/// is.
+Iterable<AttendancePause> pausesOf(AttendanceSession session) =>
+    session.pauses.map(
+      (p) => p.endAt != null || session.clockOutAt == null
+          ? p
+          : AttendancePause(startAt: p.startAt, endAt: session.clockOutAt),
+    );
+
 /// Every pause across every session of the day, in session order.
 Iterable<AttendancePause> _allPauses(Attendance entry) =>
-    entry.sessions.expand((s) => s.pauses);
+    entry.sessions.expand(pausesOf);
 
 /// Total time spent on breaks across every session — only counts breaks that
 /// have ended.
@@ -95,7 +106,7 @@ Duration? workedDuration(Attendance entry) {
   var total = Duration.zero;
   for (final session in closed) {
     var sessionBreak = Duration.zero;
-    for (final pause in session.pauses) {
+    for (final pause in pausesOf(session)) {
       final end = pause.endAt;
       if (end == null) continue;
       sessionBreak += end.difference(pause.startAt);

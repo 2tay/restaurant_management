@@ -54,6 +54,7 @@ AttendanceSession attendanceSessionFromRow(
   final ordered = [...pauseRows]
     ..sort((a, b) => a.position.compareTo(b.position));
   return AttendanceSession(
+    id: row.id,
     clockInAt: row.clockInAt,
     clockOutAt: row.clockOutAt,
     exitSetByEmployeeId: row.exitSetByEmployeeId,

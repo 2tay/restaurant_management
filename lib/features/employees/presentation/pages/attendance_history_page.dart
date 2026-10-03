@@ -294,7 +294,9 @@ class _AttendanceHistoryPageState extends ConsumerState<AttendanceHistoryPage> {
   /// Bare panel: the day itself is the heading — see [AttendanceDayDetail].
   ///
   /// A day left open (oubli de pointage) that the board can no longer end —
-  /// it is not the journée still open — gets « Corriger la sortie ».
+  /// it is not the journée still open — gets « Corriger la sortie ». A day
+  /// with a double pointage, not paid yet, offers to remove one of its
+  /// arrivals (« Supprimer ce pointage en double », rule P1).
   Future<void> _openDrawer(
     Attendance a,
     Map<String, Employee> employeesById,
@@ -310,12 +312,17 @@ class _AttendanceHistoryPageState extends ConsumerState<AttendanceHistoryPage> {
     final now = ref.read(attendanceClockProvider)();
     // The rule already leaves out the journée still open: an oubli is a day
     // the board can no longer end.
-    final correctable = attendanceAnomalies(
+    final anomalies = attendanceAnomalies(
       a,
       maxBreakMinutes: maxBreakMinutes,
       now: now,
       openBusinessDay: openBusinessDay,
-    ).contains(AttendanceAnomaly.oubliDePointage);
+    );
+    final correctable = anomalies.contains(AttendanceAnomaly.oubliDePointage);
+    final duplicates =
+        anomalies.contains(AttendanceAnomaly.doublePointage) &&
+        a.paymentStatus != PaymentStatus.paid &&
+        a.sessions.length > 1;
 
     return DetailDrawer.show(
       context,
@@ -340,8 +347,86 @@ class _AttendanceHistoryPageState extends ConsumerState<AttendanceHistoryPage> {
             ),
           ),
         ],
+        if (duplicates) ...[
+          const SizedBox(height: AppSpacing.xxl),
+          Text(
+            l10n.attendanceDuplicateHeading,
+            style: Theme.of(context).textTheme.titleSmall,
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            l10n.attendanceDuplicateHint,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          for (final (index, session) in a.sessions.indexed) ...[
+            const SizedBox(height: AppSpacing.sm),
+            Builder(
+              builder: (drawerContext) => OutlinedButton.icon(
+                key: ValueKey('attendance-delete-duplicate-$index'),
+                onPressed: session.id == null
+                    ? null
+                    : () => _deleteDuplicate(drawerContext, a, session),
+                icon: const Icon(LucideIcons.trash2, size: AppSizing.iconSm),
+                label: Text(
+                  l10n.attendanceDeleteDuplicate(
+                    _sessionLabel(session),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ],
       ],
     );
+  }
+
+  static String _sessionLabel(AttendanceSession session) {
+    final out = session.clockOutAt;
+    return out == null
+        ? Formatters.time(session.clockInAt)
+        : '${Formatters.time(session.clockInAt)} – ${Formatters.time(out)}';
+  }
+
+  /// Confirm, the signed-in user's PIN, then the removal. Closes the drawer
+  /// on success.
+  Future<void> _deleteDuplicate(
+    BuildContext drawerContext,
+    Attendance a,
+    AttendanceSession session,
+  ) async {
+    final l10n = AppLocalizations.of(drawerContext);
+    final actor = ref.read(currentEmployeeProvider);
+    if (actor == null) return;
+    final label = _sessionLabel(session);
+
+    final confirmed = await ConfirmDialog.show(
+      drawerContext,
+      title: l10n.attendanceDeleteDuplicateTitle,
+      message: l10n.attendanceDeleteDuplicateMessage(label),
+      confirmLabel: l10n.attendanceDeleteDuplicateConfirm,
+    );
+    if (!confirmed || !drawerContext.mounted) return;
+
+    final ok = await IdentityPromptDialog.show(
+      drawerContext,
+      title: l10n.identityPromptTitle,
+      subtitle: l10n.identityPromptDeleteDuplicateSubtitle,
+      verify: (pin) =>
+          ref.read(credentialRepositoryProvider).verifyPin(pin, actor.id),
+    );
+    if (!ok || !drawerContext.mounted) return;
+
+    final done = await ref
+        .read(attendanceRepositoryProvider)
+        .deleteDuplicateSession(a.id, session.id!);
+    if (!drawerContext.mounted) return;
+    if (done == null) {
+      AppSnackBar.error(drawerContext, l10n.attendanceDeleteDuplicateFailed);
+      return;
+    }
+    Navigator.of(drawerContext).pop();
+    if (!mounted) return;
+    AppSnackBar.success(context, l10n.attendanceDeleteDuplicateDone(label));
   }
 
   /// The exit time, then the signed-in user's PIN, then the correction —

@@ -147,7 +147,7 @@ class AttendanceRow extends StatelessWidget {
     final parts = <String>[];
     for (final session in attendance.sessions) {
       parts.add(Formatters.time(session.clockInAt));
-      for (final pause in session.pauses) {
+      for (final pause in pausesOf(session)) {
         final end = pause.endAt == null ? '…' : Formatters.time(pause.endAt!);
         parts.add('${Formatters.time(pause.startAt)}–$end');
       }
