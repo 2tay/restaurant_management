@@ -117,6 +117,9 @@ class _ProductImageState extends State<ProductImage> {
             ? _placeholder(context)
             : Image.file(
                 _file!,
+                // A new widget each time a photo arrives: the same path would
+                // otherwise keep the failed load from before the file existed.
+                key: ValueKey(ProductImages.revision.value),
                 fit: BoxFit.cover,
                 // A name pointing at a file that is gone — the directory was
                 // cleared, the database came from another machine — reads as
