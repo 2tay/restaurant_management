@@ -41,8 +41,10 @@ class CurrentEmployee extends Notifier<Employee?> {
   SessionRepository get _session => ref.read(sessionRepositoryProvider);
 
   void _set(Employee? employee) {
-    state = employee;
+    // The router's copy first: setting `state` runs listeners at once, and a
+    // listener that navigates sends the router reading this copy.
     currentEmployeeSnapshot = employee;
+    state = employee;
   }
 
   /// Resolves the session from the database into [state]. Idempotent — safe to

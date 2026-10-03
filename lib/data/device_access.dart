@@ -51,8 +51,10 @@ class DeviceAccessController extends Notifier<DeviceAccess> {
       DeviceAccessRepository(ref.read(databaseProvider));
 
   void _set(DeviceAccess access) {
-    state = access;
+    // The router's copy first: setting `state` runs listeners at once, and a
+    // listener that navigates sends the router reading this copy.
     deviceAccessSnapshot = access;
+    state = access;
   }
 
   /// Reads the mode from the database. Called by `main()` before the first

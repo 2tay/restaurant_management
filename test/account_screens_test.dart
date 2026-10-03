@@ -24,6 +24,7 @@ import 'package:stock_inventory/features/auth/presentation/pages/account_waiting
 import 'package:stock_inventory/features/auth/presentation/pages/login_page.dart';
 import 'package:stock_inventory/features/auth/presentation/pages/welcome_page.dart';
 import 'package:stock_inventory/data/repositories/session_repository.dart';
+import 'package:stock_inventory/data/repositories/store_repository.dart';
 import 'package:stock_inventory/data/seed/dataset/dataset.dart'
     show EmployeeIds, StoreIds;
 import 'package:stock_inventory/services/auth_service.dart';
@@ -32,6 +33,34 @@ import 'package:stock_inventory/services/sync_service.dart';
 import 'support/app_harness.dart';
 import 'support/db_fixture.dart';
 import 'support/fake_account_backend.dart';
+
+/// A server that takes its time, like a real one: the first download lands
+/// after the waiting screen is up, through its listener.
+class _SlowBackend extends FakeAccountBackend {
+  static const Duration _delay = Duration(milliseconds: 300);
+
+  @override
+  Future<AccountSummary> myAccount() async {
+    await Future<void>.delayed(_delay);
+    return super.myAccount();
+  }
+
+  @override
+  Future<List<String>> storeIds() async {
+    await Future<void>.delayed(_delay);
+    return super.storeIds();
+  }
+
+  @override
+  Future<PullPage> pullChanges(
+    String storeId, {
+    required int after,
+    int limit = 500,
+  }) async {
+    await Future<void>.delayed(_delay);
+    return super.pullChanges(storeId, after: after, limit: limit);
+  }
+}
 
 void main() {
   late FakeAccountBackend server;
@@ -212,5 +241,42 @@ void main() {
     expect(find.text('Synchroniser maintenant'), findsOneWidget);
     expect(find.text('À jour'), findsOneWidget);
     expect(find.text('Réinitialiser la démonstration'), findsNothing);
+  });
+
+  testApp('a slow first download still opens the PIN login', (tester) async {
+    final slow = _SlowBackend();
+    final organization = slow.addOrganization('Brasserie');
+    slow.addUser('owner@resto.be', 'motdepasse', organizationId: organization);
+
+    // Another tablet already put the restaurant on the server.
+    await tester.runAsync(() async {
+      await slow.signIn(email: 'owner@resto.be', password: 'motdepasse');
+      final other = openEmptyDatabase();
+      await slow.registerDevice(await DeviceRepository(other).deviceId());
+      await StoreRepository(other).createStore(
+        name: 'Brasserie',
+        addressLine: '',
+        postalCode: '',
+        city: 'Namur',
+        phone: '081',
+      );
+      await SyncRunner(db: other, backend: slow).run();
+      await slow.signOut();
+    });
+
+    await pumpDevice(tester, openEmptyDatabase(), backend: slow);
+    await tester.enterText(find.byType(TextField).at(0), 'owner@resto.be');
+    await tester.enterText(find.byType(TextField).at(1), 'motdepasse');
+    await tester.tap(find.text('Se connecter'));
+    for (var i = 0; i < 40 && find.byType(LoginPage).evaluate().isEmpty; i++) {
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 100)),
+      );
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    await tester.pump(const Duration(seconds: 1)); // the page transition
+
+    expect(find.byType(LoginPage), findsOneWidget);
+    expect(find.byType(AccountWaitingPage), findsNothing);
   });
 }
