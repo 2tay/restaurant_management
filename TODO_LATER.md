@@ -36,7 +36,16 @@ If the first sync pass downloads the rows and hydrates before the waiting page
 is listening, the change goes unseen. Every later pass receives 0 rows, so
 `hydrate()` never runs again, and the screen waits forever.
 
-**Workaround.** Close the app completely and reopen it. `main()` hydrates at
+**Real root cause (found 2026-10-02 with a slow fake server).** The first
+fixes were not enough on a real network. `DeviceAccessController._set` set
+`state` *before* `deviceAccessSnapshot`. Setting `state` runs the waiting
+page's listener at once, which navigates. The router then read the old
+snapshot (`hasLocalData = false`) and sent it straight back to the waiting
+page. Fixed by updating the snapshot first, in `device_access.dart` and the
+same pattern in `current_employee.dart`. Covered by "a slow first download
+still opens the PIN login" in `test/account_screens_test.dart`.
+
+**Workaround (old builds).** Close the app completely and reopen it. `main()` hydrates at
 startup, sees the store, and goes to the PIN login.
 
 **Fix (any one of these, ideally the first two together):**
