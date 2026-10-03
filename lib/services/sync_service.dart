@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:clock/clock.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
@@ -255,6 +256,10 @@ class SyncRunner {
     'row_key': entry.rowKey,
     'store_id': entry.storeId,
     'payload': entry.payload,
+    // Only the columns that changed, for an edit of a personnel row; absent
+    // for a new row or a whole-row table.
+    if (entry.changedColumns != null)
+      'columns': jsonDecode(entry.changedColumns!) as List<Object?>,
   };
 }
 

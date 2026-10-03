@@ -41,6 +41,17 @@ class Outbox extends Table {
   /// recomputes for itself (`items.quantity`, `items.average_cost`).
   TextColumn get payload => text()();
 
+  /// Which columns of [payload] this entry changes, as a JSON array — or null
+  /// for **all of them**: a new row, or a table that sends whole rows.
+  ///
+  /// The personnel tables send only what changed
+  /// (SYNC_PERSONNEL_PLAN.md, step 4, rules E2 and E3): the server overwrites
+  /// these columns and keeps its own value for every other one, so two
+  /// tablets editing different fields of one employee both keep their edit.
+  /// Several edits of one row while offline add up (their union), and an
+  /// entry that is still a new row stays null.
+  TextColumn get changedColumns => text().nullable()();
+
   /// When the row last changed while pending, in UTC, from the same clock
   /// view as the `updated_at` stamps.
   DateTimeColumn get queuedAt => dateTime()();

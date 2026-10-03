@@ -24,7 +24,7 @@ import 'package:stock_inventory/data/database/sync_tables.dart';
 import 'package:stock_inventory/data/providers.dart';
 import 'package:stock_inventory/data/repositories/repositories.dart';
 import 'package:stock_inventory/data/seed/dataset/dataset.dart'
-    show CategoryIds, ItemIds, StoreIds, SupplierIds, UnitIds;
+    show CategoryIds, EmployeeIds, ItemIds, StoreIds, SupplierIds, UnitIds;
 import 'package:stock_inventory/models/models.dart';
 import 'package:stock_inventory/shared/widgets/offline_banner.dart';
 
@@ -306,6 +306,66 @@ void main() {
             : columns;
         expect(sent, expected, reason: table);
       }
+    });
+  });
+
+  // SYNC_PERSONNEL_PLAN.md, step 4 (rules E2, E3): an edit of a personnel row
+  // names the columns it changed, so the server overwrites only those.
+  group('only the changed fields of a personnel row', () {
+    Set<String>? columnsOf(OutboxRow row) => row.changedColumns == null
+        ? null
+        : {for (final c in jsonDecode(row.changedColumns!) as List) c as String};
+
+    test('an edit names its columns, and the stamp', () async {
+      await EmployeeRepository(db).update(EmployeeIds.noah, phone: '0499');
+
+      final entry = (await entriesFor('employees')).single;
+      expect(columnsOf(entry), {'phone', 'updated_at'});
+      // The payload is still the whole row: a server without the row can
+      // insert it.
+      expect(payloadOf(entry)['first_name'], isNotNull);
+    });
+
+    test('two edits while offline add up', () async {
+      final employees = EmployeeRepository(db);
+      await employees.update(EmployeeIds.noah, phone: '0499');
+      await employees.update(EmployeeIds.noah, lastName: 'Martin');
+      await employees.archive(EmployeeIds.noah);
+
+      final entry = (await entriesFor('employees')).single;
+      expect(columnsOf(entry), {
+        'phone',
+        'last_name',
+        'archived_at',
+        'updated_at',
+      });
+    });
+
+    test('a new row stays whole, even edited before it is sent', () async {
+      final created = (await EmployeeRepository(db).create(
+        storeId: StoreIds.sablon,
+        firstName: 'Zoé',
+        lastName: 'Neuve',
+        pin: 'PIN-ZOE',
+        phone: '081',
+        email: 'zoe@resto.be',
+        role: EmployeeRole.staff,
+        pay: 15,
+      ))!;
+      await EmployeeRepository(db).update(created.id, phone: '0499');
+
+      final entry = (await entriesFor(
+        'employees',
+      )).singleWhere((e) => e.rowKey == created.id);
+      expect(entry.changedColumns, isNull);
+    });
+
+    test('other tables still send the whole row', () async {
+      final item = await newItem('Sel fin');
+      await outbox.clear();
+      await ItemRepository(db).update(item.id, name: 'Sel de mer');
+
+      expect((await entriesFor('items')).single.changedColumns, isNull);
     });
   });
 }

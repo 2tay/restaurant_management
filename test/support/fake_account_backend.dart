@@ -252,8 +252,19 @@ class FakeAccountBackend implements AccountBackend {
             );
           }
           final key = '${change['table']}|${change['row_key']}';
-          final row =
+          final sent =
               jsonDecode(change['payload']! as String) as Map<String, Object?>;
+          // As `push_changes`: an edit that names its columns overwrites
+          // those (and the stamp) on a row the server has; the rest stays.
+          final columns = change['columns'] as List<Object?>?;
+          final existing = serverRows[key];
+          final row = columns == null || existing == null
+              ? sent
+              : {
+                  ...existing,
+                  for (final column in [...columns, 'updated_at'])
+                    column! as String: sent[column],
+                };
           serverRows[key] = row;
           final storeId = change['store_id']! as String;
           if (change['table'] == 'stores') {

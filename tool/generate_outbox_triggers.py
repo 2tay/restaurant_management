@@ -28,6 +28,20 @@ EXCLUDED = {
     'items': {'quantity', 'average_cost'},
 }
 
+# Tables whose updates send only the columns that changed
+# (SYNC_PERSONNEL_PLAN.md, step 4): the personnel, and the notifications that
+# carry its signalements. Every other table sends the whole row.
+PARTIAL = {
+    'employees',
+    'employee_credentials',
+    'payroll_periods',
+    'attendances',
+    'attendance_sessions',
+    'attendance_pauses',
+    'business_days',
+    'notifications',
+}
+
 # The key and the establishment of a row, as SQL over the row's own columns.
 ROW_KEY = {'busy_dates': "store_id || '|' || day"}
 STORE = {'stores': 'id'}
@@ -58,22 +72,47 @@ def columns_by_table(dump):
     return result
 
 
+def changed_list(sent):
+    """SQL for the JSON array of the columns this UPDATE changed."""
+    picks = '\n        UNION ALL '.join(
+        f"SELECT '{c}' AS c WHERE NEW.{c} IS NOT OLD.{c}" for c in sent
+    )
+    return f"""(SELECT json_group_array(c) FROM (
+        {picks}))"""
+
+
 def trigger(table, event, columns):
     sent = [c for c in columns if c not in EXCLUDED.get(table, set())]
     pairs = ',\n      '.join(f"'{c}', {c}" for c in sent)
     key = ROW_KEY.get(table, 'id')
     store = STORE.get(table, 'store_id')
+    partial = event == 'update' and table in PARTIAL
+    changed = changed_list(sent) if partial else 'NULL'
+    # A pending new row stays whole; two partial edits add up.
+    merged = (
+        """CASE
+      WHEN outbox.changed_columns IS NULL
+        OR excluded.changed_columns IS NULL THEN NULL
+      ELSE (SELECT json_group_array(value) FROM (
+        SELECT value FROM json_each(outbox.changed_columns)
+        UNION SELECT value FROM json_each(excluded.changed_columns)))
+    END"""
+        if partial
+        else 'NULL'
+    )
     return f"""CREATE TRIGGER {table}_outbox_{event} AFTER {event.upper()} ON {table}
   WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = '{QUIET_KEY}')
 BEGIN
-  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)
+  INSERT INTO outbox (changed_table, row_key, store_id, payload,
+    changed_columns, queued_at)
   SELECT '{table}', {key}, {store}, json_object(
       {pairs}
-    ), (SELECT now FROM sync_clock)
+    ), {changed}, (SELECT now FROM sync_clock)
   FROM {table} WHERE rowid = NEW.rowid
   ON CONFLICT (changed_table, row_key) DO UPDATE SET
     store_id = excluded.store_id,
     payload = excluded.payload,
+    changed_columns = {merged},
     queued_at = excluded.queued_at,
     attempts = 0,
     last_error = NULL;

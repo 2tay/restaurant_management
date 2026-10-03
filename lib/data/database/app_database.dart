@@ -445,13 +445,16 @@ class AppDatabase extends _$AppDatabase {
         ]) {
           await _addColumnIfMissing(m, notifications, column);
         }
+        // Step 4: an edit of a personnel row sends only what changed. Every
+        // outbox trigger is recreated to fill `changed_columns`; an entry
+        // already queued stays whole (null), as it always was.
+        if (from >= 16) {
+          await _addColumnIfMissing(m, outbox, outbox.changedColumns);
+        }
         await _createTriggers(m, (name) => name.startsWith('business_days_'));
         await _createTriggers(
           m,
-          (name) =>
-              name.startsWith('stores_outbox_') ||
-              name.startsWith('attendance_sessions_outbox_') ||
-              name.startsWith('notifications_outbox_'),
+          (name) => name.contains('_outbox_'),
           replace: true,
         );
       }

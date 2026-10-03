@@ -28,7 +28,8 @@ import 'tables/sync_errors.dart';
 CREATE TRIGGER stores_outbox_insert AFTER INSERT ON stores
   WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = 'syncQuiet')
 BEGIN
-  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)
+  INSERT INTO outbox (changed_table, row_key, store_id, payload,
+    changed_columns, queued_at)
   SELECT 'stores', id, id, json_object(
       'updated_at', updated_at,
       'deleted_at', deleted_at,
@@ -51,11 +52,12 @@ BEGIN
       'notify_busy_days', notify_busy_days,
       'busy_weekdays', busy_weekdays,
       'busy_reminder_days', busy_reminder_days
-    ), (SELECT now FROM sync_clock)
+    ), NULL, (SELECT now FROM sync_clock)
   FROM stores WHERE rowid = NEW.rowid
   ON CONFLICT (changed_table, row_key) DO UPDATE SET
     store_id = excluded.store_id,
     payload = excluded.payload,
+    changed_columns = NULL,
     queued_at = excluded.queued_at,
     attempts = 0,
     last_error = NULL;
@@ -64,7 +66,8 @@ END;
 CREATE TRIGGER stores_outbox_update AFTER UPDATE ON stores
   WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = 'syncQuiet')
 BEGIN
-  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)
+  INSERT INTO outbox (changed_table, row_key, store_id, payload,
+    changed_columns, queued_at)
   SELECT 'stores', id, id, json_object(
       'updated_at', updated_at,
       'deleted_at', deleted_at,
@@ -87,11 +90,12 @@ BEGIN
       'notify_busy_days', notify_busy_days,
       'busy_weekdays', busy_weekdays,
       'busy_reminder_days', busy_reminder_days
-    ), (SELECT now FROM sync_clock)
+    ), NULL, (SELECT now FROM sync_clock)
   FROM stores WHERE rowid = NEW.rowid
   ON CONFLICT (changed_table, row_key) DO UPDATE SET
     store_id = excluded.store_id,
     payload = excluded.payload,
+    changed_columns = NULL,
     queued_at = excluded.queued_at,
     attempts = 0,
     last_error = NULL;
@@ -100,18 +104,20 @@ END;
 CREATE TRIGGER categories_outbox_insert AFTER INSERT ON categories
   WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = 'syncQuiet')
 BEGIN
-  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)
+  INSERT INTO outbox (changed_table, row_key, store_id, payload,
+    changed_columns, queued_at)
   SELECT 'categories', id, store_id, json_object(
       'updated_at', updated_at,
       'deleted_at', deleted_at,
       'id', id,
       'store_id', store_id,
       'name', name
-    ), (SELECT now FROM sync_clock)
+    ), NULL, (SELECT now FROM sync_clock)
   FROM categories WHERE rowid = NEW.rowid
   ON CONFLICT (changed_table, row_key) DO UPDATE SET
     store_id = excluded.store_id,
     payload = excluded.payload,
+    changed_columns = NULL,
     queued_at = excluded.queued_at,
     attempts = 0,
     last_error = NULL;
@@ -120,18 +126,20 @@ END;
 CREATE TRIGGER categories_outbox_update AFTER UPDATE ON categories
   WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = 'syncQuiet')
 BEGIN
-  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)
+  INSERT INTO outbox (changed_table, row_key, store_id, payload,
+    changed_columns, queued_at)
   SELECT 'categories', id, store_id, json_object(
       'updated_at', updated_at,
       'deleted_at', deleted_at,
       'id', id,
       'store_id', store_id,
       'name', name
-    ), (SELECT now FROM sync_clock)
+    ), NULL, (SELECT now FROM sync_clock)
   FROM categories WHERE rowid = NEW.rowid
   ON CONFLICT (changed_table, row_key) DO UPDATE SET
     store_id = excluded.store_id,
     payload = excluded.payload,
+    changed_columns = NULL,
     queued_at = excluded.queued_at,
     attempts = 0,
     last_error = NULL;
@@ -140,7 +148,8 @@ END;
 CREATE TRIGGER units_outbox_insert AFTER INSERT ON units
   WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = 'syncQuiet')
 BEGIN
-  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)
+  INSERT INTO outbox (changed_table, row_key, store_id, payload,
+    changed_columns, queued_at)
   SELECT 'units', id, store_id, json_object(
       'updated_at', updated_at,
       'deleted_at', deleted_at,
@@ -148,11 +157,12 @@ BEGIN
       'store_id', store_id,
       'name', name,
       'abbreviation', abbreviation
-    ), (SELECT now FROM sync_clock)
+    ), NULL, (SELECT now FROM sync_clock)
   FROM units WHERE rowid = NEW.rowid
   ON CONFLICT (changed_table, row_key) DO UPDATE SET
     store_id = excluded.store_id,
     payload = excluded.payload,
+    changed_columns = NULL,
     queued_at = excluded.queued_at,
     attempts = 0,
     last_error = NULL;
@@ -161,7 +171,8 @@ END;
 CREATE TRIGGER units_outbox_update AFTER UPDATE ON units
   WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = 'syncQuiet')
 BEGIN
-  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)
+  INSERT INTO outbox (changed_table, row_key, store_id, payload,
+    changed_columns, queued_at)
   SELECT 'units', id, store_id, json_object(
       'updated_at', updated_at,
       'deleted_at', deleted_at,
@@ -169,11 +180,12 @@ BEGIN
       'store_id', store_id,
       'name', name,
       'abbreviation', abbreviation
-    ), (SELECT now FROM sync_clock)
+    ), NULL, (SELECT now FROM sync_clock)
   FROM units WHERE rowid = NEW.rowid
   ON CONFLICT (changed_table, row_key) DO UPDATE SET
     store_id = excluded.store_id,
     payload = excluded.payload,
+    changed_columns = NULL,
     queued_at = excluded.queued_at,
     attempts = 0,
     last_error = NULL;
@@ -182,7 +194,8 @@ END;
 CREATE TRIGGER items_outbox_insert AFTER INSERT ON items
   WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = 'syncQuiet')
 BEGIN
-  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)
+  INSERT INTO outbox (changed_table, row_key, store_id, payload,
+    changed_columns, queued_at)
   SELECT 'items', id, store_id, json_object(
       'deleted_at', deleted_at,
       'id', id,
@@ -200,11 +213,12 @@ BEGIN
       'barcode', barcode,
       'note', note,
       'image_path', image_path
-    ), (SELECT now FROM sync_clock)
+    ), NULL, (SELECT now FROM sync_clock)
   FROM items WHERE rowid = NEW.rowid
   ON CONFLICT (changed_table, row_key) DO UPDATE SET
     store_id = excluded.store_id,
     payload = excluded.payload,
+    changed_columns = NULL,
     queued_at = excluded.queued_at,
     attempts = 0,
     last_error = NULL;
@@ -213,7 +227,8 @@ END;
 CREATE TRIGGER items_outbox_update AFTER UPDATE ON items
   WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = 'syncQuiet')
 BEGIN
-  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)
+  INSERT INTO outbox (changed_table, row_key, store_id, payload,
+    changed_columns, queued_at)
   SELECT 'items', id, store_id, json_object(
       'deleted_at', deleted_at,
       'id', id,
@@ -231,11 +246,12 @@ BEGIN
       'barcode', barcode,
       'note', note,
       'image_path', image_path
-    ), (SELECT now FROM sync_clock)
+    ), NULL, (SELECT now FROM sync_clock)
   FROM items WHERE rowid = NEW.rowid
   ON CONFLICT (changed_table, row_key) DO UPDATE SET
     store_id = excluded.store_id,
     payload = excluded.payload,
+    changed_columns = NULL,
     queued_at = excluded.queued_at,
     attempts = 0,
     last_error = NULL;
@@ -244,7 +260,8 @@ END;
 CREATE TRIGGER suppliers_outbox_insert AFTER INSERT ON suppliers
   WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = 'syncQuiet')
 BEGIN
-  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)
+  INSERT INTO outbox (changed_table, row_key, store_id, payload,
+    changed_columns, queued_at)
   SELECT 'suppliers', id, store_id, json_object(
       'updated_at', updated_at,
       'deleted_at', deleted_at,
@@ -258,11 +275,12 @@ BEGIN
       'postal_code', postal_code,
       'city', city,
       'note', note
-    ), (SELECT now FROM sync_clock)
+    ), NULL, (SELECT now FROM sync_clock)
   FROM suppliers WHERE rowid = NEW.rowid
   ON CONFLICT (changed_table, row_key) DO UPDATE SET
     store_id = excluded.store_id,
     payload = excluded.payload,
+    changed_columns = NULL,
     queued_at = excluded.queued_at,
     attempts = 0,
     last_error = NULL;
@@ -271,7 +289,8 @@ END;
 CREATE TRIGGER suppliers_outbox_update AFTER UPDATE ON suppliers
   WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = 'syncQuiet')
 BEGIN
-  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)
+  INSERT INTO outbox (changed_table, row_key, store_id, payload,
+    changed_columns, queued_at)
   SELECT 'suppliers', id, store_id, json_object(
       'updated_at', updated_at,
       'deleted_at', deleted_at,
@@ -285,11 +304,12 @@ BEGIN
       'postal_code', postal_code,
       'city', city,
       'note', note
-    ), (SELECT now FROM sync_clock)
+    ), NULL, (SELECT now FROM sync_clock)
   FROM suppliers WHERE rowid = NEW.rowid
   ON CONFLICT (changed_table, row_key) DO UPDATE SET
     store_id = excluded.store_id,
     payload = excluded.payload,
+    changed_columns = NULL,
     queued_at = excluded.queued_at,
     attempts = 0,
     last_error = NULL;
@@ -298,7 +318,8 @@ END;
 CREATE TRIGGER supplier_prices_outbox_insert AFTER INSERT ON supplier_prices
   WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = 'syncQuiet')
 BEGIN
-  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)
+  INSERT INTO outbox (changed_table, row_key, store_id, payload,
+    changed_columns, queued_at)
   SELECT 'supplier_prices', id, store_id, json_object(
       'updated_at', updated_at,
       'deleted_at', deleted_at,
@@ -309,11 +330,12 @@ BEGIN
       'price_per_unit', price_per_unit,
       'effective_date', effective_date,
       'is_default', is_default
-    ), (SELECT now FROM sync_clock)
+    ), NULL, (SELECT now FROM sync_clock)
   FROM supplier_prices WHERE rowid = NEW.rowid
   ON CONFLICT (changed_table, row_key) DO UPDATE SET
     store_id = excluded.store_id,
     payload = excluded.payload,
+    changed_columns = NULL,
     queued_at = excluded.queued_at,
     attempts = 0,
     last_error = NULL;
@@ -322,7 +344,8 @@ END;
 CREATE TRIGGER supplier_prices_outbox_update AFTER UPDATE ON supplier_prices
   WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = 'syncQuiet')
 BEGIN
-  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)
+  INSERT INTO outbox (changed_table, row_key, store_id, payload,
+    changed_columns, queued_at)
   SELECT 'supplier_prices', id, store_id, json_object(
       'updated_at', updated_at,
       'deleted_at', deleted_at,
@@ -333,11 +356,12 @@ BEGIN
       'price_per_unit', price_per_unit,
       'effective_date', effective_date,
       'is_default', is_default
-    ), (SELECT now FROM sync_clock)
+    ), NULL, (SELECT now FROM sync_clock)
   FROM supplier_prices WHERE rowid = NEW.rowid
   ON CONFLICT (changed_table, row_key) DO UPDATE SET
     store_id = excluded.store_id,
     payload = excluded.payload,
+    changed_columns = NULL,
     queued_at = excluded.queued_at,
     attempts = 0,
     last_error = NULL;
@@ -346,7 +370,8 @@ END;
 CREATE TRIGGER price_history_outbox_insert AFTER INSERT ON price_history
   WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = 'syncQuiet')
 BEGIN
-  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)
+  INSERT INTO outbox (changed_table, row_key, store_id, payload,
+    changed_columns, queued_at)
   SELECT 'price_history', id, store_id, json_object(
       'updated_at', updated_at,
       'deleted_at', deleted_at,
@@ -358,11 +383,12 @@ BEGIN
       'new_price', new_price,
       'changed_at', changed_at,
       'changed_by_name', changed_by_name
-    ), (SELECT now FROM sync_clock)
+    ), NULL, (SELECT now FROM sync_clock)
   FROM price_history WHERE rowid = NEW.rowid
   ON CONFLICT (changed_table, row_key) DO UPDATE SET
     store_id = excluded.store_id,
     payload = excluded.payload,
+    changed_columns = NULL,
     queued_at = excluded.queued_at,
     attempts = 0,
     last_error = NULL;
@@ -371,7 +397,8 @@ END;
 CREATE TRIGGER price_history_outbox_update AFTER UPDATE ON price_history
   WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = 'syncQuiet')
 BEGIN
-  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)
+  INSERT INTO outbox (changed_table, row_key, store_id, payload,
+    changed_columns, queued_at)
   SELECT 'price_history', id, store_id, json_object(
       'updated_at', updated_at,
       'deleted_at', deleted_at,
@@ -383,11 +410,12 @@ BEGIN
       'new_price', new_price,
       'changed_at', changed_at,
       'changed_by_name', changed_by_name
-    ), (SELECT now FROM sync_clock)
+    ), NULL, (SELECT now FROM sync_clock)
   FROM price_history WHERE rowid = NEW.rowid
   ON CONFLICT (changed_table, row_key) DO UPDATE SET
     store_id = excluded.store_id,
     payload = excluded.payload,
+    changed_columns = NULL,
     queued_at = excluded.queued_at,
     attempts = 0,
     last_error = NULL;
@@ -396,7 +424,8 @@ END;
 CREATE TRIGGER stock_movements_outbox_insert AFTER INSERT ON stock_movements
   WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = 'syncQuiet')
 BEGIN
-  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)
+  INSERT INTO outbox (changed_table, row_key, store_id, payload,
+    changed_columns, queued_at)
   SELECT 'stock_movements', id, store_id, json_object(
       'updated_at', updated_at,
       'deleted_at', deleted_at,
@@ -419,11 +448,12 @@ BEGIN
       'receipt_id', receipt_id,
       'note', note,
       'in_baseline', in_baseline
-    ), (SELECT now FROM sync_clock)
+    ), NULL, (SELECT now FROM sync_clock)
   FROM stock_movements WHERE rowid = NEW.rowid
   ON CONFLICT (changed_table, row_key) DO UPDATE SET
     store_id = excluded.store_id,
     payload = excluded.payload,
+    changed_columns = NULL,
     queued_at = excluded.queued_at,
     attempts = 0,
     last_error = NULL;
@@ -432,7 +462,8 @@ END;
 CREATE TRIGGER stock_movements_outbox_update AFTER UPDATE ON stock_movements
   WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = 'syncQuiet')
 BEGIN
-  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)
+  INSERT INTO outbox (changed_table, row_key, store_id, payload,
+    changed_columns, queued_at)
   SELECT 'stock_movements', id, store_id, json_object(
       'updated_at', updated_at,
       'deleted_at', deleted_at,
@@ -455,11 +486,12 @@ BEGIN
       'receipt_id', receipt_id,
       'note', note,
       'in_baseline', in_baseline
-    ), (SELECT now FROM sync_clock)
+    ), NULL, (SELECT now FROM sync_clock)
   FROM stock_movements WHERE rowid = NEW.rowid
   ON CONFLICT (changed_table, row_key) DO UPDATE SET
     store_id = excluded.store_id,
     payload = excluded.payload,
+    changed_columns = NULL,
     queued_at = excluded.queued_at,
     attempts = 0,
     last_error = NULL;
@@ -468,7 +500,8 @@ END;
 CREATE TRIGGER purchase_orders_outbox_insert AFTER INSERT ON purchase_orders
   WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = 'syncQuiet')
 BEGIN
-  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)
+  INSERT INTO outbox (changed_table, row_key, store_id, payload,
+    changed_columns, queued_at)
   SELECT 'purchase_orders', id, store_id, json_object(
       'updated_at', updated_at,
       'deleted_at', deleted_at,
@@ -481,11 +514,12 @@ BEGIN
       'sent_at', sent_at,
       'closed_at', closed_at,
       'note', note
-    ), (SELECT now FROM sync_clock)
+    ), NULL, (SELECT now FROM sync_clock)
   FROM purchase_orders WHERE rowid = NEW.rowid
   ON CONFLICT (changed_table, row_key) DO UPDATE SET
     store_id = excluded.store_id,
     payload = excluded.payload,
+    changed_columns = NULL,
     queued_at = excluded.queued_at,
     attempts = 0,
     last_error = NULL;
@@ -494,7 +528,8 @@ END;
 CREATE TRIGGER purchase_orders_outbox_update AFTER UPDATE ON purchase_orders
   WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = 'syncQuiet')
 BEGIN
-  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)
+  INSERT INTO outbox (changed_table, row_key, store_id, payload,
+    changed_columns, queued_at)
   SELECT 'purchase_orders', id, store_id, json_object(
       'updated_at', updated_at,
       'deleted_at', deleted_at,
@@ -507,11 +542,12 @@ BEGIN
       'sent_at', sent_at,
       'closed_at', closed_at,
       'note', note
-    ), (SELECT now FROM sync_clock)
+    ), NULL, (SELECT now FROM sync_clock)
   FROM purchase_orders WHERE rowid = NEW.rowid
   ON CONFLICT (changed_table, row_key) DO UPDATE SET
     store_id = excluded.store_id,
     payload = excluded.payload,
+    changed_columns = NULL,
     queued_at = excluded.queued_at,
     attempts = 0,
     last_error = NULL;
@@ -520,7 +556,8 @@ END;
 CREATE TRIGGER purchase_order_lines_outbox_insert AFTER INSERT ON purchase_order_lines
   WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = 'syncQuiet')
 BEGIN
-  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)
+  INSERT INTO outbox (changed_table, row_key, store_id, payload,
+    changed_columns, queued_at)
   SELECT 'purchase_order_lines', id, store_id, json_object(
       'updated_at', updated_at,
       'deleted_at', deleted_at,
@@ -533,11 +570,12 @@ BEGIN
       'unit_price', unit_price,
       'closed_short', closed_short,
       'position', position
-    ), (SELECT now FROM sync_clock)
+    ), NULL, (SELECT now FROM sync_clock)
   FROM purchase_order_lines WHERE rowid = NEW.rowid
   ON CONFLICT (changed_table, row_key) DO UPDATE SET
     store_id = excluded.store_id,
     payload = excluded.payload,
+    changed_columns = NULL,
     queued_at = excluded.queued_at,
     attempts = 0,
     last_error = NULL;
@@ -546,7 +584,8 @@ END;
 CREATE TRIGGER purchase_order_lines_outbox_update AFTER UPDATE ON purchase_order_lines
   WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = 'syncQuiet')
 BEGIN
-  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)
+  INSERT INTO outbox (changed_table, row_key, store_id, payload,
+    changed_columns, queued_at)
   SELECT 'purchase_order_lines', id, store_id, json_object(
       'updated_at', updated_at,
       'deleted_at', deleted_at,
@@ -559,11 +598,12 @@ BEGIN
       'unit_price', unit_price,
       'closed_short', closed_short,
       'position', position
-    ), (SELECT now FROM sync_clock)
+    ), NULL, (SELECT now FROM sync_clock)
   FROM purchase_order_lines WHERE rowid = NEW.rowid
   ON CONFLICT (changed_table, row_key) DO UPDATE SET
     store_id = excluded.store_id,
     payload = excluded.payload,
+    changed_columns = NULL,
     queued_at = excluded.queued_at,
     attempts = 0,
     last_error = NULL;
@@ -572,7 +612,8 @@ END;
 CREATE TRIGGER goods_receipts_outbox_insert AFTER INSERT ON goods_receipts
   WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = 'syncQuiet')
 BEGIN
-  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)
+  INSERT INTO outbox (changed_table, row_key, store_id, payload,
+    changed_columns, queued_at)
   SELECT 'goods_receipts', id, store_id, json_object(
       'updated_at', updated_at,
       'deleted_at', deleted_at,
@@ -583,11 +624,12 @@ BEGIN
       'received_by_name', received_by_name,
       'received_by_employee_id', received_by_employee_id,
       'note', note
-    ), (SELECT now FROM sync_clock)
+    ), NULL, (SELECT now FROM sync_clock)
   FROM goods_receipts WHERE rowid = NEW.rowid
   ON CONFLICT (changed_table, row_key) DO UPDATE SET
     store_id = excluded.store_id,
     payload = excluded.payload,
+    changed_columns = NULL,
     queued_at = excluded.queued_at,
     attempts = 0,
     last_error = NULL;
@@ -596,7 +638,8 @@ END;
 CREATE TRIGGER goods_receipts_outbox_update AFTER UPDATE ON goods_receipts
   WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = 'syncQuiet')
 BEGIN
-  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)
+  INSERT INTO outbox (changed_table, row_key, store_id, payload,
+    changed_columns, queued_at)
   SELECT 'goods_receipts', id, store_id, json_object(
       'updated_at', updated_at,
       'deleted_at', deleted_at,
@@ -607,11 +650,12 @@ BEGIN
       'received_by_name', received_by_name,
       'received_by_employee_id', received_by_employee_id,
       'note', note
-    ), (SELECT now FROM sync_clock)
+    ), NULL, (SELECT now FROM sync_clock)
   FROM goods_receipts WHERE rowid = NEW.rowid
   ON CONFLICT (changed_table, row_key) DO UPDATE SET
     store_id = excluded.store_id,
     payload = excluded.payload,
+    changed_columns = NULL,
     queued_at = excluded.queued_at,
     attempts = 0,
     last_error = NULL;
@@ -620,7 +664,8 @@ END;
 CREATE TRIGGER goods_receipt_lines_outbox_insert AFTER INSERT ON goods_receipt_lines
   WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = 'syncQuiet')
 BEGIN
-  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)
+  INSERT INTO outbox (changed_table, row_key, store_id, payload,
+    changed_columns, queued_at)
   SELECT 'goods_receipt_lines', id, store_id, json_object(
       'updated_at', updated_at,
       'deleted_at', deleted_at,
@@ -635,11 +680,12 @@ BEGIN
       'was_unordered', was_unordered,
       'note', note,
       'position', position
-    ), (SELECT now FROM sync_clock)
+    ), NULL, (SELECT now FROM sync_clock)
   FROM goods_receipt_lines WHERE rowid = NEW.rowid
   ON CONFLICT (changed_table, row_key) DO UPDATE SET
     store_id = excluded.store_id,
     payload = excluded.payload,
+    changed_columns = NULL,
     queued_at = excluded.queued_at,
     attempts = 0,
     last_error = NULL;
@@ -648,7 +694,8 @@ END;
 CREATE TRIGGER goods_receipt_lines_outbox_update AFTER UPDATE ON goods_receipt_lines
   WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = 'syncQuiet')
 BEGIN
-  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)
+  INSERT INTO outbox (changed_table, row_key, store_id, payload,
+    changed_columns, queued_at)
   SELECT 'goods_receipt_lines', id, store_id, json_object(
       'updated_at', updated_at,
       'deleted_at', deleted_at,
@@ -663,11 +710,12 @@ BEGIN
       'was_unordered', was_unordered,
       'note', note,
       'position', position
-    ), (SELECT now FROM sync_clock)
+    ), NULL, (SELECT now FROM sync_clock)
   FROM goods_receipt_lines WHERE rowid = NEW.rowid
   ON CONFLICT (changed_table, row_key) DO UPDATE SET
     store_id = excluded.store_id,
     payload = excluded.payload,
+    changed_columns = NULL,
     queued_at = excluded.queued_at,
     attempts = 0,
     last_error = NULL;
@@ -676,7 +724,8 @@ END;
 CREATE TRIGGER notifications_outbox_insert AFTER INSERT ON notifications
   WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = 'syncQuiet')
 BEGIN
-  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)
+  INSERT INTO outbox (changed_table, row_key, store_id, payload,
+    changed_columns, queued_at)
   SELECT 'notifications', id, store_id, json_object(
       'updated_at', updated_at,
       'deleted_at', deleted_at,
@@ -692,11 +741,12 @@ BEGIN
       'related_employee_id', related_employee_id,
       'read_by_manager_at', read_by_manager_at,
       'read_by_owner_at', read_by_owner_at
-    ), (SELECT now FROM sync_clock)
+    ), NULL, (SELECT now FROM sync_clock)
   FROM notifications WHERE rowid = NEW.rowid
   ON CONFLICT (changed_table, row_key) DO UPDATE SET
     store_id = excluded.store_id,
     payload = excluded.payload,
+    changed_columns = NULL,
     queued_at = excluded.queued_at,
     attempts = 0,
     last_error = NULL;
@@ -705,7 +755,8 @@ END;
 CREATE TRIGGER notifications_outbox_update AFTER UPDATE ON notifications
   WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = 'syncQuiet')
 BEGIN
-  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)
+  INSERT INTO outbox (changed_table, row_key, store_id, payload,
+    changed_columns, queued_at)
   SELECT 'notifications', id, store_id, json_object(
       'updated_at', updated_at,
       'deleted_at', deleted_at,
@@ -721,11 +772,32 @@ BEGIN
       'related_employee_id', related_employee_id,
       'read_by_manager_at', read_by_manager_at,
       'read_by_owner_at', read_by_owner_at
-    ), (SELECT now FROM sync_clock)
+    ), (SELECT json_group_array(c) FROM (
+        SELECT 'updated_at' AS c WHERE NEW.updated_at IS NOT OLD.updated_at
+        UNION ALL SELECT 'deleted_at' AS c WHERE NEW.deleted_at IS NOT OLD.deleted_at
+        UNION ALL SELECT 'id' AS c WHERE NEW.id IS NOT OLD.id
+        UNION ALL SELECT 'store_id' AS c WHERE NEW.store_id IS NOT OLD.store_id
+        UNION ALL SELECT 'kind' AS c WHERE NEW.kind IS NOT OLD.kind
+        UNION ALL SELECT 'title' AS c WHERE NEW.title IS NOT OLD.title
+        UNION ALL SELECT 'body' AS c WHERE NEW.body IS NOT OLD.body
+        UNION ALL SELECT 'created_at' AS c WHERE NEW.created_at IS NOT OLD.created_at
+        UNION ALL SELECT 'is_read' AS c WHERE NEW.is_read IS NOT OLD.is_read
+        UNION ALL SELECT 'related_item_id' AS c WHERE NEW.related_item_id IS NOT OLD.related_item_id
+        UNION ALL SELECT 'related_supplier_id' AS c WHERE NEW.related_supplier_id IS NOT OLD.related_supplier_id
+        UNION ALL SELECT 'related_employee_id' AS c WHERE NEW.related_employee_id IS NOT OLD.related_employee_id
+        UNION ALL SELECT 'read_by_manager_at' AS c WHERE NEW.read_by_manager_at IS NOT OLD.read_by_manager_at
+        UNION ALL SELECT 'read_by_owner_at' AS c WHERE NEW.read_by_owner_at IS NOT OLD.read_by_owner_at)), (SELECT now FROM sync_clock)
   FROM notifications WHERE rowid = NEW.rowid
   ON CONFLICT (changed_table, row_key) DO UPDATE SET
     store_id = excluded.store_id,
     payload = excluded.payload,
+    changed_columns = CASE
+      WHEN outbox.changed_columns IS NULL
+        OR excluded.changed_columns IS NULL THEN NULL
+      ELSE (SELECT json_group_array(value) FROM (
+        SELECT value FROM json_each(outbox.changed_columns)
+        UNION SELECT value FROM json_each(excluded.changed_columns)))
+    END,
     queued_at = excluded.queued_at,
     attempts = 0,
     last_error = NULL;
@@ -734,7 +806,8 @@ END;
 CREATE TRIGGER employees_outbox_insert AFTER INSERT ON employees
   WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = 'syncQuiet')
 BEGIN
-  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)
+  INSERT INTO outbox (changed_table, row_key, store_id, payload,
+    changed_columns, queued_at)
   SELECT 'employees', id, store_id, json_object(
       'updated_at', updated_at,
       'deleted_at', deleted_at,
@@ -751,11 +824,12 @@ BEGIN
       'pay', pay,
       'created_at', created_at,
       'archived_at', archived_at
-    ), (SELECT now FROM sync_clock)
+    ), NULL, (SELECT now FROM sync_clock)
   FROM employees WHERE rowid = NEW.rowid
   ON CONFLICT (changed_table, row_key) DO UPDATE SET
     store_id = excluded.store_id,
     payload = excluded.payload,
+    changed_columns = NULL,
     queued_at = excluded.queued_at,
     attempts = 0,
     last_error = NULL;
@@ -764,7 +838,8 @@ END;
 CREATE TRIGGER employees_outbox_update AFTER UPDATE ON employees
   WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = 'syncQuiet')
 BEGIN
-  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)
+  INSERT INTO outbox (changed_table, row_key, store_id, payload,
+    changed_columns, queued_at)
   SELECT 'employees', id, store_id, json_object(
       'updated_at', updated_at,
       'deleted_at', deleted_at,
@@ -781,11 +856,33 @@ BEGIN
       'pay', pay,
       'created_at', created_at,
       'archived_at', archived_at
-    ), (SELECT now FROM sync_clock)
+    ), (SELECT json_group_array(c) FROM (
+        SELECT 'updated_at' AS c WHERE NEW.updated_at IS NOT OLD.updated_at
+        UNION ALL SELECT 'deleted_at' AS c WHERE NEW.deleted_at IS NOT OLD.deleted_at
+        UNION ALL SELECT 'id' AS c WHERE NEW.id IS NOT OLD.id
+        UNION ALL SELECT 'store_id' AS c WHERE NEW.store_id IS NOT OLD.store_id
+        UNION ALL SELECT 'first_name' AS c WHERE NEW.first_name IS NOT OLD.first_name
+        UNION ALL SELECT 'last_name' AS c WHERE NEW.last_name IS NOT OLD.last_name
+        UNION ALL SELECT 'pin' AS c WHERE NEW.pin IS NOT OLD.pin
+        UNION ALL SELECT 'phone' AS c WHERE NEW.phone IS NOT OLD.phone
+        UNION ALL SELECT 'email' AS c WHERE NEW.email IS NOT OLD.email
+        UNION ALL SELECT 'photo_asset' AS c WHERE NEW.photo_asset IS NOT OLD.photo_asset
+        UNION ALL SELECT 'hire_date' AS c WHERE NEW.hire_date IS NOT OLD.hire_date
+        UNION ALL SELECT 'role' AS c WHERE NEW.role IS NOT OLD.role
+        UNION ALL SELECT 'pay' AS c WHERE NEW.pay IS NOT OLD.pay
+        UNION ALL SELECT 'created_at' AS c WHERE NEW.created_at IS NOT OLD.created_at
+        UNION ALL SELECT 'archived_at' AS c WHERE NEW.archived_at IS NOT OLD.archived_at)), (SELECT now FROM sync_clock)
   FROM employees WHERE rowid = NEW.rowid
   ON CONFLICT (changed_table, row_key) DO UPDATE SET
     store_id = excluded.store_id,
     payload = excluded.payload,
+    changed_columns = CASE
+      WHEN outbox.changed_columns IS NULL
+        OR excluded.changed_columns IS NULL THEN NULL
+      ELSE (SELECT json_group_array(value) FROM (
+        SELECT value FROM json_each(outbox.changed_columns)
+        UNION SELECT value FROM json_each(excluded.changed_columns)))
+    END,
     queued_at = excluded.queued_at,
     attempts = 0,
     last_error = NULL;
@@ -794,7 +891,8 @@ END;
 CREATE TRIGGER employee_credentials_outbox_insert AFTER INSERT ON employee_credentials
   WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = 'syncQuiet')
 BEGIN
-  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)
+  INSERT INTO outbox (changed_table, row_key, store_id, payload,
+    changed_columns, queued_at)
   SELECT 'employee_credentials', id, store_id, json_object(
       'updated_at', updated_at,
       'deleted_at', deleted_at,
@@ -805,11 +903,12 @@ BEGIN
       'failed_attempts', failed_attempts,
       'locked_until', locked_until,
       'last_login_at', last_login_at
-    ), (SELECT now FROM sync_clock)
+    ), NULL, (SELECT now FROM sync_clock)
   FROM employee_credentials WHERE rowid = NEW.rowid
   ON CONFLICT (changed_table, row_key) DO UPDATE SET
     store_id = excluded.store_id,
     payload = excluded.payload,
+    changed_columns = NULL,
     queued_at = excluded.queued_at,
     attempts = 0,
     last_error = NULL;
@@ -818,7 +917,8 @@ END;
 CREATE TRIGGER employee_credentials_outbox_update AFTER UPDATE ON employee_credentials
   WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = 'syncQuiet')
 BEGIN
-  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)
+  INSERT INTO outbox (changed_table, row_key, store_id, payload,
+    changed_columns, queued_at)
   SELECT 'employee_credentials', id, store_id, json_object(
       'updated_at', updated_at,
       'deleted_at', deleted_at,
@@ -829,11 +929,27 @@ BEGIN
       'failed_attempts', failed_attempts,
       'locked_until', locked_until,
       'last_login_at', last_login_at
-    ), (SELECT now FROM sync_clock)
+    ), (SELECT json_group_array(c) FROM (
+        SELECT 'updated_at' AS c WHERE NEW.updated_at IS NOT OLD.updated_at
+        UNION ALL SELECT 'deleted_at' AS c WHERE NEW.deleted_at IS NOT OLD.deleted_at
+        UNION ALL SELECT 'id' AS c WHERE NEW.id IS NOT OLD.id
+        UNION ALL SELECT 'store_id' AS c WHERE NEW.store_id IS NOT OLD.store_id
+        UNION ALL SELECT 'employee_id' AS c WHERE NEW.employee_id IS NOT OLD.employee_id
+        UNION ALL SELECT 'password_hash' AS c WHERE NEW.password_hash IS NOT OLD.password_hash
+        UNION ALL SELECT 'failed_attempts' AS c WHERE NEW.failed_attempts IS NOT OLD.failed_attempts
+        UNION ALL SELECT 'locked_until' AS c WHERE NEW.locked_until IS NOT OLD.locked_until
+        UNION ALL SELECT 'last_login_at' AS c WHERE NEW.last_login_at IS NOT OLD.last_login_at)), (SELECT now FROM sync_clock)
   FROM employee_credentials WHERE rowid = NEW.rowid
   ON CONFLICT (changed_table, row_key) DO UPDATE SET
     store_id = excluded.store_id,
     payload = excluded.payload,
+    changed_columns = CASE
+      WHEN outbox.changed_columns IS NULL
+        OR excluded.changed_columns IS NULL THEN NULL
+      ELSE (SELECT json_group_array(value) FROM (
+        SELECT value FROM json_each(outbox.changed_columns)
+        UNION SELECT value FROM json_each(excluded.changed_columns)))
+    END,
     queued_at = excluded.queued_at,
     attempts = 0,
     last_error = NULL;
@@ -842,7 +958,8 @@ END;
 CREATE TRIGGER payroll_periods_outbox_insert AFTER INSERT ON payroll_periods
   WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = 'syncQuiet')
 BEGIN
-  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)
+  INSERT INTO outbox (changed_table, row_key, store_id, payload,
+    changed_columns, queued_at)
   SELECT 'payroll_periods', id, store_id, json_object(
       'updated_at', updated_at,
       'deleted_at', deleted_at,
@@ -859,11 +976,12 @@ BEGIN
       'paid_by_employee_id', paid_by_employee_id,
       'paid_at', paid_at,
       'created_at', created_at
-    ), (SELECT now FROM sync_clock)
+    ), NULL, (SELECT now FROM sync_clock)
   FROM payroll_periods WHERE rowid = NEW.rowid
   ON CONFLICT (changed_table, row_key) DO UPDATE SET
     store_id = excluded.store_id,
     payload = excluded.payload,
+    changed_columns = NULL,
     queued_at = excluded.queued_at,
     attempts = 0,
     last_error = NULL;
@@ -872,7 +990,8 @@ END;
 CREATE TRIGGER payroll_periods_outbox_update AFTER UPDATE ON payroll_periods
   WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = 'syncQuiet')
 BEGIN
-  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)
+  INSERT INTO outbox (changed_table, row_key, store_id, payload,
+    changed_columns, queued_at)
   SELECT 'payroll_periods', id, store_id, json_object(
       'updated_at', updated_at,
       'deleted_at', deleted_at,
@@ -889,11 +1008,33 @@ BEGIN
       'paid_by_employee_id', paid_by_employee_id,
       'paid_at', paid_at,
       'created_at', created_at
-    ), (SELECT now FROM sync_clock)
+    ), (SELECT json_group_array(c) FROM (
+        SELECT 'updated_at' AS c WHERE NEW.updated_at IS NOT OLD.updated_at
+        UNION ALL SELECT 'deleted_at' AS c WHERE NEW.deleted_at IS NOT OLD.deleted_at
+        UNION ALL SELECT 'id' AS c WHERE NEW.id IS NOT OLD.id
+        UNION ALL SELECT 'employee_id' AS c WHERE NEW.employee_id IS NOT OLD.employee_id
+        UNION ALL SELECT 'store_id' AS c WHERE NEW.store_id IS NOT OLD.store_id
+        UNION ALL SELECT 'start_date' AS c WHERE NEW.start_date IS NOT OLD.start_date
+        UNION ALL SELECT 'end_date' AS c WHERE NEW.end_date IS NOT OLD.end_date
+        UNION ALL SELECT 'worked_days' AS c WHERE NEW.worked_days IS NOT OLD.worked_days
+        UNION ALL SELECT 'total_worked_hours' AS c WHERE NEW.total_worked_hours IS NOT OLD.total_worked_hours
+        UNION ALL SELECT 'applied_rate' AS c WHERE NEW.applied_rate IS NOT OLD.applied_rate
+        UNION ALL SELECT 'computed_amount' AS c WHERE NEW.computed_amount IS NOT OLD.computed_amount
+        UNION ALL SELECT 'status' AS c WHERE NEW.status IS NOT OLD.status
+        UNION ALL SELECT 'paid_by_employee_id' AS c WHERE NEW.paid_by_employee_id IS NOT OLD.paid_by_employee_id
+        UNION ALL SELECT 'paid_at' AS c WHERE NEW.paid_at IS NOT OLD.paid_at
+        UNION ALL SELECT 'created_at' AS c WHERE NEW.created_at IS NOT OLD.created_at)), (SELECT now FROM sync_clock)
   FROM payroll_periods WHERE rowid = NEW.rowid
   ON CONFLICT (changed_table, row_key) DO UPDATE SET
     store_id = excluded.store_id,
     payload = excluded.payload,
+    changed_columns = CASE
+      WHEN outbox.changed_columns IS NULL
+        OR excluded.changed_columns IS NULL THEN NULL
+      ELSE (SELECT json_group_array(value) FROM (
+        SELECT value FROM json_each(outbox.changed_columns)
+        UNION SELECT value FROM json_each(excluded.changed_columns)))
+    END,
     queued_at = excluded.queued_at,
     attempts = 0,
     last_error = NULL;
@@ -902,7 +1043,8 @@ END;
 CREATE TRIGGER attendances_outbox_insert AFTER INSERT ON attendances
   WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = 'syncQuiet')
 BEGIN
-  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)
+  INSERT INTO outbox (changed_table, row_key, store_id, payload,
+    changed_columns, queued_at)
   SELECT 'attendances', id, store_id, json_object(
       'updated_at', updated_at,
       'deleted_at', deleted_at,
@@ -913,11 +1055,12 @@ BEGIN
       'status', status,
       'max_break_minutes', max_break_minutes,
       'payroll_period_id', payroll_period_id
-    ), (SELECT now FROM sync_clock)
+    ), NULL, (SELECT now FROM sync_clock)
   FROM attendances WHERE rowid = NEW.rowid
   ON CONFLICT (changed_table, row_key) DO UPDATE SET
     store_id = excluded.store_id,
     payload = excluded.payload,
+    changed_columns = NULL,
     queued_at = excluded.queued_at,
     attempts = 0,
     last_error = NULL;
@@ -926,7 +1069,8 @@ END;
 CREATE TRIGGER attendances_outbox_update AFTER UPDATE ON attendances
   WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = 'syncQuiet')
 BEGIN
-  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)
+  INSERT INTO outbox (changed_table, row_key, store_id, payload,
+    changed_columns, queued_at)
   SELECT 'attendances', id, store_id, json_object(
       'updated_at', updated_at,
       'deleted_at', deleted_at,
@@ -937,11 +1081,27 @@ BEGIN
       'status', status,
       'max_break_minutes', max_break_minutes,
       'payroll_period_id', payroll_period_id
-    ), (SELECT now FROM sync_clock)
+    ), (SELECT json_group_array(c) FROM (
+        SELECT 'updated_at' AS c WHERE NEW.updated_at IS NOT OLD.updated_at
+        UNION ALL SELECT 'deleted_at' AS c WHERE NEW.deleted_at IS NOT OLD.deleted_at
+        UNION ALL SELECT 'id' AS c WHERE NEW.id IS NOT OLD.id
+        UNION ALL SELECT 'store_id' AS c WHERE NEW.store_id IS NOT OLD.store_id
+        UNION ALL SELECT 'employee_id' AS c WHERE NEW.employee_id IS NOT OLD.employee_id
+        UNION ALL SELECT 'date' AS c WHERE NEW.date IS NOT OLD.date
+        UNION ALL SELECT 'status' AS c WHERE NEW.status IS NOT OLD.status
+        UNION ALL SELECT 'max_break_minutes' AS c WHERE NEW.max_break_minutes IS NOT OLD.max_break_minutes
+        UNION ALL SELECT 'payroll_period_id' AS c WHERE NEW.payroll_period_id IS NOT OLD.payroll_period_id)), (SELECT now FROM sync_clock)
   FROM attendances WHERE rowid = NEW.rowid
   ON CONFLICT (changed_table, row_key) DO UPDATE SET
     store_id = excluded.store_id,
     payload = excluded.payload,
+    changed_columns = CASE
+      WHEN outbox.changed_columns IS NULL
+        OR excluded.changed_columns IS NULL THEN NULL
+      ELSE (SELECT json_group_array(value) FROM (
+        SELECT value FROM json_each(outbox.changed_columns)
+        UNION SELECT value FROM json_each(excluded.changed_columns)))
+    END,
     queued_at = excluded.queued_at,
     attempts = 0,
     last_error = NULL;
@@ -950,7 +1110,8 @@ END;
 CREATE TRIGGER attendance_sessions_outbox_insert AFTER INSERT ON attendance_sessions
   WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = 'syncQuiet')
 BEGIN
-  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)
+  INSERT INTO outbox (changed_table, row_key, store_id, payload,
+    changed_columns, queued_at)
   SELECT 'attendance_sessions', id, store_id, json_object(
       'updated_at', updated_at,
       'deleted_at', deleted_at,
@@ -961,11 +1122,12 @@ BEGIN
       'clock_in_at', clock_in_at,
       'clock_out_at', clock_out_at,
       'exit_set_by_employee_id', exit_set_by_employee_id
-    ), (SELECT now FROM sync_clock)
+    ), NULL, (SELECT now FROM sync_clock)
   FROM attendance_sessions WHERE rowid = NEW.rowid
   ON CONFLICT (changed_table, row_key) DO UPDATE SET
     store_id = excluded.store_id,
     payload = excluded.payload,
+    changed_columns = NULL,
     queued_at = excluded.queued_at,
     attempts = 0,
     last_error = NULL;
@@ -974,7 +1136,8 @@ END;
 CREATE TRIGGER attendance_sessions_outbox_update AFTER UPDATE ON attendance_sessions
   WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = 'syncQuiet')
 BEGIN
-  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)
+  INSERT INTO outbox (changed_table, row_key, store_id, payload,
+    changed_columns, queued_at)
   SELECT 'attendance_sessions', id, store_id, json_object(
       'updated_at', updated_at,
       'deleted_at', deleted_at,
@@ -985,11 +1148,27 @@ BEGIN
       'clock_in_at', clock_in_at,
       'clock_out_at', clock_out_at,
       'exit_set_by_employee_id', exit_set_by_employee_id
-    ), (SELECT now FROM sync_clock)
+    ), (SELECT json_group_array(c) FROM (
+        SELECT 'updated_at' AS c WHERE NEW.updated_at IS NOT OLD.updated_at
+        UNION ALL SELECT 'deleted_at' AS c WHERE NEW.deleted_at IS NOT OLD.deleted_at
+        UNION ALL SELECT 'id' AS c WHERE NEW.id IS NOT OLD.id
+        UNION ALL SELECT 'store_id' AS c WHERE NEW.store_id IS NOT OLD.store_id
+        UNION ALL SELECT 'attendance_id' AS c WHERE NEW.attendance_id IS NOT OLD.attendance_id
+        UNION ALL SELECT 'position' AS c WHERE NEW.position IS NOT OLD.position
+        UNION ALL SELECT 'clock_in_at' AS c WHERE NEW.clock_in_at IS NOT OLD.clock_in_at
+        UNION ALL SELECT 'clock_out_at' AS c WHERE NEW.clock_out_at IS NOT OLD.clock_out_at
+        UNION ALL SELECT 'exit_set_by_employee_id' AS c WHERE NEW.exit_set_by_employee_id IS NOT OLD.exit_set_by_employee_id)), (SELECT now FROM sync_clock)
   FROM attendance_sessions WHERE rowid = NEW.rowid
   ON CONFLICT (changed_table, row_key) DO UPDATE SET
     store_id = excluded.store_id,
     payload = excluded.payload,
+    changed_columns = CASE
+      WHEN outbox.changed_columns IS NULL
+        OR excluded.changed_columns IS NULL THEN NULL
+      ELSE (SELECT json_group_array(value) FROM (
+        SELECT value FROM json_each(outbox.changed_columns)
+        UNION SELECT value FROM json_each(excluded.changed_columns)))
+    END,
     queued_at = excluded.queued_at,
     attempts = 0,
     last_error = NULL;
@@ -998,7 +1177,8 @@ END;
 CREATE TRIGGER attendance_pauses_outbox_insert AFTER INSERT ON attendance_pauses
   WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = 'syncQuiet')
 BEGIN
-  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)
+  INSERT INTO outbox (changed_table, row_key, store_id, payload,
+    changed_columns, queued_at)
   SELECT 'attendance_pauses', id, store_id, json_object(
       'updated_at', updated_at,
       'deleted_at', deleted_at,
@@ -1008,11 +1188,12 @@ BEGIN
       'position', position,
       'start_at', start_at,
       'end_at', end_at
-    ), (SELECT now FROM sync_clock)
+    ), NULL, (SELECT now FROM sync_clock)
   FROM attendance_pauses WHERE rowid = NEW.rowid
   ON CONFLICT (changed_table, row_key) DO UPDATE SET
     store_id = excluded.store_id,
     payload = excluded.payload,
+    changed_columns = NULL,
     queued_at = excluded.queued_at,
     attempts = 0,
     last_error = NULL;
@@ -1021,7 +1202,8 @@ END;
 CREATE TRIGGER attendance_pauses_outbox_update AFTER UPDATE ON attendance_pauses
   WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = 'syncQuiet')
 BEGIN
-  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)
+  INSERT INTO outbox (changed_table, row_key, store_id, payload,
+    changed_columns, queued_at)
   SELECT 'attendance_pauses', id, store_id, json_object(
       'updated_at', updated_at,
       'deleted_at', deleted_at,
@@ -1031,11 +1213,26 @@ BEGIN
       'position', position,
       'start_at', start_at,
       'end_at', end_at
-    ), (SELECT now FROM sync_clock)
+    ), (SELECT json_group_array(c) FROM (
+        SELECT 'updated_at' AS c WHERE NEW.updated_at IS NOT OLD.updated_at
+        UNION ALL SELECT 'deleted_at' AS c WHERE NEW.deleted_at IS NOT OLD.deleted_at
+        UNION ALL SELECT 'id' AS c WHERE NEW.id IS NOT OLD.id
+        UNION ALL SELECT 'store_id' AS c WHERE NEW.store_id IS NOT OLD.store_id
+        UNION ALL SELECT 'session_id' AS c WHERE NEW.session_id IS NOT OLD.session_id
+        UNION ALL SELECT 'position' AS c WHERE NEW.position IS NOT OLD.position
+        UNION ALL SELECT 'start_at' AS c WHERE NEW.start_at IS NOT OLD.start_at
+        UNION ALL SELECT 'end_at' AS c WHERE NEW.end_at IS NOT OLD.end_at)), (SELECT now FROM sync_clock)
   FROM attendance_pauses WHERE rowid = NEW.rowid
   ON CONFLICT (changed_table, row_key) DO UPDATE SET
     store_id = excluded.store_id,
     payload = excluded.payload,
+    changed_columns = CASE
+      WHEN outbox.changed_columns IS NULL
+        OR excluded.changed_columns IS NULL THEN NULL
+      ELSE (SELECT json_group_array(value) FROM (
+        SELECT value FROM json_each(outbox.changed_columns)
+        UNION SELECT value FROM json_each(excluded.changed_columns)))
+    END,
     queued_at = excluded.queued_at,
     attempts = 0,
     last_error = NULL;
@@ -1044,17 +1241,19 @@ END;
 CREATE TRIGGER busy_dates_outbox_insert AFTER INSERT ON busy_dates
   WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = 'syncQuiet')
 BEGIN
-  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)
+  INSERT INTO outbox (changed_table, row_key, store_id, payload,
+    changed_columns, queued_at)
   SELECT 'busy_dates', store_id || '|' || day, store_id, json_object(
       'updated_at', updated_at,
       'deleted_at', deleted_at,
       'store_id', store_id,
       'day', day
-    ), (SELECT now FROM sync_clock)
+    ), NULL, (SELECT now FROM sync_clock)
   FROM busy_dates WHERE rowid = NEW.rowid
   ON CONFLICT (changed_table, row_key) DO UPDATE SET
     store_id = excluded.store_id,
     payload = excluded.payload,
+    changed_columns = NULL,
     queued_at = excluded.queued_at,
     attempts = 0,
     last_error = NULL;
@@ -1063,17 +1262,19 @@ END;
 CREATE TRIGGER busy_dates_outbox_update AFTER UPDATE ON busy_dates
   WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = 'syncQuiet')
 BEGIN
-  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)
+  INSERT INTO outbox (changed_table, row_key, store_id, payload,
+    changed_columns, queued_at)
   SELECT 'busy_dates', store_id || '|' || day, store_id, json_object(
       'updated_at', updated_at,
       'deleted_at', deleted_at,
       'store_id', store_id,
       'day', day
-    ), (SELECT now FROM sync_clock)
+    ), NULL, (SELECT now FROM sync_clock)
   FROM busy_dates WHERE rowid = NEW.rowid
   ON CONFLICT (changed_table, row_key) DO UPDATE SET
     store_id = excluded.store_id,
     payload = excluded.payload,
+    changed_columns = NULL,
     queued_at = excluded.queued_at,
     attempts = 0,
     last_error = NULL;
@@ -1082,7 +1283,8 @@ END;
 CREATE TRIGGER business_days_outbox_insert AFTER INSERT ON business_days
   WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = 'syncQuiet')
 BEGIN
-  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)
+  INSERT INTO outbox (changed_table, row_key, store_id, payload,
+    changed_columns, queued_at)
   SELECT 'business_days', id, store_id, json_object(
       'updated_at', updated_at,
       'deleted_at', deleted_at,
@@ -1093,11 +1295,12 @@ BEGIN
       'opened_by_employee_id', opened_by_employee_id,
       'closed_at', closed_at,
       'closed_by_employee_id', closed_by_employee_id
-    ), (SELECT now FROM sync_clock)
+    ), NULL, (SELECT now FROM sync_clock)
   FROM business_days WHERE rowid = NEW.rowid
   ON CONFLICT (changed_table, row_key) DO UPDATE SET
     store_id = excluded.store_id,
     payload = excluded.payload,
+    changed_columns = NULL,
     queued_at = excluded.queued_at,
     attempts = 0,
     last_error = NULL;
@@ -1106,7 +1309,8 @@ END;
 CREATE TRIGGER business_days_outbox_update AFTER UPDATE ON business_days
   WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = 'syncQuiet')
 BEGIN
-  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)
+  INSERT INTO outbox (changed_table, row_key, store_id, payload,
+    changed_columns, queued_at)
   SELECT 'business_days', id, store_id, json_object(
       'updated_at', updated_at,
       'deleted_at', deleted_at,
@@ -1117,11 +1321,27 @@ BEGIN
       'opened_by_employee_id', opened_by_employee_id,
       'closed_at', closed_at,
       'closed_by_employee_id', closed_by_employee_id
-    ), (SELECT now FROM sync_clock)
+    ), (SELECT json_group_array(c) FROM (
+        SELECT 'updated_at' AS c WHERE NEW.updated_at IS NOT OLD.updated_at
+        UNION ALL SELECT 'deleted_at' AS c WHERE NEW.deleted_at IS NOT OLD.deleted_at
+        UNION ALL SELECT 'id' AS c WHERE NEW.id IS NOT OLD.id
+        UNION ALL SELECT 'store_id' AS c WHERE NEW.store_id IS NOT OLD.store_id
+        UNION ALL SELECT 'date' AS c WHERE NEW.date IS NOT OLD.date
+        UNION ALL SELECT 'opened_at' AS c WHERE NEW.opened_at IS NOT OLD.opened_at
+        UNION ALL SELECT 'opened_by_employee_id' AS c WHERE NEW.opened_by_employee_id IS NOT OLD.opened_by_employee_id
+        UNION ALL SELECT 'closed_at' AS c WHERE NEW.closed_at IS NOT OLD.closed_at
+        UNION ALL SELECT 'closed_by_employee_id' AS c WHERE NEW.closed_by_employee_id IS NOT OLD.closed_by_employee_id)), (SELECT now FROM sync_clock)
   FROM business_days WHERE rowid = NEW.rowid
   ON CONFLICT (changed_table, row_key) DO UPDATE SET
     store_id = excluded.store_id,
     payload = excluded.payload,
+    changed_columns = CASE
+      WHEN outbox.changed_columns IS NULL
+        OR excluded.changed_columns IS NULL THEN NULL
+      ELSE (SELECT json_group_array(value) FROM (
+        SELECT value FROM json_each(outbox.changed_columns)
+        UNION SELECT value FROM json_each(excluded.changed_columns)))
+    END,
     queued_at = excluded.queued_at,
     attempts = 0,
     last_error = NULL;

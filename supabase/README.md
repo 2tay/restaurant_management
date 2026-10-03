@@ -26,6 +26,7 @@ supabase stop
 | `migrations/…_photos.sql` | The private `photos` bucket, one folder per store |
 | `migrations/…_join_codes.sql` | Join codes for managers, `my_account`, `remove_device` (Phase 4) |
 | `migrations/…_personnel_audit.sql` | The pointage audit synced: `business_days`, `stores.business_day_auto_open_minutes`, `attendance_sessions.exit_set_by_employee_id` (SYNC_PERSONNEL_PLAN, step 2) |
+| `migrations/…_partial_updates.sql` | `apply_change` writes only the columns an edit names (SYNC_PERSONNEL_PLAN, step 4) |
 | `tests/database/sync.test.sql` | pgTAP tests: isolation between restaurants, push and pull, conflict rules |
 | `tests/database/accounts.test.sql` | pgTAP tests: join codes, roles, removing a device |
 
@@ -39,7 +40,8 @@ supabase stop
 - **`server_seq` orders everything.** Each insert or update takes the next number from one
   sequence. A device pulls "everything after the last number I saw".
 - **Conflict rules** in `push_changes`: delete wins, a commande's status only moves forward,
-  a paid pay period is final. Otherwise the last change to arrive wins.
+  a paid pay period is final. Otherwise the last change to arrive wins — for a personnel row,
+  only for the columns it changed (`columns` in the entry).
 
 ## Changing a synced table
 

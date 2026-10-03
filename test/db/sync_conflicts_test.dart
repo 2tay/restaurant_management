@@ -194,12 +194,71 @@ void main() {
       await AccountRepository(b).markRead(onB.id, viewer: EmployeeRole.owner);
       await settle(a, b);
 
-      // A tablet never loses a read it holds: each keeps its own, and learns
-      // the other's when it is newer on the server.
-      expect((await flags(a, EmployeeRole.manager)).single.isRead, isTrue);
-      expect((await flags(b, EmployeeRole.owner)).single.isRead, isTrue);
+      // Each read travels as its own column (step 4), so both tablets end
+      // with both reads.
+      for (final db in [a, b]) {
+        expect((await flags(db, EmployeeRole.manager)).single.isRead, isTrue);
+        expect((await flags(db, EmployeeRole.owner)).single.isRead, isTrue);
+      }
       for (final db in [a, b]) {
         expect(await flags(db, EmployeeRole.manager), hasLength(1));
+      }
+    });
+  });
+
+  // Rules E2 and E3 (SYNC_PERSONNEL_PLAN.md, step 4): an edit sends only the
+  // fields it changed.
+  group('two tablets editing one employee', () {
+    Future<Employee> cookOn(AppDatabase db, String id) async =>
+        (await EmployeeRepository(db).employee(id))!;
+
+    test('different fields: both edits are kept everywhere', () async {
+      final a = await newDevice();
+      final b = await newDevice();
+      final day = await shared(a, b);
+
+      await EmployeeRepository(a).update(day.cook.id, phone: '0499 11 22 33');
+      await EmployeeRepository(b).update(day.cook.id, lastName: 'Benali');
+
+      await settle(a, b);
+
+      for (final db in [a, b]) {
+        final cook = await cookOn(db, day.cook.id);
+        expect(cook.phone, '0499 11 22 33');
+        expect(cook.lastName, 'Benali');
+      }
+    });
+
+    test('the same field: the last one sent wins, the same everywhere',
+        () async {
+      final a = await newDevice();
+      final b = await newDevice();
+      final day = await shared(a, b);
+
+      await EmployeeRepository(a).update(day.cook.id, phone: '0499 00 00 0A');
+      await EmployeeRepository(b).update(day.cook.id, phone: '0499 00 00 0B');
+
+      // A sends first, B last.
+      await settle(a, b);
+
+      expect((await cookOn(a, day.cook.id)).phone, '0499 00 00 0B');
+      expect((await cookOn(b, day.cook.id)).phone, '0499 00 00 0B');
+    });
+
+    test('archived on one, edited on the other: stays archived', () async {
+      final a = await newDevice();
+      final b = await newDevice();
+      final day = await shared(a, b);
+
+      expect(await EmployeeRepository(a).archive(day.cook.id), isTrue);
+      await EmployeeRepository(b).update(day.cook.id, phone: '0499 44 55 66');
+
+      await settle(a, b);
+
+      for (final db in [a, b]) {
+        final cook = await cookOn(db, day.cook.id);
+        expect(cook.archivedAt, isNotNull);
+        expect(cook.phone, '0499 44 55 66');
       }
     });
   });
