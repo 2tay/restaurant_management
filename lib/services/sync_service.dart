@@ -653,8 +653,10 @@ class SyncController extends Notifier<SyncState> {
     if (!ref.mounted) return result;
 
     // New rows can mean the first establishments arrived: the waiting
-    // screen gives way once the device has data.
-    if (result.received > 0) {
+    // screen gives way once the device has data. Also re-read while the
+    // device still looks empty, even after a pass that received nothing: an
+    // earlier pass may have brought the data before anyone was listening.
+    if (result.received > 0 || !ref.read(deviceAccessProvider).hasLocalData) {
       await ref.read(deviceAccessProvider.notifier).hydrate();
       if (!ref.mounted) return result;
     }

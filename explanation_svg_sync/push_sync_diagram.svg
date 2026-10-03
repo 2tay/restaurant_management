@@ -1,0 +1,398 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="297mm" height="210mm" viewBox="0 0 1485 1050" xmlns:c2pa="http://c2pa.org/manifest"><metadata><c2pa:manifest>AAAWgmp1bWIAAAAeanVtZGMycGEAEQAQgAAAqgA4m3EDYzJwYQAAABZcanVtYgAAAEdqdW1kYzJtYQARABCAAACqADibcQN1cm46YzJwYTo0ODBmZGY1MS1lY2Q0LTRiMGUtOWYxYy01N2MxM2MwMjY2NGQAAAADl2p1bWIAAAApanVtZGMyYXMAEQAQgAAAqgA4m3EDYzJwYS5hc3NlcnRpb25zAAAAALxqdW1iAAAARGp1bWRjYm9yABEAEIAAAKoAOJtxE2MycGEuaW5ncmVkaWVudC52MwAAAAAYYzJzaCpIRZRy88HGs4xGgooHuj8AAABwY2JvcqNpZGM6Zm9ybWF0bWltYWdlL3N2Zyt4bWxqaW5zdGFuY2VJRHgseG1wOmlpZDpjYjRjYjIzMy0xZjUxLTRjOGEtYjhmMi01YWQ1NzEzYmIyNzRscmVsYXRpb25zaGlwaHBhcmVudE9mAAAB4mp1bWIAAABBanVtZGNib3IAEQAQgAAAqgA4m3ETYzJwYS5hY3Rpb25zLnYyAAAAABhjMnNo51TW2Qfv0wUvtANqzaahKwAAAZljYm9yomdhY3Rpb25zgqJmYWN0aW9ua2MycGEub3BlbmVkanBhcmFtZXRlcnOha2luZ3JlZGllbnRzgaJjdXJseC1zZWxmI2p1bWJmPWMycGEuYXNzZXJ0aW9ucy9jMnBhLmluZ3JlZGllbnQudjNkaGFzaFgg5typDx7bAJzcD70SW+5+dfRG3xkBzlE47Nz1kLcVzkakZmFjdGlvbngdY29tLmFudGhyb3BpYy5jbGF1ZGUucHJvdmlkZWRqcGFyYW1ldGVyc6F4H2NvbS5hbnRocm9waWMub3JpZ2luLWNvbmZpZGVuY2VndW5rbm93bmtkZXNjcmlwdGlvbnhmQ2xhdWRlIHByb3ZpZGVkIHRoaXMgZmlsZSBhdCB0aGUgcmVxdWVzdCBvZiBhIHVzZXIgYW5kIG1heSBoYXZlIGNyZWF0ZWQgb3IgbW9kaWZpZWQgdGhlIGZpbGUgY29udGVudHMubXNvZnR3YXJlQWdlbnShZG5hbWVmQ2xhdWRlcmFsbEFjdGlvbnNJbmNsdWRlZPUAAADIanVtYgAAAEBqdW1kY2JvcgARABCAAACqADibcRNjMnBhLmhhc2guZGF0YQAAAAAYYzJzaKI/8gd+TdpRsQKjmUAYNroAAACAY2JvcqVjYWxnZnNoYTI1NmNwYWRNAAAAAAAAAAAAAAAAAGRoYXNoWCBIz5FKFQ6Wbx5fOUJkZ47f9iO2vaI8jB9CqFHaDb9cxWRuYW1lbmp1bWJmIG1hbmlmZXN0amV4Y2x1c2lvbnOBomVzdGFydBicZmxlbmd0aBkeBAAAAj5qdW1iAAAAJ2p1bWRjMmNsABEAEIAAAKoAOJtxA2MycGEuY2xhaW0udjIAAAACD2Nib3KlY2FsZ2ZzaGEyNTZpc2lnbmF0dXJleE1zZWxmI2p1bWJmPS9jMnBhL3VybjpjMnBhOjQ4MGZkZjUxLWVjZDQtNGIwZS05ZjFjLTU3YzEzYzAyNjY0ZC9jMnBhLnNpZ25hdHVyZWppbnN0YW5jZUlEeCx4bXA6aWlkOmNkZGNlNjEyLTBmMmItNDI2MC04ZGQ4LTEwYmYzMjY1ODNiY3JjcmVhdGVkX2Fzc2VydGlvbnODomN1cmx4LXNlbGYjanVtYmY9YzJwYS5hc3NlcnRpb25zL2MycGEuaW5ncmVkaWVudC52M2RoYXNoWCDm3KkPHtsAnNwPvRJb7n519EbfGQHOUTjs3PWQtxXORqJjdXJseCpzZWxmI2p1bWJmPWMycGEuYXNzZXJ0aW9ucy9jMnBhLmFjdGlvbnMudjJkaGFzaFggWza4XwW9mdjoK/SN0KqTwtSibMf7yWUZZekxPDdqNHCiY3VybHgpc2VsZiNqdW1iZj1jMnBhLmFzc2VydGlvbnMvYzJwYS5oYXNoLmRhdGFkaGFzaFggiQzArZXA7sqt7QiefV+pzttlcbUKQ8rL2d57vE7J4SZ0Y2xhaW1fZ2VuZXJhdG9yX2luZm+jZG5hbWVvQW50aHJvcGljIEZpbGVzZ3ZlcnNpb25lMS4wLjBrc3BlY1ZlcnNpb25lMi40LjAAABA4anVtYgAAAChqdW1kYzJjcwARABCAAACqADibcQNjMnBhLnNpZ25hdHVyZQAAABAIY2JvctKEWQISogEmGCFZAgowggIGMIIBjaADAgECAhRA5aAK7sI50L64g/oGQgU9Z1UTADAKBggqhkjOPQQDAzBJMRcwFQYDVQQKEw5BbnRocm9waWMsIFBCQzEuMCwGA1UEAxMlQW50aHJvcGljIENvbnRlbnQgQ3JlZGVudGlhbHMgUm9vdCBDQTAeFw0yNjA4MDcxODQzNTZaFw0yODA4MDYxOTQzNTZaMEQxFzAVBgNVBAoTDkFudGhyb3BpYywgUEJDMSkwJwYDVQQDEyBBbnRocm9waWMgQ2xhdWRlIENvbnRlbnQgU2lnbmluZzBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABJh6CmvLUBgFFNU0vUKlOVtE6djd17L5SuwX0LemFisBM3dkd/3cyjxFA3Qo5S46fX0/ihY0VZ7mfb9KF703t5OjWDBWMA4GA1UdDwEB/wQEAwIHgDAVBgNVHSUEDjAMBgorBgEEAYPoXgIBMAwGA1UdEwEB/wQCMAAwHwYDVR0jBBgwFoAUzlHiBIFOZFsj+OPEz5o+nMHXXMIwCgYIKoZIzj0EAwMDZwAwZAIwMXMdFJ4BetLLVY7ORuE9noqbbAZOZn/aArXyTwFAZfKrPzxF2vPoJNf1+UCdg1XGAjBwX1zd9WGqYkqmL5SFqw1QySjr1zJfpJM9+1rdDwSPLMOPOjKuiXjoU/pUUeG9RwmhY3BhZFkNngAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPZYQJLaC3Sx90+EcGlJTz3nwnBNwqxBGFPgqkhUgermNqx4jwB4B2FrNy8F7CMyY2wUrbx7+pTSXkEMHjOeYcpWpcE=</c2pa:manifest></metadata>
+<defs>
+  <style>
+    text{font-family:"Inter","Segoe UI",Helvetica,Arial,sans-serif;fill:#1F2937}
+    .m{font-family:"JetBrains Mono",Consolas,Menlo,"Courier New",monospace}
+    .b{font-weight:700}
+    .g{fill:#6B7280}
+    .wh{fill:#FFFFFF}
+    .cb{fill:#1D4ED8}.ca{fill:#B45309}.cg{fill:#15803D}.cr{fill:#B91C1C}
+  </style>
+  <marker id="ab" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" fill="#2563EB"/></marker>
+  <marker id="ag" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" fill="#16A34A"/></marker>
+  <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" fill="#DC2626"/></marker>
+  <marker id="aa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" fill="#D97706"/></marker>
+  <marker id="ak" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" fill="#475569"/></marker>
+  <g id="wifi" fill="none" stroke-width="2.2" stroke-linecap="round">
+    <path d="M-12,-3 Q0,-13 12,-3"/><path d="M-8,1 Q0,-6 8,1"/>
+  </g>
+</defs>
+
+<rect width="1485" height="1050" fill="#FFFFFF"/>
+
+<!-- ============ HEADER ============ -->
+<text x="20" y="36" font-size="24" class="b">PUSH: how a device sends its local changes to the server</text>
+<text x="20" y="57" font-size="12" class="g">Offline-first restaurant app — Flutter + local SQLite (drift) → Supabase / Postgres. Running example from the staff module: an employee clocks in on a tablet (« Pointage »).</text>
+<g font-size="11">
+  <rect x="1100" y="20" width="12" height="12" rx="3" fill="#2563EB"/><text x="1117" y="30">Device</text>
+  <rect x="1170" y="20" width="12" height="12" rx="3" fill="#D97706"/><text x="1187" y="30">Outbox</text>
+  <rect x="1242" y="20" width="12" height="12" rx="3" fill="#16A34A"/><text x="1259" y="30">Server</text>
+  <rect x="1312" y="20" width="12" height="12" rx="3" fill="#DC2626"/><text x="1329" y="30">Rejection / error</text>
+  <text x="1100" y="50" font-size="9.5" class="g"><tspan class="m">monospace</tspan> = table / column names   « … » = French UI labels</text>
+</g>
+
+<!-- ============ RUNNING EXAMPLE STRIP ============ -->
+<text x="20" y="80" font-size="10.5" class="b g">Running example: offline clock-in, then the Wi-Fi comes back</text>
+
+<!-- t1 -->
+<rect x="20" y="88" width="225" height="94" rx="10" fill="#DBEAFE" stroke="#2563EB" stroke-width="1.5"/>
+<rect x="30" y="102" width="46" height="66" rx="6" fill="#FFFFFF" stroke="#1E3A8A" stroke-width="2"/>
+<rect x="35" y="108" width="36" height="50" rx="2" fill="#EFF6FF"/>
+<rect x="39" y="126" width="28" height="14" rx="3" fill="#2563EB"/>
+<text x="53" y="135.5" font-size="6.5" text-anchor="middle" class="wh b">Pointage</text>
+<circle cx="53" cy="163" r="2" fill="#1E3A8A"/>
+<text x="88" y="110" font-size="11" class="b">Tablet is OFFLINE</text>
+<text x="88" y="127" font-size="10">Employee emp-3 taps</text>
+<text x="88" y="141" font-size="10" class="b cb">« Pointage »</text>
+<text x="88" y="158" font-size="9" class="g">(clock-in)</text>
+<g transform="translate(215,112)"><use href="#wifi" stroke="#6B7280"/><circle cx="0" cy="6" r="2" fill="#6B7280"/><line x1="-12" y1="-11" x2="12" y2="10" stroke="#DC2626" stroke-width="2.5" stroke-linecap="round"/></g>
+<text x="235" y="100" font-size="8" class="g" text-anchor="end">t1</text>
+
+<!-- t2 -->
+<rect x="263" y="88" width="225" height="94" rx="10" fill="#DBEAFE" stroke="#2563EB" stroke-width="1.5"/>
+<path d="M275,106 v40 a18,6 0 0 0 36,0 v-40" fill="#FFFFFF" stroke="#2563EB" stroke-width="2"/>
+<ellipse cx="293" cy="106" rx="18" ry="6" fill="#BFDBFE" stroke="#2563EB" stroke-width="2"/>
+<path d="M275,120 a18,6 0 0 0 36,0 M275,133 a18,6 0 0 0 36,0" fill="none" stroke="#2563EB" stroke-width="1.2"/>
+<text x="322" y="108" font-size="11" class="b">Local SQLite write</text>
+<text x="322" y="125" font-size="9" class="m cb">attendances: att-7</text>
+<text x="322" y="137" font-size="9" class="g">the work day</text>
+<text x="322" y="154" font-size="9" class="m cb">attendance_sessions: ses-9</text>
+<text x="322" y="166" font-size="9" class="g">the clock-in</text>
+<text x="478" y="100" font-size="8" class="g" text-anchor="end">t2</text>
+
+<!-- t3 -->
+<rect x="506" y="88" width="225" height="94" rx="10" fill="#FEF3C7" stroke="#D97706" stroke-width="1.5"/>
+<rect x="516" y="104" width="46" height="16" rx="3" fill="#FFFFFF" stroke="#D97706" stroke-width="1.5"/>
+<text x="539" y="116" font-size="9" class="m ca b" text-anchor="middle">#41</text>
+<rect x="516" y="124" width="46" height="16" rx="3" fill="#FFFFFF" stroke="#D97706" stroke-width="1.5"/>
+<text x="539" y="136" font-size="9" class="m ca b" text-anchor="middle">#42</text>
+<rect x="516" y="144" width="46" height="16" rx="3" fill="none" stroke="#D97706" stroke-width="1.2" stroke-dasharray="3 3"/>
+<text x="572" y="108" font-size="11" class="b">Triggers fill the outbox</text>
+<text x="572" y="124" font-size="9" class="m">#41 attendances</text>
+<text x="572" y="137" font-size="9" class="m">#42 attendance_sessions</text>
+<rect x="572" y="146" width="150" height="20" rx="10" fill="#FFFFFF" stroke="#D97706"/>
+<text x="647" y="159.5" font-size="8.5" text-anchor="middle" class="ca b">2 modifications en attente</text>
+<text x="721" y="100" font-size="8" class="g" text-anchor="end">t3</text>
+
+<!-- t4 -->
+<rect x="749" y="88" width="225" height="94" rx="10" fill="#DBEAFE" stroke="#2563EB" stroke-width="1.5"/>
+<g transform="translate(787,134) scale(1.7)"><use href="#wifi" stroke="#16A34A"/><circle cx="0" cy="6" r="2" fill="#16A34A"/></g>
+<text x="822" y="110" font-size="11" class="b">Wi-Fi is back</text>
+<text x="822" y="127" font-size="10">“network back” trigger</text>
+<text x="822" y="142" font-size="10">starts one PUSH pass</text>
+<text x="822" y="160" font-size="9" class="g">(new photos first, then rows)</text>
+<text x="964" y="100" font-size="8" class="g" text-anchor="end">t4</text>
+
+<!-- t5 -->
+<rect x="992" y="88" width="225" height="94" rx="10" fill="#DCFCE7" stroke="#16A34A" stroke-width="1.5"/>
+<g fill="#FFFFFF" stroke="#16A34A" stroke-width="1.8">
+  <rect x="1004" y="102" width="40" height="17" rx="3"/><rect x="1004" y="123" width="40" height="17" rx="3"/><rect x="1004" y="144" width="40" height="17" rx="3"/>
+</g>
+<g fill="#16A34A"><circle cx="1036" cy="110.5" r="2"/><circle cx="1036" cy="131.5" r="2"/><circle cx="1036" cy="152.5" r="2"/></g>
+<text x="1056" y="108" font-size="10" class="m b">push_changes(…)</text>
+<text x="1056" y="126" font-size="9.5" class="cg b">#41 accepted, seq 1051</text>
+<text x="1056" y="141" font-size="9.5" class="cg b">#42 accepted, seq 1052</text>
+<text x="1056" y="160" font-size="9" class="g">numbers stamped by server</text>
+<text x="1207" y="100" font-size="8" class="g" text-anchor="end">t5</text>
+
+<!-- t6 -->
+<rect x="1235" y="88" width="225" height="94" rx="10" fill="#FEF3C7" stroke="#D97706" stroke-width="1.5"/>
+<rect x="1247" y="104" width="34" height="56" rx="4" fill="#FFFFFF" stroke="#D97706" stroke-width="1.5" stroke-dasharray="4 3"/>
+<path d="M1255,132 l6,7 l12,-14" fill="none" stroke="#16A34A" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="1292" y="108" font-size="11" class="b">Outbox is empty</text>
+<rect x="1292" y="116" width="156" height="20" rx="10" fill="#DCFCE7" stroke="#16A34A"/>
+<text x="1370" y="129.5" font-size="8.5" text-anchor="middle" class="cg b">0 modification en attente</text>
+<text x="1292" y="154" font-size="10">then the PULL starts</text>
+<text x="1292" y="168" font-size="9" class="g">(separate diagram)</text>
+<text x="1450" y="100" font-size="8" class="g" text-anchor="end">t6</text>
+
+<g stroke="#475569" stroke-width="2" marker-end="url(#ak)">
+  <line x1="246" y1="135" x2="261" y2="135"/><line x1="489" y1="135" x2="504" y2="135"/><line x1="732" y1="135" x2="747" y2="135"/>
+  <line x1="975" y1="135" x2="990" y2="135"/><line x1="1218" y1="135" x2="1233" y2="135"/>
+</g>
+
+<!-- ============ PART A ============ -->
+<rect x="20" y="192" width="1445" height="28" rx="6" fill="#D97706"/>
+<text x="32" y="211" font-size="13.5" class="wh b">PART A — The outbox queue</text>
+<text x="262" y="211" font-size="11" class="wh">A LOCAL-ONLY SQLite table (<tspan class="m">outbox</tspan>), never synced itself. Filled by triggers, emptied by the push.</text>
+
+<!-- table -->
+<g>
+  <rect x="20" y="228" width="880" height="164" rx="6" fill="#FFFFFF" stroke="#D97706" stroke-width="1.5"/>
+  <rect x="20" y="228" width="880" height="44" rx="6" fill="#FDE68A"/>
+  <rect x="20" y="266" width="880" height="6" fill="#FDE68A"/>
+  <rect x="21" y="312" width="878" height="40" fill="#FFFBEB"/>
+  <rect x="21" y="352" width="878" height="39" fill="#FEF2F2"/>
+  <g stroke="#F59E0B" stroke-width="0.8">
+    <line x1="20" y1="272" x2="900" y2="272"/><line x1="20" y1="312" x2="900" y2="312"/><line x1="20" y1="352" x2="900" y2="352"/>
+    <line x1="58" y1="228" x2="58" y2="392"/><line x1="206" y1="228" x2="206" y2="392"/><line x1="296" y1="228" x2="296" y2="392"/>
+    <line x1="368" y1="228" x2="368" y2="392"/><line x1="668" y1="228" x2="668" y2="392"/><line x1="750" y1="228" x2="750" y2="392"/>
+    <line x1="812" y1="228" x2="812" y2="392"/>
+  </g>
+  <!-- header -->
+  <g font-size="10.5" class="m b">
+    <text x="26" y="244">id</text><text x="64" y="244">changed_table</text><text x="212" y="244">row_key</text>
+    <text x="302" y="244">store_id</text><text x="374" y="244">payload</text><text x="674" y="244">queued_at</text>
+    <text x="756" y="244">attempts</text><text x="818" y="244">last_error</text>
+  </g>
+  <g font-size="8.8" fill="#78350F">
+    <text x="26" y="257" style="fill:#78350F">send</text><text x="26" y="267" style="fill:#78350F">order</text>
+    <text x="64" y="257" style="fill:#78350F">SQL name of the</text><text x="64" y="267" style="fill:#78350F">changed table</text>
+    <text x="212" y="257" style="fill:#78350F">the changed</text><text x="212" y="267" style="fill:#78350F">row's id *</text>
+    <text x="302" y="257" style="fill:#78350F">server checks</text><text x="302" y="267" style="fill:#78350F">access on it</text>
+    <text x="374" y="257" style="fill:#78350F">the WHOLE row as JSON, as it is NOW</text><text x="374" y="267" style="fill:#78350F">minus derived figures: items.quantity, items.average_cost</text>
+    <text x="674" y="257" style="fill:#78350F">UTC time of</text><text x="674" y="267" style="fill:#78350F">last change</text>
+    <text x="756" y="257" style="fill:#78350F">failed</text><text x="756" y="267" style="fill:#78350F">sends</text>
+    <text x="818" y="257" style="fill:#78350F">why the last</text><text x="818" y="267" style="fill:#78350F">send failed</text>
+  </g>
+  <!-- rows -->
+  <g font-size="10" class="m">
+    <text x="26" y="296" class="b ca">41</text><text x="64" y="296">attendances</text><text x="212" y="296">att-7</text><text x="302" y="296">store-1</text>
+    <text x="374" y="288" font-size="9">{"id":"att-7","employee_id":"emp-3",</text>
+    <text x="374" y="301" font-size="9">"date":"…","status":"working","deleted_at":null,…}</text>
+    <text x="674" y="296" font-size="9">…T08:59Z</text><text x="776" y="296">0</text><text x="818" y="296" class="g">—</text>
+
+    <text x="26" y="336" class="b ca">42</text><text x="64" y="336">attendance_sessions</text><text x="212" y="336">ses-9</text><text x="302" y="336">store-1</text>
+    <text x="374" y="328" font-size="9">{"id":"ses-9","attendance_id":"att-7",</text>
+    <text x="374" y="341" font-size="9">"clock_in_at":"…","clock_out_at":null,…}</text>
+    <text x="674" y="336" font-size="9">…T08:59Z</text><text x="776" y="336">0</text><text x="818" y="336" class="g">—</text>
+
+    <text x="26" y="376" class="b ca">43</text><text x="64" y="376">payroll_periods</text><text x="212" y="376">pay-2</text><text x="302" y="376">store-1</text>
+    <text x="374" y="368" font-size="9">{"id":"pay-2","status":"paid",</text>
+    <text x="374" y="381" font-size="9">"computed_amount":…}</text>
+    <text x="674" y="376" font-size="9">…T08:41Z</text><text x="776" y="376" class="b cr">2</text><text x="818" y="376" class="b cr">network</text>
+  </g>
+</g>
+<rect x="20" y="398" width="880" height="20" rx="4" fill="#FEF3C7"/>
+<text x="28" y="412" font-size="10"><tspan class="b ca">UNIQUE INDEX</tspan> <tspan class="m">(changed_table, row_key)</tspan>  ⇒  <tspan class="b">ONE ENTRY PER ROW</tspan><tspan class="g" dx="40">* </tspan><tspan class="m">busy_dates</tspan><tspan class="g"> has no single id: </tspan><tspan class="m">row_key = "store_id|day"</tspan></text>
+
+<!-- transaction mini-diagram -->
+<rect x="20" y="424" width="430" height="92" rx="8" fill="#F8FAFF" stroke="#2563EB" stroke-width="1.5" stroke-dasharray="6 4"/>
+<text x="30" y="440" font-size="10" class="b cb">ONE SQLite transaction: row + entry saved together or not at all</text>
+<rect x="30" y="450" width="192" height="22" rx="4" fill="#DBEAFE" stroke="#2563EB"/>
+<text x="126" y="465" font-size="9.5" class="m" text-anchor="middle">INSERT attendances att-7</text>
+<rect x="30" y="484" width="192" height="22" rx="4" fill="#DBEAFE" stroke="#2563EB"/>
+<text x="126" y="499" font-size="9" class="m" text-anchor="middle">INSERT attendance_sessions ses-9</text>
+<g stroke="#D97706" stroke-width="2" marker-end="url(#aa)"><line x1="224" y1="461" x2="290" y2="461"/><line x1="224" y1="495" x2="290" y2="495"/></g>
+<text x="257" y="456" font-size="8.5" class="ca b" text-anchor="middle">trigger</text>
+<text x="257" y="490" font-size="8.5" class="ca b" text-anchor="middle">trigger</text>
+<rect x="292" y="450" width="148" height="22" rx="4" fill="#FEF3C7" stroke="#D97706"/>
+<text x="366" y="465" font-size="10" class="m b ca" text-anchor="middle">outbox id 41</text>
+<rect x="292" y="484" width="148" height="22" rx="4" fill="#FEF3C7" stroke="#D97706"/>
+<text x="366" y="499" font-size="10" class="m b ca" text-anchor="middle">outbox id 42</text>
+
+<!-- banner mock-up -->
+<text x="470" y="440" font-size="10" class="b g">Offline banner = live count of outbox rows (callout 5)</text>
+<rect x="470" y="450" width="430" height="28" rx="6" fill="#FEF3C7" stroke="#D97706"/>
+<g transform="translate(486,466) scale(0.75)"><use href="#wifi" stroke="#B45309"/><circle cx="0" cy="6" r="2" fill="#B45309"/><line x1="-12" y1="-11" x2="12" y2="10" stroke="#B45309" stroke-width="2.5"/></g>
+<text x="502" y="468" font-size="11"><tspan class="b ca">Hors ligne</tspan> — 2 modifications en attente</text>
+<rect x="742" y="453" width="152" height="22" rx="11" fill="#2563EB"/>
+<text x="818" y="467.5" font-size="9.5" class="wh b" text-anchor="middle">Synchroniser maintenant</text>
+<rect x="470" y="486" width="430" height="26" rx="6" fill="#DCFCE7" stroke="#16A34A"/>
+<path d="M480,499 l4,4 l8,-9" fill="none" stroke="#16A34A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="502" y="503" font-size="11"><tspan class="b cg">À jour</tspan> — 0 modification en attente <tspan class="g" font-size="9.5">(after t5)</tspan></text>
+
+<!-- callouts -->
+<g>
+  <rect x="915" y="228" width="550" height="52" rx="8" fill="#FFFBEB" stroke="#F59E0B"/>
+  <circle cx="933" cy="245" r="10" fill="#D97706"/><text x="933" y="249" font-size="11" class="wh b" text-anchor="middle">1</text>
+  <text x="952" y="245" font-size="11.5" class="b">Filled ONLY by SQLite triggers, in the same transaction as the change</text>
+  <text x="952" y="260" font-size="10">AFTER INSERT / AFTER UPDATE on each of the 20 synced tables (change + entry: all or nothing).</text>
+  <text x="952" y="273" font-size="10">No repository writes the outbox by hand. Triggers are generated from the schema: none forgotten.</text>
+
+  <rect x="915" y="286" width="550" height="52" rx="8" fill="#FFFBEB" stroke="#F59E0B"/>
+  <circle cx="933" cy="303" r="10" fill="#D97706"/><text x="933" y="307" font-size="11" class="wh b" text-anchor="middle">2</text>
+  <text x="952" y="303" font-size="11.5" class="b">Merge: a row edited 5× offline keeps ONE entry (upsert)</text>
+  <text x="952" y="318" font-size="10"><tspan class="m">payload</tspan> and <tspan class="m">queued_at</tspan> are replaced, <tspan class="m">attempts</tspan> resets to 0, but the <tspan class="m">id</tspan> is KEPT:</text>
+  <text x="952" y="331" font-size="10">a parent created before its children is still sent before them.</text>
+
+  <rect x="915" y="344" width="550" height="52" rx="8" fill="#FFFBEB" stroke="#F59E0B"/>
+  <circle cx="933" cy="361" r="10" fill="#D97706"/><text x="933" y="365" font-size="11" class="wh b" text-anchor="middle">3</text>
+  <text x="952" y="361" font-size="11.5" class="b">No “delete” entries</text>
+  <text x="952" y="376" font-size="10">Deletes are soft: <tspan class="m">deleted_at</tspan> is set (an UPDATE), so the trigger queues it like any edit.</text>
+  <text x="952" y="389" font-size="10">The deletion simply travels inside the payload.</text>
+
+  <rect x="915" y="402" width="550" height="52" rx="8" fill="#FFFBEB" stroke="#F59E0B"/>
+  <circle cx="933" cy="419" r="10" fill="#D97706"/><text x="933" y="423" font-size="11" class="wh b" text-anchor="middle">4</text>
+  <text x="952" y="419" font-size="11.5" class="b">Quiet switch: <tspan class="m">syncQuiet</tspan> key in the local <tspan class="m">meta</tspan> table</text>
+  <text x="952" y="434" font-size="10">Silences the triggers for writes that must NOT be sent:</text>
+  <text x="952" y="447" font-size="10">rows received from the server, the demo seed, stock recomputation.</text>
+
+  <rect x="915" y="460" width="550" height="52" rx="8" fill="#FFFBEB" stroke="#F59E0B"/>
+  <circle cx="933" cy="477" r="10" fill="#D97706"/><text x="933" y="481" font-size="11" class="wh b" text-anchor="middle">5</text>
+  <text x="952" y="477" font-size="11.5" class="b">Live counter: « N modifications en attente »</text>
+  <text x="952" y="492" font-size="10">The offline banner shows how many outbox rows are waiting.</text>
+  <text x="952" y="505" font-size="10">It reaches 0 once every entry is accepted (or moved to <tspan class="m">sync_errors</tspan>).</text>
+</g>
+
+<!-- ============ PART B ============ -->
+<rect x="20" y="524" width="1445" height="28" rx="6" fill="#334155"/>
+<text x="32" y="543" font-size="13.5" class="wh b">PART B — One push pass</text>
+<text x="262" y="543" font-size="11" class="wh">Left = device, right = server. Follow the numbers 1 to 7.</text>
+
+<rect x="20" y="558" width="540" height="484" rx="10" fill="#F5F9FF" stroke="#BFDBFE" stroke-width="1.5"/>
+<text x="32" y="576" font-size="11.5" class="b cb">DEVICE (tablet) — SyncRunner</text>
+<rect x="760" y="558" width="705" height="484" rx="10" fill="#F4FBF6" stroke="#BBF7D0" stroke-width="1.5"/>
+<text x="772" y="576" font-size="11.5" class="b cg">SERVER — Supabase / Postgres, RPC <tspan class="m">push_changes</tspan></text>
+
+<!-- triggers of a pass -->
+<rect x="32" y="584" width="516" height="70" rx="8" fill="#FFFFFF" stroke="#2563EB"/>
+<text x="44" y="600" font-size="11" class="b">What starts a pass?</text>
+<text x="538" y="600" font-size="10" class="b cb" text-anchor="end">Only ONE pass runs at a time</text>
+<g font-size="9.5" class="cb">
+  <rect x="44" y="607" width="139" height="19" rx="9.5" fill="#DBEAFE"/><text x="113.5" y="620" text-anchor="middle" class="cb">3 s after a local change</text>
+  <rect x="190" y="607" width="128" height="19" rx="9.5" fill="#DBEAFE"/><text x="254" y="620" text-anchor="middle" class="cb">app back to foreground</text>
+  <rect x="325" y="607" width="78" height="19" rx="9.5" fill="#DBEAFE"/><text x="364" y="620" text-anchor="middle" class="cb">network back</text>
+  <rect x="410" y="607" width="78" height="19" rx="9.5" fill="#DBEAFE"/><text x="449" y="620" text-anchor="middle" class="cb">every 5 min</text>
+  <rect x="44" y="630" width="200" height="19" rx="9.5" fill="#DBEAFE"/><text x="144" y="643" text-anchor="middle" class="cb">« Synchroniser maintenant » button</text>
+</g>
+
+<rect x="32" y="660" width="516" height="24" rx="6" fill="#EFF6FF" stroke="#2563EB" stroke-dasharray="4 3"/>
+<rect x="40" y="665" width="16" height="12" rx="2" fill="none" stroke="#2563EB" stroke-width="1.5"/><circle cx="48" cy="671" r="3.2" fill="none" stroke="#2563EB" stroke-width="1.5"/><rect x="44" y="663" width="6" height="3" fill="#2563EB"/>
+<text x="64" y="676" font-size="10"><tspan class="b">First</tspan>, before any row: new photos are uploaded, shrunk to 1024 px JPEG.</text>
+
+<!-- step 1 -->
+<rect x="32" y="692" width="516" height="40" rx="8" fill="#FFFFFF" stroke="#2563EB" stroke-width="1.5"/>
+<circle cx="50" cy="712" r="11" fill="#2563EB"/><text x="50" y="716" font-size="12" class="wh b" text-anchor="middle">1</text>
+<text x="68" y="708" font-size="11" class="b">SyncRunner reads the first 100 outbox entries, by send order</text>
+<text x="68" y="724" font-size="9.5" class="m g">SELECT … FROM outbox ORDER BY id LIMIT 100</text>
+<g fill="#FEF3C7" stroke="#D97706"><rect x="508" y="699" width="30" height="7" rx="2"/><rect x="508" y="709" width="30" height="7" rx="2"/><rect x="508" y="719" width="30" height="7" rx="2"/></g>
+
+<!-- loop arrow 7 -> 1 -->
+<path d="M32,1003 H25 V712 H28" fill="none" stroke="#2563EB" stroke-width="2" marker-end="url(#ab)"/>
+
+<!-- step 6 -->
+<circle cx="50" cy="752" r="11" fill="#2563EB"/><text x="50" y="756" font-size="12" class="wh b" text-anchor="middle">6</text>
+<text x="68" y="756" font-size="11" class="b">The device handles each answer</text>
+
+<rect x="32" y="766" width="250" height="96" rx="8" fill="#F0FDF4" stroke="#16A34A" stroke-width="1.5"/>
+<path d="M42,778 l4,4 l8,-9" fill="none" stroke="#16A34A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="58" y="783" font-size="10.5" class="b cg">ACCEPTED</text>
+<text x="42" y="800" font-size="9.5">Delete the outbox entry ONLY IF its</text>
+<text x="42" y="813" font-size="9.5"><tspan class="m">payload</tspan> and <tspan class="m">queued_at</tspan> are unchanged.</text>
+<text x="42" y="831" font-size="9.5" class="g">Edited during the send? The newer</text>
+<text x="42" y="844" font-size="9.5" class="g">version stays queued for the next pass.</text>
+
+<rect x="298" y="766" width="250" height="96" rx="8" fill="#FEF2F2" stroke="#DC2626" stroke-width="1.5"/>
+<path d="M308,774 l8,8 M316,774 l-8,8" stroke="#DC2626" stroke-width="2.5" stroke-linecap="round"/>
+<text x="324" y="783" font-size="10.5" class="b cr">REJECTED</text>
+<text x="308" y="798" font-size="9">Moved to the local <tspan class="m">sync_errors</tspan> table (table,</text>
+<text x="308" y="810" font-size="9">row_key, store_id, payload, reason, message,</text>
+<text x="308" y="822" font-size="9">rejected_at) and removed: never blocks the queue.</text>
+<rect x="306" y="829" width="234" height="27" rx="4" fill="#FFFFFF" stroke="#FCA5A5"/>
+<text x="312" y="840" font-size="8.5"><tspan class="b cr">À vérifier</tspan> · « déjà payée »</text>
+<text x="312" y="851" font-size="8.5">« supprimé sur un autre appareil »</text>
+<rect x="490" y="834" width="44" height="17" rx="8.5" fill="#2563EB"/><text x="512" y="846" font-size="8.5" class="wh b" text-anchor="middle">Compris</text>
+
+<rect x="32" y="868" width="250" height="96" rx="8" fill="#FEF2F2" stroke="#DC2626" stroke-width="1.5" stroke-dasharray="5 3"/>
+<g transform="translate(48,884) scale(0.65)"><use href="#wifi" stroke="#DC2626"/><circle cx="0" cy="6" r="2" fill="#DC2626"/></g>
+<text x="62" y="885" font-size="10.5" class="b cr">NETWORK ERROR</text>
+<text x="42" y="902" font-size="9.5">Keep everything: <tspan class="m">attempts</tspan> + 1, <tspan class="m">last_error</tspan> set.</text>
+<text x="42" y="917" font-size="9.5">Retry after <tspan class="b">5 s → 15 s → 1 min → 5 min</tspan></text>
+<text x="42" y="935" font-size="9.5">State shown: « Hors ligne »</text>
+<text x="42" y="949" font-size="9.5">or « Serveur injoignable »</text>
+
+<rect x="298" y="868" width="250" height="96" rx="8" fill="#FEF2F2" stroke="#DC2626" stroke-width="1.5"/>
+<rect x="308" y="879" width="10" height="8" rx="1.5" fill="#DC2626"/><path d="M310,879 v-3 a3,3 0 0 1 6,0 v3" fill="none" stroke="#DC2626" stroke-width="1.5"/>
+<text x="324" y="887" font-size="10.5" class="b cr">SESSION EXPIRED</text>
+<text x="308" y="904" font-size="9.5">Stop the pass.</text>
+<text x="308" y="918" font-size="9.5">The sync page offers to sign in again:</text>
+<rect x="308" y="928" width="104" height="22" rx="11" fill="#2563EB"/><text x="360" y="943" font-size="9.5" class="wh b" text-anchor="middle">Se reconnecter</text>
+
+<!-- step 7 -->
+<rect x="32" y="972" width="516" height="62" rx="8" fill="#FFFFFF" stroke="#2563EB" stroke-width="1.5"/>
+<circle cx="50" cy="991" r="11" fill="#2563EB"/><text x="50" y="995" font-size="12" class="wh b" text-anchor="middle">7</text>
+<text x="68" y="989" font-size="11" class="b">Loop back to step 1 until the outbox is empty</text>
+<text x="68" y="1005" font-size="10">Max 50 batches per pass. Stop early if a batch made no progress.</text>
+<text x="68" y="1023" font-size="10.5" class="b cg">Then the PULL starts (separate diagram).</text>
+
+<!-- ARROW 2 -->
+<line x1="548" y1="712" x2="770" y2="612" stroke="#2563EB" stroke-width="2.5" marker-end="url(#ab)"/>
+<rect x="580" y="636" width="158" height="54" rx="6" fill="#FFFFFF" stroke="#2563EB"/>
+<circle cx="580" cy="636" r="11" fill="#2563EB"/><text x="580" y="640" font-size="12" class="wh b" text-anchor="middle">2</text>
+<text x="659" y="652" font-size="9.5" class="m b" text-anchor="middle">push_changes(</text>
+<text x="659" y="665" font-size="9.5" class="m b" text-anchor="middle">device_id, [entries])</text>
+<text x="659" y="682" font-size="9" class="g" text-anchor="middle">max 500 entries per call</text>
+
+<!-- ARROW 5 -->
+<line x1="772" y1="1000" x2="552" y2="760" stroke="#16A34A" stroke-width="2.5" marker-end="url(#ag)"/>
+<rect x="582" y="852" width="162" height="56" rx="6" fill="#FFFFFF" stroke="#16A34A"/>
+<circle cx="582" cy="852" r="11" fill="#16A34A"/><text x="582" y="856" font-size="12" class="wh b" text-anchor="middle">5</text>
+<text x="663" y="867" font-size="10" class="b" text-anchor="middle">one answer per entry</text>
+<text x="663" y="883" font-size="8.5" class="m cg" text-anchor="middle">{id,"accepted",seq}</text>
+<text x="663" y="898" font-size="8.5" class="m cr" text-anchor="middle">{id,"rejected",reason}</text>
+
+<!-- step 3 -->
+<rect x="772" y="584" width="681" height="56" rx="8" fill="#FFFFFF" stroke="#16A34A" stroke-width="1.5"/>
+<circle cx="790" cy="602" r="11" fill="#16A34A"/><text x="790" y="606" font-size="12" class="wh b" text-anchor="middle">3</text>
+<text x="808" y="601" font-size="11" class="b">Whole batch: is this device registered to the caller's organization?</text>
+<text x="808" y="617" font-size="10"><tspan class="b cg">YES</tspan>: check each entry (step 4).</text>
+<text x="808" y="632" font-size="10"><tspan class="b cr">NO</tspan>: every entry is rejected and syncing stops (device was removed).</text>
+<line x1="1232" y1="628" x2="1266" y2="628" stroke="#DC2626" stroke-width="1.8" marker-end="url(#ar)"/>
+<rect x="1268" y="619" width="175" height="18" rx="9" fill="#FEE2E2" stroke="#DC2626"/>
+<text x="1355.5" y="631.5" font-size="9.5" class="m cr b" text-anchor="middle">device_unknown</text>
+
+<!-- step 4 -->
+<rect x="772" y="648" width="681" height="290" rx="8" fill="#FFFFFF" stroke="#16A34A" stroke-width="1.5"/>
+<circle cx="790" cy="666" r="11" fill="#16A34A"/><text x="790" y="670" font-size="12" class="wh b" text-anchor="middle">4</text>
+<text x="808" y="666" font-size="11" class="b">For EACH entry, in its own sub-transaction: one bad entry never blocks the others</text>
+<text x="808" y="681" font-size="10" class="g">Rules checked in this order. The first rule that fails rejects the entry with that reason.</text>
+
+<line x1="800" y1="700" x2="800" y2="872" stroke="#16A34A" stroke-width="2.5"/>
+<g font-size="10" class="b">
+  <circle cx="800" cy="700" r="9" fill="#FFFFFF" stroke="#16A34A" stroke-width="2"/><text x="800" y="703.5" text-anchor="middle" class="cg">a</text>
+  <circle cx="800" cy="726" r="9" fill="#FFFFFF" stroke="#16A34A" stroke-width="2"/><text x="800" y="729.5" text-anchor="middle" class="cg">b</text>
+  <circle cx="800" cy="772" r="9" fill="#FFFFFF" stroke="#16A34A" stroke-width="2"/><text x="800" y="775.5" text-anchor="middle" class="cg">c</text>
+  <circle cx="800" cy="798" r="9" fill="#FFFFFF" stroke="#16A34A" stroke-width="2"/><text x="800" y="801.5" text-anchor="middle" class="cg">d</text>
+  <circle cx="800" cy="824" r="9" fill="#FFFFFF" stroke="#16A34A" stroke-width="2"/><text x="800" y="827.5" text-anchor="middle" class="cg">e</text>
+  <circle cx="800" cy="850" r="9" fill="#FFFFFF" stroke="#16A34A" stroke-width="2"/><text x="800" y="853.5" text-anchor="middle" class="cg">f</text>
+</g>
+<g font-size="10.5">
+  <text x="816" y="704">The table is one of the 20 synced tables</text>
+  <text x="816" y="730">The row's store belongs to the caller's organization</text>
+  <text x="816" y="750" font-size="9.5" class="g">and a <tspan class="m">stores</tspan> row may only be written by an owner</text>
+  <text x="816" y="776">A row cannot move to another store</text>
+  <text x="816" y="802"><tspan class="b">DELETE WINS:</tspan> a row deleted on the server cannot be edited back</text>
+  <text x="816" y="828">A purchase order's status only moves forward; closed stays closed</text>
+  <text x="816" y="854">A PAID pay period is final (the same retry is still accepted)</text>
+</g>
+<g stroke="#DC2626" stroke-width="1.8" marker-end="url(#ar)">
+  <line x1="1232" y1="700" x2="1266" y2="700"/><line x1="1232" y1="726" x2="1266" y2="726"/><line x1="1232" y1="746" x2="1266" y2="746"/>
+  <line x1="1232" y1="772" x2="1266" y2="772"/><line x1="1232" y1="798" x2="1266" y2="798"/><line x1="1232" y1="824" x2="1266" y2="824"/>
+  <line x1="1232" y1="850" x2="1266" y2="850"/>
+</g>
+<g fill="#FEE2E2" stroke="#DC2626">
+  <rect x="1268" y="691" width="175" height="18" rx="9"/><rect x="1268" y="717" width="175" height="18" rx="9"/><rect x="1268" y="737" width="175" height="18" rx="9"/>
+  <rect x="1268" y="763" width="175" height="18" rx="9"/><rect x="1268" y="789" width="175" height="18" rx="9"/><rect x="1268" y="815" width="175" height="18" rx="9"/>
+  <rect x="1268" y="841" width="175" height="18" rx="9"/>
+</g>
+<g font-size="9.5" class="m cr b" text-anchor="middle">
+  <text x="1355.5" y="703.5" class="m cr b">unknown_table</text>
+  <text x="1355.5" y="729.5" class="m cr b">no_access</text>
+  <text x="1355.5" y="749.5" class="m cr b">owner_only</text>
+  <text x="1355.5" y="775.5" class="m cr b">store_changed</text>
+  <text x="1355.5" y="801.5" class="m cr b">deleted</text>
+  <text x="1355.5" y="827" font-size="8.3" class="m cr b">status_backwards|_closed</text>
+  <text x="1355.5" y="853.5" class="m cr b">already_paid</text>
+</g>
+<text x="1244" y="694" font-size="8" class="cr" text-anchor="middle">fails</text>
+
+<rect x="792" y="866" width="651" height="64" rx="6" fill="#DCFCE7" stroke="#16A34A" stroke-width="1.5"/>
+<circle cx="800" cy="880" r="9" fill="#16A34A"/><text x="800" y="883.5" font-size="10" class="wh b" text-anchor="middle">g</text>
+<text x="816" y="884" font-size="11" class="b cg">Otherwise LAST ARRIVAL WINS: insert or replace the whole row, then stamp it</text>
+<text x="816" y="902" font-size="9.5" class="m">server_seq ← next number of ONE shared global sequence  ·  updated_by_device ← device</text>
+<text x="816" y="919" font-size="9.5" class="m">store_changes.last_seq ← bumped for that store <tspan font-family="Inter,Segoe UI,Arial,sans-serif" class="g">(used by realtime)</tspan></text>
+
+<!-- RLS note -->
+<rect x="772" y="944" width="681" height="22" rx="5" fill="#F0FDF4" stroke="#16A34A" stroke-dasharray="4 3"/>
+<rect x="782" y="954" width="10" height="8" rx="1.5" fill="#15803D"/><path d="M784,954 v-3 a3,3 0 0 1 6,0 v3" fill="none" stroke="#15803D" stroke-width="1.5"/>
+<text x="800" y="959" font-size="9.5">Clients can never write server tables directly: <tspan class="b">Row Level Security = read-only</tspan>. Every write goes through <tspan class="m">push_changes</tspan>.</text>
+
+<!-- step 5 -->
+<rect x="772" y="972" width="681" height="62" rx="8" fill="#FFFFFF" stroke="#16A34A" stroke-width="1.5"/>
+<circle cx="790" cy="991" r="11" fill="#16A34A"/><text x="790" y="995" font-size="12" class="wh b" text-anchor="middle">5</text>
+<text x="808" y="995" font-size="11" class="b">The server answers, one result per entry</text>
+<text x="808" y="1011" font-size="9.5" class="m cg">{ id, status: "accepted", seq }</text>
+<text x="1060" y="1011" font-size="9.5" class="m cr">{ id, status: "rejected", reason }</text>
+<text x="808" y="1027" font-size="10">Example: <tspan class="m cg b">#41 → accepted, seq 1051</tspan>  ·  <tspan class="m cg b">#42 → accepted, seq 1052</tspan>  ·  then outbox empty, banner shows 0</text>
+</svg>

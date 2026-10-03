@@ -107,8 +107,13 @@ class SyncApplier {
   }
 
   /// Applies [page] for [storeId]. Returns how many rows were written.
+  ///
+  /// Rows go in through `customStatement`, which drift does not report to
+  /// `watch()` queries, so the tables written are announced once the page is
+  /// in: every screen watching them reloads without a restart.
   Future<int> apply(String storeId, PullPage page) async {
     final rebuild = <String>{};
+    final touched = <TableInfo<Table, dynamic>>{};
     var written = 0;
 
     await SyncQuiet.run(_db, () async {
@@ -130,6 +135,7 @@ class SyncApplier {
             () => _applyRow(table, change.table, change.row, storeId),
           );
           written++;
+          touched.add(table);
           if (change.table == 'stock_movements') {
             rebuild.add(change.row['item_id'] as String);
           } else if (change.table == 'items') {
@@ -163,6 +169,11 @@ class SyncApplier {
     });
 
     if (rebuild.isNotEmpty) await StockLedger(_db).rebuildItems(rebuild);
+    if (touched.isNotEmpty) {
+      _db.notifyUpdates({
+        for (final table in touched) TableUpdate.onTable(table),
+      });
+    }
     return written;
   }
 
