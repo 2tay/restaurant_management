@@ -258,6 +258,16 @@ class FakeAccountBackend implements AccountBackend {
           // those (and the stamp) on a row the server has; the rest stays.
           final columns = change['columns'] as List<Object?>?;
           final existing = serverRows[key];
+          final table = change['table']! as String;
+          final refusal = _paidDayRefusal(table, sent, existing, columns);
+          if (refusal != null) {
+            return PushResult(
+              id: change['id']! as int,
+              accepted: false,
+              reason: refusal.reason,
+              restore: refusal.restore,
+            );
+          }
           // As `push_changes`: a watched column the server holds with
           // another value than this edit started from was changed
           // meanwhile by another tablet.
@@ -297,6 +307,67 @@ class FakeAccountBackend implements AccountBackend {
           );
         }(),
     ];
+  }
+
+  /// As `push_changes` (SYNC_PERSONNEL_PLAN.md, step 7): a day another
+  /// payment took first (PA1), and a paid day frozen (PA2).
+  ({String reason, List<({String table, Map<String, Object?> row})> restore})?
+  _paidDayRefusal(
+    String table,
+    Map<String, Object?> sent,
+    Map<String, Object?>? existing,
+    List<Object?>? columns,
+  ) {
+    Map<String, Object?>? row(String table, Object? id) =>
+        id == null ? null : serverRows['$table|$id'];
+
+    if (table == 'attendances' &&
+        existing?['payroll_period_id'] != null &&
+        sent['payroll_period_id'] != null &&
+        sent['payroll_period_id'] != existing!['payroll_period_id']) {
+      return (
+        reason: 'day_already_paid',
+        restore: [
+          (
+            table: 'payroll_periods',
+            row: row('payroll_periods', existing['payroll_period_id'])!,
+          ),
+          (table: 'attendances', row: existing),
+        ],
+      );
+    }
+
+    bool paid(Object? attendanceId) =>
+        row('attendances', attendanceId)?['payroll_period_id'] != null;
+    final paidDay = switch (table) {
+      'attendances' => existing?['payroll_period_id'] != null,
+      'attendance_sessions' =>
+        paid(existing?['attendance_id']) || paid(sent['attendance_id']),
+      'attendance_pauses' => [existing?['session_id'], sent['session_id']]
+          .any((s) => paid(row('attendance_sessions', s)?['attendance_id'])),
+      _ => false,
+    };
+    if (!paidDay) return null;
+
+    final differs =
+        existing == null ||
+        [
+          for (final c in columns ?? sent.keys)
+            if (c != 'id' && c != 'updated_at' && c != 'payroll_period_id') c,
+        ].any((c) => existing[c] != sent[c]);
+    if (!differs) return null;
+    return (
+      reason: 'paid_day_frozen',
+      restore: [
+        // A day comes back with its payment, so its link holds.
+        if (table == 'attendances' && existing != null)
+          (
+            table: 'payroll_periods',
+            row: row('payroll_periods', existing['payroll_period_id'])!,
+          ),
+        if (existing != null) (table: table, row: existing),
+      ],
+    );
   }
 
   // --- Handing changes back (Phase 6) --------------------------------------

@@ -6,6 +6,7 @@ import 'package:drift/drift.dart';
 import '../../services/auth_service.dart';
 import '../database/app_database.dart';
 import '../database/sync_tables.dart';
+import '../database/tables/sync_columns.dart';
 import 'account_repository.dart';
 import 'attendance_repository.dart';
 import 'credential_repository.dart';
@@ -149,6 +150,42 @@ class SyncApplier {
     if (rebuild.isNotEmpty) await StockLedger(_db).rebuildItems(rebuild);
     return written;
   }
+
+  /// Puts back rows as the server holds them, after it refused this
+  /// tablet's change to them (SYNC_PERSONNEL_PLAN.md, step 7): written like
+  /// received rows — quietly, foreign keys checked at the end — and the
+  /// days' status recomputed. A row the server never had ([forget]) is
+  /// marked deleted here.
+  Future<void> restore(
+    List<({String table, Map<String, Object?> row})> rows, {
+    ({String table, String key})? forget,
+  }) => SyncQuiet.run(_db, () async {
+    await _db.customStatement('PRAGMA defer_foreign_keys = ON');
+    for (final (:table, :row) in rows) {
+      final info = _tables[table];
+      if (info == null) continue;
+      await _upsert(info, row);
+    }
+    if (forget != null && _tables[forget.table] != null) {
+      await _db.customUpdate(
+        'UPDATE "${forget.table}" SET deleted_at = ? WHERE id = ?',
+        variables: [
+          Variable<DateTime>(syncStampNow()),
+          Variable<String>(forget.key),
+        ],
+        updates: {_tables[forget.table]!},
+      );
+    }
+    final days = <String>{
+      for (final (:table, :row) in rows)
+        if (table == 'attendances') row['id']! as String,
+      for (final (:table, :row) in rows)
+        if (table == 'attendance_sessions') row['attendance_id']! as String,
+    };
+    for (final day in days) {
+      await _refreshStatus(day);
+    }
+  });
 
   // ---------------------------------------------------------------------------
   // Conflicts settled on receipt (Phase 7)

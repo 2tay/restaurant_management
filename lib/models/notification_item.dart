@@ -39,6 +39,7 @@ class NotificationItem {
     this.relatedItemId,
     this.relatedSupplierId,
     this.relatedEmployeeId,
+    this.relatedTarget,
   });
 
   final String id;
@@ -61,4 +62,8 @@ class NotificationItem {
   final String? relatedItemId;
   final String? relatedSupplierId;
   final String? relatedEmployeeId;
+
+  /// `payroll` when a signalement opens the employee's payroll; null opens
+  /// their pointage history.
+  final String? relatedTarget;
 }

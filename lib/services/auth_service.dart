@@ -143,6 +143,7 @@ class PushResult {
     this.reason,
     this.message,
     this.overwrote = const [],
+    this.restore = const [],
   });
 
   /// The outbox entry's id, as sent.
@@ -159,6 +160,10 @@ class PushResult {
   /// it replaced a value another tablet had set meanwhile, unseen by this
   /// one. The last change still wins; this is what gets signalled.
   final List<String> overwrote;
+
+  /// For some refusals (`day_already_paid`, `paid_day_frozen`): the rows as
+  /// the server holds them, in order, for the device to put back.
+  final List<({String table, Map<String, Object?> row})> restore;
 }
 
 class AccountUser {
@@ -461,6 +466,15 @@ class SupabaseAccountBackend implements AccountBackend {
           overwrote: [
             for (final column in (item['overwrote'] as List<dynamic>?) ?? [])
               column as String,
+          ],
+          restore: [
+            for (final entry in ((item['restore'] as List<dynamic>?) ?? [])
+                .whereType<Map<String, dynamic>>())
+              if (entry['row'] is Map<String, dynamic>)
+                (
+                  table: entry['table'] as String,
+                  row: entry['row'] as Map<String, Object?>,
+                ),
           ],
         ),
     ];

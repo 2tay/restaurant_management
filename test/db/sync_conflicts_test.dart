@@ -577,6 +577,127 @@ void main() {
     });
   });
 
+  // SYNC_PERSONNEL_PLAN.md, step 7: paying on two tablets.
+  group('payments on two tablets', () {
+    DateTime on(int day, int hour) => DateTime(2026, 10, day, hour);
+
+    /// Karim works [day] from 8:00 to 16:00 on [db], and the journée is
+    /// closed — 8 hours at 15 €.
+    Future<void> workDay(
+      AppDatabase db,
+      ({Store store, Employee owner, Employee cook}) shop,
+      int day,
+    ) async {
+      final entry = (await AttendanceRepository(
+        db,
+      ).clockIn(shop.cook.id, shop.store.id, now: on(day, 8)))!;
+      await AttendanceRepository(db).clockOut(entry.id, now: on(day, 16));
+      final journee = (await BusinessDayRepository(db).current(shop.store.id))!;
+      await BusinessDayRepository(db, clock: () => on(day, 23)).close(
+        journee.id,
+        closedByEmployeeId: shop.owner.id,
+      );
+    }
+
+    Future<Attendance> dayOn(AppDatabase db, String cookId, int day) async =>
+        (await AttendanceRepository(
+          db,
+        ).forEmployee(cookId)).singleWhere((a) => a.date == DateTime(2026, 10, day));
+
+    Future<List<NotificationItem>> flags(AppDatabase db, String storeId) async =>
+        [
+          for (final n in await AccountRepository(db).notifications(storeId))
+            if (n.kind == NotificationKind.personnel) n,
+        ];
+
+    test('the same day paid twice: the first keeps it, the second is a '
+        '« paiement en double » (PA1)', () async {
+      final a = await newDevice();
+      final b = await newDevice();
+      final shop = await shared(a, b);
+      await workDay(a, shop, 12);
+      await workDay(a, shop, 13);
+      await settle(a, b);
+
+      // A pays the 12th; B, offline, pays the 12th and the 13th.
+      final first = (await PayrollRepository(a).pay(
+        shop.cook.id,
+        shop.store.id,
+        from: DateTime(2026, 10, 12),
+        to: DateTime(2026, 10, 12),
+        paidByEmployeeId: shop.owner.id,
+      ))!;
+      final second = (await PayrollRepository(b).pay(
+        shop.cook.id,
+        shop.store.id,
+        from: DateTime(2026, 10, 12),
+        to: DateTime(2026, 10, 13),
+        paidByEmployeeId: shop.owner.id,
+      ))!;
+      await settle(a, b);
+
+      for (final db in [a, b]) {
+        expect(
+          (await dayOn(db, shop.cook.id, 12)).payrollPeriodId,
+          first.id,
+          reason: 'the 12th stays with the payment that arrived first',
+        );
+        expect((await dayOn(db, shop.cook.id, 13)).payrollPeriodId, second.id);
+        final marked = (await PayrollRepository(db).period(second.id))!;
+        expect(marked.doublePaymentAmount, 120);
+        expect((await PayrollRepository(db).period(first.id))!
+            .doublePaymentAmount, isNull);
+        final signalled = await flags(db, shop.store.id);
+        expect(signalled, hasLength(1));
+        expect(signalled.single.title, contains('Paiement en double'));
+        expect(signalled.single.body, contains('120,00 €'));
+        expect(signalled.single.relatedTarget, 'payroll');
+      }
+    });
+
+    test('a change reaching a paid day is not applied, and signalled (PA2)',
+        () async {
+      final a = await newDevice();
+      final b = await newDevice();
+      final shop = await shared(a, b);
+      // Karim forgot to clock out; both tablets hold his open day.
+      await AttendanceRepository(
+        a,
+      ).clockIn(shop.cook.id, shop.store.id, now: on(12, 8));
+      await settle(a, b);
+      final journee = (await BusinessDayRepository(a).current(shop.store.id))!;
+      final id = (await dayOn(a, shop.cook.id, 12)).id;
+
+      // A closes at 16:00 and pays; B, offline, closes at 17:00.
+      await BusinessDayRepository(a, clock: () => on(12, 23)).close(
+        journee.id,
+        closedByEmployeeId: shop.owner.id,
+        exits: {id: on(12, 16)},
+      );
+      await PayrollRepository(a).pay(
+        shop.cook.id,
+        shop.store.id,
+        paidByEmployeeId: shop.owner.id,
+      );
+      await BusinessDayRepository(b, clock: () => on(12, 23)).close(
+        journee.id,
+        closedByEmployeeId: shop.owner.id,
+        exits: {id: on(12, 17)},
+      );
+      await settle(a, b);
+
+      for (final db in [a, b]) {
+        final day = await dayOn(db, shop.cook.id, 12);
+        expect(day.payrollPeriodId, isNotNull);
+        expect(day.sessions.single.clockOutAt, on(12, 16));
+        final signalled = await flags(db, shop.store.id);
+        expect(signalled, hasLength(1));
+        expect(signalled.single.title, contains('Jour déjà payé'));
+        expect(signalled.single.body, contains('1h00 non payée'));
+      }
+    });
+  });
+
   // Rule P5 (SYNC_PERSONNEL_PLAN.md): one journée per store and date.
   group('two journées opened for one store and date', () {
     Future<List<BusinessDayRow>> liveDays(AppDatabase db) =>

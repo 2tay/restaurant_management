@@ -3395,6 +3395,14 @@ class AppLocalizationsFr extends AppLocalizations {
       'Le pointage n\'a pas été supprimé : la journée a changé entre-temps (payée, ou un seul pointage restant). Réessayez.';
 
   @override
+  String get payrollDoublePaymentTitle => 'Paiement en double';
+
+  @override
+  String payrollDoublePaymentMessage(String amount) {
+    return 'Ce paiement, fait sur une autre tablette en même temps, a aussi payé des jours déjà payés. Ces jours restent sur le premier paiement. Trop-versé : $amount.';
+  }
+
+  @override
   String get identityPromptDeleteDuplicateSubtitle =>
       'Saisissez votre numéro PIN pour supprimer ce pointage en double';
 
@@ -4608,6 +4616,14 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get syncReasonAlreadyPaid => 'Cette période de paie était déjà payée.';
+
+  @override
+  String get syncReasonDayAlreadyPaid =>
+      'Ce jour avait déjà été payé sur une autre tablette : il reste sur ce premier paiement (voir le signalement « Paiement en double »).';
+
+  @override
+  String get syncReasonPaidDayFrozen =>
+      'Ce jour est déjà payé : la modification n\'a pas été appliquée.';
 
   @override
   String get syncReasonNoAccess => 'Pas d\'accès à cet établissement.';

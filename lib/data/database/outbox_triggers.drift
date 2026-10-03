@@ -764,6 +764,7 @@ BEGIN
       'related_item_id', related_item_id,
       'related_supplier_id', related_supplier_id,
       'related_employee_id', related_employee_id,
+      'related_target', related_target,
       'read_by_manager_at', read_by_manager_at,
       'read_by_owner_at', read_by_owner_at
     ), NULL, NULL, (SELECT now FROM sync_clock)
@@ -796,6 +797,7 @@ BEGIN
       'related_item_id', related_item_id,
       'related_supplier_id', related_supplier_id,
       'related_employee_id', related_employee_id,
+      'related_target', related_target,
       'read_by_manager_at', read_by_manager_at,
       'read_by_owner_at', read_by_owner_at
     ), (SELECT json_group_array(c) FROM (
@@ -811,6 +813,7 @@ BEGIN
         UNION ALL SELECT 'related_item_id' AS c WHERE NEW.related_item_id IS NOT OLD.related_item_id
         UNION ALL SELECT 'related_supplier_id' AS c WHERE NEW.related_supplier_id IS NOT OLD.related_supplier_id
         UNION ALL SELECT 'related_employee_id' AS c WHERE NEW.related_employee_id IS NOT OLD.related_employee_id
+        UNION ALL SELECT 'related_target' AS c WHERE NEW.related_target IS NOT OLD.related_target
         UNION ALL SELECT 'read_by_manager_at' AS c WHERE NEW.read_by_manager_at IS NOT OLD.read_by_manager_at
         UNION ALL SELECT 'read_by_owner_at' AS c WHERE NEW.read_by_owner_at IS NOT OLD.read_by_owner_at)), NULL, (SELECT now FROM sync_clock)
   FROM notifications WHERE rowid = NEW.rowid
@@ -1018,7 +1021,8 @@ BEGIN
       'status', status,
       'paid_by_employee_id', paid_by_employee_id,
       'paid_at', paid_at,
-      'created_at', created_at
+      'created_at', created_at,
+      'double_payment_amount', double_payment_amount
     ), NULL, NULL, (SELECT now FROM sync_clock)
   FROM payroll_periods WHERE rowid = NEW.rowid
   ON CONFLICT (changed_table, row_key) DO UPDATE SET
@@ -1051,7 +1055,8 @@ BEGIN
       'status', status,
       'paid_by_employee_id', paid_by_employee_id,
       'paid_at', paid_at,
-      'created_at', created_at
+      'created_at', created_at,
+      'double_payment_amount', double_payment_amount
     ), (SELECT json_group_array(c) FROM (
         SELECT 'updated_at' AS c WHERE NEW.updated_at IS NOT OLD.updated_at
         UNION ALL SELECT 'deleted_at' AS c WHERE NEW.deleted_at IS NOT OLD.deleted_at
@@ -1067,7 +1072,8 @@ BEGIN
         UNION ALL SELECT 'status' AS c WHERE NEW.status IS NOT OLD.status
         UNION ALL SELECT 'paid_by_employee_id' AS c WHERE NEW.paid_by_employee_id IS NOT OLD.paid_by_employee_id
         UNION ALL SELECT 'paid_at' AS c WHERE NEW.paid_at IS NOT OLD.paid_at
-        UNION ALL SELECT 'created_at' AS c WHERE NEW.created_at IS NOT OLD.created_at)), NULL, (SELECT now FROM sync_clock)
+        UNION ALL SELECT 'created_at' AS c WHERE NEW.created_at IS NOT OLD.created_at
+        UNION ALL SELECT 'double_payment_amount' AS c WHERE NEW.double_payment_amount IS NOT OLD.double_payment_amount)), NULL, (SELECT now FROM sync_clock)
   FROM payroll_periods WHERE rowid = NEW.rowid
   ON CONFLICT (changed_table, row_key) DO UPDATE SET
     store_id = excluded.store_id,

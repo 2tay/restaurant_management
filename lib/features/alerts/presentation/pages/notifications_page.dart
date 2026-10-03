@@ -266,12 +266,18 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
         Routes.toSupplier(widget.storeId, notification.relatedSupplierId!),
       );
     } else if (notification.relatedEmployeeId != null) {
-      // A signalement: the employee's pointage history, where it is checked.
+      // A signalement: where it is checked — the employee's payroll for a
+      // payment, their pointage history otherwise.
       context.goSection(
-        Routes.toAttendanceHistory(
-          widget.storeId,
-          employeeId: notification.relatedEmployeeId,
-        ),
+        notification.relatedTarget == 'payroll'
+            ? Routes.toPayroll(
+                widget.storeId,
+                employeeId: notification.relatedEmployeeId,
+              )
+            : Routes.toAttendanceHistory(
+                widget.storeId,
+                employeeId: notification.relatedEmployeeId,
+              ),
       );
     } else if (notification.kind == NotificationKind.busyDays) {
       // Straight to the list the reminder is about.

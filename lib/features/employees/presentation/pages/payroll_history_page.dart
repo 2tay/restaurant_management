@@ -398,6 +398,20 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
               ? null
               : () => _confirmPay(employee, from: a.date, to: a.date),
         ),
+        // Rule PA1: this day's payment also paid days another tablet had
+        // paid first.
+        if (data.doublePayment case final overpaid?) ...[
+          const SizedBox(height: AppSpacing.lg),
+          NoticeBanner(
+            key: const ValueKey('payroll-double-payment'),
+            icon: LucideIcons.triangleAlert,
+            title: AppLocalizations.of(context).payrollDoublePaymentTitle,
+            message: AppLocalizations.of(
+              context,
+            ).payrollDoublePaymentMessage(Formatters.price(overpaid)),
+            colors: AppColors.lowStock,
+          ),
+        ],
       ],
     );
   }
@@ -721,6 +735,7 @@ typedef _PayrollRowData = ({
   double rate,
   double amount,
   DateTime? paidAt,
+  double? doublePayment,
 });
 
 _PayrollRowData _payrollRowData(
@@ -743,6 +758,7 @@ _PayrollRowData _payrollRowData(
     rate: rate,
     amount: dayAmountAt(a, rate),
     paidAt: period?.paidAt,
+    doublePayment: period?.doublePaymentAmount,
   );
 }
 

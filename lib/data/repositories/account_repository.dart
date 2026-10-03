@@ -156,13 +156,22 @@ class AccountRepository {
     required String title,
     required String body,
     String? employeeId,
+    String? target,
     DateTime? at,
+    bool replace = false,
   }) async {
     final id = signalId(key);
     final existing = await (_db.select(
       _db.notifications,
     )..where((n) => n.id.equals(id))).getSingleOrNull();
-    if (existing != null) return false;
+    if (existing != null) {
+      // [replace]: the same situation, grown (a trop-versé adding up) —
+      // its words change, whether it was read does not.
+      if (!replace) return false;
+      await (_db.update(_db.notifications)..where((n) => n.id.equals(id)))
+          .write(NotificationsCompanion(title: Value(title), body: Value(body)));
+      return true;
+    }
 
     await _db
         .into(_db.notifications)
@@ -175,6 +184,7 @@ class AccountRepository {
             body: body,
             createdAt: at ?? clock.now(),
             relatedEmployeeId: Value(employeeId),
+            relatedTarget: Value(target),
           ),
         );
     return true;

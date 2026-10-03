@@ -27,6 +27,7 @@ NotificationItem notificationFromRow(
   relatedItemId: row.relatedItemId,
   relatedSupplierId: row.relatedSupplierId,
   relatedEmployeeId: row.relatedEmployeeId,
+  relatedTarget: row.relatedTarget,
 );
 
 NotificationsCompanion notificationToRow(NotificationItem notification) =>
@@ -41,4 +42,5 @@ NotificationsCompanion notificationToRow(NotificationItem notification) =>
       relatedItemId: Value(notification.relatedItemId),
       relatedSupplierId: Value(notification.relatedSupplierId),
       relatedEmployeeId: Value(notification.relatedEmployeeId),
+      relatedTarget: Value(notification.relatedTarget),
     );

@@ -5436,6 +5436,17 @@ class $PayrollPeriodsTable extends PayrollPeriods
     type: DriftSqlType.dateTime,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _doublePaymentAmountMeta =
+      const VerificationMeta('doublePaymentAmount');
+  @override
+  late final GeneratedColumn<double> doublePaymentAmount =
+      GeneratedColumn<double>(
+        'double_payment_amount',
+        aliasedName,
+        true,
+        type: DriftSqlType.double,
+        requiredDuringInsert: false,
+      );
   @override
   List<GeneratedColumn> get $columns => [
     updatedAt,
@@ -5453,6 +5464,7 @@ class $PayrollPeriodsTable extends PayrollPeriods
     paidByEmployeeId,
     paidAt,
     createdAt,
+    doublePaymentAmount,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -5579,6 +5591,15 @@ class $PayrollPeriodsTable extends PayrollPeriods
     } else if (isInserting) {
       context.missing(_createdAtMeta);
     }
+    if (data.containsKey('double_payment_amount')) {
+      context.handle(
+        _doublePaymentAmountMeta,
+        doublePaymentAmount.isAcceptableOrUnknown(
+          data['double_payment_amount']!,
+          _doublePaymentAmountMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -5650,6 +5671,10 @@ class $PayrollPeriodsTable extends PayrollPeriods
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
       )!,
+      doublePaymentAmount: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}double_payment_amount'],
+      ),
     );
   }
 
@@ -5688,6 +5713,13 @@ class PayrollPeriodRow extends DataClass
   final String? paidByEmployeeId;
   final DateTime? paidAt;
   final DateTime createdAt;
+
+  /// Set on a « paiement en double » (SYNC_PERSONNEL_PLAN.md, rule PA1): this
+  /// run, made on another tablet, also covered days a payment that reached
+  /// the server first had already paid. Those days stay with that first
+  /// payment; this is what this run paid for them on top — the trop-versé.
+  /// Null on every other payment.
+  final double? doublePaymentAmount;
   const PayrollPeriodRow({
     required this.updatedAt,
     this.deletedAt,
@@ -5704,6 +5736,7 @@ class PayrollPeriodRow extends DataClass
     this.paidByEmployeeId,
     this.paidAt,
     required this.createdAt,
+    this.doublePaymentAmount,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -5733,6 +5766,9 @@ class PayrollPeriodRow extends DataClass
       map['paid_at'] = Variable<DateTime>(paidAt);
     }
     map['created_at'] = Variable<DateTime>(createdAt);
+    if (!nullToAbsent || doublePaymentAmount != null) {
+      map['double_payment_amount'] = Variable<double>(doublePaymentAmount);
+    }
     return map;
   }
 
@@ -5759,6 +5795,9 @@ class PayrollPeriodRow extends DataClass
           ? const Value.absent()
           : Value(paidAt),
       createdAt: Value(createdAt),
+      doublePaymentAmount: doublePaymentAmount == null && nullToAbsent
+          ? const Value.absent()
+          : Value(doublePaymentAmount),
     );
   }
 
@@ -5785,6 +5824,9 @@ class PayrollPeriodRow extends DataClass
       paidByEmployeeId: serializer.fromJson<String?>(json['paidByEmployeeId']),
       paidAt: serializer.fromJson<DateTime?>(json['paidAt']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      doublePaymentAmount: serializer.fromJson<double?>(
+        json['doublePaymentAmount'],
+      ),
     );
   }
   @override
@@ -5808,6 +5850,7 @@ class PayrollPeriodRow extends DataClass
       'paidByEmployeeId': serializer.toJson<String?>(paidByEmployeeId),
       'paidAt': serializer.toJson<DateTime?>(paidAt),
       'createdAt': serializer.toJson<DateTime>(createdAt),
+      'doublePaymentAmount': serializer.toJson<double?>(doublePaymentAmount),
     };
   }
 
@@ -5827,6 +5870,7 @@ class PayrollPeriodRow extends DataClass
     Value<String?> paidByEmployeeId = const Value.absent(),
     Value<DateTime?> paidAt = const Value.absent(),
     DateTime? createdAt,
+    Value<double?> doublePaymentAmount = const Value.absent(),
   }) => PayrollPeriodRow(
     updatedAt: updatedAt ?? this.updatedAt,
     deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
@@ -5845,6 +5889,9 @@ class PayrollPeriodRow extends DataClass
         : this.paidByEmployeeId,
     paidAt: paidAt.present ? paidAt.value : this.paidAt,
     createdAt: createdAt ?? this.createdAt,
+    doublePaymentAmount: doublePaymentAmount.present
+        ? doublePaymentAmount.value
+        : this.doublePaymentAmount,
   );
   PayrollPeriodRow copyWithCompanion(PayrollPeriodsCompanion data) {
     return PayrollPeriodRow(
@@ -5875,6 +5922,9 @@ class PayrollPeriodRow extends DataClass
           : this.paidByEmployeeId,
       paidAt: data.paidAt.present ? data.paidAt.value : this.paidAt,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      doublePaymentAmount: data.doublePaymentAmount.present
+          ? data.doublePaymentAmount.value
+          : this.doublePaymentAmount,
     );
   }
 
@@ -5895,7 +5945,8 @@ class PayrollPeriodRow extends DataClass
           ..write('status: $status, ')
           ..write('paidByEmployeeId: $paidByEmployeeId, ')
           ..write('paidAt: $paidAt, ')
-          ..write('createdAt: $createdAt')
+          ..write('createdAt: $createdAt, ')
+          ..write('doublePaymentAmount: $doublePaymentAmount')
           ..write(')'))
         .toString();
   }
@@ -5917,6 +5968,7 @@ class PayrollPeriodRow extends DataClass
     paidByEmployeeId,
     paidAt,
     createdAt,
+    doublePaymentAmount,
   );
   @override
   bool operator ==(Object other) =>
@@ -5936,7 +5988,8 @@ class PayrollPeriodRow extends DataClass
           other.status == this.status &&
           other.paidByEmployeeId == this.paidByEmployeeId &&
           other.paidAt == this.paidAt &&
-          other.createdAt == this.createdAt);
+          other.createdAt == this.createdAt &&
+          other.doublePaymentAmount == this.doublePaymentAmount);
 }
 
 class PayrollPeriodsCompanion extends UpdateCompanion<PayrollPeriodRow> {
@@ -5955,6 +6008,7 @@ class PayrollPeriodsCompanion extends UpdateCompanion<PayrollPeriodRow> {
   final Value<String?> paidByEmployeeId;
   final Value<DateTime?> paidAt;
   final Value<DateTime> createdAt;
+  final Value<double?> doublePaymentAmount;
   final Value<int> rowid;
   const PayrollPeriodsCompanion({
     this.updatedAt = const Value.absent(),
@@ -5972,6 +6026,7 @@ class PayrollPeriodsCompanion extends UpdateCompanion<PayrollPeriodRow> {
     this.paidByEmployeeId = const Value.absent(),
     this.paidAt = const Value.absent(),
     this.createdAt = const Value.absent(),
+    this.doublePaymentAmount = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   PayrollPeriodsCompanion.insert({
@@ -5990,6 +6045,7 @@ class PayrollPeriodsCompanion extends UpdateCompanion<PayrollPeriodRow> {
     this.paidByEmployeeId = const Value.absent(),
     this.paidAt = const Value.absent(),
     required DateTime createdAt,
+    this.doublePaymentAmount = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        employeeId = Value(employeeId),
@@ -6018,6 +6074,7 @@ class PayrollPeriodsCompanion extends UpdateCompanion<PayrollPeriodRow> {
     Expression<String>? paidByEmployeeId,
     Expression<DateTime>? paidAt,
     Expression<DateTime>? createdAt,
+    Expression<double>? doublePaymentAmount,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -6036,6 +6093,8 @@ class PayrollPeriodsCompanion extends UpdateCompanion<PayrollPeriodRow> {
       if (paidByEmployeeId != null) 'paid_by_employee_id': paidByEmployeeId,
       if (paidAt != null) 'paid_at': paidAt,
       if (createdAt != null) 'created_at': createdAt,
+      if (doublePaymentAmount != null)
+        'double_payment_amount': doublePaymentAmount,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -6056,6 +6115,7 @@ class PayrollPeriodsCompanion extends UpdateCompanion<PayrollPeriodRow> {
     Value<String?>? paidByEmployeeId,
     Value<DateTime?>? paidAt,
     Value<DateTime>? createdAt,
+    Value<double?>? doublePaymentAmount,
     Value<int>? rowid,
   }) {
     return PayrollPeriodsCompanion(
@@ -6074,6 +6134,7 @@ class PayrollPeriodsCompanion extends UpdateCompanion<PayrollPeriodRow> {
       paidByEmployeeId: paidByEmployeeId ?? this.paidByEmployeeId,
       paidAt: paidAt ?? this.paidAt,
       createdAt: createdAt ?? this.createdAt,
+      doublePaymentAmount: doublePaymentAmount ?? this.doublePaymentAmount,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -6128,6 +6189,11 @@ class PayrollPeriodsCompanion extends UpdateCompanion<PayrollPeriodRow> {
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
+    if (doublePaymentAmount.present) {
+      map['double_payment_amount'] = Variable<double>(
+        doublePaymentAmount.value,
+      );
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -6152,6 +6218,7 @@ class PayrollPeriodsCompanion extends UpdateCompanion<PayrollPeriodRow> {
           ..write('paidByEmployeeId: $paidByEmployeeId, ')
           ..write('paidAt: $paidAt, ')
           ..write('createdAt: $createdAt, ')
+          ..write('doublePaymentAmount: $doublePaymentAmount, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -15251,6 +15318,17 @@ class $NotificationsTable extends Notifications
         type: DriftSqlType.string,
         requiredDuringInsert: false,
       );
+  static const VerificationMeta _relatedTargetMeta = const VerificationMeta(
+    'relatedTarget',
+  );
+  @override
+  late final GeneratedColumn<String> relatedTarget = GeneratedColumn<String>(
+    'related_target',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _readByManagerAtMeta = const VerificationMeta(
     'readByManagerAt',
   );
@@ -15289,6 +15367,7 @@ class $NotificationsTable extends Notifications
     relatedItemId,
     relatedSupplierId,
     relatedEmployeeId,
+    relatedTarget,
     readByManagerAt,
     readByOwnerAt,
   ];
@@ -15386,6 +15465,15 @@ class $NotificationsTable extends Notifications
         ),
       );
     }
+    if (data.containsKey('related_target')) {
+      context.handle(
+        _relatedTargetMeta,
+        relatedTarget.isAcceptableOrUnknown(
+          data['related_target']!,
+          _relatedTargetMeta,
+        ),
+      );
+    }
     if (data.containsKey('read_by_manager_at')) {
       context.handle(
         _readByManagerAtMeta,
@@ -15463,6 +15551,10 @@ class $NotificationsTable extends Notifications
         DriftSqlType.string,
         data['${effectivePrefix}related_employee_id'],
       ),
+      relatedTarget: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}related_target'],
+      ),
       readByManagerAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}read_by_manager_at'],
@@ -15503,6 +15595,10 @@ class NotificationRow extends DataClass implements Insertable<NotificationRow> {
   /// The employee a signalement is about (`NotificationKind.personnel`).
   final String? relatedEmployeeId;
 
+  /// Which of their pages a signalement opens: `payroll` for a payment, null
+  /// for the pointage history.
+  final String? relatedTarget;
+
   /// When a manager, and when the owner, first read a signalement. Read
   /// separately: a manager reading it does not hide it from the owner. A
   /// stamp is never cleared, and sync keeps the earliest (`SyncApplier`).
@@ -15522,6 +15618,7 @@ class NotificationRow extends DataClass implements Insertable<NotificationRow> {
     this.relatedItemId,
     this.relatedSupplierId,
     this.relatedEmployeeId,
+    this.relatedTarget,
     this.readByManagerAt,
     this.readByOwnerAt,
   });
@@ -15551,6 +15648,9 @@ class NotificationRow extends DataClass implements Insertable<NotificationRow> {
     }
     if (!nullToAbsent || relatedEmployeeId != null) {
       map['related_employee_id'] = Variable<String>(relatedEmployeeId);
+    }
+    if (!nullToAbsent || relatedTarget != null) {
+      map['related_target'] = Variable<String>(relatedTarget);
     }
     if (!nullToAbsent || readByManagerAt != null) {
       map['read_by_manager_at'] = Variable<DateTime>(readByManagerAt);
@@ -15583,6 +15683,9 @@ class NotificationRow extends DataClass implements Insertable<NotificationRow> {
       relatedEmployeeId: relatedEmployeeId == null && nullToAbsent
           ? const Value.absent()
           : Value(relatedEmployeeId),
+      relatedTarget: relatedTarget == null && nullToAbsent
+          ? const Value.absent()
+          : Value(relatedTarget),
       readByManagerAt: readByManagerAt == null && nullToAbsent
           ? const Value.absent()
           : Value(readByManagerAt),
@@ -15616,6 +15719,7 @@ class NotificationRow extends DataClass implements Insertable<NotificationRow> {
       relatedEmployeeId: serializer.fromJson<String?>(
         json['relatedEmployeeId'],
       ),
+      relatedTarget: serializer.fromJson<String?>(json['relatedTarget']),
       readByManagerAt: serializer.fromJson<DateTime?>(json['readByManagerAt']),
       readByOwnerAt: serializer.fromJson<DateTime?>(json['readByOwnerAt']),
     );
@@ -15638,6 +15742,7 @@ class NotificationRow extends DataClass implements Insertable<NotificationRow> {
       'relatedItemId': serializer.toJson<String?>(relatedItemId),
       'relatedSupplierId': serializer.toJson<String?>(relatedSupplierId),
       'relatedEmployeeId': serializer.toJson<String?>(relatedEmployeeId),
+      'relatedTarget': serializer.toJson<String?>(relatedTarget),
       'readByManagerAt': serializer.toJson<DateTime?>(readByManagerAt),
       'readByOwnerAt': serializer.toJson<DateTime?>(readByOwnerAt),
     };
@@ -15656,6 +15761,7 @@ class NotificationRow extends DataClass implements Insertable<NotificationRow> {
     Value<String?> relatedItemId = const Value.absent(),
     Value<String?> relatedSupplierId = const Value.absent(),
     Value<String?> relatedEmployeeId = const Value.absent(),
+    Value<String?> relatedTarget = const Value.absent(),
     Value<DateTime?> readByManagerAt = const Value.absent(),
     Value<DateTime?> readByOwnerAt = const Value.absent(),
   }) => NotificationRow(
@@ -15677,6 +15783,9 @@ class NotificationRow extends DataClass implements Insertable<NotificationRow> {
     relatedEmployeeId: relatedEmployeeId.present
         ? relatedEmployeeId.value
         : this.relatedEmployeeId,
+    relatedTarget: relatedTarget.present
+        ? relatedTarget.value
+        : this.relatedTarget,
     readByManagerAt: readByManagerAt.present
         ? readByManagerAt.value
         : this.readByManagerAt,
@@ -15704,6 +15813,9 @@ class NotificationRow extends DataClass implements Insertable<NotificationRow> {
       relatedEmployeeId: data.relatedEmployeeId.present
           ? data.relatedEmployeeId.value
           : this.relatedEmployeeId,
+      relatedTarget: data.relatedTarget.present
+          ? data.relatedTarget.value
+          : this.relatedTarget,
       readByManagerAt: data.readByManagerAt.present
           ? data.readByManagerAt.value
           : this.readByManagerAt,
@@ -15728,6 +15840,7 @@ class NotificationRow extends DataClass implements Insertable<NotificationRow> {
           ..write('relatedItemId: $relatedItemId, ')
           ..write('relatedSupplierId: $relatedSupplierId, ')
           ..write('relatedEmployeeId: $relatedEmployeeId, ')
+          ..write('relatedTarget: $relatedTarget, ')
           ..write('readByManagerAt: $readByManagerAt, ')
           ..write('readByOwnerAt: $readByOwnerAt')
           ..write(')'))
@@ -15748,6 +15861,7 @@ class NotificationRow extends DataClass implements Insertable<NotificationRow> {
     relatedItemId,
     relatedSupplierId,
     relatedEmployeeId,
+    relatedTarget,
     readByManagerAt,
     readByOwnerAt,
   );
@@ -15767,6 +15881,7 @@ class NotificationRow extends DataClass implements Insertable<NotificationRow> {
           other.relatedItemId == this.relatedItemId &&
           other.relatedSupplierId == this.relatedSupplierId &&
           other.relatedEmployeeId == this.relatedEmployeeId &&
+          other.relatedTarget == this.relatedTarget &&
           other.readByManagerAt == this.readByManagerAt &&
           other.readByOwnerAt == this.readByOwnerAt);
 }
@@ -15784,6 +15899,7 @@ class NotificationsCompanion extends UpdateCompanion<NotificationRow> {
   final Value<String?> relatedItemId;
   final Value<String?> relatedSupplierId;
   final Value<String?> relatedEmployeeId;
+  final Value<String?> relatedTarget;
   final Value<DateTime?> readByManagerAt;
   final Value<DateTime?> readByOwnerAt;
   final Value<int> rowid;
@@ -15800,6 +15916,7 @@ class NotificationsCompanion extends UpdateCompanion<NotificationRow> {
     this.relatedItemId = const Value.absent(),
     this.relatedSupplierId = const Value.absent(),
     this.relatedEmployeeId = const Value.absent(),
+    this.relatedTarget = const Value.absent(),
     this.readByManagerAt = const Value.absent(),
     this.readByOwnerAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -15817,6 +15934,7 @@ class NotificationsCompanion extends UpdateCompanion<NotificationRow> {
     this.relatedItemId = const Value.absent(),
     this.relatedSupplierId = const Value.absent(),
     this.relatedEmployeeId = const Value.absent(),
+    this.relatedTarget = const Value.absent(),
     this.readByManagerAt = const Value.absent(),
     this.readByOwnerAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -15839,6 +15957,7 @@ class NotificationsCompanion extends UpdateCompanion<NotificationRow> {
     Expression<String>? relatedItemId,
     Expression<String>? relatedSupplierId,
     Expression<String>? relatedEmployeeId,
+    Expression<String>? relatedTarget,
     Expression<DateTime>? readByManagerAt,
     Expression<DateTime>? readByOwnerAt,
     Expression<int>? rowid,
@@ -15856,6 +15975,7 @@ class NotificationsCompanion extends UpdateCompanion<NotificationRow> {
       if (relatedItemId != null) 'related_item_id': relatedItemId,
       if (relatedSupplierId != null) 'related_supplier_id': relatedSupplierId,
       if (relatedEmployeeId != null) 'related_employee_id': relatedEmployeeId,
+      if (relatedTarget != null) 'related_target': relatedTarget,
       if (readByManagerAt != null) 'read_by_manager_at': readByManagerAt,
       if (readByOwnerAt != null) 'read_by_owner_at': readByOwnerAt,
       if (rowid != null) 'rowid': rowid,
@@ -15875,6 +15995,7 @@ class NotificationsCompanion extends UpdateCompanion<NotificationRow> {
     Value<String?>? relatedItemId,
     Value<String?>? relatedSupplierId,
     Value<String?>? relatedEmployeeId,
+    Value<String?>? relatedTarget,
     Value<DateTime?>? readByManagerAt,
     Value<DateTime?>? readByOwnerAt,
     Value<int>? rowid,
@@ -15892,6 +16013,7 @@ class NotificationsCompanion extends UpdateCompanion<NotificationRow> {
       relatedItemId: relatedItemId ?? this.relatedItemId,
       relatedSupplierId: relatedSupplierId ?? this.relatedSupplierId,
       relatedEmployeeId: relatedEmployeeId ?? this.relatedEmployeeId,
+      relatedTarget: relatedTarget ?? this.relatedTarget,
       readByManagerAt: readByManagerAt ?? this.readByManagerAt,
       readByOwnerAt: readByOwnerAt ?? this.readByOwnerAt,
       rowid: rowid ?? this.rowid,
@@ -15939,6 +16061,9 @@ class NotificationsCompanion extends UpdateCompanion<NotificationRow> {
     if (relatedEmployeeId.present) {
       map['related_employee_id'] = Variable<String>(relatedEmployeeId.value);
     }
+    if (relatedTarget.present) {
+      map['related_target'] = Variable<String>(relatedTarget.value);
+    }
     if (readByManagerAt.present) {
       map['read_by_manager_at'] = Variable<DateTime>(readByManagerAt.value);
     }
@@ -15966,6 +16091,7 @@ class NotificationsCompanion extends UpdateCompanion<NotificationRow> {
           ..write('relatedItemId: $relatedItemId, ')
           ..write('relatedSupplierId: $relatedSupplierId, ')
           ..write('relatedEmployeeId: $relatedEmployeeId, ')
+          ..write('relatedTarget: $relatedTarget, ')
           ..write('readByManagerAt: $readByManagerAt, ')
           ..write('readByOwnerAt: $readByOwnerAt, ')
           ..write('rowid: $rowid')
@@ -17379,11 +17505,11 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   );
   late final $NotificationsTable notifications = $NotificationsTable(this);
   late final Trigger notificationsOutboxInsert = Trigger(
-    'CREATE TRIGGER notifications_outbox_insert AFTER INSERT ON notifications WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, base_values, queued_at) SELECT \'notifications\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'kind\', kind, \'title\', title, \'body\', body, \'created_at\', created_at, \'is_read\', is_read, \'related_item_id\', related_item_id, \'related_supplier_id\', related_supplier_id, \'related_employee_id\', related_employee_id, \'read_by_manager_at\', read_by_manager_at, \'read_by_owner_at\', read_by_owner_at), NULL, NULL, (SELECT now FROM sync_clock) FROM notifications WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, base_values = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'CREATE TRIGGER notifications_outbox_insert AFTER INSERT ON notifications WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, base_values, queued_at) SELECT \'notifications\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'kind\', kind, \'title\', title, \'body\', body, \'created_at\', created_at, \'is_read\', is_read, \'related_item_id\', related_item_id, \'related_supplier_id\', related_supplier_id, \'related_employee_id\', related_employee_id, \'related_target\', related_target, \'read_by_manager_at\', read_by_manager_at, \'read_by_owner_at\', read_by_owner_at), NULL, NULL, (SELECT now FROM sync_clock) FROM notifications WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, base_values = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
     'notifications_outbox_insert',
   );
   late final Trigger notificationsOutboxUpdate = Trigger(
-    'CREATE TRIGGER notifications_outbox_update AFTER UPDATE ON notifications WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, base_values, queued_at) SELECT \'notifications\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'kind\', kind, \'title\', title, \'body\', body, \'created_at\', created_at, \'is_read\', is_read, \'related_item_id\', related_item_id, \'related_supplier_id\', related_supplier_id, \'related_employee_id\', related_employee_id, \'read_by_manager_at\', read_by_manager_at, \'read_by_owner_at\', read_by_owner_at), (SELECT json_group_array(c) FROM (SELECT \'updated_at\' AS c WHERE NEW.updated_at IS NOT OLD.updated_at UNION ALL SELECT \'deleted_at\' AS c WHERE NEW.deleted_at IS NOT OLD.deleted_at UNION ALL SELECT \'id\' AS c WHERE NEW.id IS NOT OLD.id UNION ALL SELECT \'store_id\' AS c WHERE NEW.store_id IS NOT OLD.store_id UNION ALL SELECT \'kind\' AS c WHERE NEW.kind IS NOT OLD.kind UNION ALL SELECT \'title\' AS c WHERE NEW.title IS NOT OLD.title UNION ALL SELECT \'body\' AS c WHERE NEW.body IS NOT OLD.body UNION ALL SELECT \'created_at\' AS c WHERE NEW.created_at IS NOT OLD.created_at UNION ALL SELECT \'is_read\' AS c WHERE NEW.is_read IS NOT OLD.is_read UNION ALL SELECT \'related_item_id\' AS c WHERE NEW.related_item_id IS NOT OLD.related_item_id UNION ALL SELECT \'related_supplier_id\' AS c WHERE NEW.related_supplier_id IS NOT OLD.related_supplier_id UNION ALL SELECT \'related_employee_id\' AS c WHERE NEW.related_employee_id IS NOT OLD.related_employee_id UNION ALL SELECT \'read_by_manager_at\' AS c WHERE NEW.read_by_manager_at IS NOT OLD.read_by_manager_at UNION ALL SELECT \'read_by_owner_at\' AS c WHERE NEW.read_by_owner_at IS NOT OLD.read_by_owner_at)), NULL, (SELECT now FROM sync_clock) FROM notifications WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = CASE WHEN outbox.changed_columns IS NULL OR excluded.changed_columns IS NULL THEN NULL ELSE (SELECT json_group_array(value) FROM (SELECT value FROM json_each(outbox.changed_columns)UNION SELECT value FROM json_each(excluded.changed_columns))) END, base_values = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'CREATE TRIGGER notifications_outbox_update AFTER UPDATE ON notifications WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, base_values, queued_at) SELECT \'notifications\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'kind\', kind, \'title\', title, \'body\', body, \'created_at\', created_at, \'is_read\', is_read, \'related_item_id\', related_item_id, \'related_supplier_id\', related_supplier_id, \'related_employee_id\', related_employee_id, \'related_target\', related_target, \'read_by_manager_at\', read_by_manager_at, \'read_by_owner_at\', read_by_owner_at), (SELECT json_group_array(c) FROM (SELECT \'updated_at\' AS c WHERE NEW.updated_at IS NOT OLD.updated_at UNION ALL SELECT \'deleted_at\' AS c WHERE NEW.deleted_at IS NOT OLD.deleted_at UNION ALL SELECT \'id\' AS c WHERE NEW.id IS NOT OLD.id UNION ALL SELECT \'store_id\' AS c WHERE NEW.store_id IS NOT OLD.store_id UNION ALL SELECT \'kind\' AS c WHERE NEW.kind IS NOT OLD.kind UNION ALL SELECT \'title\' AS c WHERE NEW.title IS NOT OLD.title UNION ALL SELECT \'body\' AS c WHERE NEW.body IS NOT OLD.body UNION ALL SELECT \'created_at\' AS c WHERE NEW.created_at IS NOT OLD.created_at UNION ALL SELECT \'is_read\' AS c WHERE NEW.is_read IS NOT OLD.is_read UNION ALL SELECT \'related_item_id\' AS c WHERE NEW.related_item_id IS NOT OLD.related_item_id UNION ALL SELECT \'related_supplier_id\' AS c WHERE NEW.related_supplier_id IS NOT OLD.related_supplier_id UNION ALL SELECT \'related_employee_id\' AS c WHERE NEW.related_employee_id IS NOT OLD.related_employee_id UNION ALL SELECT \'related_target\' AS c WHERE NEW.related_target IS NOT OLD.related_target UNION ALL SELECT \'read_by_manager_at\' AS c WHERE NEW.read_by_manager_at IS NOT OLD.read_by_manager_at UNION ALL SELECT \'read_by_owner_at\' AS c WHERE NEW.read_by_owner_at IS NOT OLD.read_by_owner_at)), NULL, (SELECT now FROM sync_clock) FROM notifications WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = CASE WHEN outbox.changed_columns IS NULL OR excluded.changed_columns IS NULL THEN NULL ELSE (SELECT json_group_array(value) FROM (SELECT value FROM json_each(outbox.changed_columns)UNION SELECT value FROM json_each(excluded.changed_columns))) END, base_values = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
     'notifications_outbox_update',
   );
   late final Trigger employeesOutboxInsert = Trigger(
@@ -17403,11 +17529,11 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     'employee_credentials_outbox_update',
   );
   late final Trigger payrollPeriodsOutboxInsert = Trigger(
-    'CREATE TRIGGER payroll_periods_outbox_insert AFTER INSERT ON payroll_periods WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, base_values, queued_at) SELECT \'payroll_periods\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'employee_id\', employee_id, \'store_id\', store_id, \'start_date\', start_date, \'end_date\', end_date, \'worked_days\', worked_days, \'total_worked_hours\', total_worked_hours, \'applied_rate\', applied_rate, \'computed_amount\', computed_amount, \'status\', status, \'paid_by_employee_id\', paid_by_employee_id, \'paid_at\', paid_at, \'created_at\', created_at), NULL, NULL, (SELECT now FROM sync_clock) FROM payroll_periods WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, base_values = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'CREATE TRIGGER payroll_periods_outbox_insert AFTER INSERT ON payroll_periods WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, base_values, queued_at) SELECT \'payroll_periods\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'employee_id\', employee_id, \'store_id\', store_id, \'start_date\', start_date, \'end_date\', end_date, \'worked_days\', worked_days, \'total_worked_hours\', total_worked_hours, \'applied_rate\', applied_rate, \'computed_amount\', computed_amount, \'status\', status, \'paid_by_employee_id\', paid_by_employee_id, \'paid_at\', paid_at, \'created_at\', created_at, \'double_payment_amount\', double_payment_amount), NULL, NULL, (SELECT now FROM sync_clock) FROM payroll_periods WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, base_values = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
     'payroll_periods_outbox_insert',
   );
   late final Trigger payrollPeriodsOutboxUpdate = Trigger(
-    'CREATE TRIGGER payroll_periods_outbox_update AFTER UPDATE ON payroll_periods WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, base_values, queued_at) SELECT \'payroll_periods\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'employee_id\', employee_id, \'store_id\', store_id, \'start_date\', start_date, \'end_date\', end_date, \'worked_days\', worked_days, \'total_worked_hours\', total_worked_hours, \'applied_rate\', applied_rate, \'computed_amount\', computed_amount, \'status\', status, \'paid_by_employee_id\', paid_by_employee_id, \'paid_at\', paid_at, \'created_at\', created_at), (SELECT json_group_array(c) FROM (SELECT \'updated_at\' AS c WHERE NEW.updated_at IS NOT OLD.updated_at UNION ALL SELECT \'deleted_at\' AS c WHERE NEW.deleted_at IS NOT OLD.deleted_at UNION ALL SELECT \'id\' AS c WHERE NEW.id IS NOT OLD.id UNION ALL SELECT \'employee_id\' AS c WHERE NEW.employee_id IS NOT OLD.employee_id UNION ALL SELECT \'store_id\' AS c WHERE NEW.store_id IS NOT OLD.store_id UNION ALL SELECT \'start_date\' AS c WHERE NEW.start_date IS NOT OLD.start_date UNION ALL SELECT \'end_date\' AS c WHERE NEW.end_date IS NOT OLD.end_date UNION ALL SELECT \'worked_days\' AS c WHERE NEW.worked_days IS NOT OLD.worked_days UNION ALL SELECT \'total_worked_hours\' AS c WHERE NEW.total_worked_hours IS NOT OLD.total_worked_hours UNION ALL SELECT \'applied_rate\' AS c WHERE NEW.applied_rate IS NOT OLD.applied_rate UNION ALL SELECT \'computed_amount\' AS c WHERE NEW.computed_amount IS NOT OLD.computed_amount UNION ALL SELECT \'status\' AS c WHERE NEW.status IS NOT OLD.status UNION ALL SELECT \'paid_by_employee_id\' AS c WHERE NEW.paid_by_employee_id IS NOT OLD.paid_by_employee_id UNION ALL SELECT \'paid_at\' AS c WHERE NEW.paid_at IS NOT OLD.paid_at UNION ALL SELECT \'created_at\' AS c WHERE NEW.created_at IS NOT OLD.created_at)), NULL, (SELECT now FROM sync_clock) FROM payroll_periods WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = CASE WHEN outbox.changed_columns IS NULL OR excluded.changed_columns IS NULL THEN NULL ELSE (SELECT json_group_array(value) FROM (SELECT value FROM json_each(outbox.changed_columns)UNION SELECT value FROM json_each(excluded.changed_columns))) END, base_values = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'CREATE TRIGGER payroll_periods_outbox_update AFTER UPDATE ON payroll_periods WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, base_values, queued_at) SELECT \'payroll_periods\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'employee_id\', employee_id, \'store_id\', store_id, \'start_date\', start_date, \'end_date\', end_date, \'worked_days\', worked_days, \'total_worked_hours\', total_worked_hours, \'applied_rate\', applied_rate, \'computed_amount\', computed_amount, \'status\', status, \'paid_by_employee_id\', paid_by_employee_id, \'paid_at\', paid_at, \'created_at\', created_at, \'double_payment_amount\', double_payment_amount), (SELECT json_group_array(c) FROM (SELECT \'updated_at\' AS c WHERE NEW.updated_at IS NOT OLD.updated_at UNION ALL SELECT \'deleted_at\' AS c WHERE NEW.deleted_at IS NOT OLD.deleted_at UNION ALL SELECT \'id\' AS c WHERE NEW.id IS NOT OLD.id UNION ALL SELECT \'employee_id\' AS c WHERE NEW.employee_id IS NOT OLD.employee_id UNION ALL SELECT \'store_id\' AS c WHERE NEW.store_id IS NOT OLD.store_id UNION ALL SELECT \'start_date\' AS c WHERE NEW.start_date IS NOT OLD.start_date UNION ALL SELECT \'end_date\' AS c WHERE NEW.end_date IS NOT OLD.end_date UNION ALL SELECT \'worked_days\' AS c WHERE NEW.worked_days IS NOT OLD.worked_days UNION ALL SELECT \'total_worked_hours\' AS c WHERE NEW.total_worked_hours IS NOT OLD.total_worked_hours UNION ALL SELECT \'applied_rate\' AS c WHERE NEW.applied_rate IS NOT OLD.applied_rate UNION ALL SELECT \'computed_amount\' AS c WHERE NEW.computed_amount IS NOT OLD.computed_amount UNION ALL SELECT \'status\' AS c WHERE NEW.status IS NOT OLD.status UNION ALL SELECT \'paid_by_employee_id\' AS c WHERE NEW.paid_by_employee_id IS NOT OLD.paid_by_employee_id UNION ALL SELECT \'paid_at\' AS c WHERE NEW.paid_at IS NOT OLD.paid_at UNION ALL SELECT \'created_at\' AS c WHERE NEW.created_at IS NOT OLD.created_at UNION ALL SELECT \'double_payment_amount\' AS c WHERE NEW.double_payment_amount IS NOT OLD.double_payment_amount)), NULL, (SELECT now FROM sync_clock) FROM payroll_periods WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = CASE WHEN outbox.changed_columns IS NULL OR excluded.changed_columns IS NULL THEN NULL ELSE (SELECT json_group_array(value) FROM (SELECT value FROM json_each(outbox.changed_columns)UNION SELECT value FROM json_each(excluded.changed_columns))) END, base_values = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
     'payroll_periods_outbox_update',
   );
   late final Trigger attendancesOutboxInsert = Trigger(

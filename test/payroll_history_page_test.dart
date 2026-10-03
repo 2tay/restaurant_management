@@ -2,6 +2,7 @@
 // employee, narrows to one through the filter, and settles that person's
 // unpaid days for the shown range.
 
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -148,6 +149,41 @@ void main() {
     await tester.tap(find.byTooltip('Fermer'));
     await tester.pumpAndSettle();
     expect(find.byType(DetailDrawer), findsNothing);
+  });
+
+  // Rule PA1 (SYNC_PERSONNEL_PLAN.md, step 7): a payment that also paid days
+  // another tablet had paid first says so in the drawer, with the trop-versé.
+  testApp('a « paiement en double » shows its trop-versé in the drawer', (
+    tester,
+  ) async {
+    final db = await _openPayroll(tester, size: const Size(1440, 900));
+    await (db.update(db.payrollPeriods)
+          ..where((p) => p.id.equals(PayrollPeriodIds.karimSeed)))
+        .write(const PayrollPeriodsCompanion(doublePaymentAmount: Value(42)));
+    await tester.pumpAndSettle();
+    await _pickKarim(tester);
+
+    final paid = find.descendant(
+      of: find.byType(DataTable),
+      matching: find.text('Payé'),
+    );
+    await tester.ensureVisible(paid.first);
+    await tester.tap(paid.first);
+    await tester.pumpAndSettle();
+
+    final banner = find.byKey(const ValueKey('payroll-double-payment'));
+    await tester.scrollUntilVisible(
+      banner,
+      200,
+      scrollable: find
+          .descendant(
+            of: find.byType(DetailDrawer),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    expect(find.text('Paiement en double'), findsOneWidget);
+    expect(find.textContaining('Trop-versé'), findsOneWidget);
   });
 
   testApp('picking an employee narrows the view and reveals "Payer"',

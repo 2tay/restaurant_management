@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:clock/clock.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -10,11 +11,15 @@ import '../data/database/app_database.dart';
 import '../data/database/meta_keys.dart';
 import '../data/device_access.dart';
 import '../data/providers.dart';
+import '../core/utils/attendance_status.dart';
+import '../core/utils/payroll_math.dart';
 import '../data/repositories/account_repository.dart';
+import '../data/repositories/attendance_repository.dart';
 import '../data/repositories/device_repository.dart';
 import '../data/repositories/employee_repository.dart';
 import '../data/repositories/outbox_repository.dart';
 import '../data/repositories/sync_applier.dart';
+import '../models/models.dart';
 import 'auth_service.dart';
 import 'photo_sync.dart';
 
@@ -234,6 +239,7 @@ class SyncRunner {
           );
         } else {
           rejected++;
+          await _settleRefusal(entry, answer);
           await outbox.reject(
             entry,
             reason: answer.reason ?? 'invalid',
@@ -268,6 +274,129 @@ class SyncRunner {
     if (entry.baseValues != null)
       'base': jsonDecode(entry.baseValues!) as Map<String, Object?>,
   };
+
+  /// A change the server refused on a paid day (SYNC_PERSONNEL_PLAN.md,
+  /// step 7): the server's version is put back, and what it means is
+  /// signalled — a « paiement en double » (PA1), or the hours a change left
+  /// unpaid (PA2).
+  Future<void> _settleRefusal(OutboxRow entry, PushResult answer) async {
+    final reason = answer.reason;
+    if (reason != 'day_already_paid' && reason != 'paid_day_frozen') return;
+    final payload = jsonDecode(entry.payload) as Map<String, Object?>;
+    final attendances = AttendanceRepository(_db);
+    final dayId = await _dayIdOf(entry.changedTable, payload);
+    final before = dayId == null ? null : await attendances.attendance(dayId);
+
+    await SyncApplier(_db).restore(
+      answer.restore,
+      forget: answer.restore.isEmpty
+          ? (table: entry.changedTable, key: entry.rowKey)
+          : null,
+    );
+    if (before == null) return;
+    final after = await attendances.attendance(before.id);
+
+    if (reason == 'day_already_paid') {
+      await _markDoublePayment(payload['payroll_period_id'] as String?, before);
+      return;
+    }
+    final unpaid =
+        (workedDuration(before) ?? Duration.zero) -
+        (workedDuration(after ?? before) ?? Duration.zero);
+    if (unpaid == Duration.zero) return;
+    final name = await _employeeName(before.employeeId);
+    await AccountRepository(_db).signal(
+      storeId: entry.storeId,
+      key: 'frozen:${before.id}:${entry.id}',
+      title: 'Jour déjà payé : $name',
+      body:
+          'Le ${_numericDate(before.date)} était déjà payé : la modification '
+          'faite sur cette tablette n\'est pas appliquée et le montant ne '
+          'change pas. Différence : ${_hours(unpaid)} '
+          '${unpaid.isNegative ? 'payée en trop' : 'non payée'}.',
+      employeeId: before.employeeId,
+      target: 'payroll',
+      at: clock.now(),
+    );
+  }
+
+  /// Rule PA1: [day] stays with the payment that reached the server first;
+  /// this tablet's run [periodId] keeps what it paid for it, as a trop-versé.
+  Future<void> _markDoublePayment(String? periodId, Attendance day) async {
+    if (periodId == null) return;
+    final period = await (_db.select(
+      _db.payrollPeriods,
+    )..where((p) => p.id.equals(periodId))).getSingleOrNull();
+    if (period == null) return;
+    final total =
+        (period.doublePaymentAmount ?? 0) +
+        dayAmountAt(
+          Attendance(
+            id: day.id,
+            storeId: day.storeId,
+            employeeId: day.employeeId,
+            date: day.date,
+            status: AttendanceStatus.done,
+            sessions: day.sessions,
+            paymentStatus: PaymentStatus.paid,
+          ),
+          period.appliedRate,
+        );
+    await (_db.update(_db.payrollPeriods)
+          ..where((p) => p.id.equals(periodId)))
+        .write(PayrollPeriodsCompanion(doublePaymentAmount: Value(total)));
+
+    final name = await _employeeName(period.employeeId);
+    await AccountRepository(_db).signal(
+      storeId: period.storeId,
+      key: 'double_payment:$periodId',
+      title: 'Paiement en double : $name',
+      body:
+          'Des jours de $name déjà payés sur une autre tablette ont été '
+          'payés une deuxième fois ici. Ils restent sur le premier paiement ; '
+          'trop-versé : ${_euros(total)}.',
+      employeeId: period.employeeId,
+      target: 'payroll',
+      at: clock.now(),
+      replace: true,
+    );
+  }
+
+  Future<String?> _dayIdOf(String table, Map<String, Object?> payload) async {
+    switch (table) {
+      case 'attendances':
+        return payload['id'] as String?;
+      case 'attendance_sessions':
+        return payload['attendance_id'] as String?;
+      case 'attendance_pauses':
+        final session =
+            await (_db.select(_db.attendanceSessions)..where(
+                  (s) => s.id.equals(payload['session_id']! as String),
+                ))
+                .getSingleOrNull();
+        return session?.attendanceId;
+    }
+    return null;
+  }
+
+  Future<String> _employeeName(String employeeId) async {
+    final employee = await EmployeeRepository(_db).employee(employeeId);
+    return employee == null ? '' : '${employee.firstName} ${employee.lastName}';
+  }
+
+  // By hand, not `Formatters`: the words must not depend on locale data
+  // being loaded, and read the same on every tablet.
+  static String _numericDate(DateTime day) =>
+      '${day.day.toString().padLeft(2, '0')}/'
+      '${day.month.toString().padLeft(2, '0')}/${day.year}';
+
+  static String _hours(Duration d) {
+    final minutes = d.inMinutes.abs();
+    return '${minutes ~/ 60}h${(minutes % 60).toString().padLeft(2, '0')}';
+  }
+
+  static String _euros(double amount) =>
+      '${amount.toStringAsFixed(2).replaceAll('.', ',')} €';
 
   /// An accepted edit replaced another tablet's unseen change of a watched
   /// column (rule C2): it wins, and the managers and the owner are told.

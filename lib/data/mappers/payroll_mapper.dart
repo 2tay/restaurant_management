@@ -17,6 +17,7 @@ PayrollPeriod payrollPeriodFromRow(PayrollPeriodRow row) => PayrollPeriod(
   createdAt: row.createdAt,
   paidByEmployeeId: row.paidByEmployeeId,
   paidAt: row.paidAt,
+  doublePaymentAmount: row.doublePaymentAmount,
 );
 
 PayrollPeriodsCompanion payrollPeriodToRow(PayrollPeriod period) =>
@@ -34,4 +35,5 @@ PayrollPeriodsCompanion payrollPeriodToRow(PayrollPeriod period) =>
       createdAt: period.createdAt,
       paidByEmployeeId: Value(period.paidByEmployeeId),
       paidAt: Value(period.paidAt),
+      doublePaymentAmount: Value(period.doublePaymentAmount),
     );

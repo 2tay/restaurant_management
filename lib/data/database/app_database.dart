@@ -442,11 +442,18 @@ class AppDatabase extends _$AppDatabase {
         );
         for (final column in [
           notifications.relatedEmployeeId,
+          notifications.relatedTarget,
           notifications.readByManagerAt,
           notifications.readByOwnerAt,
         ]) {
           await _addColumnIfMissing(m, notifications, column);
         }
+        // Step 7 (rule PA1): the trop-versé of a « paiement en double ».
+        await _addColumnIfMissing(
+          m,
+          payrollPeriods,
+          payrollPeriods.doublePaymentAmount,
+        );
         // Step 4: an edit of a personnel row sends only what changed. Every
         // outbox trigger is recreated to fill `changed_columns`; an entry
         // already queued stays whole (null), as it always was.

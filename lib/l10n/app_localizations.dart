@@ -5506,6 +5506,18 @@ abstract class AppLocalizations {
   /// **'Le pointage n\'a pas été supprimé : la journée a changé entre-temps (payée, ou un seul pointage restant). Réessayez.'**
   String get attendanceDeleteDuplicateFailed;
 
+  /// Payroll drawer banner title: this day's payment run also paid days another tablet had paid first (rule PA1).
+  ///
+  /// In fr, this message translates to:
+  /// **'Paiement en double'**
+  String get payrollDoublePaymentTitle;
+
+  /// Payroll drawer banner body for a double payment.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ce paiement, fait sur une autre tablette en même temps, a aussi payé des jours déjà payés. Ces jours restent sur le premier paiement. Trop-versé : {amount}.'**
+  String payrollDoublePaymentMessage(String amount);
+
   /// PIN prompt before removing a duplicate arrival.
   ///
   /// In fr, this message translates to:
@@ -7468,6 +7480,18 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Cette période de paie était déjà payée.'**
   String get syncReasonAlreadyPaid;
+
+  /// Sync page: a day this tablet paid had been paid first elsewhere (rule PA1).
+  ///
+  /// In fr, this message translates to:
+  /// **'Ce jour avait déjà été payé sur une autre tablette : il reste sur ce premier paiement (voir le signalement « Paiement en double »).'**
+  String get syncReasonDayAlreadyPaid;
+
+  /// Sync page: a change to a paid day was refused (rule PA2).
+  ///
+  /// In fr, this message translates to:
+  /// **'Ce jour est déjà payé : la modification n\'a pas été appliquée.'**
+  String get syncReasonPaidDayFrozen;
 
   /// Refusal reason.
   ///

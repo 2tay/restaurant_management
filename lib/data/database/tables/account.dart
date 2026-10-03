@@ -29,6 +29,10 @@ class Notifications extends Table with Touched, Deletable {
   /// The employee a signalement is about (`NotificationKind.personnel`).
   TextColumn get relatedEmployeeId => text().nullable()();
 
+  /// Which of their pages a signalement opens: `payroll` for a payment, null
+  /// for the pointage history.
+  TextColumn get relatedTarget => text().nullable()();
+
   /// When a manager, and when the owner, first read a signalement. Read
   /// separately: a manager reading it does not hide it from the owner. A
   /// stamp is never cleared, and sync keeps the earliest (`SyncApplier`).

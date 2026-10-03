@@ -229,6 +229,8 @@ class AccountSyncView extends ConsumerWidget {
         'status_backwards' => l10n.syncReasonStatusBackwards,
         'status_closed' => l10n.syncReasonStatusClosed,
         'already_paid' => l10n.syncReasonAlreadyPaid,
+        'day_already_paid' => l10n.syncReasonDayAlreadyPaid,
+        'paid_day_frozen' => l10n.syncReasonPaidDayFrozen,
         'no_access' => l10n.syncReasonNoAccess,
         'owner_only' => l10n.syncReasonOwnerOnly,
         'store_changed' => l10n.syncReasonStoreChanged,

@@ -29,6 +29,7 @@ class PayrollPeriod {
     required this.createdAt,
     this.paidByEmployeeId,
     this.paidAt,
+    this.doublePaymentAmount,
   });
 
   final String id;
@@ -53,6 +54,9 @@ class PayrollPeriod {
   /// The owner who validated the run.
   final String? paidByEmployeeId;
   final DateTime? paidAt;
+
+  /// The trop-versé of a « paiement en double » (rule PA1); null otherwise.
+  final double? doublePaymentAmount;
 
   final DateTime createdAt;
 }

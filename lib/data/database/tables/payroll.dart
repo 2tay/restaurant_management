@@ -43,6 +43,13 @@ class PayrollPeriods extends Table with Touched, Deletable {
   DateTimeColumn get paidAt => dateTime().nullable()();
   DateTimeColumn get createdAt => dateTime()();
 
+  /// Set on a « paiement en double » (SYNC_PERSONNEL_PLAN.md, rule PA1): this
+  /// run, made on another tablet, also covered days a payment that reached
+  /// the server first had already paid. Those days stay with that first
+  /// payment; this is what this run paid for them on top — the trop-versé.
+  /// Null on every other payment.
+  RealColumn get doublePaymentAmount => real().nullable()();
+
   @override
   Set<Column<Object>> get primaryKey => {id};
 }
