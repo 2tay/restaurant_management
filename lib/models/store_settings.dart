@@ -3,8 +3,8 @@
 /// A real record rather than a bag of static globals: it maps 1:1 onto the
 /// `settings` row a store gets in Phase 2's storage, it is per-store (an owner
 /// runs several), and the pointage break allowance needs somewhere to live
-/// that a manager can edit. Read through `MockQueries.storeSettings(storeId)`,
-/// written through `AccountMutations.updateStoreSettings`.
+/// that a manager can edit. Read through `StoreRepository.settings(storeId)`,
+/// written through `StoreRepository.updateStoreSettings`.
 ///
 /// Immutable, no logic — same contract as every other model. A brand-new
 /// store gets a default row from `AccountMutations.createStore`; the default
@@ -22,6 +22,7 @@ class StoreSettings {
     this.notifyLargeAdjustment = true,
     this.notifyDeliveries = false,
     this.notifyBusyDays = true,
+    this.businessDayAutoOpenMinutes = 300,
   });
 
   final String storeId;
@@ -29,6 +30,11 @@ class StoreSettings {
   /// A single break segment running longer than this is flagged as a
   /// "pause dépassée" — see `hasLateBreak` in `core/utils/attendance_status.dart`.
   final int maxBreakMinutes;
+
+  /// From when in the day (minutes after midnight) the first Pointer opens
+  /// the journée de service by itself; before it, no journée opens on its own.
+  /// Zero: any time. Defaults to 05:00, as in the schema.
+  final int businessDayAutoOpenMinutes;
 
   /// How many days a `partial` commande may sit before the dashboard flags it.
   final int stalePartialOrderDays;

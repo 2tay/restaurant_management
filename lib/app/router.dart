@@ -155,7 +155,8 @@ Capability? _capabilityFor(String location) {
 /// The auth + permission guard (Phase 6).
 ///
 /// - no session → every route but [_authRoutes] redirects to the login
-/// - a `staff` session (which the app never actually issues) → back to login
+/// - a `staff` or archived session (which the app never actually issues) →
+///   back to login
 /// - a session on an auth screen → home (the grid for the owner, their store
 ///   dashboard for a manager)
 /// - a store the user does not belong to, or a section the role cannot hold
@@ -175,8 +176,9 @@ String? _guard(BuildContext context, GoRouterState state) {
     return _authRoutes.contains(location) ? null : Routes.login;
   }
 
-  // Staff have no active app access — they should never hold a session.
-  if (employee.role == EmployeeRole.staff) {
+  // Staff have no active app access — they should never hold a session, and
+  // neither does a retired employee.
+  if (employee.role == EmployeeRole.staff || employee.archivedAt != null) {
     return location == Routes.login ? null : Routes.login;
   }
 

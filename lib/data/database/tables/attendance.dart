@@ -81,6 +81,12 @@ class AttendanceSessions extends Table with Touched, Deletable {
   DateTimeColumn get clockInAt => dateTime()();
   DateTimeColumn get clockOutAt => dateTime().nullable()();
 
+  /// Who entered [clockOutAt] in the employee's place — the manager closing
+  /// the journée, or correcting a forgotten exit from the history. Null when
+  /// the employee clocked out themselves, and on sessions from before v16.
+  /// No foreign key, for the same reason as `goods_receipts.receivedByEmployeeId`.
+  TextColumn get exitSetByEmployeeId => text().nullable()();
+
   @override
   Set<Column<Object>> get primaryKey => {id};
 }

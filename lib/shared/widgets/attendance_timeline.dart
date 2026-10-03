@@ -7,30 +7,35 @@ import '../../core/utils/formatters.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/models.dart';
 
-/// The day's timestamps split by session, for the pointage drawers (tableau
-/// de pointage and historique).
+/// The day's timestamps split by session, for the pointage and paiement
+/// drawers.
 ///
-/// One session reads as a plain timeline — no "Session" heading for a day
-/// that only has the one. Two or more each get a centred `Session N° x` on a
-/// full-width dashed rule, with room between sessions. A full-width dashed
-/// rule closes the list. The day's alerts (a break over the allowance) live in the
-/// drawer's own Alertes section; a late Reprise dot still turns amber.
+/// Every session — the only one included — gets a centred `Session N° x` on a
+/// full-width dashed rule, with room between sessions, so a one-session day
+/// reads the same as a split one. A full-width dashed rule closes the list.
+/// The day's alerts (a break over the allowance) live in the drawer's own
+/// Alertes section; a late Reprise dot still turns amber. A Départ someone
+/// entered in the employee's place says who (« Départ · saisi par … »).
 class AttendanceSessions extends StatelessWidget {
   const AttendanceSessions({
     required this.entry,
     required this.maxBreakMinutes,
+    this.exitAuthors = const {},
     super.key,
   });
 
   final Attendance entry;
   final int maxBreakMinutes;
 
+  /// Display names by employee id, to name whoever entered an exit
+  /// ([AttendanceSession.exitSetByEmployeeId]).
+  final Map<String, String> exitAuthors;
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final sessions = entry.sessions;
     if (sessions.isEmpty) return const SizedBox.shrink();
-    final numbered = sessions.length > 1;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -38,11 +43,13 @@ class AttendanceSessions extends StatelessWidget {
       children: [
         for (var i = 0; i < sessions.length; i++) ...[
           if (i > 0) const SizedBox(height: AppSpacing.xxl),
-          if (numbered) ...[
-            _SessionHeading(label: l10n.timeclockSessionTitle(i + 1)),
-            const SizedBox(height: AppSpacing.lg),
-          ],
-          _EventRail(sessions: [sessions[i]], maxBreakMinutes: maxBreakMinutes),
+          _SessionHeading(label: l10n.timeclockSessionTitle(i + 1)),
+          const SizedBox(height: AppSpacing.lg),
+          _EventRail(
+            sessions: [sessions[i]],
+            maxBreakMinutes: maxBreakMinutes,
+            exitAuthors: exitAuthors,
+          ),
         ],
         const SizedBox(height: AppSpacing.xl),
         const _DashStroke(key: ValueKey('attendance-sessions-end')),
@@ -120,10 +127,24 @@ class _DashPainter extends CustomPainter {
 /// Arrivée · Pause · Reprise · … · Départ down a thin rail. A break that ran
 /// over the allowance turns its Reprise dot amber.
 class _EventRail extends StatelessWidget {
-  const _EventRail({required this.sessions, required this.maxBreakMinutes});
+  const _EventRail({
+    required this.sessions,
+    required this.maxBreakMinutes,
+    required this.exitAuthors,
+  });
 
   final List<AttendanceSession> sessions;
   final int? maxBreakMinutes;
+  final Map<String, String> exitAuthors;
+
+  String _departure(AppLocalizations l10n, AttendanceSession session) {
+    final author = session.exitSetByEmployeeId;
+    if (author == null) return l10n.timeclockLogDeparture;
+    final name = exitAuthors[author];
+    return name == null
+        ? l10n.timeclockLogDepartureSetByUnknown
+        : l10n.timeclockLogDepartureSetBy(name);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -147,7 +168,7 @@ class _EventRail extends StatelessWidget {
         }
       }
       if (session.clockOutAt != null) {
-        events.add(_Event(session.clockOutAt!, l10n.timeclockLogDeparture, AppColors.textSecondary));
+        events.add(_Event(session.clockOutAt!, _departure(l10n, session), AppColors.textSecondary));
       }
     }
 
@@ -211,12 +232,15 @@ class _Row extends StatelessWidget {
             ],
           ),
           const SizedBox(width: AppSpacing.md),
-          Padding(
-            padding: EdgeInsets.only(bottom: isLast ? 0 : AppSpacing.md),
-            child: Text(
-              event.label,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: AppColors.textPrimary,
+          // Flexible: « Départ · saisi par … » wraps rather than overflow.
+          Flexible(
+            child: Padding(
+              padding: EdgeInsets.only(bottom: isLast ? 0 : AppSpacing.md),
+              child: Text(
+                event.label,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: AppColors.textPrimary,
+                ),
               ),
             ),
           ),

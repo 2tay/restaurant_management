@@ -1,6 +1,7 @@
 import 'package:clock/clock.dart';
 
 import '../../models/models.dart';
+import 'dates.dart';
 
 /// Constants the pointage rules are written against.
 ///
@@ -10,7 +11,33 @@ import '../../models/models.dart';
 abstract final class AttendanceRules {
   /// A single break longer than this is flagged "pause dépassée".
   static const int defaultMaxBreakMinutes = 30;
+
+  /// A journée de service open this long is flagged on the board: somebody
+  /// most likely forgot to close it, and every Pointer keeps landing on it.
+  /// Nothing closes it on its own — that would invent exit times.
+  static const Duration businessDayAlertAfter = Duration(hours: 18);
+
+  /// Before this time of day (minutes after midnight) a Pointer does **not**
+  /// open a journée by itself: a punch in the night, after the evening's
+  /// journée was closed, would otherwise open (and could get closed) the next
+  /// day's only journée. "Ouvrir la journée" on the board still opens one on
+  /// purpose. The default for a new store — each store sets its own
+  /// (`StoreSettings.businessDayAutoOpenMinutes`); 05:00.
+  static const int defaultBusinessDayAutoOpenMinutes = 5 * 60;
+
+  /// The last settable minute of the day, 23:59.
+  static const int lastMinuteOfDay = 24 * 60 - 1;
 }
+
+/// From when, on [day], a Pointer opens the journée by itself — [minutes]
+/// after midnight (the store's `businessDayAutoOpenMinutes`).
+DateTime businessDayAutoOpenAt(DateTime day, int minutes) =>
+    DateTime(day.year, day.month, day.day, 0, minutes);
+
+/// When the board starts flagging [day] as left open —
+/// [AttendanceRules.businessDayAlertAfter] after it opened.
+DateTime businessDayAlertAt(BusinessDay day) =>
+    day.openedAt.add(AttendanceRules.businessDayAlertAfter);
 
 /// Every pause across every session of the day, in session order.
 Iterable<AttendancePause> _allPauses(Attendance entry) =>
@@ -30,10 +57,6 @@ Duration totalBreak(Attendance entry) {
 
 /// The number of pauses taken across every session of the day.
 int totalPauseCount(Attendance entry) => _allPauses(entry).length;
-
-/// Whether a break is currently open (the employee is `onBreak`).
-bool hasOpenBreak(Attendance entry) =>
-    _allPauses(entry).any((p) => p.endAt == null);
 
 /// How far a single **ended** break ran past [maxBreakMinutes]. Zero while it
 /// is within the allowance or still running.
@@ -88,7 +111,7 @@ Duration? workedDuration(Attendance entry) {
 ///
 /// Prefers the value frozen on the row when it was created — so a later
 /// change to the store's setting cannot rewrite a past day's figure. Falls
-/// back to the caller-supplied live value for a row from before schema v3, or
+/// back to the caller-supplied live value for a row from before schema v4, or
 /// one the writer could not stamp: pass the store's live `maxBreakMinutes`.
 int resolvedMaxBreakMinutes(Attendance entry, {required int fallback}) =>
     entry.maxBreakMinutes ?? fallback;
@@ -98,7 +121,8 @@ enum AttendanceAnomaly {
   /// One break ran past the store's allowance.
   pauseDepassee,
 
-  /// A day in the past is still open — clocked in and never clocked out.
+  /// A day in the past is still open — clocked in and never clocked out —
+  /// and it is not the journée de service still running past midnight.
   oubliDePointage,
 
   /// Two sessions of the day overlap in time. One tablet cannot do that; two
@@ -122,28 +146,34 @@ bool hasOverlappingSessions(Attendance entry) {
   return false;
 }
 
-DateTime _dayOnly(DateTime v) => DateTime(v.year, v.month, v.day);
-
 /// The anomalies of one day, in display order. Purely derived from the
 /// existing rules ([hasLateBreak], the clock timestamps) — no new state, no
 /// "absent" concept.
 ///
 /// [now] defaults to the wall clock; a test pins it. A day that is still today
-/// and legitimately open (someone is working) is not [oubliDePointage].
+/// and legitimately open (someone is working) is not [oubliDePointage], and
+/// neither is a day of [openBusinessDay] — the date of the journée de service
+/// still open, which runs past midnight: at 00:30 an evening shift begun
+/// yesterday is still in service, not forgotten.
 List<AttendanceAnomaly> attendanceAnomalies(
   Attendance entry, {
   required int maxBreakMinutes,
   DateTime? now,
+  DateTime? openBusinessDay,
 }) {
   final result = <AttendanceAnomaly>[];
   if (hasLateBreak(entry, maxBreakMinutes)) {
     result.add(AttendanceAnomaly.pauseDepassee);
   }
-  final today = _dayOnly(now ?? clock.now());
+  final today = dayOf(now ?? clock.now());
   final last = entry.sessions.lastOrNull;
+  final inOpenJournee =
+      openBusinessDay != null &&
+      dayOf(entry.date) == dayOf(openBusinessDay);
   if (last != null &&
       last.clockOutAt == null &&
-      _dayOnly(entry.date).isBefore(today)) {
+      !inOpenJournee &&
+      dayOf(entry.date).isBefore(today)) {
     result.add(AttendanceAnomaly.oubliDePointage);
   }
   if (hasOverlappingSessions(entry)) {

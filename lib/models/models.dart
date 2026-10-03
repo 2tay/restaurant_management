@@ -6,6 +6,7 @@ library;
 
 export 'attendance.dart';
 export 'busy_calendar.dart';
+export 'business_day.dart';
 export 'category.dart';
 export 'employee.dart';
 export 'employee_credential.dart';

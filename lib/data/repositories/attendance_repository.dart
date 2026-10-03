@@ -2,9 +2,12 @@ import 'package:clock/clock.dart';
 import 'package:drift/drift.dart';
 
 import '../../core/utils/attendance_status.dart';
+import '../../core/utils/dates.dart';
 import '../../models/attendance.dart';
 import '../database/app_database.dart';
 import '../mappers/mappers.dart';
+import 'attendance_assembler.dart';
+import 'business_day_repository.dart';
 import 'new_id.dart';
 import 'store_repository.dart';
 
@@ -19,27 +22,29 @@ typedef AttendancePage = ({
   int pageCount,
 });
 
-/// The pointage — attendance rows, their pauses, and the figures derived from
-/// the two.
-///
-/// **The only file that writes `attendances` and `attendance_pauses`**, the same
-/// single-writer discipline every other aggregate keeps; `ux_audit.py` enforces
-/// it. `PayrollRepository.pay` reaches the `payrollPeriodId` lock through
-/// [lockForPayroll] here rather than writing the column itself.
-///
-/// Every write refuses the wrong prior state (returns `null` / `false`) rather
-/// than coercing it, and **refuses any write against a day a payroll run has
-/// locked** — a paid day is immutable.
-///
-/// **The clock is injected.** "Today" is resolved when a query runs, and a test
-/// pins it between two calls. [clock] defaults to `clock.now()`; the provider
-/// supplies that, `db_fixture.dart` supplies a fixed function, and the
-/// today-scoped reads take an optional `now` override on top.
 /// The app-wide clock (`package:clock`), read afresh on every call so a test
 /// running under `withClock` is seen. A function of its own because the
 /// constructor's `clock` parameter hides the package's getter.
 DateTime _systemNow() => clock.now();
 
+/// The pointage — attendance rows, their sessions and pauses, and the figures
+/// derived from them.
+///
+/// **The only file that writes `attendances`, `attendance_sessions` and
+/// `attendance_pauses`**, the same single-writer discipline every other
+/// aggregate keeps; `ux_audit.py` enforces it. `PayrollRepository.pay`
+/// reaches the `payrollPeriodId` lock through [lockForPayroll] here rather
+/// than writing the column itself, and `BusinessDayRepository.close` ends the
+/// shifts still open through [endShift].
+///
+/// Every write refuses the wrong prior state (returns `null` / `false`) rather
+/// than coercing it, and **refuses any write against a day a payroll run has
+/// locked** — a paid day is immutable.
+///
+/// **The clock is injected.** "Now" is resolved when a write runs, and a test
+/// pins it between two calls. [clock] defaults to `clock.now()`; the provider
+/// supplies that, `db_fixture.dart` supplies a fixed function, and the writes
+/// take an optional `now` override on top.
 class AttendanceRepository {
   AttendanceRepository(this._db, {DateTime Function()? clock})
     : _clock = clock ?? _systemNow;
@@ -55,30 +60,18 @@ class AttendanceRepository {
     return (await _assemble([row])).first;
   }
 
-  /// This employee's row for today, or null when they have neither clocked in
-  /// nor been marked absent — a day with no row means
-  /// [AttendanceStatus.notClockedIn].
-  Future<Attendance?> today(String employeeId, {DateTime? now}) async {
-    final row = await _todayQuery(employeeId, now).getSingleOrNull();
-    if (row == null) return null;
-    return (await _assemble([row])).first;
-  }
-
-  Stream<Attendance?> watchToday(String employeeId, {DateTime? now}) =>
-      _todayQuery(employeeId, now).watchSingleOrNull().asyncMap((row) async {
-        if (row == null) return null;
-        return (await _assemble([row])).first;
-      });
-
   /// Every today's-row for a store, keyed by employee id — the pointage board
   /// reads this once and joins it against the active roster, rather than
   /// opening a `watchToday` per card (8 cards × a stream each is the shape to
-  /// avoid). An employee with no entry today is simply absent from the map.
-  Stream<Map<String, Attendance>> watchTodayForStore(
-    String storeId, {
-    DateTime? now,
-  }) {
-    final day = _dayOf(now ?? _clock());
+  /// avoid). An employee with no entry that day is simply absent from the map.
+  ///
+  /// [date] is the board's day (`BusinessDayRepository.watchBoardDay`), not
+  /// the clock's: past midnight the board keeps reading the journée still open.
+  Stream<Map<String, Attendance>> watchStoreDay(
+    String storeId,
+    DateTime date,
+  ) {
+    final day = dayOf(date);
     return (_db.select(_db.attendances)
           ..where(
             (a) =>
@@ -93,57 +86,8 @@ class AttendanceRepository {
         });
   }
 
-  /// One employee's attendance, **most recent day first** — `date` descending,
-  /// then `id` descending for a stable order between rows on the same date.
-  Stream<List<Attendance>> watchForEmployee(String employeeId) =>
-      _forEmployeeQuery(employeeId).watch().asyncMap(_assemble);
-
   Future<List<Attendance>> forEmployee(String employeeId) =>
       _forEmployeeQuery(employeeId).get().then(_assemble);
-
-  /// The store's attendance log for the Historique page — filtered on a
-  /// [from]–[to] day range, a [status] and one [employeeId] (combined with
-  /// AND), most-recent-day-first, sliced into a page.
-  ///
-  /// [from] / [to] are inclusive day bounds, each null meaning "no bound on that
-  /// side". [page] is clamped into range.
-  Future<AttendancePage> page(
-    String storeId, {
-    DateTime? from,
-    DateTime? to,
-    AttendanceStatus? status,
-    String? employeeId,
-    int page = 0,
-    int pageSize = 25,
-  }) async {
-    final base = _logQuery(
-      storeId,
-      from: from,
-      to: to,
-      status: status,
-      employeeId: employeeId,
-    );
-
-    final total = await base.get().then((rows) => rows.length);
-    final pageCount = total == 0 ? 1 : (total + pageSize - 1) ~/ pageSize;
-    final safePage = page.clamp(0, pageCount - 1);
-
-    final pageQuery = _logQuery(
-        storeId,
-        from: from,
-        to: to,
-        status: status,
-        employeeId: employeeId,
-      )
-      ..limit(pageSize, offset: safePage * pageSize);
-
-    return (
-      rows: await pageQuery.get().then(_assemble),
-      totalCount: total,
-      page: safePage,
-      pageCount: pageCount,
-    );
-  }
 
   Stream<AttendancePage> watchPage(
     String storeId, {
@@ -225,17 +169,31 @@ class AttendanceRepository {
   /// `Pointer`. Opens a new session. When this is the day's first cycle it
   /// also creates the `attendances` row; when the previous cycle already
   /// finished (`done`) it opens another one — a day can hold several Pointer →
-  /// Fin de journée cycles. Refuses (returns null) only while a cycle is
-  /// already open (`working` / `onBreak`) or the day is locked by payroll.
+  /// Fin de journée cycles. Refuses (returns null) while a cycle is already
+  /// open (`working` / `onBreak`), when the day is locked by payroll, when
+  /// today's journée de service is already closed, or when none is open
+  /// before the store's `businessDayAutoOpenMinutes`.
+  ///
+  /// The row's date is the open journée's — opened here, by this employee,
+  /// when none is — so a Pointer after midnight stays on the evening's day.
   Future<Attendance?> clockIn(
     String employeeId,
     String storeId, {
     DateTime? now,
   }) {
     final at = now ?? _clock();
-    final day = _dayOf(at);
 
     return _db.transaction(() async {
+      // The day is the open journée's, not the clock's: a Pointer at 00:30
+      // still lands on the evening it belongs to. No journée open → this
+      // Pointer opens today's; today's already closed → refused.
+      final businessDay = await BusinessDayRepository(
+        _db,
+        clock: _clock,
+      ).currentOrOpen(storeId, openedByEmployeeId: employeeId, now: at);
+      if (businessDay == null) return null;
+      final day = businessDay.date;
+
       // The live day only: one live day per employee and date is the rule
       // (`attendances_employee_date` counts live rows, schema v19), and a day
       // merged into another by sync stays behind, deleted. The two position
@@ -376,6 +334,74 @@ class AttendanceRepository {
     });
   }
 
+  /// Corrects a forgotten exit from the history: ends a day left open, at the
+  /// time [correctedByEmployeeId] enters, and records them as the one who set
+  /// it. The day becomes `done`, so payable.
+  ///
+  /// Only for a day **outside** the journée de service still open — that one
+  /// is still running, and is ended by closing the journée on the board.
+  /// Otherwise refuses exactly as [endShift] does (not open, paid, an exit in
+  /// the future or before the clock-in / the running break).
+  Future<Attendance?> correctExit(
+    String attendanceId,
+    DateTime at, {
+    required String correctedByEmployeeId,
+  }) {
+    return _db.transaction(() async {
+      final entry = await attendance(attendanceId);
+      if (entry == null) return null;
+      final open = await BusinessDayRepository(
+        _db,
+        clock: _clock,
+      ).current(entry.storeId);
+      if (open != null && open.date == entry.date) return null;
+      return endShift(attendanceId, at, setByEmployeeId: correctedByEmployeeId);
+    });
+  }
+
+  /// Ends a shift still open at the exit time a manager enters: a running
+  /// break ends at [at], then the session, stamped with [setByEmployeeId].
+  /// **Called only by `BusinessDayRepository.close`** (inside its
+  /// transaction) and [correctExit].
+  ///
+  /// Refuses unless the day is `working` / `onBreak`, and when [at] is in the
+  /// future or before the session's clock-in or the running break's start —
+  /// an exit time that would make negative hours is never written.
+  Future<Attendance?> endShift(
+    String attendanceId,
+    DateTime at, {
+    required String setByEmployeeId,
+  }) {
+    return _mutate(attendanceId, (row) async {
+      if (row.status != AttendanceStatus.working &&
+          row.status != AttendanceStatus.onBreak) {
+        return null;
+      }
+      if (at.isAfter(_clock())) return null;
+      final session = await _lastSession(attendanceId);
+      if (session == null || at.isBefore(session.clockInAt)) return null;
+
+      final open = await (_db.select(
+        _db.attendancePauses,
+      )..where((p) => p.sessionId.equals(session.id) & p.endAt.isNull())).get();
+      if (open.any((p) => at.isBefore(p.startAt))) return null;
+
+      await (_db.update(_db.attendancePauses)..where(
+            (p) => p.sessionId.equals(session.id) & p.endAt.isNull(),
+          ))
+          .write(AttendancePausesCompanion(endAt: Value(at)));
+      await (_db.update(_db.attendanceSessions)
+            ..where((s) => s.id.equals(session.id)))
+          .write(
+            AttendanceSessionsCompanion(
+              clockOutAt: Value(at),
+              exitSetByEmployeeId: Value(setByEmployeeId),
+            ),
+          );
+      return AttendanceStatus.done;
+    });
+  }
+
   /// Locks a set of finished days against a payroll run — stamps
   /// [payrollPeriodId] on each. **Called only by `PayrollRepository.pay`**,
   /// inside its transaction, so the attendance rows still have exactly one
@@ -462,20 +488,6 @@ class AttendanceRepository {
 
   // ---------------------------------------------------------------------------
 
-  SimpleSelectStatement<$AttendancesTable, AttendanceRow> _todayQuery(
-    String employeeId,
-    DateTime? now,
-  ) {
-    final day = _dayOf(now ?? _clock());
-    return _db.select(_db.attendances)
-      ..where(
-        (a) =>
-            a.employeeId.equals(employeeId) &
-            a.date.equals(day) &
-            a.deletedAt.isNull(),
-      );
-  }
-
   SimpleSelectStatement<$AttendancesTable, AttendanceRow> _forEmployeeQuery(
     String employeeId,
   ) =>
@@ -501,11 +513,11 @@ class AttendanceRepository {
       ]);
 
     if (from != null) {
-      final lower = _dayOf(from);
+      final lower = dayOf(from);
       query.where((a) => a.date.isBiggerOrEqualValue(lower));
     }
     if (to != null) {
-      final upper = _dayOf(to);
+      final upper = dayOf(to);
       query.where((a) => a.date.isSmallerOrEqualValue(upper));
     }
     if (status != null) {
@@ -517,43 +529,8 @@ class AttendanceRepository {
     return query;
   }
 
-  /// Rebuilds `Attendance` objects for a set of rows, in the same order,
-  /// attaching each one's sessions and each session's pauses. Two extra
-  /// queries total, not one per row.
-  Future<List<Attendance>> _assemble(List<AttendanceRow> rows) async {
-    if (rows.isEmpty) return const <Attendance>[];
+  /// See [assembleAttendances].
+  Future<List<Attendance>> _assemble(List<AttendanceRow> rows) =>
+      assembleAttendances(_db, rows);
 
-    final ids = rows.map((r) => r.id).toList();
-    final sessionRows =
-        await (_db.select(_db.attendanceSessions)
-              ..where((s) => s.attendanceId.isIn(ids) & s.deletedAt.isNull())
-              ..orderBy([(s) => OrderingTerm(expression: s.position)]))
-            .get();
-
-    final sessionIds = sessionRows.map((s) => s.id).toList();
-    final pauseRows = sessionIds.isEmpty
-        ? const <AttendancePauseRow>[]
-        : await (_db.select(
-            _db.attendancePauses,
-          )..where((p) => p.sessionId.isIn(sessionIds) & p.deletedAt.isNull())).get();
-
-    final pausesBySession = <String, List<AttendancePauseRow>>{};
-    for (final pause in pauseRows) {
-      (pausesBySession[pause.sessionId] ??= <AttendancePauseRow>[]).add(pause);
-    }
-
-    final sessionsByAttendance = <String, List<AttendanceSession>>{};
-    for (final row in sessionRows) {
-      (sessionsByAttendance[row.attendanceId] ??= <AttendanceSession>[]).add(
-        attendanceSessionFromRow(row, pausesBySession[row.id] ?? const []),
-      );
-    }
-
-    return [
-      for (final row in rows)
-        attendanceFromRows(row, sessionsByAttendance[row.id] ?? const []),
-    ];
-  }
-
-  static DateTime _dayOf(DateTime v) => DateTime(v.year, v.month, v.day);
 }

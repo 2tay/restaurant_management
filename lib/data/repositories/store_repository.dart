@@ -243,22 +243,32 @@ class StoreRepository {
     });
   }
 
-  /// Edits the pointage settings — the break allowance. One `UPDATE stores`.
+  /// Edits the pointage settings — the break allowance and the time of day
+  /// the journée de service may open by itself. One `UPDATE stores`.
   ///
-  /// A field left null keeps its current value. A nonsense value (zero or
-  /// negative) is **ignored, not refused** — the same forgiving stance the
-  /// settings screen takes, where a half-typed field should not block the
-  /// save of the rest. The stale-order threshold has its own method
-  /// ([setStalePartialOrderDays]) because that one does refuse.
+  /// A field left null keeps its current value. A nonsense value (a break of
+  /// zero or less, a time outside 00:00–23:59) is **ignored, not refused** —
+  /// the same forgiving stance the settings screen takes, where a half-typed
+  /// field should not block the save of the rest. The stale-order threshold
+  /// has its own method ([setStalePartialOrderDays]) because that one does
+  /// refuse.
   Future<StoreSettings> updateStoreSettings(
     String storeId, {
     int? maxBreakMinutes,
+    int? businessDayAutoOpenMinutes,
   }) async {
     Value<int> count(int? n) =>
         n != null && n > 0 ? Value(n) : const Value.absent();
+    Value<int> minuteOfDay(int? n) =>
+        n != null && n >= 0 && n <= AttendanceRules.lastMinuteOfDay
+        ? Value(n)
+        : const Value.absent();
 
     await (_db.update(_db.stores)..where((s) => s.id.equals(storeId))).write(
-      StoresCompanion(maxBreakMinutes: count(maxBreakMinutes)),
+      StoresCompanion(
+        maxBreakMinutes: count(maxBreakMinutes),
+        businessDayAutoOpenMinutes: minuteOfDay(businessDayAutoOpenMinutes),
+      ),
     );
     return settings(storeId);
   }

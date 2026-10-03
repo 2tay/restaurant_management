@@ -28,6 +28,11 @@ enum LoginOutcome {
   /// kiosk), whatever password was typed — an Employé holds none. Counters
   /// untouched.
   noAppAccess,
+
+  /// The employee is archived (retired): their credential stays on file so a
+  /// restore needs no new password, but it no longer opens the app. Refused
+  /// whatever password was typed, counters untouched.
+  archived,
 }
 
 /// The result of an authentication attempt. [employee] is set whenever the PIN
@@ -109,13 +114,20 @@ class CredentialRepository {
   /// Records one wrong password. Locks the credential for
   /// [AuthRules.lockoutDuration] once [AuthRules.maxFailedAttempts] is reached.
   /// Returns whether this attempt was the one that locked it.
+  ///
+  /// A lockout that has run out starts the count afresh: the miss right after
+  /// it is the first of [AuthRules.maxFailedAttempts] again, not one more on
+  /// top of the attempts that caused it — otherwise every later window would
+  /// allow a single try.
   Future<bool> recordFailedAttempt(String employeeId, {DateTime? now}) {
     return _db.transaction(() async {
       final current = await _rowFor(employeeId);
       if (current == null) return false;
 
       final at = now ?? clock.now();
-      final attempts = current.failedAttempts + 1;
+      final until = current.lockedUntil;
+      final expired = until != null && !at.isBefore(until);
+      final attempts = (expired ? 0 : current.failedAttempts) + 1;
       final locks = attempts >= AuthRules.maxFailedAttempts;
 
       await (_db.update(_db.employeeCredentials)
@@ -125,6 +137,8 @@ class CredentialRepository {
               failedAttempts: Value(attempts),
               lockedUntil: locks
                   ? Value(at.add(AuthRules.lockoutDuration))
+                  : expired
+                  ? const Value(null)
                   : const Value.absent(),
             ),
           );
@@ -152,28 +166,6 @@ class CredentialRepository {
   Future<bool> clear(String employeeId) async =>
       await SoftDelete(_db).credential(employeeId) > 0;
 
-  /// Lifts a lockout early — the "Débloquer" action a manager or owner takes.
-  /// Returns false when there was nothing locked or counted.
-  Future<bool> unlock(String employeeId) {
-    return _db.transaction(() async {
-      final current = await _rowFor(employeeId);
-      if (current == null) return false;
-      if (current.failedAttempts == 0 && current.lockedUntil == null) {
-        return false;
-      }
-
-      await (_db.update(_db.employeeCredentials)
-            ..where((c) => c.employeeId.equals(employeeId)))
-          .write(
-            const EmployeeCredentialsCompanion(
-              failedAttempts: Value(0),
-              lockedUntil: Value(null),
-            ),
-          );
-      return true;
-    });
-  }
-
   /// The whole login check, composed from the primitives above.
   ///
   /// **Does not touch the session** — the login screen (stage 9) signs the user
@@ -185,6 +177,12 @@ class CredentialRepository {
   }) async {
     final employee = await EmployeeRepository(_db).employeeByPin(pin.trim());
     if (employee == null) return const LoginAttempt(LoginOutcome.unknownPin);
+
+    // A retired employee keeps their PIN and password on file, but neither
+    // signs in any more — checked first, so nothing typed is even weighed.
+    if (employee.archivedAt != null) {
+      return LoginAttempt(LoginOutcome.archived, employee);
+    }
 
     // An Employé never has app access — and, since the role holds no password
     // at all, the answer must not depend on what was typed. Nothing counted.

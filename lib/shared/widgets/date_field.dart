@@ -4,6 +4,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/utils/formatters.dart';
+import 'app_date_picker.dart';
 
 /// A single date shown as a tappable field that opens the platform date picker.
 ///
@@ -33,12 +34,11 @@ class DateField extends StatelessWidget {
     return InkWell(
       borderRadius: AppRadius.mdAll,
       onTap: () async {
-        final picked = await showDatePicker(
+        final picked = await showAppDatePicker(
           context: context,
           initialDate: value,
           firstDate: firstDate,
           lastDate: lastDate,
-          locale: const Locale('fr', 'BE'),
         );
         if (picked != null) onChanged(picked);
       },

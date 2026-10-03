@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:clock/clock.dart';
@@ -152,6 +153,16 @@ final Provider<DateTime Function()> attendanceClockProvider =
 final Provider<AttendanceRepository> attendanceRepositoryProvider =
     Provider<AttendanceRepository>(
       (ref) => AttendanceRepository(
+        ref.watch(databaseProvider),
+        clock: ref.watch(attendanceClockProvider),
+      ),
+    );
+
+/// The journées de service. Same clock as the pointage, so a test that pins
+/// the attendance clock pins this one too.
+final Provider<BusinessDayRepository> businessDayRepositoryProvider =
+    Provider<BusinessDayRepository>(
+      (ref) => BusinessDayRepository(
         ref.watch(databaseProvider),
         clock: ref.watch(attendanceClockProvider),
       ),
@@ -660,6 +671,14 @@ final employeesProvider = StreamProvider.family<List<Employee>, String>(
       ref.watch(employeeRepositoryProvider).watchEmployees(storeId),
 );
 
+/// The payroll screen's people: the active roster, plus anyone retired who is
+/// still owed finished days (audit L6) — see
+/// `PayrollRepository.watchPayableEmployees`.
+final payableEmployeesProvider = StreamProvider.family<List<Employee>, String>(
+  (ref, storeId) =>
+      ref.watch(payrollRepositoryProvider).watchPayableEmployees(storeId),
+);
+
 /// The roster without the archived — the pointage board and the paie pickers.
 final activeEmployeesProvider = StreamProvider.family<List<Employee>, String>(
   (ref, storeId) =>
@@ -671,35 +690,66 @@ final employeeProvider = StreamProvider.family<Employee?, String>(
   (ref, id) => ref.watch(employeeRepositoryProvider).watchEmployee(id),
 );
 
-/// One employee's login credential, for the detail screen's security row.
-final credentialForEmployeeProvider =
-    FutureProvider.family<EmployeeCredential?, String>(
-      (ref, employeeId) =>
-          ref.watch(credentialRepositoryProvider).forEmployee(employeeId),
-    );
+/// Today's calendar date, ticking over at midnight — so a board left open
+/// overnight moves to the new day by itself (audit L2). Reads the pointage
+/// clock, which a test pins.
+class CurrentDay extends Notifier<DateTime> {
+  Timer? _timer;
 
-/// One employee's attendance history — most recent day first.
-final attendanceForEmployeeProvider =
-    StreamProvider.family<List<Attendance>, String>(
-      (ref, employeeId) => ref
-          .watch(attendanceRepositoryProvider)
-          .watchForEmployee(employeeId),
-    );
+  @override
+  DateTime build() {
+    final now = ref.watch(attendanceClockProvider);
+    ref.onDispose(() => _timer?.cancel());
+    _scheduleNext(now);
+    return dayOf(now());
+  }
 
-/// Today's attendance row for one employee — the pointage board card.
-final attendanceTodayProvider = StreamProvider.family<Attendance?, String>(
-  (ref, employeeId) =>
-      ref.watch(attendanceRepositoryProvider).watchToday(employeeId),
+  void _scheduleNext(DateTime Function() now) {
+    _timer?.cancel();
+    final at = now();
+    final midnight = DateTime(at.year, at.month, at.day + 1);
+    // A second past midnight, so the tick never lands on the day it leaves.
+    _timer = Timer(midnight.difference(at) + const Duration(seconds: 1), () {
+      state = dayOf(now());
+      _scheduleNext(now);
+    });
+  }
+
+}
+
+final currentDayProvider = NotifierProvider<CurrentDay, DateTime>(
+  CurrentDay.new,
 );
 
-/// Every today's-row for a store, keyed by employee id — the pointage board
-/// joins this against `activeEmployeesProvider`.
+/// The pointage board's day and the journée de service behind it — the open
+/// journée, even past midnight; else today's (closed, or not opened yet).
+final boardDayProvider = StreamProvider.family<BoardDay, String>(
+  (ref, storeId) => ref
+      .watch(businessDayRepositoryProvider)
+      .watchBoardDay(storeId, ref.watch(currentDayProvider)),
+);
+
+/// The store's journée de service still open, or null — the history reads its
+/// date so a shift running past midnight is not an oubli de pointage.
+final openBusinessDayProvider = StreamProvider.family<BusinessDay?, String>(
+  (ref, storeId) =>
+      ref.watch(businessDayRepositoryProvider).watchCurrent(storeId),
+);
+
+/// Every row of the board's day for a store, keyed by employee id — the
+/// pointage board joins this against `activeEmployeesProvider`. Rebuilt only
+/// when the board's date changes, not on every open / close of the journée.
 final attendanceBoardProvider =
-    StreamProvider.family<Map<String, Attendance>, String>(
-      (ref, storeId) => ref
-          .watch(attendanceRepositoryProvider)
-          .watchTodayForStore(storeId),
-    );
+    StreamProvider.family<Map<String, Attendance>, String>((
+      ref,
+      storeId,
+    ) async* {
+      final repo = ref.watch(attendanceRepositoryProvider);
+      final date = await ref.watch(
+        boardDayProvider(storeId).selectAsync((d) => d.date),
+      );
+      yield* repo.watchStoreDay(storeId, date);
+    });
 
 /// The filter bundle for the Historique de pointage table.
 typedef AttendanceLogKey = ({
@@ -737,13 +787,6 @@ final attendanceStatsProvider =
       ),
     );
 
-/// One employee's paid payroll periods — most recent first.
-final payrollForEmployeeProvider =
-    StreamProvider.family<List<PayrollPeriod>, String>(
-      (ref, employeeId) =>
-          ref.watch(payrollRepositoryProvider).watchForEmployee(employeeId),
-    );
-
 /// The filter bundle for the Historique de paiement day table.
 typedef PayrollDaysKey = ({
   String storeId,
@@ -771,20 +814,3 @@ final payrollDaysProvider =
       ),
     );
 
-/// The filter bundle for the paginated payroll-period list.
-typedef PayrollPageKey = ({
-  String storeId,
-  int? withinDays,
-  String? employeeQuery,
-  int page,
-});
-
-final payrollPageProvider =
-    FutureProvider.family<PayrollPage, PayrollPageKey>(
-      (ref, key) => ref.watch(payrollRepositoryProvider).page(
-        key.storeId,
-        withinDays: key.withinDays,
-        employeeQuery: key.employeeQuery,
-        page: key.page,
-      ),
-    );

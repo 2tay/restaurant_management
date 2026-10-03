@@ -6,6 +6,7 @@ library;
 
 export 'account_mapper.dart';
 export 'attendance_mapper.dart';
+export 'business_day_mapper.dart';
 export 'catalog_mapper.dart';
 export 'credential_mapper.dart';
 export 'employee_mapper.dart';

@@ -2,21 +2,30 @@ import 'package:clock/clock.dart';
 import 'package:drift/drift.dart';
 
 import '../../core/utils/attendance_status.dart';
+import '../../core/utils/dates.dart';
 import '../../core/utils/payroll_math.dart';
 import '../../models/attendance.dart';
 import '../../models/employee.dart';
 import '../../models/payroll_period.dart';
 import '../database/app_database.dart';
 import '../mappers/mappers.dart';
+import 'attendance_assembler.dart';
 import 'attendance_repository.dart';
 import 'employee_repository.dart';
 import 'new_id.dart';
-import 'store_repository.dart';
 
 /// Thrown inside [PayrollRepository.pay]'s transaction to roll the whole thing
 /// back — a day was locked to another run between the read and the write.
 class _PayrollAborted implements Exception {
   const _PayrollAborted();
+}
+
+/// Thrown by [PayrollRepository.pay] when the days payable no longer match
+/// the [PayrollPreview] the payer confirmed — a day finished, corrected or
+/// paid in between, or the rate changed. Nothing is written; the screen says
+/// so and the payer looks at the new figure before confirming again.
+class PayrollPreviewOutdated implements Exception {
+  const PayrollPreviewOutdated();
 }
 
 /// What [PayrollRepository.preview] hands the screen — figured, never stored.
@@ -37,22 +46,15 @@ class PayrollPreview {
   bool get isEmpty => days.isEmpty;
 }
 
-/// One page of the store's payroll history.
-typedef PayrollPage = ({
-  List<PayrollPeriod> rows,
-  int totalCount,
-  int page,
-  int pageCount,
-});
-
 /// The day-by-day paiement view: the finished days (paginated), the four KPI
 /// figures above them, the pager totals, and the two lookups the table needs
 /// per row so it does not query per row — the employee behind each day and,
-/// for a paid day, when its period was settled.
+/// for a paid day, the period that settled it (when, and at which frozen
+/// rate).
 typedef PayrollDays = ({
   List<Attendance> rows,
   Map<String, Employee> employeesById,
-  Map<String, DateTime> paidAtByPeriod,
+  Map<String, PayrollPeriod> periodsById,
   int paidDays,
   int unpaidDays,
   Duration worked,
@@ -71,7 +73,7 @@ typedef PayrollDays = ({
 /// [PayrollPeriod.appliedRate] freezes the rate at pay time, and the days it
 /// covers can no longer be touched.
 ///
-/// [days] and [preview] fold `workedDuration` / `overtimeBy` with the unchanged
+/// [days] and [preview] fold `workedDuration` with the unchanged
 /// `attendance_status.dart` / `payroll_math.dart` — SQL for the fetch, Dart for
 /// the arithmetic, so that arithmetic stays one definition.
 class PayrollRepository {
@@ -85,50 +87,10 @@ class PayrollRepository {
           .getSingleOrNull()
           .then((row) => row == null ? null : payrollPeriodFromRow(row));
 
-  /// One employee's payroll runs, **most recent `paidAt` first**, `id` as the
-  /// tiebreak (several runs can be paid in one sitting).
-  Stream<List<PayrollPeriod>> watchForEmployee(String employeeId) =>
-      _forEmployeeQuery(employeeId).watch().map(_toPeriods);
-
-  Future<List<PayrollPeriod>> forEmployee(String employeeId) =>
-      _forEmployeeQuery(employeeId).get().then(_toPeriods);
-
-  /// The store's payroll history for the Historique de paiement page — an
-  /// employee-name search and a rolling [withinDays] window, most-recent first,
-  /// sliced into a page.
-  ///
-  /// [now] is injected so the rolling window is testable.
-  Future<PayrollPage> page(
-    String storeId, {
-    int? withinDays,
-    String? employeeQuery,
-    DateTime? now,
-    int page = 0,
-    int pageSize = 25,
-  }) async {
-    final all = await _pageMatches(
-      storeId,
-      withinDays: withinDays,
-      employeeQuery: employeeQuery,
-      now: now,
-    );
-
-    final pageCount = all.isEmpty ? 1 : (all.length + pageSize - 1) ~/ pageSize;
-    final safePage = page.clamp(0, pageCount - 1);
-    final start = (safePage * pageSize).clamp(0, all.length);
-    final end = (start + pageSize).clamp(0, all.length);
-
-    return (
-      rows: all.sublist(start, end),
-      totalCount: all.length,
-      page: safePage,
-      pageCount: pageCount,
-    );
-  }
-
   /// Finished (`done`) days for the Historique de paiement screen.
   ///
-  /// [employeeId] null means every **active** employee of the store; a value
+  /// [employeeId] null means every employee [watchPayableEmployees] lists —
+  /// the active ones, and a retired one still owed finished days; a value
   /// scopes to one person (retired employees still resolve). [from] / [to] bound
   /// the range (inclusive calendar days), null meaning unbounded on that side;
   /// the lower bound is never earlier than each employee's own hire date.
@@ -149,11 +111,11 @@ class PayrollRepository {
   }) async {
     // The employees in scope.
     final employeeRows = await _scopedEmployees(storeId, employeeId);
-    final hireFloor = {for (final e in employeeRows) e.id: _dayOf(e.hireDate)};
+    final hireFloor = {for (final e in employeeRows) e.id: dayOf(e.hireDate)};
     final scopedIds = employeeRows.map((e) => e.id).toSet();
 
-    final upper = to == null ? null : _dayOf(to);
-    final requestedLower = from == null ? null : _dayOf(from);
+    final upper = to == null ? null : dayOf(to);
+    final requestedLower = from == null ? null : dayOf(from);
 
     final rows =
         await (_db.select(_db.attendances)..where(
@@ -206,8 +168,7 @@ class PayrollRepository {
     final end = (start + pageSize).clamp(0, filtered.length);
     final pageRows = filtered.sublist(start, end);
 
-    // The paid-at date for each period a shown day points at — one query, not
-    // one per row.
+    // The period each shown paid day points at — one query, not one per row.
     final periodIds = pageRows
         .map((a) => a.payrollPeriodId)
         .whereType<String>()
@@ -225,10 +186,7 @@ class PayrollRepository {
     return (
       rows: pageRows,
       employeesById: {for (final e in employeeRows) e.id: e},
-      paidAtByPeriod: {
-        for (final p in periods)
-          if (p.paidAt != null) p.id: p.paidAt!,
-      },
+      periodsById: {for (final p in periods) p.id: p},
       paidDays: paid,
       unpaidDays: unpaid,
       worked: worked,
@@ -236,22 +194,6 @@ class PayrollRepository {
       page: safePage,
       pageCount: pageCount,
     );
-  }
-
-  /// How many finished (`done`) days at [storeId] are not yet locked to a
-  /// payroll run. The store-settings screen warns with this before a change
-  /// that would retroactively re-figure those days — see `evaluationContext`.
-  Future<int> unpaidFinishedDayCount(String storeId) async {
-    final count = _db.attendances.id.count();
-    final query = _db.selectOnly(_db.attendances)
-      ..addColumns([count])
-      ..where(
-        _db.attendances.storeId.equals(storeId) &
-            _db.attendances.deletedAt.isNull() &
-            _db.attendances.status.equalsValue(AttendanceStatus.done) &
-            _db.attendances.payrollPeriodId.isNull(),
-      );
-    return (await query.getSingle()).read(count) ?? 0;
   }
 
   // ---------------------------------------------------------------------------
@@ -271,7 +213,6 @@ class PayrollRepository {
     DateTime? to,
   }) async {
     final employee = await EmployeeRepository(_db).employee(employeeId);
-    final settings = await StoreRepository(_db).settings(storeId);
     final days = await _payableDays(
       employeeId,
       storeId,
@@ -293,7 +234,7 @@ class PayrollRepository {
     return PayrollPreview(
       days: days,
       workedHours: totals.workedHours,
-      amount: periodAmount(days, employee, settings),
+      amount: periodAmount(days, employee),
       appliedRate: employee.pay,
     );
   }
@@ -305,17 +246,23 @@ class PayrollRepository {
   /// day slipped into `paid` between the preview and here: in that last case the
   /// period insert is rolled back with it, so `pay` never leaves a run whose
   /// days are not all locked to it.
+  ///
+  /// With [expected] — the preview the payer confirmed — it pays exactly that
+  /// or nothing: when the payable days or the amount differ (a day finished,
+  /// corrected or paid in between, a rate changed), it throws
+  /// [PayrollPreviewOutdated] and writes nothing. Checked inside the
+  /// transaction, so nothing can slip in between the check and the write.
   Future<PayrollPeriod?> pay(
     String employeeId,
     String storeId, {
     DateTime? from,
     DateTime? to,
     required String paidByEmployeeId,
+    PayrollPreview? expected,
     DateTime? now,
   }) async {
     final employee = await EmployeeRepository(_db).employee(employeeId);
     if (employee == null) return null;
-    final settings = await StoreRepository(_db).settings(storeId);
     final at = now ?? clock.now();
 
     try {
@@ -327,6 +274,10 @@ class PayrollRepository {
           from: from,
           to: to,
         );
+        final amount = periodAmount(days, employee);
+        if (expected != null && !_sameRun(expected, days, amount)) {
+          throw const PayrollPreviewOutdated();
+        }
         if (days.isEmpty) return null;
 
         final totals = periodTotals(days);
@@ -340,7 +291,7 @@ class PayrollRepository {
           workedDays: totals.days,
           totalWorkedHours: totals.workedHours,
           appliedRate: employee.pay,
-          computedAmount: periodAmount(days, employee, settings),
+          computedAmount: amount,
           status: PayrollStatus.paid,
           paidByEmployeeId: paidByEmployeeId,
           paidAt: at,
@@ -366,6 +317,20 @@ class PayrollRepository {
     }
   }
 
+  /// Whether [days] at [amount] is the run [expected] showed: the same days,
+  /// and the same amount to the cent.
+  static bool _sameRun(
+    PayrollPreview expected,
+    List<Attendance> days,
+    double amount,
+  ) {
+    final shown = expected.days.map((d) => d.id).toSet();
+    final now = days.map((d) => d.id).toSet();
+    return shown.length == now.length &&
+        shown.containsAll(now) &&
+        (expected.amount - amount).abs() < 0.005;
+  }
+
   /// Unpaid, finished days for this employee at this store — most recent first.
   /// A day that is not `done` is not payable yet; a day already stamped with a
   /// `payrollPeriodId` is gone. [from] / [to] bound the range (inclusive
@@ -388,12 +353,12 @@ class PayrollRepository {
             ))
             .get();
 
-    var lower = from == null ? null : _dayOf(from);
+    var lower = from == null ? null : dayOf(from);
     if (hireDate != null) {
-      final hire = _dayOf(hireDate);
+      final hire = dayOf(hireDate);
       if (lower == null || lower.isBefore(hire)) lower = hire;
     }
-    final upper = to == null ? null : _dayOf(to);
+    final upper = to == null ? null : dayOf(to);
 
     final entries = await _assemble(rows);
     final days = [
@@ -411,116 +376,57 @@ class PayrollRepository {
     String storeId,
     String? employeeId,
   ) async {
-    final query = _db.select(_db.employees)
-      ..where((e) => e.storeId.equals(storeId) & e.deletedAt.isNull());
-    if (employeeId != null) {
-      query.where((e) => e.id.equals(employeeId));
-    } else {
-      query.where((e) => e.archivedAt.isNull());
+    if (employeeId == null) {
+      return _payableEmployeesQuery(
+        storeId,
+      ).get().then((rows) => rows.map(employeeFromRow).toList());
     }
+    final query = _db.select(_db.employees)
+      ..where(
+        (e) =>
+            e.storeId.equals(storeId) &
+            e.id.equals(employeeId) &
+            e.deletedAt.isNull(),
+      );
     return query.get().then((rows) => rows.map(employeeFromRow).toList());
   }
 
-  Future<List<PayrollPeriod>> _pageMatches(
-    String storeId, {
-    int? withinDays,
-    String? employeeQuery,
-    DateTime? now,
-  }) async {
-    final cutoff = withinDays == null
-        ? null
-        : (now ?? clock.now()).subtract(Duration(days: withinDays));
-    final needle = (employeeQuery ?? '').trim().toLowerCase();
+  /// The people the payroll screen lists: every active employee of the
+  /// store, and a retired one who still has finished days to pay — they are
+  /// owed, so they stay payable until they are paid, then drop off.
+  Stream<List<Employee>> watchPayableEmployees(String storeId) =>
+      _payableEmployeesQuery(
+        storeId,
+      ).watch().map((rows) => rows.map(employeeFromRow).toList());
 
-    final rows = await (_db.select(_db.payrollPeriods)
-          ..where((p) => p.storeId.equals(storeId) & p.deletedAt.isNull())
-          ..orderBy([
-            (p) => OrderingTerm(
-              expression: coalesce([p.paidAt, p.createdAt]),
-              mode: OrderingMode.desc,
-            ),
-            (p) => OrderingTerm(expression: p.id, mode: OrderingMode.desc),
-          ]))
-        .get();
-
-    final names = needle.isEmpty
-        ? const <String, String>{}
-        : {
-            for (final e in await (_db.select(
-              _db.employees,
-            )..where((e) => e.storeId.equals(storeId) & e.deletedAt.isNull())).get())
-              e.id: '${e.firstName} ${e.lastName}'.toLowerCase(),
-          };
-
-    return [
-      for (final row in rows)
-        if (_pagePasses(row, cutoff, needle, names)) payrollPeriodFromRow(row),
-    ];
-  }
-
-  bool _pagePasses(
-    PayrollPeriodRow row,
-    DateTime? cutoff,
-    String needle,
-    Map<String, String> names,
+  SimpleSelectStatement<$EmployeesTable, EmployeeRow> _payableEmployeesQuery(
+    String storeId,
   ) {
-    if (cutoff != null && (row.paidAt ?? row.createdAt).isBefore(cutoff)) {
-      return false;
-    }
-    if (needle.isNotEmpty && !(names[row.employeeId] ?? '').contains(needle)) {
-      return false;
-    }
-    return true;
-  }
-
-  SimpleSelectStatement<$PayrollPeriodsTable, PayrollPeriodRow>
-  _forEmployeeQuery(String employeeId) =>
-      _db.select(_db.payrollPeriods)
-        ..where((p) => p.employeeId.equals(employeeId) & p.deletedAt.isNull())
-        ..orderBy([
-          (p) => OrderingTerm(
-            expression: coalesce([p.paidAt, p.createdAt]),
-            mode: OrderingMode.desc,
-          ),
-          (p) => OrderingTerm(expression: p.id, mode: OrderingMode.desc),
-        ]);
-
-  Future<List<Attendance>> _assemble(List<AttendanceRow> rows) async {
-    if (rows.isEmpty) return const <Attendance>[];
-    final ids = rows.map((r) => r.id).toList();
-    final sessionRows =
-        await (_db.select(_db.attendanceSessions)
-              ..where((s) => s.attendanceId.isIn(ids) & s.deletedAt.isNull())
-              ..orderBy([(s) => OrderingTerm(expression: s.position)]))
-            .get();
-
-    final sessionIds = sessionRows.map((s) => s.id).toList();
-    final pauseRows = sessionIds.isEmpty
-        ? const <AttendancePauseRow>[]
-        : await (_db.select(
-            _db.attendancePauses,
-          )..where((p) => p.sessionId.isIn(sessionIds) & p.deletedAt.isNull())).get();
-
-    final pausesBySession = <String, List<AttendancePauseRow>>{};
-    for (final pause in pauseRows) {
-      (pausesBySession[pause.sessionId] ??= <AttendancePauseRow>[]).add(pause);
-    }
-
-    final sessionsByAttendance = <String, List<AttendanceSession>>{};
-    for (final row in sessionRows) {
-      (sessionsByAttendance[row.attendanceId] ??= <AttendanceSession>[]).add(
-        attendanceSessionFromRow(row, pausesBySession[row.id] ?? const []),
+    final a = _db.attendances;
+    final owed = existsQuery(
+      _db.selectOnly(a)
+        ..addColumns([a.id])
+        ..where(
+          a.employeeId.equalsExp(_db.employees.id) &
+              a.deletedAt.isNull() &
+              a.status.equalsValue(AttendanceStatus.done) &
+              a.payrollPeriodId.isNull(),
+        ),
+    );
+    return _db.select(_db.employees)
+      ..where(
+        (e) =>
+            e.storeId.equals(storeId) &
+            e.deletedAt.isNull() &
+            (e.archivedAt.isNull() | owed),
       );
-    }
-
-    return [
-      for (final row in rows)
-        attendanceFromRows(row, sessionsByAttendance[row.id] ?? const []),
-    ];
   }
+
+  /// See [assembleAttendances].
+  Future<List<Attendance>> _assemble(List<AttendanceRow> rows) =>
+      assembleAttendances(_db, rows);
 
   List<PayrollPeriod> _toPeriods(List<PayrollPeriodRow> rows) =>
       rows.map(payrollPeriodFromRow).toList();
 
-  static DateTime _dayOf(DateTime v) => DateTime(v.year, v.month, v.day);
 }

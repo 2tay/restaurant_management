@@ -7,6 +7,7 @@ import '../../core/utils/employee_status.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/models.dart';
 import 'employee_avatar.dart';
+import 'retired_chip.dart';
 import 'search_field.dart';
 
 /// Pick one employee by name or PIN — the combobox the pointage board and the
@@ -451,18 +452,34 @@ class _OptionRow extends StatelessWidget {
         ),
         child: Row(
           children: [
-            EmployeeAvatar(employee: employee, size: 28),
+            EmployeeAvatar(
+              employee: employee,
+              size: 28,
+              dimmed: employee.archivedAt != null,
+            ),
             const SizedBox(width: AppSpacing.sm),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    employeeDisplayName(employee),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodyMedium,
+                  // A retired person is listed only where they still matter
+                  // (the payroll screen, while owed days) — and says so.
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          employeeDisplayName(employee),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodyMedium,
+                        ),
+                      ),
+                      if (employee.archivedAt != null) ...[
+                        const SizedBox(width: AppSpacing.sm),
+                        const RetiredChip(),
+                      ],
+                    ],
                   ),
                   if (showPin)
                     Text(

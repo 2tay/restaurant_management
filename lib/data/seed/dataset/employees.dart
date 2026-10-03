@@ -20,7 +20,7 @@ abstract final class EmployeeIds {
 /// Names are plausible-but-invented, same reasoning as `mockSuppliers`.
 ///
 /// Brasserie du Sablon carries the full roster:
-/// - one **owner** (Marc — also `mockCurrentEmployee`), one **manager**
+/// - one **owner** (Marc — the session a test opens with), one **manager**
 ///   (Amélie), the rest **staff**
 /// - every employee is paid an hourly rate
 /// - one **archived** record (Camille) so the "retiré" state is demoable

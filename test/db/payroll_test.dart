@@ -92,16 +92,14 @@ void main() {
 
   group('the maths', () {
     test('every employee is paid their own hourly rate', () async {
-      final settings = await StoreRepository(db).settings(StoreIds.sablon);
       final julien = (await employees.employee(EmployeeIds.julien))!;
       final karim = (await employees.employee(EmployeeIds.karim))!;
 
-      expect(hourlyRate(julien, settings), julien.pay);
-      expect(hourlyRate(karim, settings), karim.pay);
+      expect(hourlyRate(julien), julien.pay);
+      expect(hourlyRate(karim), karim.pay);
     });
 
     test('a day that is not done is worth nothing', () async {
-      final settings = await StoreRepository(db).settings(StoreIds.sablon);
       final julien = (await employees.employee(EmployeeIds.julien))!;
       final open = Attendance(
         id: 'x',
@@ -112,7 +110,62 @@ void main() {
         sessions: [AttendanceSession(clockInAt: DateTime(2026, 1, 5, 9))],
         paymentStatus: PaymentStatus.unpaid,
       );
-      expect(dayAmount(open, julien, settings), 0);
+      expect(dayAmount(open, julien), 0);
+    });
+
+    test('a day is worth its rate × the time worked over every session',
+        () {
+      DateTime at(int h, int m) => DateTime(2026, 1, 5, h, m);
+      final split = Attendance(
+        id: 'x',
+        storeId: StoreIds.sablon,
+        employeeId: EmployeeIds.julien,
+        date: DateTime(2026, 1, 5),
+        status: AttendanceStatus.done,
+        sessions: [
+          AttendanceSession(clockInAt: at(9, 0), clockOutAt: at(12, 0)),
+          AttendanceSession(
+            clockInAt: at(18, 0),
+            clockOutAt: at(22, 30),
+            pauses: [AttendancePause(startAt: at(20, 0), endAt: at(20, 15))],
+          ),
+        ],
+        paymentStatus: PaymentStatus.unpaid,
+      );
+      // 3 h + 4 h 30 − 15 min = 7 h 15, at 12 €/h.
+      expect(dayAmountAt(split, 12), 87);
+    });
+
+    test('a paid day keeps the rate frozen on its run, an unpaid one follows '
+        'the current rate', () async {
+      final karim = (await employees.employee(EmployeeIds.karim))!;
+      final run = (await payroll.period(PayrollPeriodIds.karimSeed))!;
+      // The same run, as if Karim had been paid at a rate he no longer has.
+      final older = PayrollPeriod(
+        id: run.id,
+        storeId: run.storeId,
+        employeeId: run.employeeId,
+        startDate: run.startDate,
+        endDate: run.endDate,
+        workedDays: run.workedDays,
+        totalWorkedHours: run.totalWorkedHours,
+        appliedRate: karim.pay - 2,
+        computedAmount: run.computedAmount,
+        status: run.status,
+        paidByEmployeeId: run.paidByEmployeeId,
+        paidAt: run.paidAt,
+        createdAt: run.createdAt,
+      );
+
+      expect(dayRate(karim, null), karim.pay);
+      expect(dayRate(karim, older), karim.pay - 2);
+    });
+
+    test("the seeded run's frozen rate is Karim's hourly rate", () async {
+      final karim = (await employees.employee(EmployeeIds.karim))!;
+      final run = (await payroll.period(PayrollPeriodIds.karimSeed))!;
+      expect(run.appliedRate, karim.pay);
+      expect(run.computedAmount, closeTo(run.totalWorkedHours * karim.pay, 1e-9));
     });
   });
 
@@ -295,6 +348,97 @@ void main() {
       );
     });
 
+    // Audit L9: pay exactly what was confirmed, or nothing.
+    group('against the confirmed preview', () {
+      Future<int> periodCount() async =>
+          (await db.select(db.payrollPeriods).get()).length;
+
+      test('pays it when nothing changed', () async {
+        await seedDoneDay(4, employeeId: EmployeeIds.julien, clockIn: (9, 0),
+            clockOut: (15, 0));
+        final shown = await payroll.preview(EmployeeIds.julien, StoreIds.sablon);
+
+        final period = await payroll.pay(
+          EmployeeIds.julien,
+          StoreIds.sablon,
+          paidByEmployeeId: EmployeeIds.marc,
+          expected: shown,
+          now: seedInstant,
+        );
+        expect(period!.computedAmount, closeTo(shown.amount, 0.001));
+      });
+
+      test('a day finished since the preview: nothing is paid', () async {
+        await seedDoneDay(4, employeeId: EmployeeIds.julien, clockIn: (9, 0),
+            clockOut: (15, 0));
+        final shown = await payroll.preview(EmployeeIds.julien, StoreIds.sablon);
+        final before = await periodCount();
+
+        // Julien clocks out of another day while the payer types the PIN.
+        await seedDoneDay(5, employeeId: EmployeeIds.julien, clockIn: (9, 0),
+            clockOut: (16, 0));
+
+        await expectLater(
+          payroll.pay(
+            EmployeeIds.julien,
+            StoreIds.sablon,
+            paidByEmployeeId: EmployeeIds.marc,
+            expected: shown,
+            now: seedInstant,
+          ),
+          throwsA(isA<PayrollPreviewOutdated>()),
+        );
+        expect(await periodCount(), before);
+        final now = await payroll.preview(EmployeeIds.julien, StoreIds.sablon);
+        expect(now.days, hasLength(2), reason: 'both days still unpaid');
+      });
+
+      test('a rate changed since the preview: nothing is paid', () async {
+        await seedDoneDay(4, employeeId: EmployeeIds.julien, clockIn: (9, 0),
+            clockOut: (15, 0));
+        final shown = await payroll.preview(EmployeeIds.julien, StoreIds.sablon);
+        final julien = (await employees.employee(EmployeeIds.julien))!;
+        await employees.update(julien.id, pay: julien.pay + 2);
+
+        await expectLater(
+          payroll.pay(
+            EmployeeIds.julien,
+            StoreIds.sablon,
+            paidByEmployeeId: EmployeeIds.marc,
+            expected: shown,
+            now: seedInstant,
+          ),
+          throwsA(isA<PayrollPreviewOutdated>()),
+        );
+      });
+
+      test('the shown days paid elsewhere in between: refused, not empty',
+          () async {
+        await seedDoneDay(4, employeeId: EmployeeIds.julien, clockIn: (9, 0),
+            clockOut: (15, 0));
+        final shown = await payroll.preview(EmployeeIds.julien, StoreIds.sablon);
+        await payroll.pay(
+          EmployeeIds.julien,
+          StoreIds.sablon,
+          paidByEmployeeId: EmployeeIds.marc,
+          now: seedInstant,
+        );
+        final before = await periodCount();
+
+        await expectLater(
+          payroll.pay(
+            EmployeeIds.julien,
+            StoreIds.sablon,
+            paidByEmployeeId: EmployeeIds.marc,
+            expected: shown,
+            now: seedInstant,
+          ),
+          throwsA(isA<PayrollPreviewOutdated>()),
+        );
+        expect(await periodCount(), before);
+      });
+    });
+
     test('two concurrent pay calls leave exactly one period, whole', () async {
       await seedDoneDay(4, employeeId: EmployeeIds.julien, clockIn: (9, 0),
           clockOut: (17, 0));
@@ -441,24 +585,6 @@ void main() {
     });
   });
 
-  group('unpaidFinishedDayCount', () {
-    test('counts only finished, not-yet-locked days at the store', () async {
-      final base = await payroll.unpaidFinishedDayCount(StoreIds.sablon);
-
-      await seedDoneDay(3, employeeId: EmployeeIds.marc, clockIn: (8, 0),
-          clockOut: (17, 0));
-      expect(await payroll.unpaidFinishedDayCount(StoreIds.sablon), base + 1);
-
-      // A paid day does not count.
-      await seedDoneDay(4, employeeId: EmployeeIds.marc, clockIn: (8, 0),
-          clockOut: (17, 0), payrollPeriodId: PayrollPeriodIds.karimSeed);
-      expect(await payroll.unpaidFinishedDayCount(StoreIds.sablon), base + 1);
-
-      // Another store is unaffected.
-      expect(await payroll.unpaidFinishedDayCount(StoreIds.liege), 0);
-    });
-  });
-
   test('the seed has paid periods, each consistent with its days', () async {
     final periods = await db.select(db.payrollPeriods).get();
     expect(periods.where((p) => p.status == PayrollStatus.paid), isNotEmpty);
@@ -469,5 +595,51 @@ void main() {
           .get();
       expect(covered, isNotEmpty, reason: period.id);
     }
+  });
+
+  // Audit L6: a retired employee still owed finished days stays on the payroll
+  // screen — listed, counted and payable — until those days are paid. The seed
+  // has one: Camille, archived with a finished day still unpaid.
+  group('a retired employee still owed days', () {
+    test('stays in the payable list, and drops off once paid', () async {
+      final camille = (await employees.employee(EmployeeIds.camille))!;
+      expect(camille.archivedAt, isNotNull);
+      final owed = await payroll.preview(EmployeeIds.camille, StoreIds.sablon);
+      expect(owed.isEmpty, isFalse, reason: 'the seed owes Camille a day');
+
+      final listed = await payroll.watchPayableEmployees(StoreIds.sablon).first;
+      expect(listed.map((e) => e.id), contains(EmployeeIds.camille));
+
+      await payroll.pay(
+        EmployeeIds.camille,
+        StoreIds.sablon,
+        paidByEmployeeId: EmployeeIds.marc,
+        now: seedInstant,
+      );
+      final after = await payroll.watchPayableEmployees(StoreIds.sablon).first;
+      expect(after.map((e) => e.id), isNot(contains(EmployeeIds.camille)));
+    });
+
+    test('their unpaid days count in the all-employees view', () async {
+      final all = await payroll.days(StoreIds.sablon, pageSize: 1000);
+      expect(all.employeesById.keys, contains(EmployeeIds.camille));
+      expect(
+        all.rows.where(
+          (a) =>
+              a.employeeId == EmployeeIds.camille &&
+              a.paymentStatus == PaymentStatus.unpaid,
+        ),
+        isNotEmpty,
+      );
+    });
+
+    test('an active employee is listed even when owed nothing', () async {
+      final listed = await payroll.watchPayableEmployees(StoreIds.sablon).first;
+      final active = await employees.activeEmployees(StoreIds.sablon);
+      expect(
+        listed.map((e) => e.id),
+        containsAll(active.map((e) => e.id)),
+      );
+    });
   });
 }

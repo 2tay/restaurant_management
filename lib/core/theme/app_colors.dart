@@ -50,6 +50,9 @@ abstract final class AppColors {
   // appears roughly once per screen.
   // ---------------------------------------------------------------------------
 
+  /// The sidebar's ground only — deeper than any action colour so the rail
+  /// never competes with a button.
+  static const Color primary800 = Color(0xFF08504A);
   static const Color primary700 = Color(0xFF0B5F58);
   static const Color primary600 = Color(0xFF0F766E);
   static const Color primary500 = Color(0xFF148F84);
@@ -101,6 +104,16 @@ abstract final class AppColors {
     solid: primary600,
     foreground: onPrimaryContainer,
     container: primaryContainer,
+  );
+
+  /// A brand-tinted block on a white card: [primary600] at 8 % behind
+  /// [primary600] text — the hourly rate on a Personnel card
+  /// (`HighlightTile`), and the board's « journée fermée » notice, which reads
+  /// as information rather than a warning.
+  static const StockStatusColors brandTint = StockStatusColors(
+    solid: primary600,
+    foreground: primary600,
+    container: Color(0x140F766E),
   );
 
   // ---------------------------------------------------------------------------

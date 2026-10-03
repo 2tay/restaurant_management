@@ -8,6 +8,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:stock_inventory/app/navigation.dart';
 import 'package:stock_inventory/core/theme/app_colors.dart';
 import 'package:stock_inventory/core/theme/app_theme.dart';
 import 'package:stock_inventory/core/utils/formatters.dart';
@@ -1045,6 +1046,65 @@ void main() {
         'Début : 01/09/2026',
       );
     });
+
+    testWidgets('opens a larger picker with smaller type, shrinking to fit', (
+      tester,
+    ) async {
+      Future<(double scale, double dayFont)> open(Size size) async {
+        tester.view.physicalSize = size;
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+        await tester.pumpWidget(
+          _host(
+            DateFilter(
+              label: 'Début',
+              value: DateTime(2026, 9, 1),
+              firstDate: DateTime(2000),
+              lastDate: DateTime(2026, 12, 31),
+              isDefault: true,
+              onChanged: (_) {},
+            ),
+          ),
+        );
+        await tester.tap(find.byType(FilterPill));
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull, reason: '$size');
+        expect(find.byType(DatePickerDialog), findsOneWidget);
+
+        final transform = tester.widget<Transform>(
+          find
+              .ancestor(
+                of: find.byType(DatePickerDialog),
+                matching: find.byType(Transform),
+              )
+              .first,
+        );
+        final scale = transform.transform.getMaxScaleOnAxis();
+        final day = tester.widget<Text>(
+          find.descendant(
+            of: find.byType(DatePickerDialog),
+            matching: find.text('15'),
+          ),
+        );
+        final font = DefaultTextStyle.of(
+          tester.element(find.text('15')),
+        ).style.merge(day.style).fontSize!;
+
+        await tester.tap(find.text('Annuler'));
+        await tester.pumpAndSettle();
+        return (scale, font);
+      }
+
+      // Room to spare on a landscape tablet: 20 % larger, digits at 13 on
+      // screen however much the box grew.
+      final (tabletScale, tabletFont) = await open(const Size(1280, 800));
+      expect(tabletScale, closeTo(1.2, 0.001));
+      expect(tabletFont * tabletScale, closeTo(13, 0.01));
+
+      // A phone has no room to grow into: Material's own size.
+      final (phoneScale, _) = await open(const Size(360, 640));
+      expect(phoneScale, closeTo(1, 0.001));
+    });
   });
 
   group('WeekdayDate', () {
@@ -1078,19 +1138,52 @@ void main() {
       paymentStatus: PaymentStatus.unpaid,
     );
 
-    Future<void> pump(WidgetTester tester, Attendance entry) async {
+    Future<void> pump(
+      WidgetTester tester,
+      Attendance entry, {
+      Map<String, String> exitAuthors = const {},
+    }) async {
       await initializeDateFormatting(Formatters.locale);
       await tester.pumpWidget(
         _host(
           SizedBox(
             width: 400,
-            child: AttendanceSessions(entry: entry, maxBreakMinutes: 30),
+            child: AttendanceSessions(
+              entry: entry,
+              maxBreakMinutes: 30,
+              exitAuthors: exitAuthors,
+            ),
           ),
         ),
       );
     }
 
-    testWidgets('one session: the timeline straight away, no heading', (
+    testWidgets("a Départ entered in the employee's place says who", (
+      tester,
+    ) async {
+      await pump(
+        tester,
+        day([
+          AttendanceSession(clockInAt: at(8, 0), clockOutAt: at(12, 0)),
+          AttendanceSession(
+            clockInAt: at(14, 0),
+            clockOutAt: at(18, 0),
+            exitSetByEmployeeId: 'marc',
+          ),
+          AttendanceSession(
+            clockInAt: at(19, 0),
+            clockOutAt: at(20, 0),
+            exitSetByEmployeeId: 'gone',
+          ),
+        ]),
+        exitAuthors: const {'marc': 'Marc Delvaux'},
+      );
+      expect(find.text('Départ'), findsOneWidget, reason: 'clocked out alone');
+      expect(find.text('Départ · saisi par Marc Delvaux'), findsOneWidget);
+      expect(find.text('Départ · saisi par un responsable'), findsOneWidget);
+    });
+
+    testWidgets('one session: titled Session N° 1, like a split day', (
       tester,
     ) async {
       await pump(
@@ -1103,7 +1196,8 @@ void main() {
           ),
         ]),
       );
-      expect(find.textContaining('Session'), findsNothing);
+      expect(find.text('Session N° 1'), findsOneWidget);
+      expect(find.textContaining('Session N° 2'), findsNothing);
       expect(find.text('08:00'), findsOneWidget);
       expect(find.text('16:00'), findsOneWidget);
       // A 30-minute break against a 30-minute allowance: no alert.
@@ -1259,8 +1353,13 @@ void main() {
       expect(y(pin), greaterThan(y(name)));
       expect(y(date), greaterThan(y(pin)));
       // A line under the date saying what follows.
-      final intro = find.textContaining('Les pointages de la journée');
+      final intro = find.byKey(const ValueKey('attendance-day-intro'));
       expect(intro, findsOneWidget);
+      // One short line, not a paragraph.
+      expect(
+        tester.widget<Text>(intro).data,
+        'Pointages, temps travaillé et pauses de la journée.',
+      );
       expect(y(intro), greaterThan(y(date)));
       expect(y(session), greaterThan(y(intro)));
       expect(y(summary), greaterThan(y(find.text('18:00'))));
@@ -1268,7 +1367,10 @@ void main() {
       // 4 h + 4 h, minus the 45-min break; one break.
       // A 2 × 2 table: label | value.
       final table = tester.widget<Table>(
-        find.byKey(const ValueKey('attendance-day-summary')),
+        find.descendant(
+          of: find.byKey(const ValueKey('attendance-day-summary')),
+          matching: find.byType(Table),
+        ),
       );
       expect(table.children, hasLength(2));
       expect(table.children.every((r) => r.children.length == 2), isTrue);
@@ -1297,6 +1399,185 @@ void main() {
       await pump(tester, day(), showPin: false);
       expect(find.text('Amélie Laurent'), findsOneWidget);
       expect(find.text('4821'), findsNothing);
+    });
+  });
+
+  group('PayrollDayDetail', () {
+    DateTime at(int h, int m) => DateTime(2026, 10, 24, h, m);
+    final karim = Employee(
+      id: 'e',
+      storeId: 's',
+      firstName: 'Karim',
+      lastName: 'Haddouch',
+      pin: '4821',
+      phone: '0',
+      email: 'k@x.c',
+      hireDate: DateTime(2026),
+      role: EmployeeRole.staff,
+      pay: 12,
+      createdAt: DateTime(2026),
+    );
+    // 09:00–12:00, then 18:00–22:30 with a 15-min break: 7 h 15 worked.
+    Attendance day({PaymentStatus status = PaymentStatus.unpaid}) =>
+        Attendance(
+          id: 'a',
+          storeId: 's',
+          employeeId: 'e',
+          date: DateTime(2026, 10, 24),
+          status: AttendanceStatus.done,
+          sessions: [
+            AttendanceSession(clockInAt: at(9, 0), clockOutAt: at(12, 0)),
+            AttendanceSession(
+              clockInAt: at(18, 0),
+              clockOutAt: at(22, 30),
+              pauses: [
+                AttendancePause(startAt: at(20, 0), endAt: at(20, 15)),
+              ],
+            ),
+          ],
+          paymentStatus: status,
+        );
+
+    Future<void> pump(
+      WidgetTester tester,
+      Attendance entry, {
+      double rate = 12,
+      DateTime? paidAt,
+      Future<bool> Function()? onPay,
+      VoidCallback? onClose,
+    }) async {
+      await initializeDateFormatting(Formatters.locale);
+      await tester.pumpWidget(
+        _host(
+          DrawerScope(
+            close: onClose ?? () {},
+            child: SizedBox(
+              width: 440,
+              child: SingleChildScrollView(
+                child: PayrollDayDetail(
+                  entry: entry,
+                  employee: karim,
+                  rate: rate,
+                  amount: rate * 7.25,
+                  paidAt: paidAt,
+                  maxBreakMinutes: 30,
+                  onPay: onPay,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    String value(WidgetTester tester, String key) =>
+        tester.widget<Text>(find.byKey(ValueKey(key))).data!;
+
+    testWidgets('reads like the pointage drawer: identity, day, every '
+        'session titled, then the summary with the rate and the amount', (
+      tester,
+    ) async {
+      await pump(tester, day());
+      double y(Finder f) => tester.getTopLeft(f).dy;
+
+      final name = find.text('Karim Haddouch');
+      final date = find.text('Samedi 24/10/2026');
+      final intro = find.byKey(const ValueKey('payroll-day-intro'));
+      final first = find.text('Session N° 1');
+      final second = find.text('Session N° 2');
+      final summary = find.byKey(const ValueKey('payroll-day-summary'));
+      for (final f in [name, date, intro, first, second, summary]) {
+        expect(f, findsOneWidget);
+      }
+      expect(y(date), greaterThan(y(name)));
+      expect(y(intro), greaterThan(y(date)));
+      expect(y(first), greaterThan(y(intro)));
+      expect(y(second), greaterThan(y(first)));
+      expect(y(summary), greaterThan(y(second)));
+
+      expect(
+        tester.widget<Text>(intro).data,
+        'Pointages et montant de la journée.',
+      );
+      // The payment status, not the pointage one; no titled header.
+      expect(find.byType(PaymentStatusBadge), findsOneWidget);
+      expect(find.byType(AttendanceStatusBadge), findsNothing);
+      expect(find.text('Détail du paiement'), findsNothing);
+
+      expect(value(tester, 'payroll-day-worked'), '7 h 15');
+      expect(value(tester, 'payroll-day-pauses'), '15 min');
+      expect(
+        value(tester, 'payroll-day-rate'),
+        '${Formatters.price(12)}/h',
+      );
+      // Rate × time worked over both sessions — no overtime anywhere.
+      expect(value(tester, 'payroll-day-amount'), Formatters.price(87));
+      expect(
+        find.text('Montant (${Formatters.price(12)} × 7 h 15)'),
+        findsOneWidget,
+      );
+      expect(find.textContaining('supplémentaires'), findsNothing);
+      expect(find.byKey(const ValueKey('payroll-day-paid-at')), findsNothing);
+    });
+
+    testWidgets('a paid day: its payment date, its frozen rate, no button', (
+      tester,
+    ) async {
+      await pump(
+        tester,
+        day(status: PaymentStatus.paid),
+        rate: 10,
+        paidAt: DateTime(2026, 10, 26),
+        onPay: () async => true,
+      );
+      expect(value(tester, 'payroll-day-paid-at'), '26/10/2026');
+      expect(
+        value(tester, 'payroll-day-rate'),
+        '${Formatters.price(10)}/h',
+      );
+      expect(value(tester, 'payroll-day-amount'), Formatters.price(72.5));
+      expect(find.byType(PrimaryButton), findsNothing);
+    });
+
+    testWidgets('an unpaid day: « Payer ce jour » pays, then closes the '
+        'drawer', (tester) async {
+      var paid = 0;
+      var closed = 0;
+      await pump(
+        tester,
+        day(),
+        onPay: () async {
+          paid++;
+          return true;
+        },
+        onClose: () => closed++,
+      );
+      final button = find.widgetWithText(PrimaryButton, 'Payer ce jour');
+      await tester.ensureVisible(button);
+      await tester.tap(button);
+      await tester.pumpAndSettle();
+      expect(paid, 1);
+      expect(closed, 1);
+    });
+
+    testWidgets('a cancelled payment leaves the drawer open', (tester) async {
+      var closed = 0;
+      await pump(
+        tester,
+        day(),
+        onPay: () async => false,
+        onClose: () => closed++,
+      );
+      final button = find.widgetWithText(PrimaryButton, 'Payer ce jour');
+      await tester.ensureVisible(button);
+      await tester.tap(button);
+      await tester.pumpAndSettle();
+      expect(closed, 0);
+    });
+
+    testWidgets('no onPay: no button', (tester) async {
+      await pump(tester, day());
+      expect(find.byType(PrimaryButton), findsNothing);
     });
   });
 

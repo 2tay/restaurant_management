@@ -29,8 +29,8 @@ class PayrollPeriods extends Table with Touched, Deletable {
   IntColumn get workedDays => integer()();
   RealColumn get totalWorkedHours => real()();
 
-  /// Snapshot of the employee's pay (monthly EUR for `fixed`, EUR/h for
-  /// `extra`) at pay time — a later raise cannot rewrite history.
+  /// Snapshot of the employee's hourly rate (EUR/h) at pay time — a later
+  /// raise cannot rewrite history.
   RealColumn get appliedRate => real()();
   RealColumn get computedAmount => real()();
 

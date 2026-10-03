@@ -2,15 +2,15 @@
 ///
 /// Deliberately only three, same reasoning the old `TeamRole` carried: a
 /// restaurant is not an enterprise, and a permissions matrix nobody
-/// understands is worse than none. Enforcement lands in Phase 6 — until then
-/// the role is stored and displayed but gates nothing.
+/// understands is worse than none. `core/utils/permissions.dart` holds what
+/// each role may do, and `router.dart`'s guard enforces it.
 enum EmployeeRole {
   /// Propriétaire — full access to every store on the account, including
   /// payroll and staff management.
   owner,
 
-  /// Gérant — runs the store day to day: the pointage board, attendance
-  /// history, marking absences. No payroll, no staff management.
+  /// Gérant — runs the store day to day: the pointage board and the attendance
+  /// history. No payroll, no staff management.
   manager,
 
   /// Employé — has no active access to the app. Their pointage is done for
@@ -21,7 +21,7 @@ enum EmployeeRole {
 /// A member of staff at one store.
 ///
 /// This is the single "person" model for the app: it carries both the
-/// employment facts (contract, pay, PIN) and the application access
+/// employment facts (hourly rate, PIN) and the application access
 /// ([role]) that the removed `TeamMember` used to hold separately. One store
 /// per person — see `.claude/phase_gestion_employee.md` decision 2; an owner
 /// spans stores by navigating between them, not by a list on this record.
@@ -55,7 +55,8 @@ class Employee {
   final String lastName;
 
   /// Carte d'identité nationale — the identity document number kept on file.
-  /// Unique account-wide, and the future login identifier (Phase 6).
+  /// Unique account-wide; it is the login identifier, and what confirms a
+  /// pointage or a payment.
   final String pin;
 
   final String phone;
@@ -63,9 +64,8 @@ class Employee {
   /// Unique account-wide.
   final String email;
 
-  /// Optional photo. Mocked, same as `Store.imageAsset`: a nullable
-  /// asset-path string with no picker plumbing behind it. Null renders an
-  /// initials tile.
+  /// Optional photo: the path of a file `EmployeePhotoStore` copied in, picked
+  /// on the employee form. Null renders an initials tile.
   final String? photoAsset;
 
   final DateTime hireDate;
@@ -77,7 +77,7 @@ class Employee {
 
   final DateTime createdAt;
 
-  /// Null while active. Set by `EmployeeMutations.archive`, cleared by
+  /// Null while active. Set by `EmployeeRepository.archive`, cleared by
   /// `.restore`. There is no hard delete.
   final DateTime? archivedAt;
 }

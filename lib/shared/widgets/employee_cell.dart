@@ -38,22 +38,30 @@ class EmployeeCell extends StatelessWidget {
       children: [
         EmployeeAvatar(employee: employee, size: 32, dimmed: dimmed),
         const SizedBox(width: AppSpacing.md),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              employeeDisplayName(employee),
-              style: theme.textTheme.bodyMedium,
-            ),
-            Text(
-              employee.pin,
-              key: const ValueKey('employee-cell-pin'),
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: AppColors.textSecondary,
+        // Flexible: in a narrow column the name ellipsizes rather than push
+        // a trailing chip (« Retiré ») out of the cell.
+        Flexible(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                employeeDisplayName(employee),
+                style: theme.textTheme.bodyMedium,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
-            ),
-          ],
+              Text(
+                employee.pin,
+                key: const ValueKey('employee-cell-pin'),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
         ),
         if (trailing != null) ...[
           const SizedBox(width: AppSpacing.sm),

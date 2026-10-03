@@ -3010,6 +3010,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get employeeFormPayHint => 'Ex. 15,50';
 
   @override
+  String get employeeFormPayInvalid => 'Saisissez un taux horaire positif.';
+
+  @override
   String get employeeFormPasswordConfirmHint => 'Répétez les 4 chiffres';
 
   @override
@@ -3081,6 +3084,34 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get employeeArchiveBody =>
       'Cette personne n\'apparaîtra plus dans le personnel actif. Son historique de pointage et de paie reste conservé.';
+
+  @override
+  String employeeArchiveWarnInService(String name) {
+    return '$name est en service : sa journée restera ouverte jusqu\'à la fermeture de la journée de service.';
+  }
+
+  @override
+  String employeeArchiveWarnUnpaid(int count, String amount) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count jours terminés ne sont pas encore payés',
+      one: '1 jour terminé n\'est pas encore payé',
+    );
+    return '$_temp0 ($amount). Ils resteront payables dans Paiement.';
+  }
+
+  @override
+  String get employeeArchiveRefusedSelf =>
+      'Vous ne pouvez pas vous retirer vous-même.';
+
+  @override
+  String get employeeArchiveRefusedLastOwner =>
+      'Impossible de retirer le dernier propriétaire : lui seul peut payer et voir tous les établissements.';
+
+  @override
+  String get employeeArchiveFailed =>
+      'Cette personne n\'a pas été retirée. Réessayez.';
 
   @override
   String get employeeArchiveConfirm => 'Retirer';
@@ -3173,18 +3204,103 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get liveDateLabel => 'Date';
-
-  @override
-  String get liveTimeLabel => 'Heure';
-
-  @override
   String get timeclockViewDetail => 'Voir détails';
 
   @override
   String timeclockStartDayPrompt(String date) {
     return 'Vous n\'avez pas encore commencé votre journée du $date. Pointez pour la démarrer.';
   }
+
+  @override
+  String timeclockBusinessDayOpen(String date, String time) {
+    return 'Journée du $date · ouverte à $time';
+  }
+
+  @override
+  String timeclockBusinessDayOverdue(int hours) {
+    return 'Ouverte depuis plus de $hours h. Pensez à la fermer : tant qu\'elle reste ouverte, chaque nouveau pointage y est rattaché.';
+  }
+
+  @override
+  String timeclockBusinessDayClosed(String date, String time) {
+    return 'Journée du $date fermée à $time';
+  }
+
+  @override
+  String get timeclockBusinessDayClosedBody => 'Le pointage reprendra demain.';
+
+  @override
+  String get timeclockDayClosed => 'Journée fermée';
+
+  @override
+  String get timeclockActionRefused =>
+      'Action non enregistrée : le pointage a changé entre-temps ou la journée est fermée.';
+
+  @override
+  String get timeclockNoBusinessDay => 'Aucune journée ouverte';
+
+  @override
+  String timeclockNoBusinessDayBody(String time) {
+    return 'Avant $time, un pointage n\'ouvre pas la journée tout seul. Elle s\'ouvrira au premier pointage à partir de $time, ou tout de suite avec « Ouvrir la journée ».';
+  }
+
+  @override
+  String get timeclockOpenDay => 'Ouvrir la journée';
+
+  @override
+  String get timeclockDayNotOpen => 'Journée non ouverte';
+
+  @override
+  String timeclockOpenDayDone(String date) {
+    return 'Journée du $date ouverte.';
+  }
+
+  @override
+  String get timeclockOpenDayFailed =>
+      'La journée n\'a pas été ouverte : une journée existe déjà pour cette date.';
+
+  @override
+  String get timeclockCloseDay => 'Fermer la journée';
+
+  @override
+  String timeclockCloseDayTitle(String date) {
+    return 'Fermer la journée du $date';
+  }
+
+  @override
+  String get timeclockCloseDayStillIn =>
+      'Ces employés sont encore en service. Indiquez l\'heure de sortie de chacun :';
+
+  @override
+  String get timeclockCloseDayAllOut => 'Tout le monde a terminé son service.';
+
+  @override
+  String get timeclockCloseDayFinal =>
+      'Une fois fermée, la journée ne peut plus être rouverte.';
+
+  @override
+  String timeclockCloseDayExit(String time) {
+    return 'Sortie à $time';
+  }
+
+  @override
+  String timeclockCloseDayExitBeforeStart(String time) {
+    return 'Avant son arrivée ($time)';
+  }
+
+  @override
+  String timeclockCloseDayExitBeforePause(String time) {
+    return 'Avant le début de sa pause ($time)';
+  }
+
+  @override
+  String timeclockCloseDayDone(String date) {
+    return 'Journée du $date fermée.';
+  }
+
+  @override
+  String get timeclockCloseDayFailed =>
+      'La journée n\'a pas été fermée : le pointage a changé entre-temps. Réessayez.';
 
   @override
   String timeclockSessionTitle(int number) {
@@ -3204,7 +3320,61 @@ class AppLocalizationsFr extends AppLocalizations {
   String get timeclockLogDeparture => 'Départ';
 
   @override
+  String timeclockLogDepartureSetBy(String name) {
+    return 'Départ · saisi par $name';
+  }
+
+  @override
+  String get timeclockLogDepartureSetByUnknown =>
+      'Départ · saisi par un responsable';
+
+  @override
+  String get attendanceCorrectExit => 'Corriger la sortie';
+
+  @override
+  String get attendanceCorrectExitPick => 'Choisir l\'heure';
+
+  @override
+  String attendanceCorrectExitBody(String date, String time) {
+    return 'La sortie du $date n\'a jamais été pointée (arrivée à $time). Indiquez l\'heure à laquelle le service s\'est terminé :';
+  }
+
+  @override
+  String get attendanceCorrectExitFuture =>
+      'Cette heure n\'est pas encore passée';
+
+  @override
+  String attendanceCorrectExitNextDay(String date) {
+    return 'Le lendemain, $date';
+  }
+
+  @override
+  String get attendanceCorrectExitSigned =>
+      'L\'heure saisie est enregistrée à votre nom.';
+
+  @override
+  String attendanceCorrectExitDone(String date) {
+    return 'Sortie du $date corrigée.';
+  }
+
+  @override
+  String get attendanceCorrectExitFailed =>
+      'La sortie n\'a pas été corrigée : le pointage a changé entre-temps. Réessayez.';
+
+  @override
   String get storeSettingsHours => 'Pauses';
+
+  @override
+  String get storeSettingsBusinessDay => 'Journée de service';
+
+  @override
+  String storeSettingsAutoOpen(String time) {
+    return 'Ouverture automatique à partir de $time';
+  }
+
+  @override
+  String get storeSettingsAutoOpenHelp =>
+      'Avant cette heure, un pointage n\'ouvre pas la journée tout seul ; un gérant peut toujours l\'ouvrir depuis le tableau de pointage. À 00:00, la journée s\'ouvre au premier pointage, à toute heure.';
 
   @override
   String get storeSettingsMaxBreak => 'Pause max (minutes)';
@@ -3293,11 +3463,10 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get attendanceDayIntro =>
-      'Les pointages de la journée, session par session, puis le temps travaillé, les pauses et les alertes éventuelles.';
+      'Pointages, temps travaillé et pauses de la journée.';
 
   @override
-  String get attendanceDaySummary =>
-      'Résumé de la journée : le temps travaillé et les pauses prises.';
+  String get attendanceDaySummary => 'Résumé de la journée';
 
   @override
   String get attendanceTotalWorked => 'Durée totale travaillée';
@@ -3312,9 +3481,6 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get attendanceViewDetail => 'Voir le détail';
-
-  @override
-  String get attendanceColumnSchedule => 'Horaires';
 
   @override
   String attendanceBreakSummary(int count, String duration) {
@@ -3384,12 +3550,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get payrollColumnDate => 'Date';
 
   @override
-  String get payrollColumnClockIn => 'Arrivée';
-
-  @override
-  String get payrollColumnClockOut => 'Départ';
-
-  @override
   String get payrollColumnWorked => 'Durée travaillée';
 
   @override
@@ -3402,7 +3562,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get payrollColumnPaidAt => 'Payé le';
 
   @override
-  String get payrollDetailPayNow => 'Payer maintenant';
+  String get payrollDetailPayNow => 'Payer ce jour';
 
   @override
   String get payrollPayAction => 'Payer';
@@ -3427,36 +3587,31 @@ class AppLocalizationsFr extends AppLocalizations {
   String get payrollPaid => 'Paiement enregistré';
 
   @override
-  String get payrollColumnHours => 'Horaires';
+  String get payrollPreviewOutdated =>
+      'Les jours à payer ont changé depuis l\'aperçu : rien n\'a été payé. Vérifiez le nouveau montant puis payez à nouveau.';
 
   @override
-  String payrollBreakSummary(int count, String duration) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count pauses · $duration',
-      one: '1 pause · $duration',
-    );
-    return '$_temp0';
+  String get payrollPayFailed =>
+      'Le paiement n\'a pas été enregistré. Réessayez.';
+
+  @override
+  String get payrollColumnBreaks => 'Pauses';
+
+  @override
+  String get payrollDayIntro => 'Pointages et montant de la journée.';
+
+  @override
+  String get payrollDetailRate => 'Tarif horaire';
+
+  @override
+  String payrollRatePerHour(String rate) {
+    return '$rate/h';
   }
 
   @override
-  String get payrollDetailTitle => 'Détail du paiement';
-
-  @override
-  String get payrollDetailBreakTotal => 'Total pauses';
-
-  @override
-  String get payrollDetailWorkSection => 'Temps de travail';
-
-  @override
-  String get payrollDetailWorked => 'Temps travaillé';
-
-  @override
-  String get payrollDetailRate => 'Taux horaire';
-
-  @override
-  String get payrollDetailTotal => 'Total';
+  String payrollDetailAmount(String rate, String hours) {
+    return 'Montant ($rate × $hours)';
+  }
 
   @override
   String get paymentStatusPaid => 'Payé';
@@ -3489,6 +3644,10 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get loginErrorNoAccess =>
       'Ce compte n\'a pas accès à l\'application. Le pointage se fait au tableau de bord partagé.';
+
+  @override
+  String get loginErrorArchived =>
+      'Ce compte a été retiré de l\'équipe et n\'a plus accès à l\'application.';
 
   @override
   String get employeeFormCredentials => 'Identifiants';
@@ -3858,6 +4017,21 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String identityPromptPointageSubtitle(String action, String name) {
     return '$action · saisissez le numéro PIN de $name';
+  }
+
+  @override
+  String identityPromptOpenDaySubtitle(String date) {
+    return 'Saisissez votre numéro PIN pour ouvrir la journée du $date';
+  }
+
+  @override
+  String identityPromptCloseDaySubtitle(String date) {
+    return 'Saisissez votre numéro PIN pour fermer la journée du $date';
+  }
+
+  @override
+  String identityPromptCorrectExitSubtitle(String date) {
+    return 'Saisissez votre numéro PIN pour corriger la sortie du $date';
   }
 
   @override

@@ -3,7 +3,6 @@ import '../../../models/payroll_period.dart';
 import 'attendances.dart';
 import 'employees.dart';
 import 'reference.dart';
-import 'store_settings.dart';
 import 'stores.dart';
 
 abstract final class PayrollPeriodIds {
@@ -22,50 +21,56 @@ abstract final class PayrollPeriodIds {
 ///
 /// Marc (the owner) paid Karim for his two finished days, three and two days
 /// ago — those rows carry `paymentStatus: paid` and this id.
+///
+/// Every run's figures are computed from the very attendance rows it locks, at
+/// the employee's seeded rate — so the run, the frozen rate the paiement
+/// drawer shows, and the day-by-day table all agree.
 final List<PayrollPeriod> mockPayrollPeriods = [
-  PayrollPeriod(
-    id: PayrollPeriodIds.karimSeed,
-    storeId: StoreIds.sablon,
-    employeeId: EmployeeIds.karim,
-    startDate: dayOnly(3),
-    endDate: dayOnly(2),
-    workedDays: 2,
-    totalWorkedHours: 17.25,
-    appliedRate: 2400,
-    computedAmount: 200.53,
-    status: PayrollStatus.paid,
-    paidByEmployeeId: EmployeeIds.marc,
+  _seedPeriod(
+    PayrollPeriodIds.karimSeed,
+    EmployeeIds.karim,
+    StoreIds.sablon,
     paidAt: daysAgo(1),
-    createdAt: daysAgo(1),
   ),
 
-  // TestCalcul — the first half of July, already paid. Figures are computed
-  // from the very attendance rows the period locks, so the run and the
-  // day-by-day paiement table agree.
-  _testCalculPeriod(PayrollPeriodIds.testCalculAyoub, EmployeeIds.ayoub),
-  _testCalculPeriod(PayrollPeriodIds.testCalculHakim, EmployeeIds.hakim),
+  // TestCalcul — the first half of July, already paid.
+  _seedPeriod(
+    PayrollPeriodIds.testCalculAyoub,
+    EmployeeIds.ayoub,
+    StoreIds.testCalcul,
+    paidAt: DateTime(2026, 7, 16),
+  ),
+  _seedPeriod(
+    PayrollPeriodIds.testCalculHakim,
+    EmployeeIds.hakim,
+    StoreIds.testCalcul,
+    paidAt: DateTime(2026, 7, 16),
+  ),
 ];
 
-PayrollPeriod _testCalculPeriod(String id, String employeeId) {
+PayrollPeriod _seedPeriod(
+  String id,
+  String employeeId,
+  String storeId, {
+  required DateTime paidAt,
+}) {
   final employee = mockEmployees.firstWhere((e) => e.id == employeeId);
-  final settings = storeSettingsOrDefault(StoreIds.testCalcul);
   final days =
       mockAttendances.where((a) => a.payrollPeriodId == id).toList()
         ..sort((a, b) => a.date.compareTo(b.date));
 
   final totals = periodTotals(days);
-  final paidAt = DateTime(2026, 7, 16);
 
   return PayrollPeriod(
     id: id,
-    storeId: StoreIds.testCalcul,
+    storeId: storeId,
     employeeId: employeeId,
     startDate: days.first.date,
     endDate: days.last.date,
     workedDays: totals.days,
     totalWorkedHours: totals.workedHours,
     appliedRate: employee.pay,
-    computedAmount: periodAmount(days, employee, settings),
+    computedAmount: periodAmount(days, employee),
     status: PayrollStatus.paid,
     paidByEmployeeId: EmployeeIds.marc,
     paidAt: paidAt,

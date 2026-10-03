@@ -4,6 +4,23 @@ import '../models/employee.dart';
 import 'providers.dart';
 import 'repositories/session_repository.dart';
 
+/// A synchronous snapshot of [currentEmployeeProvider]'s state.
+///
+/// For the one caller that cannot hold a `Ref` and cannot await:
+/// `router.dart`'s `_guard`, which runs inside a go_router `redirect` on every
+/// navigation. [CurrentEmployee] is the only writer — it updates this on every
+/// state change so the guard and the provider never disagree.
+///
+/// A widget test that pumps the app without going through `main()` sets it via
+/// [seedCurrentEmployeeSnapshot] in its fixture.
+Employee? currentEmployeeSnapshot;
+
+/// Test-only: seed [currentEmployeeSnapshot] directly. Used by `db_fixture` /
+/// `app_harness` so a pumped app starts from a known session without a login.
+void seedCurrentEmployeeSnapshot(Employee? employee) {
+  currentEmployeeSnapshot = employee;
+}
+
 /// The signed-in employee, resolved and held in memory.
 ///
 /// A [Notifier], not a `FutureProvider`, on purpose: `router.dart`'s `_guard`
@@ -16,24 +33,6 @@ import 'repositories/session_repository.dart';
 /// [build] returns null — the signed-out state. `main()` (and every widget
 /// test's fixture) calls [hydrate] before `runApp`, so `_guard`'s first
 /// `ref.read` already sees the resolved value rather than a loading one.
-/// A synchronous snapshot of [currentEmployeeProvider]'s state.
-///
-/// For the one caller that cannot hold a `Ref` and cannot await:
-/// `router.dart`'s `_guard`, which runs inside a go_router `redirect` on every
-/// navigation. [CurrentEmployee] is the only writer — it updates this on every
-/// state change so the guard and the provider never disagree.
-///
-/// A widget test that pumps the app without going through `main()` sets it via
-/// [seedCurrentEmployeeSnapshot] in its fixture, the same way the old
-/// `MockSession` default worked.
-Employee? currentEmployeeSnapshot;
-
-/// Test-only: seed [currentEmployeeSnapshot] directly. Used by `db_fixture` /
-/// `app_harness` so a pumped app starts from a known session without a login.
-void seedCurrentEmployeeSnapshot(Employee? employee) {
-  currentEmployeeSnapshot = employee;
-}
-
 class CurrentEmployee extends Notifier<Employee?> {
   @override
   Employee? build() => currentEmployeeSnapshot;

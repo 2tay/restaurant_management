@@ -12,16 +12,15 @@ abstract final class MetaKeys {
   /// instead of taking the clock.
   static const String seededAt = 'seededAt';
 
-  /// The display name every database write is attributed to. The team /
-  /// employees module lives in `lib/mock_data/`, not here, so this is a plain
-  /// string seeded from the current employee rather than a foreign key into an
-  /// `employees` table.
+  /// The display name every stock movement and price change is stamped with —
+  /// a plain string, refreshed from the signed-in employee on every sign-in
+  /// (`SessionRepository.signIn`), so a record keeps the name even after the
+  /// person leaves.
   static const String currentUserName = 'currentUserName';
 
   /// The signed-in employee's id, or absent when nobody is signed in — the
-  /// database-backed session (Phase 2 employé, Stage 7). `db_fixture.dart` seeds
-  /// it so a widget test opens as the account owner, the same default
-  /// `MockSession` gave the mock-backed suites.
+  /// database-backed session. `db_fixture.dart` seeds it so a widget test
+  /// opens as the account owner.
   static const String currentEmployeeId = 'currentEmployeeId';
 
   /// This installation's id, a UUID made the first time the app opens its

@@ -2,18 +2,29 @@ import '../../models/models.dart';
 import 'attendance_status.dart';
 
 /// This employee's hourly rate — [Employee.pay] is already €/h.
-double hourlyRate(Employee employee, StoreSettings settings) => employee.pay;
+double hourlyRate(Employee employee) => employee.pay;
 
 double _hours(Duration d) => d.inMinutes / 60;
 
-/// What one finished day is worth: every worked hour at the hourly rate. Zero
-/// for a day that is not `done` — nothing to pay until the day is closed.
-double dayAmount(Attendance day, Employee employee, StoreSettings settings) {
+/// The rate one day is figured at: the one frozen on its payroll run once the
+/// day is paid ([period]), the employee's current one until then — so a later
+/// raise never rewrites what a paid day shows.
+double dayRate(Employee employee, PayrollPeriod? period) =>
+    period?.appliedRate ?? hourlyRate(employee);
+
+/// What one finished day is worth at [rate] €/h: the time worked over every
+/// session, breaks deducted, at that rate. Zero for a day that is not `done` —
+/// nothing to pay until the day is closed.
+double dayAmountAt(Attendance day, double rate) {
   if (day.status != AttendanceStatus.done) return 0;
   final worked = workedDuration(day);
   if (worked == null) return 0;
-  return hourlyRate(employee, settings) * _hours(worked);
+  return rate * _hours(worked);
 }
+
+/// What one finished day is worth at the employee's current rate.
+double dayAmount(Attendance day, Employee employee) =>
+    dayAmountAt(day, hourlyRate(employee));
 
 /// Totals over a set of finished days.
 ({int days, double workedHours}) periodTotals(Iterable<Attendance> days) {
@@ -30,14 +41,10 @@ double dayAmount(Attendance day, Employee employee, StoreSettings settings) {
 }
 
 /// The amount for a set of finished days.
-double periodAmount(
-  Iterable<Attendance> days,
-  Employee employee,
-  StoreSettings settings,
-) {
+double periodAmount(Iterable<Attendance> days, Employee employee) {
   var total = 0.0;
   for (final day in days) {
-    total += dayAmount(day, employee, settings);
+    total += dayAmount(day, employee);
   }
   return total;
 }

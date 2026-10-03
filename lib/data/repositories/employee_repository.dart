@@ -2,6 +2,7 @@ import 'package:clock/clock.dart';
 import 'package:drift/drift.dart';
 
 import '../../core/utils/credential_status.dart';
+import '../../core/utils/employee_status.dart';
 import '../../models/employee.dart';
 import '../database/app_database.dart';
 import '../mappers/mappers.dart';
@@ -91,9 +92,10 @@ class EmployeeRepository {
   /// the same transaction.
   ///
   /// Returns null, writing nothing, when a required text field is empty, when
-  /// the PIN or the email is already used by another employee anywhere on the
-  /// account (both are unique account-wide, and the PIN is the login
-  /// identifier), or when [password] is set but is not [AuthRules.passwordLength] digits.
+  /// [pay] is not a valid hourly rate ([isValidHourlyRate]), when the PIN or
+  /// the email is already used by another employee anywhere on the account
+  /// (both are unique account-wide, and the PIN is the login identifier), or
+  /// when [password] is set but is not [AuthRules.passwordLength] digits.
   ///
   /// The add-employee form creates the person and their password in one submit: an
   /// employee row with no credential is somebody who cannot sign in, which
@@ -124,6 +126,7 @@ class EmployeeRepository {
         trimmedEmail.isEmpty) {
       return null;
     }
+    if (!isValidHourlyRate(pay)) return null;
     if (password != null && !isValidPassword(password)) return null;
 
     final now = clock.now();
@@ -173,9 +176,16 @@ class EmployeeRepository {
   /// audit-relevant transition should not be reachable by a field on a routine
   /// form. [clearPhoto] removes the photo.
   ///
+  /// The login credential changes **in the same transaction**, so a role
+  /// change and its password land together or not at all — never a Gérant
+  /// left without a password because the second write failed:
+  /// - [password] sets (or replaces) the password;
+  /// - [clearCredential] removes any password on file (an Employé holds none).
+  ///
   /// Returns null, writing nothing, when the id is unknown, a supplied text
-  /// field is blank, or the PIN / email would now collide with another
-  /// employee.
+  /// field is blank, [pay] is not a valid hourly rate, the PIN / email would
+  /// now collide with another employee, [password] is not
+  /// [AuthRules.passwordLength] digits, or both credential changes are asked.
   Future<Employee?> update(
     String id, {
     String? firstName,
@@ -187,7 +197,12 @@ class EmployeeRepository {
     double? pay,
     String? photoAsset,
     bool clearPhoto = false,
+    String? password,
+    bool clearCredential = false,
   }) async {
+    if (password != null && (clearCredential || !isValidPassword(password))) {
+      return null;
+    }
     final first = firstName?.trim();
     if (first != null && first.isEmpty) return null;
     final last = lastName?.trim();
@@ -198,6 +213,7 @@ class EmployeeRepository {
     if (trimmedPhone != null && trimmedPhone.isEmpty) return null;
     final trimmedEmail = email?.trim();
     if (trimmedEmail != null && trimmedEmail.isEmpty) return null;
+    if (pay != null && !isValidHourlyRate(pay)) return null;
 
     return _db.transaction(() async {
       final existing = await employee(id);
@@ -231,6 +247,18 @@ class EmployeeRepository {
       await (_db.update(
         _db.employees,
       )..where((e) => e.id.equals(id))).write(employeeToRow(updated));
+
+      final credentials = CredentialRepository(_db);
+      if (clearCredential) {
+        await credentials.clear(id);
+      } else if (password != null) {
+        // Checked above and the employee exists, so this cannot fail — but if
+        // that ever stops holding, rolling the details back with it is the
+        // whole point.
+        if (await credentials.setPassword(id, password) == null) {
+          throw StateError('setPassword refused a validated password for $id');
+        }
+      }
       return updated;
     });
   }
@@ -239,8 +267,40 @@ class EmployeeRepository {
   /// `false` if already archived. History — attendance, payroll — is left
   /// exactly as it was, the same as a removed supplier keeping its movements.
   /// There is no hard delete.
-  Future<bool> archive(String id, {DateTime? at}) =>
-      _setArchivedAt(id, at ?? clock.now());
+  ///
+  /// Also refuses what [archiveRefusal] names — retiring yourself
+  /// ([byEmployeeId] is who asks), or the last active owner.
+  Future<bool> archive(String id, {String? byEmployeeId, DateTime? at}) {
+    return _db.transaction(() async {
+      if (await archiveRefusal(id, byEmployeeId: byEmployeeId) != null) {
+        return false;
+      }
+      return _setArchivedAt(id, at ?? clock.now());
+    });
+  }
+
+  /// Why [id] cannot be archived by [byEmployeeId], or null when it can:
+  /// - [ArchiveRefusal.self] — nobody retires themselves: the session would
+  ///   stay open, then never open again (an archived employee cannot sign in);
+  /// - [ArchiveRefusal.lastOwner] — the only active owner holds the payroll
+  ///   and every store; without one, nobody could pay or restore them.
+  Future<ArchiveRefusal?> archiveRefusal(
+    String id, {
+    String? byEmployeeId,
+  }) async {
+    if (id == byEmployeeId) return ArchiveRefusal.self;
+    final existing = await employee(id);
+    if (existing == null || existing.role != EmployeeRole.owner) return null;
+    final otherOwners = await (_db.select(_db.employees)
+          ..where(
+            (e) =>
+                e.role.equalsValue(EmployeeRole.owner) &
+                e.archivedAt.isNull() &
+                e.id.equals(id).not(),
+          ))
+        .get();
+    return otherOwners.isEmpty ? ArchiveRefusal.lastOwner : null;
+  }
 
   /// Brings a retired employee back. Returns `false` if not archived.
   Future<bool> restore(String id) => _setArchivedAt(id, null);
@@ -250,7 +310,7 @@ class EmployeeRepository {
       final existing = await employee(id);
       if (existing == null) return false;
       // Refuse the no-op transition — archiving an archived record, restoring
-      // an active one — exactly as `EmployeeMutations` did.
+      // an active one.
       if ((existing.archivedAt == null) == (value == null)) return false;
 
       await (_db.update(_db.employees)..where((e) => e.id.equals(id))).write(
@@ -262,8 +322,8 @@ class EmployeeRepository {
 
   // ---------------------------------------------------------------------------
 
-  /// Trimmed and case-folded, no accent folding — the same comparison
-  /// `MockQueries._normalise` used, so "  78.02.14-153.24 " still resolves.
+  /// Trimmed and case-folded, no accent folding — so "  78.02.14-153.24 "
+  /// still resolves.
   static String _normalise(String value) => value.trim().toLowerCase();
 
   Future<List<Employee>> _all() =>
@@ -285,4 +345,14 @@ class EmployeeRepository {
 
   Employee? _toEmployeeOrNull(EmployeeRow? row) =>
       row == null ? null : employeeFromRow(row);
+}
+
+/// Why an employee cannot be archived — see
+/// [EmployeeRepository.archiveRefusal].
+enum ArchiveRefusal {
+  /// The one asking is the one being archived.
+  self,
+
+  /// The only active owner left on the account.
+  lastOwner,
 }

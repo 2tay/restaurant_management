@@ -34,7 +34,7 @@ void main() {
     String phone = '+32 400 00 00 00',
     String email = 'test.personne@example.be',
     EmployeeRole role = EmployeeRole.staff,
-    double pay = 2000,
+    double pay = 15,
     String? password,
   }) => employees.create(
     storeId: storeId,
@@ -82,6 +82,25 @@ void main() {
           email: existing.email.toUpperCase(),
         ),
         isNull,
+      );
+    });
+
+    test('refuses a negative, NaN or infinite hourly rate', () async {
+      for (final pay in [-12.0, double.nan, double.infinity]) {
+        expect(await create(pay: pay), isNull, reason: '$pay');
+      }
+    });
+
+    test('accepts a zero rate and a very high one — there is no ceiling',
+        () async {
+      expect(await create(pay: 0), isNotNull);
+      expect(
+        await create(
+          pin: '11.11.11-111.11',
+          email: 'haut@example.be',
+          pay: 50000,
+        ),
+        isNotNull,
       );
     });
 
@@ -136,6 +155,81 @@ void main() {
       );
     });
 
+    // Audit L12: the details and the credential land together or not at all.
+    test('a password given with the edit is set in the same write', () async {
+      final noah = (await employees.employee(EmployeeIds.noah))!;
+      expect(await credentials.forEmployee(noah.id), isNull);
+
+      final promoted = await employees.update(
+        noah.id,
+        role: EmployeeRole.manager,
+        password: '4321',
+      );
+
+      expect(promoted!.role, EmployeeRole.manager);
+      expect(
+        (await credentials.authenticate(noah.pin, '4321')).outcome,
+        LoginOutcome.success,
+      );
+    });
+
+    test('clearCredential removes the password with the edit', () async {
+      final marc = (await employees.employee(EmployeeIds.marc))!;
+      expect(await credentials.forEmployee(marc.id), isNotNull);
+
+      await employees.update(
+        marc.id,
+        role: EmployeeRole.staff,
+        clearCredential: true,
+      );
+      expect(await credentials.forEmployee(marc.id), isNull);
+    });
+
+    test('a refused edit writes neither the details nor the password',
+        () async {
+      final noah = (await employees.employee(EmployeeIds.noah))!;
+      final other = (await employees.employee(EmployeeIds.marc))!;
+
+      // A bad password, both credential changes, a PIN taken by someone else.
+      for (final attempt in <Future<Employee?> Function()>[
+        () => employees.update(
+          noah.id,
+          role: EmployeeRole.manager,
+          password: '12',
+        ),
+        () => employees.update(
+          noah.id,
+          role: EmployeeRole.manager,
+          password: '4321',
+          clearCredential: true,
+        ),
+        () => employees.update(
+          noah.id,
+          role: EmployeeRole.manager,
+          pin: other.pin,
+          password: '4321',
+        ),
+      ]) {
+        expect(await attempt(), isNull);
+      }
+      expect((await employees.employee(noah.id))!.role, noah.role);
+      expect(await credentials.forEmployee(noah.id), isNull);
+    });
+
+    test('refuses an invalid hourly rate and keeps the old one', () async {
+      final e = (await employees.employee(EmployeeIds.marc))!;
+      for (final pay in [-1.0, double.nan, double.negativeInfinity]) {
+        expect(
+          await employees.update(e.id, firstName: 'Autre', pay: pay),
+          isNull,
+          reason: '$pay',
+        );
+      }
+      final after = (await employees.employee(e.id))!;
+      expect(after.pay, e.pay);
+      expect(after.firstName, e.firstName);
+    });
+
   });
 
   group('archive and restore', () {
@@ -144,6 +238,57 @@ void main() {
       expect(await employees.archive(id), isTrue);
       expect((await employees.employee(id))!.archivedAt, isNotNull);
       expect(await employees.archive(id), isFalse);
+    });
+
+    // Audit L10.
+    test('nobody archives themselves', () async {
+      expect(
+        await employees.archiveRefusal(
+          EmployeeIds.amelie,
+          byEmployeeId: EmployeeIds.amelie,
+        ),
+        ArchiveRefusal.self,
+      );
+      expect(
+        await employees.archive(
+          EmployeeIds.amelie,
+          byEmployeeId: EmployeeIds.amelie,
+        ),
+        isFalse,
+      );
+      expect((await employees.employee(EmployeeIds.amelie))!.archivedAt, isNull);
+      // Somebody else may.
+      expect(
+        await employees.archive(
+          EmployeeIds.amelie,
+          byEmployeeId: EmployeeIds.marc,
+        ),
+        isTrue,
+      );
+    });
+
+    test('the last active owner cannot be archived; with a second one, '
+        'either can', () async {
+      expect(
+        await employees.archiveRefusal(EmployeeIds.marc),
+        ArchiveRefusal.lastOwner,
+      );
+      expect(await employees.archive(EmployeeIds.marc), isFalse);
+
+      final second = (await create(
+        role: EmployeeRole.owner,
+        password: '4321',
+      ))!;
+      expect(await employees.archiveRefusal(EmployeeIds.marc), isNull);
+      expect(
+        await employees.archive(EmployeeIds.marc, byEmployeeId: second.id),
+        isTrue,
+      );
+      // Now `second` is the last one.
+      expect(
+        await employees.archiveRefusal(second.id),
+        ArchiveRefusal.lastOwner,
+      );
     });
 
     test('restore clears archivedAt and refuses when not archived', () async {

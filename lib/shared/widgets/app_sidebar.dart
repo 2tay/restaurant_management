@@ -154,9 +154,9 @@ class _SidebarDivider extends StatelessWidget {
       Divider(height: 1, thickness: 1, color: _divider);
 }
 
-/// The sidebar's ground — the brand green the active entry used to be written
-/// in.
-const Color _ground = AppColors.primary600;
+/// The sidebar's ground — the primary button's teal, two steps darker so the
+/// rail recedes behind the page's own "Ajouter" action.
+const Color _ground = AppColors.primary800;
 
 /// Text and icons on [_ground]: white for titles, softened for the resting
 /// entries so the active one still stands out.

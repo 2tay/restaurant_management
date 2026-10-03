@@ -53,8 +53,8 @@ const Map<EmployeeRole, Set<Capability>> _grants = {
   EmployeeRole.staff: <Capability>{},
 };
 
-/// Whether [role] holds [capability]. Pure — call sites pass
-/// `mockCurrentEmployee.role`.
+/// Whether [role] holds [capability]. Pure — call sites pass the signed-in
+/// employee's role (`currentEmployeeProvider`).
 bool can(EmployeeRole role, Capability capability) =>
     _grants[role]!.contains(capability);
 

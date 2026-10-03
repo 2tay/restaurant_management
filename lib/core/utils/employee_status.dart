@@ -10,6 +10,13 @@ import '../../models/models.dart';
 /// Active unless soft-removed. The one source of truth is [Employee.archivedAt].
 bool isEmployeeActive(Employee employee) => employee.archivedAt == null;
 
+/// A rate the payroll maths can use: a real, positive number — 0 included
+/// (an unpaid trainee). No ceiling: the owner sets whatever rate they agree.
+/// Refuses a negative rate, `NaN` and `Infinity`, which `double.tryParse` all
+/// accept and which would poison every amount computed from them, frozen in a
+/// paid `payroll_periods` row.
+bool isValidHourlyRate(double pay) => pay.isFinite && pay >= 0;
+
 /// "Prénom Nom", trimmed, each word starting with a capital — "amélie
 /// vandenberghe" as typed still reads "Amélie Vandenberghe". Only the first
 /// letter of a word is touched, so "McKenna" or "Jean-Baptiste" keep their

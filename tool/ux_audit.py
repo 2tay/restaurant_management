@@ -354,6 +354,10 @@ SINGLE_WRITER_COMPANIONS = {
         'lib/data/repositories/payroll_repository.dart',
         'lib/data/mappers/payroll_mapper.dart',
     ),
+    'BusinessDaysCompanion': (
+        'lib/data/repositories/business_day_repository.dart',
+        'lib/data/mappers/business_day_mapper.dart',
+    ),
 }
 
 employee_table_writes = []

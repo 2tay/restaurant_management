@@ -56,6 +56,7 @@ AttendanceSession attendanceSessionFromRow(
   return AttendanceSession(
     clockInAt: row.clockInAt,
     clockOutAt: row.clockOutAt,
+    exitSetByEmployeeId: row.exitSetByEmployeeId,
     pauses: ordered.map(pauseFromRow).toList(),
   );
 }
@@ -80,6 +81,7 @@ AttendanceSessionsCompanion sessionToRow(
   position: position,
   clockInAt: session.clockInAt,
   clockOutAt: Value(session.clockOutAt),
+  exitSetByEmployeeId: Value(session.exitSetByEmployeeId),
 );
 
 AttendancePause pauseFromRow(AttendancePauseRow row) =>

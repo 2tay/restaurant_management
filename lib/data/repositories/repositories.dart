@@ -7,6 +7,7 @@ library;
 export 'account_repository.dart';
 export 'attendance_repository.dart';
 export 'calendar_repository.dart';
+export 'business_day_repository.dart';
 export 'catalog_repository.dart';
 export 'credential_repository.dart';
 export 'demo_repository.dart';

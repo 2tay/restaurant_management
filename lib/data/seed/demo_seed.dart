@@ -267,7 +267,9 @@ Future<void> clearAllData(AppDatabase db) async {
 
     // Gestion Employée, reverse foreign-key order: a pause before its
     // session, a session before its day, the attendance rows before the
-    // payroll period they point at, a credential before its employee.
+    // payroll period they point at, a credential before its employee, a
+    // journée before the employees who opened and closed it.
+    batch.deleteAll(db.businessDays);
     batch.deleteAll(db.attendancePauses);
     batch.deleteAll(db.attendanceSessions);
     batch.deleteAll(db.attendances);

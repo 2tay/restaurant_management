@@ -1,6 +1,9 @@
 import '../../models/busy_calendar.dart';
 import '../../models/item.dart';
+import 'dates.dart';
 import 'stock_status.dart';
+
+export 'dates.dart' show dayOf;
 
 /// The defaults of the busy-day calendar. The schema's column defaults in
 /// `tables/stores.dart` are these numbers, so change both together.
@@ -28,9 +31,6 @@ abstract final class BusyCalendarRules {
 
 /// A run of consecutive busy days, both ends included, each a local midnight.
 typedef BusyPeriod = ({DateTime start, DateTime end});
-
-/// [value] at local midnight.
-DateTime dayOf(DateTime value) => DateTime(value.year, value.month, value.day);
 
 /// Whole calendar days from [from] to [to], ignoring the time of day.
 ///

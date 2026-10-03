@@ -45,6 +45,14 @@ class Stores extends Table with Touched, Deletable {
   IntColumn get maxBreakMinutes =>
       integer().withDefault(const Constant(30))();
 
+  /// From when in the day (minutes after midnight) a Pointer opens the
+  /// journée de service by itself when none is open — before it, a punch in
+  /// the night is refused rather than opening the next day's only journée.
+  /// Zero: any time. `AttendanceRules.defaultBusinessDayAutoOpenMinutes`
+  /// (05:00). Schema v15.
+  IntColumn get businessDayAutoOpenMinutes =>
+      integer().withDefault(const Constant(300))();
+
   // --- Notification preferences --------------------------------------------
   //
   // Which events are allowed to write a row into `notifications`. Per store,

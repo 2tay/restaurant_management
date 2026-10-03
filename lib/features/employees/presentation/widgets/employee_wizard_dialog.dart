@@ -196,7 +196,17 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
       !_pinTaken &&
       !_emailTaken;
 
-  bool get _payValid => _parsedPay != null;
+  bool get _payValid {
+    final pay = _parsedPay;
+    return pay != null && isValidHourlyRate(pay);
+  }
+
+  /// Shown once something is typed: an empty field just keeps "Suivant"
+  /// disabled, but anything typed that is not a usable rate says why.
+  String? _payError(AppLocalizations l10n) =>
+      _pay.text.trim().isEmpty || _payValid
+          ? null
+          : l10n.employeeFormPayInvalid;
 
   bool get _isDirty =>
       _initialText.entries.any((e) => e.key.text.trim() != e.value.trim()) ||
@@ -416,6 +426,7 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
           label: l10n.employeeFormPayHourly,
           hint: l10n.employeeFormPayHint,
           controller: _pay,
+          errorText: _payError(l10n),
           prefixIcon: LucideIcons.wallet,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           onChanged: (_) => setState(() {}),
@@ -519,13 +530,17 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
   Future<void> _submit() async {
     final l10n = AppLocalizations.of(context);
     final pay = _parsedPay;
-    if (pay == null) return;
+    if (pay == null || !isValidHourlyRate(pay)) return;
 
     final employees = ref.read(employeeRepositoryProvider);
     final existingId = widget.employee?.id;
 
     final Employee? result;
     if (existingId != null) {
+      // The credential follows the role, in the update's own transaction:
+      // - an Employé keeps nothing: any password on file is removed;
+      // - a role that signs in gets the typed password (required when there
+      //   was none, e.g. an Employé made Gérant); blank keeps the current one.
       result = await employees.update(
         existingId,
         firstName: _firstName.text,
@@ -535,21 +550,9 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
         email: _email.text,
         role: _role,
         pay: pay,
+        clearCredential: !_needsPassword,
+        password: _needsPassword && _passwordTouched ? _password.text : null,
       );
-      // The credential follows the role — a nested write, not part of the
-      // update transaction, but the details have already saved and the form
-      // only lets a valid password through:
-      // - an Employé keeps nothing: any password on file is removed;
-      // - a role that signs in gets the typed password (required when there
-      //   was none, e.g. an Employé made Gérant); blank keeps the current one.
-      if (result != null) {
-        final credentials = ref.read(credentialRepositoryProvider);
-        if (!_needsPassword) {
-          await credentials.clear(result.id);
-        } else if (_passwordTouched) {
-          await credentials.setPassword(result.id, _password.text);
-        }
-      }
     } else {
       result = await employees.create(
         storeId: widget.storeId,

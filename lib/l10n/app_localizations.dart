@@ -4906,6 +4906,12 @@ abstract class AppLocalizations {
   /// **'Ex. 15,50'**
   String get employeeFormPayHint;
 
+  /// Employee wizard, pay step: error under the hourly-rate field when the typed rate is negative or not a number.
+  ///
+  /// In fr, this message translates to:
+  /// **'Saisissez un taux horaire positif.'**
+  String get employeeFormPayInvalid;
+
   /// Placeholder of the confirm-password field.
   ///
   /// In fr, this message translates to:
@@ -5037,6 +5043,36 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Cette personne n\'apparaîtra plus dans le personnel actif. Son historique de pointage et de paie reste conservé.'**
   String get employeeArchiveBody;
+
+  /// Archive confirm: warning when the employee is still working or on a break.
+  ///
+  /// In fr, this message translates to:
+  /// **'{name} est en service : sa journée restera ouverte jusqu\'à la fermeture de la journée de service.'**
+  String employeeArchiveWarnInService(String name);
+
+  /// Archive confirm: warning when finished days are still unpaid.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =1{1 jour terminé n\'est pas encore payé} other{{count} jours terminés ne sont pas encore payés}} ({amount}). Ils resteront payables dans Paiement.'**
+  String employeeArchiveWarnUnpaid(int count, String amount);
+
+  /// Snackbar when the signed-in user tries to archive their own record.
+  ///
+  /// In fr, this message translates to:
+  /// **'Vous ne pouvez pas vous retirer vous-même.'**
+  String get employeeArchiveRefusedSelf;
+
+  /// Snackbar when archiving the only active owner.
+  ///
+  /// In fr, this message translates to:
+  /// **'Impossible de retirer le dernier propriétaire : lui seul peut payer et voir tous les établissements.'**
+  String get employeeArchiveRefusedLastOwner;
+
+  /// Snackbar when the archive was refused after the confirm.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cette personne n\'a pas été retirée. Réessayez.'**
+  String get employeeArchiveFailed;
 
   /// Confirms archiving an employee. Deliberately not 'Supprimer' — this is a soft removal.
   ///
@@ -5188,18 +5224,6 @@ abstract class AppLocalizations {
   /// **'Fin de journée enregistrée pour {name}.'**
   String timeclockClockOutDone(String name);
 
-  /// Label before today's date in the pointage board header and drawer.
-  ///
-  /// In fr, this message translates to:
-  /// **'Date'**
-  String get liveDateLabel;
-
-  /// Label before the live clock in the pointage board header and drawer.
-  ///
-  /// In fr, this message translates to:
-  /// **'Heure'**
-  String get liveTimeLabel;
-
   /// Link at the top right of a pointage board card; opens the drawer.
   ///
   /// In fr, this message translates to:
@@ -5212,7 +5236,139 @@ abstract class AppLocalizations {
   /// **'Vous n\'avez pas encore commencé votre journée du {date}. Pointez pour la démarrer.'**
   String timeclockStartDayPrompt(String date);
 
-  /// Divider above one session of a multi-session day.
+  /// Board notice while a journée de service is open. {date} is e.g. 'mardi 29/09/2026' — still yesterday's date after midnight until the journée is closed.
+  ///
+  /// In fr, this message translates to:
+  /// **'Journée du {date} · ouverte à {time}'**
+  String timeclockBusinessDayOpen(String date, String time);
+
+  /// Warning under the open-journée notice once it has been open too long (likely forgotten).
+  ///
+  /// In fr, this message translates to:
+  /// **'Ouverte depuis plus de {hours} h. Pensez à la fermer : tant qu\'elle reste ouverte, chaque nouveau pointage y est rattaché.'**
+  String timeclockBusinessDayOverdue(int hours);
+
+  /// Board notice once today's journée de service is closed.
+  ///
+  /// In fr, this message translates to:
+  /// **'Journée du {date} fermée à {time}'**
+  String timeclockBusinessDayClosed(String date, String time);
+
+  /// Line under the closed-journée notice: no punch until the next day.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le pointage reprendra demain.'**
+  String get timeclockBusinessDayClosedBody;
+
+  /// Disabled button in place of Pointer once the journée is closed.
+  ///
+  /// In fr, this message translates to:
+  /// **'Journée fermée'**
+  String get timeclockDayClosed;
+
+  /// Snackbar when a board action is refused by the database (stale state, closed journée).
+  ///
+  /// In fr, this message translates to:
+  /// **'Action non enregistrée : le pointage a changé entre-temps ou la journée est fermée.'**
+  String get timeclockActionRefused;
+
+  /// Board notice at night (before the auto-open hour) with no journée open.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucune journée ouverte'**
+  String get timeclockNoBusinessDay;
+
+  /// Line under the no-journée night notice. {time} is the store's auto-open time, e.g. '05:00'.
+  ///
+  /// In fr, this message translates to:
+  /// **'Avant {time}, un pointage n\'ouvre pas la journée tout seul. Elle s\'ouvrira au premier pointage à partir de {time}, ou tout de suite avec « Ouvrir la journée ».'**
+  String timeclockNoBusinessDayBody(String time);
+
+  /// Button on the night notice: opens the journée on purpose.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ouvrir la journée'**
+  String get timeclockOpenDay;
+
+  /// Disabled button in place of Pointer at night, before any journée is open.
+  ///
+  /// In fr, this message translates to:
+  /// **'Journée non ouverte'**
+  String get timeclockDayNotOpen;
+
+  /// Snackbar after opening the journée by hand.
+  ///
+  /// In fr, this message translates to:
+  /// **'Journée du {date} ouverte.'**
+  String timeclockOpenDayDone(String date);
+
+  /// Snackbar when opening the journée is refused (one already open, or already one on this date).
+  ///
+  /// In fr, this message translates to:
+  /// **'La journée n\'a pas été ouverte : une journée existe déjà pour cette date.'**
+  String get timeclockOpenDayFailed;
+
+  /// Button on the open-journée notice, and the confirm button of its dialog.
+  ///
+  /// In fr, this message translates to:
+  /// **'Fermer la journée'**
+  String get timeclockCloseDay;
+
+  /// Close-journée dialog title. {date} is e.g. 'mardi 29/09/2026'.
+  ///
+  /// In fr, this message translates to:
+  /// **'Fermer la journée du {date}'**
+  String timeclockCloseDayTitle(String date);
+
+  /// Close-journée dialog, above the list of shifts still open.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ces employés sont encore en service. Indiquez l\'heure de sortie de chacun :'**
+  String get timeclockCloseDayStillIn;
+
+  /// Close-journée dialog when nobody is in service.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tout le monde a terminé son service.'**
+  String get timeclockCloseDayAllOut;
+
+  /// Close-journée dialog, warning under the body.
+  ///
+  /// In fr, this message translates to:
+  /// **'Une fois fermée, la journée ne peut plus être rouverte.'**
+  String get timeclockCloseDayFinal;
+
+  /// Button showing an exit time in the close-journée dialog; tapping it picks another.
+  ///
+  /// In fr, this message translates to:
+  /// **'Sortie à {time}'**
+  String timeclockCloseDayExit(String time);
+
+  /// Close-journée dialog, invalid exit time: earlier than the clock-in.
+  ///
+  /// In fr, this message translates to:
+  /// **'Avant son arrivée ({time})'**
+  String timeclockCloseDayExitBeforeStart(String time);
+
+  /// Close-journée dialog, invalid exit time: earlier than the running break's start.
+  ///
+  /// In fr, this message translates to:
+  /// **'Avant le début de sa pause ({time})'**
+  String timeclockCloseDayExitBeforePause(String time);
+
+  /// Snackbar after closing the journée.
+  ///
+  /// In fr, this message translates to:
+  /// **'Journée du {date} fermée.'**
+  String timeclockCloseDayDone(String date);
+
+  /// Snackbar when the database refuses the close (a shift changed meanwhile).
+  ///
+  /// In fr, this message translates to:
+  /// **'La journée n\'a pas été fermée : le pointage a changé entre-temps. Réessayez.'**
+  String get timeclockCloseDayFailed;
+
+  /// Divider above each session of a day, even when there is only one.
   ///
   /// In fr, this message translates to:
   /// **'Session N° {number}'**
@@ -5242,11 +5398,89 @@ abstract class AppLocalizations {
   /// **'Départ'**
   String get timeclockLogDeparture;
 
+  /// Timestamp log label — a clock-out a manager entered in the employee's place (closing the journée, or correcting a forgotten exit).
+  ///
+  /// In fr, this message translates to:
+  /// **'Départ · saisi par {name}'**
+  String timeclockLogDepartureSetBy(String name);
+
+  /// Timestamp log label — a clock-out entered in the employee's place by someone no longer resolvable.
+  ///
+  /// In fr, this message translates to:
+  /// **'Départ · saisi par un responsable'**
+  String get timeclockLogDepartureSetByUnknown;
+
+  /// History drawer button and dialog title/confirm: end a day the employee forgot to clock out of.
+  ///
+  /// In fr, this message translates to:
+  /// **'Corriger la sortie'**
+  String get attendanceCorrectExit;
+
+  /// Correct-exit dialog: the exit-time button before any time is picked.
+  ///
+  /// In fr, this message translates to:
+  /// **'Choisir l\'heure'**
+  String get attendanceCorrectExitPick;
+
+  /// Correct-exit dialog body.
+  ///
+  /// In fr, this message translates to:
+  /// **'La sortie du {date} n\'a jamais été pointée (arrivée à {time}). Indiquez l\'heure à laquelle le service s\'est terminé :'**
+  String attendanceCorrectExitBody(String date, String time);
+
+  /// Correct-exit dialog: the picked exit is after now.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cette heure n\'est pas encore passée'**
+  String get attendanceCorrectExitFuture;
+
+  /// Correct-exit dialog: under the exit button when the exit falls after midnight.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le lendemain, {date}'**
+  String attendanceCorrectExitNextDay(String date);
+
+  /// Correct-exit dialog footer: the correction is traced.
+  ///
+  /// In fr, this message translates to:
+  /// **'L\'heure saisie est enregistrée à votre nom.'**
+  String get attendanceCorrectExitSigned;
+
+  /// Snackbar after a forgotten exit was corrected.
+  ///
+  /// In fr, this message translates to:
+  /// **'Sortie du {date} corrigée.'**
+  String attendanceCorrectExitDone(String date);
+
+  /// Snackbar when correctExit was refused.
+  ///
+  /// In fr, this message translates to:
+  /// **'La sortie n\'a pas été corrigée : le pointage a changé entre-temps. Réessayez.'**
+  String get attendanceCorrectExitFailed;
+
   /// Store settings section header for the break allowance.
   ///
   /// In fr, this message translates to:
   /// **'Pauses'**
   String get storeSettingsHours;
+
+  /// Store settings section: when the pointage journée opens by itself.
+  ///
+  /// In fr, this message translates to:
+  /// **'Journée de service'**
+  String get storeSettingsBusinessDay;
+
+  /// Button showing the auto-open time of the journée; tapping it picks another.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ouverture automatique à partir de {time}'**
+  String storeSettingsAutoOpen(String time);
+
+  /// Help under the auto-open time setting.
+  ///
+  /// In fr, this message translates to:
+  /// **'Avant cette heure, un pointage n\'ouvre pas la journée tout seul ; un gérant peut toujours l\'ouvrir depuis le tableau de pointage. À 00:00, la journée s\'ouvre au premier pointage, à toute heure.'**
+  String get storeSettingsAutoOpenHelp;
 
   /// Store setting — the longest a single break may run before it is flagged.
   ///
@@ -5386,16 +5620,16 @@ abstract class AppLocalizations {
   /// **'Statut'**
   String get attendanceColumnStatus;
 
-  /// Line under the date in the pointage drawers, saying what the rest of the drawer shows.
+  /// One short line under the date in the pointage drawers, saying what the rest of the drawer shows.
   ///
   /// In fr, this message translates to:
-  /// **'Les pointages de la journée, session par session, puis le temps travaillé, les pauses et les alertes éventuelles.'**
+  /// **'Pointages, temps travaillé et pauses de la journée.'**
   String get attendanceDayIntro;
 
   /// Short line introducing the day's totals table in the pointage drawers.
   ///
   /// In fr, this message translates to:
-  /// **'Résumé de la journée : le temps travaillé et les pauses prises.'**
+  /// **'Résumé de la journée'**
   String get attendanceDaySummary;
 
   /// Label of the day's worked time in the pointage drawers.
@@ -5421,12 +5655,6 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Voir le détail'**
   String get attendanceViewDetail;
-
-  /// History table column — arrival → departure, grouped.
-  ///
-  /// In fr, this message translates to:
-  /// **'Horaires'**
-  String get attendanceColumnSchedule;
 
   /// Secondary line under the Horaires cell — break count and total.
   ///
@@ -5524,18 +5752,6 @@ abstract class AppLocalizations {
   /// **'Date'**
   String get payrollColumnDate;
 
-  /// Payroll table column — clock-in time.
-  ///
-  /// In fr, this message translates to:
-  /// **'Arrivée'**
-  String get payrollColumnClockIn;
-
-  /// Payroll table column — clock-out time.
-  ///
-  /// In fr, this message translates to:
-  /// **'Départ'**
-  String get payrollColumnClockOut;
-
   /// Payroll table column — worked duration.
   ///
   /// In fr, this message translates to:
@@ -5560,10 +5776,10 @@ abstract class AppLocalizations {
   /// **'Payé le'**
   String get payrollColumnPaidAt;
 
-  /// Button at the end of the payment detail drawer, shown only while the day is unpaid.
+  /// Button at the end of the payment detail drawer, shown only while the day is unpaid. Pays that one day only.
   ///
   /// In fr, this message translates to:
-  /// **'Payer maintenant'**
+  /// **'Payer ce jour'**
   String get payrollDetailPayNow;
 
   /// The button under the table that settles the unpaid days.
@@ -5590,53 +5806,47 @@ abstract class AppLocalizations {
   /// **'Paiement enregistré'**
   String get payrollPaid;
 
-  /// Payroll table column — arrival → departure, grouped.
+  /// Snackbar when the payable days or amount changed between the confirm and the payment — nothing was paid.
   ///
   /// In fr, this message translates to:
-  /// **'Horaires'**
-  String get payrollColumnHours;
+  /// **'Les jours à payer ont changé depuis l\'aperçu : rien n\'a été payé. Vérifiez le nouveau montant puis payez à nouveau.'**
+  String get payrollPreviewOutdated;
 
-  /// Secondary line under the Horaires cell — break count and total.
+  /// Snackbar when the payment was refused for another reason (nothing left to pay, a day locked meanwhile).
   ///
   /// In fr, this message translates to:
-  /// **'{count, plural, =1{1 pause · {duration}} other{{count} pauses · {duration}}}'**
-  String payrollBreakSummary(int count, String duration);
+  /// **'Le paiement n\'a pas été enregistré. Réessayez.'**
+  String get payrollPayFailed;
 
-  /// Heading of the payroll detail side panel.
+  /// Payroll table column — how many breaks the day had, with their total time underneath.
   ///
   /// In fr, this message translates to:
-  /// **'Détail du paiement'**
-  String get payrollDetailTitle;
+  /// **'Pauses'**
+  String get payrollColumnBreaks;
 
-  /// Payroll drawer row — total break time.
+  /// One short line under the date in the payment drawer, saying what the rest of the drawer shows.
   ///
   /// In fr, this message translates to:
-  /// **'Total pauses'**
-  String get payrollDetailBreakTotal;
+  /// **'Pointages et montant de la journée.'**
+  String get payrollDayIntro;
 
-  /// Payroll drawer section header for worked hours.
+  /// Payroll drawer row — the hourly rate: the one frozen at payment for a paid day, the current one for an unpaid day.
   ///
   /// In fr, this message translates to:
-  /// **'Temps de travail'**
-  String get payrollDetailWorkSection;
-
-  /// Payroll drawer row — worked duration.
-  ///
-  /// In fr, this message translates to:
-  /// **'Temps travaillé'**
-  String get payrollDetailWorked;
-
-  /// Payroll drawer row — the employee's hourly rate.
-  ///
-  /// In fr, this message translates to:
-  /// **'Taux horaire'**
+  /// **'Tarif horaire'**
   String get payrollDetailRate;
 
-  /// Payroll drawer row — the day's total amount.
+  /// An hourly rate, e.g. 12,00 €/h.
   ///
   /// In fr, this message translates to:
-  /// **'Total'**
-  String get payrollDetailTotal;
+  /// **'{rate}/h'**
+  String payrollRatePerHour(String rate);
+
+  /// Payroll drawer row — the day's amount, with the calculation: hourly rate times the time worked over every session.
+  ///
+  /// In fr, this message translates to:
+  /// **'Montant ({rate} × {hours})'**
+  String payrollDetailAmount(String rate, String hours);
 
   /// Payment status badge — the day has been settled.
   ///
@@ -5697,6 +5907,12 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Ce compte n\'a pas accès à l\'application. Le pointage se fait au tableau de bord partagé.'**
   String get loginErrorNoAccess;
+
+  /// Login error when an archived (retired) employee tries to sign in.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ce compte a été retiré de l\'équipe et n\'a plus accès à l\'application.'**
+  String get loginErrorArchived;
 
   /// Section heading on the employee form for the login password.
   ///
@@ -6322,6 +6538,24 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'{action} · saisissez le numéro PIN de {name}'**
   String identityPromptPointageSubtitle(String action, String name);
+
+  /// PIN prompt before opening the journée de service by hand.
+  ///
+  /// In fr, this message translates to:
+  /// **'Saisissez votre numéro PIN pour ouvrir la journée du {date}'**
+  String identityPromptOpenDaySubtitle(String date);
+
+  /// PIN prompt before closing the journée de service.
+  ///
+  /// In fr, this message translates to:
+  /// **'Saisissez votre numéro PIN pour fermer la journée du {date}'**
+  String identityPromptCloseDaySubtitle(String date);
+
+  /// PIN prompt before correcting a forgotten exit.
+  ///
+  /// In fr, this message translates to:
+  /// **'Saisissez votre numéro PIN pour corriger la sortie du {date}'**
+  String identityPromptCorrectExitSubtitle(String date);
 
   /// Subtitle of the identity dialog before settling an employee's payroll days — the signed-in user confirms with their own PIN.
   ///

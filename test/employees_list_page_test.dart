@@ -18,13 +18,20 @@ import 'support/app_harness.dart';
 
 const _karim = 'Karim Haddouch';
 
+/// Opens Personnel. The page opens on the table; most tests here are about the
+/// cards, so [cards] switches to them unless told otherwise.
 Future<AppDatabase> _open(
   WidgetTester tester, {
   Size size = const Size(1440, 900),
+  bool cards = true,
 }) async {
   final db = await pumpApp(tester, size: size, asEmployeeId: EmployeeIds.marc);
   appRouter.go(Routes.toEmployees(StoreIds.sablon));
   await tester.pumpAndSettle();
+  if (cards) {
+    await tester.tap(find.byTooltip('Vue grille'));
+    await tester.pumpAndSettle();
+  }
   return db;
 }
 
@@ -40,12 +47,16 @@ Finder _cardMenu(String employeeId) => find.descendant(
 );
 
 void main() {
-  testApp('opens on the card grid, with the toggle on cards', (tester) async {
-    await _open(tester);
+  testApp('opens on the table, with the toggle on the list', (tester) async {
+    await _open(tester, cards: false);
 
     expect(tester.takeException(), isNull);
-    expect(find.byType(ViewModeToggle<CollectionViewMode>), findsOneWidget);
-    expect(find.byType(DataTable), findsNothing);
+    final toggle = tester.widget<ViewModeToggle<CollectionViewMode>>(
+      find.byType(ViewModeToggle<CollectionViewMode>),
+    );
+    expect(toggle.value, CollectionViewMode.list);
+    expect(find.byType(DataTable), findsOneWidget);
+    expect(find.byType(EmployeeCard), findsNothing);
     expect(find.text(_karim), findsOneWidget);
   });
 
@@ -200,16 +211,80 @@ void main() {
     expect(toggle.left, greaterThan(kpi.left - 400));
   });
 
-  testApp('on a phone the two controls move under the search', (tester) async {
+  testApp('on a phone the filters go behind one icon, live in their sheet', (
+    tester,
+  ) async {
     await _open(tester);
     tester.view.physicalSize = const Size(390, 844);
     await tester.pumpAndSettle();
 
+    // The search stays; the archived pill does not sit on the page.
+    expect(find.byType(SearchField), findsOneWidget);
+    expect(find.text('Afficher les personnels retirés'), findsNothing);
+    final button = find.byType(FilterSheetButton);
+    expect(tester.widget<FilterSheetButton>(button).compact, isTrue);
     final search = tester.getRect(find.byType(SearchField));
-    final toggle = tester.getRect(
-      find.byType(ViewModeToggle<CollectionViewMode>),
+    expect(
+      (tester.getCenter(button).dy - search.center.dy).abs(),
+      lessThan(8),
     );
-    expect(toggle.top, greaterThan(search.bottom));
+
+    await tester.tap(button);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Afficher les personnels retirés'));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    // The sheet follows the tap, and so does the count on the icon.
+    expect(
+      tester
+          .widget<FilterPill>(
+            find.ancestor(
+              of: find.text('Afficher les personnels retirés').last,
+              matching: find.byType(FilterPill),
+            ),
+          )
+          .selectedLabel,
+      isNotNull,
+    );
+    expect(tester.widget<FilterSheetButton>(button).activeCount, 1);
+
+    await tester.tap(find.text('Voir les résultats'));
+    await tester.pumpAndSettle();
+    expect(find.byType(BottomSheet), findsNothing);
+  });
+
+  testApp('below a landscape tablet there is no table: cards only', (
+    tester,
+  ) async {
+    for (final size in const [Size(390, 844), Size(800, 1280)]) {
+      await _open(tester, size: size, cards: false);
+      expect(tester.takeException(), isNull, reason: '$size');
+      expect(find.byType(DataTable), findsNothing, reason: '$size');
+      expect(
+        find.byType(ViewModeToggle<CollectionViewMode>),
+        findsNothing,
+        reason: '$size',
+      );
+      expect(find.byType(EmployeeCard), findsWidgets, reason: '$size');
+    }
+  });
+
+  testApp('cards: one per line on a phone, two to four on wider screens', (
+    tester,
+  ) async {
+    Future<int> perLine(Size size) async {
+      await _open(tester, size: size, cards: size.width >= 840);
+      final tops = [
+        for (final e in find.byType(EmployeeCard).evaluate())
+          tester.getTopLeft(find.byWidget(e.widget)).dy,
+      ];
+      return tops.where((y) => y == tops.first).length;
+    }
+
+    expect(await perLine(const Size(390, 844)), 1);
+    expect(await perLine(const Size(800, 1280)), 2);
+    expect(await perLine(const Size(1280, 800)), 3);
+    expect(await perLine(const Size(1440, 900)), 4);
   });
 
   testApp('the card: identity, status, role, contact, rate, hire date — '
@@ -310,7 +385,12 @@ void main() {
     await _toList(tester);
 
     final chip = tester.widget<LabelChip>(
-      find.byKey(const ValueKey('employee-row-retired')).first,
+      find
+          .descendant(
+            of: find.byKey(const ValueKey('employee-row-retired')).first,
+            matching: find.byType(LabelChip),
+          )
+          .first,
     );
     expect(chip.foreground, const Color(0xFF8E1B1B));
 
@@ -839,16 +919,12 @@ void main() {
     expect(find.text('Historique pointage'), findsOneWidget);
   });
 
-  testApp('both views fit a phone', (tester) async {
+  testApp('the cards fit a phone', (tester) async {
     await _open(tester);
     tester.view.physicalSize = const Size(390, 844);
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
     expect(find.text(_karim), findsOneWidget);
-
-    await _toList(tester);
-    expect(tester.takeException(), isNull);
-    expect(find.byType(DataTable), findsOneWidget);
   });
 
   /// Picks [size] in the paginator's rows-per-page menu.
@@ -880,5 +956,41 @@ void main() {
     await _toList(tester);
     expect(find.byType(DataTable), findsOneWidget);
     expect(find.byType(Paginator), findsOneWidget);
+  });
+
+  // Audit L10: a warning, not a refusal, for someone in service or still owed
+  // days. (Retiring yourself or the last owner is refused in the repository —
+  // and unreachable here anyway: only the owner manages Personnel, and the
+  // owner has no card on it.)
+
+  Future<void> openArchive(WidgetTester tester, String id) async {
+    final card = find.byKey(ValueKey('employee-card-$id'));
+    await tester.ensureVisible(card);
+    await tester.tap(
+      find.descendant(
+        of: card,
+        matching: find.byKey(const ValueKey('employee-card-menu')),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Retirer'));
+    await tester.pumpAndSettle();
+  }
+
+  testApp('Retirer warns about a shift in progress and unpaid days, then '
+      'archives anyway', (tester) async {
+    final db = await _open(tester);
+    // Karim is clocked in today in the seed, and has unpaid finished days.
+    await openArchive(tester, EmployeeIds.karim);
+
+    expect(find.byType(ConfirmDialog), findsOneWidget);
+    expect(find.textContaining('est en service'), findsOneWidget);
+    expect(find.textContaining('pas encore payé'), findsOneWidget);
+    expect(find.textContaining('resteront payables'), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(FilledButton, 'Retirer').last);
+    await tester.pumpAndSettle();
+    final karim = await EmployeeRepository(db).employee(EmployeeIds.karim);
+    expect(karim!.archivedAt, isNotNull);
   });
 }

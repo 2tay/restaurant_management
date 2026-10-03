@@ -16,6 +16,7 @@ import '../../models/stock_movement.dart';
 import 'tables/account.dart';
 import 'tables/attendance.dart';
 import 'tables/busy_dates.dart';
+import 'tables/business_days.dart';
 import 'tables/catalog.dart';
 import 'tables/employees.dart';
 import 'tables/items.dart';
@@ -47,6 +48,8 @@ part 'app_database.g.dart';
 /// [Employees] and their [EmployeeCredentials], [Attendances] with
 /// [AttendancePauses], and [PayrollPeriods]. The pointage / paie half of
 /// `StoreSettings` moved onto the [Stores] row in the same version.
+/// [AttendanceSessions] joined at v11, and [BusinessDays] — the journées de
+/// service the pointage board works in — at v14.
 @DriftDatabase(
   tables: [
     Stores,
@@ -73,6 +76,7 @@ part 'app_database.g.dart';
     Outbox,
     SyncErrors,
     PhotoUploads,
+    BusinessDays,
   ],
   include: {
     'sync_triggers.drift',
@@ -101,7 +105,7 @@ class AppDatabase extends _$AppDatabase {
   static const String databaseName = 'stock_inventory';
 
   @override
-  int get schemaVersion => 20;
+  int get schemaVersion => 21;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -412,6 +416,25 @@ class AppDatabase extends _$AppDatabase {
       if (from < 20) {
         await _migrateToVersion20(m);
       }
+
+      // v20 -> v21: the journée de service and two columns from the pointage
+      // audit (feat/sync-data, numbered v14–v16 there). The journée table and
+      // its "one per store and date" index; `stores.business_day_auto_open_minutes`,
+      // whose default (05:00) is what every store read when it was a
+      // constant; and `attendance_sessions.exit_set_by_employee_id`, null on
+      // every existing session — nobody knows who entered those exits. The
+      // columns are added only when missing: a v1/v10 `createTable` and the
+      // v15 rebuild already build the current shape.
+      if (from < 21) {
+        await m.createTable(businessDays);
+        await m.create(businessDaysStoreDate);
+        await _addColumnIfMissing(m, stores, stores.businessDayAutoOpenMinutes);
+        await _addColumnIfMissing(
+          m,
+          attendanceSessions,
+          attendanceSessions.exitSetByEmployeeId,
+        );
+      }
     },
 
     beforeOpen: (OpeningDetails details) async {
@@ -423,6 +446,24 @@ class AppDatabase extends _$AppDatabase {
       await customStatement('PRAGMA foreign_keys = ON');
     },
   );
+
+  /// The column names [table] has in the database right now.
+  Future<Set<String>> _columnNames(TableInfo<Table, dynamic> table) async {
+    final rows = await customSelect(
+      'PRAGMA table_info(${table.actualTableName})',
+    ).get();
+    return {for (final row in rows) row.read<String>('name')};
+  }
+
+  /// Adds [column] to [table] unless an earlier step already built it.
+  Future<void> _addColumnIfMissing(
+    Migrator m,
+    TableInfo<Table, dynamic> table,
+    GeneratedColumn<Object> column,
+  ) async {
+    if ((await _columnNames(table)).contains(column.name)) return;
+    await m.addColumn(table, column);
+  }
 
   /// Every synced table gains `updated_at` and `deleted_at`, the child tables
   /// gain `store_id`, and articles gain their stock baseline.
@@ -457,11 +498,18 @@ class AppDatabase extends _$AppDatabase {
       Map<GeneratedColumn<Object>, Expression<Object>> transform, {
       List<GeneratedColumn<Object>> extraColumns = const [],
     }) async {
+      // A column added by a later version (v21's audit columns) is already
+      // in the current shape the rebuild builds, but not yet in the old
+      // table: it is new here too, and starts at its default.
+      final existing = await _columnNames(table);
       final added = [
         for (final column in table.$columns)
           if (column.name == 'updated_at' && transform.containsKey(column))
             column
           else if (column.name == 'deleted_at')
+            column
+          else if (!existing.contains(column.name) &&
+              !extraColumns.contains(column))
             column,
         ...extraColumns,
       ];

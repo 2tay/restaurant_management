@@ -50,3 +50,6 @@ docs/
 # Local server address and key for `flutter run --dart-define-from-file=config/local.json`.
 #config/local.json
 #config/dev.json
+
+# Audit reports — kept locally, not versioned
+models_rapport/
