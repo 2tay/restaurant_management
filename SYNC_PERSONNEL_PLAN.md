@@ -76,4 +76,4 @@ suivante**.
    tôt (P4, H1, H2), fermeture qui gagne (P6), action « Supprimer ce pointage en double ».
 7. **Paiement** — double paiement détecté et signalé (PA1), jour payé gelé côté serveur (PA2).
 8. **Employés** — fusion par CIN (E1), signalements E2/E4/E5.
-9. **Documentation** — `SYNC_EXPLAINED.md` mis à jour.
+9. **Documentation** — `SYNC_PERSONNELL_EXPLAINED.md`.
