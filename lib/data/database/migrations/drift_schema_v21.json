@@ -1851,7 +1851,7 @@
       "data": {
         "on": 22,
         "name": "attendances_employee_date",
-        "sql": "CREATE UNIQUE INDEX attendances_employee_date\r\n  ON attendances (employee_id, date) WHERE deleted_at IS NULL;",
+        "sql": "CREATE UNIQUE INDEX attendances_employee_date\n  ON attendances (employee_id, date) WHERE deleted_at IS NULL;",
         "unique": true,
         "columns": []
       }
@@ -2197,7 +2197,7 @@
       "data": {
         "on": 25,
         "name": "supplier_prices_pair",
-        "sql": "CREATE UNIQUE INDEX supplier_prices_pair\r\n  ON supplier_prices (item_id, supplier_id) WHERE deleted_at IS NULL;",
+        "sql": "CREATE UNIQUE INDEX supplier_prices_pair\n  ON supplier_prices (item_id, supplier_id) WHERE deleted_at IS NULL;",
         "unique": true,
         "columns": []
       }
@@ -2211,13 +2211,192 @@
       "data": {
         "on": 17,
         "name": "employee_credentials_employee",
-        "sql": "CREATE UNIQUE INDEX employee_credentials_employee\r\n  ON employee_credentials (employee_id) WHERE deleted_at IS NULL;",
+        "sql": "CREATE UNIQUE INDEX employee_credentials_employee\n  ON employee_credentials (employee_id) WHERE deleted_at IS NULL;",
         "unique": true,
         "columns": []
       }
     },
     {
       "id": 28,
+      "references": [
+        0,
+        9
+      ],
+      "type": "table",
+      "data": {
+        "name": "business_days",
+        "was_declared_in_moor": false,
+        "columns": [
+          {
+            "name": "updated_at",
+            "getter_name": "updatedAt",
+            "moor_type": "dateTime",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": "() => syncStampNow()",
+            "dsl_features": []
+          },
+          {
+            "name": "deleted_at",
+            "getter_name": "deletedAt",
+            "moor_type": "dateTime",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "id",
+            "getter_name": "id",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "allowed-lengths": {
+                  "min": 1,
+                  "max": 64
+                }
+              }
+            ]
+          },
+          {
+            "name": "store_id",
+            "getter_name": "storeId",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "defaultConstraints": "REFERENCES stores (id) ON DELETE CASCADE",
+            "dialectAwareDefaultConstraints": {
+              "sqlite": "REFERENCES stores (id) ON DELETE CASCADE"
+            },
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "foreign_key": {
+                  "to": {
+                    "table": "stores",
+                    "column": "id"
+                  },
+                  "initially_deferred": false,
+                  "on_update": null,
+                  "on_delete": "cascade"
+                }
+              }
+            ]
+          },
+          {
+            "name": "date",
+            "getter_name": "date",
+            "moor_type": "dateTime",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "opened_at",
+            "getter_name": "openedAt",
+            "moor_type": "dateTime",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "opened_by_employee_id",
+            "getter_name": "openedByEmployeeId",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": null,
+            "defaultConstraints": "REFERENCES employees (id) ON DELETE SET NULL",
+            "dialectAwareDefaultConstraints": {
+              "sqlite": "REFERENCES employees (id) ON DELETE SET NULL"
+            },
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "foreign_key": {
+                  "to": {
+                    "table": "employees",
+                    "column": "id"
+                  },
+                  "initially_deferred": false,
+                  "on_update": null,
+                  "on_delete": "setNull"
+                }
+              }
+            ]
+          },
+          {
+            "name": "closed_at",
+            "getter_name": "closedAt",
+            "moor_type": "dateTime",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "closed_by_employee_id",
+            "getter_name": "closedByEmployeeId",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": null,
+            "defaultConstraints": "REFERENCES employees (id) ON DELETE SET NULL",
+            "dialectAwareDefaultConstraints": {
+              "sqlite": "REFERENCES employees (id) ON DELETE SET NULL"
+            },
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "foreign_key": {
+                  "to": {
+                    "table": "employees",
+                    "column": "id"
+                  },
+                  "initially_deferred": false,
+                  "on_update": null,
+                  "on_delete": "setNull"
+                }
+              }
+            ]
+          }
+        ],
+        "is_virtual": false,
+        "without_rowid": false,
+        "constraints": [],
+        "explicit_pk": [
+          "id"
+        ]
+      }
+    },
+    {
+      "id": 29,
+      "references": [
+        28
+      ],
+      "type": "index",
+      "data": {
+        "on": 28,
+        "name": "business_days_store_date",
+        "sql": "CREATE UNIQUE INDEX business_days_store_date\n  ON business_days (store_id, date) WHERE deleted_at IS NULL;",
+        "unique": true,
+        "columns": []
+      }
+    },
+    {
+      "id": 30,
       "references": [
         0,
         3,
@@ -2393,7 +2572,7 @@
       }
     },
     {
-      "id": 29,
+      "id": 31,
       "references": [
         24
       ],
@@ -2412,7 +2591,7 @@
       }
     },
     {
-      "id": 30,
+      "id": 32,
       "references": [
         25
       ],
@@ -2431,7 +2610,7 @@
       }
     },
     {
-      "id": 31,
+      "id": 33,
       "references": [
         25
       ],
@@ -2450,13 +2629,13 @@
       }
     },
     {
-      "id": 32,
+      "id": 34,
       "references": [
-        28
+        30
       ],
       "type": "index",
       "data": {
-        "on": 28,
+        "on": 30,
         "name": "price_history_pair_time",
         "sql": null,
         "unique": false,
@@ -2477,7 +2656,7 @@
       }
     },
     {
-      "id": 33,
+      "id": 35,
       "references": [
         0,
         22
@@ -2626,10 +2805,10 @@
       }
     },
     {
-      "id": 34,
+      "id": 36,
       "references": [
         0,
-        33
+        35
       ],
       "type": "table",
       "data": {
@@ -2765,7 +2944,7 @@
       }
     },
     {
-      "id": 35,
+      "id": 37,
       "references": [
         22
       ],
@@ -2788,13 +2967,13 @@
       }
     },
     {
-      "id": 36,
+      "id": 38,
       "references": [
-        33
+        35
       ],
       "type": "index",
       "data": {
-        "on": 33,
+        "on": 35,
         "name": "attendance_sessions_attendance",
         "sql": null,
         "unique": true,
@@ -2811,13 +2990,13 @@
       }
     },
     {
-      "id": 37,
+      "id": 39,
       "references": [
-        34
+        36
       ],
       "type": "index",
       "data": {
-        "on": 34,
+        "on": 36,
         "name": "attendance_pauses_session",
         "sql": null,
         "unique": true,
@@ -2834,7 +3013,7 @@
       }
     },
     {
-      "id": 38,
+      "id": 40,
       "references": [
         21
       ],
@@ -2857,7 +3036,7 @@
       }
     },
     {
-      "id": 39,
+      "id": 41,
       "references": [
         21
       ],
@@ -2880,7 +3059,7 @@
       }
     },
     {
-      "id": 40,
+      "id": 42,
       "references": [],
       "type": "table",
       "data": {
@@ -2980,11 +3159,11 @@
       }
     },
     {
-      "id": 41,
+      "id": 43,
       "references": [
         0,
         4,
-        40,
+        42,
         6
       ],
       "type": "trigger",
@@ -2993,61 +3172,40 @@
         "references_in_body": [
           0,
           4,
-          40,
+          42,
           6
         ],
         "name": "stores_outbox_insert",
-        "sql": "CREATE TRIGGER stores_outbox_insert AFTER INSERT ON stores\r\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\r\nBEGIN\r\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\r\n  SELECT 'stores', id, id, json_object(\r\n      'updated_at', updated_at,\r\n      'deleted_at', deleted_at,\r\n      'id', id,\r\n      'name', name,\r\n      'address_line', address_line,\r\n      'postal_code', postal_code,\r\n      'city', city,\r\n      'phone', phone,\r\n      'created_at', created_at,\r\n      'vat_number', vat_number,\r\n      'image_asset', image_asset,\r\n      'stale_partial_order_days', stale_partial_order_days,\r\n      'max_break_minutes', max_break_minutes,\r\n      'notify_low_stock', notify_low_stock,\r\n      'notify_price_change', notify_price_change,\r\n      'notify_large_adjustment', notify_large_adjustment,\r\n      'notify_deliveries', notify_deliveries,\r\n      'notify_busy_days', notify_busy_days,\r\n      'busy_weekdays', busy_weekdays,\r\n      'busy_reminder_days', busy_reminder_days\r\n    ), (SELECT now FROM sync_clock)\r\n  FROM stores WHERE rowid = NEW.rowid\r\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\r\n    store_id = excluded.store_id,\r\n    payload = excluded.payload,\r\n    queued_at = excluded.queued_at,\r\n    attempts = 0,\r\n    last_error = NULL;\r\nEND;"
-      }
-    },
-    {
-      "id": 42,
-      "references": [
-        0,
-        4,
-        40,
-        6
-      ],
-      "type": "trigger",
-      "data": {
-        "on": 0,
-        "references_in_body": [
-          0,
-          4,
-          40,
-          6
-        ],
-        "name": "stores_outbox_update",
-        "sql": "CREATE TRIGGER stores_outbox_update AFTER UPDATE ON stores\r\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\r\nBEGIN\r\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\r\n  SELECT 'stores', id, id, json_object(\r\n      'updated_at', updated_at,\r\n      'deleted_at', deleted_at,\r\n      'id', id,\r\n      'name', name,\r\n      'address_line', address_line,\r\n      'postal_code', postal_code,\r\n      'city', city,\r\n      'phone', phone,\r\n      'created_at', created_at,\r\n      'vat_number', vat_number,\r\n      'image_asset', image_asset,\r\n      'stale_partial_order_days', stale_partial_order_days,\r\n      'max_break_minutes', max_break_minutes,\r\n      'notify_low_stock', notify_low_stock,\r\n      'notify_price_change', notify_price_change,\r\n      'notify_large_adjustment', notify_large_adjustment,\r\n      'notify_deliveries', notify_deliveries,\r\n      'notify_busy_days', notify_busy_days,\r\n      'busy_weekdays', busy_weekdays,\r\n      'busy_reminder_days', busy_reminder_days\r\n    ), (SELECT now FROM sync_clock)\r\n  FROM stores WHERE rowid = NEW.rowid\r\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\r\n    store_id = excluded.store_id,\r\n    payload = excluded.payload,\r\n    queued_at = excluded.queued_at,\r\n    attempts = 0,\r\n    last_error = NULL;\r\nEND;"
-      }
-    },
-    {
-      "id": 43,
-      "references": [
-        1,
-        4,
-        40,
-        6
-      ],
-      "type": "trigger",
-      "data": {
-        "on": 1,
-        "references_in_body": [
-          1,
-          4,
-          40,
-          6
-        ],
-        "name": "categories_outbox_insert",
-        "sql": "CREATE TRIGGER categories_outbox_insert AFTER INSERT ON categories\r\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\r\nBEGIN\r\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\r\n  SELECT 'categories', id, store_id, json_object(\r\n      'updated_at', updated_at,\r\n      'deleted_at', deleted_at,\r\n      'id', id,\r\n      'store_id', store_id,\r\n      'name', name\r\n    ), (SELECT now FROM sync_clock)\r\n  FROM categories WHERE rowid = NEW.rowid\r\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\r\n    store_id = excluded.store_id,\r\n    payload = excluded.payload,\r\n    queued_at = excluded.queued_at,\r\n    attempts = 0,\r\n    last_error = NULL;\r\nEND;"
+        "sql": "CREATE TRIGGER stores_outbox_insert AFTER INSERT ON stores\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\nBEGIN\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\n  SELECT 'stores', id, id, json_object(\n      'updated_at', updated_at,\n      'deleted_at', deleted_at,\n      'id', id,\n      'name', name,\n      'address_line', address_line,\n      'postal_code', postal_code,\n      'city', city,\n      'phone', phone,\n      'created_at', created_at,\n      'vat_number', vat_number,\n      'image_asset', image_asset,\n      'stale_partial_order_days', stale_partial_order_days,\n      'max_break_minutes', max_break_minutes,\n      'business_day_auto_open_minutes', business_day_auto_open_minutes,\n      'notify_low_stock', notify_low_stock,\n      'notify_price_change', notify_price_change,\n      'notify_large_adjustment', notify_large_adjustment,\n      'notify_deliveries', notify_deliveries,\n      'notify_busy_days', notify_busy_days,\n      'busy_weekdays', busy_weekdays,\n      'busy_reminder_days', busy_reminder_days\n    ), (SELECT now FROM sync_clock)\n  FROM stores WHERE rowid = NEW.rowid\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\n    store_id = excluded.store_id,\n    payload = excluded.payload,\n    queued_at = excluded.queued_at,\n    attempts = 0,\n    last_error = NULL;\nEND;"
       }
     },
     {
       "id": 44,
       "references": [
+        0,
+        4,
+        42,
+        6
+      ],
+      "type": "trigger",
+      "data": {
+        "on": 0,
+        "references_in_body": [
+          0,
+          4,
+          42,
+          6
+        ],
+        "name": "stores_outbox_update",
+        "sql": "CREATE TRIGGER stores_outbox_update AFTER UPDATE ON stores\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\nBEGIN\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\n  SELECT 'stores', id, id, json_object(\n      'updated_at', updated_at,\n      'deleted_at', deleted_at,\n      'id', id,\n      'name', name,\n      'address_line', address_line,\n      'postal_code', postal_code,\n      'city', city,\n      'phone', phone,\n      'created_at', created_at,\n      'vat_number', vat_number,\n      'image_asset', image_asset,\n      'stale_partial_order_days', stale_partial_order_days,\n      'max_break_minutes', max_break_minutes,\n      'business_day_auto_open_minutes', business_day_auto_open_minutes,\n      'notify_low_stock', notify_low_stock,\n      'notify_price_change', notify_price_change,\n      'notify_large_adjustment', notify_large_adjustment,\n      'notify_deliveries', notify_deliveries,\n      'notify_busy_days', notify_busy_days,\n      'busy_weekdays', busy_weekdays,\n      'busy_reminder_days', busy_reminder_days\n    ), (SELECT now FROM sync_clock)\n  FROM stores WHERE rowid = NEW.rowid\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\n    store_id = excluded.store_id,\n    payload = excluded.payload,\n    queued_at = excluded.queued_at,\n    attempts = 0,\n    last_error = NULL;\nEND;"
+      }
+    },
+    {
+      "id": 45,
+      "references": [
         1,
         4,
-        40,
+        42,
         6
       ],
       "type": "trigger",
@@ -3056,40 +3214,40 @@
         "references_in_body": [
           1,
           4,
-          40,
+          42,
           6
         ],
-        "name": "categories_outbox_update",
-        "sql": "CREATE TRIGGER categories_outbox_update AFTER UPDATE ON categories\r\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\r\nBEGIN\r\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\r\n  SELECT 'categories', id, store_id, json_object(\r\n      'updated_at', updated_at,\r\n      'deleted_at', deleted_at,\r\n      'id', id,\r\n      'store_id', store_id,\r\n      'name', name\r\n    ), (SELECT now FROM sync_clock)\r\n  FROM categories WHERE rowid = NEW.rowid\r\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\r\n    store_id = excluded.store_id,\r\n    payload = excluded.payload,\r\n    queued_at = excluded.queued_at,\r\n    attempts = 0,\r\n    last_error = NULL;\r\nEND;"
-      }
-    },
-    {
-      "id": 45,
-      "references": [
-        2,
-        4,
-        40,
-        6
-      ],
-      "type": "trigger",
-      "data": {
-        "on": 2,
-        "references_in_body": [
-          2,
-          4,
-          40,
-          6
-        ],
-        "name": "units_outbox_insert",
-        "sql": "CREATE TRIGGER units_outbox_insert AFTER INSERT ON units\r\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\r\nBEGIN\r\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\r\n  SELECT 'units', id, store_id, json_object(\r\n      'updated_at', updated_at,\r\n      'deleted_at', deleted_at,\r\n      'id', id,\r\n      'store_id', store_id,\r\n      'name', name,\r\n      'abbreviation', abbreviation\r\n    ), (SELECT now FROM sync_clock)\r\n  FROM units WHERE rowid = NEW.rowid\r\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\r\n    store_id = excluded.store_id,\r\n    payload = excluded.payload,\r\n    queued_at = excluded.queued_at,\r\n    attempts = 0,\r\n    last_error = NULL;\r\nEND;"
+        "name": "categories_outbox_insert",
+        "sql": "CREATE TRIGGER categories_outbox_insert AFTER INSERT ON categories\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\nBEGIN\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\n  SELECT 'categories', id, store_id, json_object(\n      'updated_at', updated_at,\n      'deleted_at', deleted_at,\n      'id', id,\n      'store_id', store_id,\n      'name', name\n    ), (SELECT now FROM sync_clock)\n  FROM categories WHERE rowid = NEW.rowid\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\n    store_id = excluded.store_id,\n    payload = excluded.payload,\n    queued_at = excluded.queued_at,\n    attempts = 0,\n    last_error = NULL;\nEND;"
       }
     },
     {
       "id": 46,
       "references": [
+        1,
+        4,
+        42,
+        6
+      ],
+      "type": "trigger",
+      "data": {
+        "on": 1,
+        "references_in_body": [
+          1,
+          4,
+          42,
+          6
+        ],
+        "name": "categories_outbox_update",
+        "sql": "CREATE TRIGGER categories_outbox_update AFTER UPDATE ON categories\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\nBEGIN\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\n  SELECT 'categories', id, store_id, json_object(\n      'updated_at', updated_at,\n      'deleted_at', deleted_at,\n      'id', id,\n      'store_id', store_id,\n      'name', name\n    ), (SELECT now FROM sync_clock)\n  FROM categories WHERE rowid = NEW.rowid\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\n    store_id = excluded.store_id,\n    payload = excluded.payload,\n    queued_at = excluded.queued_at,\n    attempts = 0,\n    last_error = NULL;\nEND;"
+      }
+    },
+    {
+      "id": 47,
+      "references": [
         2,
         4,
-        40,
+        42,
         6
       ],
       "type": "trigger",
@@ -3098,40 +3256,40 @@
         "references_in_body": [
           2,
           4,
-          40,
+          42,
           6
         ],
-        "name": "units_outbox_update",
-        "sql": "CREATE TRIGGER units_outbox_update AFTER UPDATE ON units\r\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\r\nBEGIN\r\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\r\n  SELECT 'units', id, store_id, json_object(\r\n      'updated_at', updated_at,\r\n      'deleted_at', deleted_at,\r\n      'id', id,\r\n      'store_id', store_id,\r\n      'name', name,\r\n      'abbreviation', abbreviation\r\n    ), (SELECT now FROM sync_clock)\r\n  FROM units WHERE rowid = NEW.rowid\r\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\r\n    store_id = excluded.store_id,\r\n    payload = excluded.payload,\r\n    queued_at = excluded.queued_at,\r\n    attempts = 0,\r\n    last_error = NULL;\r\nEND;"
-      }
-    },
-    {
-      "id": 47,
-      "references": [
-        3,
-        4,
-        40,
-        6
-      ],
-      "type": "trigger",
-      "data": {
-        "on": 3,
-        "references_in_body": [
-          3,
-          4,
-          40,
-          6
-        ],
-        "name": "items_outbox_insert",
-        "sql": "CREATE TRIGGER items_outbox_insert AFTER INSERT ON items\r\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\r\nBEGIN\r\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\r\n  SELECT 'items', id, store_id, json_object(\r\n      'deleted_at', deleted_at,\r\n      'id', id,\r\n      'store_id', store_id,\r\n      'name', name,\r\n      'category_id', category_id,\r\n      'unit_id', unit_id,\r\n      'low_stock_threshold', low_stock_threshold,\r\n      'max_stock', max_stock,\r\n      'holiday_low_stock_threshold', holiday_low_stock_threshold,\r\n      'updated_at', updated_at,\r\n      'baseline_quantity', baseline_quantity,\r\n      'baseline_average_cost', baseline_average_cost,\r\n      'default_supplier_id', default_supplier_id,\r\n      'barcode', barcode,\r\n      'note', note,\r\n      'image_path', image_path\r\n    ), (SELECT now FROM sync_clock)\r\n  FROM items WHERE rowid = NEW.rowid\r\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\r\n    store_id = excluded.store_id,\r\n    payload = excluded.payload,\r\n    queued_at = excluded.queued_at,\r\n    attempts = 0,\r\n    last_error = NULL;\r\nEND;"
+        "name": "units_outbox_insert",
+        "sql": "CREATE TRIGGER units_outbox_insert AFTER INSERT ON units\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\nBEGIN\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\n  SELECT 'units', id, store_id, json_object(\n      'updated_at', updated_at,\n      'deleted_at', deleted_at,\n      'id', id,\n      'store_id', store_id,\n      'name', name,\n      'abbreviation', abbreviation\n    ), (SELECT now FROM sync_clock)\n  FROM units WHERE rowid = NEW.rowid\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\n    store_id = excluded.store_id,\n    payload = excluded.payload,\n    queued_at = excluded.queued_at,\n    attempts = 0,\n    last_error = NULL;\nEND;"
       }
     },
     {
       "id": 48,
       "references": [
+        2,
+        4,
+        42,
+        6
+      ],
+      "type": "trigger",
+      "data": {
+        "on": 2,
+        "references_in_body": [
+          2,
+          4,
+          42,
+          6
+        ],
+        "name": "units_outbox_update",
+        "sql": "CREATE TRIGGER units_outbox_update AFTER UPDATE ON units\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\nBEGIN\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\n  SELECT 'units', id, store_id, json_object(\n      'updated_at', updated_at,\n      'deleted_at', deleted_at,\n      'id', id,\n      'store_id', store_id,\n      'name', name,\n      'abbreviation', abbreviation\n    ), (SELECT now FROM sync_clock)\n  FROM units WHERE rowid = NEW.rowid\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\n    store_id = excluded.store_id,\n    payload = excluded.payload,\n    queued_at = excluded.queued_at,\n    attempts = 0,\n    last_error = NULL;\nEND;"
+      }
+    },
+    {
+      "id": 49,
+      "references": [
         3,
         4,
-        40,
+        42,
         6
       ],
       "type": "trigger",
@@ -3140,40 +3298,40 @@
         "references_in_body": [
           3,
           4,
-          40,
+          42,
           6
         ],
-        "name": "items_outbox_update",
-        "sql": "CREATE TRIGGER items_outbox_update AFTER UPDATE ON items\r\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\r\nBEGIN\r\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\r\n  SELECT 'items', id, store_id, json_object(\r\n      'deleted_at', deleted_at,\r\n      'id', id,\r\n      'store_id', store_id,\r\n      'name', name,\r\n      'category_id', category_id,\r\n      'unit_id', unit_id,\r\n      'low_stock_threshold', low_stock_threshold,\r\n      'max_stock', max_stock,\r\n      'holiday_low_stock_threshold', holiday_low_stock_threshold,\r\n      'updated_at', updated_at,\r\n      'baseline_quantity', baseline_quantity,\r\n      'baseline_average_cost', baseline_average_cost,\r\n      'default_supplier_id', default_supplier_id,\r\n      'barcode', barcode,\r\n      'note', note,\r\n      'image_path', image_path\r\n    ), (SELECT now FROM sync_clock)\r\n  FROM items WHERE rowid = NEW.rowid\r\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\r\n    store_id = excluded.store_id,\r\n    payload = excluded.payload,\r\n    queued_at = excluded.queued_at,\r\n    attempts = 0,\r\n    last_error = NULL;\r\nEND;"
-      }
-    },
-    {
-      "id": 49,
-      "references": [
-        24,
-        4,
-        40,
-        6
-      ],
-      "type": "trigger",
-      "data": {
-        "on": 24,
-        "references_in_body": [
-          24,
-          4,
-          40,
-          6
-        ],
-        "name": "suppliers_outbox_insert",
-        "sql": "CREATE TRIGGER suppliers_outbox_insert AFTER INSERT ON suppliers\r\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\r\nBEGIN\r\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\r\n  SELECT 'suppliers', id, store_id, json_object(\r\n      'updated_at', updated_at,\r\n      'deleted_at', deleted_at,\r\n      'id', id,\r\n      'store_id', store_id,\r\n      'name', name,\r\n      'contact_name', contact_name,\r\n      'email', email,\r\n      'phone', phone,\r\n      'address_line', address_line,\r\n      'postal_code', postal_code,\r\n      'city', city,\r\n      'note', note\r\n    ), (SELECT now FROM sync_clock)\r\n  FROM suppliers WHERE rowid = NEW.rowid\r\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\r\n    store_id = excluded.store_id,\r\n    payload = excluded.payload,\r\n    queued_at = excluded.queued_at,\r\n    attempts = 0,\r\n    last_error = NULL;\r\nEND;"
+        "name": "items_outbox_insert",
+        "sql": "CREATE TRIGGER items_outbox_insert AFTER INSERT ON items\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\nBEGIN\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\n  SELECT 'items', id, store_id, json_object(\n      'deleted_at', deleted_at,\n      'id', id,\n      'store_id', store_id,\n      'name', name,\n      'category_id', category_id,\n      'unit_id', unit_id,\n      'low_stock_threshold', low_stock_threshold,\n      'max_stock', max_stock,\n      'holiday_low_stock_threshold', holiday_low_stock_threshold,\n      'updated_at', updated_at,\n      'baseline_quantity', baseline_quantity,\n      'baseline_average_cost', baseline_average_cost,\n      'default_supplier_id', default_supplier_id,\n      'barcode', barcode,\n      'note', note,\n      'image_path', image_path\n    ), (SELECT now FROM sync_clock)\n  FROM items WHERE rowid = NEW.rowid\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\n    store_id = excluded.store_id,\n    payload = excluded.payload,\n    queued_at = excluded.queued_at,\n    attempts = 0,\n    last_error = NULL;\nEND;"
       }
     },
     {
       "id": 50,
       "references": [
+        3,
+        4,
+        42,
+        6
+      ],
+      "type": "trigger",
+      "data": {
+        "on": 3,
+        "references_in_body": [
+          3,
+          4,
+          42,
+          6
+        ],
+        "name": "items_outbox_update",
+        "sql": "CREATE TRIGGER items_outbox_update AFTER UPDATE ON items\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\nBEGIN\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\n  SELECT 'items', id, store_id, json_object(\n      'deleted_at', deleted_at,\n      'id', id,\n      'store_id', store_id,\n      'name', name,\n      'category_id', category_id,\n      'unit_id', unit_id,\n      'low_stock_threshold', low_stock_threshold,\n      'max_stock', max_stock,\n      'holiday_low_stock_threshold', holiday_low_stock_threshold,\n      'updated_at', updated_at,\n      'baseline_quantity', baseline_quantity,\n      'baseline_average_cost', baseline_average_cost,\n      'default_supplier_id', default_supplier_id,\n      'barcode', barcode,\n      'note', note,\n      'image_path', image_path\n    ), (SELECT now FROM sync_clock)\n  FROM items WHERE rowid = NEW.rowid\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\n    store_id = excluded.store_id,\n    payload = excluded.payload,\n    queued_at = excluded.queued_at,\n    attempts = 0,\n    last_error = NULL;\nEND;"
+      }
+    },
+    {
+      "id": 51,
+      "references": [
         24,
         4,
-        40,
+        42,
         6
       ],
       "type": "trigger",
@@ -3182,40 +3340,40 @@
         "references_in_body": [
           24,
           4,
-          40,
+          42,
           6
         ],
-        "name": "suppliers_outbox_update",
-        "sql": "CREATE TRIGGER suppliers_outbox_update AFTER UPDATE ON suppliers\r\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\r\nBEGIN\r\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\r\n  SELECT 'suppliers', id, store_id, json_object(\r\n      'updated_at', updated_at,\r\n      'deleted_at', deleted_at,\r\n      'id', id,\r\n      'store_id', store_id,\r\n      'name', name,\r\n      'contact_name', contact_name,\r\n      'email', email,\r\n      'phone', phone,\r\n      'address_line', address_line,\r\n      'postal_code', postal_code,\r\n      'city', city,\r\n      'note', note\r\n    ), (SELECT now FROM sync_clock)\r\n  FROM suppliers WHERE rowid = NEW.rowid\r\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\r\n    store_id = excluded.store_id,\r\n    payload = excluded.payload,\r\n    queued_at = excluded.queued_at,\r\n    attempts = 0,\r\n    last_error = NULL;\r\nEND;"
-      }
-    },
-    {
-      "id": 51,
-      "references": [
-        25,
-        4,
-        40,
-        6
-      ],
-      "type": "trigger",
-      "data": {
-        "on": 25,
-        "references_in_body": [
-          25,
-          4,
-          40,
-          6
-        ],
-        "name": "supplier_prices_outbox_insert",
-        "sql": "CREATE TRIGGER supplier_prices_outbox_insert AFTER INSERT ON supplier_prices\r\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\r\nBEGIN\r\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\r\n  SELECT 'supplier_prices', id, store_id, json_object(\r\n      'updated_at', updated_at,\r\n      'deleted_at', deleted_at,\r\n      'id', id,\r\n      'store_id', store_id,\r\n      'item_id', item_id,\r\n      'supplier_id', supplier_id,\r\n      'price_per_unit', price_per_unit,\r\n      'effective_date', effective_date,\r\n      'is_default', is_default\r\n    ), (SELECT now FROM sync_clock)\r\n  FROM supplier_prices WHERE rowid = NEW.rowid\r\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\r\n    store_id = excluded.store_id,\r\n    payload = excluded.payload,\r\n    queued_at = excluded.queued_at,\r\n    attempts = 0,\r\n    last_error = NULL;\r\nEND;"
+        "name": "suppliers_outbox_insert",
+        "sql": "CREATE TRIGGER suppliers_outbox_insert AFTER INSERT ON suppliers\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\nBEGIN\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\n  SELECT 'suppliers', id, store_id, json_object(\n      'updated_at', updated_at,\n      'deleted_at', deleted_at,\n      'id', id,\n      'store_id', store_id,\n      'name', name,\n      'contact_name', contact_name,\n      'email', email,\n      'phone', phone,\n      'address_line', address_line,\n      'postal_code', postal_code,\n      'city', city,\n      'note', note\n    ), (SELECT now FROM sync_clock)\n  FROM suppliers WHERE rowid = NEW.rowid\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\n    store_id = excluded.store_id,\n    payload = excluded.payload,\n    queued_at = excluded.queued_at,\n    attempts = 0,\n    last_error = NULL;\nEND;"
       }
     },
     {
       "id": 52,
       "references": [
+        24,
+        4,
+        42,
+        6
+      ],
+      "type": "trigger",
+      "data": {
+        "on": 24,
+        "references_in_body": [
+          24,
+          4,
+          42,
+          6
+        ],
+        "name": "suppliers_outbox_update",
+        "sql": "CREATE TRIGGER suppliers_outbox_update AFTER UPDATE ON suppliers\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\nBEGIN\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\n  SELECT 'suppliers', id, store_id, json_object(\n      'updated_at', updated_at,\n      'deleted_at', deleted_at,\n      'id', id,\n      'store_id', store_id,\n      'name', name,\n      'contact_name', contact_name,\n      'email', email,\n      'phone', phone,\n      'address_line', address_line,\n      'postal_code', postal_code,\n      'city', city,\n      'note', note\n    ), (SELECT now FROM sync_clock)\n  FROM suppliers WHERE rowid = NEW.rowid\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\n    store_id = excluded.store_id,\n    payload = excluded.payload,\n    queued_at = excluded.queued_at,\n    attempts = 0,\n    last_error = NULL;\nEND;"
+      }
+    },
+    {
+      "id": 53,
+      "references": [
         25,
         4,
-        40,
+        42,
         6
       ],
       "type": "trigger",
@@ -3224,57 +3382,78 @@
         "references_in_body": [
           25,
           4,
-          40,
+          42,
           6
         ],
-        "name": "supplier_prices_outbox_update",
-        "sql": "CREATE TRIGGER supplier_prices_outbox_update AFTER UPDATE ON supplier_prices\r\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\r\nBEGIN\r\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\r\n  SELECT 'supplier_prices', id, store_id, json_object(\r\n      'updated_at', updated_at,\r\n      'deleted_at', deleted_at,\r\n      'id', id,\r\n      'store_id', store_id,\r\n      'item_id', item_id,\r\n      'supplier_id', supplier_id,\r\n      'price_per_unit', price_per_unit,\r\n      'effective_date', effective_date,\r\n      'is_default', is_default\r\n    ), (SELECT now FROM sync_clock)\r\n  FROM supplier_prices WHERE rowid = NEW.rowid\r\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\r\n    store_id = excluded.store_id,\r\n    payload = excluded.payload,\r\n    queued_at = excluded.queued_at,\r\n    attempts = 0,\r\n    last_error = NULL;\r\nEND;"
-      }
-    },
-    {
-      "id": 53,
-      "references": [
-        28,
-        4,
-        40,
-        6
-      ],
-      "type": "trigger",
-      "data": {
-        "on": 28,
-        "references_in_body": [
-          28,
-          4,
-          40,
-          6
-        ],
-        "name": "price_history_outbox_insert",
-        "sql": "CREATE TRIGGER price_history_outbox_insert AFTER INSERT ON price_history\r\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\r\nBEGIN\r\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\r\n  SELECT 'price_history', id, store_id, json_object(\r\n      'updated_at', updated_at,\r\n      'deleted_at', deleted_at,\r\n      'id', id,\r\n      'store_id', store_id,\r\n      'item_id', item_id,\r\n      'supplier_id', supplier_id,\r\n      'old_price', old_price,\r\n      'new_price', new_price,\r\n      'changed_at', changed_at,\r\n      'changed_by_name', changed_by_name\r\n    ), (SELECT now FROM sync_clock)\r\n  FROM price_history WHERE rowid = NEW.rowid\r\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\r\n    store_id = excluded.store_id,\r\n    payload = excluded.payload,\r\n    queued_at = excluded.queued_at,\r\n    attempts = 0,\r\n    last_error = NULL;\r\nEND;"
+        "name": "supplier_prices_outbox_insert",
+        "sql": "CREATE TRIGGER supplier_prices_outbox_insert AFTER INSERT ON supplier_prices\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\nBEGIN\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\n  SELECT 'supplier_prices', id, store_id, json_object(\n      'updated_at', updated_at,\n      'deleted_at', deleted_at,\n      'id', id,\n      'store_id', store_id,\n      'item_id', item_id,\n      'supplier_id', supplier_id,\n      'price_per_unit', price_per_unit,\n      'effective_date', effective_date,\n      'is_default', is_default\n    ), (SELECT now FROM sync_clock)\n  FROM supplier_prices WHERE rowid = NEW.rowid\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\n    store_id = excluded.store_id,\n    payload = excluded.payload,\n    queued_at = excluded.queued_at,\n    attempts = 0,\n    last_error = NULL;\nEND;"
       }
     },
     {
       "id": 54,
       "references": [
-        28,
+        25,
         4,
-        40,
+        42,
         6
       ],
       "type": "trigger",
       "data": {
-        "on": 28,
+        "on": 25,
         "references_in_body": [
-          28,
+          25,
           4,
-          40,
+          42,
           6
         ],
-        "name": "price_history_outbox_update",
-        "sql": "CREATE TRIGGER price_history_outbox_update AFTER UPDATE ON price_history\r\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\r\nBEGIN\r\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\r\n  SELECT 'price_history', id, store_id, json_object(\r\n      'updated_at', updated_at,\r\n      'deleted_at', deleted_at,\r\n      'id', id,\r\n      'store_id', store_id,\r\n      'item_id', item_id,\r\n      'supplier_id', supplier_id,\r\n      'old_price', old_price,\r\n      'new_price', new_price,\r\n      'changed_at', changed_at,\r\n      'changed_by_name', changed_by_name\r\n    ), (SELECT now FROM sync_clock)\r\n  FROM price_history WHERE rowid = NEW.rowid\r\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\r\n    store_id = excluded.store_id,\r\n    payload = excluded.payload,\r\n    queued_at = excluded.queued_at,\r\n    attempts = 0,\r\n    last_error = NULL;\r\nEND;"
+        "name": "supplier_prices_outbox_update",
+        "sql": "CREATE TRIGGER supplier_prices_outbox_update AFTER UPDATE ON supplier_prices\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\nBEGIN\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\n  SELECT 'supplier_prices', id, store_id, json_object(\n      'updated_at', updated_at,\n      'deleted_at', deleted_at,\n      'id', id,\n      'store_id', store_id,\n      'item_id', item_id,\n      'supplier_id', supplier_id,\n      'price_per_unit', price_per_unit,\n      'effective_date', effective_date,\n      'is_default', is_default\n    ), (SELECT now FROM sync_clock)\n  FROM supplier_prices WHERE rowid = NEW.rowid\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\n    store_id = excluded.store_id,\n    payload = excluded.payload,\n    queued_at = excluded.queued_at,\n    attempts = 0,\n    last_error = NULL;\nEND;"
       }
     },
     {
       "id": 55,
+      "references": [
+        30,
+        4,
+        42,
+        6
+      ],
+      "type": "trigger",
+      "data": {
+        "on": 30,
+        "references_in_body": [
+          30,
+          4,
+          42,
+          6
+        ],
+        "name": "price_history_outbox_insert",
+        "sql": "CREATE TRIGGER price_history_outbox_insert AFTER INSERT ON price_history\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\nBEGIN\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\n  SELECT 'price_history', id, store_id, json_object(\n      'updated_at', updated_at,\n      'deleted_at', deleted_at,\n      'id', id,\n      'store_id', store_id,\n      'item_id', item_id,\n      'supplier_id', supplier_id,\n      'old_price', old_price,\n      'new_price', new_price,\n      'changed_at', changed_at,\n      'changed_by_name', changed_by_name\n    ), (SELECT now FROM sync_clock)\n  FROM price_history WHERE rowid = NEW.rowid\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\n    store_id = excluded.store_id,\n    payload = excluded.payload,\n    queued_at = excluded.queued_at,\n    attempts = 0,\n    last_error = NULL;\nEND;"
+      }
+    },
+    {
+      "id": 56,
+      "references": [
+        30,
+        4,
+        42,
+        6
+      ],
+      "type": "trigger",
+      "data": {
+        "on": 30,
+        "references_in_body": [
+          30,
+          4,
+          42,
+          6
+        ],
+        "name": "price_history_outbox_update",
+        "sql": "CREATE TRIGGER price_history_outbox_update AFTER UPDATE ON price_history\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\nBEGIN\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\n  SELECT 'price_history', id, store_id, json_object(\n      'updated_at', updated_at,\n      'deleted_at', deleted_at,\n      'id', id,\n      'store_id', store_id,\n      'item_id', item_id,\n      'supplier_id', supplier_id,\n      'old_price', old_price,\n      'new_price', new_price,\n      'changed_at', changed_at,\n      'changed_by_name', changed_by_name\n    ), (SELECT now FROM sync_clock)\n  FROM price_history WHERE rowid = NEW.rowid\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\n    store_id = excluded.store_id,\n    payload = excluded.payload,\n    queued_at = excluded.queued_at,\n    attempts = 0,\n    last_error = NULL;\nEND;"
+      }
+    },
+    {
+      "id": 57,
       "references": [
         0,
         3
@@ -3555,49 +3734,49 @@
       }
     },
     {
-      "id": 56,
+      "id": 58,
       "references": [
-        55,
+        57,
         4,
-        40,
+        42,
         6
       ],
       "type": "trigger",
       "data": {
-        "on": 55,
+        "on": 57,
         "references_in_body": [
-          55,
+          57,
           4,
-          40,
+          42,
           6
         ],
         "name": "stock_movements_outbox_insert",
-        "sql": "CREATE TRIGGER stock_movements_outbox_insert AFTER INSERT ON stock_movements\r\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\r\nBEGIN\r\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\r\n  SELECT 'stock_movements', id, store_id, json_object(\r\n      'updated_at', updated_at,\r\n      'deleted_at', deleted_at,\r\n      'id', id,\r\n      'store_id', store_id,\r\n      'item_id', item_id,\r\n      'type', type,\r\n      'quantity', quantity,\r\n      'occurred_at', occurred_at,\r\n      'user_name', user_name,\r\n      'employee_id', employee_id,\r\n      'supplier_id', supplier_id,\r\n      'unit_price', unit_price,\r\n      'reason', reason,\r\n      'system_quantity', system_quantity,\r\n      'counted_quantity', counted_quantity,\r\n      'unit_cost', unit_cost,\r\n      'average_cost_after', average_cost_after,\r\n      'order_id', order_id,\r\n      'receipt_id', receipt_id,\r\n      'note', note,\r\n      'in_baseline', in_baseline\r\n    ), (SELECT now FROM sync_clock)\r\n  FROM stock_movements WHERE rowid = NEW.rowid\r\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\r\n    store_id = excluded.store_id,\r\n    payload = excluded.payload,\r\n    queued_at = excluded.queued_at,\r\n    attempts = 0,\r\n    last_error = NULL;\r\nEND;"
+        "sql": "CREATE TRIGGER stock_movements_outbox_insert AFTER INSERT ON stock_movements\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\nBEGIN\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\n  SELECT 'stock_movements', id, store_id, json_object(\n      'updated_at', updated_at,\n      'deleted_at', deleted_at,\n      'id', id,\n      'store_id', store_id,\n      'item_id', item_id,\n      'type', type,\n      'quantity', quantity,\n      'occurred_at', occurred_at,\n      'user_name', user_name,\n      'employee_id', employee_id,\n      'supplier_id', supplier_id,\n      'unit_price', unit_price,\n      'reason', reason,\n      'system_quantity', system_quantity,\n      'counted_quantity', counted_quantity,\n      'unit_cost', unit_cost,\n      'average_cost_after', average_cost_after,\n      'order_id', order_id,\n      'receipt_id', receipt_id,\n      'note', note,\n      'in_baseline', in_baseline\n    ), (SELECT now FROM sync_clock)\n  FROM stock_movements WHERE rowid = NEW.rowid\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\n    store_id = excluded.store_id,\n    payload = excluded.payload,\n    queued_at = excluded.queued_at,\n    attempts = 0,\n    last_error = NULL;\nEND;"
       }
     },
     {
-      "id": 57,
+      "id": 59,
       "references": [
-        55,
+        57,
         4,
-        40,
+        42,
         6
       ],
       "type": "trigger",
       "data": {
-        "on": 55,
+        "on": 57,
         "references_in_body": [
-          55,
+          57,
           4,
-          40,
+          42,
           6
         ],
         "name": "stock_movements_outbox_update",
-        "sql": "CREATE TRIGGER stock_movements_outbox_update AFTER UPDATE ON stock_movements\r\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\r\nBEGIN\r\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\r\n  SELECT 'stock_movements', id, store_id, json_object(\r\n      'updated_at', updated_at,\r\n      'deleted_at', deleted_at,\r\n      'id', id,\r\n      'store_id', store_id,\r\n      'item_id', item_id,\r\n      'type', type,\r\n      'quantity', quantity,\r\n      'occurred_at', occurred_at,\r\n      'user_name', user_name,\r\n      'employee_id', employee_id,\r\n      'supplier_id', supplier_id,\r\n      'unit_price', unit_price,\r\n      'reason', reason,\r\n      'system_quantity', system_quantity,\r\n      'counted_quantity', counted_quantity,\r\n      'unit_cost', unit_cost,\r\n      'average_cost_after', average_cost_after,\r\n      'order_id', order_id,\r\n      'receipt_id', receipt_id,\r\n      'note', note,\r\n      'in_baseline', in_baseline\r\n    ), (SELECT now FROM sync_clock)\r\n  FROM stock_movements WHERE rowid = NEW.rowid\r\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\r\n    store_id = excluded.store_id,\r\n    payload = excluded.payload,\r\n    queued_at = excluded.queued_at,\r\n    attempts = 0,\r\n    last_error = NULL;\r\nEND;"
+        "sql": "CREATE TRIGGER stock_movements_outbox_update AFTER UPDATE ON stock_movements\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\nBEGIN\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\n  SELECT 'stock_movements', id, store_id, json_object(\n      'updated_at', updated_at,\n      'deleted_at', deleted_at,\n      'id', id,\n      'store_id', store_id,\n      'item_id', item_id,\n      'type', type,\n      'quantity', quantity,\n      'occurred_at', occurred_at,\n      'user_name', user_name,\n      'employee_id', employee_id,\n      'supplier_id', supplier_id,\n      'unit_price', unit_price,\n      'reason', reason,\n      'system_quantity', system_quantity,\n      'counted_quantity', counted_quantity,\n      'unit_cost', unit_cost,\n      'average_cost_after', average_cost_after,\n      'order_id', order_id,\n      'receipt_id', receipt_id,\n      'note', note,\n      'in_baseline', in_baseline\n    ), (SELECT now FROM sync_clock)\n  FROM stock_movements WHERE rowid = NEW.rowid\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\n    store_id = excluded.store_id,\n    payload = excluded.payload,\n    queued_at = excluded.queued_at,\n    attempts = 0,\n    last_error = NULL;\nEND;"
       }
     },
     {
-      "id": 58,
+      "id": 60,
       "references": [
         0
       ],
@@ -3753,52 +3932,52 @@
       }
     },
     {
-      "id": 59,
+      "id": 61,
       "references": [
-        58,
+        60,
         4,
-        40,
+        42,
         6
       ],
       "type": "trigger",
       "data": {
-        "on": 58,
+        "on": 60,
         "references_in_body": [
-          58,
+          60,
           4,
-          40,
+          42,
           6
         ],
         "name": "purchase_orders_outbox_insert",
-        "sql": "CREATE TRIGGER purchase_orders_outbox_insert AFTER INSERT ON purchase_orders\r\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\r\nBEGIN\r\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\r\n  SELECT 'purchase_orders', id, store_id, json_object(\r\n      'updated_at', updated_at,\r\n      'deleted_at', deleted_at,\r\n      'id', id,\r\n      'store_id', store_id,\r\n      'supplier_id', supplier_id,\r\n      'reference', reference,\r\n      'status', status,\r\n      'created_at', created_at,\r\n      'sent_at', sent_at,\r\n      'closed_at', closed_at,\r\n      'note', note\r\n    ), (SELECT now FROM sync_clock)\r\n  FROM purchase_orders WHERE rowid = NEW.rowid\r\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\r\n    store_id = excluded.store_id,\r\n    payload = excluded.payload,\r\n    queued_at = excluded.queued_at,\r\n    attempts = 0,\r\n    last_error = NULL;\r\nEND;"
+        "sql": "CREATE TRIGGER purchase_orders_outbox_insert AFTER INSERT ON purchase_orders\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\nBEGIN\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\n  SELECT 'purchase_orders', id, store_id, json_object(\n      'updated_at', updated_at,\n      'deleted_at', deleted_at,\n      'id', id,\n      'store_id', store_id,\n      'supplier_id', supplier_id,\n      'reference', reference,\n      'status', status,\n      'created_at', created_at,\n      'sent_at', sent_at,\n      'closed_at', closed_at,\n      'note', note\n    ), (SELECT now FROM sync_clock)\n  FROM purchase_orders WHERE rowid = NEW.rowid\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\n    store_id = excluded.store_id,\n    payload = excluded.payload,\n    queued_at = excluded.queued_at,\n    attempts = 0,\n    last_error = NULL;\nEND;"
       }
     },
     {
-      "id": 60,
+      "id": 62,
       "references": [
-        58,
+        60,
         4,
-        40,
+        42,
         6
       ],
       "type": "trigger",
       "data": {
-        "on": 58,
+        "on": 60,
         "references_in_body": [
-          58,
+          60,
           4,
-          40,
+          42,
           6
         ],
         "name": "purchase_orders_outbox_update",
-        "sql": "CREATE TRIGGER purchase_orders_outbox_update AFTER UPDATE ON purchase_orders\r\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\r\nBEGIN\r\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\r\n  SELECT 'purchase_orders', id, store_id, json_object(\r\n      'updated_at', updated_at,\r\n      'deleted_at', deleted_at,\r\n      'id', id,\r\n      'store_id', store_id,\r\n      'supplier_id', supplier_id,\r\n      'reference', reference,\r\n      'status', status,\r\n      'created_at', created_at,\r\n      'sent_at', sent_at,\r\n      'closed_at', closed_at,\r\n      'note', note\r\n    ), (SELECT now FROM sync_clock)\r\n  FROM purchase_orders WHERE rowid = NEW.rowid\r\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\r\n    store_id = excluded.store_id,\r\n    payload = excluded.payload,\r\n    queued_at = excluded.queued_at,\r\n    attempts = 0,\r\n    last_error = NULL;\r\nEND;"
+        "sql": "CREATE TRIGGER purchase_orders_outbox_update AFTER UPDATE ON purchase_orders\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\nBEGIN\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\n  SELECT 'purchase_orders', id, store_id, json_object(\n      'updated_at', updated_at,\n      'deleted_at', deleted_at,\n      'id', id,\n      'store_id', store_id,\n      'supplier_id', supplier_id,\n      'reference', reference,\n      'status', status,\n      'created_at', created_at,\n      'sent_at', sent_at,\n      'closed_at', closed_at,\n      'note', note\n    ), (SELECT now FROM sync_clock)\n  FROM purchase_orders WHERE rowid = NEW.rowid\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\n    store_id = excluded.store_id,\n    payload = excluded.payload,\n    queued_at = excluded.queued_at,\n    attempts = 0,\n    last_error = NULL;\nEND;"
       }
     },
     {
-      "id": 61,
+      "id": 63,
       "references": [
         0,
-        58
+        60
       ],
       "type": "table",
       "data": {
@@ -3968,51 +4147,51 @@
       }
     },
     {
-      "id": 62,
+      "id": 64,
       "references": [
-        61,
+        63,
         4,
-        40,
+        42,
         6
       ],
       "type": "trigger",
       "data": {
-        "on": 61,
+        "on": 63,
         "references_in_body": [
-          61,
+          63,
           4,
-          40,
+          42,
           6
         ],
         "name": "purchase_order_lines_outbox_insert",
-        "sql": "CREATE TRIGGER purchase_order_lines_outbox_insert AFTER INSERT ON purchase_order_lines\r\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\r\nBEGIN\r\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\r\n  SELECT 'purchase_order_lines', id, store_id, json_object(\r\n      'updated_at', updated_at,\r\n      'deleted_at', deleted_at,\r\n      'id', id,\r\n      'store_id', store_id,\r\n      'order_id', order_id,\r\n      'item_id', item_id,\r\n      'quantity_ordered', quantity_ordered,\r\n      'quantity_received', quantity_received,\r\n      'unit_price', unit_price,\r\n      'closed_short', closed_short,\r\n      'position', position\r\n    ), (SELECT now FROM sync_clock)\r\n  FROM purchase_order_lines WHERE rowid = NEW.rowid\r\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\r\n    store_id = excluded.store_id,\r\n    payload = excluded.payload,\r\n    queued_at = excluded.queued_at,\r\n    attempts = 0,\r\n    last_error = NULL;\r\nEND;"
+        "sql": "CREATE TRIGGER purchase_order_lines_outbox_insert AFTER INSERT ON purchase_order_lines\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\nBEGIN\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\n  SELECT 'purchase_order_lines', id, store_id, json_object(\n      'updated_at', updated_at,\n      'deleted_at', deleted_at,\n      'id', id,\n      'store_id', store_id,\n      'order_id', order_id,\n      'item_id', item_id,\n      'quantity_ordered', quantity_ordered,\n      'quantity_received', quantity_received,\n      'unit_price', unit_price,\n      'closed_short', closed_short,\n      'position', position\n    ), (SELECT now FROM sync_clock)\n  FROM purchase_order_lines WHERE rowid = NEW.rowid\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\n    store_id = excluded.store_id,\n    payload = excluded.payload,\n    queued_at = excluded.queued_at,\n    attempts = 0,\n    last_error = NULL;\nEND;"
       }
     },
     {
-      "id": 63,
+      "id": 65,
       "references": [
-        61,
+        63,
         4,
-        40,
+        42,
         6
       ],
       "type": "trigger",
       "data": {
-        "on": 61,
+        "on": 63,
         "references_in_body": [
-          61,
+          63,
           4,
-          40,
+          42,
           6
         ],
         "name": "purchase_order_lines_outbox_update",
-        "sql": "CREATE TRIGGER purchase_order_lines_outbox_update AFTER UPDATE ON purchase_order_lines\r\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\r\nBEGIN\r\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\r\n  SELECT 'purchase_order_lines', id, store_id, json_object(\r\n      'updated_at', updated_at,\r\n      'deleted_at', deleted_at,\r\n      'id', id,\r\n      'store_id', store_id,\r\n      'order_id', order_id,\r\n      'item_id', item_id,\r\n      'quantity_ordered', quantity_ordered,\r\n      'quantity_received', quantity_received,\r\n      'unit_price', unit_price,\r\n      'closed_short', closed_short,\r\n      'position', position\r\n    ), (SELECT now FROM sync_clock)\r\n  FROM purchase_order_lines WHERE rowid = NEW.rowid\r\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\r\n    store_id = excluded.store_id,\r\n    payload = excluded.payload,\r\n    queued_at = excluded.queued_at,\r\n    attempts = 0,\r\n    last_error = NULL;\r\nEND;"
+        "sql": "CREATE TRIGGER purchase_order_lines_outbox_update AFTER UPDATE ON purchase_order_lines\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\nBEGIN\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\n  SELECT 'purchase_order_lines', id, store_id, json_object(\n      'updated_at', updated_at,\n      'deleted_at', deleted_at,\n      'id', id,\n      'store_id', store_id,\n      'order_id', order_id,\n      'item_id', item_id,\n      'quantity_ordered', quantity_ordered,\n      'quantity_received', quantity_received,\n      'unit_price', unit_price,\n      'closed_short', closed_short,\n      'position', position\n    ), (SELECT now FROM sync_clock)\n  FROM purchase_order_lines WHERE rowid = NEW.rowid\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\n    store_id = excluded.store_id,\n    payload = excluded.payload,\n    queued_at = excluded.queued_at,\n    attempts = 0,\n    last_error = NULL;\nEND;"
       }
     },
     {
-      "id": 64,
+      "id": 66,
       "references": [
-        58,
+        60,
         0
       ],
       "type": "table",
@@ -4159,52 +4338,52 @@
       }
     },
     {
-      "id": 65,
+      "id": 67,
       "references": [
-        64,
+        66,
         4,
-        40,
+        42,
         6
       ],
       "type": "trigger",
       "data": {
-        "on": 64,
+        "on": 66,
         "references_in_body": [
-          64,
+          66,
           4,
-          40,
+          42,
           6
         ],
         "name": "goods_receipts_outbox_insert",
-        "sql": "CREATE TRIGGER goods_receipts_outbox_insert AFTER INSERT ON goods_receipts\r\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\r\nBEGIN\r\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\r\n  SELECT 'goods_receipts', id, store_id, json_object(\r\n      'updated_at', updated_at,\r\n      'deleted_at', deleted_at,\r\n      'id', id,\r\n      'order_id', order_id,\r\n      'store_id', store_id,\r\n      'received_at', received_at,\r\n      'received_by_name', received_by_name,\r\n      'received_by_employee_id', received_by_employee_id,\r\n      'note', note\r\n    ), (SELECT now FROM sync_clock)\r\n  FROM goods_receipts WHERE rowid = NEW.rowid\r\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\r\n    store_id = excluded.store_id,\r\n    payload = excluded.payload,\r\n    queued_at = excluded.queued_at,\r\n    attempts = 0,\r\n    last_error = NULL;\r\nEND;"
+        "sql": "CREATE TRIGGER goods_receipts_outbox_insert AFTER INSERT ON goods_receipts\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\nBEGIN\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\n  SELECT 'goods_receipts', id, store_id, json_object(\n      'updated_at', updated_at,\n      'deleted_at', deleted_at,\n      'id', id,\n      'order_id', order_id,\n      'store_id', store_id,\n      'received_at', received_at,\n      'received_by_name', received_by_name,\n      'received_by_employee_id', received_by_employee_id,\n      'note', note\n    ), (SELECT now FROM sync_clock)\n  FROM goods_receipts WHERE rowid = NEW.rowid\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\n    store_id = excluded.store_id,\n    payload = excluded.payload,\n    queued_at = excluded.queued_at,\n    attempts = 0,\n    last_error = NULL;\nEND;"
       }
     },
     {
-      "id": 66,
+      "id": 68,
       "references": [
-        64,
+        66,
         4,
-        40,
+        42,
         6
       ],
       "type": "trigger",
       "data": {
-        "on": 64,
+        "on": 66,
         "references_in_body": [
-          64,
+          66,
           4,
-          40,
+          42,
           6
         ],
         "name": "goods_receipts_outbox_update",
-        "sql": "CREATE TRIGGER goods_receipts_outbox_update AFTER UPDATE ON goods_receipts\r\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\r\nBEGIN\r\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\r\n  SELECT 'goods_receipts', id, store_id, json_object(\r\n      'updated_at', updated_at,\r\n      'deleted_at', deleted_at,\r\n      'id', id,\r\n      'order_id', order_id,\r\n      'store_id', store_id,\r\n      'received_at', received_at,\r\n      'received_by_name', received_by_name,\r\n      'received_by_employee_id', received_by_employee_id,\r\n      'note', note\r\n    ), (SELECT now FROM sync_clock)\r\n  FROM goods_receipts WHERE rowid = NEW.rowid\r\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\r\n    store_id = excluded.store_id,\r\n    payload = excluded.payload,\r\n    queued_at = excluded.queued_at,\r\n    attempts = 0,\r\n    last_error = NULL;\r\nEND;"
+        "sql": "CREATE TRIGGER goods_receipts_outbox_update AFTER UPDATE ON goods_receipts\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\nBEGIN\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\n  SELECT 'goods_receipts', id, store_id, json_object(\n      'updated_at', updated_at,\n      'deleted_at', deleted_at,\n      'id', id,\n      'order_id', order_id,\n      'store_id', store_id,\n      'received_at', received_at,\n      'received_by_name', received_by_name,\n      'received_by_employee_id', received_by_employee_id,\n      'note', note\n    ), (SELECT now FROM sync_clock)\n  FROM goods_receipts WHERE rowid = NEW.rowid\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\n    store_id = excluded.store_id,\n    payload = excluded.payload,\n    queued_at = excluded.queued_at,\n    attempts = 0,\n    last_error = NULL;\nEND;"
       }
     },
     {
-      "id": 67,
+      "id": 69,
       "references": [
         0,
-        64
+        66
       ],
       "type": "table",
       "data": {
@@ -4398,49 +4577,49 @@
       }
     },
     {
-      "id": 68,
+      "id": 70,
       "references": [
-        67,
+        69,
         4,
-        40,
+        42,
         6
       ],
       "type": "trigger",
       "data": {
-        "on": 67,
+        "on": 69,
         "references_in_body": [
-          67,
+          69,
           4,
-          40,
+          42,
           6
         ],
         "name": "goods_receipt_lines_outbox_insert",
-        "sql": "CREATE TRIGGER goods_receipt_lines_outbox_insert AFTER INSERT ON goods_receipt_lines\r\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\r\nBEGIN\r\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\r\n  SELECT 'goods_receipt_lines', id, store_id, json_object(\r\n      'updated_at', updated_at,\r\n      'deleted_at', deleted_at,\r\n      'id', id,\r\n      'store_id', store_id,\r\n      'receipt_id', receipt_id,\r\n      'item_id', item_id,\r\n      'quantity_ordered', quantity_ordered,\r\n      'quantity_received', quantity_received,\r\n      'actual_unit_price', actual_unit_price,\r\n      'closed_short', closed_short,\r\n      'was_unordered', was_unordered,\r\n      'note', note,\r\n      'position', position\r\n    ), (SELECT now FROM sync_clock)\r\n  FROM goods_receipt_lines WHERE rowid = NEW.rowid\r\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\r\n    store_id = excluded.store_id,\r\n    payload = excluded.payload,\r\n    queued_at = excluded.queued_at,\r\n    attempts = 0,\r\n    last_error = NULL;\r\nEND;"
+        "sql": "CREATE TRIGGER goods_receipt_lines_outbox_insert AFTER INSERT ON goods_receipt_lines\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\nBEGIN\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\n  SELECT 'goods_receipt_lines', id, store_id, json_object(\n      'updated_at', updated_at,\n      'deleted_at', deleted_at,\n      'id', id,\n      'store_id', store_id,\n      'receipt_id', receipt_id,\n      'item_id', item_id,\n      'quantity_ordered', quantity_ordered,\n      'quantity_received', quantity_received,\n      'actual_unit_price', actual_unit_price,\n      'closed_short', closed_short,\n      'was_unordered', was_unordered,\n      'note', note,\n      'position', position\n    ), (SELECT now FROM sync_clock)\n  FROM goods_receipt_lines WHERE rowid = NEW.rowid\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\n    store_id = excluded.store_id,\n    payload = excluded.payload,\n    queued_at = excluded.queued_at,\n    attempts = 0,\n    last_error = NULL;\nEND;"
       }
     },
     {
-      "id": 69,
+      "id": 71,
       "references": [
-        67,
+        69,
         4,
-        40,
+        42,
         6
       ],
       "type": "trigger",
       "data": {
-        "on": 67,
+        "on": 69,
         "references_in_body": [
-          67,
+          69,
           4,
-          40,
+          42,
           6
         ],
         "name": "goods_receipt_lines_outbox_update",
-        "sql": "CREATE TRIGGER goods_receipt_lines_outbox_update AFTER UPDATE ON goods_receipt_lines\r\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\r\nBEGIN\r\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\r\n  SELECT 'goods_receipt_lines', id, store_id, json_object(\r\n      'updated_at', updated_at,\r\n      'deleted_at', deleted_at,\r\n      'id', id,\r\n      'store_id', store_id,\r\n      'receipt_id', receipt_id,\r\n      'item_id', item_id,\r\n      'quantity_ordered', quantity_ordered,\r\n      'quantity_received', quantity_received,\r\n      'actual_unit_price', actual_unit_price,\r\n      'closed_short', closed_short,\r\n      'was_unordered', was_unordered,\r\n      'note', note,\r\n      'position', position\r\n    ), (SELECT now FROM sync_clock)\r\n  FROM goods_receipt_lines WHERE rowid = NEW.rowid\r\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\r\n    store_id = excluded.store_id,\r\n    payload = excluded.payload,\r\n    queued_at = excluded.queued_at,\r\n    attempts = 0,\r\n    last_error = NULL;\r\nEND;"
+        "sql": "CREATE TRIGGER goods_receipt_lines_outbox_update AFTER UPDATE ON goods_receipt_lines\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\nBEGIN\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\n  SELECT 'goods_receipt_lines', id, store_id, json_object(\n      'updated_at', updated_at,\n      'deleted_at', deleted_at,\n      'id', id,\n      'store_id', store_id,\n      'receipt_id', receipt_id,\n      'item_id', item_id,\n      'quantity_ordered', quantity_ordered,\n      'quantity_received', quantity_received,\n      'actual_unit_price', actual_unit_price,\n      'closed_short', closed_short,\n      'was_unordered', was_unordered,\n      'note', note,\n      'position', position\n    ), (SELECT now FROM sync_clock)\n  FROM goods_receipt_lines WHERE rowid = NEW.rowid\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\n    store_id = excluded.store_id,\n    payload = excluded.payload,\n    queued_at = excluded.queued_at,\n    attempts = 0,\n    last_error = NULL;\nEND;"
       }
     },
     {
-      "id": 70,
+      "id": 72,
       "references": [
         0
       ],
@@ -4600,74 +4779,53 @@
       }
     },
     {
-      "id": 71,
+      "id": 73,
       "references": [
-        70,
+        72,
         4,
-        40,
+        42,
         6
       ],
       "type": "trigger",
       "data": {
-        "on": 70,
+        "on": 72,
         "references_in_body": [
-          70,
+          72,
           4,
-          40,
+          42,
           6
         ],
         "name": "notifications_outbox_insert",
-        "sql": "CREATE TRIGGER notifications_outbox_insert AFTER INSERT ON notifications\r\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\r\nBEGIN\r\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\r\n  SELECT 'notifications', id, store_id, json_object(\r\n      'updated_at', updated_at,\r\n      'deleted_at', deleted_at,\r\n      'id', id,\r\n      'store_id', store_id,\r\n      'kind', kind,\r\n      'title', title,\r\n      'body', body,\r\n      'created_at', created_at,\r\n      'is_read', is_read,\r\n      'related_item_id', related_item_id,\r\n      'related_supplier_id', related_supplier_id\r\n    ), (SELECT now FROM sync_clock)\r\n  FROM notifications WHERE rowid = NEW.rowid\r\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\r\n    store_id = excluded.store_id,\r\n    payload = excluded.payload,\r\n    queued_at = excluded.queued_at,\r\n    attempts = 0,\r\n    last_error = NULL;\r\nEND;"
-      }
-    },
-    {
-      "id": 72,
-      "references": [
-        70,
-        4,
-        40,
-        6
-      ],
-      "type": "trigger",
-      "data": {
-        "on": 70,
-        "references_in_body": [
-          70,
-          4,
-          40,
-          6
-        ],
-        "name": "notifications_outbox_update",
-        "sql": "CREATE TRIGGER notifications_outbox_update AFTER UPDATE ON notifications\r\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\r\nBEGIN\r\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\r\n  SELECT 'notifications', id, store_id, json_object(\r\n      'updated_at', updated_at,\r\n      'deleted_at', deleted_at,\r\n      'id', id,\r\n      'store_id', store_id,\r\n      'kind', kind,\r\n      'title', title,\r\n      'body', body,\r\n      'created_at', created_at,\r\n      'is_read', is_read,\r\n      'related_item_id', related_item_id,\r\n      'related_supplier_id', related_supplier_id\r\n    ), (SELECT now FROM sync_clock)\r\n  FROM notifications WHERE rowid = NEW.rowid\r\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\r\n    store_id = excluded.store_id,\r\n    payload = excluded.payload,\r\n    queued_at = excluded.queued_at,\r\n    attempts = 0,\r\n    last_error = NULL;\r\nEND;"
-      }
-    },
-    {
-      "id": 73,
-      "references": [
-        9,
-        4,
-        40,
-        6
-      ],
-      "type": "trigger",
-      "data": {
-        "on": 9,
-        "references_in_body": [
-          9,
-          4,
-          40,
-          6
-        ],
-        "name": "employees_outbox_insert",
-        "sql": "CREATE TRIGGER employees_outbox_insert AFTER INSERT ON employees\r\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\r\nBEGIN\r\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\r\n  SELECT 'employees', id, store_id, json_object(\r\n      'updated_at', updated_at,\r\n      'deleted_at', deleted_at,\r\n      'id', id,\r\n      'store_id', store_id,\r\n      'first_name', first_name,\r\n      'last_name', last_name,\r\n      'pin', pin,\r\n      'phone', phone,\r\n      'email', email,\r\n      'photo_asset', photo_asset,\r\n      'hire_date', hire_date,\r\n      'role', role,\r\n      'pay', pay,\r\n      'created_at', created_at,\r\n      'archived_at', archived_at\r\n    ), (SELECT now FROM sync_clock)\r\n  FROM employees WHERE rowid = NEW.rowid\r\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\r\n    store_id = excluded.store_id,\r\n    payload = excluded.payload,\r\n    queued_at = excluded.queued_at,\r\n    attempts = 0,\r\n    last_error = NULL;\r\nEND;"
+        "sql": "CREATE TRIGGER notifications_outbox_insert AFTER INSERT ON notifications\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\nBEGIN\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\n  SELECT 'notifications', id, store_id, json_object(\n      'updated_at', updated_at,\n      'deleted_at', deleted_at,\n      'id', id,\n      'store_id', store_id,\n      'kind', kind,\n      'title', title,\n      'body', body,\n      'created_at', created_at,\n      'is_read', is_read,\n      'related_item_id', related_item_id,\n      'related_supplier_id', related_supplier_id\n    ), (SELECT now FROM sync_clock)\n  FROM notifications WHERE rowid = NEW.rowid\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\n    store_id = excluded.store_id,\n    payload = excluded.payload,\n    queued_at = excluded.queued_at,\n    attempts = 0,\n    last_error = NULL;\nEND;"
       }
     },
     {
       "id": 74,
       "references": [
+        72,
+        4,
+        42,
+        6
+      ],
+      "type": "trigger",
+      "data": {
+        "on": 72,
+        "references_in_body": [
+          72,
+          4,
+          42,
+          6
+        ],
+        "name": "notifications_outbox_update",
+        "sql": "CREATE TRIGGER notifications_outbox_update AFTER UPDATE ON notifications\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\nBEGIN\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\n  SELECT 'notifications', id, store_id, json_object(\n      'updated_at', updated_at,\n      'deleted_at', deleted_at,\n      'id', id,\n      'store_id', store_id,\n      'kind', kind,\n      'title', title,\n      'body', body,\n      'created_at', created_at,\n      'is_read', is_read,\n      'related_item_id', related_item_id,\n      'related_supplier_id', related_supplier_id\n    ), (SELECT now FROM sync_clock)\n  FROM notifications WHERE rowid = NEW.rowid\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\n    store_id = excluded.store_id,\n    payload = excluded.payload,\n    queued_at = excluded.queued_at,\n    attempts = 0,\n    last_error = NULL;\nEND;"
+      }
+    },
+    {
+      "id": 75,
+      "references": [
         9,
         4,
-        40,
+        42,
         6
       ],
       "type": "trigger",
@@ -4676,40 +4834,40 @@
         "references_in_body": [
           9,
           4,
-          40,
+          42,
           6
         ],
-        "name": "employees_outbox_update",
-        "sql": "CREATE TRIGGER employees_outbox_update AFTER UPDATE ON employees\r\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\r\nBEGIN\r\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\r\n  SELECT 'employees', id, store_id, json_object(\r\n      'updated_at', updated_at,\r\n      'deleted_at', deleted_at,\r\n      'id', id,\r\n      'store_id', store_id,\r\n      'first_name', first_name,\r\n      'last_name', last_name,\r\n      'pin', pin,\r\n      'phone', phone,\r\n      'email', email,\r\n      'photo_asset', photo_asset,\r\n      'hire_date', hire_date,\r\n      'role', role,\r\n      'pay', pay,\r\n      'created_at', created_at,\r\n      'archived_at', archived_at\r\n    ), (SELECT now FROM sync_clock)\r\n  FROM employees WHERE rowid = NEW.rowid\r\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\r\n    store_id = excluded.store_id,\r\n    payload = excluded.payload,\r\n    queued_at = excluded.queued_at,\r\n    attempts = 0,\r\n    last_error = NULL;\r\nEND;"
-      }
-    },
-    {
-      "id": 75,
-      "references": [
-        17,
-        4,
-        40,
-        6
-      ],
-      "type": "trigger",
-      "data": {
-        "on": 17,
-        "references_in_body": [
-          17,
-          4,
-          40,
-          6
-        ],
-        "name": "employee_credentials_outbox_insert",
-        "sql": "CREATE TRIGGER employee_credentials_outbox_insert AFTER INSERT ON employee_credentials\r\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\r\nBEGIN\r\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\r\n  SELECT 'employee_credentials', id, store_id, json_object(\r\n      'updated_at', updated_at,\r\n      'deleted_at', deleted_at,\r\n      'id', id,\r\n      'store_id', store_id,\r\n      'employee_id', employee_id,\r\n      'password_hash', password_hash,\r\n      'failed_attempts', failed_attempts,\r\n      'locked_until', locked_until,\r\n      'last_login_at', last_login_at\r\n    ), (SELECT now FROM sync_clock)\r\n  FROM employee_credentials WHERE rowid = NEW.rowid\r\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\r\n    store_id = excluded.store_id,\r\n    payload = excluded.payload,\r\n    queued_at = excluded.queued_at,\r\n    attempts = 0,\r\n    last_error = NULL;\r\nEND;"
+        "name": "employees_outbox_insert",
+        "sql": "CREATE TRIGGER employees_outbox_insert AFTER INSERT ON employees\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\nBEGIN\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\n  SELECT 'employees', id, store_id, json_object(\n      'updated_at', updated_at,\n      'deleted_at', deleted_at,\n      'id', id,\n      'store_id', store_id,\n      'first_name', first_name,\n      'last_name', last_name,\n      'pin', pin,\n      'phone', phone,\n      'email', email,\n      'photo_asset', photo_asset,\n      'hire_date', hire_date,\n      'role', role,\n      'pay', pay,\n      'created_at', created_at,\n      'archived_at', archived_at\n    ), (SELECT now FROM sync_clock)\n  FROM employees WHERE rowid = NEW.rowid\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\n    store_id = excluded.store_id,\n    payload = excluded.payload,\n    queued_at = excluded.queued_at,\n    attempts = 0,\n    last_error = NULL;\nEND;"
       }
     },
     {
       "id": 76,
       "references": [
+        9,
+        4,
+        42,
+        6
+      ],
+      "type": "trigger",
+      "data": {
+        "on": 9,
+        "references_in_body": [
+          9,
+          4,
+          42,
+          6
+        ],
+        "name": "employees_outbox_update",
+        "sql": "CREATE TRIGGER employees_outbox_update AFTER UPDATE ON employees\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\nBEGIN\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\n  SELECT 'employees', id, store_id, json_object(\n      'updated_at', updated_at,\n      'deleted_at', deleted_at,\n      'id', id,\n      'store_id', store_id,\n      'first_name', first_name,\n      'last_name', last_name,\n      'pin', pin,\n      'phone', phone,\n      'email', email,\n      'photo_asset', photo_asset,\n      'hire_date', hire_date,\n      'role', role,\n      'pay', pay,\n      'created_at', created_at,\n      'archived_at', archived_at\n    ), (SELECT now FROM sync_clock)\n  FROM employees WHERE rowid = NEW.rowid\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\n    store_id = excluded.store_id,\n    payload = excluded.payload,\n    queued_at = excluded.queued_at,\n    attempts = 0,\n    last_error = NULL;\nEND;"
+      }
+    },
+    {
+      "id": 77,
+      "references": [
         17,
         4,
-        40,
+        42,
         6
       ],
       "type": "trigger",
@@ -4718,40 +4876,40 @@
         "references_in_body": [
           17,
           4,
-          40,
+          42,
           6
         ],
-        "name": "employee_credentials_outbox_update",
-        "sql": "CREATE TRIGGER employee_credentials_outbox_update AFTER UPDATE ON employee_credentials\r\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\r\nBEGIN\r\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\r\n  SELECT 'employee_credentials', id, store_id, json_object(\r\n      'updated_at', updated_at,\r\n      'deleted_at', deleted_at,\r\n      'id', id,\r\n      'store_id', store_id,\r\n      'employee_id', employee_id,\r\n      'password_hash', password_hash,\r\n      'failed_attempts', failed_attempts,\r\n      'locked_until', locked_until,\r\n      'last_login_at', last_login_at\r\n    ), (SELECT now FROM sync_clock)\r\n  FROM employee_credentials WHERE rowid = NEW.rowid\r\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\r\n    store_id = excluded.store_id,\r\n    payload = excluded.payload,\r\n    queued_at = excluded.queued_at,\r\n    attempts = 0,\r\n    last_error = NULL;\r\nEND;"
-      }
-    },
-    {
-      "id": 77,
-      "references": [
-        21,
-        4,
-        40,
-        6
-      ],
-      "type": "trigger",
-      "data": {
-        "on": 21,
-        "references_in_body": [
-          21,
-          4,
-          40,
-          6
-        ],
-        "name": "payroll_periods_outbox_insert",
-        "sql": "CREATE TRIGGER payroll_periods_outbox_insert AFTER INSERT ON payroll_periods\r\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\r\nBEGIN\r\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\r\n  SELECT 'payroll_periods', id, store_id, json_object(\r\n      'updated_at', updated_at,\r\n      'deleted_at', deleted_at,\r\n      'id', id,\r\n      'employee_id', employee_id,\r\n      'store_id', store_id,\r\n      'start_date', start_date,\r\n      'end_date', end_date,\r\n      'worked_days', worked_days,\r\n      'total_worked_hours', total_worked_hours,\r\n      'applied_rate', applied_rate,\r\n      'computed_amount', computed_amount,\r\n      'status', status,\r\n      'paid_by_employee_id', paid_by_employee_id,\r\n      'paid_at', paid_at,\r\n      'created_at', created_at\r\n    ), (SELECT now FROM sync_clock)\r\n  FROM payroll_periods WHERE rowid = NEW.rowid\r\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\r\n    store_id = excluded.store_id,\r\n    payload = excluded.payload,\r\n    queued_at = excluded.queued_at,\r\n    attempts = 0,\r\n    last_error = NULL;\r\nEND;"
+        "name": "employee_credentials_outbox_insert",
+        "sql": "CREATE TRIGGER employee_credentials_outbox_insert AFTER INSERT ON employee_credentials\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\nBEGIN\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\n  SELECT 'employee_credentials', id, store_id, json_object(\n      'updated_at', updated_at,\n      'deleted_at', deleted_at,\n      'id', id,\n      'store_id', store_id,\n      'employee_id', employee_id,\n      'password_hash', password_hash,\n      'failed_attempts', failed_attempts,\n      'locked_until', locked_until,\n      'last_login_at', last_login_at\n    ), (SELECT now FROM sync_clock)\n  FROM employee_credentials WHERE rowid = NEW.rowid\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\n    store_id = excluded.store_id,\n    payload = excluded.payload,\n    queued_at = excluded.queued_at,\n    attempts = 0,\n    last_error = NULL;\nEND;"
       }
     },
     {
       "id": 78,
       "references": [
+        17,
+        4,
+        42,
+        6
+      ],
+      "type": "trigger",
+      "data": {
+        "on": 17,
+        "references_in_body": [
+          17,
+          4,
+          42,
+          6
+        ],
+        "name": "employee_credentials_outbox_update",
+        "sql": "CREATE TRIGGER employee_credentials_outbox_update AFTER UPDATE ON employee_credentials\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\nBEGIN\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\n  SELECT 'employee_credentials', id, store_id, json_object(\n      'updated_at', updated_at,\n      'deleted_at', deleted_at,\n      'id', id,\n      'store_id', store_id,\n      'employee_id', employee_id,\n      'password_hash', password_hash,\n      'failed_attempts', failed_attempts,\n      'locked_until', locked_until,\n      'last_login_at', last_login_at\n    ), (SELECT now FROM sync_clock)\n  FROM employee_credentials WHERE rowid = NEW.rowid\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\n    store_id = excluded.store_id,\n    payload = excluded.payload,\n    queued_at = excluded.queued_at,\n    attempts = 0,\n    last_error = NULL;\nEND;"
+      }
+    },
+    {
+      "id": 79,
+      "references": [
         21,
         4,
-        40,
+        42,
         6
       ],
       "type": "trigger",
@@ -4760,40 +4918,40 @@
         "references_in_body": [
           21,
           4,
-          40,
+          42,
           6
         ],
-        "name": "payroll_periods_outbox_update",
-        "sql": "CREATE TRIGGER payroll_periods_outbox_update AFTER UPDATE ON payroll_periods\r\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\r\nBEGIN\r\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\r\n  SELECT 'payroll_periods', id, store_id, json_object(\r\n      'updated_at', updated_at,\r\n      'deleted_at', deleted_at,\r\n      'id', id,\r\n      'employee_id', employee_id,\r\n      'store_id', store_id,\r\n      'start_date', start_date,\r\n      'end_date', end_date,\r\n      'worked_days', worked_days,\r\n      'total_worked_hours', total_worked_hours,\r\n      'applied_rate', applied_rate,\r\n      'computed_amount', computed_amount,\r\n      'status', status,\r\n      'paid_by_employee_id', paid_by_employee_id,\r\n      'paid_at', paid_at,\r\n      'created_at', created_at\r\n    ), (SELECT now FROM sync_clock)\r\n  FROM payroll_periods WHERE rowid = NEW.rowid\r\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\r\n    store_id = excluded.store_id,\r\n    payload = excluded.payload,\r\n    queued_at = excluded.queued_at,\r\n    attempts = 0,\r\n    last_error = NULL;\r\nEND;"
-      }
-    },
-    {
-      "id": 79,
-      "references": [
-        22,
-        4,
-        40,
-        6
-      ],
-      "type": "trigger",
-      "data": {
-        "on": 22,
-        "references_in_body": [
-          22,
-          4,
-          40,
-          6
-        ],
-        "name": "attendances_outbox_insert",
-        "sql": "CREATE TRIGGER attendances_outbox_insert AFTER INSERT ON attendances\r\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\r\nBEGIN\r\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\r\n  SELECT 'attendances', id, store_id, json_object(\r\n      'updated_at', updated_at,\r\n      'deleted_at', deleted_at,\r\n      'id', id,\r\n      'store_id', store_id,\r\n      'employee_id', employee_id,\r\n      'date', date,\r\n      'status', status,\r\n      'max_break_minutes', max_break_minutes,\r\n      'payroll_period_id', payroll_period_id\r\n    ), (SELECT now FROM sync_clock)\r\n  FROM attendances WHERE rowid = NEW.rowid\r\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\r\n    store_id = excluded.store_id,\r\n    payload = excluded.payload,\r\n    queued_at = excluded.queued_at,\r\n    attempts = 0,\r\n    last_error = NULL;\r\nEND;"
+        "name": "payroll_periods_outbox_insert",
+        "sql": "CREATE TRIGGER payroll_periods_outbox_insert AFTER INSERT ON payroll_periods\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\nBEGIN\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\n  SELECT 'payroll_periods', id, store_id, json_object(\n      'updated_at', updated_at,\n      'deleted_at', deleted_at,\n      'id', id,\n      'employee_id', employee_id,\n      'store_id', store_id,\n      'start_date', start_date,\n      'end_date', end_date,\n      'worked_days', worked_days,\n      'total_worked_hours', total_worked_hours,\n      'applied_rate', applied_rate,\n      'computed_amount', computed_amount,\n      'status', status,\n      'paid_by_employee_id', paid_by_employee_id,\n      'paid_at', paid_at,\n      'created_at', created_at\n    ), (SELECT now FROM sync_clock)\n  FROM payroll_periods WHERE rowid = NEW.rowid\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\n    store_id = excluded.store_id,\n    payload = excluded.payload,\n    queued_at = excluded.queued_at,\n    attempts = 0,\n    last_error = NULL;\nEND;"
       }
     },
     {
       "id": 80,
       "references": [
+        21,
+        4,
+        42,
+        6
+      ],
+      "type": "trigger",
+      "data": {
+        "on": 21,
+        "references_in_body": [
+          21,
+          4,
+          42,
+          6
+        ],
+        "name": "payroll_periods_outbox_update",
+        "sql": "CREATE TRIGGER payroll_periods_outbox_update AFTER UPDATE ON payroll_periods\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\nBEGIN\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\n  SELECT 'payroll_periods', id, store_id, json_object(\n      'updated_at', updated_at,\n      'deleted_at', deleted_at,\n      'id', id,\n      'employee_id', employee_id,\n      'store_id', store_id,\n      'start_date', start_date,\n      'end_date', end_date,\n      'worked_days', worked_days,\n      'total_worked_hours', total_worked_hours,\n      'applied_rate', applied_rate,\n      'computed_amount', computed_amount,\n      'status', status,\n      'paid_by_employee_id', paid_by_employee_id,\n      'paid_at', paid_at,\n      'created_at', created_at\n    ), (SELECT now FROM sync_clock)\n  FROM payroll_periods WHERE rowid = NEW.rowid\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\n    store_id = excluded.store_id,\n    payload = excluded.payload,\n    queued_at = excluded.queued_at,\n    attempts = 0,\n    last_error = NULL;\nEND;"
+      }
+    },
+    {
+      "id": 81,
+      "references": [
         22,
         4,
-        40,
+        42,
         6
       ],
       "type": "trigger",
@@ -4802,99 +4960,120 @@
         "references_in_body": [
           22,
           4,
-          40,
+          42,
           6
         ],
-        "name": "attendances_outbox_update",
-        "sql": "CREATE TRIGGER attendances_outbox_update AFTER UPDATE ON attendances\r\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\r\nBEGIN\r\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\r\n  SELECT 'attendances', id, store_id, json_object(\r\n      'updated_at', updated_at,\r\n      'deleted_at', deleted_at,\r\n      'id', id,\r\n      'store_id', store_id,\r\n      'employee_id', employee_id,\r\n      'date', date,\r\n      'status', status,\r\n      'max_break_minutes', max_break_minutes,\r\n      'payroll_period_id', payroll_period_id\r\n    ), (SELECT now FROM sync_clock)\r\n  FROM attendances WHERE rowid = NEW.rowid\r\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\r\n    store_id = excluded.store_id,\r\n    payload = excluded.payload,\r\n    queued_at = excluded.queued_at,\r\n    attempts = 0,\r\n    last_error = NULL;\r\nEND;"
-      }
-    },
-    {
-      "id": 81,
-      "references": [
-        33,
-        4,
-        40,
-        6
-      ],
-      "type": "trigger",
-      "data": {
-        "on": 33,
-        "references_in_body": [
-          33,
-          4,
-          40,
-          6
-        ],
-        "name": "attendance_sessions_outbox_insert",
-        "sql": "CREATE TRIGGER attendance_sessions_outbox_insert AFTER INSERT ON attendance_sessions\r\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\r\nBEGIN\r\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\r\n  SELECT 'attendance_sessions', id, store_id, json_object(\r\n      'updated_at', updated_at,\r\n      'deleted_at', deleted_at,\r\n      'id', id,\r\n      'store_id', store_id,\r\n      'attendance_id', attendance_id,\r\n      'position', position,\r\n      'clock_in_at', clock_in_at,\r\n      'clock_out_at', clock_out_at\r\n    ), (SELECT now FROM sync_clock)\r\n  FROM attendance_sessions WHERE rowid = NEW.rowid\r\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\r\n    store_id = excluded.store_id,\r\n    payload = excluded.payload,\r\n    queued_at = excluded.queued_at,\r\n    attempts = 0,\r\n    last_error = NULL;\r\nEND;"
+        "name": "attendances_outbox_insert",
+        "sql": "CREATE TRIGGER attendances_outbox_insert AFTER INSERT ON attendances\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\nBEGIN\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\n  SELECT 'attendances', id, store_id, json_object(\n      'updated_at', updated_at,\n      'deleted_at', deleted_at,\n      'id', id,\n      'store_id', store_id,\n      'employee_id', employee_id,\n      'date', date,\n      'status', status,\n      'max_break_minutes', max_break_minutes,\n      'payroll_period_id', payroll_period_id\n    ), (SELECT now FROM sync_clock)\n  FROM attendances WHERE rowid = NEW.rowid\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\n    store_id = excluded.store_id,\n    payload = excluded.payload,\n    queued_at = excluded.queued_at,\n    attempts = 0,\n    last_error = NULL;\nEND;"
       }
     },
     {
       "id": 82,
       "references": [
-        33,
+        22,
         4,
-        40,
+        42,
         6
       ],
       "type": "trigger",
       "data": {
-        "on": 33,
+        "on": 22,
         "references_in_body": [
-          33,
+          22,
           4,
-          40,
+          42,
           6
         ],
-        "name": "attendance_sessions_outbox_update",
-        "sql": "CREATE TRIGGER attendance_sessions_outbox_update AFTER UPDATE ON attendance_sessions\r\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\r\nBEGIN\r\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\r\n  SELECT 'attendance_sessions', id, store_id, json_object(\r\n      'updated_at', updated_at,\r\n      'deleted_at', deleted_at,\r\n      'id', id,\r\n      'store_id', store_id,\r\n      'attendance_id', attendance_id,\r\n      'position', position,\r\n      'clock_in_at', clock_in_at,\r\n      'clock_out_at', clock_out_at\r\n    ), (SELECT now FROM sync_clock)\r\n  FROM attendance_sessions WHERE rowid = NEW.rowid\r\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\r\n    store_id = excluded.store_id,\r\n    payload = excluded.payload,\r\n    queued_at = excluded.queued_at,\r\n    attempts = 0,\r\n    last_error = NULL;\r\nEND;"
+        "name": "attendances_outbox_update",
+        "sql": "CREATE TRIGGER attendances_outbox_update AFTER UPDATE ON attendances\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\nBEGIN\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\n  SELECT 'attendances', id, store_id, json_object(\n      'updated_at', updated_at,\n      'deleted_at', deleted_at,\n      'id', id,\n      'store_id', store_id,\n      'employee_id', employee_id,\n      'date', date,\n      'status', status,\n      'max_break_minutes', max_break_minutes,\n      'payroll_period_id', payroll_period_id\n    ), (SELECT now FROM sync_clock)\n  FROM attendances WHERE rowid = NEW.rowid\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\n    store_id = excluded.store_id,\n    payload = excluded.payload,\n    queued_at = excluded.queued_at,\n    attempts = 0,\n    last_error = NULL;\nEND;"
       }
     },
     {
       "id": 83,
       "references": [
-        34,
+        35,
         4,
-        40,
+        42,
         6
       ],
       "type": "trigger",
       "data": {
-        "on": 34,
+        "on": 35,
         "references_in_body": [
-          34,
+          35,
           4,
-          40,
+          42,
           6
         ],
-        "name": "attendance_pauses_outbox_insert",
-        "sql": "CREATE TRIGGER attendance_pauses_outbox_insert AFTER INSERT ON attendance_pauses\r\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\r\nBEGIN\r\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\r\n  SELECT 'attendance_pauses', id, store_id, json_object(\r\n      'updated_at', updated_at,\r\n      'deleted_at', deleted_at,\r\n      'id', id,\r\n      'store_id', store_id,\r\n      'session_id', session_id,\r\n      'position', position,\r\n      'start_at', start_at,\r\n      'end_at', end_at\r\n    ), (SELECT now FROM sync_clock)\r\n  FROM attendance_pauses WHERE rowid = NEW.rowid\r\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\r\n    store_id = excluded.store_id,\r\n    payload = excluded.payload,\r\n    queued_at = excluded.queued_at,\r\n    attempts = 0,\r\n    last_error = NULL;\r\nEND;"
+        "name": "attendance_sessions_outbox_insert",
+        "sql": "CREATE TRIGGER attendance_sessions_outbox_insert AFTER INSERT ON attendance_sessions\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\nBEGIN\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\n  SELECT 'attendance_sessions', id, store_id, json_object(\n      'updated_at', updated_at,\n      'deleted_at', deleted_at,\n      'id', id,\n      'store_id', store_id,\n      'attendance_id', attendance_id,\n      'position', position,\n      'clock_in_at', clock_in_at,\n      'clock_out_at', clock_out_at,\n      'exit_set_by_employee_id', exit_set_by_employee_id\n    ), (SELECT now FROM sync_clock)\n  FROM attendance_sessions WHERE rowid = NEW.rowid\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\n    store_id = excluded.store_id,\n    payload = excluded.payload,\n    queued_at = excluded.queued_at,\n    attempts = 0,\n    last_error = NULL;\nEND;"
       }
     },
     {
       "id": 84,
       "references": [
-        34,
+        35,
         4,
-        40,
+        42,
         6
       ],
       "type": "trigger",
       "data": {
-        "on": 34,
+        "on": 35,
         "references_in_body": [
-          34,
+          35,
           4,
-          40,
+          42,
           6
         ],
-        "name": "attendance_pauses_outbox_update",
-        "sql": "CREATE TRIGGER attendance_pauses_outbox_update AFTER UPDATE ON attendance_pauses\r\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\r\nBEGIN\r\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\r\n  SELECT 'attendance_pauses', id, store_id, json_object(\r\n      'updated_at', updated_at,\r\n      'deleted_at', deleted_at,\r\n      'id', id,\r\n      'store_id', store_id,\r\n      'session_id', session_id,\r\n      'position', position,\r\n      'start_at', start_at,\r\n      'end_at', end_at\r\n    ), (SELECT now FROM sync_clock)\r\n  FROM attendance_pauses WHERE rowid = NEW.rowid\r\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\r\n    store_id = excluded.store_id,\r\n    payload = excluded.payload,\r\n    queued_at = excluded.queued_at,\r\n    attempts = 0,\r\n    last_error = NULL;\r\nEND;"
+        "name": "attendance_sessions_outbox_update",
+        "sql": "CREATE TRIGGER attendance_sessions_outbox_update AFTER UPDATE ON attendance_sessions\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\nBEGIN\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\n  SELECT 'attendance_sessions', id, store_id, json_object(\n      'updated_at', updated_at,\n      'deleted_at', deleted_at,\n      'id', id,\n      'store_id', store_id,\n      'attendance_id', attendance_id,\n      'position', position,\n      'clock_in_at', clock_in_at,\n      'clock_out_at', clock_out_at,\n      'exit_set_by_employee_id', exit_set_by_employee_id\n    ), (SELECT now FROM sync_clock)\n  FROM attendance_sessions WHERE rowid = NEW.rowid\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\n    store_id = excluded.store_id,\n    payload = excluded.payload,\n    queued_at = excluded.queued_at,\n    attempts = 0,\n    last_error = NULL;\nEND;"
       }
     },
     {
       "id": 85,
+      "references": [
+        36,
+        4,
+        42,
+        6
+      ],
+      "type": "trigger",
+      "data": {
+        "on": 36,
+        "references_in_body": [
+          36,
+          4,
+          42,
+          6
+        ],
+        "name": "attendance_pauses_outbox_insert",
+        "sql": "CREATE TRIGGER attendance_pauses_outbox_insert AFTER INSERT ON attendance_pauses\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\nBEGIN\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\n  SELECT 'attendance_pauses', id, store_id, json_object(\n      'updated_at', updated_at,\n      'deleted_at', deleted_at,\n      'id', id,\n      'store_id', store_id,\n      'session_id', session_id,\n      'position', position,\n      'start_at', start_at,\n      'end_at', end_at\n    ), (SELECT now FROM sync_clock)\n  FROM attendance_pauses WHERE rowid = NEW.rowid\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\n    store_id = excluded.store_id,\n    payload = excluded.payload,\n    queued_at = excluded.queued_at,\n    attempts = 0,\n    last_error = NULL;\nEND;"
+      }
+    },
+    {
+      "id": 86,
+      "references": [
+        36,
+        4,
+        42,
+        6
+      ],
+      "type": "trigger",
+      "data": {
+        "on": 36,
+        "references_in_body": [
+          36,
+          4,
+          42,
+          6
+        ],
+        "name": "attendance_pauses_outbox_update",
+        "sql": "CREATE TRIGGER attendance_pauses_outbox_update AFTER UPDATE ON attendance_pauses\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\nBEGIN\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\n  SELECT 'attendance_pauses', id, store_id, json_object(\n      'updated_at', updated_at,\n      'deleted_at', deleted_at,\n      'id', id,\n      'store_id', store_id,\n      'session_id', session_id,\n      'position', position,\n      'start_at', start_at,\n      'end_at', end_at\n    ), (SELECT now FROM sync_clock)\n  FROM attendance_pauses WHERE rowid = NEW.rowid\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\n    store_id = excluded.store_id,\n    payload = excluded.payload,\n    queued_at = excluded.queued_at,\n    attempts = 0,\n    last_error = NULL;\nEND;"
+      }
+    },
+    {
+      "id": 87,
       "references": [
         0
       ],
@@ -4977,49 +5156,91 @@
       }
     },
     {
-      "id": 86,
+      "id": 88,
       "references": [
-        85,
+        87,
         4,
-        40,
+        42,
         6
       ],
       "type": "trigger",
       "data": {
-        "on": 85,
+        "on": 87,
         "references_in_body": [
-          85,
+          87,
           4,
-          40,
+          42,
           6
         ],
         "name": "busy_dates_outbox_insert",
-        "sql": "CREATE TRIGGER busy_dates_outbox_insert AFTER INSERT ON busy_dates\r\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\r\nBEGIN\r\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\r\n  SELECT 'busy_dates', store_id || '|' || day, store_id, json_object(\r\n      'updated_at', updated_at,\r\n      'deleted_at', deleted_at,\r\n      'store_id', store_id,\r\n      'day', day\r\n    ), (SELECT now FROM sync_clock)\r\n  FROM busy_dates WHERE rowid = NEW.rowid\r\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\r\n    store_id = excluded.store_id,\r\n    payload = excluded.payload,\r\n    queued_at = excluded.queued_at,\r\n    attempts = 0,\r\n    last_error = NULL;\r\nEND;"
+        "sql": "CREATE TRIGGER busy_dates_outbox_insert AFTER INSERT ON busy_dates\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\nBEGIN\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\n  SELECT 'busy_dates', store_id || '|' || day, store_id, json_object(\n      'updated_at', updated_at,\n      'deleted_at', deleted_at,\n      'store_id', store_id,\n      'day', day\n    ), (SELECT now FROM sync_clock)\n  FROM busy_dates WHERE rowid = NEW.rowid\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\n    store_id = excluded.store_id,\n    payload = excluded.payload,\n    queued_at = excluded.queued_at,\n    attempts = 0,\n    last_error = NULL;\nEND;"
       }
     },
     {
-      "id": 87,
+      "id": 89,
       "references": [
-        85,
+        87,
         4,
-        40,
+        42,
         6
       ],
       "type": "trigger",
       "data": {
-        "on": 85,
+        "on": 87,
         "references_in_body": [
-          85,
+          87,
           4,
-          40,
+          42,
           6
         ],
         "name": "busy_dates_outbox_update",
-        "sql": "CREATE TRIGGER busy_dates_outbox_update AFTER UPDATE ON busy_dates\r\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\r\nBEGIN\r\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\r\n  SELECT 'busy_dates', store_id || '|' || day, store_id, json_object(\r\n      'updated_at', updated_at,\r\n      'deleted_at', deleted_at,\r\n      'store_id', store_id,\r\n      'day', day\r\n    ), (SELECT now FROM sync_clock)\r\n  FROM busy_dates WHERE rowid = NEW.rowid\r\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\r\n    store_id = excluded.store_id,\r\n    payload = excluded.payload,\r\n    queued_at = excluded.queued_at,\r\n    attempts = 0,\r\n    last_error = NULL;\r\nEND;"
+        "sql": "CREATE TRIGGER busy_dates_outbox_update AFTER UPDATE ON busy_dates\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\nBEGIN\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\n  SELECT 'busy_dates', store_id || '|' || day, store_id, json_object(\n      'updated_at', updated_at,\n      'deleted_at', deleted_at,\n      'store_id', store_id,\n      'day', day\n    ), (SELECT now FROM sync_clock)\n  FROM busy_dates WHERE rowid = NEW.rowid\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\n    store_id = excluded.store_id,\n    payload = excluded.payload,\n    queued_at = excluded.queued_at,\n    attempts = 0,\n    last_error = NULL;\nEND;"
       }
     },
     {
-      "id": 88,
+      "id": 90,
+      "references": [
+        28,
+        4,
+        42,
+        6
+      ],
+      "type": "trigger",
+      "data": {
+        "on": 28,
+        "references_in_body": [
+          28,
+          4,
+          42,
+          6
+        ],
+        "name": "business_days_outbox_insert",
+        "sql": "CREATE TRIGGER business_days_outbox_insert AFTER INSERT ON business_days\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\nBEGIN\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\n  SELECT 'business_days', id, store_id, json_object(\n      'updated_at', updated_at,\n      'deleted_at', deleted_at,\n      'id', id,\n      'store_id', store_id,\n      'date', date,\n      'opened_at', opened_at,\n      'opened_by_employee_id', opened_by_employee_id,\n      'closed_at', closed_at,\n      'closed_by_employee_id', closed_by_employee_id\n    ), (SELECT now FROM sync_clock)\n  FROM business_days WHERE rowid = NEW.rowid\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\n    store_id = excluded.store_id,\n    payload = excluded.payload,\n    queued_at = excluded.queued_at,\n    attempts = 0,\n    last_error = NULL;\nEND;"
+      }
+    },
+    {
+      "id": 91,
+      "references": [
+        28,
+        4,
+        42,
+        6
+      ],
+      "type": "trigger",
+      "data": {
+        "on": 28,
+        "references_in_body": [
+          28,
+          4,
+          42,
+          6
+        ],
+        "name": "business_days_outbox_update",
+        "sql": "CREATE TRIGGER business_days_outbox_update AFTER UPDATE ON business_days\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\nBEGIN\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\n  SELECT 'business_days', id, store_id, json_object(\n      'updated_at', updated_at,\n      'deleted_at', deleted_at,\n      'id', id,\n      'store_id', store_id,\n      'date', date,\n      'opened_at', opened_at,\n      'opened_by_employee_id', opened_by_employee_id,\n      'closed_at', closed_at,\n      'closed_by_employee_id', closed_by_employee_id\n    ), (SELECT now FROM sync_clock)\n  FROM business_days WHERE rowid = NEW.rowid\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\n    store_id = excluded.store_id,\n    payload = excluded.payload,\n    queued_at = excluded.queued_at,\n    attempts = 0,\n    last_error = NULL;\nEND;"
+      }
+    },
+    {
+      "id": 92,
       "references": [],
       "type": "table",
       "data": {
@@ -5119,13 +5340,13 @@
       }
     },
     {
-      "id": 89,
+      "id": 93,
       "references": [
-        64
+        66
       ],
       "type": "index",
       "data": {
-        "on": 64,
+        "on": 66,
         "name": "goods_receipts_order",
         "sql": null,
         "unique": false,
@@ -5138,13 +5359,13 @@
       }
     },
     {
-      "id": 90,
+      "id": 94,
       "references": [
-        64
+        66
       ],
       "type": "index",
       "data": {
-        "on": 64,
+        "on": 66,
         "name": "goods_receipts_store",
         "sql": null,
         "unique": false,
@@ -5157,13 +5378,13 @@
       }
     },
     {
-      "id": 91,
+      "id": 95,
       "references": [
-        67
+        69
       ],
       "type": "index",
       "data": {
-        "on": 67,
+        "on": 69,
         "name": "goods_receipt_lines_receipt",
         "sql": null,
         "unique": false,
@@ -5176,13 +5397,13 @@
       }
     },
     {
-      "id": 92,
+      "id": 96,
       "references": [
-        67
+        69
       ],
       "type": "index",
       "data": {
-        "on": 67,
+        "on": 69,
         "name": "goods_receipt_lines_item",
         "sql": null,
         "unique": false,
@@ -5195,13 +5416,13 @@
       }
     },
     {
-      "id": 93,
+      "id": 97,
       "references": [
-        58
+        60
       ],
       "type": "index",
       "data": {
-        "on": 58,
+        "on": 60,
         "name": "purchase_orders_store_status",
         "sql": null,
         "unique": false,
@@ -5218,13 +5439,13 @@
       }
     },
     {
-      "id": 94,
+      "id": 98,
       "references": [
-        58
+        60
       ],
       "type": "index",
       "data": {
-        "on": 58,
+        "on": 60,
         "name": "purchase_orders_supplier",
         "sql": null,
         "unique": false,
@@ -5237,13 +5458,13 @@
       }
     },
     {
-      "id": 95,
+      "id": 99,
       "references": [
-        61
+        63
       ],
       "type": "index",
       "data": {
-        "on": 61,
+        "on": 63,
         "name": "purchase_order_lines_order",
         "sql": null,
         "unique": false,
@@ -5256,13 +5477,13 @@
       }
     },
     {
-      "id": 96,
+      "id": 100,
       "references": [
-        61
+        63
       ],
       "type": "index",
       "data": {
-        "on": 61,
+        "on": 63,
         "name": "purchase_order_lines_item",
         "sql": null,
         "unique": false,
@@ -5275,13 +5496,13 @@
       }
     },
     {
-      "id": 97,
+      "id": 101,
       "references": [
-        55
+        57
       ],
       "type": "index",
       "data": {
-        "on": 55,
+        "on": 57,
         "name": "stock_movements_item_time",
         "sql": null,
         "unique": false,
@@ -5298,13 +5519,13 @@
       }
     },
     {
-      "id": 98,
+      "id": 102,
       "references": [
-        55
+        57
       ],
       "type": "index",
       "data": {
-        "on": 55,
+        "on": 57,
         "name": "stock_movements_store_time",
         "sql": null,
         "unique": false,
@@ -5321,13 +5542,13 @@
       }
     },
     {
-      "id": 99,
+      "id": 103,
       "references": [
-        55
+        57
       ],
       "type": "index",
       "data": {
-        "on": 55,
+        "on": 57,
         "name": "stock_movements_receipt",
         "sql": null,
         "unique": false,
@@ -5340,13 +5561,13 @@
       }
     },
     {
-      "id": 100,
+      "id": 104,
       "references": [
-        70
+        72
       ],
       "type": "index",
       "data": {
-        "on": 70,
+        "on": 72,
         "name": "notifications_store_time",
         "sql": null,
         "unique": false,
@@ -5363,13 +5584,13 @@
       }
     },
     {
-      "id": 101,
+      "id": 105,
       "references": [
-        40
+        42
       ],
       "type": "index",
       "data": {
-        "on": 40,
+        "on": 42,
         "name": "outbox_row",
         "sql": null,
         "unique": true,
@@ -5386,7 +5607,7 @@
       }
     },
     {
-      "id": 102,
+      "id": 106,
       "references": [
         0,
         4,
@@ -5401,11 +5622,11 @@
           6
         ],
         "name": "stores_touch",
-        "sql": "CREATE TRIGGER stores_touch AFTER UPDATE ON stores\r\n  WHEN NEW.updated_at IS OLD.updated_at\r\n    AND NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\r\nBEGIN\r\n  UPDATE stores SET updated_at = (SELECT now FROM sync_clock)\r\n    WHERE rowid = NEW.rowid;\r\nEND;"
+        "sql": "CREATE TRIGGER stores_touch AFTER UPDATE ON stores\n  WHEN NEW.updated_at IS OLD.updated_at\n    AND NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\nBEGIN\n  UPDATE stores SET updated_at = (SELECT now FROM sync_clock)\n    WHERE rowid = NEW.rowid;\nEND;"
       }
     },
     {
-      "id": 103,
+      "id": 107,
       "references": [
         1,
         4,
@@ -5420,11 +5641,11 @@
           6
         ],
         "name": "categories_touch",
-        "sql": "CREATE TRIGGER categories_touch AFTER UPDATE ON categories\r\n  WHEN NEW.updated_at IS OLD.updated_at\r\n    AND NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\r\nBEGIN\r\n  UPDATE categories SET updated_at = (SELECT now FROM sync_clock)\r\n    WHERE rowid = NEW.rowid;\r\nEND;"
+        "sql": "CREATE TRIGGER categories_touch AFTER UPDATE ON categories\n  WHEN NEW.updated_at IS OLD.updated_at\n    AND NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\nBEGIN\n  UPDATE categories SET updated_at = (SELECT now FROM sync_clock)\n    WHERE rowid = NEW.rowid;\nEND;"
       }
     },
     {
-      "id": 104,
+      "id": 108,
       "references": [
         2,
         4,
@@ -5439,11 +5660,11 @@
           6
         ],
         "name": "units_touch",
-        "sql": "CREATE TRIGGER units_touch AFTER UPDATE ON units\r\n  WHEN NEW.updated_at IS OLD.updated_at\r\n    AND NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\r\nBEGIN\r\n  UPDATE units SET updated_at = (SELECT now FROM sync_clock)\r\n    WHERE rowid = NEW.rowid;\r\nEND;"
+        "sql": "CREATE TRIGGER units_touch AFTER UPDATE ON units\n  WHEN NEW.updated_at IS OLD.updated_at\n    AND NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\nBEGIN\n  UPDATE units SET updated_at = (SELECT now FROM sync_clock)\n    WHERE rowid = NEW.rowid;\nEND;"
       }
     },
     {
-      "id": 105,
+      "id": 109,
       "references": [
         3,
         4,
@@ -5458,11 +5679,11 @@
           6
         ],
         "name": "items_touch",
-        "sql": "CREATE TRIGGER items_touch AFTER UPDATE ON items\r\n  WHEN NEW.updated_at IS OLD.updated_at AND NEW.quantity IS OLD.quantity\r\n    AND NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\r\nBEGIN\r\n  UPDATE items SET updated_at = (SELECT now FROM sync_clock)\r\n    WHERE rowid = NEW.rowid;\r\nEND;"
+        "sql": "CREATE TRIGGER items_touch AFTER UPDATE ON items\n  WHEN NEW.updated_at IS OLD.updated_at AND NEW.quantity IS OLD.quantity\n    AND NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\nBEGIN\n  UPDATE items SET updated_at = (SELECT now FROM sync_clock)\n    WHERE rowid = NEW.rowid;\nEND;"
       }
     },
     {
-      "id": 106,
+      "id": 110,
       "references": [
         24,
         4,
@@ -5477,11 +5698,11 @@
           6
         ],
         "name": "suppliers_touch",
-        "sql": "CREATE TRIGGER suppliers_touch AFTER UPDATE ON suppliers\r\n  WHEN NEW.updated_at IS OLD.updated_at\r\n    AND NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\r\nBEGIN\r\n  UPDATE suppliers SET updated_at = (SELECT now FROM sync_clock)\r\n    WHERE rowid = NEW.rowid;\r\nEND;"
+        "sql": "CREATE TRIGGER suppliers_touch AFTER UPDATE ON suppliers\n  WHEN NEW.updated_at IS OLD.updated_at\n    AND NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\nBEGIN\n  UPDATE suppliers SET updated_at = (SELECT now FROM sync_clock)\n    WHERE rowid = NEW.rowid;\nEND;"
       }
     },
     {
-      "id": 107,
+      "id": 111,
       "references": [
         25,
         4,
@@ -5496,144 +5717,144 @@
           6
         ],
         "name": "supplier_prices_touch",
-        "sql": "CREATE TRIGGER supplier_prices_touch AFTER UPDATE ON supplier_prices\r\n  WHEN NEW.updated_at IS OLD.updated_at\r\n    AND NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\r\nBEGIN\r\n  UPDATE supplier_prices SET updated_at = (SELECT now FROM sync_clock)\r\n    WHERE rowid = NEW.rowid;\r\nEND;"
-      }
-    },
-    {
-      "id": 108,
-      "references": [
-        28,
-        4,
-        6
-      ],
-      "type": "trigger",
-      "data": {
-        "on": 28,
-        "references_in_body": [
-          28,
-          4,
-          6
-        ],
-        "name": "price_history_touch",
-        "sql": "CREATE TRIGGER price_history_touch AFTER UPDATE ON price_history\r\n  WHEN NEW.updated_at IS OLD.updated_at\r\n    AND NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\r\nBEGIN\r\n  UPDATE price_history SET updated_at = (SELECT now FROM sync_clock)\r\n    WHERE rowid = NEW.rowid;\r\nEND;"
-      }
-    },
-    {
-      "id": 109,
-      "references": [
-        55,
-        4,
-        6
-      ],
-      "type": "trigger",
-      "data": {
-        "on": 55,
-        "references_in_body": [
-          55,
-          4,
-          6
-        ],
-        "name": "stock_movements_touch",
-        "sql": "CREATE TRIGGER stock_movements_touch AFTER UPDATE ON stock_movements\r\n  WHEN NEW.updated_at IS OLD.updated_at\r\n    AND NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\r\nBEGIN\r\n  UPDATE stock_movements SET updated_at = (SELECT now FROM sync_clock)\r\n    WHERE rowid = NEW.rowid;\r\nEND;"
-      }
-    },
-    {
-      "id": 110,
-      "references": [
-        58,
-        4,
-        6
-      ],
-      "type": "trigger",
-      "data": {
-        "on": 58,
-        "references_in_body": [
-          58,
-          4,
-          6
-        ],
-        "name": "purchase_orders_touch",
-        "sql": "CREATE TRIGGER purchase_orders_touch AFTER UPDATE ON purchase_orders\r\n  WHEN NEW.updated_at IS OLD.updated_at\r\n    AND NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\r\nBEGIN\r\n  UPDATE purchase_orders SET updated_at = (SELECT now FROM sync_clock)\r\n    WHERE rowid = NEW.rowid;\r\nEND;"
-      }
-    },
-    {
-      "id": 111,
-      "references": [
-        61,
-        4,
-        6
-      ],
-      "type": "trigger",
-      "data": {
-        "on": 61,
-        "references_in_body": [
-          61,
-          4,
-          6
-        ],
-        "name": "purchase_order_lines_touch",
-        "sql": "CREATE TRIGGER purchase_order_lines_touch AFTER UPDATE ON purchase_order_lines\r\n  WHEN NEW.updated_at IS OLD.updated_at\r\n    AND NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\r\nBEGIN\r\n  UPDATE purchase_order_lines SET updated_at = (SELECT now FROM sync_clock)\r\n    WHERE rowid = NEW.rowid;\r\nEND;"
+        "sql": "CREATE TRIGGER supplier_prices_touch AFTER UPDATE ON supplier_prices\n  WHEN NEW.updated_at IS OLD.updated_at\n    AND NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\nBEGIN\n  UPDATE supplier_prices SET updated_at = (SELECT now FROM sync_clock)\n    WHERE rowid = NEW.rowid;\nEND;"
       }
     },
     {
       "id": 112,
       "references": [
-        64,
+        30,
         4,
         6
       ],
       "type": "trigger",
       "data": {
-        "on": 64,
+        "on": 30,
         "references_in_body": [
-          64,
+          30,
           4,
           6
         ],
-        "name": "goods_receipts_touch",
-        "sql": "CREATE TRIGGER goods_receipts_touch AFTER UPDATE ON goods_receipts\r\n  WHEN NEW.updated_at IS OLD.updated_at\r\n    AND NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\r\nBEGIN\r\n  UPDATE goods_receipts SET updated_at = (SELECT now FROM sync_clock)\r\n    WHERE rowid = NEW.rowid;\r\nEND;"
+        "name": "price_history_touch",
+        "sql": "CREATE TRIGGER price_history_touch AFTER UPDATE ON price_history\n  WHEN NEW.updated_at IS OLD.updated_at\n    AND NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\nBEGIN\n  UPDATE price_history SET updated_at = (SELECT now FROM sync_clock)\n    WHERE rowid = NEW.rowid;\nEND;"
       }
     },
     {
       "id": 113,
       "references": [
-        67,
+        57,
         4,
         6
       ],
       "type": "trigger",
       "data": {
-        "on": 67,
+        "on": 57,
         "references_in_body": [
-          67,
+          57,
           4,
           6
         ],
-        "name": "goods_receipt_lines_touch",
-        "sql": "CREATE TRIGGER goods_receipt_lines_touch AFTER UPDATE ON goods_receipt_lines\r\n  WHEN NEW.updated_at IS OLD.updated_at\r\n    AND NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\r\nBEGIN\r\n  UPDATE goods_receipt_lines SET updated_at = (SELECT now FROM sync_clock)\r\n    WHERE rowid = NEW.rowid;\r\nEND;"
+        "name": "stock_movements_touch",
+        "sql": "CREATE TRIGGER stock_movements_touch AFTER UPDATE ON stock_movements\n  WHEN NEW.updated_at IS OLD.updated_at\n    AND NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\nBEGIN\n  UPDATE stock_movements SET updated_at = (SELECT now FROM sync_clock)\n    WHERE rowid = NEW.rowid;\nEND;"
       }
     },
     {
       "id": 114,
       "references": [
-        70,
+        60,
         4,
         6
       ],
       "type": "trigger",
       "data": {
-        "on": 70,
+        "on": 60,
         "references_in_body": [
-          70,
+          60,
           4,
           6
         ],
-        "name": "notifications_touch",
-        "sql": "CREATE TRIGGER notifications_touch AFTER UPDATE ON notifications\r\n  WHEN NEW.updated_at IS OLD.updated_at\r\n    AND NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\r\nBEGIN\r\n  UPDATE notifications SET updated_at = (SELECT now FROM sync_clock)\r\n    WHERE rowid = NEW.rowid;\r\nEND;"
+        "name": "purchase_orders_touch",
+        "sql": "CREATE TRIGGER purchase_orders_touch AFTER UPDATE ON purchase_orders\n  WHEN NEW.updated_at IS OLD.updated_at\n    AND NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\nBEGIN\n  UPDATE purchase_orders SET updated_at = (SELECT now FROM sync_clock)\n    WHERE rowid = NEW.rowid;\nEND;"
       }
     },
     {
       "id": 115,
+      "references": [
+        63,
+        4,
+        6
+      ],
+      "type": "trigger",
+      "data": {
+        "on": 63,
+        "references_in_body": [
+          63,
+          4,
+          6
+        ],
+        "name": "purchase_order_lines_touch",
+        "sql": "CREATE TRIGGER purchase_order_lines_touch AFTER UPDATE ON purchase_order_lines\n  WHEN NEW.updated_at IS OLD.updated_at\n    AND NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\nBEGIN\n  UPDATE purchase_order_lines SET updated_at = (SELECT now FROM sync_clock)\n    WHERE rowid = NEW.rowid;\nEND;"
+      }
+    },
+    {
+      "id": 116,
+      "references": [
+        66,
+        4,
+        6
+      ],
+      "type": "trigger",
+      "data": {
+        "on": 66,
+        "references_in_body": [
+          66,
+          4,
+          6
+        ],
+        "name": "goods_receipts_touch",
+        "sql": "CREATE TRIGGER goods_receipts_touch AFTER UPDATE ON goods_receipts\n  WHEN NEW.updated_at IS OLD.updated_at\n    AND NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\nBEGIN\n  UPDATE goods_receipts SET updated_at = (SELECT now FROM sync_clock)\n    WHERE rowid = NEW.rowid;\nEND;"
+      }
+    },
+    {
+      "id": 117,
+      "references": [
+        69,
+        4,
+        6
+      ],
+      "type": "trigger",
+      "data": {
+        "on": 69,
+        "references_in_body": [
+          69,
+          4,
+          6
+        ],
+        "name": "goods_receipt_lines_touch",
+        "sql": "CREATE TRIGGER goods_receipt_lines_touch AFTER UPDATE ON goods_receipt_lines\n  WHEN NEW.updated_at IS OLD.updated_at\n    AND NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\nBEGIN\n  UPDATE goods_receipt_lines SET updated_at = (SELECT now FROM sync_clock)\n    WHERE rowid = NEW.rowid;\nEND;"
+      }
+    },
+    {
+      "id": 118,
+      "references": [
+        72,
+        4,
+        6
+      ],
+      "type": "trigger",
+      "data": {
+        "on": 72,
+        "references_in_body": [
+          72,
+          4,
+          6
+        ],
+        "name": "notifications_touch",
+        "sql": "CREATE TRIGGER notifications_touch AFTER UPDATE ON notifications\n  WHEN NEW.updated_at IS OLD.updated_at\n    AND NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\nBEGIN\n  UPDATE notifications SET updated_at = (SELECT now FROM sync_clock)\n    WHERE rowid = NEW.rowid;\nEND;"
+      }
+    },
+    {
+      "id": 119,
       "references": [
         9,
         4,
@@ -5648,11 +5869,11 @@
           6
         ],
         "name": "employees_touch",
-        "sql": "CREATE TRIGGER employees_touch AFTER UPDATE ON employees\r\n  WHEN NEW.updated_at IS OLD.updated_at\r\n    AND NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\r\nBEGIN\r\n  UPDATE employees SET updated_at = (SELECT now FROM sync_clock)\r\n    WHERE rowid = NEW.rowid;\r\nEND;"
+        "sql": "CREATE TRIGGER employees_touch AFTER UPDATE ON employees\n  WHEN NEW.updated_at IS OLD.updated_at\n    AND NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\nBEGIN\n  UPDATE employees SET updated_at = (SELECT now FROM sync_clock)\n    WHERE rowid = NEW.rowid;\nEND;"
       }
     },
     {
-      "id": 116,
+      "id": 120,
       "references": [
         17,
         4,
@@ -5667,11 +5888,11 @@
           6
         ],
         "name": "employee_credentials_touch",
-        "sql": "CREATE TRIGGER employee_credentials_touch AFTER UPDATE ON employee_credentials\r\n  WHEN NEW.updated_at IS OLD.updated_at\r\n    AND NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\r\nBEGIN\r\n  UPDATE employee_credentials SET updated_at = (SELECT now FROM sync_clock)\r\n    WHERE rowid = NEW.rowid;\r\nEND;"
+        "sql": "CREATE TRIGGER employee_credentials_touch AFTER UPDATE ON employee_credentials\n  WHEN NEW.updated_at IS OLD.updated_at\n    AND NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\nBEGIN\n  UPDATE employee_credentials SET updated_at = (SELECT now FROM sync_clock)\n    WHERE rowid = NEW.rowid;\nEND;"
       }
     },
     {
-      "id": 117,
+      "id": 121,
       "references": [
         21,
         4,
@@ -5686,11 +5907,11 @@
           6
         ],
         "name": "payroll_periods_touch",
-        "sql": "CREATE TRIGGER payroll_periods_touch AFTER UPDATE ON payroll_periods\r\n  WHEN NEW.updated_at IS OLD.updated_at\r\n    AND NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\r\nBEGIN\r\n  UPDATE payroll_periods SET updated_at = (SELECT now FROM sync_clock)\r\n    WHERE rowid = NEW.rowid;\r\nEND;"
+        "sql": "CREATE TRIGGER payroll_periods_touch AFTER UPDATE ON payroll_periods\n  WHEN NEW.updated_at IS OLD.updated_at\n    AND NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\nBEGIN\n  UPDATE payroll_periods SET updated_at = (SELECT now FROM sync_clock)\n    WHERE rowid = NEW.rowid;\nEND;"
       }
     },
     {
-      "id": 118,
+      "id": 122,
       "references": [
         22,
         4,
@@ -5705,232 +5926,83 @@
           6
         ],
         "name": "attendances_touch",
-        "sql": "CREATE TRIGGER attendances_touch AFTER UPDATE ON attendances\r\n  WHEN NEW.updated_at IS OLD.updated_at\r\n    AND NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\r\nBEGIN\r\n  UPDATE attendances SET updated_at = (SELECT now FROM sync_clock)\r\n    WHERE rowid = NEW.rowid;\r\nEND;"
-      }
-    },
-    {
-      "id": 119,
-      "references": [
-        33,
-        4,
-        6
-      ],
-      "type": "trigger",
-      "data": {
-        "on": 33,
-        "references_in_body": [
-          33,
-          4,
-          6
-        ],
-        "name": "attendance_sessions_touch",
-        "sql": "CREATE TRIGGER attendance_sessions_touch AFTER UPDATE ON attendance_sessions\r\n  WHEN NEW.updated_at IS OLD.updated_at\r\n    AND NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\r\nBEGIN\r\n  UPDATE attendance_sessions SET updated_at = (SELECT now FROM sync_clock)\r\n    WHERE rowid = NEW.rowid;\r\nEND;"
-      }
-    },
-    {
-      "id": 120,
-      "references": [
-        34,
-        4,
-        6
-      ],
-      "type": "trigger",
-      "data": {
-        "on": 34,
-        "references_in_body": [
-          34,
-          4,
-          6
-        ],
-        "name": "attendance_pauses_touch",
-        "sql": "CREATE TRIGGER attendance_pauses_touch AFTER UPDATE ON attendance_pauses\r\n  WHEN NEW.updated_at IS OLD.updated_at\r\n    AND NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\r\nBEGIN\r\n  UPDATE attendance_pauses SET updated_at = (SELECT now FROM sync_clock)\r\n    WHERE rowid = NEW.rowid;\r\nEND;"
-      }
-    },
-    {
-      "id": 121,
-      "references": [
-        85,
-        4,
-        6
-      ],
-      "type": "trigger",
-      "data": {
-        "on": 85,
-        "references_in_body": [
-          85,
-          4,
-          6
-        ],
-        "name": "busy_dates_touch",
-        "sql": "CREATE TRIGGER busy_dates_touch AFTER UPDATE ON busy_dates\r\n  WHEN NEW.updated_at IS OLD.updated_at\r\n    AND NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\r\nBEGIN\r\n  UPDATE busy_dates SET updated_at = (SELECT now FROM sync_clock)\r\n    WHERE rowid = NEW.rowid;\r\nEND;"
-      }
-    },
-    {
-      "id": 122,
-      "references": [
-        0,
-        9
-      ],
-      "type": "table",
-      "data": {
-        "name": "business_days",
-        "was_declared_in_moor": false,
-        "columns": [
-          {
-            "name": "id",
-            "getter_name": "id",
-            "moor_type": "string",
-            "nullable": false,
-            "customConstraints": null,
-            "default_dart": null,
-            "default_client_dart": null,
-            "dsl_features": [
-              {
-                "allowed-lengths": {
-                  "min": 1,
-                  "max": 64
-                }
-              }
-            ]
-          },
-          {
-            "name": "store_id",
-            "getter_name": "storeId",
-            "moor_type": "string",
-            "nullable": false,
-            "customConstraints": null,
-            "defaultConstraints": "REFERENCES stores (id) ON DELETE CASCADE",
-            "dialectAwareDefaultConstraints": {
-              "sqlite": "REFERENCES stores (id) ON DELETE CASCADE"
-            },
-            "default_dart": null,
-            "default_client_dart": null,
-            "dsl_features": [
-              {
-                "foreign_key": {
-                  "to": {
-                    "table": "stores",
-                    "column": "id"
-                  },
-                  "initially_deferred": false,
-                  "on_update": null,
-                  "on_delete": "cascade"
-                }
-              }
-            ]
-          },
-          {
-            "name": "date",
-            "getter_name": "date",
-            "moor_type": "dateTime",
-            "nullable": false,
-            "customConstraints": null,
-            "default_dart": null,
-            "default_client_dart": null,
-            "dsl_features": []
-          },
-          {
-            "name": "opened_at",
-            "getter_name": "openedAt",
-            "moor_type": "dateTime",
-            "nullable": false,
-            "customConstraints": null,
-            "default_dart": null,
-            "default_client_dart": null,
-            "dsl_features": []
-          },
-          {
-            "name": "opened_by_employee_id",
-            "getter_name": "openedByEmployeeId",
-            "moor_type": "string",
-            "nullable": true,
-            "customConstraints": null,
-            "defaultConstraints": "REFERENCES employees (id) ON DELETE SET NULL",
-            "dialectAwareDefaultConstraints": {
-              "sqlite": "REFERENCES employees (id) ON DELETE SET NULL"
-            },
-            "default_dart": null,
-            "default_client_dart": null,
-            "dsl_features": [
-              {
-                "foreign_key": {
-                  "to": {
-                    "table": "employees",
-                    "column": "id"
-                  },
-                  "initially_deferred": false,
-                  "on_update": null,
-                  "on_delete": "setNull"
-                }
-              }
-            ]
-          },
-          {
-            "name": "closed_at",
-            "getter_name": "closedAt",
-            "moor_type": "dateTime",
-            "nullable": true,
-            "customConstraints": null,
-            "default_dart": null,
-            "default_client_dart": null,
-            "dsl_features": []
-          },
-          {
-            "name": "closed_by_employee_id",
-            "getter_name": "closedByEmployeeId",
-            "moor_type": "string",
-            "nullable": true,
-            "customConstraints": null,
-            "defaultConstraints": "REFERENCES employees (id) ON DELETE SET NULL",
-            "dialectAwareDefaultConstraints": {
-              "sqlite": "REFERENCES employees (id) ON DELETE SET NULL"
-            },
-            "default_dart": null,
-            "default_client_dart": null,
-            "dsl_features": [
-              {
-                "foreign_key": {
-                  "to": {
-                    "table": "employees",
-                    "column": "id"
-                  },
-                  "initially_deferred": false,
-                  "on_update": null,
-                  "on_delete": "setNull"
-                }
-              }
-            ]
-          }
-        ],
-        "is_virtual": false,
-        "without_rowid": false,
-        "constraints": [],
-        "explicit_pk": [
-          "id"
-        ]
+        "sql": "CREATE TRIGGER attendances_touch AFTER UPDATE ON attendances\n  WHEN NEW.updated_at IS OLD.updated_at\n    AND NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\nBEGIN\n  UPDATE attendances SET updated_at = (SELECT now FROM sync_clock)\n    WHERE rowid = NEW.rowid;\nEND;"
       }
     },
     {
       "id": 123,
       "references": [
-        122
+        35,
+        4,
+        6
       ],
-      "type": "index",
+      "type": "trigger",
       "data": {
-        "on": 122,
-        "name": "business_days_store_date",
-        "sql": null,
-        "unique": true,
-        "columns": [
-          {
-            "column": "store_id",
-            "order_by": null
-          },
-          {
-            "column": "date",
-            "order_by": null
-          }
-        ]
+        "on": 35,
+        "references_in_body": [
+          35,
+          4,
+          6
+        ],
+        "name": "attendance_sessions_touch",
+        "sql": "CREATE TRIGGER attendance_sessions_touch AFTER UPDATE ON attendance_sessions\n  WHEN NEW.updated_at IS OLD.updated_at\n    AND NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\nBEGIN\n  UPDATE attendance_sessions SET updated_at = (SELECT now FROM sync_clock)\n    WHERE rowid = NEW.rowid;\nEND;"
+      }
+    },
+    {
+      "id": 124,
+      "references": [
+        36,
+        4,
+        6
+      ],
+      "type": "trigger",
+      "data": {
+        "on": 36,
+        "references_in_body": [
+          36,
+          4,
+          6
+        ],
+        "name": "attendance_pauses_touch",
+        "sql": "CREATE TRIGGER attendance_pauses_touch AFTER UPDATE ON attendance_pauses\n  WHEN NEW.updated_at IS OLD.updated_at\n    AND NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\nBEGIN\n  UPDATE attendance_pauses SET updated_at = (SELECT now FROM sync_clock)\n    WHERE rowid = NEW.rowid;\nEND;"
+      }
+    },
+    {
+      "id": 125,
+      "references": [
+        87,
+        4,
+        6
+      ],
+      "type": "trigger",
+      "data": {
+        "on": 87,
+        "references_in_body": [
+          87,
+          4,
+          6
+        ],
+        "name": "busy_dates_touch",
+        "sql": "CREATE TRIGGER busy_dates_touch AFTER UPDATE ON busy_dates\n  WHEN NEW.updated_at IS OLD.updated_at\n    AND NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\nBEGIN\n  UPDATE busy_dates SET updated_at = (SELECT now FROM sync_clock)\n    WHERE rowid = NEW.rowid;\nEND;"
+      }
+    },
+    {
+      "id": 126,
+      "references": [
+        28,
+        4,
+        6
+      ],
+      "type": "trigger",
+      "data": {
+        "on": 28,
+        "references_in_body": [
+          28,
+          4,
+          6
+        ],
+        "name": "business_days_touch",
+        "sql": "CREATE TRIGGER business_days_touch AFTER UPDATE ON business_days\n  WHEN NEW.updated_at IS OLD.updated_at\n    AND NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\nBEGIN\n  UPDATE business_days SET updated_at = (SELECT now FROM sync_clock)\n    WHERE rowid = NEW.rowid;\nEND;"
       }
     }
   ],
@@ -6188,6 +6260,24 @@
       ]
     },
     {
+      "name": "business_days",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TABLE IF NOT EXISTS \"business_days\" (\"updated_at\" TEXT NOT NULL, \"deleted_at\" TEXT NULL, \"id\" TEXT NOT NULL, \"store_id\" TEXT NOT NULL REFERENCES stores (id) ON DELETE CASCADE, \"date\" TEXT NOT NULL, \"opened_at\" TEXT NOT NULL, \"opened_by_employee_id\" TEXT NULL REFERENCES employees (id) ON DELETE SET NULL, \"closed_at\" TEXT NULL, \"closed_by_employee_id\" TEXT NULL REFERENCES employees (id) ON DELETE SET NULL, PRIMARY KEY (\"id\"));"
+        }
+      ]
+    },
+    {
+      "name": "business_days_store_date",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE UNIQUE INDEX business_days_store_date ON business_days (store_id, date) WHERE deleted_at IS NULL"
+        }
+      ]
+    },
+    {
       "name": "price_history",
       "sql": [
         {
@@ -6309,7 +6399,7 @@
       "sql": [
         {
           "dialect": "sqlite",
-          "sql": "CREATE TRIGGER stores_outbox_insert AFTER INSERT ON stores WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT 'stores', id, id, json_object('updated_at', updated_at, 'deleted_at', deleted_at, 'id', id, 'name', name, 'address_line', address_line, 'postal_code', postal_code, 'city', city, 'phone', phone, 'created_at', created_at, 'vat_number', vat_number, 'image_asset', image_asset, 'stale_partial_order_days', stale_partial_order_days, 'max_break_minutes', max_break_minutes, 'notify_low_stock', notify_low_stock, 'notify_price_change', notify_price_change, 'notify_large_adjustment', notify_large_adjustment, 'notify_deliveries', notify_deliveries, 'notify_busy_days', notify_busy_days, 'busy_weekdays', busy_weekdays, 'busy_reminder_days', busy_reminder_days), (SELECT now FROM sync_clock) FROM stores WHERE \"rowid\" = NEW.\"rowid\" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END"
+          "sql": "CREATE TRIGGER stores_outbox_insert AFTER INSERT ON stores WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT 'stores', id, id, json_object('updated_at', updated_at, 'deleted_at', deleted_at, 'id', id, 'name', name, 'address_line', address_line, 'postal_code', postal_code, 'city', city, 'phone', phone, 'created_at', created_at, 'vat_number', vat_number, 'image_asset', image_asset, 'stale_partial_order_days', stale_partial_order_days, 'max_break_minutes', max_break_minutes, 'business_day_auto_open_minutes', business_day_auto_open_minutes, 'notify_low_stock', notify_low_stock, 'notify_price_change', notify_price_change, 'notify_large_adjustment', notify_large_adjustment, 'notify_deliveries', notify_deliveries, 'notify_busy_days', notify_busy_days, 'busy_weekdays', busy_weekdays, 'busy_reminder_days', busy_reminder_days), (SELECT now FROM sync_clock) FROM stores WHERE \"rowid\" = NEW.\"rowid\" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END"
         }
       ]
     },
@@ -6318,7 +6408,7 @@
       "sql": [
         {
           "dialect": "sqlite",
-          "sql": "CREATE TRIGGER stores_outbox_update AFTER UPDATE ON stores WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT 'stores', id, id, json_object('updated_at', updated_at, 'deleted_at', deleted_at, 'id', id, 'name', name, 'address_line', address_line, 'postal_code', postal_code, 'city', city, 'phone', phone, 'created_at', created_at, 'vat_number', vat_number, 'image_asset', image_asset, 'stale_partial_order_days', stale_partial_order_days, 'max_break_minutes', max_break_minutes, 'notify_low_stock', notify_low_stock, 'notify_price_change', notify_price_change, 'notify_large_adjustment', notify_large_adjustment, 'notify_deliveries', notify_deliveries, 'notify_busy_days', notify_busy_days, 'busy_weekdays', busy_weekdays, 'busy_reminder_days', busy_reminder_days), (SELECT now FROM sync_clock) FROM stores WHERE \"rowid\" = NEW.\"rowid\" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END"
+          "sql": "CREATE TRIGGER stores_outbox_update AFTER UPDATE ON stores WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT 'stores', id, id, json_object('updated_at', updated_at, 'deleted_at', deleted_at, 'id', id, 'name', name, 'address_line', address_line, 'postal_code', postal_code, 'city', city, 'phone', phone, 'created_at', created_at, 'vat_number', vat_number, 'image_asset', image_asset, 'stale_partial_order_days', stale_partial_order_days, 'max_break_minutes', max_break_minutes, 'business_day_auto_open_minutes', business_day_auto_open_minutes, 'notify_low_stock', notify_low_stock, 'notify_price_change', notify_price_change, 'notify_large_adjustment', notify_large_adjustment, 'notify_deliveries', notify_deliveries, 'notify_busy_days', notify_busy_days, 'busy_weekdays', busy_weekdays, 'busy_reminder_days', busy_reminder_days), (SELECT now FROM sync_clock) FROM stores WHERE \"rowid\" = NEW.\"rowid\" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END"
         }
       ]
     },
@@ -6669,7 +6759,7 @@
       "sql": [
         {
           "dialect": "sqlite",
-          "sql": "CREATE TRIGGER attendance_sessions_outbox_insert AFTER INSERT ON attendance_sessions WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT 'attendance_sessions', id, store_id, json_object('updated_at', updated_at, 'deleted_at', deleted_at, 'id', id, 'store_id', store_id, 'attendance_id', attendance_id, 'position', position, 'clock_in_at', clock_in_at, 'clock_out_at', clock_out_at), (SELECT now FROM sync_clock) FROM attendance_sessions WHERE \"rowid\" = NEW.\"rowid\" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END"
+          "sql": "CREATE TRIGGER attendance_sessions_outbox_insert AFTER INSERT ON attendance_sessions WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT 'attendance_sessions', id, store_id, json_object('updated_at', updated_at, 'deleted_at', deleted_at, 'id', id, 'store_id', store_id, 'attendance_id', attendance_id, 'position', position, 'clock_in_at', clock_in_at, 'clock_out_at', clock_out_at, 'exit_set_by_employee_id', exit_set_by_employee_id), (SELECT now FROM sync_clock) FROM attendance_sessions WHERE \"rowid\" = NEW.\"rowid\" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END"
         }
       ]
     },
@@ -6678,7 +6768,7 @@
       "sql": [
         {
           "dialect": "sqlite",
-          "sql": "CREATE TRIGGER attendance_sessions_outbox_update AFTER UPDATE ON attendance_sessions WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT 'attendance_sessions', id, store_id, json_object('updated_at', updated_at, 'deleted_at', deleted_at, 'id', id, 'store_id', store_id, 'attendance_id', attendance_id, 'position', position, 'clock_in_at', clock_in_at, 'clock_out_at', clock_out_at), (SELECT now FROM sync_clock) FROM attendance_sessions WHERE \"rowid\" = NEW.\"rowid\" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END"
+          "sql": "CREATE TRIGGER attendance_sessions_outbox_update AFTER UPDATE ON attendance_sessions WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT 'attendance_sessions', id, store_id, json_object('updated_at', updated_at, 'deleted_at', deleted_at, 'id', id, 'store_id', store_id, 'attendance_id', attendance_id, 'position', position, 'clock_in_at', clock_in_at, 'clock_out_at', clock_out_at, 'exit_set_by_employee_id', exit_set_by_employee_id), (SELECT now FROM sync_clock) FROM attendance_sessions WHERE \"rowid\" = NEW.\"rowid\" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END"
         }
       ]
     },
@@ -6724,6 +6814,24 @@
         {
           "dialect": "sqlite",
           "sql": "CREATE TRIGGER busy_dates_outbox_update AFTER UPDATE ON busy_dates WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT 'busy_dates', store_id || '|' || day, store_id, json_object('updated_at', updated_at, 'deleted_at', deleted_at, 'store_id', store_id, 'day', day), (SELECT now FROM sync_clock) FROM busy_dates WHERE \"rowid\" = NEW.\"rowid\" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END"
+        }
+      ]
+    },
+    {
+      "name": "business_days_outbox_insert",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TRIGGER business_days_outbox_insert AFTER INSERT ON business_days WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT 'business_days', id, store_id, json_object('updated_at', updated_at, 'deleted_at', deleted_at, 'id', id, 'store_id', store_id, 'date', date, 'opened_at', opened_at, 'opened_by_employee_id', opened_by_employee_id, 'closed_at', closed_at, 'closed_by_employee_id', closed_by_employee_id), (SELECT now FROM sync_clock) FROM business_days WHERE \"rowid\" = NEW.\"rowid\" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END"
+        }
+      ]
+    },
+    {
+      "name": "business_days_outbox_update",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TRIGGER business_days_outbox_update AFTER UPDATE ON business_days WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT 'business_days', id, store_id, json_object('updated_at', updated_at, 'deleted_at', deleted_at, 'id', id, 'store_id', store_id, 'date', date, 'opened_at', opened_at, 'opened_by_employee_id', opened_by_employee_id, 'closed_at', closed_at, 'closed_by_employee_id', closed_by_employee_id), (SELECT now FROM sync_clock) FROM business_days WHERE \"rowid\" = NEW.\"rowid\" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END"
         }
       ]
     },
@@ -7034,20 +7142,11 @@
       ]
     },
     {
-      "name": "business_days",
+      "name": "business_days_touch",
       "sql": [
         {
           "dialect": "sqlite",
-          "sql": "CREATE TABLE IF NOT EXISTS \"business_days\" (\"id\" TEXT NOT NULL, \"store_id\" TEXT NOT NULL REFERENCES stores (id) ON DELETE CASCADE, \"date\" TEXT NOT NULL, \"opened_at\" TEXT NOT NULL, \"opened_by_employee_id\" TEXT NULL REFERENCES employees (id) ON DELETE SET NULL, \"closed_at\" TEXT NULL, \"closed_by_employee_id\" TEXT NULL REFERENCES employees (id) ON DELETE SET NULL, PRIMARY KEY (\"id\"));"
-        }
-      ]
-    },
-    {
-      "name": "business_days_store_date",
-      "sql": [
-        {
-          "dialect": "sqlite",
-          "sql": "CREATE UNIQUE INDEX business_days_store_date ON business_days (store_id, date)"
+          "sql": "CREATE TRIGGER business_days_touch AFTER UPDATE ON business_days WHEN NEW.updated_at IS OLD.updated_at AND NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet') BEGIN UPDATE business_days SET updated_at = (SELECT now FROM sync_clock) WHERE \"rowid\" = NEW.\"rowid\";END"
         }
       ]
     }

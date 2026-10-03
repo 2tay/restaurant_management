@@ -26,9 +26,9 @@ import 'sync_quiet.dart';
 ///
 /// ## Conflicts settled on receipt (Phase 7)
 ///
-/// The device has three "one per" rules the server does not: one live day
-/// per employee and date, one live link per article and supplier, one live
-/// credential per employee. Two tablets working offline can both create "the"
+/// The device has four "one per" rules the server does not: one live day
+/// per employee and date, one live journée de service per store and date, one
+/// live link per article and supplier, one live credential per employee. Two tablets working offline can both create "the"
 /// row. When a received row meets a live local one for the same key, the
 /// same rule runs on every device, so every device ends the same:
 ///
@@ -36,6 +36,11 @@ import 'sync_quiet.dart';
 ///   otherwise the one with the smaller id. The other day is marked deleted
 ///   and its sessions move to the kept day, untouched. Overlapping hours are
 ///   flagged for a manager, never trimmed (`AttendanceAnomaly.doublePointage`);
+/// - **two journées for one store and date** (rule P5): the one with the
+///   smaller id is kept, the other marked deleted. No pointage moves —
+///   attendance rows join a journée by its date, not its id. A close is never
+///   lost: when only the dropped journée was closed, the kept one takes its
+///   close;
 /// - **two supplier links, two credentials**: the most recently changed one
 ///   is kept (the larger id on a tie), the other is marked deleted.
 ///
@@ -146,6 +151,8 @@ class SyncApplier {
         return _applyAttendance(table, row, storeId);
       case 'attendance_sessions':
         return _applySession(table, row);
+      case 'business_days' when live:
+        return _applyBusinessDay(table, row, storeId);
       case 'supplier_prices' when live:
         return _applyKeepRecent(
           table,
@@ -245,6 +252,77 @@ class SyncApplier {
         'employee': await _employeeName(row['employee_id'] as String),
         'date': date.toIso8601String(),
       },
+    );
+  }
+
+  /// Two journées for one store and date (rule P5).
+  Future<void> _applyBusinessDay(
+    TableInfo<Table, dynamic> table,
+    Map<String, dynamic> row,
+    String storeId,
+  ) async {
+    final incomingId = row['id'] as String;
+    final date =
+        _convert('business_days', _db.businessDays.date, row['date'])!
+            as DateTime;
+    final local =
+        await (_db.select(_db.businessDays)..where(
+              (d) =>
+                  d.storeId.equals(row['store_id'] as String) &
+                  d.date.equals(date) &
+                  d.deletedAt.isNull() &
+                  d.id.equals(incomingId).not(),
+            ))
+            .getSingleOrNull();
+    if (local == null) return _upsert(table, row);
+
+    final keepIncoming = incomingId.compareTo(local.id) < 0;
+    final incomingClosedAt = _convert(
+      'business_days',
+      _db.businessDays.closedAt,
+      row['closed_at'],
+    ) as DateTime?;
+    final now = clock.now();
+
+    Future<void> close(String id, DateTime at, String? by) =>
+        (_db.update(_db.businessDays)..where((d) => d.id.equals(id))).write(
+          BusinessDaysCompanion(closedAt: Value(at), closedByEmployeeId: Value(by)),
+        );
+
+    if (keepIncoming) {
+      await SyncQuiet.loud(_db, () async {
+        await (_db.update(_db.businessDays)..where((d) => d.id.equals(local.id)))
+            .write(BusinessDaysCompanion(deletedAt: Value(now)));
+      });
+      await _upsert(table, row);
+      if (incomingClosedAt == null && local.closedAt != null) {
+        await SyncQuiet.loud(
+          _db,
+          () => close(incomingId, local.closedAt!, local.closedByEmployeeId),
+        );
+      }
+    } else {
+      await SyncQuiet.loud(_db, () async {
+        await _upsert(table, {
+          ...row,
+          'deleted_at': now.toUtc().toIso8601String(),
+        });
+        if (local.closedAt == null && incomingClosedAt != null) {
+          await close(
+            local.id,
+            incomingClosedAt,
+            row['closed_by_employee_id'] as String?,
+          );
+        }
+      });
+    }
+
+    await _logResolution(
+      'resolved_double_business_day',
+      table: 'business_days',
+      rowKey: keepIncoming ? incomingId : local.id,
+      storeId: storeId,
+      details: {'date': date.toIso8601String()},
     );
   }
 

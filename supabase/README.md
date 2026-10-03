@@ -25,6 +25,7 @@ supabase stop
 | `migrations/…_push_changes.sql` | `push_changes`: access checks, conflict rules, then the write |
 | `migrations/…_photos.sql` | The private `photos` bucket, one folder per store |
 | `migrations/…_join_codes.sql` | Join codes for managers, `my_account`, `remove_device` (Phase 4) |
+| `migrations/…_personnel_audit.sql` | The pointage audit synced: `business_days`, `stores.business_day_auto_open_minutes`, `attendance_sessions.exit_set_by_employee_id` (SYNC_PERSONNEL_PLAN, step 2) |
 | `tests/database/sync.test.sql` | pgTAP tests: isolation between restaurants, push and pull, conflict rules |
 | `tests/database/accounts.test.sql` | pgTAP tests: join codes, roles, removing a device |
 

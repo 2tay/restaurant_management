@@ -156,6 +156,88 @@ void main() {
     });
   });
 
+  // Rule P5 (SYNC_PERSONNEL_PLAN.md): one journée per store and date.
+  group('two journées opened for one store and date', () {
+    Future<List<BusinessDayRow>> liveDays(AppDatabase db) =>
+        (db.select(db.businessDays)..where((d) => d.deletedAt.isNull())).get();
+
+    test('keep the smaller id on both tablets, and no pointage moves',
+        () async {
+      final a = await newDevice();
+      final b = await newDevice();
+      final day = await shared(a, b);
+      final morning = DateTime(2026, 10, 12, 8);
+
+      // Offline, each tablet's first Pointer opens "the" journée.
+      await AttendanceRepository(
+        a,
+      ).clockIn(day.cook.id, day.store.id, now: morning);
+      await AttendanceRepository(
+        b,
+      ).clockIn(day.owner.id, day.store.id, now: morning);
+      final ids = [
+        (await liveDays(a)).single.id,
+        (await liveDays(b)).single.id,
+      ]..sort();
+
+      await settle(a, b);
+
+      for (final db in [a, b]) {
+        final kept = (await liveDays(db)).single;
+        expect(kept.id, ids.first);
+        expect(kept.date, DateTime(2026, 10, 12));
+        final days = await (db.select(
+          db.attendances,
+        )..where((r) => r.deletedAt.isNull())).get();
+        expect(days, hasLength(2));
+        expect(days.map((r) => r.date).toSet(), {DateTime(2026, 10, 12)});
+      }
+      final notes = [
+        ...await SyncErrorRepository(a).all(),
+        ...await SyncErrorRepository(b).all(),
+      ];
+      expect(
+        notes.map((n) => n.reason),
+        contains('resolved_double_business_day'),
+      );
+      expect(notes.map((n) => n.reason), isNot(contains('receive_conflict')));
+    });
+
+    test('a close made on either tablet is kept', () async {
+      final a = await newDevice();
+      final b = await newDevice();
+      final day = await shared(a, b);
+      final morning = DateTime(2026, 10, 12, 8);
+      final evening = DateTime(2026, 10, 12, 23);
+
+      final onA = (await BusinessDayRepository(a).open(
+        day.store.id,
+        now: morning,
+      ))!;
+      final onB = (await BusinessDayRepository(b).open(
+        day.store.id,
+        now: morning,
+      ))!;
+      // Close the one that will be dropped, so the close has to move.
+      final dropped = onA.id.compareTo(onB.id) > 0 ? a : b;
+      final droppedId = dropped == a ? onA.id : onB.id;
+      await BusinessDayRepository(dropped).close(
+        droppedId,
+        closedByEmployeeId: day.owner.id,
+        now: evening,
+      );
+
+      await settle(a, b);
+
+      for (final db in [a, b]) {
+        final kept = (await liveDays(db)).single;
+        expect(kept.id, isNot(droppedId));
+        expect(kept.closedAt, evening);
+        expect(kept.closedByEmployeeId, day.owner.id);
+      }
+    });
+  });
+
   test('the day already linked to a pay period is the one kept', () async {
     final a = await newDevice();
     final b = await newDevice();

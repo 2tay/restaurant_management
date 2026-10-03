@@ -2686,7 +2686,7 @@
   "@syncReasonStoreChanged": {"description": "Refusal reason."},
   "syncReasonInvalid": "Le serveur n'a pas accepté cette modification.",
   "@syncReasonInvalid": {"description": "Refusal reason."},
-  "syncTableName": "{table, select, stores{Établissement} categories{Catégorie} units{Unité} items{Article} suppliers{Fournisseur} supplier_prices{Prix fournisseur} price_history{Historique de prix} stock_movements{Mouvement de stock} purchase_orders{Commande} purchase_order_lines{Ligne de commande} goods_receipts{Réception} goods_receipt_lines{Ligne de réception} notifications{Notification} employees{Employé} employee_credentials{Accès employé} payroll_periods{Période de paie} attendances{Pointage} attendance_sessions{Pointage} attendance_pauses{Pause} busy_dates{Jour chargé} other{Donnée}}",
+  "syncTableName": "{table, select, stores{Établissement} categories{Catégorie} units{Unité} items{Article} suppliers{Fournisseur} supplier_prices{Prix fournisseur} price_history{Historique de prix} stock_movements{Mouvement de stock} purchase_orders{Commande} purchase_order_lines{Ligne de commande} goods_receipts{Réception} goods_receipt_lines{Ligne de réception} notifications{Notification} employees{Employé} employee_credentials{Accès employé} payroll_periods{Période de paie} attendances{Pointage} attendance_sessions{Pointage} attendance_pauses{Pause} busy_dates{Jour chargé} business_days{Journée de service} other{Donnée}}",
   "@syncTableName": {"description": "What a refused change was about.", "placeholders": {"table": {"type": "String"}}},
 
   "waitingDownloading": "{count, plural, =0{Téléchargement des données…} =1{Téléchargement des données… 1 élément} other{Téléchargement des données… {count} éléments}}",
@@ -2714,6 +2714,8 @@
   "@syncReasonReceiveConflict": {"description": "Sync page: a received row the device refused."},
   "syncResolvedDoubleClockIn": "Deux pointages de {name} le {date} ont été regroupés. À vérifier dans l'historique.",
   "@syncResolvedDoubleClockIn": {"description": "Sync page: two clock-ins merged.", "placeholders": {"name": {"type": "String"}, "date": {"type": "String"}}},
+  "syncResolvedDoubleBusinessDay": "La journée du {date} avait été ouverte sur deux tablettes ; une seule a été gardée. Aucun pointage n'a bougé.",
+  "@syncResolvedDoubleBusinessDay": {"description": "Sync page: two journées de service for one date, one kept (rule P5).", "placeholders": {"date": {"type": "String"}}},
   "syncResolvedDuplicateLink": "Un fournisseur était lié deux fois au même article : le lien le plus récent a été gardé.",
   "@syncResolvedDuplicateLink": {"description": "Sync page: a duplicate supplier link settled."},
 

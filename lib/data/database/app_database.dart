@@ -367,9 +367,7 @@ class AppDatabase extends _$AppDatabase {
       if (from < 16) {
         await m.createTable(outbox);
         await m.create(outboxRow);
-        for (final trigger in allSchemaEntities.whereType<Trigger>()) {
-          if (trigger.entityName.contains('_outbox_')) await m.create(trigger);
-        }
+        await _createTriggers(m, (name) => name.contains('_outbox_'));
       }
 
       // v16 -> v17: the changes the server refused (SYNC_PLAN.md, Phase 5).
@@ -381,11 +379,11 @@ class AppDatabase extends _$AppDatabase {
       // (SYNC_PLAN.md, Phase 6), so a row received from the server keeps the
       // server's `updated_at`. Recreated from their current definition.
       if (from >= 15 && from < 18) {
-        for (final trigger in allSchemaEntities.whereType<Trigger>()) {
-          if (!trigger.entityName.endsWith('_touch')) continue;
-          await customStatement('DROP TRIGGER IF EXISTS ${trigger.entityName}');
-          await m.create(trigger);
-        }
+        await _createTriggers(
+          m,
+          (name) => name.endsWith('_touch'),
+          replace: true,
+        );
       }
 
       // v18 -> v19: the three "one per" rules count live rows only
@@ -418,13 +416,15 @@ class AppDatabase extends _$AppDatabase {
       }
 
       // v20 -> v21: the journée de service and two columns from the pointage
-      // audit (feat/sync-data, numbered v14–v16 there). The journée table and
-      // its "one per store and date" index; `stores.business_day_auto_open_minutes`,
-      // whose default (05:00) is what every store read when it was a
-      // constant; and `attendance_sessions.exit_set_by_employee_id`, null on
-      // every existing session — nobody knows who entered those exits. The
-      // columns are added only when missing: a v1/v10 `createTable` and the
-      // v15 rebuild already build the current shape.
+      // audit (feat/sync-data, numbered v14–v16 there), all synced. The
+      // journée table, its "one live per store and date" index and its touch
+      // and outbox triggers; `stores.business_day_auto_open_minutes`, whose
+      // default (05:00) is what every store read when it was a constant; and
+      // `attendance_sessions.exit_set_by_employee_id`, null on every existing
+      // session — nobody knows who entered those exits. The columns are added
+      // only when missing: a v1/v10 `createTable` and the v15 rebuild already
+      // build the current shape. The outbox triggers of those two tables are
+      // recreated so their payload carries the new column.
       if (from < 21) {
         await m.createTable(businessDays);
         await m.create(businessDaysStoreDate);
@@ -433,6 +433,14 @@ class AppDatabase extends _$AppDatabase {
           m,
           attendanceSessions,
           attendanceSessions.exitSetByEmployeeId,
+        );
+        await _createTriggers(m, (name) => name.startsWith('business_days_'));
+        await _createTriggers(
+          m,
+          (name) =>
+              name.startsWith('stores_outbox_') ||
+              name.startsWith('attendance_sessions_outbox_'),
+          replace: true,
         );
       }
     },
@@ -453,6 +461,37 @@ class AppDatabase extends _$AppDatabase {
       'PRAGMA table_info(${table.actualTableName})',
     ).get();
     return {for (final row in rows) row.read<String>('name')};
+  }
+
+  /// Creates the schema's triggers whose name passes [wanted], from their
+  /// current definition — dropping the old one first when [replace].
+  ///
+  /// A trigger on a table this install does not have yet is skipped: a step
+  /// that creates "every `_touch` trigger" must not reach for a table a later
+  /// version adds (`business_days`, v21), which creates its own.
+  Future<void> _createTriggers(
+    Migrator m,
+    bool Function(String name) wanted, {
+    bool replace = false,
+  }) async {
+    final tables = {
+      for (final row in await customSelect(
+        "SELECT name FROM sqlite_master WHERE type = 'table'",
+      ).get())
+        row.read<String>('name'),
+    };
+    final onTable = RegExp(r'\bON\s+"?(\w+)', caseSensitive: false);
+    for (final trigger in allSchemaEntities.whereType<Trigger>()) {
+      if (!wanted(trigger.entityName)) continue;
+      final table = onTable.firstMatch(
+        trigger.createStatementsByDialect.values.first,
+      )?.group(1);
+      if (table == null || !tables.contains(table)) continue;
+      if (replace) {
+        await customStatement('DROP TRIGGER IF EXISTS ${trigger.entityName}');
+      }
+      await m.create(trigger);
+    }
   }
 
   /// Adds [column] to [table] unless an earlier step already built it.
@@ -684,9 +723,7 @@ class AppDatabase extends _$AppDatabase {
     // Created last: `alterTable` recreates the triggers already attached to a
     // table, and these would otherwise fire during the copies above.
     await m.create(syncClock);
-    for (final trigger in allSchemaEntities.whereType<Trigger>()) {
-      if (trigger.entityName.endsWith('_touch')) await m.create(trigger);
-    }
+    await _createTriggers(m, (name) => name.endsWith('_touch'));
   }
 
   /// The photo queue and its triggers, employee photos stored by file name,
@@ -713,9 +750,7 @@ class AppDatabase extends _$AppDatabase {
       );
     }
 
-    for (final trigger in allSchemaEntities.whereType<Trigger>()) {
-      if (trigger.entityName.contains('_photo_')) await m.create(trigger);
-    }
+    await _createTriggers(m, (name) => name.contains('_photo_'));
 
     // What the device already holds goes up with the first sync.
     await customStatement(r'''

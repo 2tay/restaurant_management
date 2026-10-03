@@ -8239,6 +8239,609 @@ class SupplierPricesCompanion extends UpdateCompanion<SupplierPriceRow> {
   }
 }
 
+class $BusinessDaysTable extends BusinessDays
+    with TableInfo<$BusinessDaysTable, BusinessDayRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $BusinessDaysTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    clientDefault: () => syncStampNow(),
+  );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(
+      minTextLength: 1,
+      maxTextLength: 64,
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _storeIdMeta = const VerificationMeta(
+    'storeId',
+  );
+  @override
+  late final GeneratedColumn<String> storeId = GeneratedColumn<String>(
+    'store_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES stores (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _dateMeta = const VerificationMeta('date');
+  @override
+  late final GeneratedColumn<DateTime> date = GeneratedColumn<DateTime>(
+    'date',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _openedAtMeta = const VerificationMeta(
+    'openedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> openedAt = GeneratedColumn<DateTime>(
+    'opened_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _openedByEmployeeIdMeta =
+      const VerificationMeta('openedByEmployeeId');
+  @override
+  late final GeneratedColumn<String> openedByEmployeeId =
+      GeneratedColumn<String>(
+        'opened_by_employee_id',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'REFERENCES employees (id) ON DELETE SET NULL',
+        ),
+      );
+  static const VerificationMeta _closedAtMeta = const VerificationMeta(
+    'closedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> closedAt = GeneratedColumn<DateTime>(
+    'closed_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _closedByEmployeeIdMeta =
+      const VerificationMeta('closedByEmployeeId');
+  @override
+  late final GeneratedColumn<String> closedByEmployeeId =
+      GeneratedColumn<String>(
+        'closed_by_employee_id',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'REFERENCES employees (id) ON DELETE SET NULL',
+        ),
+      );
+  @override
+  List<GeneratedColumn> get $columns => [
+    updatedAt,
+    deletedAt,
+    id,
+    storeId,
+    date,
+    openedAt,
+    openedByEmployeeId,
+    closedAt,
+    closedByEmployeeId,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'business_days';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<BusinessDayRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('store_id')) {
+      context.handle(
+        _storeIdMeta,
+        storeId.isAcceptableOrUnknown(data['store_id']!, _storeIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_storeIdMeta);
+    }
+    if (data.containsKey('date')) {
+      context.handle(
+        _dateMeta,
+        date.isAcceptableOrUnknown(data['date']!, _dateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_dateMeta);
+    }
+    if (data.containsKey('opened_at')) {
+      context.handle(
+        _openedAtMeta,
+        openedAt.isAcceptableOrUnknown(data['opened_at']!, _openedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_openedAtMeta);
+    }
+    if (data.containsKey('opened_by_employee_id')) {
+      context.handle(
+        _openedByEmployeeIdMeta,
+        openedByEmployeeId.isAcceptableOrUnknown(
+          data['opened_by_employee_id']!,
+          _openedByEmployeeIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('closed_at')) {
+      context.handle(
+        _closedAtMeta,
+        closedAt.isAcceptableOrUnknown(data['closed_at']!, _closedAtMeta),
+      );
+    }
+    if (data.containsKey('closed_by_employee_id')) {
+      context.handle(
+        _closedByEmployeeIdMeta,
+        closedByEmployeeId.isAcceptableOrUnknown(
+          data['closed_by_employee_id']!,
+          _closedByEmployeeIdMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  BusinessDayRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return BusinessDayRow(
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}deleted_at'],
+      ),
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      storeId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}store_id'],
+      )!,
+      date: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}date'],
+      )!,
+      openedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}opened_at'],
+      )!,
+      openedByEmployeeId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}opened_by_employee_id'],
+      ),
+      closedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}closed_at'],
+      ),
+      closedByEmployeeId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}closed_by_employee_id'],
+      ),
+    );
+  }
+
+  @override
+  $BusinessDaysTable createAlias(String alias) {
+    return $BusinessDaysTable(attachedDatabase, alias);
+  }
+}
+
+class BusinessDayRow extends DataClass implements Insertable<BusinessDayRow> {
+  final DateTime updatedAt;
+  final DateTime? deletedAt;
+  final String id;
+  final String storeId;
+
+  /// Midnight-normalised — the calendar day the journée opened on, and the
+  /// `date` every attendance row clocked during it carries.
+  final DateTime date;
+  final DateTime openedAt;
+
+  /// Who opened it — the manager at the board, or whoever clocked in first
+  /// when the journée opened itself. `SET NULL`: removing an employee does not
+  /// take the store's history with them.
+  final String? openedByEmployeeId;
+
+  /// Null while the journée is open. Only ever set by a manual close — nothing
+  /// closes a journée on its own, so no exit time is ever invented.
+  final DateTime? closedAt;
+  final String? closedByEmployeeId;
+  const BusinessDayRow({
+    required this.updatedAt,
+    this.deletedAt,
+    required this.id,
+    required this.storeId,
+    required this.date,
+    required this.openedAt,
+    this.openedByEmployeeId,
+    this.closedAt,
+    this.closedByEmployeeId,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
+    map['id'] = Variable<String>(id);
+    map['store_id'] = Variable<String>(storeId);
+    map['date'] = Variable<DateTime>(date);
+    map['opened_at'] = Variable<DateTime>(openedAt);
+    if (!nullToAbsent || openedByEmployeeId != null) {
+      map['opened_by_employee_id'] = Variable<String>(openedByEmployeeId);
+    }
+    if (!nullToAbsent || closedAt != null) {
+      map['closed_at'] = Variable<DateTime>(closedAt);
+    }
+    if (!nullToAbsent || closedByEmployeeId != null) {
+      map['closed_by_employee_id'] = Variable<String>(closedByEmployeeId);
+    }
+    return map;
+  }
+
+  BusinessDaysCompanion toCompanion(bool nullToAbsent) {
+    return BusinessDaysCompanion(
+      updatedAt: Value(updatedAt),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
+      id: Value(id),
+      storeId: Value(storeId),
+      date: Value(date),
+      openedAt: Value(openedAt),
+      openedByEmployeeId: openedByEmployeeId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(openedByEmployeeId),
+      closedAt: closedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(closedAt),
+      closedByEmployeeId: closedByEmployeeId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(closedByEmployeeId),
+    );
+  }
+
+  factory BusinessDayRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return BusinessDayRow(
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
+      id: serializer.fromJson<String>(json['id']),
+      storeId: serializer.fromJson<String>(json['storeId']),
+      date: serializer.fromJson<DateTime>(json['date']),
+      openedAt: serializer.fromJson<DateTime>(json['openedAt']),
+      openedByEmployeeId: serializer.fromJson<String?>(
+        json['openedByEmployeeId'],
+      ),
+      closedAt: serializer.fromJson<DateTime?>(json['closedAt']),
+      closedByEmployeeId: serializer.fromJson<String?>(
+        json['closedByEmployeeId'],
+      ),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
+      'id': serializer.toJson<String>(id),
+      'storeId': serializer.toJson<String>(storeId),
+      'date': serializer.toJson<DateTime>(date),
+      'openedAt': serializer.toJson<DateTime>(openedAt),
+      'openedByEmployeeId': serializer.toJson<String?>(openedByEmployeeId),
+      'closedAt': serializer.toJson<DateTime?>(closedAt),
+      'closedByEmployeeId': serializer.toJson<String?>(closedByEmployeeId),
+    };
+  }
+
+  BusinessDayRow copyWith({
+    DateTime? updatedAt,
+    Value<DateTime?> deletedAt = const Value.absent(),
+    String? id,
+    String? storeId,
+    DateTime? date,
+    DateTime? openedAt,
+    Value<String?> openedByEmployeeId = const Value.absent(),
+    Value<DateTime?> closedAt = const Value.absent(),
+    Value<String?> closedByEmployeeId = const Value.absent(),
+  }) => BusinessDayRow(
+    updatedAt: updatedAt ?? this.updatedAt,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+    id: id ?? this.id,
+    storeId: storeId ?? this.storeId,
+    date: date ?? this.date,
+    openedAt: openedAt ?? this.openedAt,
+    openedByEmployeeId: openedByEmployeeId.present
+        ? openedByEmployeeId.value
+        : this.openedByEmployeeId,
+    closedAt: closedAt.present ? closedAt.value : this.closedAt,
+    closedByEmployeeId: closedByEmployeeId.present
+        ? closedByEmployeeId.value
+        : this.closedByEmployeeId,
+  );
+  BusinessDayRow copyWithCompanion(BusinessDaysCompanion data) {
+    return BusinessDayRow(
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      id: data.id.present ? data.id.value : this.id,
+      storeId: data.storeId.present ? data.storeId.value : this.storeId,
+      date: data.date.present ? data.date.value : this.date,
+      openedAt: data.openedAt.present ? data.openedAt.value : this.openedAt,
+      openedByEmployeeId: data.openedByEmployeeId.present
+          ? data.openedByEmployeeId.value
+          : this.openedByEmployeeId,
+      closedAt: data.closedAt.present ? data.closedAt.value : this.closedAt,
+      closedByEmployeeId: data.closedByEmployeeId.present
+          ? data.closedByEmployeeId.value
+          : this.closedByEmployeeId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('BusinessDayRow(')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('id: $id, ')
+          ..write('storeId: $storeId, ')
+          ..write('date: $date, ')
+          ..write('openedAt: $openedAt, ')
+          ..write('openedByEmployeeId: $openedByEmployeeId, ')
+          ..write('closedAt: $closedAt, ')
+          ..write('closedByEmployeeId: $closedByEmployeeId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    updatedAt,
+    deletedAt,
+    id,
+    storeId,
+    date,
+    openedAt,
+    openedByEmployeeId,
+    closedAt,
+    closedByEmployeeId,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is BusinessDayRow &&
+          other.updatedAt == this.updatedAt &&
+          other.deletedAt == this.deletedAt &&
+          other.id == this.id &&
+          other.storeId == this.storeId &&
+          other.date == this.date &&
+          other.openedAt == this.openedAt &&
+          other.openedByEmployeeId == this.openedByEmployeeId &&
+          other.closedAt == this.closedAt &&
+          other.closedByEmployeeId == this.closedByEmployeeId);
+}
+
+class BusinessDaysCompanion extends UpdateCompanion<BusinessDayRow> {
+  final Value<DateTime> updatedAt;
+  final Value<DateTime?> deletedAt;
+  final Value<String> id;
+  final Value<String> storeId;
+  final Value<DateTime> date;
+  final Value<DateTime> openedAt;
+  final Value<String?> openedByEmployeeId;
+  final Value<DateTime?> closedAt;
+  final Value<String?> closedByEmployeeId;
+  final Value<int> rowid;
+  const BusinessDaysCompanion({
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.id = const Value.absent(),
+    this.storeId = const Value.absent(),
+    this.date = const Value.absent(),
+    this.openedAt = const Value.absent(),
+    this.openedByEmployeeId = const Value.absent(),
+    this.closedAt = const Value.absent(),
+    this.closedByEmployeeId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  BusinessDaysCompanion.insert({
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    required String id,
+    required String storeId,
+    required DateTime date,
+    required DateTime openedAt,
+    this.openedByEmployeeId = const Value.absent(),
+    this.closedAt = const Value.absent(),
+    this.closedByEmployeeId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       storeId = Value(storeId),
+       date = Value(date),
+       openedAt = Value(openedAt);
+  static Insertable<BusinessDayRow> custom({
+    Expression<DateTime>? updatedAt,
+    Expression<DateTime>? deletedAt,
+    Expression<String>? id,
+    Expression<String>? storeId,
+    Expression<DateTime>? date,
+    Expression<DateTime>? openedAt,
+    Expression<String>? openedByEmployeeId,
+    Expression<DateTime>? closedAt,
+    Expression<String>? closedByEmployeeId,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (id != null) 'id': id,
+      if (storeId != null) 'store_id': storeId,
+      if (date != null) 'date': date,
+      if (openedAt != null) 'opened_at': openedAt,
+      if (openedByEmployeeId != null)
+        'opened_by_employee_id': openedByEmployeeId,
+      if (closedAt != null) 'closed_at': closedAt,
+      if (closedByEmployeeId != null)
+        'closed_by_employee_id': closedByEmployeeId,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  BusinessDaysCompanion copyWith({
+    Value<DateTime>? updatedAt,
+    Value<DateTime?>? deletedAt,
+    Value<String>? id,
+    Value<String>? storeId,
+    Value<DateTime>? date,
+    Value<DateTime>? openedAt,
+    Value<String?>? openedByEmployeeId,
+    Value<DateTime?>? closedAt,
+    Value<String?>? closedByEmployeeId,
+    Value<int>? rowid,
+  }) {
+    return BusinessDaysCompanion(
+      updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      id: id ?? this.id,
+      storeId: storeId ?? this.storeId,
+      date: date ?? this.date,
+      openedAt: openedAt ?? this.openedAt,
+      openedByEmployeeId: openedByEmployeeId ?? this.openedByEmployeeId,
+      closedAt: closedAt ?? this.closedAt,
+      closedByEmployeeId: closedByEmployeeId ?? this.closedByEmployeeId,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (storeId.present) {
+      map['store_id'] = Variable<String>(storeId.value);
+    }
+    if (date.present) {
+      map['date'] = Variable<DateTime>(date.value);
+    }
+    if (openedAt.present) {
+      map['opened_at'] = Variable<DateTime>(openedAt.value);
+    }
+    if (openedByEmployeeId.present) {
+      map['opened_by_employee_id'] = Variable<String>(openedByEmployeeId.value);
+    }
+    if (closedAt.present) {
+      map['closed_at'] = Variable<DateTime>(closedAt.value);
+    }
+    if (closedByEmployeeId.present) {
+      map['closed_by_employee_id'] = Variable<String>(closedByEmployeeId.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('BusinessDaysCompanion(')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('id: $id, ')
+          ..write('storeId: $storeId, ')
+          ..write('date: $date, ')
+          ..write('openedAt: $openedAt, ')
+          ..write('openedByEmployeeId: $openedByEmployeeId, ')
+          ..write('closedAt: $closedAt, ')
+          ..write('closedByEmployeeId: $closedByEmployeeId, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $PriceHistoryTable extends PriceHistory
     with TableInfo<$PriceHistoryTable, PriceHistoryRow> {
   @override
@@ -16058,514 +16661,6 @@ class SyncErrorsCompanion extends UpdateCompanion<SyncErrorRow> {
   }
 }
 
-class $BusinessDaysTable extends BusinessDays
-    with TableInfo<$BusinessDaysTable, BusinessDayRow> {
-  @override
-  final GeneratedDatabase attachedDatabase;
-  final String? _alias;
-  $BusinessDaysTable(this.attachedDatabase, [this._alias]);
-  static const VerificationMeta _idMeta = const VerificationMeta('id');
-  @override
-  late final GeneratedColumn<String> id = GeneratedColumn<String>(
-    'id',
-    aliasedName,
-    false,
-    additionalChecks: GeneratedColumn.checkTextLength(
-      minTextLength: 1,
-      maxTextLength: 64,
-    ),
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _storeIdMeta = const VerificationMeta(
-    'storeId',
-  );
-  @override
-  late final GeneratedColumn<String> storeId = GeneratedColumn<String>(
-    'store_id',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES stores (id) ON DELETE CASCADE',
-    ),
-  );
-  static const VerificationMeta _dateMeta = const VerificationMeta('date');
-  @override
-  late final GeneratedColumn<DateTime> date = GeneratedColumn<DateTime>(
-    'date',
-    aliasedName,
-    false,
-    type: DriftSqlType.dateTime,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _openedAtMeta = const VerificationMeta(
-    'openedAt',
-  );
-  @override
-  late final GeneratedColumn<DateTime> openedAt = GeneratedColumn<DateTime>(
-    'opened_at',
-    aliasedName,
-    false,
-    type: DriftSqlType.dateTime,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _openedByEmployeeIdMeta =
-      const VerificationMeta('openedByEmployeeId');
-  @override
-  late final GeneratedColumn<String> openedByEmployeeId =
-      GeneratedColumn<String>(
-        'opened_by_employee_id',
-        aliasedName,
-        true,
-        type: DriftSqlType.string,
-        requiredDuringInsert: false,
-        defaultConstraints: GeneratedColumn.constraintIsAlways(
-          'REFERENCES employees (id) ON DELETE SET NULL',
-        ),
-      );
-  static const VerificationMeta _closedAtMeta = const VerificationMeta(
-    'closedAt',
-  );
-  @override
-  late final GeneratedColumn<DateTime> closedAt = GeneratedColumn<DateTime>(
-    'closed_at',
-    aliasedName,
-    true,
-    type: DriftSqlType.dateTime,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _closedByEmployeeIdMeta =
-      const VerificationMeta('closedByEmployeeId');
-  @override
-  late final GeneratedColumn<String> closedByEmployeeId =
-      GeneratedColumn<String>(
-        'closed_by_employee_id',
-        aliasedName,
-        true,
-        type: DriftSqlType.string,
-        requiredDuringInsert: false,
-        defaultConstraints: GeneratedColumn.constraintIsAlways(
-          'REFERENCES employees (id) ON DELETE SET NULL',
-        ),
-      );
-  @override
-  List<GeneratedColumn> get $columns => [
-    id,
-    storeId,
-    date,
-    openedAt,
-    openedByEmployeeId,
-    closedAt,
-    closedByEmployeeId,
-  ];
-  @override
-  String get aliasedName => _alias ?? actualTableName;
-  @override
-  String get actualTableName => $name;
-  static const String $name = 'business_days';
-  @override
-  VerificationContext validateIntegrity(
-    Insertable<BusinessDayRow> instance, {
-    bool isInserting = false,
-  }) {
-    final context = VerificationContext();
-    final data = instance.toColumns(true);
-    if (data.containsKey('id')) {
-      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
-    } else if (isInserting) {
-      context.missing(_idMeta);
-    }
-    if (data.containsKey('store_id')) {
-      context.handle(
-        _storeIdMeta,
-        storeId.isAcceptableOrUnknown(data['store_id']!, _storeIdMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_storeIdMeta);
-    }
-    if (data.containsKey('date')) {
-      context.handle(
-        _dateMeta,
-        date.isAcceptableOrUnknown(data['date']!, _dateMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_dateMeta);
-    }
-    if (data.containsKey('opened_at')) {
-      context.handle(
-        _openedAtMeta,
-        openedAt.isAcceptableOrUnknown(data['opened_at']!, _openedAtMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_openedAtMeta);
-    }
-    if (data.containsKey('opened_by_employee_id')) {
-      context.handle(
-        _openedByEmployeeIdMeta,
-        openedByEmployeeId.isAcceptableOrUnknown(
-          data['opened_by_employee_id']!,
-          _openedByEmployeeIdMeta,
-        ),
-      );
-    }
-    if (data.containsKey('closed_at')) {
-      context.handle(
-        _closedAtMeta,
-        closedAt.isAcceptableOrUnknown(data['closed_at']!, _closedAtMeta),
-      );
-    }
-    if (data.containsKey('closed_by_employee_id')) {
-      context.handle(
-        _closedByEmployeeIdMeta,
-        closedByEmployeeId.isAcceptableOrUnknown(
-          data['closed_by_employee_id']!,
-          _closedByEmployeeIdMeta,
-        ),
-      );
-    }
-    return context;
-  }
-
-  @override
-  Set<GeneratedColumn> get $primaryKey => {id};
-  @override
-  BusinessDayRow map(Map<String, dynamic> data, {String? tablePrefix}) {
-    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return BusinessDayRow(
-      id: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}id'],
-      )!,
-      storeId: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}store_id'],
-      )!,
-      date: attachedDatabase.typeMapping.read(
-        DriftSqlType.dateTime,
-        data['${effectivePrefix}date'],
-      )!,
-      openedAt: attachedDatabase.typeMapping.read(
-        DriftSqlType.dateTime,
-        data['${effectivePrefix}opened_at'],
-      )!,
-      openedByEmployeeId: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}opened_by_employee_id'],
-      ),
-      closedAt: attachedDatabase.typeMapping.read(
-        DriftSqlType.dateTime,
-        data['${effectivePrefix}closed_at'],
-      ),
-      closedByEmployeeId: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}closed_by_employee_id'],
-      ),
-    );
-  }
-
-  @override
-  $BusinessDaysTable createAlias(String alias) {
-    return $BusinessDaysTable(attachedDatabase, alias);
-  }
-}
-
-class BusinessDayRow extends DataClass implements Insertable<BusinessDayRow> {
-  final String id;
-  final String storeId;
-
-  /// Midnight-normalised — the calendar day the journée opened on, and the
-  /// `date` every attendance row clocked during it carries.
-  final DateTime date;
-  final DateTime openedAt;
-
-  /// Who opened it — the manager at the board, or whoever clocked in first
-  /// when the journée opened itself. `SET NULL`: removing an employee does not
-  /// take the store's history with them.
-  final String? openedByEmployeeId;
-
-  /// Null while the journée is open. Only ever set by a manual close — nothing
-  /// closes a journée on its own, so no exit time is ever invented.
-  final DateTime? closedAt;
-  final String? closedByEmployeeId;
-  const BusinessDayRow({
-    required this.id,
-    required this.storeId,
-    required this.date,
-    required this.openedAt,
-    this.openedByEmployeeId,
-    this.closedAt,
-    this.closedByEmployeeId,
-  });
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    map['id'] = Variable<String>(id);
-    map['store_id'] = Variable<String>(storeId);
-    map['date'] = Variable<DateTime>(date);
-    map['opened_at'] = Variable<DateTime>(openedAt);
-    if (!nullToAbsent || openedByEmployeeId != null) {
-      map['opened_by_employee_id'] = Variable<String>(openedByEmployeeId);
-    }
-    if (!nullToAbsent || closedAt != null) {
-      map['closed_at'] = Variable<DateTime>(closedAt);
-    }
-    if (!nullToAbsent || closedByEmployeeId != null) {
-      map['closed_by_employee_id'] = Variable<String>(closedByEmployeeId);
-    }
-    return map;
-  }
-
-  BusinessDaysCompanion toCompanion(bool nullToAbsent) {
-    return BusinessDaysCompanion(
-      id: Value(id),
-      storeId: Value(storeId),
-      date: Value(date),
-      openedAt: Value(openedAt),
-      openedByEmployeeId: openedByEmployeeId == null && nullToAbsent
-          ? const Value.absent()
-          : Value(openedByEmployeeId),
-      closedAt: closedAt == null && nullToAbsent
-          ? const Value.absent()
-          : Value(closedAt),
-      closedByEmployeeId: closedByEmployeeId == null && nullToAbsent
-          ? const Value.absent()
-          : Value(closedByEmployeeId),
-    );
-  }
-
-  factory BusinessDayRow.fromJson(
-    Map<String, dynamic> json, {
-    ValueSerializer? serializer,
-  }) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return BusinessDayRow(
-      id: serializer.fromJson<String>(json['id']),
-      storeId: serializer.fromJson<String>(json['storeId']),
-      date: serializer.fromJson<DateTime>(json['date']),
-      openedAt: serializer.fromJson<DateTime>(json['openedAt']),
-      openedByEmployeeId: serializer.fromJson<String?>(
-        json['openedByEmployeeId'],
-      ),
-      closedAt: serializer.fromJson<DateTime?>(json['closedAt']),
-      closedByEmployeeId: serializer.fromJson<String?>(
-        json['closedByEmployeeId'],
-      ),
-    );
-  }
-  @override
-  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return <String, dynamic>{
-      'id': serializer.toJson<String>(id),
-      'storeId': serializer.toJson<String>(storeId),
-      'date': serializer.toJson<DateTime>(date),
-      'openedAt': serializer.toJson<DateTime>(openedAt),
-      'openedByEmployeeId': serializer.toJson<String?>(openedByEmployeeId),
-      'closedAt': serializer.toJson<DateTime?>(closedAt),
-      'closedByEmployeeId': serializer.toJson<String?>(closedByEmployeeId),
-    };
-  }
-
-  BusinessDayRow copyWith({
-    String? id,
-    String? storeId,
-    DateTime? date,
-    DateTime? openedAt,
-    Value<String?> openedByEmployeeId = const Value.absent(),
-    Value<DateTime?> closedAt = const Value.absent(),
-    Value<String?> closedByEmployeeId = const Value.absent(),
-  }) => BusinessDayRow(
-    id: id ?? this.id,
-    storeId: storeId ?? this.storeId,
-    date: date ?? this.date,
-    openedAt: openedAt ?? this.openedAt,
-    openedByEmployeeId: openedByEmployeeId.present
-        ? openedByEmployeeId.value
-        : this.openedByEmployeeId,
-    closedAt: closedAt.present ? closedAt.value : this.closedAt,
-    closedByEmployeeId: closedByEmployeeId.present
-        ? closedByEmployeeId.value
-        : this.closedByEmployeeId,
-  );
-  BusinessDayRow copyWithCompanion(BusinessDaysCompanion data) {
-    return BusinessDayRow(
-      id: data.id.present ? data.id.value : this.id,
-      storeId: data.storeId.present ? data.storeId.value : this.storeId,
-      date: data.date.present ? data.date.value : this.date,
-      openedAt: data.openedAt.present ? data.openedAt.value : this.openedAt,
-      openedByEmployeeId: data.openedByEmployeeId.present
-          ? data.openedByEmployeeId.value
-          : this.openedByEmployeeId,
-      closedAt: data.closedAt.present ? data.closedAt.value : this.closedAt,
-      closedByEmployeeId: data.closedByEmployeeId.present
-          ? data.closedByEmployeeId.value
-          : this.closedByEmployeeId,
-    );
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('BusinessDayRow(')
-          ..write('id: $id, ')
-          ..write('storeId: $storeId, ')
-          ..write('date: $date, ')
-          ..write('openedAt: $openedAt, ')
-          ..write('openedByEmployeeId: $openedByEmployeeId, ')
-          ..write('closedAt: $closedAt, ')
-          ..write('closedByEmployeeId: $closedByEmployeeId')
-          ..write(')'))
-        .toString();
-  }
-
-  @override
-  int get hashCode => Object.hash(
-    id,
-    storeId,
-    date,
-    openedAt,
-    openedByEmployeeId,
-    closedAt,
-    closedByEmployeeId,
-  );
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      (other is BusinessDayRow &&
-          other.id == this.id &&
-          other.storeId == this.storeId &&
-          other.date == this.date &&
-          other.openedAt == this.openedAt &&
-          other.openedByEmployeeId == this.openedByEmployeeId &&
-          other.closedAt == this.closedAt &&
-          other.closedByEmployeeId == this.closedByEmployeeId);
-}
-
-class BusinessDaysCompanion extends UpdateCompanion<BusinessDayRow> {
-  final Value<String> id;
-  final Value<String> storeId;
-  final Value<DateTime> date;
-  final Value<DateTime> openedAt;
-  final Value<String?> openedByEmployeeId;
-  final Value<DateTime?> closedAt;
-  final Value<String?> closedByEmployeeId;
-  final Value<int> rowid;
-  const BusinessDaysCompanion({
-    this.id = const Value.absent(),
-    this.storeId = const Value.absent(),
-    this.date = const Value.absent(),
-    this.openedAt = const Value.absent(),
-    this.openedByEmployeeId = const Value.absent(),
-    this.closedAt = const Value.absent(),
-    this.closedByEmployeeId = const Value.absent(),
-    this.rowid = const Value.absent(),
-  });
-  BusinessDaysCompanion.insert({
-    required String id,
-    required String storeId,
-    required DateTime date,
-    required DateTime openedAt,
-    this.openedByEmployeeId = const Value.absent(),
-    this.closedAt = const Value.absent(),
-    this.closedByEmployeeId = const Value.absent(),
-    this.rowid = const Value.absent(),
-  }) : id = Value(id),
-       storeId = Value(storeId),
-       date = Value(date),
-       openedAt = Value(openedAt);
-  static Insertable<BusinessDayRow> custom({
-    Expression<String>? id,
-    Expression<String>? storeId,
-    Expression<DateTime>? date,
-    Expression<DateTime>? openedAt,
-    Expression<String>? openedByEmployeeId,
-    Expression<DateTime>? closedAt,
-    Expression<String>? closedByEmployeeId,
-    Expression<int>? rowid,
-  }) {
-    return RawValuesInsertable({
-      if (id != null) 'id': id,
-      if (storeId != null) 'store_id': storeId,
-      if (date != null) 'date': date,
-      if (openedAt != null) 'opened_at': openedAt,
-      if (openedByEmployeeId != null)
-        'opened_by_employee_id': openedByEmployeeId,
-      if (closedAt != null) 'closed_at': closedAt,
-      if (closedByEmployeeId != null)
-        'closed_by_employee_id': closedByEmployeeId,
-      if (rowid != null) 'rowid': rowid,
-    });
-  }
-
-  BusinessDaysCompanion copyWith({
-    Value<String>? id,
-    Value<String>? storeId,
-    Value<DateTime>? date,
-    Value<DateTime>? openedAt,
-    Value<String?>? openedByEmployeeId,
-    Value<DateTime?>? closedAt,
-    Value<String?>? closedByEmployeeId,
-    Value<int>? rowid,
-  }) {
-    return BusinessDaysCompanion(
-      id: id ?? this.id,
-      storeId: storeId ?? this.storeId,
-      date: date ?? this.date,
-      openedAt: openedAt ?? this.openedAt,
-      openedByEmployeeId: openedByEmployeeId ?? this.openedByEmployeeId,
-      closedAt: closedAt ?? this.closedAt,
-      closedByEmployeeId: closedByEmployeeId ?? this.closedByEmployeeId,
-      rowid: rowid ?? this.rowid,
-    );
-  }
-
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    if (id.present) {
-      map['id'] = Variable<String>(id.value);
-    }
-    if (storeId.present) {
-      map['store_id'] = Variable<String>(storeId.value);
-    }
-    if (date.present) {
-      map['date'] = Variable<DateTime>(date.value);
-    }
-    if (openedAt.present) {
-      map['opened_at'] = Variable<DateTime>(openedAt.value);
-    }
-    if (openedByEmployeeId.present) {
-      map['opened_by_employee_id'] = Variable<String>(openedByEmployeeId.value);
-    }
-    if (closedAt.present) {
-      map['closed_at'] = Variable<DateTime>(closedAt.value);
-    }
-    if (closedByEmployeeId.present) {
-      map['closed_by_employee_id'] = Variable<String>(closedByEmployeeId.value);
-    }
-    if (rowid.present) {
-      map['rowid'] = Variable<int>(rowid.value);
-    }
-    return map;
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('BusinessDaysCompanion(')
-          ..write('id: $id, ')
-          ..write('storeId: $storeId, ')
-          ..write('date: $date, ')
-          ..write('openedAt: $openedAt, ')
-          ..write('openedByEmployeeId: $openedByEmployeeId, ')
-          ..write('closedAt: $closedAt, ')
-          ..write('closedByEmployeeId: $closedByEmployeeId, ')
-          ..write('rowid: $rowid')
-          ..write(')'))
-        .toString();
-  }
-}
-
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   late final $StoresTable stores = $StoresTable(this);
@@ -16642,6 +16737,11 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     'employee_credentials_employee',
     'CREATE UNIQUE INDEX employee_credentials_employee ON employee_credentials (employee_id) WHERE deleted_at IS NULL',
   );
+  late final $BusinessDaysTable businessDays = $BusinessDaysTable(this);
+  late final Index businessDaysStoreDate = Index(
+    'business_days_store_date',
+    'CREATE UNIQUE INDEX business_days_store_date ON business_days (store_id, date) WHERE deleted_at IS NULL',
+  );
   late final $PriceHistoryTable priceHistory = $PriceHistoryTable(this);
   late final Index suppliersStore = Index(
     'suppliers_store',
@@ -16686,11 +16786,11 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   );
   late final $OutboxTable outbox = $OutboxTable(this);
   late final Trigger storesOutboxInsert = Trigger(
-    'CREATE TRIGGER stores_outbox_insert AFTER INSERT ON stores WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT \'stores\', id, id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'name\', name, \'address_line\', address_line, \'postal_code\', postal_code, \'city\', city, \'phone\', phone, \'created_at\', created_at, \'vat_number\', vat_number, \'image_asset\', image_asset, \'stale_partial_order_days\', stale_partial_order_days, \'max_break_minutes\', max_break_minutes, \'notify_low_stock\', notify_low_stock, \'notify_price_change\', notify_price_change, \'notify_large_adjustment\', notify_large_adjustment, \'notify_deliveries\', notify_deliveries, \'notify_busy_days\', notify_busy_days, \'busy_weekdays\', busy_weekdays, \'busy_reminder_days\', busy_reminder_days), (SELECT now FROM sync_clock) FROM stores WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'CREATE TRIGGER stores_outbox_insert AFTER INSERT ON stores WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT \'stores\', id, id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'name\', name, \'address_line\', address_line, \'postal_code\', postal_code, \'city\', city, \'phone\', phone, \'created_at\', created_at, \'vat_number\', vat_number, \'image_asset\', image_asset, \'stale_partial_order_days\', stale_partial_order_days, \'max_break_minutes\', max_break_minutes, \'business_day_auto_open_minutes\', business_day_auto_open_minutes, \'notify_low_stock\', notify_low_stock, \'notify_price_change\', notify_price_change, \'notify_large_adjustment\', notify_large_adjustment, \'notify_deliveries\', notify_deliveries, \'notify_busy_days\', notify_busy_days, \'busy_weekdays\', busy_weekdays, \'busy_reminder_days\', busy_reminder_days), (SELECT now FROM sync_clock) FROM stores WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
     'stores_outbox_insert',
   );
   late final Trigger storesOutboxUpdate = Trigger(
-    'CREATE TRIGGER stores_outbox_update AFTER UPDATE ON stores WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT \'stores\', id, id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'name\', name, \'address_line\', address_line, \'postal_code\', postal_code, \'city\', city, \'phone\', phone, \'created_at\', created_at, \'vat_number\', vat_number, \'image_asset\', image_asset, \'stale_partial_order_days\', stale_partial_order_days, \'max_break_minutes\', max_break_minutes, \'notify_low_stock\', notify_low_stock, \'notify_price_change\', notify_price_change, \'notify_large_adjustment\', notify_large_adjustment, \'notify_deliveries\', notify_deliveries, \'notify_busy_days\', notify_busy_days, \'busy_weekdays\', busy_weekdays, \'busy_reminder_days\', busy_reminder_days), (SELECT now FROM sync_clock) FROM stores WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'CREATE TRIGGER stores_outbox_update AFTER UPDATE ON stores WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT \'stores\', id, id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'name\', name, \'address_line\', address_line, \'postal_code\', postal_code, \'city\', city, \'phone\', phone, \'created_at\', created_at, \'vat_number\', vat_number, \'image_asset\', image_asset, \'stale_partial_order_days\', stale_partial_order_days, \'max_break_minutes\', max_break_minutes, \'business_day_auto_open_minutes\', business_day_auto_open_minutes, \'notify_low_stock\', notify_low_stock, \'notify_price_change\', notify_price_change, \'notify_large_adjustment\', notify_large_adjustment, \'notify_deliveries\', notify_deliveries, \'notify_busy_days\', notify_busy_days, \'busy_weekdays\', busy_weekdays, \'busy_reminder_days\', busy_reminder_days), (SELECT now FROM sync_clock) FROM stores WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
     'stores_outbox_update',
   );
   late final Trigger categoriesOutboxInsert = Trigger(
@@ -16830,11 +16930,11 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     'attendances_outbox_update',
   );
   late final Trigger attendanceSessionsOutboxInsert = Trigger(
-    'CREATE TRIGGER attendance_sessions_outbox_insert AFTER INSERT ON attendance_sessions WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT \'attendance_sessions\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'attendance_id\', attendance_id, \'position\', position, \'clock_in_at\', clock_in_at, \'clock_out_at\', clock_out_at), (SELECT now FROM sync_clock) FROM attendance_sessions WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'CREATE TRIGGER attendance_sessions_outbox_insert AFTER INSERT ON attendance_sessions WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT \'attendance_sessions\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'attendance_id\', attendance_id, \'position\', position, \'clock_in_at\', clock_in_at, \'clock_out_at\', clock_out_at, \'exit_set_by_employee_id\', exit_set_by_employee_id), (SELECT now FROM sync_clock) FROM attendance_sessions WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
     'attendance_sessions_outbox_insert',
   );
   late final Trigger attendanceSessionsOutboxUpdate = Trigger(
-    'CREATE TRIGGER attendance_sessions_outbox_update AFTER UPDATE ON attendance_sessions WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT \'attendance_sessions\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'attendance_id\', attendance_id, \'position\', position, \'clock_in_at\', clock_in_at, \'clock_out_at\', clock_out_at), (SELECT now FROM sync_clock) FROM attendance_sessions WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'CREATE TRIGGER attendance_sessions_outbox_update AFTER UPDATE ON attendance_sessions WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT \'attendance_sessions\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'attendance_id\', attendance_id, \'position\', position, \'clock_in_at\', clock_in_at, \'clock_out_at\', clock_out_at, \'exit_set_by_employee_id\', exit_set_by_employee_id), (SELECT now FROM sync_clock) FROM attendance_sessions WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
     'attendance_sessions_outbox_update',
   );
   late final Trigger attendancePausesOutboxInsert = Trigger(
@@ -16853,6 +16953,14 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final Trigger busyDatesOutboxUpdate = Trigger(
     'CREATE TRIGGER busy_dates_outbox_update AFTER UPDATE ON busy_dates WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT \'busy_dates\', store_id || \'|\' || day, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'store_id\', store_id, \'day\', day), (SELECT now FROM sync_clock) FROM busy_dates WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
     'busy_dates_outbox_update',
+  );
+  late final Trigger businessDaysOutboxInsert = Trigger(
+    'CREATE TRIGGER business_days_outbox_insert AFTER INSERT ON business_days WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT \'business_days\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'date\', date, \'opened_at\', opened_at, \'opened_by_employee_id\', opened_by_employee_id, \'closed_at\', closed_at, \'closed_by_employee_id\', closed_by_employee_id), (SELECT now FROM sync_clock) FROM business_days WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'business_days_outbox_insert',
+  );
+  late final Trigger businessDaysOutboxUpdate = Trigger(
+    'CREATE TRIGGER business_days_outbox_update AFTER UPDATE ON business_days WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT \'business_days\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'date\', date, \'opened_at\', opened_at, \'opened_by_employee_id\', opened_by_employee_id, \'closed_at\', closed_at, \'closed_by_employee_id\', closed_by_employee_id), (SELECT now FROM sync_clock) FROM business_days WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'business_days_outbox_update',
   );
   late final $SyncErrorsTable syncErrors = $SyncErrorsTable(this);
   late final Index goodsReceiptsOrder = Index(
@@ -16987,10 +17095,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     'CREATE TRIGGER busy_dates_touch AFTER UPDATE ON busy_dates WHEN NEW.updated_at IS OLD.updated_at AND NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN UPDATE busy_dates SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
     'busy_dates_touch',
   );
-  late final $BusinessDaysTable businessDays = $BusinessDaysTable(this);
-  late final Index businessDaysStoreDate = Index(
-    'business_days_store_date',
-    'CREATE UNIQUE INDEX business_days_store_date ON business_days (store_id, date)',
+  late final Trigger businessDaysTouch = Trigger(
+    'CREATE TRIGGER business_days_touch AFTER UPDATE ON business_days WHEN NEW.updated_at IS OLD.updated_at AND NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN UPDATE business_days SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
+    'business_days_touch',
   );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
@@ -17025,6 +17132,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     supplierPrices,
     supplierPricesPair,
     employeeCredentialsEmployee,
+    businessDays,
+    businessDaysStoreDate,
     priceHistory,
     suppliersStore,
     supplierPricesItem,
@@ -17085,6 +17194,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     busyDates,
     busyDatesOutboxInsert,
     busyDatesOutboxUpdate,
+    businessDaysOutboxInsert,
+    businessDaysOutboxUpdate,
     syncErrors,
     goodsReceiptsOrder,
     goodsReceiptsStore,
@@ -17119,8 +17230,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     attendanceSessionsTouch,
     attendancePausesTouch,
     busyDatesTouch,
-    businessDays,
-    businessDaysStoreDate,
+    businessDaysTouch,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -17242,6 +17352,27 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('supplier_prices', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'stores',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('business_days', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'employees',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('business_days', kind: UpdateKind.update)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'employees',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('business_days', kind: UpdateKind.update)],
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(
@@ -17651,6 +17782,20 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(
+        'business_days',
+        limitUpdateKind: UpdateKind.insert,
+      ),
+      result: [TableUpdate('outbox', kind: UpdateKind.insert)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'business_days',
+        limitUpdateKind: UpdateKind.update,
+      ),
+      result: [TableUpdate('outbox', kind: UpdateKind.insert)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
         'stores',
         limitUpdateKind: UpdateKind.update,
       ),
@@ -17791,22 +17936,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(
-        'stores',
-        limitUpdateKind: UpdateKind.delete,
-      ),
-      result: [TableUpdate('business_days', kind: UpdateKind.delete)],
-    ),
-    WritePropagation(
-      on: TableUpdateQuery.onTableName(
-        'employees',
-        limitUpdateKind: UpdateKind.delete,
-      ),
-      result: [TableUpdate('business_days', kind: UpdateKind.update)],
-    ),
-    WritePropagation(
-      on: TableUpdateQuery.onTableName(
-        'employees',
-        limitUpdateKind: UpdateKind.delete,
+        'business_days',
+        limitUpdateKind: UpdateKind.update,
       ),
       result: [TableUpdate('business_days', kind: UpdateKind.update)],
     ),

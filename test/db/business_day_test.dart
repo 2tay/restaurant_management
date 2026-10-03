@@ -8,6 +8,7 @@
 // The tests run a month after the seed so the seeded attendance rows (which
 // sit on and before `seedInstant`) never share a date with the journées here.
 
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stock_inventory/data/database/app_database.dart';
 import 'package:stock_inventory/data/repositories/repositories.dart';
@@ -484,5 +485,44 @@ void main() {
     await subscription.cancel();
 
     expect(seen, <String?>[null, day.id, null]);
+  });
+
+  // Sync can bring what this device never allows itself (SYNC_PERSONNEL_PLAN,
+  // step 2): a journée left open on another tablet next to this one's, or a
+  // journée another tablet merged away and marked deleted.
+  group('after a sync', () {
+    Future<void> insertDay(
+      String id,
+      DateTime date, {
+      DateTime? deletedAt,
+    }) => db.into(db.businessDays).insert(
+      BusinessDaysCompanion.insert(
+        id: id,
+        storeId: _store,
+        date: date,
+        openedAt: date.add(const Duration(hours: 9)),
+        deletedAt: Value(deletedAt),
+      ),
+    );
+
+    test('two open journées: the newest is current, nothing throws', () async {
+      await insertDay('day-old', DateTime(2026, 9, 28));
+      await insertDay('day-new', DateTime(2026, 9, 29));
+
+      expect((await repo().current(_store))!.id, 'day-new');
+      expect((await repo().currentOrOpen(_store))!.id, 'day-new');
+      final board = await repo().watchBoardDay(_store, evening).first;
+      expect(board.businessDay!.id, 'day-new');
+    });
+
+    test('a deleted journée is neither current nor in the way', () async {
+      await insertDay('day-gone', DateTime(2026, 9, 29), deletedAt: evening);
+
+      expect(await repo().current(_store), isNull);
+      expect(await repo().businessDay('day-gone'), isNull);
+      final opened = await repo().open(_store);
+      expect(opened, isNotNull);
+      expect(opened!.date, DateTime(2026, 9, 29));
+    });
   });
 }

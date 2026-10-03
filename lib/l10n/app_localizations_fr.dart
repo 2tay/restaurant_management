@@ -4607,6 +4607,7 @@ class AppLocalizationsFr extends AppLocalizations {
       'attendance_sessions': 'Pointage',
       'attendance_pauses': 'Pause',
       'busy_dates': 'Jour chargé',
+      'business_days': 'Journée de service',
       'other': 'Donnée',
     });
     return '$_temp0';
@@ -4674,6 +4675,11 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String syncResolvedDoubleClockIn(String name, String date) {
     return 'Deux pointages de $name le $date ont été regroupés. À vérifier dans l\'historique.';
+  }
+
+  @override
+  String syncResolvedDoubleBusinessDay(String date) {
+    return 'La journée du $date avait été ouverte sur deux tablettes ; une seule a été gardée. Aucun pointage n\'a bougé.';
   }
 
   @override

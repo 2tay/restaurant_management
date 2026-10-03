@@ -240,6 +240,12 @@ class AccountSyncView extends ConsumerWidget {
             null => '',
           },
         ),
+        'resolved_double_business_day' => l10n.syncResolvedDoubleBusinessDay(
+          switch (DateTime.tryParse((error.details['date'] as String?) ?? '')) {
+            final date? => Formatters.date(date),
+            null => '',
+          },
+        ),
         'resolved_duplicate_link' => l10n.syncResolvedDuplicateLink,
         _ => l10n.syncReasonInvalid,
       };

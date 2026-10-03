@@ -43,13 +43,14 @@ class BusinessDayRepository {
   Future<BusinessDay?> businessDay(String id) async {
     final row = await (_db.select(
       _db.businessDays,
-    )..where((d) => d.id.equals(id))).getSingleOrNull();
+    )..where((d) => d.id.equals(id) & d.deletedAt.isNull())).getSingleOrNull();
     return row == null ? null : businessDayFromRow(row);
   }
 
   /// The store's open journée, or null when none is open. Does not depend on
   /// the clock: a journée opened yesterday evening is still the current one at
-  /// 00:30.
+  /// 00:30. Should sync bring a second open one (left open on another
+  /// tablet), the newest is the current one.
   Future<BusinessDay?> current(String storeId) async {
     final row = await _openQuery(storeId).getSingleOrNull();
     return row == null ? null : businessDayFromRow(row);
@@ -67,8 +68,9 @@ class BusinessDayRepository {
     return (_db.select(_db.businessDays)..where(
           (d) =>
               d.storeId.equals(storeId) &
+              d.deletedAt.isNull() &
               (d.closedAt.isNull() | d.date.equals(day)),
-        ))
+        )..orderBy([(d) => OrderingTerm.desc(d.date)]))
         .watch()
         .map((rows) {
           final chosen =
@@ -120,7 +122,10 @@ class BusinessDayRepository {
       if (await _openQuery(storeId).getSingleOrNull() != null) return null;
 
       final sameDate = await (_db.select(_db.businessDays)..where(
-            (d) => d.storeId.equals(storeId) & d.date.equals(day),
+            (d) =>
+                d.storeId.equals(storeId) &
+                d.date.equals(day) &
+                d.deletedAt.isNull(),
           ))
           .getSingleOrNull();
       if (sameDate != null) return null;
@@ -155,7 +160,9 @@ class BusinessDayRepository {
       return await _db.transaction(() async {
         final row = await (_db.select(
           _db.businessDays,
-        )..where((d) => d.id.equals(businessDayId))).getSingleOrNull();
+        )..where(
+          (d) => d.id.equals(businessDayId) & d.deletedAt.isNull(),
+        )).getSingleOrNull();
         if (row == null || row.closedAt != null) return null;
 
         final attendance = AttendanceRepository(_db, clock: _clock);
@@ -180,6 +187,7 @@ class BusinessDayRepository {
               (a) =>
                   a.storeId.equals(row.storeId) &
                   a.date.equals(row.date) &
+                  a.deletedAt.isNull() &
                   a.status.isInValues(const [
                     AttendanceStatus.working,
                     AttendanceStatus.onBreak,
@@ -210,7 +218,14 @@ class BusinessDayRepository {
   SimpleSelectStatement<$BusinessDaysTable, BusinessDayRow> _openQuery(
     String storeId,
   ) => _db.select(_db.businessDays)
-    ..where((d) => d.storeId.equals(storeId) & d.closedAt.isNull());
+    ..where(
+      (d) =>
+          d.storeId.equals(storeId) &
+          d.closedAt.isNull() &
+          d.deletedAt.isNull(),
+    )
+    ..orderBy([(d) => OrderingTerm.desc(d.date)])
+    ..limit(1);
 
 }
 

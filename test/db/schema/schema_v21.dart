@@ -1595,6 +1595,120 @@ class SupplierPrices extends Table with TableInfo {
   bool get dontWriteConstraints => true;
 }
 
+class BusinessDays extends Table with TableInfo {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  BusinessDays(this.attachedDatabase, [this._alias]);
+  late final GeneratedColumn<String> updatedAt = GeneratedColumn<String>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL',
+  );
+  late final GeneratedColumn<String> deletedAt = GeneratedColumn<String>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: 'NULL',
+  );
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL',
+  );
+  late final GeneratedColumn<String> storeId = GeneratedColumn<String>(
+    'store_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL REFERENCES stores(id)ON DELETE CASCADE',
+  );
+  late final GeneratedColumn<String> date = GeneratedColumn<String>(
+    'date',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL',
+  );
+  late final GeneratedColumn<String> openedAt = GeneratedColumn<String>(
+    'opened_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL',
+  );
+  late final GeneratedColumn<String> openedByEmployeeId =
+      GeneratedColumn<String>(
+        'opened_by_employee_id',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        $customConstraints: 'NULL REFERENCES employees(id)ON DELETE SET NULL',
+      );
+  late final GeneratedColumn<String> closedAt = GeneratedColumn<String>(
+    'closed_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: 'NULL',
+  );
+  late final GeneratedColumn<String> closedByEmployeeId =
+      GeneratedColumn<String>(
+        'closed_by_employee_id',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        $customConstraints: 'NULL REFERENCES employees(id)ON DELETE SET NULL',
+      );
+  @override
+  List<GeneratedColumn> get $columns => [
+    updatedAt,
+    deletedAt,
+    id,
+    storeId,
+    date,
+    openedAt,
+    openedByEmployeeId,
+    closedAt,
+    closedByEmployeeId,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'business_days';
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  Never map(Map<String, dynamic> data, {String? tablePrefix}) {
+    throw UnsupportedError('TableInfo.map in schema verification code');
+  }
+
+  @override
+  BusinessDays createAlias(String alias) {
+    return BusinessDays(attachedDatabase, alias);
+  }
+
+  @override
+  List<String> get customConstraints => const ['PRIMARY KEY(id)'];
+  @override
+  bool get dontWriteConstraints => true;
+}
+
 class PriceHistory extends Table with TableInfo {
   @override
   final GeneratedDatabase attachedDatabase;
@@ -3081,102 +3195,6 @@ class SyncErrors extends Table with TableInfo {
   bool get dontWriteConstraints => true;
 }
 
-class BusinessDays extends Table with TableInfo {
-  @override
-  final GeneratedDatabase attachedDatabase;
-  final String? _alias;
-  BusinessDays(this.attachedDatabase, [this._alias]);
-  late final GeneratedColumn<String> id = GeneratedColumn<String>(
-    'id',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-    $customConstraints: 'NOT NULL',
-  );
-  late final GeneratedColumn<String> storeId = GeneratedColumn<String>(
-    'store_id',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-    $customConstraints: 'NOT NULL REFERENCES stores(id)ON DELETE CASCADE',
-  );
-  late final GeneratedColumn<String> date = GeneratedColumn<String>(
-    'date',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-    $customConstraints: 'NOT NULL',
-  );
-  late final GeneratedColumn<String> openedAt = GeneratedColumn<String>(
-    'opened_at',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-    $customConstraints: 'NOT NULL',
-  );
-  late final GeneratedColumn<String> openedByEmployeeId =
-      GeneratedColumn<String>(
-        'opened_by_employee_id',
-        aliasedName,
-        true,
-        type: DriftSqlType.string,
-        requiredDuringInsert: false,
-        $customConstraints: 'NULL REFERENCES employees(id)ON DELETE SET NULL',
-      );
-  late final GeneratedColumn<String> closedAt = GeneratedColumn<String>(
-    'closed_at',
-    aliasedName,
-    true,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-    $customConstraints: 'NULL',
-  );
-  late final GeneratedColumn<String> closedByEmployeeId =
-      GeneratedColumn<String>(
-        'closed_by_employee_id',
-        aliasedName,
-        true,
-        type: DriftSqlType.string,
-        requiredDuringInsert: false,
-        $customConstraints: 'NULL REFERENCES employees(id)ON DELETE SET NULL',
-      );
-  @override
-  List<GeneratedColumn> get $columns => [
-    id,
-    storeId,
-    date,
-    openedAt,
-    openedByEmployeeId,
-    closedAt,
-    closedByEmployeeId,
-  ];
-  @override
-  String get aliasedName => _alias ?? actualTableName;
-  @override
-  String get actualTableName => $name;
-  static const String $name = 'business_days';
-  @override
-  Set<GeneratedColumn> get $primaryKey => {id};
-  @override
-  Never map(Map<String, dynamic> data, {String? tablePrefix}) {
-    throw UnsupportedError('TableInfo.map in schema verification code');
-  }
-
-  @override
-  BusinessDays createAlias(String alias) {
-    return BusinessDays(attachedDatabase, alias);
-  }
-
-  @override
-  List<String> get customConstraints => const ['PRIMARY KEY(id)'];
-  @override
-  bool get dontWriteConstraints => true;
-}
-
 class DatabaseAtV21 extends GeneratedDatabase {
   DatabaseAtV21(QueryExecutor e) : super(e);
   late final Stores stores = Stores(this);
@@ -3254,6 +3272,11 @@ class DatabaseAtV21 extends GeneratedDatabase {
     'employee_credentials_employee',
     'CREATE UNIQUE INDEX employee_credentials_employee ON employee_credentials (employee_id) WHERE deleted_at IS NULL',
   );
+  late final BusinessDays businessDays = BusinessDays(this);
+  late final Index businessDaysStoreDate = Index(
+    'business_days_store_date',
+    'CREATE UNIQUE INDEX business_days_store_date ON business_days (store_id, date) WHERE deleted_at IS NULL',
+  );
   late final PriceHistory priceHistory = PriceHistory(this);
   late final Index suppliersStore = Index(
     'suppliers_store',
@@ -3295,11 +3318,11 @@ class DatabaseAtV21 extends GeneratedDatabase {
   );
   late final Outbox outbox = Outbox(this);
   late final Trigger storesOutboxInsert = Trigger(
-    'CREATE TRIGGER stores_outbox_insert AFTER INSERT ON stores WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT \'stores\', id, id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'name\', name, \'address_line\', address_line, \'postal_code\', postal_code, \'city\', city, \'phone\', phone, \'created_at\', created_at, \'vat_number\', vat_number, \'image_asset\', image_asset, \'stale_partial_order_days\', stale_partial_order_days, \'max_break_minutes\', max_break_minutes, \'notify_low_stock\', notify_low_stock, \'notify_price_change\', notify_price_change, \'notify_large_adjustment\', notify_large_adjustment, \'notify_deliveries\', notify_deliveries, \'notify_busy_days\', notify_busy_days, \'busy_weekdays\', busy_weekdays, \'busy_reminder_days\', busy_reminder_days), (SELECT now FROM sync_clock) FROM stores WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'CREATE TRIGGER stores_outbox_insert AFTER INSERT ON stores WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT \'stores\', id, id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'name\', name, \'address_line\', address_line, \'postal_code\', postal_code, \'city\', city, \'phone\', phone, \'created_at\', created_at, \'vat_number\', vat_number, \'image_asset\', image_asset, \'stale_partial_order_days\', stale_partial_order_days, \'max_break_minutes\', max_break_minutes, \'business_day_auto_open_minutes\', business_day_auto_open_minutes, \'notify_low_stock\', notify_low_stock, \'notify_price_change\', notify_price_change, \'notify_large_adjustment\', notify_large_adjustment, \'notify_deliveries\', notify_deliveries, \'notify_busy_days\', notify_busy_days, \'busy_weekdays\', busy_weekdays, \'busy_reminder_days\', busy_reminder_days), (SELECT now FROM sync_clock) FROM stores WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
     'stores_outbox_insert',
   );
   late final Trigger storesOutboxUpdate = Trigger(
-    'CREATE TRIGGER stores_outbox_update AFTER UPDATE ON stores WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT \'stores\', id, id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'name\', name, \'address_line\', address_line, \'postal_code\', postal_code, \'city\', city, \'phone\', phone, \'created_at\', created_at, \'vat_number\', vat_number, \'image_asset\', image_asset, \'stale_partial_order_days\', stale_partial_order_days, \'max_break_minutes\', max_break_minutes, \'notify_low_stock\', notify_low_stock, \'notify_price_change\', notify_price_change, \'notify_large_adjustment\', notify_large_adjustment, \'notify_deliveries\', notify_deliveries, \'notify_busy_days\', notify_busy_days, \'busy_weekdays\', busy_weekdays, \'busy_reminder_days\', busy_reminder_days), (SELECT now FROM sync_clock) FROM stores WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'CREATE TRIGGER stores_outbox_update AFTER UPDATE ON stores WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT \'stores\', id, id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'name\', name, \'address_line\', address_line, \'postal_code\', postal_code, \'city\', city, \'phone\', phone, \'created_at\', created_at, \'vat_number\', vat_number, \'image_asset\', image_asset, \'stale_partial_order_days\', stale_partial_order_days, \'max_break_minutes\', max_break_minutes, \'business_day_auto_open_minutes\', business_day_auto_open_minutes, \'notify_low_stock\', notify_low_stock, \'notify_price_change\', notify_price_change, \'notify_large_adjustment\', notify_large_adjustment, \'notify_deliveries\', notify_deliveries, \'notify_busy_days\', notify_busy_days, \'busy_weekdays\', busy_weekdays, \'busy_reminder_days\', busy_reminder_days), (SELECT now FROM sync_clock) FROM stores WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
     'stores_outbox_update',
   );
   late final Trigger categoriesOutboxInsert = Trigger(
@@ -3437,11 +3460,11 @@ class DatabaseAtV21 extends GeneratedDatabase {
     'attendances_outbox_update',
   );
   late final Trigger attendanceSessionsOutboxInsert = Trigger(
-    'CREATE TRIGGER attendance_sessions_outbox_insert AFTER INSERT ON attendance_sessions WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT \'attendance_sessions\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'attendance_id\', attendance_id, \'position\', position, \'clock_in_at\', clock_in_at, \'clock_out_at\', clock_out_at), (SELECT now FROM sync_clock) FROM attendance_sessions WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'CREATE TRIGGER attendance_sessions_outbox_insert AFTER INSERT ON attendance_sessions WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT \'attendance_sessions\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'attendance_id\', attendance_id, \'position\', position, \'clock_in_at\', clock_in_at, \'clock_out_at\', clock_out_at, \'exit_set_by_employee_id\', exit_set_by_employee_id), (SELECT now FROM sync_clock) FROM attendance_sessions WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
     'attendance_sessions_outbox_insert',
   );
   late final Trigger attendanceSessionsOutboxUpdate = Trigger(
-    'CREATE TRIGGER attendance_sessions_outbox_update AFTER UPDATE ON attendance_sessions WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT \'attendance_sessions\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'attendance_id\', attendance_id, \'position\', position, \'clock_in_at\', clock_in_at, \'clock_out_at\', clock_out_at), (SELECT now FROM sync_clock) FROM attendance_sessions WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'CREATE TRIGGER attendance_sessions_outbox_update AFTER UPDATE ON attendance_sessions WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT \'attendance_sessions\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'attendance_id\', attendance_id, \'position\', position, \'clock_in_at\', clock_in_at, \'clock_out_at\', clock_out_at, \'exit_set_by_employee_id\', exit_set_by_employee_id), (SELECT now FROM sync_clock) FROM attendance_sessions WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
     'attendance_sessions_outbox_update',
   );
   late final Trigger attendancePausesOutboxInsert = Trigger(
@@ -3460,6 +3483,14 @@ class DatabaseAtV21 extends GeneratedDatabase {
   late final Trigger busyDatesOutboxUpdate = Trigger(
     'CREATE TRIGGER busy_dates_outbox_update AFTER UPDATE ON busy_dates WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT \'busy_dates\', store_id || \'|\' || day, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'store_id\', store_id, \'day\', day), (SELECT now FROM sync_clock) FROM busy_dates WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
     'busy_dates_outbox_update',
+  );
+  late final Trigger businessDaysOutboxInsert = Trigger(
+    'CREATE TRIGGER business_days_outbox_insert AFTER INSERT ON business_days WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT \'business_days\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'date\', date, \'opened_at\', opened_at, \'opened_by_employee_id\', opened_by_employee_id, \'closed_at\', closed_at, \'closed_by_employee_id\', closed_by_employee_id), (SELECT now FROM sync_clock) FROM business_days WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'business_days_outbox_insert',
+  );
+  late final Trigger businessDaysOutboxUpdate = Trigger(
+    'CREATE TRIGGER business_days_outbox_update AFTER UPDATE ON business_days WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT \'business_days\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'date\', date, \'opened_at\', opened_at, \'opened_by_employee_id\', opened_by_employee_id, \'closed_at\', closed_at, \'closed_by_employee_id\', closed_by_employee_id), (SELECT now FROM sync_clock) FROM business_days WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'business_days_outbox_update',
   );
   late final SyncErrors syncErrors = SyncErrors(this);
   late final Index goodsReceiptsOrder = Index(
@@ -3594,10 +3625,9 @@ class DatabaseAtV21 extends GeneratedDatabase {
     'CREATE TRIGGER busy_dates_touch AFTER UPDATE ON busy_dates WHEN NEW.updated_at IS OLD.updated_at AND NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN UPDATE busy_dates SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
     'busy_dates_touch',
   );
-  late final BusinessDays businessDays = BusinessDays(this);
-  late final Index businessDaysStoreDate = Index(
-    'business_days_store_date',
-    'CREATE UNIQUE INDEX business_days_store_date ON business_days (store_id, date)',
+  late final Trigger businessDaysTouch = Trigger(
+    'CREATE TRIGGER business_days_touch AFTER UPDATE ON business_days WHEN NEW.updated_at IS OLD.updated_at AND NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN UPDATE business_days SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
+    'business_days_touch',
   );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
@@ -3632,6 +3662,8 @@ class DatabaseAtV21 extends GeneratedDatabase {
     supplierPrices,
     supplierPricesPair,
     employeeCredentialsEmployee,
+    businessDays,
+    businessDaysStoreDate,
     priceHistory,
     suppliersStore,
     supplierPricesItem,
@@ -3692,6 +3724,8 @@ class DatabaseAtV21 extends GeneratedDatabase {
     busyDates,
     busyDatesOutboxInsert,
     busyDatesOutboxUpdate,
+    businessDaysOutboxInsert,
+    businessDaysOutboxUpdate,
     syncErrors,
     goodsReceiptsOrder,
     goodsReceiptsStore,
@@ -3726,8 +3760,7 @@ class DatabaseAtV21 extends GeneratedDatabase {
     attendanceSessionsTouch,
     attendancePausesTouch,
     busyDatesTouch,
-    businessDays,
-    businessDaysStoreDate,
+    businessDaysTouch,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -3849,6 +3882,27 @@ class DatabaseAtV21 extends GeneratedDatabase {
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('supplier_prices', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'stores',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('business_days', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'employees',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('business_days', kind: UpdateKind.update)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'employees',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('business_days', kind: UpdateKind.update)],
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(
@@ -4258,6 +4312,20 @@ class DatabaseAtV21 extends GeneratedDatabase {
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(
+        'business_days',
+        limitUpdateKind: UpdateKind.insert,
+      ),
+      result: [TableUpdate('outbox', kind: UpdateKind.insert)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'business_days',
+        limitUpdateKind: UpdateKind.update,
+      ),
+      result: [TableUpdate('outbox', kind: UpdateKind.insert)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
         'stores',
         limitUpdateKind: UpdateKind.update,
       ),
@@ -4398,22 +4466,8 @@ class DatabaseAtV21 extends GeneratedDatabase {
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(
-        'stores',
-        limitUpdateKind: UpdateKind.delete,
-      ),
-      result: [TableUpdate('business_days', kind: UpdateKind.delete)],
-    ),
-    WritePropagation(
-      on: TableUpdateQuery.onTableName(
-        'employees',
-        limitUpdateKind: UpdateKind.delete,
-      ),
-      result: [TableUpdate('business_days', kind: UpdateKind.update)],
-    ),
-    WritePropagation(
-      on: TableUpdateQuery.onTableName(
-        'employees',
-        limitUpdateKind: UpdateKind.delete,
+        'business_days',
+        limitUpdateKind: UpdateKind.update,
       ),
       result: [TableUpdate('business_days', kind: UpdateKind.update)],
     ),

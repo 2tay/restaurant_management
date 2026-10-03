@@ -7436,7 +7436,7 @@ abstract class AppLocalizations {
   /// What a refused change was about.
   ///
   /// In fr, this message translates to:
-  /// **'{table, select, stores{Établissement} categories{Catégorie} units{Unité} items{Article} suppliers{Fournisseur} supplier_prices{Prix fournisseur} price_history{Historique de prix} stock_movements{Mouvement de stock} purchase_orders{Commande} purchase_order_lines{Ligne de commande} goods_receipts{Réception} goods_receipt_lines{Ligne de réception} notifications{Notification} employees{Employé} employee_credentials{Accès employé} payroll_periods{Période de paie} attendances{Pointage} attendance_sessions{Pointage} attendance_pauses{Pause} busy_dates{Jour chargé} other{Donnée}}'**
+  /// **'{table, select, stores{Établissement} categories{Catégorie} units{Unité} items{Article} suppliers{Fournisseur} supplier_prices{Prix fournisseur} price_history{Historique de prix} stock_movements{Mouvement de stock} purchase_orders{Commande} purchase_order_lines{Ligne de commande} goods_receipts{Réception} goods_receipt_lines{Ligne de réception} notifications{Notification} employees{Employé} employee_credentials{Accès employé} payroll_periods{Période de paie} attendances{Pointage} attendance_sessions{Pointage} attendance_pauses{Pause} busy_dates{Jour chargé} business_days{Journée de service} other{Donnée}}'**
   String syncTableName(String table);
 
   /// Waiting screen: first download progress.
@@ -7510,6 +7510,12 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Deux pointages de {name} le {date} ont été regroupés. À vérifier dans l\'historique.'**
   String syncResolvedDoubleClockIn(String name, String date);
+
+  /// Sync page: two journées de service for one date, one kept (rule P5).
+  ///
+  /// In fr, this message translates to:
+  /// **'La journée du {date} avait été ouverte sur deux tablettes ; une seule a été gardée. Aucun pointage n\'a bougé.'**
+  String syncResolvedDoubleBusinessDay(String date);
 
   /// Sync page: a duplicate supplier link settled.
   ///

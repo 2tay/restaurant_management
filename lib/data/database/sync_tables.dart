@@ -31,6 +31,7 @@ abstract final class SyncTables {
     'attendance_sessions',
     'attendance_pauses',
     'busy_dates',
+    'business_days',
   };
 
   /// Facts about this installation: who is signed in on this tablet, the

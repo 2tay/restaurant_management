@@ -16,6 +16,7 @@
 import 'tables/account.dart';
 import 'tables/attendance.dart';
 import 'tables/busy_dates.dart';
+import 'tables/business_days.dart';
 import 'tables/catalog.dart';
 import 'tables/employees.dart';
 import 'tables/items.dart';
@@ -195,5 +196,13 @@ CREATE TRIGGER busy_dates_touch AFTER UPDATE ON busy_dates
     AND NOT EXISTS (SELECT 1 FROM meta WHERE "key" = 'syncQuiet')
 BEGIN
   UPDATE busy_dates SET updated_at = (SELECT now FROM sync_clock)
+    WHERE rowid = NEW.rowid;
+END;
+
+CREATE TRIGGER business_days_touch AFTER UPDATE ON business_days
+  WHEN NEW.updated_at IS OLD.updated_at
+    AND NOT EXISTS (SELECT 1 FROM meta WHERE "key" = 'syncQuiet')
+BEGIN
+  UPDATE business_days SET updated_at = (SELECT now FROM sync_clock)
     WHERE rowid = NEW.rowid;
 END;

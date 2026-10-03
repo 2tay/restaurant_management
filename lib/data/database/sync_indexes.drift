@@ -7,6 +7,7 @@
 -- (`SyncApplier`), and a deleted row must not keep occupying the key.
 
 import 'tables/attendance.dart';
+import 'tables/business_days.dart';
 import 'tables/employees.dart';
 import 'tables/suppliers.dart';
 
@@ -18,3 +19,7 @@ CREATE UNIQUE INDEX supplier_prices_pair
 
 CREATE UNIQUE INDEX employee_credentials_employee
   ON employee_credentials (employee_id) WHERE deleted_at IS NULL;
+
+-- One journée de service per store and date (schema v21).
+CREATE UNIQUE INDEX business_days_store_date
+  ON business_days (store_id, date) WHERE deleted_at IS NULL;

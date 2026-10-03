@@ -58,6 +58,7 @@
 // Regenerate the helpers with:
 //   dart run drift_dev schema generate lib/data/database/migrations/ test/db/schema/
 
+import 'package:drift/drift.dart' show Variable;
 import 'package:drift_dev/api/migrations_native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stock_inventory/data/database/app_database.dart';
@@ -269,6 +270,37 @@ void main() {
       (row) => row.read<String>('name') == 'business_day_auto_open_minutes',
     );
     expect(column.read<String?>('dflt_value'), '300');
+    await db.close();
+  });
+
+  // The journée and the two audit columns sync (SYNC_PERSONNEL_PLAN, step 2):
+  // the journée gets its triggers, and the outbox triggers of `stores` and
+  // `attendance_sessions` are recreated to carry the new column.
+  test('v20 -> v21 queues journées and the new columns', () async {
+    final connection = await verifier.startAt(20);
+    final db = AppDatabase.withExecutor(connection);
+    await verifier.migrateAndValidate(db, 21);
+
+    Future<String?> sqlOf(String trigger) async => (await db
+            .customSelect(
+              "SELECT sql FROM sqlite_master WHERE type = 'trigger' "
+              'AND name = ?',
+              variables: [Variable<String>(trigger)],
+            )
+            .getSingleOrNull())
+        ?.read<String>('sql');
+
+    expect(await sqlOf('business_days_touch'), isNotNull);
+    expect(await sqlOf('business_days_outbox_insert'), isNotNull);
+    expect(await sqlOf('business_days_outbox_update'), isNotNull);
+    expect(
+      await sqlOf('stores_outbox_update'),
+      contains('business_day_auto_open_minutes'),
+    );
+    expect(
+      await sqlOf('attendance_sessions_outbox_insert'),
+      contains('exit_set_by_employee_id'),
+    );
     await db.close();
   });
 
@@ -805,7 +837,8 @@ void main() {
     final db = AppDatabase.withExecutor(schema.newConnection());
     await verifier.migrateAndValidate(db, 21);
 
-    for (final table in SyncTables.synced) {
+    // `business_days` comes later (v21), so a v14 install has none to keep.
+    for (final table in SyncTables.synced.difference({'business_days'})) {
       final rows = await db.customSelect('SELECT * FROM $table').get();
       expect(rows, hasLength(1), reason: '$table lost or gained a row');
       expect(rows.single.read<String?>('updated_at'), isNotNull, reason: table);
