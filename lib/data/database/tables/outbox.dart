@@ -52,6 +52,15 @@ class Outbox extends Table {
   /// entry that is still a new row stays null.
   TextColumn get changedColumns => text().nullable()();
 
+  /// For the few columns two tablets must not silently overwrite (a
+  /// password, an hourly rate, a role): the value each had **before** this
+  /// device's first pending edit, as a JSON object — null when none of them
+  /// changed. The server compares it with what it holds: a difference means
+  /// another tablet changed that column meanwhile, unseen here, and the
+  /// answer says so (`PushResult.overwrote`), so it can be signalled
+  /// (SYNC_PERSONNEL_PLAN.md, rules C2 and E2).
+  TextColumn get baseValues => text().nullable()();
+
   /// When the row last changed while pending, in UTC, from the same clock
   /// view as the `updated_at` stamps.
   DateTimeColumn get queuedAt => dateTime()();

@@ -6,6 +6,7 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stock_inventory/core/utils/attendance_status.dart';
+import 'package:stock_inventory/core/utils/credential_status.dart';
 import 'package:stock_inventory/data/database/app_database.dart';
 import 'package:stock_inventory/data/repositories/repositories.dart';
 import 'package:stock_inventory/models/models.dart';
@@ -260,6 +261,129 @@ void main() {
         expect(cook.archivedAt, isNotNull);
         expect(cook.phone, '0499 44 55 66');
       }
+    });
+  });
+
+  // Rules C1–C3 (SYNC_PERSONNEL_PLAN.md, step 5): only the password is
+  // shared; the attempts and the lockout are each tablet's.
+  group('passwords and sign-in on two tablets', () {
+    // Léa (the owner) signs in with a PIN and a 4-digit password.
+    const pin = 'PIN-LEA';
+
+    test('signing in sends nothing', () async {
+      final a = await newDevice();
+      final b = await newDevice();
+      final day = await shared(a, b);
+      await CredentialRepository(a).setPassword(day.owner.id, '1111');
+      await settle(a, b);
+
+      await CredentialRepository(a).authenticate(pin, '1111');
+      await CredentialRepository(a).authenticate(pin, '9999');
+
+      expect(await OutboxRepository(a).pendingCount(), 0);
+    });
+
+    test('a sign-in never puts back an old password (C1)', () async {
+      final a = await newDevice();
+      final b = await newDevice();
+      final day = await shared(a, b);
+      await CredentialRepository(a).setPassword(day.owner.id, '1111');
+      await settle(a, b);
+
+      // A changes the password; B, not synced yet, signs in with the old one.
+      await CredentialRepository(a).setPassword(day.owner.id, '2222');
+      expect(
+        (await CredentialRepository(b).authenticate(pin, '1111')).outcome,
+        LoginOutcome.success,
+      );
+      await settle(a, b);
+
+      for (final db in [a, b]) {
+        expect(
+          (await CredentialRepository(db).authenticate(pin, '2222')).outcome,
+          LoginOutcome.success,
+        );
+      }
+    });
+
+    test('a lockout stays on its tablet, a new password lifts it (C3)',
+        () async {
+      final a = await newDevice();
+      final b = await newDevice();
+      final day = await shared(a, b);
+      await CredentialRepository(a).setPassword(day.owner.id, '1111');
+      await settle(a, b);
+
+      for (var i = 0; i < AuthRules.maxFailedAttempts; i++) {
+        await CredentialRepository(a).authenticate(pin, '9999');
+      }
+      await settle(a, b);
+      expect(
+        (await CredentialRepository(a).authenticate(pin, '1111')).outcome,
+        LoginOutcome.locked,
+      );
+      expect(
+        (await CredentialRepository(b).authenticate(pin, '1111')).outcome,
+        LoginOutcome.success,
+      );
+
+      // A new password set on B reaches A and clears A's lockout.
+      await CredentialRepository(b).setPassword(day.owner.id, '3333');
+      await settle(a, b);
+      expect(
+        (await CredentialRepository(a).authenticate(pin, '3333')).outcome,
+        LoginOutcome.success,
+      );
+    });
+
+    test('changed on both tablets: the last one wins, and is signalled (C2)',
+        () async {
+      final a = await newDevice();
+      final b = await newDevice();
+      final day = await shared(a, b);
+      await CredentialRepository(a).setPassword(day.owner.id, '1111');
+      await settle(a, b);
+
+      await CredentialRepository(a).setPassword(day.owner.id, '2222');
+      await CredentialRepository(b).setPassword(day.owner.id, '3333');
+      // A sends first, B last.
+      await settle(a, b);
+
+      for (final db in [a, b]) {
+        final credentials = CredentialRepository(db);
+        expect(
+          (await credentials.authenticate(pin, '3333')).outcome,
+          LoginOutcome.success,
+        );
+        final flags = [
+          for (final n in await AccountRepository(
+            db,
+          ).notifications(day.store.id))
+            if (n.kind == NotificationKind.personnel) n,
+        ];
+        expect(flags, hasLength(1));
+        expect(flags.single.title, contains('Mot de passe'));
+        expect(flags.single.relatedEmployeeId, day.owner.id);
+      }
+    });
+
+    test('changed twice in a row on one tablet: not signalled', () async {
+      final a = await newDevice();
+      final b = await newDevice();
+      final day = await shared(a, b);
+      await CredentialRepository(a).setPassword(day.owner.id, '1111');
+      await settle(a, b);
+
+      await CredentialRepository(a).setPassword(day.owner.id, '2222');
+      await settle(a, b);
+      await CredentialRepository(b).setPassword(day.owner.id, '3333');
+      await settle(a, b);
+
+      final flags = [
+        for (final n in await AccountRepository(a).notifications(day.store.id))
+          if (n.kind == NotificationKind.personnel) n,
+      ];
+      expect(flags, isEmpty);
     });
   });
 

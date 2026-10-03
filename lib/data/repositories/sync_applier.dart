@@ -7,6 +7,7 @@ import '../../services/auth_service.dart';
 import '../database/app_database.dart';
 import '../database/sync_tables.dart';
 import 'account_repository.dart';
+import 'credential_repository.dart';
 import 'stock_ledger.dart';
 import 'sync_quiet.dart';
 
@@ -183,6 +184,16 @@ class SyncApplier {
           afterwards: () => _ensureDefaultPrice(row['item_id'] as String),
         );
       case 'employee_credentials' when live:
+        // A new password reaching this tablet clears the lockout this
+        // tablet keeps for it, as a password set here does (rule C3).
+        final employeeId = row['employee_id'] as String;
+        final before = await (_db.select(_db.employeeCredentials)..where(
+              (c) => c.employeeId.equals(employeeId) & c.deletedAt.isNull(),
+            ))
+            .getSingleOrNull();
+        if (before != null && before.passwordHash != row['password_hash']) {
+          await CredentialRepository(_db).resetAttempts(employeeId);
+        }
         return _applyKeepRecent(
           table,
           row,

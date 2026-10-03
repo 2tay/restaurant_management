@@ -10,7 +10,9 @@ import '../data/database/app_database.dart';
 import '../data/database/meta_keys.dart';
 import '../data/device_access.dart';
 import '../data/providers.dart';
+import '../data/repositories/account_repository.dart';
 import '../data/repositories/device_repository.dart';
+import '../data/repositories/employee_repository.dart';
 import '../data/repositories/outbox_repository.dart';
 import '../data/repositories/sync_applier.dart';
 import 'auth_service.dart';
@@ -220,6 +222,9 @@ class SyncRunner {
         if (entry == null) continue;
         if (answer.accepted) {
           accepted++;
+          if (answer.overwrote.isNotEmpty) {
+            await _signalOverwrite(entry, answer.overwrote);
+          }
           if (await outbox.removeIfUnchanged(entry)) progressed = true;
         } else if (answer.reason == 'device_unknown') {
           return SyncRunResult(
@@ -260,7 +265,35 @@ class SyncRunner {
     // for a new row or a whole-row table.
     if (entry.changedColumns != null)
       'columns': jsonDecode(entry.changedColumns!) as List<Object?>,
+    if (entry.baseValues != null)
+      'base': jsonDecode(entry.baseValues!) as Map<String, Object?>,
   };
+
+  /// An accepted edit replaced another tablet's unseen change of a watched
+  /// column (rule C2): it wins, and the managers and the owner are told.
+  Future<void> _signalOverwrite(OutboxRow entry, List<String> columns) async {
+    if (entry.changedTable == 'employee_credentials' &&
+        columns.contains('password_hash')) {
+      final payload = jsonDecode(entry.payload) as Map<String, Object?>;
+      final employeeId = payload['employee_id']! as String;
+      final employee = await EmployeeRepository(_db).employee(employeeId);
+      final name = employee == null
+          ? ''
+          : '${employee.firstName} ${employee.lastName}';
+      final at = clock.now();
+      await AccountRepository(_db).signal(
+        storeId: entry.storeId,
+        key: 'password_twice:${entry.rowKey}:${at.millisecondsSinceEpoch}',
+        title: 'Mot de passe changé deux fois : $name',
+        body:
+            'Le mot de passe a été changé sur deux tablettes en même temps. '
+            'Le dernier enregistré est gardé : vérifiez avec $name qu\'il '
+            'connaît le bon.',
+        employeeId: employeeId,
+        at: at,
+      );
+    }
+  }
 }
 
 enum SyncStatus {

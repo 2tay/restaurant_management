@@ -79,10 +79,9 @@ class EmployeeCredentials extends Table with Touched, Deletable {
   TextColumn get employeeId =>
       text().references(Employees, #id, onDelete: KeyAction.cascade)();
 
+  /// The only thing shared about a login. The attempts, the lockout and the
+  /// last login are this tablet's own: `login_states` (step 5, rule C1).
   TextColumn get passwordHash => text()();
-  IntColumn get failedAttempts => integer().withDefault(const Constant(0))();
-  DateTimeColumn get lockedUntil => dateTime().nullable()();
-  DateTimeColumn get lastLoginAt => dateTime().nullable()();
 
   @override
   Set<Column<Object>> get primaryKey => {id};

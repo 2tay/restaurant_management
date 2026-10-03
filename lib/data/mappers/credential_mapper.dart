@@ -1,17 +1,19 @@
-import 'package:drift/drift.dart';
-
 import '../../models/employee_credential.dart';
 import '../database/app_database.dart';
 
-EmployeeCredential credentialFromRow(EmployeeCredentialRow row) =>
-    EmployeeCredential(
-      id: row.id,
-      employeeId: row.employeeId,
-      passwordHash: row.passwordHash,
-      failedAttempts: row.failedAttempts,
-      lockedUntil: row.lockedUntil,
-      lastLoginAt: row.lastLoginAt,
-    );
+/// [state] is this tablet's sign-in state for the employee (`login_states`),
+/// null when nobody has tried to sign in as them here yet.
+EmployeeCredential credentialFromRow(
+  EmployeeCredentialRow row, [
+  LoginStateRow? state,
+]) => EmployeeCredential(
+  id: row.id,
+  employeeId: row.employeeId,
+  passwordHash: row.passwordHash,
+  failedAttempts: state?.failedAttempts ?? 0,
+  lockedUntil: state?.lockedUntil,
+  lastLoginAt: state?.lastLoginAt,
+);
 
 /// The credential model does not carry its store; it is the employee's, and
 /// the caller supplies it.
@@ -24,7 +26,4 @@ EmployeeCredentialsCompanion credentialToRow(
       storeId: storeId,
       employeeId: credential.employeeId,
       passwordHash: credential.passwordHash,
-      failedAttempts: Value(credential.failedAttempts),
-      lockedUntil: Value(credential.lockedUntil),
-      lastLoginAt: Value(credential.lastLoginAt),
     );

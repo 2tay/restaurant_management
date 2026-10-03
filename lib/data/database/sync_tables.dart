@@ -42,6 +42,8 @@ abstract final class SyncTables {
     'outbox',
     'sync_errors',
     'photo_uploads',
+    // Each tablet's own sign-in attempts and lockout (step 5, rule C3).
+    'login_states',
   };
 
   /// Synced tables whose parent is not a store, so they carry a copy of the

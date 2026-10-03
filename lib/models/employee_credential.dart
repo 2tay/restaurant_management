@@ -1,5 +1,8 @@
 /// One employee's login secret and lockout state.
 ///
+/// The password is shared by every tablet; [failedAttempts], [lockedUntil]
+/// and [lastLoginAt] are this tablet's own (`login_states`, step 5).
+///
 /// The counterpart to [Employee] that Phase 6 adds: the PIN on the employee is
 /// the login identifier, this carries the password behind it. Split onto its own
 /// record — not a field on `Employee` — for the same reason `EmployeeCredential`

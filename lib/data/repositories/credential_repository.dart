@@ -59,19 +59,22 @@ class CredentialRepository {
 
   final AppDatabase _db;
 
-  /// This employee's credential, or null when no password has been set.
-  Future<EmployeeCredential?> forEmployee(String employeeId) =>
-      _rowFor(employeeId).then(
-        (row) => row == null ? null : credentialFromRow(row),
-      );
+  /// This employee's credential, or null when no password has been set. The
+  /// attempts and lockout are this tablet's.
+  Future<EmployeeCredential?> forEmployee(String employeeId) async {
+    final row = await _rowFor(employeeId);
+    if (row == null) return null;
+    return credentialFromRow(row, await _stateFor(employeeId));
+  }
 
   // ---------------------------------------------------------------------------
   // Writes
   // ---------------------------------------------------------------------------
 
   /// Sets (or replaces) this employee's password, clearing any failed attempts and
-  /// lockout. Returns null if the password is not [AuthRules.passwordLength] digits or
-  /// the employee does not exist.
+  /// lockout on this tablet (another tablet clears its own when the password
+  /// reaches it — `SyncApplier`). Returns null if the password is not
+  /// [AuthRules.passwordLength] digits or the employee does not exist.
   Future<EmployeeCredential?> setPassword(String employeeId, String password) async {
     if (!isValidPassword(password)) return null;
 
@@ -96,8 +99,6 @@ class CredentialRepository {
             .into(_db.employeeCredentials)
             .insert(credentialToRow(replacement, storeId: employee.storeId));
       } else {
-        // A full write, so `failedAttempts` / `lockedUntil` / `lastLoginAt` all
-        // return to their defaults — a fresh password wipes the lockout state.
         await (_db.update(_db.employeeCredentials)
               ..where((c) => c.employeeId.equals(employeeId)))
             .write(
@@ -107,6 +108,8 @@ class CredentialRepository {
               ).copyWith(deletedAt: const Value(null)),
             );
       }
+      // A fresh password wipes the lockout, and keeps the last login.
+      await resetAttempts(employeeId);
       return replacement;
     });
   }
@@ -121,25 +124,27 @@ class CredentialRepository {
   /// allow a single try.
   Future<bool> recordFailedAttempt(String employeeId, {DateTime? now}) {
     return _db.transaction(() async {
-      final current = await _rowFor(employeeId);
-      if (current == null) return false;
+      if (await _rowFor(employeeId) == null) return false;
+      final current = await _stateFor(employeeId);
 
       final at = now ?? clock.now();
-      final until = current.lockedUntil;
+      final until = current?.lockedUntil;
       final expired = until != null && !at.isBefore(until);
-      final attempts = (expired ? 0 : current.failedAttempts) + 1;
+      final attempts = (expired ? 0 : current?.failedAttempts ?? 0) + 1;
       final locks = attempts >= AuthRules.maxFailedAttempts;
 
-      await (_db.update(_db.employeeCredentials)
-            ..where((c) => c.employeeId.equals(employeeId)))
-          .write(
-            EmployeeCredentialsCompanion(
+      await _db
+          .into(_db.loginStates)
+          .insertOnConflictUpdate(
+            LoginStatesCompanion.insert(
+              employeeId: employeeId,
               failedAttempts: Value(attempts),
               lockedUntil: locks
                   ? Value(at.add(AuthRules.lockoutDuration))
                   : expired
                   ? const Value(null)
-                  : const Value.absent(),
+                  : Value(until),
+              lastLoginAt: Value(current?.lastLoginAt),
             ),
           );
       return locks;
@@ -149,16 +154,32 @@ class CredentialRepository {
   /// Clears the failed-attempt counter and lockout, and stamps `lastLoginAt`.
   /// Does nothing when there is no credential.
   Future<void> recordSuccessfulLogin(String employeeId, {DateTime? now}) async {
-    await (_db.update(_db.employeeCredentials)
-          ..where((c) => c.employeeId.equals(employeeId)))
-        .write(
-          EmployeeCredentialsCompanion(
+    if (await _rowFor(employeeId) == null) return;
+    await _db
+        .into(_db.loginStates)
+        .insertOnConflictUpdate(
+          // Every column given: on an existing row, the upsert only
+          // rewrites what the companion holds.
+          LoginStatesCompanion.insert(
+            employeeId: employeeId,
             failedAttempts: const Value(0),
             lockedUntil: const Value(null),
             lastLoginAt: Value(now ?? clock.now()),
           ),
         );
   }
+
+  /// Clears this tablet's failed attempts and lockout for [employeeId],
+  /// keeping the last login. What a new password does.
+  Future<void> resetAttempts(String employeeId) =>
+      (_db.update(_db.loginStates)
+            ..where((s) => s.employeeId.equals(employeeId)))
+          .write(
+            const LoginStatesCompanion(
+              failedAttempts: Value(0),
+              lockedUntil: Value(null),
+            ),
+          );
 
   /// Removes this employee's login credential altogether — they can no longer
   /// sign in. What a change to the Employé role does: an Employé never signs
@@ -227,6 +248,10 @@ class CredentialRepository {
   }
 
   // ---------------------------------------------------------------------------
+
+  Future<LoginStateRow?> _stateFor(String employeeId) => (_db.select(
+    _db.loginStates,
+  )..where((s) => s.employeeId.equals(employeeId))).getSingleOrNull();
 
   Future<EmployeeCredentialRow?> _rowFor(
     String employeeId, {

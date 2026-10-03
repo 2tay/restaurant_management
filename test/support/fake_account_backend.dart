@@ -258,6 +258,19 @@ class FakeAccountBackend implements AccountBackend {
           // those (and the stamp) on a row the server has; the rest stays.
           final columns = change['columns'] as List<Object?>?;
           final existing = serverRows[key];
+          // As `push_changes`: a watched column the server holds with
+          // another value than this edit started from was changed
+          // meanwhile by another tablet.
+          final base = change['base'] as Map<String, Object?>?;
+          final overwrote = existing == null || base == null
+              ? const <String>[]
+              : [
+                  for (final MapEntry(key: column, value: before)
+                      in base.entries)
+                    if (existing[column] != before &&
+                        existing[column] != sent[column])
+                      column,
+                ];
           final row = columns == null || existing == null
               ? sent
               : {
@@ -277,7 +290,11 @@ class FakeAccountBackend implements AccountBackend {
             row: row,
           );
           _live.add(storeId);
-          return PushResult(id: change['id']! as int, accepted: true);
+          return PushResult(
+            id: change['id']! as int,
+            accepted: true,
+            overwrote: overwrote,
+          );
         }(),
     ];
   }

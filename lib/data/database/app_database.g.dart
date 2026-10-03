@@ -4904,40 +4904,6 @@ class $EmployeeCredentialsTable extends EmployeeCredentials
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _failedAttemptsMeta = const VerificationMeta(
-    'failedAttempts',
-  );
-  @override
-  late final GeneratedColumn<int> failedAttempts = GeneratedColumn<int>(
-    'failed_attempts',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    defaultValue: const Constant(0),
-  );
-  static const VerificationMeta _lockedUntilMeta = const VerificationMeta(
-    'lockedUntil',
-  );
-  @override
-  late final GeneratedColumn<DateTime> lockedUntil = GeneratedColumn<DateTime>(
-    'locked_until',
-    aliasedName,
-    true,
-    type: DriftSqlType.dateTime,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _lastLoginAtMeta = const VerificationMeta(
-    'lastLoginAt',
-  );
-  @override
-  late final GeneratedColumn<DateTime> lastLoginAt = GeneratedColumn<DateTime>(
-    'last_login_at',
-    aliasedName,
-    true,
-    type: DriftSqlType.dateTime,
-    requiredDuringInsert: false,
-  );
   @override
   List<GeneratedColumn> get $columns => [
     updatedAt,
@@ -4946,9 +4912,6 @@ class $EmployeeCredentialsTable extends EmployeeCredentials
     storeId,
     employeeId,
     passwordHash,
-    failedAttempts,
-    lockedUntil,
-    lastLoginAt,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -5006,33 +4969,6 @@ class $EmployeeCredentialsTable extends EmployeeCredentials
     } else if (isInserting) {
       context.missing(_passwordHashMeta);
     }
-    if (data.containsKey('failed_attempts')) {
-      context.handle(
-        _failedAttemptsMeta,
-        failedAttempts.isAcceptableOrUnknown(
-          data['failed_attempts']!,
-          _failedAttemptsMeta,
-        ),
-      );
-    }
-    if (data.containsKey('locked_until')) {
-      context.handle(
-        _lockedUntilMeta,
-        lockedUntil.isAcceptableOrUnknown(
-          data['locked_until']!,
-          _lockedUntilMeta,
-        ),
-      );
-    }
-    if (data.containsKey('last_login_at')) {
-      context.handle(
-        _lastLoginAtMeta,
-        lastLoginAt.isAcceptableOrUnknown(
-          data['last_login_at']!,
-          _lastLoginAtMeta,
-        ),
-      );
-    }
     return context;
   }
 
@@ -5066,18 +5002,6 @@ class $EmployeeCredentialsTable extends EmployeeCredentials
         DriftSqlType.string,
         data['${effectivePrefix}password_hash'],
       )!,
-      failedAttempts: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}failed_attempts'],
-      )!,
-      lockedUntil: attachedDatabase.typeMapping.read(
-        DriftSqlType.dateTime,
-        data['${effectivePrefix}locked_until'],
-      ),
-      lastLoginAt: attachedDatabase.typeMapping.read(
-        DriftSqlType.dateTime,
-        data['${effectivePrefix}last_login_at'],
-      ),
     );
   }
 
@@ -5100,10 +5024,10 @@ class EmployeeCredentialRow extends DataClass
   /// `ON DELETE CASCADE` and unique — one credential per employee, and it goes
   /// when they do.
   final String employeeId;
+
+  /// The only thing shared about a login. The attempts, the lockout and the
+  /// last login are this tablet's own: `login_states` (step 5, rule C1).
   final String passwordHash;
-  final int failedAttempts;
-  final DateTime? lockedUntil;
-  final DateTime? lastLoginAt;
   const EmployeeCredentialRow({
     required this.updatedAt,
     this.deletedAt,
@@ -5111,9 +5035,6 @@ class EmployeeCredentialRow extends DataClass
     required this.storeId,
     required this.employeeId,
     required this.passwordHash,
-    required this.failedAttempts,
-    this.lockedUntil,
-    this.lastLoginAt,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -5126,13 +5047,6 @@ class EmployeeCredentialRow extends DataClass
     map['store_id'] = Variable<String>(storeId);
     map['employee_id'] = Variable<String>(employeeId);
     map['password_hash'] = Variable<String>(passwordHash);
-    map['failed_attempts'] = Variable<int>(failedAttempts);
-    if (!nullToAbsent || lockedUntil != null) {
-      map['locked_until'] = Variable<DateTime>(lockedUntil);
-    }
-    if (!nullToAbsent || lastLoginAt != null) {
-      map['last_login_at'] = Variable<DateTime>(lastLoginAt);
-    }
     return map;
   }
 
@@ -5146,13 +5060,6 @@ class EmployeeCredentialRow extends DataClass
       storeId: Value(storeId),
       employeeId: Value(employeeId),
       passwordHash: Value(passwordHash),
-      failedAttempts: Value(failedAttempts),
-      lockedUntil: lockedUntil == null && nullToAbsent
-          ? const Value.absent()
-          : Value(lockedUntil),
-      lastLoginAt: lastLoginAt == null && nullToAbsent
-          ? const Value.absent()
-          : Value(lastLoginAt),
     );
   }
 
@@ -5168,9 +5075,6 @@ class EmployeeCredentialRow extends DataClass
       storeId: serializer.fromJson<String>(json['storeId']),
       employeeId: serializer.fromJson<String>(json['employeeId']),
       passwordHash: serializer.fromJson<String>(json['passwordHash']),
-      failedAttempts: serializer.fromJson<int>(json['failedAttempts']),
-      lockedUntil: serializer.fromJson<DateTime?>(json['lockedUntil']),
-      lastLoginAt: serializer.fromJson<DateTime?>(json['lastLoginAt']),
     );
   }
   @override
@@ -5183,9 +5087,6 @@ class EmployeeCredentialRow extends DataClass
       'storeId': serializer.toJson<String>(storeId),
       'employeeId': serializer.toJson<String>(employeeId),
       'passwordHash': serializer.toJson<String>(passwordHash),
-      'failedAttempts': serializer.toJson<int>(failedAttempts),
-      'lockedUntil': serializer.toJson<DateTime?>(lockedUntil),
-      'lastLoginAt': serializer.toJson<DateTime?>(lastLoginAt),
     };
   }
 
@@ -5196,9 +5097,6 @@ class EmployeeCredentialRow extends DataClass
     String? storeId,
     String? employeeId,
     String? passwordHash,
-    int? failedAttempts,
-    Value<DateTime?> lockedUntil = const Value.absent(),
-    Value<DateTime?> lastLoginAt = const Value.absent(),
   }) => EmployeeCredentialRow(
     updatedAt: updatedAt ?? this.updatedAt,
     deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
@@ -5206,9 +5104,6 @@ class EmployeeCredentialRow extends DataClass
     storeId: storeId ?? this.storeId,
     employeeId: employeeId ?? this.employeeId,
     passwordHash: passwordHash ?? this.passwordHash,
-    failedAttempts: failedAttempts ?? this.failedAttempts,
-    lockedUntil: lockedUntil.present ? lockedUntil.value : this.lockedUntil,
-    lastLoginAt: lastLoginAt.present ? lastLoginAt.value : this.lastLoginAt,
   );
   EmployeeCredentialRow copyWithCompanion(EmployeeCredentialsCompanion data) {
     return EmployeeCredentialRow(
@@ -5222,15 +5117,6 @@ class EmployeeCredentialRow extends DataClass
       passwordHash: data.passwordHash.present
           ? data.passwordHash.value
           : this.passwordHash,
-      failedAttempts: data.failedAttempts.present
-          ? data.failedAttempts.value
-          : this.failedAttempts,
-      lockedUntil: data.lockedUntil.present
-          ? data.lockedUntil.value
-          : this.lockedUntil,
-      lastLoginAt: data.lastLoginAt.present
-          ? data.lastLoginAt.value
-          : this.lastLoginAt,
     );
   }
 
@@ -5242,26 +5128,14 @@ class EmployeeCredentialRow extends DataClass
           ..write('id: $id, ')
           ..write('storeId: $storeId, ')
           ..write('employeeId: $employeeId, ')
-          ..write('passwordHash: $passwordHash, ')
-          ..write('failedAttempts: $failedAttempts, ')
-          ..write('lockedUntil: $lockedUntil, ')
-          ..write('lastLoginAt: $lastLoginAt')
+          ..write('passwordHash: $passwordHash')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(
-    updatedAt,
-    deletedAt,
-    id,
-    storeId,
-    employeeId,
-    passwordHash,
-    failedAttempts,
-    lockedUntil,
-    lastLoginAt,
-  );
+  int get hashCode =>
+      Object.hash(updatedAt, deletedAt, id, storeId, employeeId, passwordHash);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -5271,10 +5145,7 @@ class EmployeeCredentialRow extends DataClass
           other.id == this.id &&
           other.storeId == this.storeId &&
           other.employeeId == this.employeeId &&
-          other.passwordHash == this.passwordHash &&
-          other.failedAttempts == this.failedAttempts &&
-          other.lockedUntil == this.lockedUntil &&
-          other.lastLoginAt == this.lastLoginAt);
+          other.passwordHash == this.passwordHash);
 }
 
 class EmployeeCredentialsCompanion
@@ -5285,9 +5156,6 @@ class EmployeeCredentialsCompanion
   final Value<String> storeId;
   final Value<String> employeeId;
   final Value<String> passwordHash;
-  final Value<int> failedAttempts;
-  final Value<DateTime?> lockedUntil;
-  final Value<DateTime?> lastLoginAt;
   final Value<int> rowid;
   const EmployeeCredentialsCompanion({
     this.updatedAt = const Value.absent(),
@@ -5296,9 +5164,6 @@ class EmployeeCredentialsCompanion
     this.storeId = const Value.absent(),
     this.employeeId = const Value.absent(),
     this.passwordHash = const Value.absent(),
-    this.failedAttempts = const Value.absent(),
-    this.lockedUntil = const Value.absent(),
-    this.lastLoginAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   EmployeeCredentialsCompanion.insert({
@@ -5308,9 +5173,6 @@ class EmployeeCredentialsCompanion
     required String storeId,
     required String employeeId,
     required String passwordHash,
-    this.failedAttempts = const Value.absent(),
-    this.lockedUntil = const Value.absent(),
-    this.lastLoginAt = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        storeId = Value(storeId),
@@ -5323,9 +5185,6 @@ class EmployeeCredentialsCompanion
     Expression<String>? storeId,
     Expression<String>? employeeId,
     Expression<String>? passwordHash,
-    Expression<int>? failedAttempts,
-    Expression<DateTime>? lockedUntil,
-    Expression<DateTime>? lastLoginAt,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -5335,9 +5194,6 @@ class EmployeeCredentialsCompanion
       if (storeId != null) 'store_id': storeId,
       if (employeeId != null) 'employee_id': employeeId,
       if (passwordHash != null) 'password_hash': passwordHash,
-      if (failedAttempts != null) 'failed_attempts': failedAttempts,
-      if (lockedUntil != null) 'locked_until': lockedUntil,
-      if (lastLoginAt != null) 'last_login_at': lastLoginAt,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -5349,9 +5205,6 @@ class EmployeeCredentialsCompanion
     Value<String>? storeId,
     Value<String>? employeeId,
     Value<String>? passwordHash,
-    Value<int>? failedAttempts,
-    Value<DateTime?>? lockedUntil,
-    Value<DateTime?>? lastLoginAt,
     Value<int>? rowid,
   }) {
     return EmployeeCredentialsCompanion(
@@ -5361,9 +5214,6 @@ class EmployeeCredentialsCompanion
       storeId: storeId ?? this.storeId,
       employeeId: employeeId ?? this.employeeId,
       passwordHash: passwordHash ?? this.passwordHash,
-      failedAttempts: failedAttempts ?? this.failedAttempts,
-      lockedUntil: lockedUntil ?? this.lockedUntil,
-      lastLoginAt: lastLoginAt ?? this.lastLoginAt,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -5389,15 +5239,6 @@ class EmployeeCredentialsCompanion
     if (passwordHash.present) {
       map['password_hash'] = Variable<String>(passwordHash.value);
     }
-    if (failedAttempts.present) {
-      map['failed_attempts'] = Variable<int>(failedAttempts.value);
-    }
-    if (lockedUntil.present) {
-      map['locked_until'] = Variable<DateTime>(lockedUntil.value);
-    }
-    if (lastLoginAt.present) {
-      map['last_login_at'] = Variable<DateTime>(lastLoginAt.value);
-    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -5413,9 +5254,6 @@ class EmployeeCredentialsCompanion
           ..write('storeId: $storeId, ')
           ..write('employeeId: $employeeId, ')
           ..write('passwordHash: $passwordHash, ')
-          ..write('failedAttempts: $failedAttempts, ')
-          ..write('lockedUntil: $lockedUntil, ')
-          ..write('lastLoginAt: $lastLoginAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -10671,6 +10509,17 @@ class $OutboxTable extends Outbox with TableInfo<$OutboxTable, OutboxRow> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _baseValuesMeta = const VerificationMeta(
+    'baseValues',
+  );
+  @override
+  late final GeneratedColumn<String> baseValues = GeneratedColumn<String>(
+    'base_values',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _queuedAtMeta = const VerificationMeta(
     'queuedAt',
   );
@@ -10713,6 +10562,7 @@ class $OutboxTable extends Outbox with TableInfo<$OutboxTable, OutboxRow> {
     storeId,
     payload,
     changedColumns,
+    baseValues,
     queuedAt,
     attempts,
     lastError,
@@ -10776,6 +10626,12 @@ class $OutboxTable extends Outbox with TableInfo<$OutboxTable, OutboxRow> {
         ),
       );
     }
+    if (data.containsKey('base_values')) {
+      context.handle(
+        _baseValuesMeta,
+        baseValues.isAcceptableOrUnknown(data['base_values']!, _baseValuesMeta),
+      );
+    }
     if (data.containsKey('queued_at')) {
       context.handle(
         _queuedAtMeta,
@@ -10829,6 +10685,10 @@ class $OutboxTable extends Outbox with TableInfo<$OutboxTable, OutboxRow> {
         DriftSqlType.string,
         data['${effectivePrefix}changed_columns'],
       ),
+      baseValues: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}base_values'],
+      ),
       queuedAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}queued_at'],
@@ -10880,6 +10740,15 @@ class OutboxRow extends DataClass implements Insertable<OutboxRow> {
   /// entry that is still a new row stays null.
   final String? changedColumns;
 
+  /// For the few columns two tablets must not silently overwrite (a
+  /// password, an hourly rate, a role): the value each had **before** this
+  /// device's first pending edit, as a JSON object — null when none of them
+  /// changed. The server compares it with what it holds: a difference means
+  /// another tablet changed that column meanwhile, unseen here, and the
+  /// answer says so (`PushResult.overwrote`), so it can be signalled
+  /// (SYNC_PERSONNEL_PLAN.md, rules C2 and E2).
+  final String? baseValues;
+
   /// When the row last changed while pending, in UTC, from the same clock
   /// view as the `updated_at` stamps.
   final DateTime queuedAt;
@@ -10894,6 +10763,7 @@ class OutboxRow extends DataClass implements Insertable<OutboxRow> {
     required this.storeId,
     required this.payload,
     this.changedColumns,
+    this.baseValues,
     required this.queuedAt,
     required this.attempts,
     this.lastError,
@@ -10908,6 +10778,9 @@ class OutboxRow extends DataClass implements Insertable<OutboxRow> {
     map['payload'] = Variable<String>(payload);
     if (!nullToAbsent || changedColumns != null) {
       map['changed_columns'] = Variable<String>(changedColumns);
+    }
+    if (!nullToAbsent || baseValues != null) {
+      map['base_values'] = Variable<String>(baseValues);
     }
     map['queued_at'] = Variable<DateTime>(queuedAt);
     map['attempts'] = Variable<int>(attempts);
@@ -10927,6 +10800,9 @@ class OutboxRow extends DataClass implements Insertable<OutboxRow> {
       changedColumns: changedColumns == null && nullToAbsent
           ? const Value.absent()
           : Value(changedColumns),
+      baseValues: baseValues == null && nullToAbsent
+          ? const Value.absent()
+          : Value(baseValues),
       queuedAt: Value(queuedAt),
       attempts: Value(attempts),
       lastError: lastError == null && nullToAbsent
@@ -10947,6 +10823,7 @@ class OutboxRow extends DataClass implements Insertable<OutboxRow> {
       storeId: serializer.fromJson<String>(json['storeId']),
       payload: serializer.fromJson<String>(json['payload']),
       changedColumns: serializer.fromJson<String?>(json['changedColumns']),
+      baseValues: serializer.fromJson<String?>(json['baseValues']),
       queuedAt: serializer.fromJson<DateTime>(json['queuedAt']),
       attempts: serializer.fromJson<int>(json['attempts']),
       lastError: serializer.fromJson<String?>(json['lastError']),
@@ -10962,6 +10839,7 @@ class OutboxRow extends DataClass implements Insertable<OutboxRow> {
       'storeId': serializer.toJson<String>(storeId),
       'payload': serializer.toJson<String>(payload),
       'changedColumns': serializer.toJson<String?>(changedColumns),
+      'baseValues': serializer.toJson<String?>(baseValues),
       'queuedAt': serializer.toJson<DateTime>(queuedAt),
       'attempts': serializer.toJson<int>(attempts),
       'lastError': serializer.toJson<String?>(lastError),
@@ -10975,6 +10853,7 @@ class OutboxRow extends DataClass implements Insertable<OutboxRow> {
     String? storeId,
     String? payload,
     Value<String?> changedColumns = const Value.absent(),
+    Value<String?> baseValues = const Value.absent(),
     DateTime? queuedAt,
     int? attempts,
     Value<String?> lastError = const Value.absent(),
@@ -10987,6 +10866,7 @@ class OutboxRow extends DataClass implements Insertable<OutboxRow> {
     changedColumns: changedColumns.present
         ? changedColumns.value
         : this.changedColumns,
+    baseValues: baseValues.present ? baseValues.value : this.baseValues,
     queuedAt: queuedAt ?? this.queuedAt,
     attempts: attempts ?? this.attempts,
     lastError: lastError.present ? lastError.value : this.lastError,
@@ -11003,6 +10883,9 @@ class OutboxRow extends DataClass implements Insertable<OutboxRow> {
       changedColumns: data.changedColumns.present
           ? data.changedColumns.value
           : this.changedColumns,
+      baseValues: data.baseValues.present
+          ? data.baseValues.value
+          : this.baseValues,
       queuedAt: data.queuedAt.present ? data.queuedAt.value : this.queuedAt,
       attempts: data.attempts.present ? data.attempts.value : this.attempts,
       lastError: data.lastError.present ? data.lastError.value : this.lastError,
@@ -11018,6 +10901,7 @@ class OutboxRow extends DataClass implements Insertable<OutboxRow> {
           ..write('storeId: $storeId, ')
           ..write('payload: $payload, ')
           ..write('changedColumns: $changedColumns, ')
+          ..write('baseValues: $baseValues, ')
           ..write('queuedAt: $queuedAt, ')
           ..write('attempts: $attempts, ')
           ..write('lastError: $lastError')
@@ -11033,6 +10917,7 @@ class OutboxRow extends DataClass implements Insertable<OutboxRow> {
     storeId,
     payload,
     changedColumns,
+    baseValues,
     queuedAt,
     attempts,
     lastError,
@@ -11047,6 +10932,7 @@ class OutboxRow extends DataClass implements Insertable<OutboxRow> {
           other.storeId == this.storeId &&
           other.payload == this.payload &&
           other.changedColumns == this.changedColumns &&
+          other.baseValues == this.baseValues &&
           other.queuedAt == this.queuedAt &&
           other.attempts == this.attempts &&
           other.lastError == this.lastError);
@@ -11059,6 +10945,7 @@ class OutboxCompanion extends UpdateCompanion<OutboxRow> {
   final Value<String> storeId;
   final Value<String> payload;
   final Value<String?> changedColumns;
+  final Value<String?> baseValues;
   final Value<DateTime> queuedAt;
   final Value<int> attempts;
   final Value<String?> lastError;
@@ -11069,6 +10956,7 @@ class OutboxCompanion extends UpdateCompanion<OutboxRow> {
     this.storeId = const Value.absent(),
     this.payload = const Value.absent(),
     this.changedColumns = const Value.absent(),
+    this.baseValues = const Value.absent(),
     this.queuedAt = const Value.absent(),
     this.attempts = const Value.absent(),
     this.lastError = const Value.absent(),
@@ -11080,6 +10968,7 @@ class OutboxCompanion extends UpdateCompanion<OutboxRow> {
     required String storeId,
     required String payload,
     this.changedColumns = const Value.absent(),
+    this.baseValues = const Value.absent(),
     required DateTime queuedAt,
     this.attempts = const Value.absent(),
     this.lastError = const Value.absent(),
@@ -11095,6 +10984,7 @@ class OutboxCompanion extends UpdateCompanion<OutboxRow> {
     Expression<String>? storeId,
     Expression<String>? payload,
     Expression<String>? changedColumns,
+    Expression<String>? baseValues,
     Expression<DateTime>? queuedAt,
     Expression<int>? attempts,
     Expression<String>? lastError,
@@ -11106,6 +10996,7 @@ class OutboxCompanion extends UpdateCompanion<OutboxRow> {
       if (storeId != null) 'store_id': storeId,
       if (payload != null) 'payload': payload,
       if (changedColumns != null) 'changed_columns': changedColumns,
+      if (baseValues != null) 'base_values': baseValues,
       if (queuedAt != null) 'queued_at': queuedAt,
       if (attempts != null) 'attempts': attempts,
       if (lastError != null) 'last_error': lastError,
@@ -11119,6 +11010,7 @@ class OutboxCompanion extends UpdateCompanion<OutboxRow> {
     Value<String>? storeId,
     Value<String>? payload,
     Value<String?>? changedColumns,
+    Value<String?>? baseValues,
     Value<DateTime>? queuedAt,
     Value<int>? attempts,
     Value<String?>? lastError,
@@ -11130,6 +11022,7 @@ class OutboxCompanion extends UpdateCompanion<OutboxRow> {
       storeId: storeId ?? this.storeId,
       payload: payload ?? this.payload,
       changedColumns: changedColumns ?? this.changedColumns,
+      baseValues: baseValues ?? this.baseValues,
       queuedAt: queuedAt ?? this.queuedAt,
       attempts: attempts ?? this.attempts,
       lastError: lastError ?? this.lastError,
@@ -11157,6 +11050,9 @@ class OutboxCompanion extends UpdateCompanion<OutboxRow> {
     if (changedColumns.present) {
       map['changed_columns'] = Variable<String>(changedColumns.value);
     }
+    if (baseValues.present) {
+      map['base_values'] = Variable<String>(baseValues.value);
+    }
     if (queuedAt.present) {
       map['queued_at'] = Variable<DateTime>(queuedAt.value);
     }
@@ -11178,6 +11074,7 @@ class OutboxCompanion extends UpdateCompanion<OutboxRow> {
           ..write('storeId: $storeId, ')
           ..write('payload: $payload, ')
           ..write('changedColumns: $changedColumns, ')
+          ..write('baseValues: $baseValues, ')
           ..write('queuedAt: $queuedAt, ')
           ..write('attempts: $attempts, ')
           ..write('lastError: $lastError')
@@ -16907,6 +16804,352 @@ class SyncErrorsCompanion extends UpdateCompanion<SyncErrorRow> {
   }
 }
 
+class $LoginStatesTable extends LoginStates
+    with TableInfo<$LoginStatesTable, LoginStateRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $LoginStatesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _employeeIdMeta = const VerificationMeta(
+    'employeeId',
+  );
+  @override
+  late final GeneratedColumn<String> employeeId = GeneratedColumn<String>(
+    'employee_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES employees (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _failedAttemptsMeta = const VerificationMeta(
+    'failedAttempts',
+  );
+  @override
+  late final GeneratedColumn<int> failedAttempts = GeneratedColumn<int>(
+    'failed_attempts',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _lockedUntilMeta = const VerificationMeta(
+    'lockedUntil',
+  );
+  @override
+  late final GeneratedColumn<DateTime> lockedUntil = GeneratedColumn<DateTime>(
+    'locked_until',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _lastLoginAtMeta = const VerificationMeta(
+    'lastLoginAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> lastLoginAt = GeneratedColumn<DateTime>(
+    'last_login_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    employeeId,
+    failedAttempts,
+    lockedUntil,
+    lastLoginAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'login_states';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<LoginStateRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('employee_id')) {
+      context.handle(
+        _employeeIdMeta,
+        employeeId.isAcceptableOrUnknown(data['employee_id']!, _employeeIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_employeeIdMeta);
+    }
+    if (data.containsKey('failed_attempts')) {
+      context.handle(
+        _failedAttemptsMeta,
+        failedAttempts.isAcceptableOrUnknown(
+          data['failed_attempts']!,
+          _failedAttemptsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('locked_until')) {
+      context.handle(
+        _lockedUntilMeta,
+        lockedUntil.isAcceptableOrUnknown(
+          data['locked_until']!,
+          _lockedUntilMeta,
+        ),
+      );
+    }
+    if (data.containsKey('last_login_at')) {
+      context.handle(
+        _lastLoginAtMeta,
+        lastLoginAt.isAcceptableOrUnknown(
+          data['last_login_at']!,
+          _lastLoginAtMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {employeeId};
+  @override
+  LoginStateRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LoginStateRow(
+      employeeId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}employee_id'],
+      )!,
+      failedAttempts: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}failed_attempts'],
+      )!,
+      lockedUntil: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}locked_until'],
+      ),
+      lastLoginAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}last_login_at'],
+      ),
+    );
+  }
+
+  @override
+  $LoginStatesTable createAlias(String alias) {
+    return $LoginStatesTable(attachedDatabase, alias);
+  }
+}
+
+class LoginStateRow extends DataClass implements Insertable<LoginStateRow> {
+  final String employeeId;
+
+  /// Consecutive wrong passwords since the last success or the last new
+  /// password.
+  final int failedAttempts;
+
+  /// Set once [failedAttempts] reaches the threshold.
+  final DateTime? lockedUntil;
+  final DateTime? lastLoginAt;
+  const LoginStateRow({
+    required this.employeeId,
+    required this.failedAttempts,
+    this.lockedUntil,
+    this.lastLoginAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['employee_id'] = Variable<String>(employeeId);
+    map['failed_attempts'] = Variable<int>(failedAttempts);
+    if (!nullToAbsent || lockedUntil != null) {
+      map['locked_until'] = Variable<DateTime>(lockedUntil);
+    }
+    if (!nullToAbsent || lastLoginAt != null) {
+      map['last_login_at'] = Variable<DateTime>(lastLoginAt);
+    }
+    return map;
+  }
+
+  LoginStatesCompanion toCompanion(bool nullToAbsent) {
+    return LoginStatesCompanion(
+      employeeId: Value(employeeId),
+      failedAttempts: Value(failedAttempts),
+      lockedUntil: lockedUntil == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lockedUntil),
+      lastLoginAt: lastLoginAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastLoginAt),
+    );
+  }
+
+  factory LoginStateRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LoginStateRow(
+      employeeId: serializer.fromJson<String>(json['employeeId']),
+      failedAttempts: serializer.fromJson<int>(json['failedAttempts']),
+      lockedUntil: serializer.fromJson<DateTime?>(json['lockedUntil']),
+      lastLoginAt: serializer.fromJson<DateTime?>(json['lastLoginAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'employeeId': serializer.toJson<String>(employeeId),
+      'failedAttempts': serializer.toJson<int>(failedAttempts),
+      'lockedUntil': serializer.toJson<DateTime?>(lockedUntil),
+      'lastLoginAt': serializer.toJson<DateTime?>(lastLoginAt),
+    };
+  }
+
+  LoginStateRow copyWith({
+    String? employeeId,
+    int? failedAttempts,
+    Value<DateTime?> lockedUntil = const Value.absent(),
+    Value<DateTime?> lastLoginAt = const Value.absent(),
+  }) => LoginStateRow(
+    employeeId: employeeId ?? this.employeeId,
+    failedAttempts: failedAttempts ?? this.failedAttempts,
+    lockedUntil: lockedUntil.present ? lockedUntil.value : this.lockedUntil,
+    lastLoginAt: lastLoginAt.present ? lastLoginAt.value : this.lastLoginAt,
+  );
+  LoginStateRow copyWithCompanion(LoginStatesCompanion data) {
+    return LoginStateRow(
+      employeeId: data.employeeId.present
+          ? data.employeeId.value
+          : this.employeeId,
+      failedAttempts: data.failedAttempts.present
+          ? data.failedAttempts.value
+          : this.failedAttempts,
+      lockedUntil: data.lockedUntil.present
+          ? data.lockedUntil.value
+          : this.lockedUntil,
+      lastLoginAt: data.lastLoginAt.present
+          ? data.lastLoginAt.value
+          : this.lastLoginAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LoginStateRow(')
+          ..write('employeeId: $employeeId, ')
+          ..write('failedAttempts: $failedAttempts, ')
+          ..write('lockedUntil: $lockedUntil, ')
+          ..write('lastLoginAt: $lastLoginAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(employeeId, failedAttempts, lockedUntil, lastLoginAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LoginStateRow &&
+          other.employeeId == this.employeeId &&
+          other.failedAttempts == this.failedAttempts &&
+          other.lockedUntil == this.lockedUntil &&
+          other.lastLoginAt == this.lastLoginAt);
+}
+
+class LoginStatesCompanion extends UpdateCompanion<LoginStateRow> {
+  final Value<String> employeeId;
+  final Value<int> failedAttempts;
+  final Value<DateTime?> lockedUntil;
+  final Value<DateTime?> lastLoginAt;
+  final Value<int> rowid;
+  const LoginStatesCompanion({
+    this.employeeId = const Value.absent(),
+    this.failedAttempts = const Value.absent(),
+    this.lockedUntil = const Value.absent(),
+    this.lastLoginAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  LoginStatesCompanion.insert({
+    required String employeeId,
+    this.failedAttempts = const Value.absent(),
+    this.lockedUntil = const Value.absent(),
+    this.lastLoginAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : employeeId = Value(employeeId);
+  static Insertable<LoginStateRow> custom({
+    Expression<String>? employeeId,
+    Expression<int>? failedAttempts,
+    Expression<DateTime>? lockedUntil,
+    Expression<DateTime>? lastLoginAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (employeeId != null) 'employee_id': employeeId,
+      if (failedAttempts != null) 'failed_attempts': failedAttempts,
+      if (lockedUntil != null) 'locked_until': lockedUntil,
+      if (lastLoginAt != null) 'last_login_at': lastLoginAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  LoginStatesCompanion copyWith({
+    Value<String>? employeeId,
+    Value<int>? failedAttempts,
+    Value<DateTime?>? lockedUntil,
+    Value<DateTime?>? lastLoginAt,
+    Value<int>? rowid,
+  }) {
+    return LoginStatesCompanion(
+      employeeId: employeeId ?? this.employeeId,
+      failedAttempts: failedAttempts ?? this.failedAttempts,
+      lockedUntil: lockedUntil ?? this.lockedUntil,
+      lastLoginAt: lastLoginAt ?? this.lastLoginAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (employeeId.present) {
+      map['employee_id'] = Variable<String>(employeeId.value);
+    }
+    if (failedAttempts.present) {
+      map['failed_attempts'] = Variable<int>(failedAttempts.value);
+    }
+    if (lockedUntil.present) {
+      map['locked_until'] = Variable<DateTime>(lockedUntil.value);
+    }
+    if (lastLoginAt.present) {
+      map['last_login_at'] = Variable<DateTime>(lastLoginAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LoginStatesCompanion(')
+          ..write('employeeId: $employeeId, ')
+          ..write('failedAttempts: $failedAttempts, ')
+          ..write('lockedUntil: $lockedUntil, ')
+          ..write('lastLoginAt: $lastLoginAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   late final $StoresTable stores = $StoresTable(this);
@@ -17032,180 +17275,180 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   );
   late final $OutboxTable outbox = $OutboxTable(this);
   late final Trigger storesOutboxInsert = Trigger(
-    'CREATE TRIGGER stores_outbox_insert AFTER INSERT ON stores WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, queued_at) SELECT \'stores\', id, id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'name\', name, \'address_line\', address_line, \'postal_code\', postal_code, \'city\', city, \'phone\', phone, \'created_at\', created_at, \'vat_number\', vat_number, \'image_asset\', image_asset, \'stale_partial_order_days\', stale_partial_order_days, \'max_break_minutes\', max_break_minutes, \'business_day_auto_open_minutes\', business_day_auto_open_minutes, \'notify_low_stock\', notify_low_stock, \'notify_price_change\', notify_price_change, \'notify_large_adjustment\', notify_large_adjustment, \'notify_deliveries\', notify_deliveries, \'notify_busy_days\', notify_busy_days, \'busy_weekdays\', busy_weekdays, \'busy_reminder_days\', busy_reminder_days), NULL, (SELECT now FROM sync_clock) FROM stores WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'CREATE TRIGGER stores_outbox_insert AFTER INSERT ON stores WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, base_values, queued_at) SELECT \'stores\', id, id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'name\', name, \'address_line\', address_line, \'postal_code\', postal_code, \'city\', city, \'phone\', phone, \'created_at\', created_at, \'vat_number\', vat_number, \'image_asset\', image_asset, \'stale_partial_order_days\', stale_partial_order_days, \'max_break_minutes\', max_break_minutes, \'business_day_auto_open_minutes\', business_day_auto_open_minutes, \'notify_low_stock\', notify_low_stock, \'notify_price_change\', notify_price_change, \'notify_large_adjustment\', notify_large_adjustment, \'notify_deliveries\', notify_deliveries, \'notify_busy_days\', notify_busy_days, \'busy_weekdays\', busy_weekdays, \'busy_reminder_days\', busy_reminder_days), NULL, NULL, (SELECT now FROM sync_clock) FROM stores WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, base_values = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
     'stores_outbox_insert',
   );
   late final Trigger storesOutboxUpdate = Trigger(
-    'CREATE TRIGGER stores_outbox_update AFTER UPDATE ON stores WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, queued_at) SELECT \'stores\', id, id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'name\', name, \'address_line\', address_line, \'postal_code\', postal_code, \'city\', city, \'phone\', phone, \'created_at\', created_at, \'vat_number\', vat_number, \'image_asset\', image_asset, \'stale_partial_order_days\', stale_partial_order_days, \'max_break_minutes\', max_break_minutes, \'business_day_auto_open_minutes\', business_day_auto_open_minutes, \'notify_low_stock\', notify_low_stock, \'notify_price_change\', notify_price_change, \'notify_large_adjustment\', notify_large_adjustment, \'notify_deliveries\', notify_deliveries, \'notify_busy_days\', notify_busy_days, \'busy_weekdays\', busy_weekdays, \'busy_reminder_days\', busy_reminder_days), NULL, (SELECT now FROM sync_clock) FROM stores WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'CREATE TRIGGER stores_outbox_update AFTER UPDATE ON stores WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, base_values, queued_at) SELECT \'stores\', id, id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'name\', name, \'address_line\', address_line, \'postal_code\', postal_code, \'city\', city, \'phone\', phone, \'created_at\', created_at, \'vat_number\', vat_number, \'image_asset\', image_asset, \'stale_partial_order_days\', stale_partial_order_days, \'max_break_minutes\', max_break_minutes, \'business_day_auto_open_minutes\', business_day_auto_open_minutes, \'notify_low_stock\', notify_low_stock, \'notify_price_change\', notify_price_change, \'notify_large_adjustment\', notify_large_adjustment, \'notify_deliveries\', notify_deliveries, \'notify_busy_days\', notify_busy_days, \'busy_weekdays\', busy_weekdays, \'busy_reminder_days\', busy_reminder_days), NULL, NULL, (SELECT now FROM sync_clock) FROM stores WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, base_values = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
     'stores_outbox_update',
   );
   late final Trigger categoriesOutboxInsert = Trigger(
-    'CREATE TRIGGER categories_outbox_insert AFTER INSERT ON categories WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, queued_at) SELECT \'categories\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'name\', name), NULL, (SELECT now FROM sync_clock) FROM categories WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'CREATE TRIGGER categories_outbox_insert AFTER INSERT ON categories WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, base_values, queued_at) SELECT \'categories\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'name\', name), NULL, NULL, (SELECT now FROM sync_clock) FROM categories WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, base_values = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
     'categories_outbox_insert',
   );
   late final Trigger categoriesOutboxUpdate = Trigger(
-    'CREATE TRIGGER categories_outbox_update AFTER UPDATE ON categories WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, queued_at) SELECT \'categories\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'name\', name), NULL, (SELECT now FROM sync_clock) FROM categories WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'CREATE TRIGGER categories_outbox_update AFTER UPDATE ON categories WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, base_values, queued_at) SELECT \'categories\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'name\', name), NULL, NULL, (SELECT now FROM sync_clock) FROM categories WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, base_values = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
     'categories_outbox_update',
   );
   late final Trigger unitsOutboxInsert = Trigger(
-    'CREATE TRIGGER units_outbox_insert AFTER INSERT ON units WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, queued_at) SELECT \'units\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'name\', name, \'abbreviation\', abbreviation), NULL, (SELECT now FROM sync_clock) FROM units WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'CREATE TRIGGER units_outbox_insert AFTER INSERT ON units WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, base_values, queued_at) SELECT \'units\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'name\', name, \'abbreviation\', abbreviation), NULL, NULL, (SELECT now FROM sync_clock) FROM units WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, base_values = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
     'units_outbox_insert',
   );
   late final Trigger unitsOutboxUpdate = Trigger(
-    'CREATE TRIGGER units_outbox_update AFTER UPDATE ON units WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, queued_at) SELECT \'units\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'name\', name, \'abbreviation\', abbreviation), NULL, (SELECT now FROM sync_clock) FROM units WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'CREATE TRIGGER units_outbox_update AFTER UPDATE ON units WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, base_values, queued_at) SELECT \'units\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'name\', name, \'abbreviation\', abbreviation), NULL, NULL, (SELECT now FROM sync_clock) FROM units WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, base_values = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
     'units_outbox_update',
   );
   late final Trigger itemsOutboxInsert = Trigger(
-    'CREATE TRIGGER items_outbox_insert AFTER INSERT ON items WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, queued_at) SELECT \'items\', id, store_id, json_object(\'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'name\', name, \'category_id\', category_id, \'unit_id\', unit_id, \'low_stock_threshold\', low_stock_threshold, \'max_stock\', max_stock, \'holiday_low_stock_threshold\', holiday_low_stock_threshold, \'updated_at\', updated_at, \'baseline_quantity\', baseline_quantity, \'baseline_average_cost\', baseline_average_cost, \'default_supplier_id\', default_supplier_id, \'barcode\', barcode, \'note\', note, \'image_path\', image_path), NULL, (SELECT now FROM sync_clock) FROM items WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'CREATE TRIGGER items_outbox_insert AFTER INSERT ON items WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, base_values, queued_at) SELECT \'items\', id, store_id, json_object(\'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'name\', name, \'category_id\', category_id, \'unit_id\', unit_id, \'low_stock_threshold\', low_stock_threshold, \'max_stock\', max_stock, \'holiday_low_stock_threshold\', holiday_low_stock_threshold, \'updated_at\', updated_at, \'baseline_quantity\', baseline_quantity, \'baseline_average_cost\', baseline_average_cost, \'default_supplier_id\', default_supplier_id, \'barcode\', barcode, \'note\', note, \'image_path\', image_path), NULL, NULL, (SELECT now FROM sync_clock) FROM items WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, base_values = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
     'items_outbox_insert',
   );
   late final Trigger itemsOutboxUpdate = Trigger(
-    'CREATE TRIGGER items_outbox_update AFTER UPDATE ON items WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, queued_at) SELECT \'items\', id, store_id, json_object(\'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'name\', name, \'category_id\', category_id, \'unit_id\', unit_id, \'low_stock_threshold\', low_stock_threshold, \'max_stock\', max_stock, \'holiday_low_stock_threshold\', holiday_low_stock_threshold, \'updated_at\', updated_at, \'baseline_quantity\', baseline_quantity, \'baseline_average_cost\', baseline_average_cost, \'default_supplier_id\', default_supplier_id, \'barcode\', barcode, \'note\', note, \'image_path\', image_path), NULL, (SELECT now FROM sync_clock) FROM items WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'CREATE TRIGGER items_outbox_update AFTER UPDATE ON items WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, base_values, queued_at) SELECT \'items\', id, store_id, json_object(\'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'name\', name, \'category_id\', category_id, \'unit_id\', unit_id, \'low_stock_threshold\', low_stock_threshold, \'max_stock\', max_stock, \'holiday_low_stock_threshold\', holiday_low_stock_threshold, \'updated_at\', updated_at, \'baseline_quantity\', baseline_quantity, \'baseline_average_cost\', baseline_average_cost, \'default_supplier_id\', default_supplier_id, \'barcode\', barcode, \'note\', note, \'image_path\', image_path), NULL, NULL, (SELECT now FROM sync_clock) FROM items WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, base_values = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
     'items_outbox_update',
   );
   late final Trigger suppliersOutboxInsert = Trigger(
-    'CREATE TRIGGER suppliers_outbox_insert AFTER INSERT ON suppliers WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, queued_at) SELECT \'suppliers\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'name\', name, \'contact_name\', contact_name, \'email\', email, \'phone\', phone, \'address_line\', address_line, \'postal_code\', postal_code, \'city\', city, \'note\', note), NULL, (SELECT now FROM sync_clock) FROM suppliers WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'CREATE TRIGGER suppliers_outbox_insert AFTER INSERT ON suppliers WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, base_values, queued_at) SELECT \'suppliers\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'name\', name, \'contact_name\', contact_name, \'email\', email, \'phone\', phone, \'address_line\', address_line, \'postal_code\', postal_code, \'city\', city, \'note\', note), NULL, NULL, (SELECT now FROM sync_clock) FROM suppliers WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, base_values = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
     'suppliers_outbox_insert',
   );
   late final Trigger suppliersOutboxUpdate = Trigger(
-    'CREATE TRIGGER suppliers_outbox_update AFTER UPDATE ON suppliers WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, queued_at) SELECT \'suppliers\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'name\', name, \'contact_name\', contact_name, \'email\', email, \'phone\', phone, \'address_line\', address_line, \'postal_code\', postal_code, \'city\', city, \'note\', note), NULL, (SELECT now FROM sync_clock) FROM suppliers WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'CREATE TRIGGER suppliers_outbox_update AFTER UPDATE ON suppliers WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, base_values, queued_at) SELECT \'suppliers\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'name\', name, \'contact_name\', contact_name, \'email\', email, \'phone\', phone, \'address_line\', address_line, \'postal_code\', postal_code, \'city\', city, \'note\', note), NULL, NULL, (SELECT now FROM sync_clock) FROM suppliers WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, base_values = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
     'suppliers_outbox_update',
   );
   late final Trigger supplierPricesOutboxInsert = Trigger(
-    'CREATE TRIGGER supplier_prices_outbox_insert AFTER INSERT ON supplier_prices WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, queued_at) SELECT \'supplier_prices\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'item_id\', item_id, \'supplier_id\', supplier_id, \'price_per_unit\', price_per_unit, \'effective_date\', effective_date, \'is_default\', is_default), NULL, (SELECT now FROM sync_clock) FROM supplier_prices WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'CREATE TRIGGER supplier_prices_outbox_insert AFTER INSERT ON supplier_prices WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, base_values, queued_at) SELECT \'supplier_prices\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'item_id\', item_id, \'supplier_id\', supplier_id, \'price_per_unit\', price_per_unit, \'effective_date\', effective_date, \'is_default\', is_default), NULL, NULL, (SELECT now FROM sync_clock) FROM supplier_prices WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, base_values = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
     'supplier_prices_outbox_insert',
   );
   late final Trigger supplierPricesOutboxUpdate = Trigger(
-    'CREATE TRIGGER supplier_prices_outbox_update AFTER UPDATE ON supplier_prices WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, queued_at) SELECT \'supplier_prices\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'item_id\', item_id, \'supplier_id\', supplier_id, \'price_per_unit\', price_per_unit, \'effective_date\', effective_date, \'is_default\', is_default), NULL, (SELECT now FROM sync_clock) FROM supplier_prices WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'CREATE TRIGGER supplier_prices_outbox_update AFTER UPDATE ON supplier_prices WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, base_values, queued_at) SELECT \'supplier_prices\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'item_id\', item_id, \'supplier_id\', supplier_id, \'price_per_unit\', price_per_unit, \'effective_date\', effective_date, \'is_default\', is_default), NULL, NULL, (SELECT now FROM sync_clock) FROM supplier_prices WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, base_values = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
     'supplier_prices_outbox_update',
   );
   late final Trigger priceHistoryOutboxInsert = Trigger(
-    'CREATE TRIGGER price_history_outbox_insert AFTER INSERT ON price_history WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, queued_at) SELECT \'price_history\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'item_id\', item_id, \'supplier_id\', supplier_id, \'old_price\', old_price, \'new_price\', new_price, \'changed_at\', changed_at, \'changed_by_name\', changed_by_name), NULL, (SELECT now FROM sync_clock) FROM price_history WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'CREATE TRIGGER price_history_outbox_insert AFTER INSERT ON price_history WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, base_values, queued_at) SELECT \'price_history\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'item_id\', item_id, \'supplier_id\', supplier_id, \'old_price\', old_price, \'new_price\', new_price, \'changed_at\', changed_at, \'changed_by_name\', changed_by_name), NULL, NULL, (SELECT now FROM sync_clock) FROM price_history WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, base_values = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
     'price_history_outbox_insert',
   );
   late final Trigger priceHistoryOutboxUpdate = Trigger(
-    'CREATE TRIGGER price_history_outbox_update AFTER UPDATE ON price_history WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, queued_at) SELECT \'price_history\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'item_id\', item_id, \'supplier_id\', supplier_id, \'old_price\', old_price, \'new_price\', new_price, \'changed_at\', changed_at, \'changed_by_name\', changed_by_name), NULL, (SELECT now FROM sync_clock) FROM price_history WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'CREATE TRIGGER price_history_outbox_update AFTER UPDATE ON price_history WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, base_values, queued_at) SELECT \'price_history\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'item_id\', item_id, \'supplier_id\', supplier_id, \'old_price\', old_price, \'new_price\', new_price, \'changed_at\', changed_at, \'changed_by_name\', changed_by_name), NULL, NULL, (SELECT now FROM sync_clock) FROM price_history WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, base_values = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
     'price_history_outbox_update',
   );
   late final $StockMovementsTable stockMovements = $StockMovementsTable(this);
   late final Trigger stockMovementsOutboxInsert = Trigger(
-    'CREATE TRIGGER stock_movements_outbox_insert AFTER INSERT ON stock_movements WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, queued_at) SELECT \'stock_movements\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'item_id\', item_id, \'type\', type, \'quantity\', quantity, \'occurred_at\', occurred_at, \'user_name\', user_name, \'employee_id\', employee_id, \'supplier_id\', supplier_id, \'unit_price\', unit_price, \'reason\', reason, \'system_quantity\', system_quantity, \'counted_quantity\', counted_quantity, \'unit_cost\', unit_cost, \'average_cost_after\', average_cost_after, \'order_id\', order_id, \'receipt_id\', receipt_id, \'note\', note, \'in_baseline\', in_baseline), NULL, (SELECT now FROM sync_clock) FROM stock_movements WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'CREATE TRIGGER stock_movements_outbox_insert AFTER INSERT ON stock_movements WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, base_values, queued_at) SELECT \'stock_movements\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'item_id\', item_id, \'type\', type, \'quantity\', quantity, \'occurred_at\', occurred_at, \'user_name\', user_name, \'employee_id\', employee_id, \'supplier_id\', supplier_id, \'unit_price\', unit_price, \'reason\', reason, \'system_quantity\', system_quantity, \'counted_quantity\', counted_quantity, \'unit_cost\', unit_cost, \'average_cost_after\', average_cost_after, \'order_id\', order_id, \'receipt_id\', receipt_id, \'note\', note, \'in_baseline\', in_baseline), NULL, NULL, (SELECT now FROM sync_clock) FROM stock_movements WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, base_values = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
     'stock_movements_outbox_insert',
   );
   late final Trigger stockMovementsOutboxUpdate = Trigger(
-    'CREATE TRIGGER stock_movements_outbox_update AFTER UPDATE ON stock_movements WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, queued_at) SELECT \'stock_movements\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'item_id\', item_id, \'type\', type, \'quantity\', quantity, \'occurred_at\', occurred_at, \'user_name\', user_name, \'employee_id\', employee_id, \'supplier_id\', supplier_id, \'unit_price\', unit_price, \'reason\', reason, \'system_quantity\', system_quantity, \'counted_quantity\', counted_quantity, \'unit_cost\', unit_cost, \'average_cost_after\', average_cost_after, \'order_id\', order_id, \'receipt_id\', receipt_id, \'note\', note, \'in_baseline\', in_baseline), NULL, (SELECT now FROM sync_clock) FROM stock_movements WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'CREATE TRIGGER stock_movements_outbox_update AFTER UPDATE ON stock_movements WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, base_values, queued_at) SELECT \'stock_movements\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'item_id\', item_id, \'type\', type, \'quantity\', quantity, \'occurred_at\', occurred_at, \'user_name\', user_name, \'employee_id\', employee_id, \'supplier_id\', supplier_id, \'unit_price\', unit_price, \'reason\', reason, \'system_quantity\', system_quantity, \'counted_quantity\', counted_quantity, \'unit_cost\', unit_cost, \'average_cost_after\', average_cost_after, \'order_id\', order_id, \'receipt_id\', receipt_id, \'note\', note, \'in_baseline\', in_baseline), NULL, NULL, (SELECT now FROM sync_clock) FROM stock_movements WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, base_values = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
     'stock_movements_outbox_update',
   );
   late final $PurchaseOrdersTable purchaseOrders = $PurchaseOrdersTable(this);
   late final Trigger purchaseOrdersOutboxInsert = Trigger(
-    'CREATE TRIGGER purchase_orders_outbox_insert AFTER INSERT ON purchase_orders WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, queued_at) SELECT \'purchase_orders\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'supplier_id\', supplier_id, \'reference\', reference, \'status\', status, \'created_at\', created_at, \'sent_at\', sent_at, \'closed_at\', closed_at, \'note\', note), NULL, (SELECT now FROM sync_clock) FROM purchase_orders WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'CREATE TRIGGER purchase_orders_outbox_insert AFTER INSERT ON purchase_orders WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, base_values, queued_at) SELECT \'purchase_orders\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'supplier_id\', supplier_id, \'reference\', reference, \'status\', status, \'created_at\', created_at, \'sent_at\', sent_at, \'closed_at\', closed_at, \'note\', note), NULL, NULL, (SELECT now FROM sync_clock) FROM purchase_orders WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, base_values = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
     'purchase_orders_outbox_insert',
   );
   late final Trigger purchaseOrdersOutboxUpdate = Trigger(
-    'CREATE TRIGGER purchase_orders_outbox_update AFTER UPDATE ON purchase_orders WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, queued_at) SELECT \'purchase_orders\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'supplier_id\', supplier_id, \'reference\', reference, \'status\', status, \'created_at\', created_at, \'sent_at\', sent_at, \'closed_at\', closed_at, \'note\', note), NULL, (SELECT now FROM sync_clock) FROM purchase_orders WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'CREATE TRIGGER purchase_orders_outbox_update AFTER UPDATE ON purchase_orders WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, base_values, queued_at) SELECT \'purchase_orders\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'supplier_id\', supplier_id, \'reference\', reference, \'status\', status, \'created_at\', created_at, \'sent_at\', sent_at, \'closed_at\', closed_at, \'note\', note), NULL, NULL, (SELECT now FROM sync_clock) FROM purchase_orders WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, base_values = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
     'purchase_orders_outbox_update',
   );
   late final $PurchaseOrderLinesTable purchaseOrderLines =
       $PurchaseOrderLinesTable(this);
   late final Trigger purchaseOrderLinesOutboxInsert = Trigger(
-    'CREATE TRIGGER purchase_order_lines_outbox_insert AFTER INSERT ON purchase_order_lines WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, queued_at) SELECT \'purchase_order_lines\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'order_id\', order_id, \'item_id\', item_id, \'quantity_ordered\', quantity_ordered, \'quantity_received\', quantity_received, \'unit_price\', unit_price, \'closed_short\', closed_short, \'position\', position), NULL, (SELECT now FROM sync_clock) FROM purchase_order_lines WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'CREATE TRIGGER purchase_order_lines_outbox_insert AFTER INSERT ON purchase_order_lines WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, base_values, queued_at) SELECT \'purchase_order_lines\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'order_id\', order_id, \'item_id\', item_id, \'quantity_ordered\', quantity_ordered, \'quantity_received\', quantity_received, \'unit_price\', unit_price, \'closed_short\', closed_short, \'position\', position), NULL, NULL, (SELECT now FROM sync_clock) FROM purchase_order_lines WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, base_values = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
     'purchase_order_lines_outbox_insert',
   );
   late final Trigger purchaseOrderLinesOutboxUpdate = Trigger(
-    'CREATE TRIGGER purchase_order_lines_outbox_update AFTER UPDATE ON purchase_order_lines WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, queued_at) SELECT \'purchase_order_lines\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'order_id\', order_id, \'item_id\', item_id, \'quantity_ordered\', quantity_ordered, \'quantity_received\', quantity_received, \'unit_price\', unit_price, \'closed_short\', closed_short, \'position\', position), NULL, (SELECT now FROM sync_clock) FROM purchase_order_lines WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'CREATE TRIGGER purchase_order_lines_outbox_update AFTER UPDATE ON purchase_order_lines WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, base_values, queued_at) SELECT \'purchase_order_lines\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'order_id\', order_id, \'item_id\', item_id, \'quantity_ordered\', quantity_ordered, \'quantity_received\', quantity_received, \'unit_price\', unit_price, \'closed_short\', closed_short, \'position\', position), NULL, NULL, (SELECT now FROM sync_clock) FROM purchase_order_lines WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, base_values = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
     'purchase_order_lines_outbox_update',
   );
   late final $GoodsReceiptsTable goodsReceipts = $GoodsReceiptsTable(this);
   late final Trigger goodsReceiptsOutboxInsert = Trigger(
-    'CREATE TRIGGER goods_receipts_outbox_insert AFTER INSERT ON goods_receipts WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, queued_at) SELECT \'goods_receipts\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'order_id\', order_id, \'store_id\', store_id, \'received_at\', received_at, \'received_by_name\', received_by_name, \'received_by_employee_id\', received_by_employee_id, \'note\', note), NULL, (SELECT now FROM sync_clock) FROM goods_receipts WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'CREATE TRIGGER goods_receipts_outbox_insert AFTER INSERT ON goods_receipts WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, base_values, queued_at) SELECT \'goods_receipts\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'order_id\', order_id, \'store_id\', store_id, \'received_at\', received_at, \'received_by_name\', received_by_name, \'received_by_employee_id\', received_by_employee_id, \'note\', note), NULL, NULL, (SELECT now FROM sync_clock) FROM goods_receipts WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, base_values = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
     'goods_receipts_outbox_insert',
   );
   late final Trigger goodsReceiptsOutboxUpdate = Trigger(
-    'CREATE TRIGGER goods_receipts_outbox_update AFTER UPDATE ON goods_receipts WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, queued_at) SELECT \'goods_receipts\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'order_id\', order_id, \'store_id\', store_id, \'received_at\', received_at, \'received_by_name\', received_by_name, \'received_by_employee_id\', received_by_employee_id, \'note\', note), NULL, (SELECT now FROM sync_clock) FROM goods_receipts WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'CREATE TRIGGER goods_receipts_outbox_update AFTER UPDATE ON goods_receipts WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, base_values, queued_at) SELECT \'goods_receipts\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'order_id\', order_id, \'store_id\', store_id, \'received_at\', received_at, \'received_by_name\', received_by_name, \'received_by_employee_id\', received_by_employee_id, \'note\', note), NULL, NULL, (SELECT now FROM sync_clock) FROM goods_receipts WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, base_values = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
     'goods_receipts_outbox_update',
   );
   late final $GoodsReceiptLinesTable goodsReceiptLines =
       $GoodsReceiptLinesTable(this);
   late final Trigger goodsReceiptLinesOutboxInsert = Trigger(
-    'CREATE TRIGGER goods_receipt_lines_outbox_insert AFTER INSERT ON goods_receipt_lines WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, queued_at) SELECT \'goods_receipt_lines\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'receipt_id\', receipt_id, \'item_id\', item_id, \'quantity_ordered\', quantity_ordered, \'quantity_received\', quantity_received, \'actual_unit_price\', actual_unit_price, \'closed_short\', closed_short, \'was_unordered\', was_unordered, \'note\', note, \'position\', position), NULL, (SELECT now FROM sync_clock) FROM goods_receipt_lines WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'CREATE TRIGGER goods_receipt_lines_outbox_insert AFTER INSERT ON goods_receipt_lines WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, base_values, queued_at) SELECT \'goods_receipt_lines\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'receipt_id\', receipt_id, \'item_id\', item_id, \'quantity_ordered\', quantity_ordered, \'quantity_received\', quantity_received, \'actual_unit_price\', actual_unit_price, \'closed_short\', closed_short, \'was_unordered\', was_unordered, \'note\', note, \'position\', position), NULL, NULL, (SELECT now FROM sync_clock) FROM goods_receipt_lines WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, base_values = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
     'goods_receipt_lines_outbox_insert',
   );
   late final Trigger goodsReceiptLinesOutboxUpdate = Trigger(
-    'CREATE TRIGGER goods_receipt_lines_outbox_update AFTER UPDATE ON goods_receipt_lines WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, queued_at) SELECT \'goods_receipt_lines\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'receipt_id\', receipt_id, \'item_id\', item_id, \'quantity_ordered\', quantity_ordered, \'quantity_received\', quantity_received, \'actual_unit_price\', actual_unit_price, \'closed_short\', closed_short, \'was_unordered\', was_unordered, \'note\', note, \'position\', position), NULL, (SELECT now FROM sync_clock) FROM goods_receipt_lines WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'CREATE TRIGGER goods_receipt_lines_outbox_update AFTER UPDATE ON goods_receipt_lines WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, base_values, queued_at) SELECT \'goods_receipt_lines\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'receipt_id\', receipt_id, \'item_id\', item_id, \'quantity_ordered\', quantity_ordered, \'quantity_received\', quantity_received, \'actual_unit_price\', actual_unit_price, \'closed_short\', closed_short, \'was_unordered\', was_unordered, \'note\', note, \'position\', position), NULL, NULL, (SELECT now FROM sync_clock) FROM goods_receipt_lines WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, base_values = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
     'goods_receipt_lines_outbox_update',
   );
   late final $NotificationsTable notifications = $NotificationsTable(this);
   late final Trigger notificationsOutboxInsert = Trigger(
-    'CREATE TRIGGER notifications_outbox_insert AFTER INSERT ON notifications WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, queued_at) SELECT \'notifications\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'kind\', kind, \'title\', title, \'body\', body, \'created_at\', created_at, \'is_read\', is_read, \'related_item_id\', related_item_id, \'related_supplier_id\', related_supplier_id, \'related_employee_id\', related_employee_id, \'read_by_manager_at\', read_by_manager_at, \'read_by_owner_at\', read_by_owner_at), NULL, (SELECT now FROM sync_clock) FROM notifications WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'CREATE TRIGGER notifications_outbox_insert AFTER INSERT ON notifications WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, base_values, queued_at) SELECT \'notifications\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'kind\', kind, \'title\', title, \'body\', body, \'created_at\', created_at, \'is_read\', is_read, \'related_item_id\', related_item_id, \'related_supplier_id\', related_supplier_id, \'related_employee_id\', related_employee_id, \'read_by_manager_at\', read_by_manager_at, \'read_by_owner_at\', read_by_owner_at), NULL, NULL, (SELECT now FROM sync_clock) FROM notifications WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, base_values = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
     'notifications_outbox_insert',
   );
   late final Trigger notificationsOutboxUpdate = Trigger(
-    'CREATE TRIGGER notifications_outbox_update AFTER UPDATE ON notifications WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, queued_at) SELECT \'notifications\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'kind\', kind, \'title\', title, \'body\', body, \'created_at\', created_at, \'is_read\', is_read, \'related_item_id\', related_item_id, \'related_supplier_id\', related_supplier_id, \'related_employee_id\', related_employee_id, \'read_by_manager_at\', read_by_manager_at, \'read_by_owner_at\', read_by_owner_at), (SELECT json_group_array(c) FROM (SELECT \'updated_at\' AS c WHERE NEW.updated_at IS NOT OLD.updated_at UNION ALL SELECT \'deleted_at\' AS c WHERE NEW.deleted_at IS NOT OLD.deleted_at UNION ALL SELECT \'id\' AS c WHERE NEW.id IS NOT OLD.id UNION ALL SELECT \'store_id\' AS c WHERE NEW.store_id IS NOT OLD.store_id UNION ALL SELECT \'kind\' AS c WHERE NEW.kind IS NOT OLD.kind UNION ALL SELECT \'title\' AS c WHERE NEW.title IS NOT OLD.title UNION ALL SELECT \'body\' AS c WHERE NEW.body IS NOT OLD.body UNION ALL SELECT \'created_at\' AS c WHERE NEW.created_at IS NOT OLD.created_at UNION ALL SELECT \'is_read\' AS c WHERE NEW.is_read IS NOT OLD.is_read UNION ALL SELECT \'related_item_id\' AS c WHERE NEW.related_item_id IS NOT OLD.related_item_id UNION ALL SELECT \'related_supplier_id\' AS c WHERE NEW.related_supplier_id IS NOT OLD.related_supplier_id UNION ALL SELECT \'related_employee_id\' AS c WHERE NEW.related_employee_id IS NOT OLD.related_employee_id UNION ALL SELECT \'read_by_manager_at\' AS c WHERE NEW.read_by_manager_at IS NOT OLD.read_by_manager_at UNION ALL SELECT \'read_by_owner_at\' AS c WHERE NEW.read_by_owner_at IS NOT OLD.read_by_owner_at)), (SELECT now FROM sync_clock) FROM notifications WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = CASE WHEN outbox.changed_columns IS NULL OR excluded.changed_columns IS NULL THEN NULL ELSE (SELECT json_group_array(value) FROM (SELECT value FROM json_each(outbox.changed_columns)UNION SELECT value FROM json_each(excluded.changed_columns))) END, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'CREATE TRIGGER notifications_outbox_update AFTER UPDATE ON notifications WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, base_values, queued_at) SELECT \'notifications\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'kind\', kind, \'title\', title, \'body\', body, \'created_at\', created_at, \'is_read\', is_read, \'related_item_id\', related_item_id, \'related_supplier_id\', related_supplier_id, \'related_employee_id\', related_employee_id, \'read_by_manager_at\', read_by_manager_at, \'read_by_owner_at\', read_by_owner_at), (SELECT json_group_array(c) FROM (SELECT \'updated_at\' AS c WHERE NEW.updated_at IS NOT OLD.updated_at UNION ALL SELECT \'deleted_at\' AS c WHERE NEW.deleted_at IS NOT OLD.deleted_at UNION ALL SELECT \'id\' AS c WHERE NEW.id IS NOT OLD.id UNION ALL SELECT \'store_id\' AS c WHERE NEW.store_id IS NOT OLD.store_id UNION ALL SELECT \'kind\' AS c WHERE NEW.kind IS NOT OLD.kind UNION ALL SELECT \'title\' AS c WHERE NEW.title IS NOT OLD.title UNION ALL SELECT \'body\' AS c WHERE NEW.body IS NOT OLD.body UNION ALL SELECT \'created_at\' AS c WHERE NEW.created_at IS NOT OLD.created_at UNION ALL SELECT \'is_read\' AS c WHERE NEW.is_read IS NOT OLD.is_read UNION ALL SELECT \'related_item_id\' AS c WHERE NEW.related_item_id IS NOT OLD.related_item_id UNION ALL SELECT \'related_supplier_id\' AS c WHERE NEW.related_supplier_id IS NOT OLD.related_supplier_id UNION ALL SELECT \'related_employee_id\' AS c WHERE NEW.related_employee_id IS NOT OLD.related_employee_id UNION ALL SELECT \'read_by_manager_at\' AS c WHERE NEW.read_by_manager_at IS NOT OLD.read_by_manager_at UNION ALL SELECT \'read_by_owner_at\' AS c WHERE NEW.read_by_owner_at IS NOT OLD.read_by_owner_at)), NULL, (SELECT now FROM sync_clock) FROM notifications WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = CASE WHEN outbox.changed_columns IS NULL OR excluded.changed_columns IS NULL THEN NULL ELSE (SELECT json_group_array(value) FROM (SELECT value FROM json_each(outbox.changed_columns)UNION SELECT value FROM json_each(excluded.changed_columns))) END, base_values = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
     'notifications_outbox_update',
   );
   late final Trigger employeesOutboxInsert = Trigger(
-    'CREATE TRIGGER employees_outbox_insert AFTER INSERT ON employees WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, queued_at) SELECT \'employees\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'first_name\', first_name, \'last_name\', last_name, \'pin\', pin, \'phone\', phone, \'email\', email, \'photo_asset\', photo_asset, \'hire_date\', hire_date, \'role\', role, \'pay\', pay, \'created_at\', created_at, \'archived_at\', archived_at), NULL, (SELECT now FROM sync_clock) FROM employees WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'CREATE TRIGGER employees_outbox_insert AFTER INSERT ON employees WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, base_values, queued_at) SELECT \'employees\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'first_name\', first_name, \'last_name\', last_name, \'pin\', pin, \'phone\', phone, \'email\', email, \'photo_asset\', photo_asset, \'hire_date\', hire_date, \'role\', role, \'pay\', pay, \'created_at\', created_at, \'archived_at\', archived_at), NULL, NULL, (SELECT now FROM sync_clock) FROM employees WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, base_values = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
     'employees_outbox_insert',
   );
   late final Trigger employeesOutboxUpdate = Trigger(
-    'CREATE TRIGGER employees_outbox_update AFTER UPDATE ON employees WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, queued_at) SELECT \'employees\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'first_name\', first_name, \'last_name\', last_name, \'pin\', pin, \'phone\', phone, \'email\', email, \'photo_asset\', photo_asset, \'hire_date\', hire_date, \'role\', role, \'pay\', pay, \'created_at\', created_at, \'archived_at\', archived_at), (SELECT json_group_array(c) FROM (SELECT \'updated_at\' AS c WHERE NEW.updated_at IS NOT OLD.updated_at UNION ALL SELECT \'deleted_at\' AS c WHERE NEW.deleted_at IS NOT OLD.deleted_at UNION ALL SELECT \'id\' AS c WHERE NEW.id IS NOT OLD.id UNION ALL SELECT \'store_id\' AS c WHERE NEW.store_id IS NOT OLD.store_id UNION ALL SELECT \'first_name\' AS c WHERE NEW.first_name IS NOT OLD.first_name UNION ALL SELECT \'last_name\' AS c WHERE NEW.last_name IS NOT OLD.last_name UNION ALL SELECT \'pin\' AS c WHERE NEW.pin IS NOT OLD.pin UNION ALL SELECT \'phone\' AS c WHERE NEW.phone IS NOT OLD.phone UNION ALL SELECT \'email\' AS c WHERE NEW.email IS NOT OLD.email UNION ALL SELECT \'photo_asset\' AS c WHERE NEW.photo_asset IS NOT OLD.photo_asset UNION ALL SELECT \'hire_date\' AS c WHERE NEW.hire_date IS NOT OLD.hire_date UNION ALL SELECT \'role\' AS c WHERE NEW.role IS NOT OLD.role UNION ALL SELECT \'pay\' AS c WHERE NEW.pay IS NOT OLD.pay UNION ALL SELECT \'created_at\' AS c WHERE NEW.created_at IS NOT OLD.created_at UNION ALL SELECT \'archived_at\' AS c WHERE NEW.archived_at IS NOT OLD.archived_at)), (SELECT now FROM sync_clock) FROM employees WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = CASE WHEN outbox.changed_columns IS NULL OR excluded.changed_columns IS NULL THEN NULL ELSE (SELECT json_group_array(value) FROM (SELECT value FROM json_each(outbox.changed_columns)UNION SELECT value FROM json_each(excluded.changed_columns))) END, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'CREATE TRIGGER employees_outbox_update AFTER UPDATE ON employees WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, base_values, queued_at) SELECT \'employees\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'first_name\', first_name, \'last_name\', last_name, \'pin\', pin, \'phone\', phone, \'email\', email, \'photo_asset\', photo_asset, \'hire_date\', hire_date, \'role\', role, \'pay\', pay, \'created_at\', created_at, \'archived_at\', archived_at), (SELECT json_group_array(c) FROM (SELECT \'updated_at\' AS c WHERE NEW.updated_at IS NOT OLD.updated_at UNION ALL SELECT \'deleted_at\' AS c WHERE NEW.deleted_at IS NOT OLD.deleted_at UNION ALL SELECT \'id\' AS c WHERE NEW.id IS NOT OLD.id UNION ALL SELECT \'store_id\' AS c WHERE NEW.store_id IS NOT OLD.store_id UNION ALL SELECT \'first_name\' AS c WHERE NEW.first_name IS NOT OLD.first_name UNION ALL SELECT \'last_name\' AS c WHERE NEW.last_name IS NOT OLD.last_name UNION ALL SELECT \'pin\' AS c WHERE NEW.pin IS NOT OLD.pin UNION ALL SELECT \'phone\' AS c WHERE NEW.phone IS NOT OLD.phone UNION ALL SELECT \'email\' AS c WHERE NEW.email IS NOT OLD.email UNION ALL SELECT \'photo_asset\' AS c WHERE NEW.photo_asset IS NOT OLD.photo_asset UNION ALL SELECT \'hire_date\' AS c WHERE NEW.hire_date IS NOT OLD.hire_date UNION ALL SELECT \'role\' AS c WHERE NEW.role IS NOT OLD.role UNION ALL SELECT \'pay\' AS c WHERE NEW.pay IS NOT OLD.pay UNION ALL SELECT \'created_at\' AS c WHERE NEW.created_at IS NOT OLD.created_at UNION ALL SELECT \'archived_at\' AS c WHERE NEW.archived_at IS NOT OLD.archived_at)), (SELECT CASE WHEN count(*) = 0 THEN NULL ELSE json_group_object(c, v) END FROM (SELECT \'pay\' AS c, OLD.pay AS v WHERE NEW.pay IS NOT OLD.pay UNION ALL SELECT \'role\' AS c, OLD.role AS v WHERE NEW.role IS NOT OLD.role)), (SELECT now FROM sync_clock) FROM employees WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = CASE WHEN outbox.changed_columns IS NULL OR excluded.changed_columns IS NULL THEN NULL ELSE (SELECT json_group_array(value) FROM (SELECT value FROM json_each(outbox.changed_columns)UNION SELECT value FROM json_each(excluded.changed_columns))) END, base_values = CASE WHEN outbox.base_values IS NULL THEN excluded.base_values WHEN excluded.base_values IS NULL THEN outbox.base_values ELSE (SELECT json_group_object("key", value) FROM (SELECT "key", value FROM json_each(outbox.base_values)UNION ALL SELECT "key", value FROM json_each(excluded.base_values)WHERE "key" NOT IN (SELECT "key" FROM json_each(outbox.base_values)))) END, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
     'employees_outbox_update',
   );
   late final Trigger employeeCredentialsOutboxInsert = Trigger(
-    'CREATE TRIGGER employee_credentials_outbox_insert AFTER INSERT ON employee_credentials WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, queued_at) SELECT \'employee_credentials\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'employee_id\', employee_id, \'password_hash\', password_hash, \'failed_attempts\', failed_attempts, \'locked_until\', locked_until, \'last_login_at\', last_login_at), NULL, (SELECT now FROM sync_clock) FROM employee_credentials WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'CREATE TRIGGER employee_credentials_outbox_insert AFTER INSERT ON employee_credentials WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, base_values, queued_at) SELECT \'employee_credentials\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'employee_id\', employee_id, \'password_hash\', password_hash), NULL, NULL, (SELECT now FROM sync_clock) FROM employee_credentials WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, base_values = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
     'employee_credentials_outbox_insert',
   );
   late final Trigger employeeCredentialsOutboxUpdate = Trigger(
-    'CREATE TRIGGER employee_credentials_outbox_update AFTER UPDATE ON employee_credentials WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, queued_at) SELECT \'employee_credentials\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'employee_id\', employee_id, \'password_hash\', password_hash, \'failed_attempts\', failed_attempts, \'locked_until\', locked_until, \'last_login_at\', last_login_at), (SELECT json_group_array(c) FROM (SELECT \'updated_at\' AS c WHERE NEW.updated_at IS NOT OLD.updated_at UNION ALL SELECT \'deleted_at\' AS c WHERE NEW.deleted_at IS NOT OLD.deleted_at UNION ALL SELECT \'id\' AS c WHERE NEW.id IS NOT OLD.id UNION ALL SELECT \'store_id\' AS c WHERE NEW.store_id IS NOT OLD.store_id UNION ALL SELECT \'employee_id\' AS c WHERE NEW.employee_id IS NOT OLD.employee_id UNION ALL SELECT \'password_hash\' AS c WHERE NEW.password_hash IS NOT OLD.password_hash UNION ALL SELECT \'failed_attempts\' AS c WHERE NEW.failed_attempts IS NOT OLD.failed_attempts UNION ALL SELECT \'locked_until\' AS c WHERE NEW.locked_until IS NOT OLD.locked_until UNION ALL SELECT \'last_login_at\' AS c WHERE NEW.last_login_at IS NOT OLD.last_login_at)), (SELECT now FROM sync_clock) FROM employee_credentials WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = CASE WHEN outbox.changed_columns IS NULL OR excluded.changed_columns IS NULL THEN NULL ELSE (SELECT json_group_array(value) FROM (SELECT value FROM json_each(outbox.changed_columns)UNION SELECT value FROM json_each(excluded.changed_columns))) END, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'CREATE TRIGGER employee_credentials_outbox_update AFTER UPDATE ON employee_credentials WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, base_values, queued_at) SELECT \'employee_credentials\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'employee_id\', employee_id, \'password_hash\', password_hash), (SELECT json_group_array(c) FROM (SELECT \'updated_at\' AS c WHERE NEW.updated_at IS NOT OLD.updated_at UNION ALL SELECT \'deleted_at\' AS c WHERE NEW.deleted_at IS NOT OLD.deleted_at UNION ALL SELECT \'id\' AS c WHERE NEW.id IS NOT OLD.id UNION ALL SELECT \'store_id\' AS c WHERE NEW.store_id IS NOT OLD.store_id UNION ALL SELECT \'employee_id\' AS c WHERE NEW.employee_id IS NOT OLD.employee_id UNION ALL SELECT \'password_hash\' AS c WHERE NEW.password_hash IS NOT OLD.password_hash)), (SELECT CASE WHEN count(*) = 0 THEN NULL ELSE json_group_object(c, v) END FROM (SELECT \'password_hash\' AS c, OLD.password_hash AS v WHERE NEW.password_hash IS NOT OLD.password_hash)), (SELECT now FROM sync_clock) FROM employee_credentials WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = CASE WHEN outbox.changed_columns IS NULL OR excluded.changed_columns IS NULL THEN NULL ELSE (SELECT json_group_array(value) FROM (SELECT value FROM json_each(outbox.changed_columns)UNION SELECT value FROM json_each(excluded.changed_columns))) END, base_values = CASE WHEN outbox.base_values IS NULL THEN excluded.base_values WHEN excluded.base_values IS NULL THEN outbox.base_values ELSE (SELECT json_group_object("key", value) FROM (SELECT "key", value FROM json_each(outbox.base_values)UNION ALL SELECT "key", value FROM json_each(excluded.base_values)WHERE "key" NOT IN (SELECT "key" FROM json_each(outbox.base_values)))) END, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
     'employee_credentials_outbox_update',
   );
   late final Trigger payrollPeriodsOutboxInsert = Trigger(
-    'CREATE TRIGGER payroll_periods_outbox_insert AFTER INSERT ON payroll_periods WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, queued_at) SELECT \'payroll_periods\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'employee_id\', employee_id, \'store_id\', store_id, \'start_date\', start_date, \'end_date\', end_date, \'worked_days\', worked_days, \'total_worked_hours\', total_worked_hours, \'applied_rate\', applied_rate, \'computed_amount\', computed_amount, \'status\', status, \'paid_by_employee_id\', paid_by_employee_id, \'paid_at\', paid_at, \'created_at\', created_at), NULL, (SELECT now FROM sync_clock) FROM payroll_periods WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'CREATE TRIGGER payroll_periods_outbox_insert AFTER INSERT ON payroll_periods WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, base_values, queued_at) SELECT \'payroll_periods\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'employee_id\', employee_id, \'store_id\', store_id, \'start_date\', start_date, \'end_date\', end_date, \'worked_days\', worked_days, \'total_worked_hours\', total_worked_hours, \'applied_rate\', applied_rate, \'computed_amount\', computed_amount, \'status\', status, \'paid_by_employee_id\', paid_by_employee_id, \'paid_at\', paid_at, \'created_at\', created_at), NULL, NULL, (SELECT now FROM sync_clock) FROM payroll_periods WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, base_values = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
     'payroll_periods_outbox_insert',
   );
   late final Trigger payrollPeriodsOutboxUpdate = Trigger(
-    'CREATE TRIGGER payroll_periods_outbox_update AFTER UPDATE ON payroll_periods WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, queued_at) SELECT \'payroll_periods\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'employee_id\', employee_id, \'store_id\', store_id, \'start_date\', start_date, \'end_date\', end_date, \'worked_days\', worked_days, \'total_worked_hours\', total_worked_hours, \'applied_rate\', applied_rate, \'computed_amount\', computed_amount, \'status\', status, \'paid_by_employee_id\', paid_by_employee_id, \'paid_at\', paid_at, \'created_at\', created_at), (SELECT json_group_array(c) FROM (SELECT \'updated_at\' AS c WHERE NEW.updated_at IS NOT OLD.updated_at UNION ALL SELECT \'deleted_at\' AS c WHERE NEW.deleted_at IS NOT OLD.deleted_at UNION ALL SELECT \'id\' AS c WHERE NEW.id IS NOT OLD.id UNION ALL SELECT \'employee_id\' AS c WHERE NEW.employee_id IS NOT OLD.employee_id UNION ALL SELECT \'store_id\' AS c WHERE NEW.store_id IS NOT OLD.store_id UNION ALL SELECT \'start_date\' AS c WHERE NEW.start_date IS NOT OLD.start_date UNION ALL SELECT \'end_date\' AS c WHERE NEW.end_date IS NOT OLD.end_date UNION ALL SELECT \'worked_days\' AS c WHERE NEW.worked_days IS NOT OLD.worked_days UNION ALL SELECT \'total_worked_hours\' AS c WHERE NEW.total_worked_hours IS NOT OLD.total_worked_hours UNION ALL SELECT \'applied_rate\' AS c WHERE NEW.applied_rate IS NOT OLD.applied_rate UNION ALL SELECT \'computed_amount\' AS c WHERE NEW.computed_amount IS NOT OLD.computed_amount UNION ALL SELECT \'status\' AS c WHERE NEW.status IS NOT OLD.status UNION ALL SELECT \'paid_by_employee_id\' AS c WHERE NEW.paid_by_employee_id IS NOT OLD.paid_by_employee_id UNION ALL SELECT \'paid_at\' AS c WHERE NEW.paid_at IS NOT OLD.paid_at UNION ALL SELECT \'created_at\' AS c WHERE NEW.created_at IS NOT OLD.created_at)), (SELECT now FROM sync_clock) FROM payroll_periods WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = CASE WHEN outbox.changed_columns IS NULL OR excluded.changed_columns IS NULL THEN NULL ELSE (SELECT json_group_array(value) FROM (SELECT value FROM json_each(outbox.changed_columns)UNION SELECT value FROM json_each(excluded.changed_columns))) END, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'CREATE TRIGGER payroll_periods_outbox_update AFTER UPDATE ON payroll_periods WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, base_values, queued_at) SELECT \'payroll_periods\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'employee_id\', employee_id, \'store_id\', store_id, \'start_date\', start_date, \'end_date\', end_date, \'worked_days\', worked_days, \'total_worked_hours\', total_worked_hours, \'applied_rate\', applied_rate, \'computed_amount\', computed_amount, \'status\', status, \'paid_by_employee_id\', paid_by_employee_id, \'paid_at\', paid_at, \'created_at\', created_at), (SELECT json_group_array(c) FROM (SELECT \'updated_at\' AS c WHERE NEW.updated_at IS NOT OLD.updated_at UNION ALL SELECT \'deleted_at\' AS c WHERE NEW.deleted_at IS NOT OLD.deleted_at UNION ALL SELECT \'id\' AS c WHERE NEW.id IS NOT OLD.id UNION ALL SELECT \'employee_id\' AS c WHERE NEW.employee_id IS NOT OLD.employee_id UNION ALL SELECT \'store_id\' AS c WHERE NEW.store_id IS NOT OLD.store_id UNION ALL SELECT \'start_date\' AS c WHERE NEW.start_date IS NOT OLD.start_date UNION ALL SELECT \'end_date\' AS c WHERE NEW.end_date IS NOT OLD.end_date UNION ALL SELECT \'worked_days\' AS c WHERE NEW.worked_days IS NOT OLD.worked_days UNION ALL SELECT \'total_worked_hours\' AS c WHERE NEW.total_worked_hours IS NOT OLD.total_worked_hours UNION ALL SELECT \'applied_rate\' AS c WHERE NEW.applied_rate IS NOT OLD.applied_rate UNION ALL SELECT \'computed_amount\' AS c WHERE NEW.computed_amount IS NOT OLD.computed_amount UNION ALL SELECT \'status\' AS c WHERE NEW.status IS NOT OLD.status UNION ALL SELECT \'paid_by_employee_id\' AS c WHERE NEW.paid_by_employee_id IS NOT OLD.paid_by_employee_id UNION ALL SELECT \'paid_at\' AS c WHERE NEW.paid_at IS NOT OLD.paid_at UNION ALL SELECT \'created_at\' AS c WHERE NEW.created_at IS NOT OLD.created_at)), NULL, (SELECT now FROM sync_clock) FROM payroll_periods WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = CASE WHEN outbox.changed_columns IS NULL OR excluded.changed_columns IS NULL THEN NULL ELSE (SELECT json_group_array(value) FROM (SELECT value FROM json_each(outbox.changed_columns)UNION SELECT value FROM json_each(excluded.changed_columns))) END, base_values = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
     'payroll_periods_outbox_update',
   );
   late final Trigger attendancesOutboxInsert = Trigger(
-    'CREATE TRIGGER attendances_outbox_insert AFTER INSERT ON attendances WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, queued_at) SELECT \'attendances\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'employee_id\', employee_id, \'date\', date, \'status\', status, \'max_break_minutes\', max_break_minutes, \'payroll_period_id\', payroll_period_id), NULL, (SELECT now FROM sync_clock) FROM attendances WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'CREATE TRIGGER attendances_outbox_insert AFTER INSERT ON attendances WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, base_values, queued_at) SELECT \'attendances\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'employee_id\', employee_id, \'date\', date, \'status\', status, \'max_break_minutes\', max_break_minutes, \'payroll_period_id\', payroll_period_id), NULL, NULL, (SELECT now FROM sync_clock) FROM attendances WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, base_values = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
     'attendances_outbox_insert',
   );
   late final Trigger attendancesOutboxUpdate = Trigger(
-    'CREATE TRIGGER attendances_outbox_update AFTER UPDATE ON attendances WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, queued_at) SELECT \'attendances\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'employee_id\', employee_id, \'date\', date, \'status\', status, \'max_break_minutes\', max_break_minutes, \'payroll_period_id\', payroll_period_id), (SELECT json_group_array(c) FROM (SELECT \'updated_at\' AS c WHERE NEW.updated_at IS NOT OLD.updated_at UNION ALL SELECT \'deleted_at\' AS c WHERE NEW.deleted_at IS NOT OLD.deleted_at UNION ALL SELECT \'id\' AS c WHERE NEW.id IS NOT OLD.id UNION ALL SELECT \'store_id\' AS c WHERE NEW.store_id IS NOT OLD.store_id UNION ALL SELECT \'employee_id\' AS c WHERE NEW.employee_id IS NOT OLD.employee_id UNION ALL SELECT \'date\' AS c WHERE NEW.date IS NOT OLD.date UNION ALL SELECT \'status\' AS c WHERE NEW.status IS NOT OLD.status UNION ALL SELECT \'max_break_minutes\' AS c WHERE NEW.max_break_minutes IS NOT OLD.max_break_minutes UNION ALL SELECT \'payroll_period_id\' AS c WHERE NEW.payroll_period_id IS NOT OLD.payroll_period_id)), (SELECT now FROM sync_clock) FROM attendances WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = CASE WHEN outbox.changed_columns IS NULL OR excluded.changed_columns IS NULL THEN NULL ELSE (SELECT json_group_array(value) FROM (SELECT value FROM json_each(outbox.changed_columns)UNION SELECT value FROM json_each(excluded.changed_columns))) END, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'CREATE TRIGGER attendances_outbox_update AFTER UPDATE ON attendances WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, base_values, queued_at) SELECT \'attendances\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'employee_id\', employee_id, \'date\', date, \'status\', status, \'max_break_minutes\', max_break_minutes, \'payroll_period_id\', payroll_period_id), (SELECT json_group_array(c) FROM (SELECT \'updated_at\' AS c WHERE NEW.updated_at IS NOT OLD.updated_at UNION ALL SELECT \'deleted_at\' AS c WHERE NEW.deleted_at IS NOT OLD.deleted_at UNION ALL SELECT \'id\' AS c WHERE NEW.id IS NOT OLD.id UNION ALL SELECT \'store_id\' AS c WHERE NEW.store_id IS NOT OLD.store_id UNION ALL SELECT \'employee_id\' AS c WHERE NEW.employee_id IS NOT OLD.employee_id UNION ALL SELECT \'date\' AS c WHERE NEW.date IS NOT OLD.date UNION ALL SELECT \'status\' AS c WHERE NEW.status IS NOT OLD.status UNION ALL SELECT \'max_break_minutes\' AS c WHERE NEW.max_break_minutes IS NOT OLD.max_break_minutes UNION ALL SELECT \'payroll_period_id\' AS c WHERE NEW.payroll_period_id IS NOT OLD.payroll_period_id)), NULL, (SELECT now FROM sync_clock) FROM attendances WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = CASE WHEN outbox.changed_columns IS NULL OR excluded.changed_columns IS NULL THEN NULL ELSE (SELECT json_group_array(value) FROM (SELECT value FROM json_each(outbox.changed_columns)UNION SELECT value FROM json_each(excluded.changed_columns))) END, base_values = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
     'attendances_outbox_update',
   );
   late final Trigger attendanceSessionsOutboxInsert = Trigger(
-    'CREATE TRIGGER attendance_sessions_outbox_insert AFTER INSERT ON attendance_sessions WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, queued_at) SELECT \'attendance_sessions\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'attendance_id\', attendance_id, \'position\', position, \'clock_in_at\', clock_in_at, \'clock_out_at\', clock_out_at, \'exit_set_by_employee_id\', exit_set_by_employee_id), NULL, (SELECT now FROM sync_clock) FROM attendance_sessions WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'CREATE TRIGGER attendance_sessions_outbox_insert AFTER INSERT ON attendance_sessions WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, base_values, queued_at) SELECT \'attendance_sessions\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'attendance_id\', attendance_id, \'position\', position, \'clock_in_at\', clock_in_at, \'clock_out_at\', clock_out_at, \'exit_set_by_employee_id\', exit_set_by_employee_id), NULL, NULL, (SELECT now FROM sync_clock) FROM attendance_sessions WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, base_values = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
     'attendance_sessions_outbox_insert',
   );
   late final Trigger attendanceSessionsOutboxUpdate = Trigger(
-    'CREATE TRIGGER attendance_sessions_outbox_update AFTER UPDATE ON attendance_sessions WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, queued_at) SELECT \'attendance_sessions\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'attendance_id\', attendance_id, \'position\', position, \'clock_in_at\', clock_in_at, \'clock_out_at\', clock_out_at, \'exit_set_by_employee_id\', exit_set_by_employee_id), (SELECT json_group_array(c) FROM (SELECT \'updated_at\' AS c WHERE NEW.updated_at IS NOT OLD.updated_at UNION ALL SELECT \'deleted_at\' AS c WHERE NEW.deleted_at IS NOT OLD.deleted_at UNION ALL SELECT \'id\' AS c WHERE NEW.id IS NOT OLD.id UNION ALL SELECT \'store_id\' AS c WHERE NEW.store_id IS NOT OLD.store_id UNION ALL SELECT \'attendance_id\' AS c WHERE NEW.attendance_id IS NOT OLD.attendance_id UNION ALL SELECT \'position\' AS c WHERE NEW.position IS NOT OLD.position UNION ALL SELECT \'clock_in_at\' AS c WHERE NEW.clock_in_at IS NOT OLD.clock_in_at UNION ALL SELECT \'clock_out_at\' AS c WHERE NEW.clock_out_at IS NOT OLD.clock_out_at UNION ALL SELECT \'exit_set_by_employee_id\' AS c WHERE NEW.exit_set_by_employee_id IS NOT OLD.exit_set_by_employee_id)), (SELECT now FROM sync_clock) FROM attendance_sessions WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = CASE WHEN outbox.changed_columns IS NULL OR excluded.changed_columns IS NULL THEN NULL ELSE (SELECT json_group_array(value) FROM (SELECT value FROM json_each(outbox.changed_columns)UNION SELECT value FROM json_each(excluded.changed_columns))) END, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'CREATE TRIGGER attendance_sessions_outbox_update AFTER UPDATE ON attendance_sessions WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, base_values, queued_at) SELECT \'attendance_sessions\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'attendance_id\', attendance_id, \'position\', position, \'clock_in_at\', clock_in_at, \'clock_out_at\', clock_out_at, \'exit_set_by_employee_id\', exit_set_by_employee_id), (SELECT json_group_array(c) FROM (SELECT \'updated_at\' AS c WHERE NEW.updated_at IS NOT OLD.updated_at UNION ALL SELECT \'deleted_at\' AS c WHERE NEW.deleted_at IS NOT OLD.deleted_at UNION ALL SELECT \'id\' AS c WHERE NEW.id IS NOT OLD.id UNION ALL SELECT \'store_id\' AS c WHERE NEW.store_id IS NOT OLD.store_id UNION ALL SELECT \'attendance_id\' AS c WHERE NEW.attendance_id IS NOT OLD.attendance_id UNION ALL SELECT \'position\' AS c WHERE NEW.position IS NOT OLD.position UNION ALL SELECT \'clock_in_at\' AS c WHERE NEW.clock_in_at IS NOT OLD.clock_in_at UNION ALL SELECT \'clock_out_at\' AS c WHERE NEW.clock_out_at IS NOT OLD.clock_out_at UNION ALL SELECT \'exit_set_by_employee_id\' AS c WHERE NEW.exit_set_by_employee_id IS NOT OLD.exit_set_by_employee_id)), NULL, (SELECT now FROM sync_clock) FROM attendance_sessions WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = CASE WHEN outbox.changed_columns IS NULL OR excluded.changed_columns IS NULL THEN NULL ELSE (SELECT json_group_array(value) FROM (SELECT value FROM json_each(outbox.changed_columns)UNION SELECT value FROM json_each(excluded.changed_columns))) END, base_values = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
     'attendance_sessions_outbox_update',
   );
   late final Trigger attendancePausesOutboxInsert = Trigger(
-    'CREATE TRIGGER attendance_pauses_outbox_insert AFTER INSERT ON attendance_pauses WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, queued_at) SELECT \'attendance_pauses\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'session_id\', session_id, \'position\', position, \'start_at\', start_at, \'end_at\', end_at), NULL, (SELECT now FROM sync_clock) FROM attendance_pauses WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'CREATE TRIGGER attendance_pauses_outbox_insert AFTER INSERT ON attendance_pauses WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, base_values, queued_at) SELECT \'attendance_pauses\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'session_id\', session_id, \'position\', position, \'start_at\', start_at, \'end_at\', end_at), NULL, NULL, (SELECT now FROM sync_clock) FROM attendance_pauses WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, base_values = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
     'attendance_pauses_outbox_insert',
   );
   late final Trigger attendancePausesOutboxUpdate = Trigger(
-    'CREATE TRIGGER attendance_pauses_outbox_update AFTER UPDATE ON attendance_pauses WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, queued_at) SELECT \'attendance_pauses\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'session_id\', session_id, \'position\', position, \'start_at\', start_at, \'end_at\', end_at), (SELECT json_group_array(c) FROM (SELECT \'updated_at\' AS c WHERE NEW.updated_at IS NOT OLD.updated_at UNION ALL SELECT \'deleted_at\' AS c WHERE NEW.deleted_at IS NOT OLD.deleted_at UNION ALL SELECT \'id\' AS c WHERE NEW.id IS NOT OLD.id UNION ALL SELECT \'store_id\' AS c WHERE NEW.store_id IS NOT OLD.store_id UNION ALL SELECT \'session_id\' AS c WHERE NEW.session_id IS NOT OLD.session_id UNION ALL SELECT \'position\' AS c WHERE NEW.position IS NOT OLD.position UNION ALL SELECT \'start_at\' AS c WHERE NEW.start_at IS NOT OLD.start_at UNION ALL SELECT \'end_at\' AS c WHERE NEW.end_at IS NOT OLD.end_at)), (SELECT now FROM sync_clock) FROM attendance_pauses WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = CASE WHEN outbox.changed_columns IS NULL OR excluded.changed_columns IS NULL THEN NULL ELSE (SELECT json_group_array(value) FROM (SELECT value FROM json_each(outbox.changed_columns)UNION SELECT value FROM json_each(excluded.changed_columns))) END, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'CREATE TRIGGER attendance_pauses_outbox_update AFTER UPDATE ON attendance_pauses WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, base_values, queued_at) SELECT \'attendance_pauses\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'session_id\', session_id, \'position\', position, \'start_at\', start_at, \'end_at\', end_at), (SELECT json_group_array(c) FROM (SELECT \'updated_at\' AS c WHERE NEW.updated_at IS NOT OLD.updated_at UNION ALL SELECT \'deleted_at\' AS c WHERE NEW.deleted_at IS NOT OLD.deleted_at UNION ALL SELECT \'id\' AS c WHERE NEW.id IS NOT OLD.id UNION ALL SELECT \'store_id\' AS c WHERE NEW.store_id IS NOT OLD.store_id UNION ALL SELECT \'session_id\' AS c WHERE NEW.session_id IS NOT OLD.session_id UNION ALL SELECT \'position\' AS c WHERE NEW.position IS NOT OLD.position UNION ALL SELECT \'start_at\' AS c WHERE NEW.start_at IS NOT OLD.start_at UNION ALL SELECT \'end_at\' AS c WHERE NEW.end_at IS NOT OLD.end_at)), NULL, (SELECT now FROM sync_clock) FROM attendance_pauses WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = CASE WHEN outbox.changed_columns IS NULL OR excluded.changed_columns IS NULL THEN NULL ELSE (SELECT json_group_array(value) FROM (SELECT value FROM json_each(outbox.changed_columns)UNION SELECT value FROM json_each(excluded.changed_columns))) END, base_values = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
     'attendance_pauses_outbox_update',
   );
   late final $BusyDatesTable busyDates = $BusyDatesTable(this);
   late final Trigger busyDatesOutboxInsert = Trigger(
-    'CREATE TRIGGER busy_dates_outbox_insert AFTER INSERT ON busy_dates WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, queued_at) SELECT \'busy_dates\', store_id || \'|\' || day, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'store_id\', store_id, \'day\', day), NULL, (SELECT now FROM sync_clock) FROM busy_dates WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'CREATE TRIGGER busy_dates_outbox_insert AFTER INSERT ON busy_dates WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, base_values, queued_at) SELECT \'busy_dates\', store_id || \'|\' || day, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'store_id\', store_id, \'day\', day), NULL, NULL, (SELECT now FROM sync_clock) FROM busy_dates WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, base_values = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
     'busy_dates_outbox_insert',
   );
   late final Trigger busyDatesOutboxUpdate = Trigger(
-    'CREATE TRIGGER busy_dates_outbox_update AFTER UPDATE ON busy_dates WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, queued_at) SELECT \'busy_dates\', store_id || \'|\' || day, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'store_id\', store_id, \'day\', day), NULL, (SELECT now FROM sync_clock) FROM busy_dates WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'CREATE TRIGGER busy_dates_outbox_update AFTER UPDATE ON busy_dates WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, base_values, queued_at) SELECT \'busy_dates\', store_id || \'|\' || day, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'store_id\', store_id, \'day\', day), NULL, NULL, (SELECT now FROM sync_clock) FROM busy_dates WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, base_values = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
     'busy_dates_outbox_update',
   );
   late final Trigger businessDaysOutboxInsert = Trigger(
-    'CREATE TRIGGER business_days_outbox_insert AFTER INSERT ON business_days WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, queued_at) SELECT \'business_days\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'date\', date, \'opened_at\', opened_at, \'opened_by_employee_id\', opened_by_employee_id, \'closed_at\', closed_at, \'closed_by_employee_id\', closed_by_employee_id), NULL, (SELECT now FROM sync_clock) FROM business_days WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'CREATE TRIGGER business_days_outbox_insert AFTER INSERT ON business_days WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, base_values, queued_at) SELECT \'business_days\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'date\', date, \'opened_at\', opened_at, \'opened_by_employee_id\', opened_by_employee_id, \'closed_at\', closed_at, \'closed_by_employee_id\', closed_by_employee_id), NULL, NULL, (SELECT now FROM sync_clock) FROM business_days WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, base_values = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
     'business_days_outbox_insert',
   );
   late final Trigger businessDaysOutboxUpdate = Trigger(
-    'CREATE TRIGGER business_days_outbox_update AFTER UPDATE ON business_days WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, queued_at) SELECT \'business_days\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'date\', date, \'opened_at\', opened_at, \'opened_by_employee_id\', opened_by_employee_id, \'closed_at\', closed_at, \'closed_by_employee_id\', closed_by_employee_id), (SELECT json_group_array(c) FROM (SELECT \'updated_at\' AS c WHERE NEW.updated_at IS NOT OLD.updated_at UNION ALL SELECT \'deleted_at\' AS c WHERE NEW.deleted_at IS NOT OLD.deleted_at UNION ALL SELECT \'id\' AS c WHERE NEW.id IS NOT OLD.id UNION ALL SELECT \'store_id\' AS c WHERE NEW.store_id IS NOT OLD.store_id UNION ALL SELECT \'date\' AS c WHERE NEW.date IS NOT OLD.date UNION ALL SELECT \'opened_at\' AS c WHERE NEW.opened_at IS NOT OLD.opened_at UNION ALL SELECT \'opened_by_employee_id\' AS c WHERE NEW.opened_by_employee_id IS NOT OLD.opened_by_employee_id UNION ALL SELECT \'closed_at\' AS c WHERE NEW.closed_at IS NOT OLD.closed_at UNION ALL SELECT \'closed_by_employee_id\' AS c WHERE NEW.closed_by_employee_id IS NOT OLD.closed_by_employee_id)), (SELECT now FROM sync_clock) FROM business_days WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = CASE WHEN outbox.changed_columns IS NULL OR excluded.changed_columns IS NULL THEN NULL ELSE (SELECT json_group_array(value) FROM (SELECT value FROM json_each(outbox.changed_columns)UNION SELECT value FROM json_each(excluded.changed_columns))) END, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'CREATE TRIGGER business_days_outbox_update AFTER UPDATE ON business_days WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, base_values, queued_at) SELECT \'business_days\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'date\', date, \'opened_at\', opened_at, \'opened_by_employee_id\', opened_by_employee_id, \'closed_at\', closed_at, \'closed_by_employee_id\', closed_by_employee_id), (SELECT json_group_array(c) FROM (SELECT \'updated_at\' AS c WHERE NEW.updated_at IS NOT OLD.updated_at UNION ALL SELECT \'deleted_at\' AS c WHERE NEW.deleted_at IS NOT OLD.deleted_at UNION ALL SELECT \'id\' AS c WHERE NEW.id IS NOT OLD.id UNION ALL SELECT \'store_id\' AS c WHERE NEW.store_id IS NOT OLD.store_id UNION ALL SELECT \'date\' AS c WHERE NEW.date IS NOT OLD.date UNION ALL SELECT \'opened_at\' AS c WHERE NEW.opened_at IS NOT OLD.opened_at UNION ALL SELECT \'opened_by_employee_id\' AS c WHERE NEW.opened_by_employee_id IS NOT OLD.opened_by_employee_id UNION ALL SELECT \'closed_at\' AS c WHERE NEW.closed_at IS NOT OLD.closed_at UNION ALL SELECT \'closed_by_employee_id\' AS c WHERE NEW.closed_by_employee_id IS NOT OLD.closed_by_employee_id)), NULL, (SELECT now FROM sync_clock) FROM business_days WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = CASE WHEN outbox.changed_columns IS NULL OR excluded.changed_columns IS NULL THEN NULL ELSE (SELECT json_group_array(value) FROM (SELECT value FROM json_each(outbox.changed_columns)UNION SELECT value FROM json_each(excluded.changed_columns))) END, base_values = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
     'business_days_outbox_update',
   );
   late final $SyncErrorsTable syncErrors = $SyncErrorsTable(this);
@@ -17253,6 +17496,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     'stock_movements_receipt',
     'CREATE INDEX stock_movements_receipt ON stock_movements (receipt_id)',
   );
+  late final $LoginStatesTable loginStates = $LoginStatesTable(this);
   late final Index notificationsStoreTime = Index(
     'notifications_store_time',
     'CREATE INDEX notifications_store_time ON notifications (store_id, created_at DESC)',
@@ -17454,6 +17698,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     stockMovementsItemTime,
     stockMovementsStoreTime,
     stockMovementsReceipt,
+    loginStates,
     notificationsStoreTime,
     outboxRow,
     storesTouch,
@@ -18039,6 +18284,13 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         limitUpdateKind: UpdateKind.update,
       ),
       result: [TableUpdate('outbox', kind: UpdateKind.insert)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'employees',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('login_states', kind: UpdateKind.delete)],
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(

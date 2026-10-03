@@ -42,6 +42,14 @@ PARTIAL = {
     'notifications',
 }
 
+# Columns whose value before the edit travels too (`outbox.base_values`), so
+# the server can tell when this edit overwrites another tablet's unseen one
+# (rules C2 and E2). Only in PARTIAL tables.
+WATCHED = {
+    'employee_credentials': ['password_hash'],
+    'employees': ['pay', 'role'],
+}
+
 # The key and the establishment of a row, as SQL over the row's own columns.
 ROW_KEY = {'busy_dates': "store_id || '|' || day"}
 STORE = {'stores': 'id'}
@@ -81,6 +89,21 @@ def changed_list(sent):
         {picks}))"""
 
 
+def base_values(table):
+    """SQL for the JSON object of the watched columns' values before this
+    UPDATE, for those it changed; NULL when the table watches none."""
+    watched = WATCHED.get(table)
+    if not watched:
+        return 'NULL'
+    picks = '\n        UNION ALL '.join(
+        f"SELECT '{c}' AS c, OLD.{c} AS v WHERE NEW.{c} IS NOT OLD.{c}"
+        for c in watched
+    )
+    return f"""(SELECT CASE WHEN count(*) = 0 THEN NULL
+          ELSE json_group_object(c, v) END FROM (
+        {picks}))"""
+
+
 def trigger(table, event, columns):
     sent = [c for c in columns if c not in EXCLUDED.get(table, set())]
     pairs = ',\n      '.join(f"'{c}', {c}" for c in sent)
@@ -100,19 +123,35 @@ def trigger(table, event, columns):
         if partial
         else 'NULL'
     )
+    base = base_values(table) if partial else 'NULL'
+    # The value before the *first* pending edit is kept.
+    base_merged = (
+        """CASE
+      WHEN outbox.base_values IS NULL THEN excluded.base_values
+      WHEN excluded.base_values IS NULL THEN outbox.base_values
+      ELSE (SELECT json_group_object("key", value) FROM (
+        SELECT "key", value FROM json_each(outbox.base_values)
+        UNION ALL SELECT "key", value FROM json_each(excluded.base_values)
+          WHERE "key" NOT IN (
+            SELECT "key" FROM json_each(outbox.base_values))))
+    END"""
+        if partial and table in WATCHED
+        else 'NULL'
+    )
     return f"""CREATE TRIGGER {table}_outbox_{event} AFTER {event.upper()} ON {table}
   WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = '{QUIET_KEY}')
 BEGIN
   INSERT INTO outbox (changed_table, row_key, store_id, payload,
-    changed_columns, queued_at)
+    changed_columns, base_values, queued_at)
   SELECT '{table}', {key}, {store}, json_object(
       {pairs}
-    ), {changed}, (SELECT now FROM sync_clock)
+    ), {changed}, {base}, (SELECT now FROM sync_clock)
   FROM {table} WHERE rowid = NEW.rowid
   ON CONFLICT (changed_table, row_key) DO UPDATE SET
     store_id = excluded.store_id,
     payload = excluded.payload,
     changed_columns = {merged},
+    base_values = {base_merged},
     queued_at = excluded.queued_at,
     attempts = 0,
     last_error = NULL;

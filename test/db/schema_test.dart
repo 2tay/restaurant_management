@@ -185,6 +185,7 @@ void main() {
         'goods_receipt_lines',
         'goods_receipts',
         'items',
+        'login_states',
         'meta',
         'notifications',
         'outbox',

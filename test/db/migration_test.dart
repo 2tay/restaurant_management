@@ -77,6 +77,7 @@ import 'schema/schema_v14.dart' as v14;
 import 'schema/schema_v15.dart' as v15;
 import 'schema/schema_v18.dart' as v18;
 import 'schema/schema_v19.dart' as v19;
+import 'schema/schema_v20.dart' as v20;
 
 void main() {
   setUpAll(useTestSqlite);
@@ -300,6 +301,47 @@ void main() {
     expect(
       await sqlOf('attendance_sessions_outbox_insert'),
       contains('exit_set_by_employee_id'),
+    );
+    await db.close();
+  });
+
+  // Step 5 (rules C1, C3): the sign-in state leaves the shared credential
+  // for this tablet's own table, and nothing in it is lost on the way.
+  test('v20 -> v21 moves the sign-in state to login_states', () async {
+    final schema = await verifier.schemaAt(20);
+    final old = v20.DatabaseAtV20(schema.newConnection());
+    const t = "'2026-01-01T00:00:00.000'";
+    for (final sql in [
+      'INSERT INTO stores (id, name, address_line, postal_code, city, phone, '
+          "created_at, updated_at) VALUES ('s1', 'S', 'a', '1000', 'c', 'p', "
+          '$t, $t)',
+      'INSERT INTO employees (id, store_id, first_name, last_name, pin, phone, '
+          'email, hire_date, role, pay, created_at, updated_at) '
+          "VALUES ('e1', 's1', 'A', 'B', 'p1', 'p', 'a@b.c', $t, 'manager', 15, "
+          '$t, $t)',
+      'INSERT INTO employee_credentials (id, store_id, employee_id, '
+          'password_hash, failed_attempts, locked_until, last_login_at, '
+          "updated_at) VALUES ('c1', 's1', 'e1', 'hash', 2, NULL, $t, $t)",
+    ]) {
+      await old.customStatement(sql);
+    }
+    await old.close();
+
+    final db = AppDatabase.withExecutor(schema.newConnection());
+    await verifier.migrateAndValidate(db, 21);
+
+    final state = await db.select(db.loginStates).getSingle();
+    expect(state.employeeId, 'e1');
+    expect(state.failedAttempts, 2);
+    expect(state.lastLoginAt!.toUtc(), DateTime.utc(2026));
+    final credential = await db.select(db.employeeCredentials).getSingle();
+    expect(credential.passwordHash, 'hash');
+    final columns = await db
+        .customSelect('PRAGMA table_info(employee_credentials)')
+        .get();
+    expect(
+      columns.map((c) => c.read<String>('name')),
+      isNot(contains('failed_attempts')),
     );
     await db.close();
   });

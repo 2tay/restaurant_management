@@ -142,6 +142,7 @@ class PushResult {
     required this.accepted,
     this.reason,
     this.message,
+    this.overwrote = const [],
   });
 
   /// The outbox entry's id, as sent.
@@ -153,6 +154,11 @@ class PushResult {
 
   /// The server's message, for `invalid`.
   final String? message;
+
+  /// For an accepted edit: the watched columns (`outbox.base_values`) where
+  /// it replaced a value another tablet had set meanwhile, unseen by this
+  /// one. The last change still wins; this is what gets signalled.
+  final List<String> overwrote;
 }
 
 class AccountUser {
@@ -452,6 +458,10 @@ class SupabaseAccountBackend implements AccountBackend {
           accepted: item['status'] == 'accepted',
           reason: item['reason'] as String?,
           message: item['message'] as String?,
+          overwrote: [
+            for (final column in (item['overwrote'] as List<dynamic>?) ?? [])
+              column as String,
+          ],
         ),
     ];
   });

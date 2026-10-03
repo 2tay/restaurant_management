@@ -17,6 +17,7 @@ import 'tables/account.dart';
 import 'tables/attendance.dart';
 import 'tables/busy_dates.dart';
 import 'tables/business_days.dart';
+import 'tables/login_states.dart';
 import 'tables/catalog.dart';
 import 'tables/employees.dart';
 import 'tables/items.dart';
@@ -77,6 +78,7 @@ part 'app_database.g.dart';
     SyncErrors,
     PhotoUploads,
     BusinessDays,
+    LoginStates,
   ],
   include: {
     'sync_triggers.drift',
@@ -450,6 +452,30 @@ class AppDatabase extends _$AppDatabase {
         // already queued stays whole (null), as it always was.
         if (from >= 16) {
           await _addColumnIfMissing(m, outbox, outbox.changedColumns);
+          await _addColumnIfMissing(m, outbox, outbox.baseValues);
+        }
+        // Step 5 (rules C1, C3): the sign-in attempts, the lockout and the
+        // last login become this tablet's own. What the credentials held is
+        // carried over, then those columns leave the shared table. An
+        // install from before v15 lost them in the v15 rebuild already —
+        // only a counter and a lockout, nothing anybody has to redo.
+        await m.createTable(loginStates);
+        if ((await _columnNames(
+          employeeCredentials,
+        )).contains('failed_attempts')) {
+          await customStatement('''
+            INSERT INTO login_states
+              (employee_id, failed_attempts, locked_until, last_login_at)
+            SELECT employee_id, failed_attempts, locked_until, last_login_at
+              FROM employee_credentials
+             WHERE deleted_at IS NULL
+               AND (failed_attempts > 0 OR locked_until IS NOT NULL
+                    OR last_login_at IS NOT NULL)
+          ''');
+          await m.alterTable(
+            // ignore: experimental_member_use
+            TableMigration(employeeCredentials),
+          );
         }
         await _createTriggers(m, (name) => name.startsWith('business_days_'));
         await _createTriggers(
