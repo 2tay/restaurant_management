@@ -10,6 +10,7 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/utils/responsive.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../../data/current_employee.dart';
 import '../../../../data/providers.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
@@ -21,7 +22,7 @@ import '../alerts_filter.dart';
 /// Coarser than [NotificationKind] on purpose: low stock and rupture are the
 /// same worry at two severities, and nobody looking for one wants the other
 /// hidden.
-enum NotificationFilter { all, stock, price, adjustment, delivery }
+enum NotificationFilter { all, stock, price, adjustment, delivery, personnel }
 
 /// The notification centre.
 ///
@@ -207,13 +208,18 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
         NotificationFilter.adjustment =>
           kind == NotificationKind.largeAdjustment,
         NotificationFilter.delivery => kind == NotificationKind.delivery,
+        NotificationFilter.personnel => kind == NotificationKind.personnel,
       };
+
+  /// Whose "read" this page shows and writes: a signalement is read
+  /// separately by a manager and by the owner.
+  EmployeeRole? get _viewer => ref.read(currentEmployeeProvider)?.role;
 
   Future<void> _markAllRead() async {
     final l10n = AppLocalizations.of(context);
     final changed = await ref
         .read(accountRepositoryProvider)
-        .markAllRead(widget.storeId);
+        .markAllRead(widget.storeId, viewer: _viewer);
 
     // Says how many rather than a bare acknowledgement, and stays quiet when
     // there was nothing to do.
@@ -230,14 +236,16 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
     final l10n = AppLocalizations.of(context);
     final changed = await ref
         .read(accountRepositoryProvider)
-        .markRead(notification.id);
+        .markRead(notification.id, viewer: _viewer);
 
     if (!mounted || !changed) return;
     AppSnackBar.success(context, l10n.notificationsMarkedOneRead);
   }
 
   Future<void> _open(NotificationItem notification) async {
-    await ref.read(accountRepositoryProvider).markRead(notification.id);
+    await ref
+        .read(accountRepositoryProvider)
+        .markRead(notification.id, viewer: _viewer);
     if (!mounted) return;
 
     // Opens whatever the notification is about, so it is actionable rather
@@ -256,6 +264,14 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
     } else if (notification.relatedSupplierId != null) {
       context.pushScreen(
         Routes.toSupplier(widget.storeId, notification.relatedSupplierId!),
+      );
+    } else if (notification.relatedEmployeeId != null) {
+      // A signalement: the employee's pointage history, where it is checked.
+      context.goSection(
+        Routes.toAttendanceHistory(
+          widget.storeId,
+          employeeId: notification.relatedEmployeeId,
+        ),
       );
     } else if (notification.kind == NotificationKind.busyDays) {
       // Straight to the list the reminder is about.
@@ -322,6 +338,10 @@ class _Filters extends StatelessWidget {
       NotificationFilter.delivery: labelled(
         l10n.notificationsKindDelivery,
         NotificationFilter.delivery,
+      ),
+      NotificationFilter.personnel: labelled(
+        l10n.notificationsKindPersonnel,
+        NotificationFilter.personnel,
       ),
     };
 
@@ -528,6 +548,11 @@ class _NotificationCard extends StatelessWidget {
       LucideIcons.calendarClock,
       AppColors.lowStock,
       l10n.notificationsKindBusyDays,
+    ),
+    NotificationKind.personnel => (
+      LucideIcons.userRoundSearch,
+      AppColors.lowStock,
+      l10n.notificationsKindPersonnel,
     ),
   };
 }

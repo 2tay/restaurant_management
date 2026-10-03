@@ -154,6 +154,54 @@ void main() {
       expect(notes.map((n) => n.reason), contains('resolved_double_clock_in'));
       expect(notes.map((n) => n.reason), isNot(contains('receive_conflict')));
     });
+
+    // Rule P1 « signalé double pointage », and step 3: one signalement on
+    // every tablet, read separately by a manager and by the owner.
+    test('are signalled once, and read separately on every tablet', () async {
+      final a = await newDevice();
+      final b = await newDevice();
+      final day = await shared(a, b);
+      final morning = DateTime(2026, 10, 12, 8);
+      await AttendanceRepository(
+        a,
+      ).clockIn(day.cook.id, day.store.id, now: morning);
+      await AttendanceRepository(
+        b,
+      ).clockIn(day.cook.id, day.store.id, now: morning);
+
+      await settle(a, b);
+
+      Future<List<NotificationItem>> flags(
+        AppDatabase db,
+        EmployeeRole viewer,
+      ) async => [
+        for (final n in await AccountRepository(
+          db,
+        ).notifications(day.store.id, viewer: viewer))
+          if (n.kind == NotificationKind.personnel) n,
+      ];
+
+      final onA = (await flags(a, EmployeeRole.owner)).single;
+      final onB = (await flags(b, EmployeeRole.owner)).single;
+      expect(onB.id, onA.id);
+      expect(onA.relatedEmployeeId, day.cook.id);
+      expect(onA.title, contains('Karim'));
+
+      // The manager reads it on A, the owner on B.
+      await AccountRepository(
+        a,
+      ).markRead(onA.id, viewer: EmployeeRole.manager);
+      await AccountRepository(b).markRead(onB.id, viewer: EmployeeRole.owner);
+      await settle(a, b);
+
+      // A tablet never loses a read it holds: each keeps its own, and learns
+      // the other's when it is newer on the server.
+      expect((await flags(a, EmployeeRole.manager)).single.isRead, isTrue);
+      expect((await flags(b, EmployeeRole.owner)).single.isRead, isTrue);
+      for (final db in [a, b]) {
+        expect(await flags(db, EmployeeRole.manager), hasLength(1));
+      }
+    });
   });
 
   // Rule P5 (SYNC_PERSONNEL_PLAN.md): one journée per store and date.

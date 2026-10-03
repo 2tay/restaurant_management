@@ -26,6 +26,16 @@ class Notifications extends Table with Touched, Deletable {
   TextColumn get relatedItemId => text().nullable()();
   TextColumn get relatedSupplierId => text().nullable()();
 
+  /// The employee a signalement is about (`NotificationKind.personnel`).
+  TextColumn get relatedEmployeeId => text().nullable()();
+
+  /// When a manager, and when the owner, first read a signalement. Read
+  /// separately: a manager reading it does not hide it from the owner. A
+  /// stamp is never cleared, and sync keeps the earliest (`SyncApplier`).
+  /// Other kinds keep using [isRead].
+  DateTimeColumn get readByManagerAt => dateTime().nullable()();
+  DateTimeColumn get readByOwnerAt => dateTime().nullable()();
+
   @override
   Set<Column<Object>> get primaryKey => {id};
 }

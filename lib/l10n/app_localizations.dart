@@ -6701,6 +6701,12 @@ abstract class AppLocalizations {
   /// **'Jours chargés'**
   String get notificationsKindBusyDays;
 
+  /// Notifications: kind and filter label of a signalement about the staff (double pointage, double payment).
+  ///
+  /// In fr, this message translates to:
+  /// **'Personnel'**
+  String get notificationsKindPersonnel;
+
   /// Toggle: remind before busy days on the calendar.
   ///
   /// In fr, this message translates to:

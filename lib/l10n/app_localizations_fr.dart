@@ -4134,6 +4134,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get notificationsKindBusyDays => 'Jours chargés';
 
   @override
+  String get notificationsKindPersonnel => 'Personnel';
+
+  @override
   String get notificationPrefBusyDays => 'Jours chargés à venir';
 
   @override

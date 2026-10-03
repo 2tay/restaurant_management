@@ -425,6 +425,10 @@ class AppDatabase extends _$AppDatabase {
       // only when missing: a v1/v10 `createTable` and the v15 rebuild already
       // build the current shape. The outbox triggers of those two tables are
       // recreated so their payload carries the new column.
+      //
+      // And the signalements (SYNC_PERSONNEL_PLAN.md, step 3): on
+      // `notifications`, the employee one is about and when a manager and
+      // the owner read it — null on every existing notification.
       if (from < 21) {
         await m.createTable(businessDays);
         await m.create(businessDaysStoreDate);
@@ -434,12 +438,20 @@ class AppDatabase extends _$AppDatabase {
           attendanceSessions,
           attendanceSessions.exitSetByEmployeeId,
         );
+        for (final column in [
+          notifications.relatedEmployeeId,
+          notifications.readByManagerAt,
+          notifications.readByOwnerAt,
+        ]) {
+          await _addColumnIfMissing(m, notifications, column);
+        }
         await _createTriggers(m, (name) => name.startsWith('business_days_'));
         await _createTriggers(
           m,
           (name) =>
               name.startsWith('stores_outbox_') ||
-              name.startsWith('attendance_sessions_outbox_'),
+              name.startsWith('attendance_sessions_outbox_') ||
+              name.startsWith('notifications_outbox_'),
           replace: true,
         );
       }

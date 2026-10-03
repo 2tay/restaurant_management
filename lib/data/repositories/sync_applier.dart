@@ -6,6 +6,7 @@ import 'package:drift/drift.dart';
 import '../../services/auth_service.dart';
 import '../database/app_database.dart';
 import '../database/sync_tables.dart';
+import 'account_repository.dart';
 import 'stock_ledger.dart';
 import 'sync_quiet.dart';
 
@@ -46,7 +47,12 @@ import 'sync_quiet.dart';
 ///
 /// Those resolutions are real changes: they are written with the queue on
 /// ([SyncQuiet.loud]) and sent like any other, and logged in `sync_errors`
-/// as `resolved_*` so the sync page can say what happened.
+/// as `resolved_*` so the sync page can say what happened. One that a manager
+/// must check is also a signalement ([AccountRepository.signal]), the same
+/// on every tablet.
+///
+/// A received notification never makes a signalement unread again: a "read"
+/// stamp this tablet holds and the incoming row lacks is kept.
 ///
 /// A row the local database still refuses is kept out, logged as
 /// `receive_conflict`, and the page goes on.
@@ -153,6 +159,8 @@ class SyncApplier {
         return _applySession(table, row);
       case 'business_days' when live:
         return _applyBusinessDay(table, row, storeId);
+      case 'notifications':
+        return _applyNotification(table, row);
       case 'supplier_prices' when live:
         return _applyKeepRecent(
           table,
@@ -243,16 +251,71 @@ class SyncApplier {
       });
     }
 
+    final employeeId = row['employee_id'] as String;
+    final name = await _employeeName(employeeId);
+    final keptId = keepIncoming ? incomingId : local.id;
     await _logResolution(
       'resolved_double_clock_in',
       table: 'attendances',
-      rowKey: keepIncoming ? incomingId : local.id,
+      rowKey: keptId,
       storeId: storeId,
-      details: {
-        'employee': await _employeeName(row['employee_id'] as String),
-        'date': date.toIso8601String(),
-      },
+      details: {'employee': name, 'date': date.toIso8601String()},
     );
+    // Rule P1: « signalé double pointage ».
+    await SyncQuiet.loud(
+      _db,
+      () => AccountRepository(_db).signal(
+        storeId: row['store_id'] as String,
+        key: 'double_clock_in:$keptId',
+        title: 'Double pointage : $name',
+        body:
+            'Le ${_numericDate(date)}, deux arrivées ont été pointées sur deux '
+            'tablettes. Elles sont regroupées dans une seule journée : '
+            'vérifiez les heures dans l\'historique.',
+        employeeId: employeeId,
+        at: now,
+      ),
+    );
+  }
+
+  /// dd/MM/yyyy, by hand: the text must not depend on locale data being
+  /// loaded, and must read the same on every tablet.
+  static String _numericDate(DateTime day) =>
+      '${day.day.toString().padLeft(2, '0')}/'
+      '${day.month.toString().padLeft(2, '0')}/${day.year}';
+
+  /// A received notification. The read stamps of a signalement only ever
+  /// move forward: one this tablet holds stays, the earlier of two wins.
+  Future<void> _applyNotification(
+    TableInfo<Table, dynamic> table,
+    Map<String, dynamic> row,
+  ) async {
+    final local = await (_db.select(
+      _db.notifications,
+    )..where((n) => n.id.equals(row['id'] as String))).getSingleOrNull();
+    if (local == null) return _upsert(table, row);
+
+    String? earliest(DateTime? mine, Object? theirs) {
+      final incoming = theirs == null
+          ? null
+          : DateTime.parse(theirs as String);
+      final kept = switch ((mine, incoming)) {
+        (null, final t) => t,
+        (final m?, null) => m,
+        (final m?, final t?) => t.isBefore(m) ? t : m,
+      };
+      return kept?.toUtc().toIso8601String();
+    }
+
+    return _upsert(table, {
+      ...row,
+      'is_read': local.isRead || (row['is_read'] == true),
+      'read_by_manager_at': earliest(
+        local.readByManagerAt,
+        row['read_by_manager_at'],
+      ),
+      'read_by_owner_at': earliest(local.readByOwnerAt, row['read_by_owner_at']),
+    });
   }
 
   /// Two journées for one store and date (rule P5).

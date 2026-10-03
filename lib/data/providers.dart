@@ -9,6 +9,7 @@ import 'package:path_provider/path_provider.dart';
 import '../core/utils/busy_calendar.dart';
 import '../models/models.dart';
 import '../services/auth_service.dart';
+import 'current_employee.dart';
 import 'database/app_database.dart';
 import 'employee_photo_store.dart';
 import 'repositories/repositories.dart';
@@ -579,16 +580,26 @@ final receiptsForOrderProvider =
 
 // --- Notifications ----------------------------------------------------------
 
+/// Read or unread for whoever is signed in: a signalement is read separately
+/// by a manager and by the owner.
 final notificationsProvider =
     StreamProvider.family<List<NotificationItem>, String>(
-      (ref, storeId) =>
-          ref.watch(accountRepositoryProvider).watchNotifications(storeId),
+      (ref, storeId) => ref
+          .watch(accountRepositoryProvider)
+          .watchNotifications(
+            storeId,
+            viewer: ref.watch(currentEmployeeProvider.select((e) => e?.role)),
+          ),
     );
 
-/// The number on the bell.
+/// The number on the bell, for whoever is signed in.
 final unreadCountProvider = StreamProvider.family<int, String>(
-  (ref, storeId) =>
-      ref.watch(accountRepositoryProvider).watchUnreadCount(storeId),
+  (ref, storeId) => ref
+      .watch(accountRepositoryProvider)
+      .watchUnreadCount(
+        storeId,
+        viewer: ref.watch(currentEmployeeProvider.select((e) => e?.role)),
+      ),
 );
 
 /// When the local dataset was last written wholesale — the honest version of

@@ -4768,6 +4768,36 @@
             "default_dart": null,
             "default_client_dart": null,
             "dsl_features": []
+          },
+          {
+            "name": "related_employee_id",
+            "getter_name": "relatedEmployeeId",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "read_by_manager_at",
+            "getter_name": "readByManagerAt",
+            "moor_type": "dateTime",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "read_by_owner_at",
+            "getter_name": "readByOwnerAt",
+            "moor_type": "dateTime",
+            "nullable": true,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
           }
         ],
         "is_virtual": false,
@@ -4796,7 +4826,7 @@
           6
         ],
         "name": "notifications_outbox_insert",
-        "sql": "CREATE TRIGGER notifications_outbox_insert AFTER INSERT ON notifications\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\nBEGIN\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\n  SELECT 'notifications', id, store_id, json_object(\n      'updated_at', updated_at,\n      'deleted_at', deleted_at,\n      'id', id,\n      'store_id', store_id,\n      'kind', kind,\n      'title', title,\n      'body', body,\n      'created_at', created_at,\n      'is_read', is_read,\n      'related_item_id', related_item_id,\n      'related_supplier_id', related_supplier_id\n    ), (SELECT now FROM sync_clock)\n  FROM notifications WHERE rowid = NEW.rowid\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\n    store_id = excluded.store_id,\n    payload = excluded.payload,\n    queued_at = excluded.queued_at,\n    attempts = 0,\n    last_error = NULL;\nEND;"
+        "sql": "CREATE TRIGGER notifications_outbox_insert AFTER INSERT ON notifications\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\nBEGIN\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\n  SELECT 'notifications', id, store_id, json_object(\n      'updated_at', updated_at,\n      'deleted_at', deleted_at,\n      'id', id,\n      'store_id', store_id,\n      'kind', kind,\n      'title', title,\n      'body', body,\n      'created_at', created_at,\n      'is_read', is_read,\n      'related_item_id', related_item_id,\n      'related_supplier_id', related_supplier_id,\n      'related_employee_id', related_employee_id,\n      'read_by_manager_at', read_by_manager_at,\n      'read_by_owner_at', read_by_owner_at\n    ), (SELECT now FROM sync_clock)\n  FROM notifications WHERE rowid = NEW.rowid\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\n    store_id = excluded.store_id,\n    payload = excluded.payload,\n    queued_at = excluded.queued_at,\n    attempts = 0,\n    last_error = NULL;\nEND;"
       }
     },
     {
@@ -4817,7 +4847,7 @@
           6
         ],
         "name": "notifications_outbox_update",
-        "sql": "CREATE TRIGGER notifications_outbox_update AFTER UPDATE ON notifications\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\nBEGIN\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\n  SELECT 'notifications', id, store_id, json_object(\n      'updated_at', updated_at,\n      'deleted_at', deleted_at,\n      'id', id,\n      'store_id', store_id,\n      'kind', kind,\n      'title', title,\n      'body', body,\n      'created_at', created_at,\n      'is_read', is_read,\n      'related_item_id', related_item_id,\n      'related_supplier_id', related_supplier_id\n    ), (SELECT now FROM sync_clock)\n  FROM notifications WHERE rowid = NEW.rowid\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\n    store_id = excluded.store_id,\n    payload = excluded.payload,\n    queued_at = excluded.queued_at,\n    attempts = 0,\n    last_error = NULL;\nEND;"
+        "sql": "CREATE TRIGGER notifications_outbox_update AFTER UPDATE ON notifications\n  WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet')\nBEGIN\n  INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at)\n  SELECT 'notifications', id, store_id, json_object(\n      'updated_at', updated_at,\n      'deleted_at', deleted_at,\n      'id', id,\n      'store_id', store_id,\n      'kind', kind,\n      'title', title,\n      'body', body,\n      'created_at', created_at,\n      'is_read', is_read,\n      'related_item_id', related_item_id,\n      'related_supplier_id', related_supplier_id,\n      'related_employee_id', related_employee_id,\n      'read_by_manager_at', read_by_manager_at,\n      'read_by_owner_at', read_by_owner_at\n    ), (SELECT now FROM sync_clock)\n  FROM notifications WHERE rowid = NEW.rowid\n  ON CONFLICT (changed_table, row_key) DO UPDATE SET\n    store_id = excluded.store_id,\n    payload = excluded.payload,\n    queued_at = excluded.queued_at,\n    attempts = 0,\n    last_error = NULL;\nEND;"
       }
     },
     {
@@ -6660,7 +6690,7 @@
       "sql": [
         {
           "dialect": "sqlite",
-          "sql": "CREATE TABLE IF NOT EXISTS \"notifications\" (\"updated_at\" TEXT NOT NULL, \"deleted_at\" TEXT NULL, \"id\" TEXT NOT NULL, \"store_id\" TEXT NOT NULL REFERENCES stores (id) ON DELETE CASCADE, \"kind\" TEXT NOT NULL, \"title\" TEXT NOT NULL, \"body\" TEXT NOT NULL, \"created_at\" TEXT NOT NULL, \"is_read\" INTEGER NOT NULL DEFAULT 0 CHECK (\"is_read\" IN (0, 1)), \"related_item_id\" TEXT NULL, \"related_supplier_id\" TEXT NULL, PRIMARY KEY (\"id\"));"
+          "sql": "CREATE TABLE IF NOT EXISTS \"notifications\" (\"updated_at\" TEXT NOT NULL, \"deleted_at\" TEXT NULL, \"id\" TEXT NOT NULL, \"store_id\" TEXT NOT NULL REFERENCES stores (id) ON DELETE CASCADE, \"kind\" TEXT NOT NULL, \"title\" TEXT NOT NULL, \"body\" TEXT NOT NULL, \"created_at\" TEXT NOT NULL, \"is_read\" INTEGER NOT NULL DEFAULT 0 CHECK (\"is_read\" IN (0, 1)), \"related_item_id\" TEXT NULL, \"related_supplier_id\" TEXT NULL, \"related_employee_id\" TEXT NULL, \"read_by_manager_at\" TEXT NULL, \"read_by_owner_at\" TEXT NULL, PRIMARY KEY (\"id\"));"
         }
       ]
     },
@@ -6669,7 +6699,7 @@
       "sql": [
         {
           "dialect": "sqlite",
-          "sql": "CREATE TRIGGER notifications_outbox_insert AFTER INSERT ON notifications WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT 'notifications', id, store_id, json_object('updated_at', updated_at, 'deleted_at', deleted_at, 'id', id, 'store_id', store_id, 'kind', kind, 'title', title, 'body', body, 'created_at', created_at, 'is_read', is_read, 'related_item_id', related_item_id, 'related_supplier_id', related_supplier_id), (SELECT now FROM sync_clock) FROM notifications WHERE \"rowid\" = NEW.\"rowid\" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END"
+          "sql": "CREATE TRIGGER notifications_outbox_insert AFTER INSERT ON notifications WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT 'notifications', id, store_id, json_object('updated_at', updated_at, 'deleted_at', deleted_at, 'id', id, 'store_id', store_id, 'kind', kind, 'title', title, 'body', body, 'created_at', created_at, 'is_read', is_read, 'related_item_id', related_item_id, 'related_supplier_id', related_supplier_id, 'related_employee_id', related_employee_id, 'read_by_manager_at', read_by_manager_at, 'read_by_owner_at', read_by_owner_at), (SELECT now FROM sync_clock) FROM notifications WHERE \"rowid\" = NEW.\"rowid\" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END"
         }
       ]
     },
@@ -6678,7 +6708,7 @@
       "sql": [
         {
           "dialect": "sqlite",
-          "sql": "CREATE TRIGGER notifications_outbox_update AFTER UPDATE ON notifications WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT 'notifications', id, store_id, json_object('updated_at', updated_at, 'deleted_at', deleted_at, 'id', id, 'store_id', store_id, 'kind', kind, 'title', title, 'body', body, 'created_at', created_at, 'is_read', is_read, 'related_item_id', related_item_id, 'related_supplier_id', related_supplier_id), (SELECT now FROM sync_clock) FROM notifications WHERE \"rowid\" = NEW.\"rowid\" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END"
+          "sql": "CREATE TRIGGER notifications_outbox_update AFTER UPDATE ON notifications WHEN NOT EXISTS (SELECT 1 FROM meta WHERE \"key\" = 'syncQuiet') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT 'notifications', id, store_id, json_object('updated_at', updated_at, 'deleted_at', deleted_at, 'id', id, 'store_id', store_id, 'kind', kind, 'title', title, 'body', body, 'created_at', created_at, 'is_read', is_read, 'related_item_id', related_item_id, 'related_supplier_id', related_supplier_id, 'related_employee_id', related_employee_id, 'read_by_manager_at', read_by_manager_at, 'read_by_owner_at', read_by_owner_at), (SELECT now FROM sync_clock) FROM notifications WHERE \"rowid\" = NEW.\"rowid\" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END"
         }
       ]
     },

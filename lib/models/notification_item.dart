@@ -18,6 +18,12 @@ enum NotificationKind {
   /// A busy period on the calendar is coming, and some products are below
   /// their busy-day minimum.
   busyDays,
+
+  /// A signalement about the staff (SYNC_PERSONNEL_PLAN.md): something sync
+  /// settled that a manager and the owner should check — a double pointage,
+  /// a double payment. Always filed, no preference switches it off, and read
+  /// separately by a manager and by the owner.
+  personnel,
 }
 
 /// One entry in the notifications centre.
@@ -32,6 +38,7 @@ class NotificationItem {
     required this.isRead,
     this.relatedItemId,
     this.relatedSupplierId,
+    this.relatedEmployeeId,
   });
 
   final String id;
@@ -45,9 +52,13 @@ class NotificationItem {
   final String body;
 
   final DateTime createdAt;
+
+  /// Read **by whoever is looking**: for a signalement, by their role (a
+  /// manager, the owner); for anything else, by anyone.
   final bool isRead;
 
   /// Lets the notification deep-link to the thing it is about.
   final String? relatedItemId;
   final String? relatedSupplierId;
+  final String? relatedEmployeeId;
 }

@@ -688,7 +688,10 @@ BEGIN
       'created_at', created_at,
       'is_read', is_read,
       'related_item_id', related_item_id,
-      'related_supplier_id', related_supplier_id
+      'related_supplier_id', related_supplier_id,
+      'related_employee_id', related_employee_id,
+      'read_by_manager_at', read_by_manager_at,
+      'read_by_owner_at', read_by_owner_at
     ), (SELECT now FROM sync_clock)
   FROM notifications WHERE rowid = NEW.rowid
   ON CONFLICT (changed_table, row_key) DO UPDATE SET
@@ -714,7 +717,10 @@ BEGIN
       'created_at', created_at,
       'is_read', is_read,
       'related_item_id', related_item_id,
-      'related_supplier_id', related_supplier_id
+      'related_supplier_id', related_supplier_id,
+      'related_employee_id', related_employee_id,
+      'read_by_manager_at', read_by_manager_at,
+      'read_by_owner_at', read_by_owner_at
     ), (SELECT now FROM sync_clock)
   FROM notifications WHERE rowid = NEW.rowid
   ON CONFLICT (changed_table, row_key) DO UPDATE SET

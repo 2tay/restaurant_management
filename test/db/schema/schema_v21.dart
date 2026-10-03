@@ -2994,6 +2994,31 @@ class Notifications extends Table with TableInfo {
         requiredDuringInsert: false,
         $customConstraints: 'NULL',
       );
+  late final GeneratedColumn<String> relatedEmployeeId =
+      GeneratedColumn<String>(
+        'related_employee_id',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        $customConstraints: 'NULL',
+      );
+  late final GeneratedColumn<String> readByManagerAt = GeneratedColumn<String>(
+    'read_by_manager_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: 'NULL',
+  );
+  late final GeneratedColumn<String> readByOwnerAt = GeneratedColumn<String>(
+    'read_by_owner_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: 'NULL',
+  );
   @override
   List<GeneratedColumn> get $columns => [
     updatedAt,
@@ -3007,6 +3032,9 @@ class Notifications extends Table with TableInfo {
     isRead,
     relatedItemId,
     relatedSupplierId,
+    relatedEmployeeId,
+    readByManagerAt,
+    readByOwnerAt,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -3420,11 +3448,11 @@ class DatabaseAtV21 extends GeneratedDatabase {
   );
   late final Notifications notifications = Notifications(this);
   late final Trigger notificationsOutboxInsert = Trigger(
-    'CREATE TRIGGER notifications_outbox_insert AFTER INSERT ON notifications WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT \'notifications\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'kind\', kind, \'title\', title, \'body\', body, \'created_at\', created_at, \'is_read\', is_read, \'related_item_id\', related_item_id, \'related_supplier_id\', related_supplier_id), (SELECT now FROM sync_clock) FROM notifications WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'CREATE TRIGGER notifications_outbox_insert AFTER INSERT ON notifications WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT \'notifications\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'kind\', kind, \'title\', title, \'body\', body, \'created_at\', created_at, \'is_read\', is_read, \'related_item_id\', related_item_id, \'related_supplier_id\', related_supplier_id, \'related_employee_id\', related_employee_id, \'read_by_manager_at\', read_by_manager_at, \'read_by_owner_at\', read_by_owner_at), (SELECT now FROM sync_clock) FROM notifications WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
     'notifications_outbox_insert',
   );
   late final Trigger notificationsOutboxUpdate = Trigger(
-    'CREATE TRIGGER notifications_outbox_update AFTER UPDATE ON notifications WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT \'notifications\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'kind\', kind, \'title\', title, \'body\', body, \'created_at\', created_at, \'is_read\', is_read, \'related_item_id\', related_item_id, \'related_supplier_id\', related_supplier_id), (SELECT now FROM sync_clock) FROM notifications WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'CREATE TRIGGER notifications_outbox_update AFTER UPDATE ON notifications WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT \'notifications\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'kind\', kind, \'title\', title, \'body\', body, \'created_at\', created_at, \'is_read\', is_read, \'related_item_id\', related_item_id, \'related_supplier_id\', related_supplier_id, \'related_employee_id\', related_employee_id, \'read_by_manager_at\', read_by_manager_at, \'read_by_owner_at\', read_by_owner_at), (SELECT now FROM sync_clock) FROM notifications WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
     'notifications_outbox_update',
   );
   late final Trigger employeesOutboxInsert = Trigger(

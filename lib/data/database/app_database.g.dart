@@ -15276,6 +15276,42 @@ class $NotificationsTable extends Notifications
         type: DriftSqlType.string,
         requiredDuringInsert: false,
       );
+  static const VerificationMeta _relatedEmployeeIdMeta = const VerificationMeta(
+    'relatedEmployeeId',
+  );
+  @override
+  late final GeneratedColumn<String> relatedEmployeeId =
+      GeneratedColumn<String>(
+        'related_employee_id',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _readByManagerAtMeta = const VerificationMeta(
+    'readByManagerAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> readByManagerAt =
+      GeneratedColumn<DateTime>(
+        'read_by_manager_at',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _readByOwnerAtMeta = const VerificationMeta(
+    'readByOwnerAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> readByOwnerAt =
+      GeneratedColumn<DateTime>(
+        'read_by_owner_at',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
   @override
   List<GeneratedColumn> get $columns => [
     updatedAt,
@@ -15289,6 +15325,9 @@ class $NotificationsTable extends Notifications
     isRead,
     relatedItemId,
     relatedSupplierId,
+    relatedEmployeeId,
+    readByManagerAt,
+    readByOwnerAt,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -15375,6 +15414,33 @@ class $NotificationsTable extends Notifications
         ),
       );
     }
+    if (data.containsKey('related_employee_id')) {
+      context.handle(
+        _relatedEmployeeIdMeta,
+        relatedEmployeeId.isAcceptableOrUnknown(
+          data['related_employee_id']!,
+          _relatedEmployeeIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('read_by_manager_at')) {
+      context.handle(
+        _readByManagerAtMeta,
+        readByManagerAt.isAcceptableOrUnknown(
+          data['read_by_manager_at']!,
+          _readByManagerAtMeta,
+        ),
+      );
+    }
+    if (data.containsKey('read_by_owner_at')) {
+      context.handle(
+        _readByOwnerAtMeta,
+        readByOwnerAt.isAcceptableOrUnknown(
+          data['read_by_owner_at']!,
+          _readByOwnerAtMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -15430,6 +15496,18 @@ class $NotificationsTable extends Notifications
         DriftSqlType.string,
         data['${effectivePrefix}related_supplier_id'],
       ),
+      relatedEmployeeId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}related_employee_id'],
+      ),
+      readByManagerAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}read_by_manager_at'],
+      ),
+      readByOwnerAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}read_by_owner_at'],
+      ),
     );
   }
 
@@ -15458,6 +15536,16 @@ class NotificationRow extends DataClass implements Insertable<NotificationRow> {
   /// target is what disappears, not the message.
   final String? relatedItemId;
   final String? relatedSupplierId;
+
+  /// The employee a signalement is about (`NotificationKind.personnel`).
+  final String? relatedEmployeeId;
+
+  /// When a manager, and when the owner, first read a signalement. Read
+  /// separately: a manager reading it does not hide it from the owner. A
+  /// stamp is never cleared, and sync keeps the earliest (`SyncApplier`).
+  /// Other kinds keep using [isRead].
+  final DateTime? readByManagerAt;
+  final DateTime? readByOwnerAt;
   const NotificationRow({
     required this.updatedAt,
     this.deletedAt,
@@ -15470,6 +15558,9 @@ class NotificationRow extends DataClass implements Insertable<NotificationRow> {
     required this.isRead,
     this.relatedItemId,
     this.relatedSupplierId,
+    this.relatedEmployeeId,
+    this.readByManagerAt,
+    this.readByOwnerAt,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -15495,6 +15586,15 @@ class NotificationRow extends DataClass implements Insertable<NotificationRow> {
     if (!nullToAbsent || relatedSupplierId != null) {
       map['related_supplier_id'] = Variable<String>(relatedSupplierId);
     }
+    if (!nullToAbsent || relatedEmployeeId != null) {
+      map['related_employee_id'] = Variable<String>(relatedEmployeeId);
+    }
+    if (!nullToAbsent || readByManagerAt != null) {
+      map['read_by_manager_at'] = Variable<DateTime>(readByManagerAt);
+    }
+    if (!nullToAbsent || readByOwnerAt != null) {
+      map['read_by_owner_at'] = Variable<DateTime>(readByOwnerAt);
+    }
     return map;
   }
 
@@ -15517,6 +15617,15 @@ class NotificationRow extends DataClass implements Insertable<NotificationRow> {
       relatedSupplierId: relatedSupplierId == null && nullToAbsent
           ? const Value.absent()
           : Value(relatedSupplierId),
+      relatedEmployeeId: relatedEmployeeId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(relatedEmployeeId),
+      readByManagerAt: readByManagerAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(readByManagerAt),
+      readByOwnerAt: readByOwnerAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(readByOwnerAt),
     );
   }
 
@@ -15541,6 +15650,11 @@ class NotificationRow extends DataClass implements Insertable<NotificationRow> {
       relatedSupplierId: serializer.fromJson<String?>(
         json['relatedSupplierId'],
       ),
+      relatedEmployeeId: serializer.fromJson<String?>(
+        json['relatedEmployeeId'],
+      ),
+      readByManagerAt: serializer.fromJson<DateTime?>(json['readByManagerAt']),
+      readByOwnerAt: serializer.fromJson<DateTime?>(json['readByOwnerAt']),
     );
   }
   @override
@@ -15560,6 +15674,9 @@ class NotificationRow extends DataClass implements Insertable<NotificationRow> {
       'isRead': serializer.toJson<bool>(isRead),
       'relatedItemId': serializer.toJson<String?>(relatedItemId),
       'relatedSupplierId': serializer.toJson<String?>(relatedSupplierId),
+      'relatedEmployeeId': serializer.toJson<String?>(relatedEmployeeId),
+      'readByManagerAt': serializer.toJson<DateTime?>(readByManagerAt),
+      'readByOwnerAt': serializer.toJson<DateTime?>(readByOwnerAt),
     };
   }
 
@@ -15575,6 +15692,9 @@ class NotificationRow extends DataClass implements Insertable<NotificationRow> {
     bool? isRead,
     Value<String?> relatedItemId = const Value.absent(),
     Value<String?> relatedSupplierId = const Value.absent(),
+    Value<String?> relatedEmployeeId = const Value.absent(),
+    Value<DateTime?> readByManagerAt = const Value.absent(),
+    Value<DateTime?> readByOwnerAt = const Value.absent(),
   }) => NotificationRow(
     updatedAt: updatedAt ?? this.updatedAt,
     deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
@@ -15591,6 +15711,15 @@ class NotificationRow extends DataClass implements Insertable<NotificationRow> {
     relatedSupplierId: relatedSupplierId.present
         ? relatedSupplierId.value
         : this.relatedSupplierId,
+    relatedEmployeeId: relatedEmployeeId.present
+        ? relatedEmployeeId.value
+        : this.relatedEmployeeId,
+    readByManagerAt: readByManagerAt.present
+        ? readByManagerAt.value
+        : this.readByManagerAt,
+    readByOwnerAt: readByOwnerAt.present
+        ? readByOwnerAt.value
+        : this.readByOwnerAt,
   );
   NotificationRow copyWithCompanion(NotificationsCompanion data) {
     return NotificationRow(
@@ -15609,6 +15738,15 @@ class NotificationRow extends DataClass implements Insertable<NotificationRow> {
       relatedSupplierId: data.relatedSupplierId.present
           ? data.relatedSupplierId.value
           : this.relatedSupplierId,
+      relatedEmployeeId: data.relatedEmployeeId.present
+          ? data.relatedEmployeeId.value
+          : this.relatedEmployeeId,
+      readByManagerAt: data.readByManagerAt.present
+          ? data.readByManagerAt.value
+          : this.readByManagerAt,
+      readByOwnerAt: data.readByOwnerAt.present
+          ? data.readByOwnerAt.value
+          : this.readByOwnerAt,
     );
   }
 
@@ -15625,7 +15763,10 @@ class NotificationRow extends DataClass implements Insertable<NotificationRow> {
           ..write('createdAt: $createdAt, ')
           ..write('isRead: $isRead, ')
           ..write('relatedItemId: $relatedItemId, ')
-          ..write('relatedSupplierId: $relatedSupplierId')
+          ..write('relatedSupplierId: $relatedSupplierId, ')
+          ..write('relatedEmployeeId: $relatedEmployeeId, ')
+          ..write('readByManagerAt: $readByManagerAt, ')
+          ..write('readByOwnerAt: $readByOwnerAt')
           ..write(')'))
         .toString();
   }
@@ -15643,6 +15784,9 @@ class NotificationRow extends DataClass implements Insertable<NotificationRow> {
     isRead,
     relatedItemId,
     relatedSupplierId,
+    relatedEmployeeId,
+    readByManagerAt,
+    readByOwnerAt,
   );
   @override
   bool operator ==(Object other) =>
@@ -15658,7 +15802,10 @@ class NotificationRow extends DataClass implements Insertable<NotificationRow> {
           other.createdAt == this.createdAt &&
           other.isRead == this.isRead &&
           other.relatedItemId == this.relatedItemId &&
-          other.relatedSupplierId == this.relatedSupplierId);
+          other.relatedSupplierId == this.relatedSupplierId &&
+          other.relatedEmployeeId == this.relatedEmployeeId &&
+          other.readByManagerAt == this.readByManagerAt &&
+          other.readByOwnerAt == this.readByOwnerAt);
 }
 
 class NotificationsCompanion extends UpdateCompanion<NotificationRow> {
@@ -15673,6 +15820,9 @@ class NotificationsCompanion extends UpdateCompanion<NotificationRow> {
   final Value<bool> isRead;
   final Value<String?> relatedItemId;
   final Value<String?> relatedSupplierId;
+  final Value<String?> relatedEmployeeId;
+  final Value<DateTime?> readByManagerAt;
+  final Value<DateTime?> readByOwnerAt;
   final Value<int> rowid;
   const NotificationsCompanion({
     this.updatedAt = const Value.absent(),
@@ -15686,6 +15836,9 @@ class NotificationsCompanion extends UpdateCompanion<NotificationRow> {
     this.isRead = const Value.absent(),
     this.relatedItemId = const Value.absent(),
     this.relatedSupplierId = const Value.absent(),
+    this.relatedEmployeeId = const Value.absent(),
+    this.readByManagerAt = const Value.absent(),
+    this.readByOwnerAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   NotificationsCompanion.insert({
@@ -15700,6 +15853,9 @@ class NotificationsCompanion extends UpdateCompanion<NotificationRow> {
     this.isRead = const Value.absent(),
     this.relatedItemId = const Value.absent(),
     this.relatedSupplierId = const Value.absent(),
+    this.relatedEmployeeId = const Value.absent(),
+    this.readByManagerAt = const Value.absent(),
+    this.readByOwnerAt = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        storeId = Value(storeId),
@@ -15719,6 +15875,9 @@ class NotificationsCompanion extends UpdateCompanion<NotificationRow> {
     Expression<bool>? isRead,
     Expression<String>? relatedItemId,
     Expression<String>? relatedSupplierId,
+    Expression<String>? relatedEmployeeId,
+    Expression<DateTime>? readByManagerAt,
+    Expression<DateTime>? readByOwnerAt,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -15733,6 +15892,9 @@ class NotificationsCompanion extends UpdateCompanion<NotificationRow> {
       if (isRead != null) 'is_read': isRead,
       if (relatedItemId != null) 'related_item_id': relatedItemId,
       if (relatedSupplierId != null) 'related_supplier_id': relatedSupplierId,
+      if (relatedEmployeeId != null) 'related_employee_id': relatedEmployeeId,
+      if (readByManagerAt != null) 'read_by_manager_at': readByManagerAt,
+      if (readByOwnerAt != null) 'read_by_owner_at': readByOwnerAt,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -15749,6 +15911,9 @@ class NotificationsCompanion extends UpdateCompanion<NotificationRow> {
     Value<bool>? isRead,
     Value<String?>? relatedItemId,
     Value<String?>? relatedSupplierId,
+    Value<String?>? relatedEmployeeId,
+    Value<DateTime?>? readByManagerAt,
+    Value<DateTime?>? readByOwnerAt,
     Value<int>? rowid,
   }) {
     return NotificationsCompanion(
@@ -15763,6 +15928,9 @@ class NotificationsCompanion extends UpdateCompanion<NotificationRow> {
       isRead: isRead ?? this.isRead,
       relatedItemId: relatedItemId ?? this.relatedItemId,
       relatedSupplierId: relatedSupplierId ?? this.relatedSupplierId,
+      relatedEmployeeId: relatedEmployeeId ?? this.relatedEmployeeId,
+      readByManagerAt: readByManagerAt ?? this.readByManagerAt,
+      readByOwnerAt: readByOwnerAt ?? this.readByOwnerAt,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -15805,6 +15973,15 @@ class NotificationsCompanion extends UpdateCompanion<NotificationRow> {
     if (relatedSupplierId.present) {
       map['related_supplier_id'] = Variable<String>(relatedSupplierId.value);
     }
+    if (relatedEmployeeId.present) {
+      map['related_employee_id'] = Variable<String>(relatedEmployeeId.value);
+    }
+    if (readByManagerAt.present) {
+      map['read_by_manager_at'] = Variable<DateTime>(readByManagerAt.value);
+    }
+    if (readByOwnerAt.present) {
+      map['read_by_owner_at'] = Variable<DateTime>(readByOwnerAt.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -15825,6 +16002,9 @@ class NotificationsCompanion extends UpdateCompanion<NotificationRow> {
           ..write('isRead: $isRead, ')
           ..write('relatedItemId: $relatedItemId, ')
           ..write('relatedSupplierId: $relatedSupplierId, ')
+          ..write('relatedEmployeeId: $relatedEmployeeId, ')
+          ..write('readByManagerAt: $readByManagerAt, ')
+          ..write('readByOwnerAt: $readByOwnerAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -16890,11 +17070,11 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   );
   late final $NotificationsTable notifications = $NotificationsTable(this);
   late final Trigger notificationsOutboxInsert = Trigger(
-    'CREATE TRIGGER notifications_outbox_insert AFTER INSERT ON notifications WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT \'notifications\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'kind\', kind, \'title\', title, \'body\', body, \'created_at\', created_at, \'is_read\', is_read, \'related_item_id\', related_item_id, \'related_supplier_id\', related_supplier_id), (SELECT now FROM sync_clock) FROM notifications WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'CREATE TRIGGER notifications_outbox_insert AFTER INSERT ON notifications WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT \'notifications\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'kind\', kind, \'title\', title, \'body\', body, \'created_at\', created_at, \'is_read\', is_read, \'related_item_id\', related_item_id, \'related_supplier_id\', related_supplier_id, \'related_employee_id\', related_employee_id, \'read_by_manager_at\', read_by_manager_at, \'read_by_owner_at\', read_by_owner_at), (SELECT now FROM sync_clock) FROM notifications WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
     'notifications_outbox_insert',
   );
   late final Trigger notificationsOutboxUpdate = Trigger(
-    'CREATE TRIGGER notifications_outbox_update AFTER UPDATE ON notifications WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT \'notifications\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'kind\', kind, \'title\', title, \'body\', body, \'created_at\', created_at, \'is_read\', is_read, \'related_item_id\', related_item_id, \'related_supplier_id\', related_supplier_id), (SELECT now FROM sync_clock) FROM notifications WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'CREATE TRIGGER notifications_outbox_update AFTER UPDATE ON notifications WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, queued_at) SELECT \'notifications\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'kind\', kind, \'title\', title, \'body\', body, \'created_at\', created_at, \'is_read\', is_read, \'related_item_id\', related_item_id, \'related_supplier_id\', related_supplier_id, \'related_employee_id\', related_employee_id, \'read_by_manager_at\', read_by_manager_at, \'read_by_owner_at\', read_by_owner_at), (SELECT now FROM sync_clock) FROM notifications WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
     'notifications_outbox_update',
   );
   late final Trigger employeesOutboxInsert = Trigger(

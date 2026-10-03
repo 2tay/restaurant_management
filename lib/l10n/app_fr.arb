@@ -2440,6 +2440,8 @@
   "@alertsBusyEmptyBody": {"description": "Empty state body of the busy-day tab."},
   "notificationsKindBusyDays": "Jours chargés",
   "@notificationsKindBusyDays": {"description": "Notification kind: a busy period is coming."},
+  "notificationsKindPersonnel": "Personnel",
+  "@notificationsKindPersonnel": {"description": "Notifications: kind and filter label of a signalement about the staff (double pointage, double payment)."},
   "notificationPrefBusyDays": "Jours chargés à venir",
   "@notificationPrefBusyDays": {"description": "Toggle: remind before busy days on the calendar."},
   "notificationPrefBusyDaysBody": "Soyez prévenu avant les jours de forte affluence du calendrier, avec les produits à commander.",
