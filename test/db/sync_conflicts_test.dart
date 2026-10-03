@@ -698,6 +698,177 @@ void main() {
     });
   });
 
+  // SYNC_PERSONNEL_PLAN.md, step 8: employees on two tablets.
+  group('employees on two tablets', () {
+    DateTime on(int day, int hour) => DateTime(2026, 10, day, hour);
+
+    Future<Employee> addSami(
+      AppDatabase db,
+      String storeId, {
+      required String phone,
+      double pay = 15,
+      String email = 'sami@resto.be',
+    }) async => (await EmployeeRepository(db).create(
+      storeId: storeId,
+      firstName: 'Sami',
+      lastName: 'Test',
+      pin: 'CIN-SAMI',
+      phone: phone,
+      email: email,
+      role: EmployeeRole.staff,
+      pay: pay,
+    ))!;
+
+    Future<List<EmployeeRow>> samis(AppDatabase db) async => [
+      for (final e in await db.select(db.employees).get())
+        if (e.pin == 'CIN-SAMI' && e.deletedAt == null) e,
+    ];
+
+    Future<List<NotificationItem>> flags(AppDatabase db, String storeId) async =>
+        [
+          for (final n in await AccountRepository(db).notifications(storeId))
+            if (n.kind == NotificationKind.personnel) n,
+        ];
+
+    test('the same CIN added on both: one record, days together (E1)',
+        () async {
+      final a = await newDevice();
+      final b = await newDevice();
+      final shop = await shared(a, b);
+      final onA = await addSami(a, shop.store.id, phone: '0471', pay: 15);
+      final onB = await addSami(b, shop.store.id, phone: '0472', pay: 16);
+      await AttendanceRepository(a).clockIn(onA.id, shop.store.id, now: on(12, 8));
+      await AttendanceRepository(b).clockIn(onB.id, shop.store.id, now: on(12, 9));
+
+      await settle(a, b);
+
+      final kept = onA.id.compareTo(onB.id) < 0 ? onA : onB;
+      for (final db in [a, b]) {
+        final live = await samis(db);
+        expect(live, hasLength(1));
+        expect(live.single.id, kept.id);
+        expect(live.single.phone, kept.phone);
+        expect(live.single.pay, kept.pay);
+        // Both arrivals of the 12th, on one day of the kept record.
+        final days = await AttendanceRepository(db).forEmployee(kept.id);
+        expect(days, hasLength(1));
+        expect(days.single.sessions, hasLength(2));
+        final signalled = await flags(db, shop.store.id);
+        expect(
+          signalled.where((n) => n.title.contains('ajouté deux fois')),
+          hasLength(1),
+        );
+        expect(
+          signalled.firstWhere((n) => n.title.contains('ajouté deux fois')).body,
+          contains('Taux horaire différent'),
+        );
+      }
+    });
+
+    test('the same CIN in two stores: two people, signalled', () async {
+      final a = await newDevice();
+      final b = await newDevice();
+      final shop = await shared(a, b);
+      final second = await StoreRepository(b).createStore(
+        name: 'Annexe',
+        addressLine: '',
+        postalCode: '',
+        city: 'Namur',
+        phone: '081',
+      );
+      await settle(a, b);
+
+      await addSami(a, shop.store.id, phone: '0471');
+      await addSami(b, second.id, phone: '0472');
+      await settle(a, b);
+
+      for (final db in [a, b]) {
+        expect(await samis(db), hasLength(2));
+        final signalled = [
+          ...await flags(db, shop.store.id),
+          ...await flags(db, second.id),
+        ];
+        expect(signalled, hasLength(1));
+        expect(signalled.single.title, contains('Même CIN'));
+      }
+    });
+
+    test('retired on one, pointed on the other: hours kept, signalled (E4)',
+        () async {
+      final a = await newDevice();
+      final b = await newDevice();
+      final shop = await shared(a, b);
+
+      await EmployeeRepository(a).archive(shop.cook.id, at: on(12, 7));
+      await AttendanceRepository(
+        b,
+      ).clockIn(shop.cook.id, shop.store.id, now: on(12, 8));
+      await settle(a, b);
+
+      for (final db in [a, b]) {
+        final cook = (await EmployeeRepository(db).employee(shop.cook.id))!;
+        expect(cook.archivedAt, isNotNull);
+        expect(await AttendanceRepository(db).forEmployee(cook.id), hasLength(1));
+        final signalled = await flags(db, shop.store.id);
+        expect(signalled, hasLength(1));
+        expect(signalled.single.title, contains('après le retrait'));
+        expect(signalled.single.relatedTarget, 'payroll');
+      }
+    });
+
+    test('the rate changed on both: the last wins, signalled (E2)', () async {
+      final a = await newDevice();
+      final b = await newDevice();
+      final shop = await shared(a, b);
+
+      await EmployeeRepository(a).update(shop.cook.id, pay: 16);
+      await EmployeeRepository(b).update(shop.cook.id, pay: 17);
+      await settle(a, b);
+
+      for (final db in [a, b]) {
+        expect((await EmployeeRepository(db).employee(shop.cook.id))!.pay, 17);
+        final signalled = await flags(db, shop.store.id);
+        expect(signalled, hasLength(1));
+        expect(signalled.single.body, contains('taux horaire'));
+      }
+    });
+
+    test('retired on one, retired and brought back on the other: the last '
+        'decision wins, signalled (E5)', () async {
+      final a = await newDevice();
+      final b = await newDevice();
+      final shop = await shared(a, b);
+
+      await EmployeeRepository(a).archive(shop.cook.id, at: on(12, 7));
+      await EmployeeRepository(b).archive(shop.cook.id, at: on(12, 9));
+      await EmployeeRepository(b).restore(shop.cook.id);
+      await settle(a, b);
+
+      for (final db in [a, b]) {
+        expect(
+          (await EmployeeRepository(db).employee(shop.cook.id))!.archivedAt,
+          isNull,
+        );
+        final signalled = await flags(db, shop.store.id);
+        expect(signalled, hasLength(1));
+        expect(signalled.single.body, contains('réactivation est gardée'));
+      }
+    });
+
+    test('a rate changed once, then again elsewhere: not signalled', () async {
+      final a = await newDevice();
+      final b = await newDevice();
+      final shop = await shared(a, b);
+
+      await EmployeeRepository(a).update(shop.cook.id, pay: 16);
+      await settle(a, b);
+      await EmployeeRepository(b).update(shop.cook.id, pay: 17);
+      await settle(a, b);
+
+      expect(await flags(a, shop.store.id), isEmpty);
+    });
+  });
+
   // Rule P5 (SYNC_PERSONNEL_PLAN.md): one journée per store and date.
   group('two journées opened for one store and date', () {
     Future<List<BusinessDayRow>> liveDays(AppDatabase db) =>

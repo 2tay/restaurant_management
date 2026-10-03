@@ -29,6 +29,7 @@ supabase stop
 | `migrations/…_partial_updates.sql` | `apply_change` writes only the columns an edit names (SYNC_PERSONNEL_PLAN, step 4) |
 | `migrations/…_credentials.sql` | Only the password is shared (sign-in state is per tablet); an edit that overwrites another tablet's unseen password / rate / role is reported in `overwrote` (step 5) |
 | `migrations/…_paid_days.sql` | A day keeps the payment that reached the server first (`day_already_paid`), a paid day is frozen (`paid_day_frozen`); both answer with `restore` (step 7) |
+| `migrations/…_employees.sql` | The retirement joins the watched columns, compared in their own type (step 8); merging two records of one person is done on the devices |
 | `tests/database/sync.test.sql` | pgTAP tests: isolation between restaurants, push and pull, conflict rules |
 | `tests/database/accounts.test.sql` | pgTAP tests: join codes, roles, removing a device |
 

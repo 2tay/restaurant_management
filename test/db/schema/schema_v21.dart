@@ -3353,14 +3353,6 @@ class DatabaseAtV21 extends GeneratedDatabase {
     'employees_store',
     'CREATE INDEX employees_store ON employees (store_id)',
   );
-  late final Index employeesPin = Index(
-    'employees_pin',
-    'CREATE UNIQUE INDEX employees_pin ON employees (pin)',
-  );
-  late final Index employeesEmail = Index(
-    'employees_email',
-    'CREATE UNIQUE INDEX employees_email ON employees (email)',
-  );
   late final PayrollPeriods payrollPeriods = PayrollPeriods(this);
   late final Attendances attendances = Attendances(this);
   late final Index attendancesEmployeeDate = Index(
@@ -3376,6 +3368,14 @@ class DatabaseAtV21 extends GeneratedDatabase {
   late final Index employeeCredentialsEmployee = Index(
     'employee_credentials_employee',
     'CREATE UNIQUE INDEX employee_credentials_employee ON employee_credentials (employee_id) WHERE deleted_at IS NULL',
+  );
+  late final Index employeesStorePin = Index(
+    'employees_store_pin',
+    'CREATE UNIQUE INDEX employees_store_pin ON employees (store_id, pin) WHERE deleted_at IS NULL',
+  );
+  late final Index employeesStoreEmail = Index(
+    'employees_store_email',
+    'CREATE UNIQUE INDEX employees_store_email ON employees (store_id, email) WHERE deleted_at IS NULL',
   );
   late final BusinessDays businessDays = BusinessDays(this);
   late final Index businessDaysStoreDate = Index(
@@ -3537,7 +3537,7 @@ class DatabaseAtV21 extends GeneratedDatabase {
     'employees_outbox_insert',
   );
   late final Trigger employeesOutboxUpdate = Trigger(
-    'CREATE TRIGGER employees_outbox_update AFTER UPDATE ON employees WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, base_values, queued_at) SELECT \'employees\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'first_name\', first_name, \'last_name\', last_name, \'pin\', pin, \'phone\', phone, \'email\', email, \'photo_asset\', photo_asset, \'hire_date\', hire_date, \'role\', role, \'pay\', pay, \'created_at\', created_at, \'archived_at\', archived_at), (SELECT json_group_array(c) FROM (SELECT \'updated_at\' AS c WHERE NEW.updated_at IS NOT OLD.updated_at UNION ALL SELECT \'deleted_at\' AS c WHERE NEW.deleted_at IS NOT OLD.deleted_at UNION ALL SELECT \'id\' AS c WHERE NEW.id IS NOT OLD.id UNION ALL SELECT \'store_id\' AS c WHERE NEW.store_id IS NOT OLD.store_id UNION ALL SELECT \'first_name\' AS c WHERE NEW.first_name IS NOT OLD.first_name UNION ALL SELECT \'last_name\' AS c WHERE NEW.last_name IS NOT OLD.last_name UNION ALL SELECT \'pin\' AS c WHERE NEW.pin IS NOT OLD.pin UNION ALL SELECT \'phone\' AS c WHERE NEW.phone IS NOT OLD.phone UNION ALL SELECT \'email\' AS c WHERE NEW.email IS NOT OLD.email UNION ALL SELECT \'photo_asset\' AS c WHERE NEW.photo_asset IS NOT OLD.photo_asset UNION ALL SELECT \'hire_date\' AS c WHERE NEW.hire_date IS NOT OLD.hire_date UNION ALL SELECT \'role\' AS c WHERE NEW.role IS NOT OLD.role UNION ALL SELECT \'pay\' AS c WHERE NEW.pay IS NOT OLD.pay UNION ALL SELECT \'created_at\' AS c WHERE NEW.created_at IS NOT OLD.created_at UNION ALL SELECT \'archived_at\' AS c WHERE NEW.archived_at IS NOT OLD.archived_at)), (SELECT CASE WHEN count(*) = 0 THEN NULL ELSE json_group_object(c, v) END FROM (SELECT \'pay\' AS c, OLD.pay AS v WHERE NEW.pay IS NOT OLD.pay UNION ALL SELECT \'role\' AS c, OLD.role AS v WHERE NEW.role IS NOT OLD.role)), (SELECT now FROM sync_clock) FROM employees WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = CASE WHEN outbox.changed_columns IS NULL OR excluded.changed_columns IS NULL THEN NULL ELSE (SELECT json_group_array(value) FROM (SELECT value FROM json_each(outbox.changed_columns)UNION SELECT value FROM json_each(excluded.changed_columns))) END, base_values = CASE WHEN outbox.base_values IS NULL THEN excluded.base_values WHEN excluded.base_values IS NULL THEN outbox.base_values ELSE (SELECT json_group_object("key", value) FROM (SELECT "key", value FROM json_each(outbox.base_values)UNION ALL SELECT "key", value FROM json_each(excluded.base_values)WHERE "key" NOT IN (SELECT "key" FROM json_each(outbox.base_values)))) END, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'CREATE TRIGGER employees_outbox_update AFTER UPDATE ON employees WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, base_values, queued_at) SELECT \'employees\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'first_name\', first_name, \'last_name\', last_name, \'pin\', pin, \'phone\', phone, \'email\', email, \'photo_asset\', photo_asset, \'hire_date\', hire_date, \'role\', role, \'pay\', pay, \'created_at\', created_at, \'archived_at\', archived_at), (SELECT json_group_array(c) FROM (SELECT \'updated_at\' AS c WHERE NEW.updated_at IS NOT OLD.updated_at UNION ALL SELECT \'deleted_at\' AS c WHERE NEW.deleted_at IS NOT OLD.deleted_at UNION ALL SELECT \'id\' AS c WHERE NEW.id IS NOT OLD.id UNION ALL SELECT \'store_id\' AS c WHERE NEW.store_id IS NOT OLD.store_id UNION ALL SELECT \'first_name\' AS c WHERE NEW.first_name IS NOT OLD.first_name UNION ALL SELECT \'last_name\' AS c WHERE NEW.last_name IS NOT OLD.last_name UNION ALL SELECT \'pin\' AS c WHERE NEW.pin IS NOT OLD.pin UNION ALL SELECT \'phone\' AS c WHERE NEW.phone IS NOT OLD.phone UNION ALL SELECT \'email\' AS c WHERE NEW.email IS NOT OLD.email UNION ALL SELECT \'photo_asset\' AS c WHERE NEW.photo_asset IS NOT OLD.photo_asset UNION ALL SELECT \'hire_date\' AS c WHERE NEW.hire_date IS NOT OLD.hire_date UNION ALL SELECT \'role\' AS c WHERE NEW.role IS NOT OLD.role UNION ALL SELECT \'pay\' AS c WHERE NEW.pay IS NOT OLD.pay UNION ALL SELECT \'created_at\' AS c WHERE NEW.created_at IS NOT OLD.created_at UNION ALL SELECT \'archived_at\' AS c WHERE NEW.archived_at IS NOT OLD.archived_at)), (SELECT CASE WHEN count(*) = 0 THEN NULL ELSE json_group_object(c, v) END FROM (SELECT \'pay\' AS c, OLD.pay AS v WHERE NEW.pay IS NOT OLD.pay UNION ALL SELECT \'role\' AS c, OLD.role AS v WHERE NEW.role IS NOT OLD.role UNION ALL SELECT \'archived_at\' AS c, OLD.archived_at AS v WHERE NEW.archived_at IS NOT OLD.archived_at)), (SELECT now FROM sync_clock) FROM employees WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = CASE WHEN outbox.changed_columns IS NULL OR excluded.changed_columns IS NULL THEN NULL ELSE (SELECT json_group_array(value) FROM (SELECT value FROM json_each(outbox.changed_columns)UNION SELECT value FROM json_each(excluded.changed_columns))) END, base_values = CASE WHEN outbox.base_values IS NULL THEN excluded.base_values WHEN excluded.base_values IS NULL THEN outbox.base_values ELSE (SELECT json_group_object("key", value) FROM (SELECT "key", value FROM json_each(outbox.base_values)UNION ALL SELECT "key", value FROM json_each(excluded.base_values)WHERE "key" NOT IN (SELECT "key" FROM json_each(outbox.base_values)))) END, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
     'employees_outbox_update',
   );
   late final Trigger employeeCredentialsOutboxInsert = Trigger(
@@ -3759,8 +3759,6 @@ class DatabaseAtV21 extends GeneratedDatabase {
     itemsUnit,
     employeeCredentials,
     employeesStore,
-    employeesPin,
-    employeesEmail,
     payrollPeriods,
     attendances,
     attendancesEmployeeDate,
@@ -3768,6 +3766,8 @@ class DatabaseAtV21 extends GeneratedDatabase {
     supplierPrices,
     supplierPricesPair,
     employeeCredentialsEmployee,
+    employeesStorePin,
+    employeesStoreEmail,
     businessDays,
     businessDaysStoreDate,
     priceHistory,

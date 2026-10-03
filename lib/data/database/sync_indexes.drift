@@ -20,6 +20,15 @@ CREATE UNIQUE INDEX supplier_prices_pair
 CREATE UNIQUE INDEX employee_credentials_employee
   ON employee_credentials (employee_id) WHERE deleted_at IS NULL;
 
+-- One employee per CIN, and per email, in a store (schema v21, rule E1):
+-- a record merged into another by sync stays behind, deleted, and the same
+-- CIN in two stores stays two people.
+CREATE UNIQUE INDEX employees_store_pin
+  ON employees (store_id, pin) WHERE deleted_at IS NULL;
+
+CREATE UNIQUE INDEX employees_store_email
+  ON employees (store_id, email) WHERE deleted_at IS NULL;
+
 -- One journée de service per store and date (schema v21).
 CREATE UNIQUE INDEX business_days_store_date
   ON business_days (store_id, date) WHERE deleted_at IS NULL;

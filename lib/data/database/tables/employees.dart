@@ -13,8 +13,10 @@ import 'sync_columns.dart';
 /// whole truth about whether they are still active.
 @DataClassName('EmployeeRow')
 @TableIndex(name: 'employees_store', columns: {#storeId})
-@TableIndex(name: 'employees_pin', columns: {#pin}, unique: true)
-@TableIndex(name: 'employees_email', columns: {#email}, unique: true)
+// The PIN (CIN) and the email are unique per store among live rows —
+// `employees_store_pin` / `employees_store_email` in `sync_indexes.drift`
+// (SYNC_PERSONNEL_PLAN.md, step 8, rule E1). The repository still refuses a
+// duplicate anywhere in the account when one is typed here.
 class Employees extends Table with Touched, Deletable {
   TextColumn get id => text().withLength(min: 1, max: 64)();
 
@@ -28,9 +30,11 @@ class Employees extends Table with Touched, Deletable {
   TextColumn get lastName => text()();
 
   /// Carte d'identité nationale — the identity document, and the login
-  /// identifier (Phase 6). Unique across the whole account, not per store; the
-  /// index above makes that a constraint, and the repository keeps its own
-  /// check for the message the form shows.
+  /// identifier (Phase 6). The repository refuses one already used anywhere
+  /// in the account; the database only holds it unique per store among live
+  /// rows, because two tablets can each add "the" same person — sync merges
+  /// them (rule E1) — or the same CIN in two stores, which stays two people
+  /// and is signalled.
   TextColumn get pin => text()();
 
   TextColumn get phone => text()();

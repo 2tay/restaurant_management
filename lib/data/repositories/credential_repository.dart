@@ -243,8 +243,13 @@ class CredentialRepository {
   /// the login lockout state [authenticate] keeps — a miss here never locks
   /// anybody out of signing in, and a hit never clears a login lockout.
   Future<bool> verifyPin(String pin, String expectedEmployeeId) async {
-    final match = await EmployeeRepository(_db).employeeByPin(pin.trim());
-    return match != null && match.id == expectedEmployeeId;
+    // Against the expected person's own PIN, not a lookup: the same CIN can
+    // sit on two people in two stores (rule E1), and the lookup returns one.
+    final expected = await EmployeeRepository(
+      _db,
+    ).employee(expectedEmployeeId);
+    return expected != null &&
+        EmployeeRepository.sameIdentifier(expected.pin, pin);
   }
 
   // ---------------------------------------------------------------------------

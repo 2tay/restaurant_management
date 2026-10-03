@@ -131,8 +131,6 @@ class AppDatabase extends _$AppDatabase {
         // are separate schema objects and must be created by hand.
         for (final index in [
           employeesStore,
-          employeesPin,
-          employeesEmail,
           employeeCredentialsEmployee,
           payrollPeriodsEmployee,
           payrollPeriodsStore,
@@ -143,6 +141,14 @@ class AppDatabase extends _$AppDatabase {
         ]) {
           await m.create(index);
         }
+        // The PIN and email indexes of the time, by hand: they are no longer
+        // in the schema (v21 replaces them with per-store ones).
+        await customStatement(
+          'CREATE UNIQUE INDEX employees_pin ON employees (pin)',
+        );
+        await customStatement(
+          'CREATE UNIQUE INDEX employees_email ON employees (email)',
+        );
         await m.addColumn(stores, stores.maxBreakMinutes);
       }
 
@@ -331,7 +337,9 @@ class AppDatabase extends _$AppDatabase {
       if (from >= 2 && from < 13) {
         await customStatement('DROP INDEX employees_cin');
         await m.renameColumn(employees, 'cin', employees.pin);
-        await m.create(employeesPin);
+        await customStatement(
+          'CREATE UNIQUE INDEX employees_pin ON employees (pin)',
+        );
         await m.renameColumn(
           employeeCredentials,
           'pin_hash',
@@ -448,6 +456,12 @@ class AppDatabase extends _$AppDatabase {
         ]) {
           await _addColumnIfMissing(m, notifications, column);
         }
+        // Step 8 (rule E1): the CIN and the email are unique per store
+        // among live rows, no longer across every row of the account.
+        await customStatement('DROP INDEX IF EXISTS employees_pin');
+        await customStatement('DROP INDEX IF EXISTS employees_email');
+        await m.create(employeesStorePin);
+        await m.create(employeesStoreEmail);
         // Step 7 (rule PA1): the trop-versé of a « paiement en double ».
         await _addColumnIfMissing(
           m,

@@ -7,9 +7,11 @@ import '../../services/auth_service.dart';
 import '../database/app_database.dart';
 import '../database/sync_tables.dart';
 import '../database/tables/sync_columns.dart';
+import '../../models/employee.dart';
 import 'account_repository.dart';
 import 'attendance_repository.dart';
 import 'credential_repository.dart';
+import 'employee_repository.dart';
 import 'stock_ledger.dart';
 import 'sync_quiet.dart';
 
@@ -57,6 +59,19 @@ import 'sync_quiet.dart';
 ///   earliest, silently;
 /// - **a pointage on a journée closed on another tablet**: the close stays,
 ///   the pointage stays, and it is signalled (rule P6);
+///
+/// ## Employees across tablets (step 8)
+///
+/// - **the same CIN added on two tablets, same store** (rule E1): one
+///   record, the smaller id; the other is marked deleted and its days,
+///   payments and password move to the kept one. Name, phone and email are
+///   the kept record's; its photo, else the other's; the earliest hire date;
+///   the kept rate; the weakest role; active if either is. Signalled, with
+///   any rate or role difference. A row still pointing at the record merged
+///   away is redirected here as it arrives;
+/// - **the same CIN in two stores**: two people, nothing merged, signalled;
+/// - **a pointage after a retirement** (rule E4): the hours stay — the
+///   payroll lists a retired employee still owed — and it is signalled.
 /// - **two supplier links, two credentials**: the most recently changed one
 ///   is kept (the larger id on a tie), the other is marked deleted.
 ///
@@ -199,14 +214,24 @@ class SyncApplier {
   Future<void> _applyRow(
     TableInfo<Table, dynamic> table,
     String name,
-    Map<String, dynamic> row,
+    Map<String, dynamic> received,
     String storeId,
   ) async {
+    var row = received;
     final live = row['deleted_at'] == null;
+    // A row of an employee merged into another (rule E1) goes to the kept
+    // one — on every tablet, as it arrives.
+    if (live && _ownedByEmployee.contains(name)) {
+      final kept = await _mergedInto(row['employee_id'] as String?);
+      if (kept != null) row = {...row, 'employee_id': kept};
+    }
     switch (name) {
+      case 'employees' when live:
+        return _applyEmployee(table, row, storeId);
       case 'attendances' when live:
         await _applyAttendance(table, row, storeId);
-        return _refreshStatus(row['id'] as String);
+        await _refreshStatus(row['id'] as String);
+        return _signalArchivedPunches(row['employee_id'] as String);
       case 'attendance_sessions':
         return _applySession(table, row, storeId);
       case 'attendance_pauses':
@@ -472,6 +497,7 @@ class SyncApplier {
         await _refreshStatus(day.id);
         if (row['deleted_at'] == null) {
           await _signalPunchesAfterClose(day.storeId, day.date);
+          await _signalArchivedPunches(day.employeeId);
         }
       }
       return;
@@ -522,6 +548,301 @@ class SyncApplier {
     }
     if (sessions.isNotEmpty) await _refreshStatus(toId);
   }
+
+  // ---------------------------------------------------------------------------
+  // Employees (step 8)
+  // ---------------------------------------------------------------------------
+
+  static const Set<String> _ownedByEmployee = {
+    'attendances',
+    'payroll_periods',
+    'employee_credentials',
+  };
+
+  /// The live employee [employeeId] was merged into, or null when it was
+  /// not: a record deleted, and a live one of the same store with its CIN.
+  Future<String?> _mergedInto(String? employeeId) async {
+    if (employeeId == null) return null;
+    final gone = await (_db.select(
+      _db.employees,
+    )..where((e) => e.id.equals(employeeId))).getSingleOrNull();
+    if (gone == null || gone.deletedAt == null) return null;
+    final live = await (_db.select(_db.employees)..where(
+          (e) => e.storeId.equals(gone.storeId) & e.deletedAt.isNull(),
+        ))
+        .get();
+    for (final e in live) {
+      if (EmployeeRepository.sameIdentifier(e.pin, gone.pin)) return e.id;
+    }
+    return null;
+  }
+
+  /// A received employee: merged with a record of the same CIN in the same
+  /// store (rule E1), signalled when one sits in another store.
+  Future<void> _applyEmployee(
+    TableInfo<Table, dynamic> table,
+    Map<String, dynamic> row,
+    String storeId,
+  ) async {
+    final incomingId = row['id'] as String;
+    final pin = row['pin'] as String;
+    final twins = [
+      for (final e in await (_db.select(_db.employees)..where(
+            (e) => e.deletedAt.isNull() & e.id.equals(incomingId).not(),
+          ))
+          .get())
+        if (EmployeeRepository.sameIdentifier(e.pin, pin)) e,
+    ];
+    final sameStore = twins
+        .where((e) => e.storeId == row['store_id'])
+        .firstOrNull;
+
+    for (final other in twins.where((e) => e.storeId != row['store_id'])) {
+      final ids = [incomingId, other.id]..sort();
+      final name = '${row['first_name']} ${row['last_name']}';
+      await SyncQuiet.loud(
+        _db,
+        () => AccountRepository(_db).signal(
+          // The same row on every tablet: filed under the store of the
+          // record with the smaller id.
+          storeId: ids.first == incomingId
+              ? row['store_id'] as String
+              : other.storeId,
+          key: 'same_cin:${ids.join(':')}',
+          title: 'Même CIN dans deux établissements : $name',
+          body:
+              '$name et ${other.firstName} ${other.lastName} ont la même CIN '
+              'dans deux établissements. Les deux fiches sont gardées, rien '
+              'n\'est regroupé : corrigez la CIN de celle qui est fausse.',
+          employeeId: incomingId,
+          at: clock.now(),
+        ),
+      );
+    }
+
+    if (sameStore == null) {
+      await _upsert(table, row);
+      return _signalArchivedPunches(incomingId);
+    }
+    await _mergeEmployees(table, row, sameStore);
+  }
+
+  static const Map<EmployeeRole, String> _roleLabel = {
+    EmployeeRole.owner: 'Propriétaire',
+    EmployeeRole.manager: 'Gérant',
+    EmployeeRole.staff: 'Employé',
+  };
+
+  /// Rule E1: two records of one person, added on two tablets.
+  Future<void> _mergeEmployees(
+    TableInfo<Table, dynamic> table,
+    Map<String, dynamic> row,
+    EmployeeRow local,
+  ) async {
+    DateTime? date(GeneratedColumn<Object> column) =>
+        _convert('employees', column, row[column.name]) as DateTime?;
+    final incoming = EmployeeRow(
+      id: row['id'] as String,
+      storeId: row['store_id'] as String,
+      firstName: row['first_name'] as String,
+      lastName: row['last_name'] as String,
+      pin: row['pin'] as String,
+      phone: row['phone'] as String,
+      email: row['email'] as String,
+      photoAsset: row['photo_asset'] as String?,
+      hireDate: date(_db.employees.hireDate)!,
+      role: EmployeeRole.values.byName(row['role'] as String),
+      pay: (row['pay'] as num).toDouble(),
+      createdAt: date(_db.employees.createdAt)!,
+      archivedAt: date(_db.employees.archivedAt),
+      updatedAt: date(_db.employees.updatedAt) ?? clock.now(),
+    );
+    final keepIncoming = incoming.id.compareTo(local.id) < 0;
+    final kept = keepIncoming ? incoming : local;
+    final other = keepIncoming ? local : incoming;
+    final now = clock.now();
+
+    // The weakest role: an Employé over a Gérant over the owner.
+    final role = EmployeeRole.values[[
+      kept.role.index,
+      other.role.index,
+    ].reduce((a, b) => a > b ? a : b)];
+    final merged = EmployeesCompanion(
+      photoAsset: Value(kept.photoAsset ?? other.photoAsset),
+      hireDate: Value(
+        kept.hireDate.isBefore(other.hireDate) ? kept.hireDate : other.hireDate,
+      ),
+      role: Value(role),
+      archivedAt: Value(
+        kept.archivedAt == null || other.archivedAt == null
+            ? null
+            : kept.archivedAt,
+      ),
+    );
+
+    if (keepIncoming) {
+      await SyncQuiet.loud(
+        _db,
+        () => (_db.update(_db.employees)..where((e) => e.id.equals(local.id)))
+            .write(EmployeesCompanion(deletedAt: Value(now))),
+      );
+      await _upsert(table, row);
+    } else {
+      await SyncQuiet.loud(
+        _db,
+        () => _upsert(table, {...row, 'deleted_at': now.toUtc().toIso8601String()}),
+      );
+    }
+    await SyncQuiet.loud(_db, () async {
+      await (_db.update(_db.employees)..where((e) => e.id.equals(kept.id)))
+          .write(merged);
+      await _moveEmployeeRows(other.id, kept.id);
+    });
+
+    final name = '${kept.firstName} ${kept.lastName}';
+    final notes = [
+      if (kept.pay != other.pay)
+        'Taux horaire différent (${_euro(kept.pay)} et ${_euro(other.pay)}) : '
+            'celui de la fiche gardée, ${_euro(kept.pay)}, est appliqué.',
+      if (kept.role != other.role)
+        'Rôle différent (${_roleLabel[kept.role]} et ${_roleLabel[other.role]}) '
+            ': le plus limité, ${_roleLabel[role]}, est gardé.',
+    ];
+    await SyncQuiet.loud(
+      _db,
+      () => AccountRepository(_db).signal(
+        storeId: kept.storeId,
+        key: 'merge_employee:${kept.id}',
+        title: 'Employé ajouté deux fois : $name',
+        body: [
+          '$name a été ajouté sur deux tablettes avec la même CIN. Les deux '
+              'fiches sont regroupées : pointages et paiements réunis.',
+          ...notes,
+          if (notes.isNotEmpty) 'À vérifier sur sa fiche.',
+        ].join(' '),
+        employeeId: kept.id,
+        at: now,
+      ),
+    );
+    await _signalArchivedPunches(kept.id);
+  }
+
+  /// Moves the days, payments and password of employee [fromId] to [toId].
+  /// Two days on one date become one, as two clock-ins do (the paid one
+  /// kept, else the smaller id); two passwords keep the most recent.
+  Future<void> _moveEmployeeRows(String fromId, String toId) async {
+    await (_db.update(_db.payrollPeriods)
+          ..where((p) => p.employeeId.equals(fromId)))
+        .write(PayrollPeriodsCompanion(employeeId: Value(toId)));
+
+    final days = await (_db.select(_db.attendances)..where(
+          (a) => a.employeeId.equals(fromId) & a.deletedAt.isNull(),
+        ))
+        .get();
+    for (final day in days) {
+      final twin =
+          await (_db.select(_db.attendances)..where(
+                (a) =>
+                    a.employeeId.equals(toId) &
+                    a.date.equals(day.date) &
+                    a.deletedAt.isNull(),
+              ))
+              .getSingleOrNull();
+      if (twin == null) {
+        await (_db.update(_db.attendances)..where((a) => a.id.equals(day.id)))
+            .write(AttendancesCompanion(employeeId: Value(toId)));
+        continue;
+      }
+      final keepDay = (day.payrollPeriodId != null) != (twin.payrollPeriodId != null)
+          ? (day.payrollPeriodId != null ? day : twin)
+          : (day.id.compareTo(twin.id) < 0 ? day : twin);
+      final dropDay = keepDay.id == day.id ? twin : day;
+      await (_db.update(_db.attendances)..where((a) => a.id.equals(dropDay.id)))
+          .write(AttendancesCompanion(deletedAt: Value(clock.now())));
+      if (keepDay.id == day.id) {
+        await (_db.update(_db.attendances)..where((a) => a.id.equals(day.id)))
+            .write(AttendancesCompanion(employeeId: Value(toId)));
+      }
+      await _moveSessions(dropDay.id, keepDay.id);
+    }
+
+    final credentials = await (_db.select(_db.employeeCredentials)..where(
+          (c) =>
+              (c.employeeId.equals(fromId) | c.employeeId.equals(toId)) &
+              c.deletedAt.isNull(),
+        ))
+        .get();
+    if (credentials.length > 1) {
+      credentials.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+      for (final older in credentials.skip(1)) {
+        await (_db.update(_db.employeeCredentials)
+              ..where((c) => c.id.equals(older.id)))
+            .write(EmployeeCredentialsCompanion(deletedAt: Value(clock.now())));
+      }
+    }
+    await (_db.update(_db.employeeCredentials)
+          ..where((c) => c.employeeId.equals(fromId) & c.deletedAt.isNull()))
+        .write(EmployeeCredentialsCompanion(employeeId: Value(toId)));
+    await (_db.delete(
+      _db.loginStates,
+    )..where((s) => s.employeeId.equals(fromId))).go();
+  }
+
+  /// Rule E4: an employee retired on one tablet who kept pointing on
+  /// another. The hours stay; each day with an arrival after the retirement
+  /// is signalled once.
+  Future<void> _signalArchivedPunches(String employeeId) async {
+    final employee = await (_db.select(
+      _db.employees,
+    )..where((e) => e.id.equals(employeeId))).getSingleOrNull();
+    final archivedAt = employee?.archivedAt;
+    if (employee == null || employee.deletedAt != null || archivedAt == null) {
+      return;
+    }
+    final late =
+        await (_db.select(_db.attendanceSessions).join([
+                innerJoin(
+                  _db.attendances,
+                  _db.attendances.id.equalsExp(
+                    _db.attendanceSessions.attendanceId,
+                  ),
+                ),
+              ])
+              ..where(
+                _db.attendances.employeeId.equals(employeeId) &
+                    _db.attendances.deletedAt.isNull() &
+                    _db.attendanceSessions.deletedAt.isNull() &
+                    _db.attendanceSessions.clockInAt.isBiggerThanValue(
+                      archivedAt,
+                    ),
+              ))
+            .get();
+    final name = '${employee.firstName} ${employee.lastName}';
+    for (final match in late) {
+      final day = match.readTable(_db.attendances);
+      final session = match.readTable(_db.attendanceSessions);
+      await SyncQuiet.loud(
+        _db,
+        () => AccountRepository(_db).signal(
+          storeId: employee.storeId,
+          key: 'archived_punch:${day.id}',
+          title: 'Pointage après le retrait : $name',
+          body:
+              '$name a été retiré le ${_numericDate(archivedAt)} sur une '
+              'tablette, mais a pointé le ${_numericDate(day.date)} à '
+              '${_time(session.clockInAt)} sur une autre. Les heures sont '
+              'gardées : elles restent à payer sur la page Paiement, où '
+              '$name apparaît « Retiré ».',
+          employeeId: employee.id,
+          target: 'payroll',
+          at: clock.now(),
+        ),
+      );
+    }
+  }
+
+  static String _euro(double amount) =>
+      '${amount.toStringAsFixed(2).replaceAll('.', ',')} €';
 
   /// The gap between two exits of one session past which it is signalled.
   static const Duration doubleExitGap = Duration(minutes: 15);

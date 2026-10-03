@@ -905,7 +905,8 @@ BEGIN
         UNION ALL SELECT 'archived_at' AS c WHERE NEW.archived_at IS NOT OLD.archived_at)), (SELECT CASE WHEN count(*) = 0 THEN NULL
           ELSE json_group_object(c, v) END FROM (
         SELECT 'pay' AS c, OLD.pay AS v WHERE NEW.pay IS NOT OLD.pay
-        UNION ALL SELECT 'role' AS c, OLD.role AS v WHERE NEW.role IS NOT OLD.role)), (SELECT now FROM sync_clock)
+        UNION ALL SELECT 'role' AS c, OLD.role AS v WHERE NEW.role IS NOT OLD.role
+        UNION ALL SELECT 'archived_at' AS c, OLD.archived_at AS v WHERE NEW.archived_at IS NOT OLD.archived_at)), (SELECT now FROM sync_clock)
   FROM employees WHERE rowid = NEW.rowid
   ON CONFLICT (changed_table, row_key) DO UPDATE SET
     store_id = excluded.store_id,

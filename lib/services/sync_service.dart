@@ -275,6 +275,45 @@ class SyncRunner {
       'base': jsonDecode(entry.baseValues!) as Map<String, Object?>,
   };
 
+  /// Rules E2 and E5: this tablet's change of an hourly rate, a role, or
+  /// the retirement replaced another tablet's, made meanwhile. The last
+  /// change wins; the managers and the owner are told.
+  Future<void> _signalEmployeeOverwrite(
+    OutboxRow entry,
+    List<String> columns,
+  ) async {
+    final employee = await EmployeeRepository(_db).employee(entry.rowKey);
+    if (employee == null) return;
+    final name = '${employee.firstName} ${employee.lastName}';
+    final kept = [
+      if (columns.contains('pay'))
+        'le taux horaire (${_euros(employee.pay)} gardé)',
+      if (columns.contains('role'))
+        'le rôle (${switch (employee.role) {
+          EmployeeRole.owner => 'Propriétaire',
+          EmployeeRole.manager => 'Gérant',
+          EmployeeRole.staff => 'Employé',
+        }} gardé)',
+      if (columns.contains('archived_at'))
+        employee.archivedAt == null
+            ? 'le retrait (la réactivation est gardée : $name est actif)'
+            : 'la réactivation (le retrait est gardé : $name est retiré)',
+    ];
+    if (kept.isEmpty) return;
+    final at = clock.now();
+    await AccountRepository(_db).signal(
+      storeId: entry.storeId,
+      key: 'employee_twice:${entry.rowKey}:${at.millisecondsSinceEpoch}',
+      title: 'Fiche modifiée sur deux tablettes : $name',
+      body:
+          'Pendant que $name était modifié ici, une autre tablette a changé '
+          '${kept.join(', ')}. La dernière modification est gardée : '
+          'vérifiez sa fiche.',
+      employeeId: employee.id,
+      at: at,
+    );
+  }
+
   /// A change the server refused on a paid day (SYNC_PERSONNEL_PLAN.md,
   /// step 7): the server's version is put back, and what it means is
   /// signalled — a « paiement en double » (PA1), or the hours a change left
@@ -401,6 +440,9 @@ class SyncRunner {
   /// An accepted edit replaced another tablet's unseen change of a watched
   /// column (rule C2): it wins, and the managers and the owner are told.
   Future<void> _signalOverwrite(OutboxRow entry, List<String> columns) async {
+    if (entry.changedTable == 'employees') {
+      return _signalEmployeeOverwrite(entry, columns);
+    }
     if (entry.changedTable == 'employee_credentials' &&
         columns.contains('password_hash')) {
       final payload = jsonDecode(entry.payload) as Map<String, Object?>;

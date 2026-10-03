@@ -47,7 +47,7 @@ PARTIAL = {
 # (rules C2 and E2). Only in PARTIAL tables.
 WATCHED = {
     'employee_credentials': ['password_hash'],
-    'employees': ['pay', 'role'],
+    'employees': ['pay', 'role', 'archived_at'],
 }
 
 # The key and the establishment of a row, as SQL over the row's own columns.

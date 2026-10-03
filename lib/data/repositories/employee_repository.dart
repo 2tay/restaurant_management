@@ -326,6 +326,13 @@ class EmployeeRepository {
   /// still resolves.
   static String _normalise(String value) => value.trim().toLowerCase();
 
+  /// Whether two PINs (CIN) or emails name the same thing — the comparison
+  /// every lookup here makes. Sync's merge (rule E1) uses it too.
+  static bool sameIdentifier(String a, String b) {
+    final left = _normalise(a);
+    return left.isNotEmpty && left == _normalise(b);
+  }
+
   Future<List<Employee>> _all() =>
       (_db.select(_db.employees)..where((e) => e.deletedAt.isNull()))
           .get()
