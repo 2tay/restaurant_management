@@ -181,37 +181,46 @@ class SyncApplier {
   /// tablet's change to them (SYNC_PERSONNEL_PLAN.md, step 7): written like
   /// received rows — quietly, foreign keys checked at the end — and the
   /// days' status recomputed. A row the server never had ([forget]) is
-  /// marked deleted here.
+  /// marked deleted here. The tables written are announced, as [apply]
+  /// does, so the screens show the server's version at once.
   Future<void> restore(
     List<({String table, Map<String, Object?> row})> rows, {
     ({String table, String key})? forget,
-  }) => SyncQuiet.run(_db, () async {
-    await _db.customStatement('PRAGMA defer_foreign_keys = ON');
-    for (final (:table, :row) in rows) {
-      final info = _tables[table];
-      if (info == null) continue;
-      await _upsert(info, row);
+  }) async {
+    await SyncQuiet.run(_db, () async {
+      await _db.customStatement('PRAGMA defer_foreign_keys = ON');
+      for (final (:table, :row) in rows) {
+        final info = _tables[table];
+        if (info == null) continue;
+        await _upsert(info, row);
+      }
+      if (forget != null && _tables[forget.table] != null) {
+        await _db.customUpdate(
+          'UPDATE "${forget.table}" SET deleted_at = ? WHERE id = ?',
+          variables: [
+            Variable<DateTime>(syncStampNow()),
+            Variable<String>(forget.key),
+          ],
+          updates: {_tables[forget.table]!},
+        );
+      }
+      final days = <String>{
+        for (final (:table, :row) in rows)
+          if (table == 'attendances') row['id']! as String,
+        for (final (:table, :row) in rows)
+          if (table == 'attendance_sessions') row['attendance_id']! as String,
+      };
+      for (final day in days) {
+        await _refreshStatus(day);
+      }
+    });
+    final touched = {for (final r in rows) ?_tables[r.table]};
+    if (touched.isNotEmpty) {
+      _db.notifyUpdates({
+        for (final table in touched) TableUpdate.onTable(table),
+      });
     }
-    if (forget != null && _tables[forget.table] != null) {
-      await _db.customUpdate(
-        'UPDATE "${forget.table}" SET deleted_at = ? WHERE id = ?',
-        variables: [
-          Variable<DateTime>(syncStampNow()),
-          Variable<String>(forget.key),
-        ],
-        updates: {_tables[forget.table]!},
-      );
-    }
-    final days = <String>{
-      for (final (:table, :row) in rows)
-        if (table == 'attendances') row['id']! as String,
-      for (final (:table, :row) in rows)
-        if (table == 'attendance_sessions') row['attendance_id']! as String,
-    };
-    for (final day in days) {
-      await _refreshStatus(day);
-    }
-  });
+  }
 
   // ---------------------------------------------------------------------------
   // Conflicts settled on receipt (Phase 7)
