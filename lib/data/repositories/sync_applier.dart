@@ -10,7 +10,6 @@ import '../database/tables/sync_columns.dart';
 import '../../models/employee.dart';
 import 'account_repository.dart';
 import 'attendance_repository.dart';
-import 'credential_repository.dart';
 import 'employee_repository.dart';
 import 'stock_ledger.dart';
 import 'sync_quiet.dart';
@@ -32,10 +31,10 @@ import 'sync_quiet.dart';
 ///
 /// ## Conflicts settled on receipt (Phase 7)
 ///
-/// The device has four "one per" rules the server does not: one live day
+/// The device has three "one per" rules the server does not: one live day
 /// per employee and date, one live journée de service per store and date, one
-/// live link per article and supplier, one live credential per employee. Two tablets working offline can both create "the"
-/// row. When a received row meets a live local one for the same key, the
+/// live link per article and supplier. Two tablets working offline can both
+/// create "the" row. When a received row meets a live local one for the same key, the
 /// same rule runs on every device, so every device ends the same:
 ///
 /// - **two days for one employee**: the day linked to a pay period is kept,
@@ -57,14 +56,15 @@ import 'sync_quiet.dart';
 ///   when the gap passes [doubleExitGap], or always when one of them was a
 ///   manager's correction (rules P4, H1, H2). Two ends for one break: the
 ///   earliest, silently;
-/// - **a pointage on a journée closed on another tablet**: the close stays,
-///   the pointage stays, and it is signalled (rule P6);
+/// - **a pointage on a journée closed on another tablet**: the close wins —
+///   a shift still open ends at the close, an arrival after it is removed —
+///   and it is signalled (rule P6);
 ///
 /// ## Employees across tablets (step 8)
 ///
 /// - **the same CIN added on two tablets, same store** (rule E1): one
-///   record, the smaller id; the other is marked deleted and its days,
-///   payments and password move to the kept one. Name, phone and email are
+///   record, the smaller id; the other is marked deleted and its days and
+///   payments move to the kept one. Name, phone and email are
 ///   the kept record's; its photo, else the other's; the earliest hire date;
 ///   the kept rate; the weakest role; active if either is. Signalled, with
 ///   any rate or role difference. A row still pointing at the record merged
@@ -72,7 +72,7 @@ import 'sync_quiet.dart';
 /// - **the same CIN in two stores**: two people, nothing merged, signalled;
 /// - **a pointage after a retirement** (rule E4): the hours stay — the
 ///   payroll lists a retired employee still owed — and it is signalled.
-/// - **two supplier links, two credentials**: the most recently changed one
+/// - **two supplier links**: the most recently changed one
 ///   is kept (the larger id on a tie), the other is marked deleted.
 ///
 /// Those resolutions are real changes: they are written with the queue on
@@ -281,36 +281,6 @@ class SyncApplier {
                   .write(SupplierPricesCompanion(deletedAt: Value(at))),
           resolution: 'resolved_duplicate_link',
           afterwards: () => _ensureDefaultPrice(row['item_id'] as String),
-        );
-      case 'employee_credentials' when live:
-        // A new password reaching this tablet clears the lockout this
-        // tablet keeps for it, as a password set here does (rule C3).
-        final employeeId = row['employee_id'] as String;
-        final before = await (_db.select(_db.employeeCredentials)..where(
-              (c) => c.employeeId.equals(employeeId) & c.deletedAt.isNull(),
-            ))
-            .getSingleOrNull();
-        if (before != null && before.passwordHash != row['password_hash']) {
-          await CredentialRepository(_db).resetAttempts(employeeId);
-        }
-        return _applyKeepRecent(
-          table,
-          row,
-          storeId,
-          existing: () =>
-              (_db.select(_db.employeeCredentials)..where(
-                    (c) =>
-                        c.employeeId.equals(row['employee_id'] as String) &
-                        c.deletedAt.isNull() &
-                        c.id.equals(row['id'] as String).not(),
-                  ))
-                  .map((c) => (id: c.id, updatedAt: c.updatedAt))
-                  .getSingleOrNull(),
-          markDeleted: (id, at) =>
-              (_db.update(_db.employeeCredentials)
-                    ..where((c) => c.id.equals(id)))
-                  .write(EmployeeCredentialsCompanion(deletedAt: Value(at))),
-          resolution: null,
         );
       default:
         return _upsert(table, row);
@@ -576,7 +546,6 @@ class SyncApplier {
   static const Set<String> _ownedByEmployee = {
     'attendances',
     'payroll_periods',
-    'employee_credentials',
   };
 
   /// The live employee [employeeId] was merged into, or null when it was
@@ -747,9 +716,9 @@ class SyncApplier {
     await _signalArchivedPunches(kept.id);
   }
 
-  /// Moves the days, payments and password of employee [fromId] to [toId].
-  /// Two days on one date become one, as two clock-ins do (the paid one
-  /// kept, else the smaller id); two passwords keep the most recent.
+  /// Moves the days and payments of employee [fromId] to [toId]. Two days on
+  /// one date become one, as two clock-ins do (the paid one kept, else the
+  /// smaller id).
   Future<void> _moveEmployeeRows(String fromId, String toId) async {
     await (_db.update(_db.payrollPeriods)
           ..where((p) => p.employeeId.equals(fromId)))
@@ -785,27 +754,6 @@ class SyncApplier {
       }
       await _moveSessions(dropDay.id, keepDay.id);
     }
-
-    final credentials = await (_db.select(_db.employeeCredentials)..where(
-          (c) =>
-              (c.employeeId.equals(fromId) | c.employeeId.equals(toId)) &
-              c.deletedAt.isNull(),
-        ))
-        .get();
-    if (credentials.length > 1) {
-      credentials.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
-      for (final older in credentials.skip(1)) {
-        await (_db.update(_db.employeeCredentials)
-              ..where((c) => c.id.equals(older.id)))
-            .write(EmployeeCredentialsCompanion(deletedAt: Value(clock.now())));
-      }
-    }
-    await (_db.update(_db.employeeCredentials)
-          ..where((c) => c.employeeId.equals(fromId) & c.deletedAt.isNull()))
-        .write(EmployeeCredentialsCompanion(employeeId: Value(toId)));
-    await (_db.delete(
-      _db.loginStates,
-    )..where((s) => s.employeeId.equals(fromId))).go();
   }
 
   /// Rule E4: an employee retired on one tablet who kept pointing on
@@ -1127,8 +1075,7 @@ class SyncApplier {
         '${local.minute.toString().padLeft(2, '0')}';
   }
 
-  /// Two rows for one key where the most recent change wins: supplier links
-  /// and credentials.
+  /// Two rows for one key where the most recent change wins: supplier links.
   Future<void> _applyKeepRecent(
     TableInfo<Table, dynamic> table,
     Map<String, dynamic> row,

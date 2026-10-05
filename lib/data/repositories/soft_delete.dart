@@ -103,13 +103,6 @@ class SoftDelete {
   Future<int> unit(String id) =>
       _stamp(_db.units, _db.units.id.equals(id), clock.now());
 
-  /// An employee's login credential.
-  Future<int> credential(String employeeId) => _stamp(
-    _db.employeeCredentials,
-    _db.employeeCredentials.employeeId.equals(employeeId),
-    clock.now(),
-  );
-
   /// A one-off busy day.
   Future<int> busyDate(String storeId, String day) => _stamp(
     _db.busyDates,

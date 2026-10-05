@@ -180,12 +180,10 @@ void main() {
         'business_days',
         'busy_dates',
         'categories',
-        'employee_credentials',
         'employees',
         'goods_receipt_lines',
         'goods_receipts',
         'items',
-        'login_states',
         'meta',
         'notifications',
         'outbox',
@@ -203,8 +201,8 @@ void main() {
       ]);
     });
 
-    test('at schema version 21', () {
-      expect(db.schemaVersion, 21);
+    test('at schema version 22', () {
+      expect(db.schemaVersion, 22);
     });
 
     test('with foreign keys switched on', () async {
@@ -386,32 +384,9 @@ void main() {
       );
     });
 
-    test('one credential per employee', () async {
+    test('deleting an employee takes their days and pauses', () async {
       await seedMinimalStore();
       await insertEmployee();
-      Future<void> cred(String id) => db.into(db.employeeCredentials).insert(
-            EmployeeCredentialsCompanion.insert(
-              id: id,
-              storeId: 'store-1',
-              employeeId: 'emp-1',
-              passwordHash: 'password:1234',
-            ),
-          );
-      await cred('cred-1');
-      await expectLater(cred('cred-2'), throwsA(isA<SqliteException>()));
-    });
-
-    test('deleting an employee takes their credential, days and pauses', () async {
-      await seedMinimalStore();
-      await insertEmployee();
-      await db.into(db.employeeCredentials).insert(
-            EmployeeCredentialsCompanion.insert(
-              id: 'cred-1',
-              storeId: 'store-1',
-              employeeId: 'emp-1',
-              passwordHash: 'password:1234',
-            ),
-          );
       await insertAttendance(id: 'att-1');
       await db.into(db.attendanceSessions).insert(
             AttendanceSessionsCompanion.insert(
@@ -434,7 +409,6 @@ void main() {
 
       await (db.delete(db.employees)..where((e) => e.id.equals('emp-1'))).go();
 
-      expect(await db.select(db.employeeCredentials).get(), isEmpty);
       expect(await db.select(db.attendances).get(), isEmpty);
       expect(await db.select(db.attendanceSessions).get(), isEmpty);
       expect(await db.select(db.attendancePauses).get(), isEmpty);

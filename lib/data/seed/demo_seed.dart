@@ -59,9 +59,6 @@ Future<void> seedDemoData(AppDatabase db, {DateTime? at}) async {
   final Map<String, String> itemStore = {
     for (final item in mockItems) item.id: item.storeId,
   };
-  final Map<String, String> employeeStore = {
-    for (final employee in mockEmployees) employee.id: employee.storeId,
-  };
 
   // Quiet, so the demo does not arrive as a queue of changes to send: it is
   // the starting point, not something anybody did.
@@ -153,7 +150,7 @@ Future<void> seedDemoData(AppDatabase db, {DateTime? at}) async {
 
       // --- Gestion Employée (Phase 2 employé) --------------------------------
       //
-      // Foreign-key order: an employee before its credential and its attendance,
+      // Foreign-key order: an employee before its attendance,
       // a payroll period before the attendance rows it locks (`payrollPeriodId`
       // is `RESTRICT`), a pause after its day.
       batch.insertAll(db.employees, [
@@ -162,13 +159,6 @@ Future<void> seedDemoData(AppDatabase db, {DateTime? at}) async {
             hireDate: Value(movedByDays(employee.hireDate)),
             createdAt: Value(movedByDays(employee.createdAt)),
             archivedAt: movedByDaysValue(employee.archivedAt),
-          ),
-      ]);
-      batch.insertAll(db.employeeCredentials, [
-        for (final credential in mockCredentials)
-          credentialToRow(
-            credential,
-            storeId: employeeStore[credential.employeeId]!,
           ),
       ]);
       batch.insertAll(db.payrollPeriods, [
@@ -267,14 +257,13 @@ Future<void> clearAllData(AppDatabase db) async {
 
     // Gestion Employée, reverse foreign-key order: a pause before its
     // session, a session before its day, the attendance rows before the
-    // payroll period they point at, a credential before its employee, a
+    // payroll period they point at, a
     // journée before the employees who opened and closed it.
     batch.deleteAll(db.businessDays);
     batch.deleteAll(db.attendancePauses);
     batch.deleteAll(db.attendanceSessions);
     batch.deleteAll(db.attendances);
     batch.deleteAll(db.payrollPeriods);
-    batch.deleteAll(db.employeeCredentials);
     batch.deleteAll(db.employees);
 
     batch.deleteAll(db.goodsReceiptLines);

@@ -6,7 +6,6 @@ import 'package:drift_flutter/drift_flutter.dart';
 // them is in the generated part below, which shares this file's imports — drop
 // one and `app_database.g.dart` stops compiling, while `flutter analyze` stays
 // clean, because generated files are excluded from it.
-import '../../core/utils/credential_status.dart';
 import '../../models/attendance.dart';
 import '../../models/employee.dart';
 import '../../models/notification_item.dart';
@@ -17,7 +16,6 @@ import 'tables/account.dart';
 import 'tables/attendance.dart';
 import 'tables/busy_dates.dart';
 import 'tables/business_days.dart';
-import 'tables/login_states.dart';
 import 'tables/catalog.dart';
 import 'tables/employees.dart';
 import 'tables/items.dart';
@@ -46,8 +44,9 @@ part 'app_database.g.dart';
 /// child tables.
 ///
 /// The **Gestion Employée** module joined at schema version 2 (Phase 2 employé):
-/// [Employees] and their [EmployeeCredentials], [Attendances] with
-/// [AttendancePauses], and [PayrollPeriods]. The pointage / paie half of
+/// [Employees], [Attendances] with [AttendancePauses], and [PayrollPeriods].
+/// Their login credentials, a table of its own from v2, left at v22: a
+/// Gérant signs in with their email and PIN. The pointage / paie half of
 /// `StoreSettings` moved onto the [Stores] row in the same version.
 /// [AttendanceSessions] joined at v11, and [BusinessDays] — the journées de
 /// service the pointage board works in — at v14.
@@ -68,7 +67,6 @@ part 'app_database.g.dart';
     GoodsReceiptLines,
     Notifications,
     Employees,
-    EmployeeCredentials,
     PayrollPeriods,
     Attendances,
     AttendanceSessions,
@@ -78,7 +76,6 @@ part 'app_database.g.dart';
     SyncErrors,
     PhotoUploads,
     BusinessDays,
-    LoginStates,
   ],
   include: {
     'sync_triggers.drift',
@@ -107,7 +104,7 @@ class AppDatabase extends _$AppDatabase {
   static const String databaseName = 'stock_inventory';
 
   @override
-  int get schemaVersion => 21;
+  int get schemaVersion => 22;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -122,7 +119,6 @@ class AppDatabase extends _$AppDatabase {
     onUpgrade: (Migrator m, int from, int to) async {
       if (from < 2) {
         await m.createTable(employees);
-        await m.createTable(employeeCredentials);
         await m.createTable(payrollPeriods);
         await m.createTable(attendances);
         await m.createTable(attendanceSessions);
@@ -131,7 +127,6 @@ class AppDatabase extends _$AppDatabase {
         // are separate schema objects and must be created by hand.
         for (final index in [
           employeesStore,
-          employeeCredentialsEmployee,
           payrollPeriodsEmployee,
           payrollPeriodsStore,
           attendancesEmployeeDate,
@@ -329,27 +324,16 @@ class AppDatabase extends _$AppDatabase {
       }
 
       // v12 → v13: vocabulary only. What was the CIN (the login identifier, also
-      // typed to confirm identity at the kiosk) is now the PIN, and what was
-      // the PIN (the 4-digit login secret) is now the password. Renamed in
-      // place so every value survives, and the fake hash's `pin:` prefix
-      // follows the rename (the fake hash of the time) so an existing password
-      // still matches. Guarded `from >= 2` for the usual reason.
+      // typed to confirm identity at the kiosk) is now the PIN. Renamed in
+      // place so every value survives. Guarded `from >= 2` for the usual
+      // reason. (The password table of the time is left as it is: v22 drops
+      // it.)
       if (from >= 2 && from < 13) {
         await customStatement('DROP INDEX employees_cin');
         await m.renameColumn(employees, 'cin', employees.pin);
         await customStatement(
           'CREATE UNIQUE INDEX employees_pin ON employees (pin)',
         );
-        await m.renameColumn(
-          employeeCredentials,
-          'pin_hash',
-          employeeCredentials.passwordHash,
-        );
-        await customStatement('''
-          UPDATE employee_credentials
-          SET password_hash = 'password:' || substr(password_hash, 5)
-          WHERE password_hash LIKE 'pin:%'
-        ''');
       }
 
       // v13 -> v14: the busy-day calendar. Three columns on `stores` (the busy
@@ -403,7 +387,6 @@ class AppDatabase extends _$AppDatabase {
         for (final index in [
           attendancesEmployeeDate,
           supplierPricesPair,
-          employeeCredentialsEmployee,
         ]) {
           await customStatement('DROP INDEX IF EXISTS ${index.entityName}');
           await m.create(index);
@@ -475,34 +458,25 @@ class AppDatabase extends _$AppDatabase {
           await _addColumnIfMissing(m, outbox, outbox.changedColumns);
           await _addColumnIfMissing(m, outbox, outbox.baseValues);
         }
-        // Step 5 (rules C1, C3): the sign-in attempts, the lockout and the
-        // last login become this tablet's own. What the credentials held is
-        // carried over, then those columns leave the shared table. An
-        // install from before v15 lost them in the v15 rebuild already —
-        // only a counter and a lockout, nothing anybody has to redo.
-        await m.createTable(loginStates);
-        if ((await _columnNames(
-          employeeCredentials,
-        )).contains('failed_attempts')) {
-          await customStatement('''
-            INSERT INTO login_states
-              (employee_id, failed_attempts, locked_until, last_login_at)
-            SELECT employee_id, failed_attempts, locked_until, last_login_at
-              FROM employee_credentials
-             WHERE deleted_at IS NULL
-               AND (failed_attempts > 0 OR locked_until IS NOT NULL
-                    OR last_login_at IS NOT NULL)
-          ''');
-          await m.alterTable(
-            // ignore: experimental_member_use
-            TableMigration(employeeCredentials),
-          );
-        }
         await _createTriggers(m, (name) => name.startsWith('business_days_'));
         await _createTriggers(
           m,
           (name) => name.contains('_outbox_'),
           replace: true,
+        );
+      }
+
+      // v21 -> v22: no more login password — a Gérant signs in with their
+      // email and PIN. The password table and the sign-in state go, with
+      // anything of them still waiting to be sent or logged as refused.
+      if (from < 22) {
+        await customStatement('DROP TABLE IF EXISTS login_states');
+        await customStatement('DROP TABLE IF EXISTS employee_credentials');
+        await customStatement(
+          "DELETE FROM outbox WHERE changed_table = 'employee_credentials'",
+        );
+        await customStatement(
+          "DELETE FROM sync_errors WHERE changed_table = 'employee_credentials'",
         );
       }
     },
@@ -715,17 +689,6 @@ class AppDatabase extends _$AppDatabase {
     await rebuild(employees, {
       employees.updatedAt: newest([employees.archivedAt, employees.createdAt]),
     });
-    await rebuild(
-      employeeCredentials,
-      {
-        employeeCredentials.updatedAt: now,
-        employeeCredentials.storeId: sql<String>(
-          '(SELECT e.store_id FROM employees e '
-          'WHERE e.id = employee_credentials.employee_id)',
-        ),
-      },
-      extraColumns: [employeeCredentials.storeId],
-    );
     await rebuild(payrollPeriods, {
       payrollPeriods.updatedAt: newest([
         payrollPeriods.paidAt,
@@ -765,21 +728,6 @@ class AppDatabase extends _$AppDatabase {
       extraColumns: [attendancePauses.storeId],
     );
     await rebuild(busyDates, {busyDates.updatedAt: now});
-
-    // Until now a password was stored as `password:1234`, a marker rather than
-    // a hash. Credentials are about to be synced, so each is rehashed for real
-    // here, from the value it already holds: nobody has to pick a new one.
-    final legacy = await customSelect(
-      'SELECT id, password_hash FROM employee_credentials '
-      "WHERE password_hash LIKE 'password:%'",
-    ).get();
-    for (final row in legacy) {
-      final password = row.read<String>('password_hash').substring(9);
-      await customStatement(
-        'UPDATE employee_credentials SET password_hash = ? WHERE id = ?',
-        [passwordHashOf(password), row.read<String>('id')],
-      );
-    }
 
     // The clock view and the `*_touch` triggers from `sync_triggers.drift`.
     // Created last: `alterTable` recreates the triggers already attached to a

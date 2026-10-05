@@ -2,7 +2,6 @@
 // and the PIN confirmation the pointage board and the payroll screen ask for.
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:stock_inventory/core/utils/credential_status.dart';
 import 'package:stock_inventory/data/database/app_database.dart';
 import 'package:stock_inventory/data/repositories/repositories.dart';
 import 'package:stock_inventory/data/seed/dataset/dataset.dart' show EmployeeIds;
@@ -98,39 +97,6 @@ void main() {
     });
   });
 
-  group('setPassword / clear', () {
-    test('setPassword replaces the password and clears any lockout', () async {
-      for (var i = 0; i < AuthRules.maxFailedAttempts; i++) {
-        await credentials.recordFailedAttempt(EmployeeIds.marc);
-      }
-      expect(
-        (await credentials.forEmployee(EmployeeIds.marc))!.lockedUntil,
-        isNotNull,
-      );
-
-      final updated = await credentials.setPassword(EmployeeIds.marc, '5678');
-      expect(updated, isNotNull);
-      expect(updated!.failedAttempts, 0);
-      expect(updated.lockedUntil, isNull);
-      expect(passwordMatches(updated, '5678'), isTrue);
-    });
-
-    test('setPassword rejects a password that is not ${AuthRules.passwordLength} digits',
-        () async {
-      expect(await credentials.setPassword(EmployeeIds.marc, '12'), isNull);
-      expect(await credentials.setPassword(EmployeeIds.marc, 'abcd'), isNull);
-      expect(await credentials.setPassword('nobody', '1234'), isNull);
-    });
-
-    test('clear removes the credential: no more sign-in', () async {
-      expect(await credentials.clear(EmployeeIds.amelie), isTrue);
-      expect(await credentials.forEmployee(EmployeeIds.amelie), isNull);
-      // Nothing left the second time.
-      expect(await credentials.clear(EmployeeIds.amelie), isFalse);
-    });
-
-  });
-
   // The identity confirmation the pointage board and the payroll screen ask
   // for: the person's PIN, checked strictly against the expected employee.
   // Unlimited attempts, no lockout.
@@ -155,20 +121,10 @@ void main() {
       );
     });
 
-    test('misses are unlimited and never touch the login lockout', () async {
-      for (var i = 0; i < AuthRules.maxFailedAttempts * 3; i++) {
+    test('misses are unlimited', () async {
+      for (var i = 0; i < 10; i++) {
         expect(await credentials.verifyPin('0000', EmployeeIds.marc), isFalse);
       }
-      final credential = (await credentials.forEmployee(EmployeeIds.marc))!;
-      expect(credential.failedAttempts, 0);
-      expect(credential.lockedUntil, isNull);
-
-      // The right PIN still passes after all those misses.
-      expect(await credentials.verifyPin(_marcPin, EmployeeIds.marc), isTrue);
-    });
-
-    test('an employee without a credential can still confirm', () async {
-      await db.delete(db.employeeCredentials).go();
       expect(await credentials.verifyPin(_marcPin, EmployeeIds.marc), isTrue);
     });
   });

@@ -6,7 +6,6 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stock_inventory/core/utils/attendance_status.dart';
-import 'package:stock_inventory/core/utils/credential_status.dart';
 import 'package:stock_inventory/data/database/app_database.dart';
 import 'package:stock_inventory/data/repositories/repositories.dart';
 import 'package:stock_inventory/models/models.dart';
@@ -264,97 +263,16 @@ void main() {
     });
   });
 
-  // Rules C1–C2 (SYNC_PERSONNEL_PLAN.md, step 5): only the password is
-  // shared; signing in writes nothing.
-  group('passwords and sign-in on two tablets', () {
-    // Léa (the owner) signs in with her email and her PIN.
-    const email = 'Léa@resto.be';
-    const pin = 'PIN-LEA';
+  // Signing in reads the employees and writes nothing: nothing to send.
+  test('signing in sends nothing', () async {
+    final a = await newDevice();
+    final b = await newDevice();
+    await shared(a, b);
 
-    Future<bool> holds(AppDatabase db, String id, String password) async =>
-        passwordMatches(
-          (await CredentialRepository(db).forEmployee(id))!,
-          password,
-        );
+    await CredentialRepository(a).authenticate('Léa@resto.be', 'PIN-LEA');
+    await CredentialRepository(a).authenticate('Léa@resto.be', 'PIN-X');
 
-    test('signing in sends nothing', () async {
-      final a = await newDevice();
-      final b = await newDevice();
-      final day = await shared(a, b);
-      await CredentialRepository(a).setPassword(day.owner.id, '1111');
-      await settle(a, b);
-
-      await CredentialRepository(a).authenticate(email, pin);
-      await CredentialRepository(a).authenticate(email, 'PIN-X');
-
-      expect(await OutboxRepository(a).pendingCount(), 0);
-    });
-
-    test('a sign-in never puts back an old password (C1)', () async {
-      final a = await newDevice();
-      final b = await newDevice();
-      final day = await shared(a, b);
-      await CredentialRepository(a).setPassword(day.owner.id, '1111');
-      await settle(a, b);
-
-      // A changes the password; B, not synced yet, signs in.
-      await CredentialRepository(a).setPassword(day.owner.id, '2222');
-      expect(
-        (await CredentialRepository(b).authenticate(email, pin)).outcome,
-        LoginOutcome.success,
-      );
-      await settle(a, b);
-
-      for (final db in [a, b]) {
-        expect(await holds(db, day.owner.id, '2222'), isTrue);
-      }
-    });
-
-    test('changed on both tablets: the last one wins, and is signalled (C2)',
-        () async {
-      final a = await newDevice();
-      final b = await newDevice();
-      final day = await shared(a, b);
-      await CredentialRepository(a).setPassword(day.owner.id, '1111');
-      await settle(a, b);
-
-      await CredentialRepository(a).setPassword(day.owner.id, '2222');
-      await CredentialRepository(b).setPassword(day.owner.id, '3333');
-      // A sends first, B last.
-      await settle(a, b);
-
-      for (final db in [a, b]) {
-        expect(await holds(db, day.owner.id, '3333'), isTrue);
-        final flags = [
-          for (final n in await AccountRepository(
-            db,
-          ).notifications(day.store.id))
-            if (n.kind == NotificationKind.personnel) n,
-        ];
-        expect(flags, hasLength(1));
-        expect(flags.single.title, contains('Mot de passe'));
-        expect(flags.single.relatedEmployeeId, day.owner.id);
-      }
-    });
-
-    test('changed twice in a row on one tablet: not signalled', () async {
-      final a = await newDevice();
-      final b = await newDevice();
-      final day = await shared(a, b);
-      await CredentialRepository(a).setPassword(day.owner.id, '1111');
-      await settle(a, b);
-
-      await CredentialRepository(a).setPassword(day.owner.id, '2222');
-      await settle(a, b);
-      await CredentialRepository(b).setPassword(day.owner.id, '3333');
-      await settle(a, b);
-
-      final flags = [
-        for (final n in await AccountRepository(a).notifications(day.store.id))
-          if (n.kind == NotificationKind.personnel) n,
-      ];
-      expect(flags, isEmpty);
-    });
+    expect(await OutboxRepository(a).pendingCount(), 0);
   });
 
   // SYNC_PERSONNEL_PLAN.md, step 6: the pointage board and the history on
@@ -1069,26 +987,6 @@ void main() {
       expect(prices, hasLength(1));
       expect(prices.single.pricePerUnit, 3, reason: 'B linked last');
       expect(prices.single.isDefault, isTrue);
-    }
-  });
-
-  test('a password set twice keeps the most recent one', () async {
-    final a = await newDevice();
-    final b = await newDevice();
-    final day = await shared(a, b);
-
-    // The owner had no password yet; both tablets set one, offline.
-    await CredentialRepository(a).setPassword(day.owner.id, '1111');
-    await Future<void>.delayed(const Duration(milliseconds: 5));
-    await CredentialRepository(b).setPassword(day.owner.id, '2222');
-
-    await settle(a, b);
-
-    for (final db in [a, b]) {
-      final credential = await CredentialRepository(
-        db,
-      ).forEmployee(day.owner.id);
-      expect(passwordMatches(credential!, '2222'), isTrue);
     }
   });
 

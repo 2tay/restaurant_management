@@ -10,7 +10,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 /// - the **account** login: an owner or manager's e-mail and password,
 ///   checked by Supabase. It decides which restaurant the device belongs to,
 ///   happens once per device, and stays signed in offline;
-/// - the **employee** login: PIN and four-digit password, checked locally by
+/// - the **employee** login: email and PIN, checked locally by
 ///   `CredentialRepository`. It decides who is at the tablet right now.
 ///
 /// [AccountBackend] is the seam: the app uses [SupabaseAccountBackend], tests

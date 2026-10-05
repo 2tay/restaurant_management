@@ -25,7 +25,6 @@ abstract final class SyncTables {
     'goods_receipt_lines',
     'notifications',
     'employees',
-    'employee_credentials',
     'payroll_periods',
     'attendances',
     'attendance_sessions',
@@ -42,8 +41,6 @@ abstract final class SyncTables {
     'outbox',
     'sync_errors',
     'photo_uploads',
-    // Each tablet's own sign-in attempts and lockout (step 5, rule C3).
-    'login_states',
   };
 
   /// Synced tables whose parent is not a store, so they carry a copy of the
@@ -53,7 +50,6 @@ abstract final class SyncTables {
     'price_history',
     'purchase_order_lines',
     'goods_receipt_lines',
-    'employee_credentials',
     'attendance_sessions',
     'attendance_pauses',
   };

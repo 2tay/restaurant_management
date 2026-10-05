@@ -4825,443 +4825,6 @@ class EmployeesCompanion extends UpdateCompanion<EmployeeRow> {
   }
 }
 
-class $EmployeeCredentialsTable extends EmployeeCredentials
-    with TableInfo<$EmployeeCredentialsTable, EmployeeCredentialRow> {
-  @override
-  final GeneratedDatabase attachedDatabase;
-  final String? _alias;
-  $EmployeeCredentialsTable(this.attachedDatabase, [this._alias]);
-  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
-    'updatedAt',
-  );
-  @override
-  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
-    'updated_at',
-    aliasedName,
-    false,
-    type: DriftSqlType.dateTime,
-    requiredDuringInsert: false,
-    clientDefault: () => syncStampNow(),
-  );
-  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
-    'deletedAt',
-  );
-  @override
-  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
-    'deleted_at',
-    aliasedName,
-    true,
-    type: DriftSqlType.dateTime,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _idMeta = const VerificationMeta('id');
-  @override
-  late final GeneratedColumn<String> id = GeneratedColumn<String>(
-    'id',
-    aliasedName,
-    false,
-    additionalChecks: GeneratedColumn.checkTextLength(
-      minTextLength: 1,
-      maxTextLength: 64,
-    ),
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _storeIdMeta = const VerificationMeta(
-    'storeId',
-  );
-  @override
-  late final GeneratedColumn<String> storeId = GeneratedColumn<String>(
-    'store_id',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES stores (id) ON DELETE CASCADE',
-    ),
-  );
-  static const VerificationMeta _employeeIdMeta = const VerificationMeta(
-    'employeeId',
-  );
-  @override
-  late final GeneratedColumn<String> employeeId = GeneratedColumn<String>(
-    'employee_id',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES employees (id) ON DELETE CASCADE',
-    ),
-  );
-  static const VerificationMeta _passwordHashMeta = const VerificationMeta(
-    'passwordHash',
-  );
-  @override
-  late final GeneratedColumn<String> passwordHash = GeneratedColumn<String>(
-    'password_hash',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  @override
-  List<GeneratedColumn> get $columns => [
-    updatedAt,
-    deletedAt,
-    id,
-    storeId,
-    employeeId,
-    passwordHash,
-  ];
-  @override
-  String get aliasedName => _alias ?? actualTableName;
-  @override
-  String get actualTableName => $name;
-  static const String $name = 'employee_credentials';
-  @override
-  VerificationContext validateIntegrity(
-    Insertable<EmployeeCredentialRow> instance, {
-    bool isInserting = false,
-  }) {
-    final context = VerificationContext();
-    final data = instance.toColumns(true);
-    if (data.containsKey('updated_at')) {
-      context.handle(
-        _updatedAtMeta,
-        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
-      );
-    }
-    if (data.containsKey('deleted_at')) {
-      context.handle(
-        _deletedAtMeta,
-        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
-      );
-    }
-    if (data.containsKey('id')) {
-      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
-    } else if (isInserting) {
-      context.missing(_idMeta);
-    }
-    if (data.containsKey('store_id')) {
-      context.handle(
-        _storeIdMeta,
-        storeId.isAcceptableOrUnknown(data['store_id']!, _storeIdMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_storeIdMeta);
-    }
-    if (data.containsKey('employee_id')) {
-      context.handle(
-        _employeeIdMeta,
-        employeeId.isAcceptableOrUnknown(data['employee_id']!, _employeeIdMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_employeeIdMeta);
-    }
-    if (data.containsKey('password_hash')) {
-      context.handle(
-        _passwordHashMeta,
-        passwordHash.isAcceptableOrUnknown(
-          data['password_hash']!,
-          _passwordHashMeta,
-        ),
-      );
-    } else if (isInserting) {
-      context.missing(_passwordHashMeta);
-    }
-    return context;
-  }
-
-  @override
-  Set<GeneratedColumn> get $primaryKey => {id};
-  @override
-  EmployeeCredentialRow map(Map<String, dynamic> data, {String? tablePrefix}) {
-    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return EmployeeCredentialRow(
-      updatedAt: attachedDatabase.typeMapping.read(
-        DriftSqlType.dateTime,
-        data['${effectivePrefix}updated_at'],
-      )!,
-      deletedAt: attachedDatabase.typeMapping.read(
-        DriftSqlType.dateTime,
-        data['${effectivePrefix}deleted_at'],
-      ),
-      id: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}id'],
-      )!,
-      storeId: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}store_id'],
-      )!,
-      employeeId: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}employee_id'],
-      )!,
-      passwordHash: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}password_hash'],
-      )!,
-    );
-  }
-
-  @override
-  $EmployeeCredentialsTable createAlias(String alias) {
-    return $EmployeeCredentialsTable(attachedDatabase, alias);
-  }
-}
-
-class EmployeeCredentialRow extends DataClass
-    implements Insertable<EmployeeCredentialRow> {
-  final DateTime updatedAt;
-  final DateTime? deletedAt;
-  final String id;
-
-  /// The establishment, copied from the parent row. Redundant locally, but it
-  /// lets the server check who may see this row without a join to its parent.
-  final String storeId;
-
-  /// `ON DELETE CASCADE` and unique — one credential per employee, and it goes
-  /// when they do.
-  final String employeeId;
-
-  /// The only thing shared about a login. The attempts, the lockout and the
-  /// last login are this tablet's own: `login_states` (step 5, rule C1).
-  final String passwordHash;
-  const EmployeeCredentialRow({
-    required this.updatedAt,
-    this.deletedAt,
-    required this.id,
-    required this.storeId,
-    required this.employeeId,
-    required this.passwordHash,
-  });
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    map['updated_at'] = Variable<DateTime>(updatedAt);
-    if (!nullToAbsent || deletedAt != null) {
-      map['deleted_at'] = Variable<DateTime>(deletedAt);
-    }
-    map['id'] = Variable<String>(id);
-    map['store_id'] = Variable<String>(storeId);
-    map['employee_id'] = Variable<String>(employeeId);
-    map['password_hash'] = Variable<String>(passwordHash);
-    return map;
-  }
-
-  EmployeeCredentialsCompanion toCompanion(bool nullToAbsent) {
-    return EmployeeCredentialsCompanion(
-      updatedAt: Value(updatedAt),
-      deletedAt: deletedAt == null && nullToAbsent
-          ? const Value.absent()
-          : Value(deletedAt),
-      id: Value(id),
-      storeId: Value(storeId),
-      employeeId: Value(employeeId),
-      passwordHash: Value(passwordHash),
-    );
-  }
-
-  factory EmployeeCredentialRow.fromJson(
-    Map<String, dynamic> json, {
-    ValueSerializer? serializer,
-  }) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return EmployeeCredentialRow(
-      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
-      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
-      id: serializer.fromJson<String>(json['id']),
-      storeId: serializer.fromJson<String>(json['storeId']),
-      employeeId: serializer.fromJson<String>(json['employeeId']),
-      passwordHash: serializer.fromJson<String>(json['passwordHash']),
-    );
-  }
-  @override
-  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return <String, dynamic>{
-      'updatedAt': serializer.toJson<DateTime>(updatedAt),
-      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
-      'id': serializer.toJson<String>(id),
-      'storeId': serializer.toJson<String>(storeId),
-      'employeeId': serializer.toJson<String>(employeeId),
-      'passwordHash': serializer.toJson<String>(passwordHash),
-    };
-  }
-
-  EmployeeCredentialRow copyWith({
-    DateTime? updatedAt,
-    Value<DateTime?> deletedAt = const Value.absent(),
-    String? id,
-    String? storeId,
-    String? employeeId,
-    String? passwordHash,
-  }) => EmployeeCredentialRow(
-    updatedAt: updatedAt ?? this.updatedAt,
-    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
-    id: id ?? this.id,
-    storeId: storeId ?? this.storeId,
-    employeeId: employeeId ?? this.employeeId,
-    passwordHash: passwordHash ?? this.passwordHash,
-  );
-  EmployeeCredentialRow copyWithCompanion(EmployeeCredentialsCompanion data) {
-    return EmployeeCredentialRow(
-      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
-      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
-      id: data.id.present ? data.id.value : this.id,
-      storeId: data.storeId.present ? data.storeId.value : this.storeId,
-      employeeId: data.employeeId.present
-          ? data.employeeId.value
-          : this.employeeId,
-      passwordHash: data.passwordHash.present
-          ? data.passwordHash.value
-          : this.passwordHash,
-    );
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('EmployeeCredentialRow(')
-          ..write('updatedAt: $updatedAt, ')
-          ..write('deletedAt: $deletedAt, ')
-          ..write('id: $id, ')
-          ..write('storeId: $storeId, ')
-          ..write('employeeId: $employeeId, ')
-          ..write('passwordHash: $passwordHash')
-          ..write(')'))
-        .toString();
-  }
-
-  @override
-  int get hashCode =>
-      Object.hash(updatedAt, deletedAt, id, storeId, employeeId, passwordHash);
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      (other is EmployeeCredentialRow &&
-          other.updatedAt == this.updatedAt &&
-          other.deletedAt == this.deletedAt &&
-          other.id == this.id &&
-          other.storeId == this.storeId &&
-          other.employeeId == this.employeeId &&
-          other.passwordHash == this.passwordHash);
-}
-
-class EmployeeCredentialsCompanion
-    extends UpdateCompanion<EmployeeCredentialRow> {
-  final Value<DateTime> updatedAt;
-  final Value<DateTime?> deletedAt;
-  final Value<String> id;
-  final Value<String> storeId;
-  final Value<String> employeeId;
-  final Value<String> passwordHash;
-  final Value<int> rowid;
-  const EmployeeCredentialsCompanion({
-    this.updatedAt = const Value.absent(),
-    this.deletedAt = const Value.absent(),
-    this.id = const Value.absent(),
-    this.storeId = const Value.absent(),
-    this.employeeId = const Value.absent(),
-    this.passwordHash = const Value.absent(),
-    this.rowid = const Value.absent(),
-  });
-  EmployeeCredentialsCompanion.insert({
-    this.updatedAt = const Value.absent(),
-    this.deletedAt = const Value.absent(),
-    required String id,
-    required String storeId,
-    required String employeeId,
-    required String passwordHash,
-    this.rowid = const Value.absent(),
-  }) : id = Value(id),
-       storeId = Value(storeId),
-       employeeId = Value(employeeId),
-       passwordHash = Value(passwordHash);
-  static Insertable<EmployeeCredentialRow> custom({
-    Expression<DateTime>? updatedAt,
-    Expression<DateTime>? deletedAt,
-    Expression<String>? id,
-    Expression<String>? storeId,
-    Expression<String>? employeeId,
-    Expression<String>? passwordHash,
-    Expression<int>? rowid,
-  }) {
-    return RawValuesInsertable({
-      if (updatedAt != null) 'updated_at': updatedAt,
-      if (deletedAt != null) 'deleted_at': deletedAt,
-      if (id != null) 'id': id,
-      if (storeId != null) 'store_id': storeId,
-      if (employeeId != null) 'employee_id': employeeId,
-      if (passwordHash != null) 'password_hash': passwordHash,
-      if (rowid != null) 'rowid': rowid,
-    });
-  }
-
-  EmployeeCredentialsCompanion copyWith({
-    Value<DateTime>? updatedAt,
-    Value<DateTime?>? deletedAt,
-    Value<String>? id,
-    Value<String>? storeId,
-    Value<String>? employeeId,
-    Value<String>? passwordHash,
-    Value<int>? rowid,
-  }) {
-    return EmployeeCredentialsCompanion(
-      updatedAt: updatedAt ?? this.updatedAt,
-      deletedAt: deletedAt ?? this.deletedAt,
-      id: id ?? this.id,
-      storeId: storeId ?? this.storeId,
-      employeeId: employeeId ?? this.employeeId,
-      passwordHash: passwordHash ?? this.passwordHash,
-      rowid: rowid ?? this.rowid,
-    );
-  }
-
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    if (updatedAt.present) {
-      map['updated_at'] = Variable<DateTime>(updatedAt.value);
-    }
-    if (deletedAt.present) {
-      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
-    }
-    if (id.present) {
-      map['id'] = Variable<String>(id.value);
-    }
-    if (storeId.present) {
-      map['store_id'] = Variable<String>(storeId.value);
-    }
-    if (employeeId.present) {
-      map['employee_id'] = Variable<String>(employeeId.value);
-    }
-    if (passwordHash.present) {
-      map['password_hash'] = Variable<String>(passwordHash.value);
-    }
-    if (rowid.present) {
-      map['rowid'] = Variable<int>(rowid.value);
-    }
-    return map;
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('EmployeeCredentialsCompanion(')
-          ..write('updatedAt: $updatedAt, ')
-          ..write('deletedAt: $deletedAt, ')
-          ..write('id: $id, ')
-          ..write('storeId: $storeId, ')
-          ..write('employeeId: $employeeId, ')
-          ..write('passwordHash: $passwordHash, ')
-          ..write('rowid: $rowid')
-          ..write(')'))
-        .toString();
-  }
-}
-
 class $PayrollPeriodsTable extends PayrollPeriods
     with TableInfo<$PayrollPeriodsTable, PayrollPeriodRow> {
   @override
@@ -16932,352 +16495,6 @@ class SyncErrorsCompanion extends UpdateCompanion<SyncErrorRow> {
   }
 }
 
-class $LoginStatesTable extends LoginStates
-    with TableInfo<$LoginStatesTable, LoginStateRow> {
-  @override
-  final GeneratedDatabase attachedDatabase;
-  final String? _alias;
-  $LoginStatesTable(this.attachedDatabase, [this._alias]);
-  static const VerificationMeta _employeeIdMeta = const VerificationMeta(
-    'employeeId',
-  );
-  @override
-  late final GeneratedColumn<String> employeeId = GeneratedColumn<String>(
-    'employee_id',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES employees (id) ON DELETE CASCADE',
-    ),
-  );
-  static const VerificationMeta _failedAttemptsMeta = const VerificationMeta(
-    'failedAttempts',
-  );
-  @override
-  late final GeneratedColumn<int> failedAttempts = GeneratedColumn<int>(
-    'failed_attempts',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    defaultValue: const Constant(0),
-  );
-  static const VerificationMeta _lockedUntilMeta = const VerificationMeta(
-    'lockedUntil',
-  );
-  @override
-  late final GeneratedColumn<DateTime> lockedUntil = GeneratedColumn<DateTime>(
-    'locked_until',
-    aliasedName,
-    true,
-    type: DriftSqlType.dateTime,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _lastLoginAtMeta = const VerificationMeta(
-    'lastLoginAt',
-  );
-  @override
-  late final GeneratedColumn<DateTime> lastLoginAt = GeneratedColumn<DateTime>(
-    'last_login_at',
-    aliasedName,
-    true,
-    type: DriftSqlType.dateTime,
-    requiredDuringInsert: false,
-  );
-  @override
-  List<GeneratedColumn> get $columns => [
-    employeeId,
-    failedAttempts,
-    lockedUntil,
-    lastLoginAt,
-  ];
-  @override
-  String get aliasedName => _alias ?? actualTableName;
-  @override
-  String get actualTableName => $name;
-  static const String $name = 'login_states';
-  @override
-  VerificationContext validateIntegrity(
-    Insertable<LoginStateRow> instance, {
-    bool isInserting = false,
-  }) {
-    final context = VerificationContext();
-    final data = instance.toColumns(true);
-    if (data.containsKey('employee_id')) {
-      context.handle(
-        _employeeIdMeta,
-        employeeId.isAcceptableOrUnknown(data['employee_id']!, _employeeIdMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_employeeIdMeta);
-    }
-    if (data.containsKey('failed_attempts')) {
-      context.handle(
-        _failedAttemptsMeta,
-        failedAttempts.isAcceptableOrUnknown(
-          data['failed_attempts']!,
-          _failedAttemptsMeta,
-        ),
-      );
-    }
-    if (data.containsKey('locked_until')) {
-      context.handle(
-        _lockedUntilMeta,
-        lockedUntil.isAcceptableOrUnknown(
-          data['locked_until']!,
-          _lockedUntilMeta,
-        ),
-      );
-    }
-    if (data.containsKey('last_login_at')) {
-      context.handle(
-        _lastLoginAtMeta,
-        lastLoginAt.isAcceptableOrUnknown(
-          data['last_login_at']!,
-          _lastLoginAtMeta,
-        ),
-      );
-    }
-    return context;
-  }
-
-  @override
-  Set<GeneratedColumn> get $primaryKey => {employeeId};
-  @override
-  LoginStateRow map(Map<String, dynamic> data, {String? tablePrefix}) {
-    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return LoginStateRow(
-      employeeId: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}employee_id'],
-      )!,
-      failedAttempts: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}failed_attempts'],
-      )!,
-      lockedUntil: attachedDatabase.typeMapping.read(
-        DriftSqlType.dateTime,
-        data['${effectivePrefix}locked_until'],
-      ),
-      lastLoginAt: attachedDatabase.typeMapping.read(
-        DriftSqlType.dateTime,
-        data['${effectivePrefix}last_login_at'],
-      ),
-    );
-  }
-
-  @override
-  $LoginStatesTable createAlias(String alias) {
-    return $LoginStatesTable(attachedDatabase, alias);
-  }
-}
-
-class LoginStateRow extends DataClass implements Insertable<LoginStateRow> {
-  final String employeeId;
-
-  /// Consecutive wrong passwords since the last success or the last new
-  /// password.
-  final int failedAttempts;
-
-  /// Set once [failedAttempts] reaches the threshold.
-  final DateTime? lockedUntil;
-  final DateTime? lastLoginAt;
-  const LoginStateRow({
-    required this.employeeId,
-    required this.failedAttempts,
-    this.lockedUntil,
-    this.lastLoginAt,
-  });
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    map['employee_id'] = Variable<String>(employeeId);
-    map['failed_attempts'] = Variable<int>(failedAttempts);
-    if (!nullToAbsent || lockedUntil != null) {
-      map['locked_until'] = Variable<DateTime>(lockedUntil);
-    }
-    if (!nullToAbsent || lastLoginAt != null) {
-      map['last_login_at'] = Variable<DateTime>(lastLoginAt);
-    }
-    return map;
-  }
-
-  LoginStatesCompanion toCompanion(bool nullToAbsent) {
-    return LoginStatesCompanion(
-      employeeId: Value(employeeId),
-      failedAttempts: Value(failedAttempts),
-      lockedUntil: lockedUntil == null && nullToAbsent
-          ? const Value.absent()
-          : Value(lockedUntil),
-      lastLoginAt: lastLoginAt == null && nullToAbsent
-          ? const Value.absent()
-          : Value(lastLoginAt),
-    );
-  }
-
-  factory LoginStateRow.fromJson(
-    Map<String, dynamic> json, {
-    ValueSerializer? serializer,
-  }) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return LoginStateRow(
-      employeeId: serializer.fromJson<String>(json['employeeId']),
-      failedAttempts: serializer.fromJson<int>(json['failedAttempts']),
-      lockedUntil: serializer.fromJson<DateTime?>(json['lockedUntil']),
-      lastLoginAt: serializer.fromJson<DateTime?>(json['lastLoginAt']),
-    );
-  }
-  @override
-  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return <String, dynamic>{
-      'employeeId': serializer.toJson<String>(employeeId),
-      'failedAttempts': serializer.toJson<int>(failedAttempts),
-      'lockedUntil': serializer.toJson<DateTime?>(lockedUntil),
-      'lastLoginAt': serializer.toJson<DateTime?>(lastLoginAt),
-    };
-  }
-
-  LoginStateRow copyWith({
-    String? employeeId,
-    int? failedAttempts,
-    Value<DateTime?> lockedUntil = const Value.absent(),
-    Value<DateTime?> lastLoginAt = const Value.absent(),
-  }) => LoginStateRow(
-    employeeId: employeeId ?? this.employeeId,
-    failedAttempts: failedAttempts ?? this.failedAttempts,
-    lockedUntil: lockedUntil.present ? lockedUntil.value : this.lockedUntil,
-    lastLoginAt: lastLoginAt.present ? lastLoginAt.value : this.lastLoginAt,
-  );
-  LoginStateRow copyWithCompanion(LoginStatesCompanion data) {
-    return LoginStateRow(
-      employeeId: data.employeeId.present
-          ? data.employeeId.value
-          : this.employeeId,
-      failedAttempts: data.failedAttempts.present
-          ? data.failedAttempts.value
-          : this.failedAttempts,
-      lockedUntil: data.lockedUntil.present
-          ? data.lockedUntil.value
-          : this.lockedUntil,
-      lastLoginAt: data.lastLoginAt.present
-          ? data.lastLoginAt.value
-          : this.lastLoginAt,
-    );
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('LoginStateRow(')
-          ..write('employeeId: $employeeId, ')
-          ..write('failedAttempts: $failedAttempts, ')
-          ..write('lockedUntil: $lockedUntil, ')
-          ..write('lastLoginAt: $lastLoginAt')
-          ..write(')'))
-        .toString();
-  }
-
-  @override
-  int get hashCode =>
-      Object.hash(employeeId, failedAttempts, lockedUntil, lastLoginAt);
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      (other is LoginStateRow &&
-          other.employeeId == this.employeeId &&
-          other.failedAttempts == this.failedAttempts &&
-          other.lockedUntil == this.lockedUntil &&
-          other.lastLoginAt == this.lastLoginAt);
-}
-
-class LoginStatesCompanion extends UpdateCompanion<LoginStateRow> {
-  final Value<String> employeeId;
-  final Value<int> failedAttempts;
-  final Value<DateTime?> lockedUntil;
-  final Value<DateTime?> lastLoginAt;
-  final Value<int> rowid;
-  const LoginStatesCompanion({
-    this.employeeId = const Value.absent(),
-    this.failedAttempts = const Value.absent(),
-    this.lockedUntil = const Value.absent(),
-    this.lastLoginAt = const Value.absent(),
-    this.rowid = const Value.absent(),
-  });
-  LoginStatesCompanion.insert({
-    required String employeeId,
-    this.failedAttempts = const Value.absent(),
-    this.lockedUntil = const Value.absent(),
-    this.lastLoginAt = const Value.absent(),
-    this.rowid = const Value.absent(),
-  }) : employeeId = Value(employeeId);
-  static Insertable<LoginStateRow> custom({
-    Expression<String>? employeeId,
-    Expression<int>? failedAttempts,
-    Expression<DateTime>? lockedUntil,
-    Expression<DateTime>? lastLoginAt,
-    Expression<int>? rowid,
-  }) {
-    return RawValuesInsertable({
-      if (employeeId != null) 'employee_id': employeeId,
-      if (failedAttempts != null) 'failed_attempts': failedAttempts,
-      if (lockedUntil != null) 'locked_until': lockedUntil,
-      if (lastLoginAt != null) 'last_login_at': lastLoginAt,
-      if (rowid != null) 'rowid': rowid,
-    });
-  }
-
-  LoginStatesCompanion copyWith({
-    Value<String>? employeeId,
-    Value<int>? failedAttempts,
-    Value<DateTime?>? lockedUntil,
-    Value<DateTime?>? lastLoginAt,
-    Value<int>? rowid,
-  }) {
-    return LoginStatesCompanion(
-      employeeId: employeeId ?? this.employeeId,
-      failedAttempts: failedAttempts ?? this.failedAttempts,
-      lockedUntil: lockedUntil ?? this.lockedUntil,
-      lastLoginAt: lastLoginAt ?? this.lastLoginAt,
-      rowid: rowid ?? this.rowid,
-    );
-  }
-
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    if (employeeId.present) {
-      map['employee_id'] = Variable<String>(employeeId.value);
-    }
-    if (failedAttempts.present) {
-      map['failed_attempts'] = Variable<int>(failedAttempts.value);
-    }
-    if (lockedUntil.present) {
-      map['locked_until'] = Variable<DateTime>(lockedUntil.value);
-    }
-    if (lastLoginAt.present) {
-      map['last_login_at'] = Variable<DateTime>(lastLoginAt.value);
-    }
-    if (rowid.present) {
-      map['rowid'] = Variable<int>(rowid.value);
-    }
-    return map;
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('LoginStatesCompanion(')
-          ..write('employeeId: $employeeId, ')
-          ..write('failedAttempts: $failedAttempts, ')
-          ..write('lockedUntil: $lockedUntil, ')
-          ..write('lastLoginAt: $lastLoginAt, ')
-          ..write('rowid: $rowid')
-          ..write(')'))
-        .toString();
-  }
-}
-
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   late final $StoresTable stores = $StoresTable(this);
@@ -17324,8 +16541,6 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     'items_unit',
     'CREATE INDEX items_unit ON items (unit_id)',
   );
-  late final $EmployeeCredentialsTable employeeCredentials =
-      $EmployeeCredentialsTable(this);
   late final Index employeesStore = Index(
     'employees_store',
     'CREATE INDEX employees_store ON employees (store_id)',
@@ -17341,10 +16556,6 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final Index supplierPricesPair = Index(
     'supplier_prices_pair',
     'CREATE UNIQUE INDEX supplier_prices_pair ON supplier_prices (item_id, supplier_id) WHERE deleted_at IS NULL',
-  );
-  late final Index employeeCredentialsEmployee = Index(
-    'employee_credentials_employee',
-    'CREATE UNIQUE INDEX employee_credentials_employee ON employee_credentials (employee_id) WHERE deleted_at IS NULL',
   );
   late final Index employeesStorePin = Index(
     'employees_store_pin',
@@ -17522,14 +16733,6 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     'CREATE TRIGGER employees_outbox_update AFTER UPDATE ON employees WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, base_values, queued_at) SELECT \'employees\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'first_name\', first_name, \'last_name\', last_name, \'pin\', pin, \'phone\', phone, \'email\', email, \'photo_asset\', photo_asset, \'hire_date\', hire_date, \'role\', role, \'pay\', pay, \'created_at\', created_at, \'archived_at\', archived_at), (SELECT json_group_array(c) FROM (SELECT \'updated_at\' AS c WHERE NEW.updated_at IS NOT OLD.updated_at UNION ALL SELECT \'deleted_at\' AS c WHERE NEW.deleted_at IS NOT OLD.deleted_at UNION ALL SELECT \'id\' AS c WHERE NEW.id IS NOT OLD.id UNION ALL SELECT \'store_id\' AS c WHERE NEW.store_id IS NOT OLD.store_id UNION ALL SELECT \'first_name\' AS c WHERE NEW.first_name IS NOT OLD.first_name UNION ALL SELECT \'last_name\' AS c WHERE NEW.last_name IS NOT OLD.last_name UNION ALL SELECT \'pin\' AS c WHERE NEW.pin IS NOT OLD.pin UNION ALL SELECT \'phone\' AS c WHERE NEW.phone IS NOT OLD.phone UNION ALL SELECT \'email\' AS c WHERE NEW.email IS NOT OLD.email UNION ALL SELECT \'photo_asset\' AS c WHERE NEW.photo_asset IS NOT OLD.photo_asset UNION ALL SELECT \'hire_date\' AS c WHERE NEW.hire_date IS NOT OLD.hire_date UNION ALL SELECT \'role\' AS c WHERE NEW.role IS NOT OLD.role UNION ALL SELECT \'pay\' AS c WHERE NEW.pay IS NOT OLD.pay UNION ALL SELECT \'created_at\' AS c WHERE NEW.created_at IS NOT OLD.created_at UNION ALL SELECT \'archived_at\' AS c WHERE NEW.archived_at IS NOT OLD.archived_at)), (SELECT CASE WHEN count(*) = 0 THEN NULL ELSE json_group_object(c, v) END FROM (SELECT \'pay\' AS c, OLD.pay AS v WHERE NEW.pay IS NOT OLD.pay UNION ALL SELECT \'role\' AS c, OLD.role AS v WHERE NEW.role IS NOT OLD.role UNION ALL SELECT \'archived_at\' AS c, OLD.archived_at AS v WHERE NEW.archived_at IS NOT OLD.archived_at)), (SELECT now FROM sync_clock) FROM employees WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = CASE WHEN outbox.changed_columns IS NULL OR excluded.changed_columns IS NULL THEN NULL ELSE (SELECT json_group_array(value) FROM (SELECT value FROM json_each(outbox.changed_columns)UNION SELECT value FROM json_each(excluded.changed_columns))) END, base_values = CASE WHEN outbox.base_values IS NULL THEN excluded.base_values WHEN excluded.base_values IS NULL THEN outbox.base_values ELSE (SELECT json_group_object("key", value) FROM (SELECT "key", value FROM json_each(outbox.base_values)UNION ALL SELECT "key", value FROM json_each(excluded.base_values)WHERE "key" NOT IN (SELECT "key" FROM json_each(outbox.base_values)))) END, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
     'employees_outbox_update',
   );
-  late final Trigger employeeCredentialsOutboxInsert = Trigger(
-    'CREATE TRIGGER employee_credentials_outbox_insert AFTER INSERT ON employee_credentials WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, base_values, queued_at) SELECT \'employee_credentials\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'employee_id\', employee_id, \'password_hash\', password_hash), NULL, NULL, (SELECT now FROM sync_clock) FROM employee_credentials WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, base_values = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
-    'employee_credentials_outbox_insert',
-  );
-  late final Trigger employeeCredentialsOutboxUpdate = Trigger(
-    'CREATE TRIGGER employee_credentials_outbox_update AFTER UPDATE ON employee_credentials WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, base_values, queued_at) SELECT \'employee_credentials\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'employee_id\', employee_id, \'password_hash\', password_hash), (SELECT json_group_array(c) FROM (SELECT \'updated_at\' AS c WHERE NEW.updated_at IS NOT OLD.updated_at UNION ALL SELECT \'deleted_at\' AS c WHERE NEW.deleted_at IS NOT OLD.deleted_at UNION ALL SELECT \'id\' AS c WHERE NEW.id IS NOT OLD.id UNION ALL SELECT \'store_id\' AS c WHERE NEW.store_id IS NOT OLD.store_id UNION ALL SELECT \'employee_id\' AS c WHERE NEW.employee_id IS NOT OLD.employee_id UNION ALL SELECT \'password_hash\' AS c WHERE NEW.password_hash IS NOT OLD.password_hash)), (SELECT CASE WHEN count(*) = 0 THEN NULL ELSE json_group_object(c, v) END FROM (SELECT \'password_hash\' AS c, OLD.password_hash AS v WHERE NEW.password_hash IS NOT OLD.password_hash)), (SELECT now FROM sync_clock) FROM employee_credentials WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = CASE WHEN outbox.changed_columns IS NULL OR excluded.changed_columns IS NULL THEN NULL ELSE (SELECT json_group_array(value) FROM (SELECT value FROM json_each(outbox.changed_columns)UNION SELECT value FROM json_each(excluded.changed_columns))) END, base_values = CASE WHEN outbox.base_values IS NULL THEN excluded.base_values WHEN excluded.base_values IS NULL THEN outbox.base_values ELSE (SELECT json_group_object("key", value) FROM (SELECT "key", value FROM json_each(outbox.base_values)UNION ALL SELECT "key", value FROM json_each(excluded.base_values)WHERE "key" NOT IN (SELECT "key" FROM json_each(outbox.base_values)))) END, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
-    'employee_credentials_outbox_update',
-  );
   late final Trigger payrollPeriodsOutboxInsert = Trigger(
     'CREATE TRIGGER payroll_periods_outbox_insert AFTER INSERT ON payroll_periods WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, base_values, queued_at) SELECT \'payroll_periods\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'employee_id\', employee_id, \'store_id\', store_id, \'start_date\', start_date, \'end_date\', end_date, \'worked_days\', worked_days, \'total_worked_hours\', total_worked_hours, \'applied_rate\', applied_rate, \'computed_amount\', computed_amount, \'status\', status, \'paid_by_employee_id\', paid_by_employee_id, \'paid_at\', paid_at, \'created_at\', created_at, \'double_payment_amount\', double_payment_amount), NULL, NULL, (SELECT now FROM sync_clock) FROM payroll_periods WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, base_values = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
     'payroll_periods_outbox_insert',
@@ -17624,7 +16827,6 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     'stock_movements_receipt',
     'CREATE INDEX stock_movements_receipt ON stock_movements (receipt_id)',
   );
-  late final $LoginStatesTable loginStates = $LoginStatesTable(this);
   late final Index notificationsStoreTime = Index(
     'notifications_store_time',
     'CREATE INDEX notifications_store_time ON notifications (store_id, created_at DESC)',
@@ -17689,10 +16891,6 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     'CREATE TRIGGER employees_touch AFTER UPDATE ON employees WHEN NEW.updated_at IS OLD.updated_at AND NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN UPDATE employees SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
     'employees_touch',
   );
-  late final Trigger employeeCredentialsTouch = Trigger(
-    'CREATE TRIGGER employee_credentials_touch AFTER UPDATE ON employee_credentials WHEN NEW.updated_at IS OLD.updated_at AND NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN UPDATE employee_credentials SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
-    'employee_credentials_touch',
-  );
   late final Trigger payrollPeriodsTouch = Trigger(
     'CREATE TRIGGER payroll_periods_touch AFTER UPDATE ON payroll_periods WHEN NEW.updated_at IS OLD.updated_at AND NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN UPDATE payroll_periods SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
     'payroll_periods_touch',
@@ -17739,7 +16937,6 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     itemsStoreBarcode,
     itemsCategory,
     itemsUnit,
-    employeeCredentials,
     employeesStore,
     payrollPeriods,
     attendances,
@@ -17747,7 +16944,6 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     suppliers,
     supplierPrices,
     supplierPricesPair,
-    employeeCredentialsEmployee,
     employeesStorePin,
     employeesStoreEmail,
     businessDays,
@@ -17799,8 +16995,6 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     notificationsOutboxUpdate,
     employeesOutboxInsert,
     employeesOutboxUpdate,
-    employeeCredentialsOutboxInsert,
-    employeeCredentialsOutboxUpdate,
     payrollPeriodsOutboxInsert,
     payrollPeriodsOutboxUpdate,
     attendancesOutboxInsert,
@@ -17826,7 +17020,6 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     stockMovementsItemTime,
     stockMovementsStoreTime,
     stockMovementsReceipt,
-    loginStates,
     notificationsStoreTime,
     outboxRow,
     storesTouch,
@@ -17843,7 +17036,6 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     goodsReceiptLinesTouch,
     notificationsTouch,
     employeesTouch,
-    employeeCredentialsTouch,
     payrollPeriodsTouch,
     attendancesTouch,
     attendanceSessionsTouch,
@@ -17901,20 +17093,6 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         limitUpdateKind: UpdateKind.update,
       ),
       result: [TableUpdate('photo_uploads', kind: UpdateKind.insert)],
-    ),
-    WritePropagation(
-      on: TableUpdateQuery.onTableName(
-        'stores',
-        limitUpdateKind: UpdateKind.delete,
-      ),
-      result: [TableUpdate('employee_credentials', kind: UpdateKind.delete)],
-    ),
-    WritePropagation(
-      on: TableUpdateQuery.onTableName(
-        'employees',
-        limitUpdateKind: UpdateKind.delete,
-      ),
-      result: [TableUpdate('employee_credentials', kind: UpdateKind.delete)],
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(
@@ -18310,20 +17488,6 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(
-        'employee_credentials',
-        limitUpdateKind: UpdateKind.insert,
-      ),
-      result: [TableUpdate('outbox', kind: UpdateKind.insert)],
-    ),
-    WritePropagation(
-      on: TableUpdateQuery.onTableName(
-        'employee_credentials',
-        limitUpdateKind: UpdateKind.update,
-      ),
-      result: [TableUpdate('outbox', kind: UpdateKind.insert)],
-    ),
-    WritePropagation(
-      on: TableUpdateQuery.onTableName(
         'payroll_periods',
         limitUpdateKind: UpdateKind.insert,
       ),
@@ -18412,13 +17576,6 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         limitUpdateKind: UpdateKind.update,
       ),
       result: [TableUpdate('outbox', kind: UpdateKind.insert)],
-    ),
-    WritePropagation(
-      on: TableUpdateQuery.onTableName(
-        'employees',
-        limitUpdateKind: UpdateKind.delete,
-      ),
-      result: [TableUpdate('login_states', kind: UpdateKind.delete)],
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(
@@ -18517,13 +17674,6 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         limitUpdateKind: UpdateKind.update,
       ),
       result: [TableUpdate('employees', kind: UpdateKind.update)],
-    ),
-    WritePropagation(
-      on: TableUpdateQuery.onTableName(
-        'employee_credentials',
-        limitUpdateKind: UpdateKind.update,
-      ),
-      result: [TableUpdate('employee_credentials', kind: UpdateKind.update)],
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(

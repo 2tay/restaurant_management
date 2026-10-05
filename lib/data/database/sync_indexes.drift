@@ -3,7 +3,7 @@
 -- They used to be ordinary unique indexes, which count soft-deleted rows too.
 -- Two tablets working offline can both create "the" row for the same key: two
 -- clock-ins for one employee on one day, the same supplier linked twice to one
--- article, a password set twice. Sync keeps one and marks the other deleted
+-- article. Sync keeps one and marks the other deleted
 -- (`SyncApplier`), and a deleted row must not keep occupying the key.
 
 import 'tables/attendance.dart';
@@ -16,9 +16,6 @@ CREATE UNIQUE INDEX attendances_employee_date
 
 CREATE UNIQUE INDEX supplier_prices_pair
   ON supplier_prices (item_id, supplier_id) WHERE deleted_at IS NULL;
-
-CREATE UNIQUE INDEX employee_credentials_employee
-  ON employee_credentials (employee_id) WHERE deleted_at IS NULL;
 
 -- One employee per CIN, and per email, in a store (schema v21, rule E1):
 -- a record merged into another by sync stays behind, deleted, and the same

@@ -15,7 +15,6 @@ import 'package:drift/drift.dart' show Variable;
 import 'package:drift_dev/api/migrations_native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stock_inventory/core/utils/attendance_status.dart';
-import 'package:stock_inventory/core/utils/credential_status.dart';
 import 'package:stock_inventory/data/database/app_database.dart';
 import 'package:stock_inventory/data/database/sync_tables.dart';
 import 'package:stock_inventory/data/repositories/repositories.dart';
@@ -147,29 +146,33 @@ void main() {
   // Step 1 — the merge: schema v21, upgrades lose nothing
   // ===========================================================================
 
-  group('step 1 — schema v21', () {
+  group('step 1 — schema v21 (v22: no password tables)', () {
     final verifier = SchemaVerifier(GeneratedHelper());
 
-    test('a fresh database is v21', () async {
+    test('a fresh database has the journées and no password tables', () async {
       final db = openEmptyDatabase();
       addTearDown(db.close);
-      expect(db.schemaVersion, 21);
-      for (final table in ['business_days', 'login_states']) {
+      expect(db.schemaVersion, 22);
+      for (final (table, count) in [
+        ('business_days', 1),
+        ('login_states', 0),
+        ('employee_credentials', 0),
+      ]) {
         final found = await db
             .customSelect(
               "SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?",
               variables: [Variable<String>(table)],
             )
             .get();
-        expect(found, hasLength(1), reason: table);
+        expect(found, hasLength(count), reason: table);
       }
     });
 
-    for (final from in [13, 16, 20]) {
-      test('a v$from install upgrades to v21 cleanly', () async {
+    for (final from in [13, 16, 20, 21]) {
+      test('a v$from install upgrades to v22 cleanly', () async {
         final connection = await verifier.startAt(from);
         final db = AppDatabase.withExecutor(connection);
-        await verifier.migrateAndValidate(db, 21);
+        await verifier.migrateAndValidate(db, 22);
         await db.close();
       });
     }
@@ -339,95 +342,6 @@ void main() {
         expect(cook.archivedAt, isNotNull);
         expect(cook.phone, '0499 44 55 66');
       }
-    });
-  });
-
-  // ===========================================================================
-  // Step 5 — credentials (C1–C4)
-  // ===========================================================================
-
-  group('step 5 — credentials', () {
-    /// Whether [password] is the one this tablet holds for Léa.
-    Future<bool> holds(AppDatabase db, Shop shop, String password) async =>
-        passwordMatches(
-          (await CredentialRepository(db).forEmployee(shop.owner.id))!,
-          password,
-        );
-
-    Future<void> withPassword(AppDatabase a, AppDatabase b, Shop shop) async {
-      await CredentialRepository(a).setPassword(shop.owner.id, '1111');
-      await settle(a, b);
-    }
-
-    test('C1 — a sign-in sends nothing and never puts back an old password',
-        () async {
-      final a = await newDevice();
-      final b = await newDevice();
-      final shop = await shared(a, b);
-      await withPassword(a, b, shop);
-
-      await CredentialRepository(a).setPassword(shop.owner.id, '2222');
-      expect(
-        (await CredentialRepository(b).authenticate('Léa@resto.be', 'PIN-LEA'))
-            .outcome,
-        LoginOutcome.success,
-      );
-      expect(
-        await OutboxRepository(b).pendingCount(),
-        0,
-        reason: 'a sign-in is this tablet\'s own business',
-      );
-      await settle(a, b);
-
-      for (final db in [a, b]) {
-        expect(await holds(db, shop, '2222'), isTrue);
-      }
-    });
-
-    test('C2 — changed on both: the last wins, signalled', () async {
-      final a = await newDevice();
-      final b = await newDevice();
-      final shop = await shared(a, b);
-      await withPassword(a, b, shop);
-
-      await CredentialRepository(a).setPassword(shop.owner.id, '2222');
-      await CredentialRepository(b).setPassword(shop.owner.id, '3333');
-      await settle(a, b);
-
-      for (final db in [a, b]) {
-        expect(await holds(db, shop, '3333'), isTrue);
-        final signalled = await flags(db, shop.store.id);
-        expect(signalled, hasLength(1));
-        expect(signalled.single.title, contains('Mot de passe'));
-      }
-    });
-
-    test('C2 — changed on A, synced, then on B: not signalled', () async {
-      final a = await newDevice();
-      final b = await newDevice();
-      final shop = await shared(a, b);
-      await withPassword(a, b, shop);
-
-      await CredentialRepository(a).setPassword(shop.owner.id, '2222');
-      await settle(a, b);
-      await CredentialRepository(b).setPassword(shop.owner.id, '3333');
-      await settle(a, b);
-
-      expect(await flags(a, shop.store.id), isEmpty);
-    });
-
-    test('C4 — the old password works offline until the sync', () async {
-      final a = await newDevice();
-      final b = await newDevice();
-      final shop = await shared(a, b);
-      await withPassword(a, b, shop);
-
-      await CredentialRepository(a).setPassword(shop.owner.id, '2222');
-      expect(await holds(b, shop, '1111'), isTrue);
-
-      await settle(a, b);
-      expect(await holds(b, shop, '1111'), isFalse);
-      expect(await holds(b, shop, '2222'), isTrue);
     });
   });
 
@@ -900,10 +814,9 @@ void main() {
   // Every synced table is accounted for
   // ===========================================================================
 
-  test('the personnel tables are synced, the sign-in state is not', () {
+  test('the personnel tables are synced; no password table left', () {
     for (final table in [
       'employees',
-      'employee_credentials',
       'payroll_periods',
       'attendances',
       'attendance_sessions',
@@ -913,6 +826,9 @@ void main() {
     ]) {
       expect(SyncTables.synced, contains(table));
     }
-    expect(SyncTables.local, contains('login_states'));
+    for (final table in ['employee_credentials', 'login_states']) {
+      expect(SyncTables.synced, isNot(contains(table)));
+      expect(SyncTables.local, isNot(contains(table)));
+    }
   });
 }

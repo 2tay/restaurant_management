@@ -438,31 +438,10 @@ class SyncRunner {
       '${amount.toStringAsFixed(2).replaceAll('.', ',')} €';
 
   /// An accepted edit replaced another tablet's unseen change of a watched
-  /// column (rule C2): it wins, and the managers and the owner are told.
+  /// column (rule E2): it wins, and the managers and the owner are told.
   Future<void> _signalOverwrite(OutboxRow entry, List<String> columns) async {
     if (entry.changedTable == 'employees') {
       return _signalEmployeeOverwrite(entry, columns);
-    }
-    if (entry.changedTable == 'employee_credentials' &&
-        columns.contains('password_hash')) {
-      final payload = jsonDecode(entry.payload) as Map<String, Object?>;
-      final employeeId = payload['employee_id']! as String;
-      final employee = await EmployeeRepository(_db).employee(employeeId);
-      final name = employee == null
-          ? ''
-          : '${employee.firstName} ${employee.lastName}';
-      final at = clock.now();
-      await AccountRepository(_db).signal(
-        storeId: entry.storeId,
-        key: 'password_twice:${entry.rowKey}:${at.millisecondsSinceEpoch}',
-        title: 'Mot de passe changé deux fois : $name',
-        body:
-            'Le mot de passe a été changé sur deux tablettes en même temps. '
-            'Le dernier enregistré est gardé : vérifiez avec $name qu\'il '
-            'connaît le bon.',
-        employeeId: employeeId,
-        at: at,
-      );
     }
   }
 }

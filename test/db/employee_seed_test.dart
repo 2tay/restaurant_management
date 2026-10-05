@@ -3,11 +3,11 @@
 //
 // The database-side counterpart to the employee assertions in
 // `mock_data_test.dart`. The dataset is still hand-written across
-// `mock_employees.dart`, `mock_credentials.dart`, `mock_attendances.dart` and
+// `mock_employees.dart`, `mock_attendances.dart` and
 // `mock_payroll_periods.dart` and still relates everything by string id, so a
 // typo still produces a dash or a blank card on a screen nobody opened during
 // the demo. The schema (see `schema_test.dart`) turns the hard invariants —
-// unique PIN, one row per employee per day, the credential FK — into
+// unique PIN, one row per employee per day — into
 // constraints; this suite checks the rest, and that the seed actually inserted
 // what the demo path relies on.
 
@@ -15,6 +15,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:stock_inventory/core/utils/attendance_status.dart';
 import 'package:stock_inventory/data/database/app_database.dart';
 import 'package:stock_inventory/data/mappers/mappers.dart';
+import 'package:stock_inventory/data/repositories/repositories.dart';
 import 'package:stock_inventory/data/seed/dataset/dataset.dart';
 import 'package:stock_inventory/models/models.dart';
 
@@ -75,45 +76,15 @@ void main() {
       expect(emails.toSet(), hasLength(emails.length), reason: 'duplicate email');
     });
 
-    test('every credential points at a real owner or manager, one each — '
-        'an Employé has none', () async {
-      final employeeIds = (await employees()).map((e) => e.id).toSet();
-      final credentials = (await db.select(db.employeeCredentials).get())
-          .map(credentialFromRow)
-          .toList();
-
-      final roles = {for (final e in await employees()) e.id: e.role};
-      final seen = <String>{};
-      for (final credential in credentials) {
-        expect(
-          roles[credential.employeeId],
-          isNot(EmployeeRole.staff),
-          reason: 'an Employé has a password: ${credential.employeeId}',
-        );
-        expect(
-          employeeIds,
-          contains(credential.employeeId),
-          reason: credential.id,
-        );
-        expect(
-          seen.add(credential.employeeId),
-          isTrue,
-          reason: 'two credentials for ${credential.employeeId}',
-        );
-      }
-    });
-
-    test('every owner and manager can sign in', () async {
-      final withCredential = (await db.select(db.employeeCredentials).get())
-          .map((c) => c.employeeId)
-          .toSet();
-
+    test('every owner and manager can sign in: an email and a PIN', () async {
       for (final employee in await employees()) {
         if (employee.role == EmployeeRole.staff) continue;
         expect(
-          withCredential,
-          contains(employee.id),
-          reason: '${employee.firstName} ${employee.lastName} has no password',
+          (await CredentialRepository(
+            db,
+          ).authenticate(employee.email, employee.pin)).employee?.id,
+          employee.id,
+          reason: '${employee.firstName} ${employee.lastName}',
         );
       }
     });
@@ -307,10 +278,6 @@ void main() {
   group('the seed matches the dataset it was built from', () {
     test('every employee-module list is fully inserted', () async {
       expect(await db.select(db.employees).get(), hasLength(mockEmployees.length));
-      expect(
-        await db.select(db.employeeCredentials).get(),
-        hasLength(mockCredentials.length),
-      );
       expect(
         await db.select(db.payrollPeriods).get(),
         hasLength(mockPayrollPeriods.length),

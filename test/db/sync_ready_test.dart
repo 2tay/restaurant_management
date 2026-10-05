@@ -18,7 +18,7 @@ import 'package:stock_inventory/data/database/meta_keys.dart';
 import 'package:stock_inventory/data/database/sync_tables.dart';
 import 'package:stock_inventory/data/repositories/repositories.dart';
 import 'package:stock_inventory/data/seed/dataset/dataset.dart'
-    show CategoryIds, EmployeeIds, ItemIds, StoreIds, SupplierIds, UnitIds;
+    show CategoryIds, ItemIds, StoreIds, SupplierIds, UnitIds;
 import 'package:stock_inventory/models/models.dart';
 
 import '../support/db_fixture.dart';
@@ -332,31 +332,6 @@ void main() {
       expect(await rawRows('purchase_orders', draft.id), hasLength(1));
     });
 
-    test('a cleared password can be set again', () async {
-      final credentials = CredentialRepository(db);
-      expect(await credentials.forEmployee(EmployeeIds.amelie), isNotNull);
-
-      expect(await credentials.clear(EmployeeIds.amelie), isTrue);
-      expect(await credentials.forEmployee(EmployeeIds.amelie), isNull);
-
-      // One credential per employee, deleted ones included: the old row comes
-      // back instead of a second one being added.
-      final restored = await credentials.setPassword(EmployeeIds.amelie, '9876');
-      expect(restored, isNotNull);
-      final rows = await db
-          .customSelect(
-            'SELECT id FROM employee_credentials WHERE employee_id = ?',
-            variables: const [Variable<String>(EmployeeIds.amelie)],
-          )
-          .get();
-      expect(rows, hasLength(1));
-      final login = await credentials.authenticate(
-        (await EmployeeRepository(db).employee(EmployeeIds.amelie))!.pin,
-        '9876',
-      );
-      expect(login.outcome, LoginOutcome.success);
-    });
-
     test('a busy day can be unmarked and marked again', () async {
       final calendar = CalendarRepository(db);
       final day = DateTime(2026, 12, 24);
@@ -422,10 +397,6 @@ void main() {
         'price_history':
             'SELECT count(*) AS n FROM price_history c '
             'JOIN items p ON p.id = c.item_id WHERE c.store_id <> p.store_id',
-        'employee_credentials':
-            'SELECT count(*) AS n FROM employee_credentials c '
-            'JOIN employees p ON p.id = c.employee_id '
-            'WHERE c.store_id <> p.store_id',
       };
       for (final entry in checks.entries) {
         final row = await db.customSelect(entry.value).getSingle();

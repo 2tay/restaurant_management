@@ -20,7 +20,6 @@ library;
 
 export 'attendances.dart';
 export 'categories.dart';
-export 'credentials.dart';
 export 'employees.dart';
 export 'goods_receipts.dart';
 export 'items.dart';

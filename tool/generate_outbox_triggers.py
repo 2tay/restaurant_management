@@ -33,7 +33,6 @@ EXCLUDED = {
 # carry its signalements. Every other table sends the whole row.
 PARTIAL = {
     'employees',
-    'employee_credentials',
     'payroll_periods',
     'attendances',
     'attendance_sessions',
@@ -44,9 +43,8 @@ PARTIAL = {
 
 # Columns whose value before the edit travels too (`outbox.base_values`), so
 # the server can tell when this edit overwrites another tablet's unseen one
-# (rules C2 and E2). Only in PARTIAL tables.
+# (rule E2). Only in PARTIAL tables.
 WATCHED = {
-    'employee_credentials': ['password_hash'],
     'employees': ['pay', 'role', 'archived_at'],
 }
 

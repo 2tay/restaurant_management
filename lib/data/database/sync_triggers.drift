@@ -151,14 +151,6 @@ BEGIN
     WHERE rowid = NEW.rowid;
 END;
 
-CREATE TRIGGER employee_credentials_touch AFTER UPDATE ON employee_credentials
-  WHEN NEW.updated_at IS OLD.updated_at
-    AND NOT EXISTS (SELECT 1 FROM meta WHERE "key" = 'syncQuiet')
-BEGIN
-  UPDATE employee_credentials SET updated_at = (SELECT now FROM sync_clock)
-    WHERE rowid = NEW.rowid;
-END;
-
 CREATE TRIGGER payroll_periods_touch AFTER UPDATE ON payroll_periods
   WHEN NEW.updated_at IS OLD.updated_at
     AND NOT EXISTS (SELECT 1 FROM meta WHERE "key" = 'syncQuiet')
