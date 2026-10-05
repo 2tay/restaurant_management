@@ -7607,6 +7607,12 @@ abstract class AppLocalizations {
   /// **'Un fournisseur était lié deux fois au même article : le lien le plus récent a été gardé.'**
   String get syncResolvedDuplicateLink;
 
+  /// Sync page: one delivery possibly confirmed on two tablets (SYNC_TESTS.md, F7). Nothing was undone.
+  ///
+  /// In fr, this message translates to:
+  /// **'Commande {reference} : {item} a été reçu {times} fois sur des tablettes différentes. Si c\'est la même livraison, corrigez le stock par un comptage.'**
+  String syncResolvedDoubleReceipt(String reference, String item, int times);
+
   /// Heading: signing in with the restaurant's own data on the device.
   ///
   /// In fr, this message translates to:

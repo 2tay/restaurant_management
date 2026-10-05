@@ -17,6 +17,7 @@ export 'employee_repository.dart';
 export 'item_repository.dart';
 export 'local_data_repository.dart';
 export 'movement_repository.dart';
+export 'order_ledger.dart';
 export 'order_repository.dart';
 export 'outbox_repository.dart';
 export 'payroll_repository.dart';

@@ -324,8 +324,8 @@ void main() {
   );
 
   test(
-    'E3 — the same delivery confirmed on two tablets offline (F7): what '
-    'the real server does matches the fake',
+    'E3 — the same delivery confirmed on two tablets offline (F7): the '
+    'stock is not changed, every tablet is told once',
     () async {
       final order = await sentOrder();
       tablet('Cuisine').offline();
@@ -333,7 +333,38 @@ void main() {
       await receive(tablet('Cuisine'), order, 10);
       await receive(tablet('Bar'), order, 10);
       await settle();
-      expect(await tablet('Bureau').stockOf(tomates.id), 30);
+      for (final t in tablets) {
+        expect(await t.stockOf(tomates.id), 30, reason: '$t');
+        final alerts = [
+          for (final n in await AccountRepository(t.db).notifications(storeId))
+            if (n.title.startsWith('Réception en double')) n,
+        ];
+        expect(alerts, hasLength(1), reason: '$t');
+        expect(
+          [for (final e in await t.toCheck()) e.reason],
+          contains('resolved_double_receipt'),
+          reason: '$t',
+        );
+      }
+    },
+    skip: skip,
+    timeout: timeout,
+  );
+
+  test(
+    'E2b — two part deliveries offline (F6): the commande adds both up',
+    () async {
+      final order = await sentOrder();
+      tablet('Cuisine').offline();
+      tablet('Bar').offline();
+      await receive(tablet('Cuisine'), order, 4);
+      await receive(tablet('Bar'), order, 3);
+      await settle();
+      for (final t in tablets) {
+        final line = (await t.orders.order(order.id))!.lines.single;
+        expect(line.quantityReceived, 7, reason: '$t');
+        expect(await t.stockOf(tomates.id), 17, reason: '$t');
+      }
     },
     skip: skip,
     timeout: timeout,

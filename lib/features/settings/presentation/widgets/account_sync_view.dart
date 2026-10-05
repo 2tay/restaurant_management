@@ -249,6 +249,11 @@ class AccountSyncView extends ConsumerWidget {
           },
         ),
         'resolved_duplicate_link' => l10n.syncResolvedDuplicateLink,
+        'resolved_double_receipt' => l10n.syncResolvedDoubleReceipt(
+          (error.details['reference'] as String?) ?? '',
+          (error.details['item'] as String?) ?? '',
+          (error.details['times'] as int?) ?? 2,
+        ),
         _ => l10n.syncReasonInvalid,
       };
 

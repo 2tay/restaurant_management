@@ -12,6 +12,7 @@ import 'account_repository.dart';
 import 'attendance_repository.dart';
 import 'credential_repository.dart';
 import 'employee_repository.dart';
+import 'order_ledger.dart';
 import 'stock_ledger.dart';
 import 'sync_quiet.dart';
 
@@ -27,6 +28,9 @@ import 'sync_quiet.dart';
 ///   newer, it goes out next, and the server decides;
 /// - **the article's stock figures are never overwritten**: the server does
 ///   not hold them, and [StockLedger] recomputes them after the page;
+/// - **a commande's received quantities are recomputed** from its receipts
+///   after the page ([OrderLedger]), and a delivery confirmed on two tablets
+///   is signalled;
 /// - **the store's cursor is saved with the rows**, so a crash can neither
 ///   skip nor repeat a change.
 ///
@@ -113,6 +117,8 @@ class SyncApplier {
   /// in: every screen watching them reloads without a restart.
   Future<int> apply(String storeId, PullPage page) async {
     final rebuild = <String>{};
+    final orders = <String>{};
+    final receipts = <String>{};
     final touched = <TableInfo<Table, dynamic>>{};
     var written = 0;
 
@@ -140,6 +146,14 @@ class SyncApplier {
             rebuild.add(change.row['item_id'] as String);
           } else if (change.table == 'items') {
             rebuild.add(change.row['id'] as String);
+          }
+          switch (change.table) {
+            case 'purchase_orders':
+              orders.add(change.row['id'] as String);
+            case 'purchase_order_lines' || 'goods_receipts':
+              orders.add(change.row['order_id'] as String);
+            case 'goods_receipt_lines':
+              receipts.add(change.row['receipt_id'] as String);
           }
         } catch (error) {
           await _db
@@ -169,6 +183,24 @@ class SyncApplier {
     });
 
     if (rebuild.isNotEmpty) await StockLedger(_db).rebuildItems(rebuild);
+    if (receipts.isNotEmpty) {
+      orders.addAll(
+        await (_db.selectOnly(_db.goodsReceipts)
+              ..addColumns([_db.goodsReceipts.orderId])
+              ..where(_db.goodsReceipts.id.isIn(receipts)))
+            .map((row) => row.read(_db.goodsReceipts.orderId)!)
+            .get(),
+      );
+    }
+    if (orders.isNotEmpty) {
+      await OrderLedger(_db).rebuildOrders(orders);
+      touched.addAll([
+        _db.purchaseOrders,
+        _db.purchaseOrderLines,
+        _db.notifications,
+        _db.syncErrors,
+      ]);
+    }
     if (touched.isNotEmpty) {
       _db.notifyUpdates({
         for (final table in touched) TableUpdate.onTable(table),

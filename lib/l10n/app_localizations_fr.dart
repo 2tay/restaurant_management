@@ -4743,6 +4743,11 @@ class AppLocalizationsFr extends AppLocalizations {
       'Un fournisseur était lié deux fois au même article : le lien le plus récent a été gardé.';
 
   @override
+  String syncResolvedDoubleReceipt(String reference, String item, int times) {
+    return 'Commande $reference : $item a été reçu $times fois sur des tablettes différentes. Si c\'est la même livraison, corrigez le stock par un comptage.';
+  }
+
+  @override
   String get existingDataTitle => 'Données déjà sur cet appareil';
 
   @override

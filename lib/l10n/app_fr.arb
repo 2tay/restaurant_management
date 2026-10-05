@@ -2746,6 +2746,8 @@
   "@syncResolvedDoubleBusinessDay": {"description": "Sync page: two journées de service for one date, one kept (rule P5).", "placeholders": {"date": {"type": "String"}}},
   "syncResolvedDuplicateLink": "Un fournisseur était lié deux fois au même article : le lien le plus récent a été gardé.",
   "@syncResolvedDuplicateLink": {"description": "Sync page: a duplicate supplier link settled."},
+  "syncResolvedDoubleReceipt": "Commande {reference} : {item} a été reçu {times} fois sur des tablettes différentes. Si c'est la même livraison, corrigez le stock par un comptage.",
+  "@syncResolvedDoubleReceipt": {"description": "Sync page: one delivery possibly confirmed on two tablets (SYNC_TESTS.md, F7). Nothing was undone.", "placeholders": {"reference": {"type": "String"}, "item": {"type": "String"}, "times": {"type": "int"}}},
 
   "existingDataTitle": "Données déjà sur cet appareil",
   "@existingDataTitle": {"description": "Heading: signing in with the restaurant's own data on the device."},

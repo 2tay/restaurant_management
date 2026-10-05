@@ -8,16 +8,17 @@ tests (`test/db/sync_personnel_full_test.dart`).
 
 The sync is in good shape for everyday use. Changes reach every tablet, nothing is lost
 offline, stock adds up when several tablets work offline at the same time, a deleted row stays
-deleted, and the order rules work. **95 scenarios were written (88 fast, 7 on the real server). 79 pass. 16 show a
-real problem**, listed below as findings F1 to F14. Two of them matter most for a restaurant:
-**F7** (one delivery confirmed on two tablets doubles the stock) and **F6** (two part
-deliveries of one order on two tablets: the order shows the wrong quantity received).
+deleted, and the order rules work. **104 scenarios now (96 fast, 8 on the real server). 90 pass. 14 still show a
+real problem**, listed below as findings F1 to F14. Two of them mattered most for a
+restaurant, and **are now fixed**: **F7** (one delivery confirmed on two tablets doubled the
+stock with no warning) and **F6** (two part deliveries of one order on two tablets: the order
+showed the wrong quantity received). See "Fixed" below. 12 findings remain open.
 
 | Where | Scenarios | Pass | Known problem (skipped) |
 |---|---|---|---|
-| `test/db/sync_restaurant_*_test.dart` (fake server, fast) | 88 | 72 | 16 |
-| `test/integration/sync_restaurant_test.dart` (real local Supabase) | 7 | 7 | 0 |
-| `test/db` + `test/password_hash_test.dart`, all old tests | 717 | 717 | (the 16 above) |
+| `test/db/sync_restaurant_*_test.dart` (fake server, fast) | 96 | 82 | 14 |
+| `test/integration/sync_restaurant_test.dart` (real local Supabase) | 8 | 8 | 0 |
+| `test/db` + `test/password_hash_test.dart` + `test/sync_screens_test.dart` | 747 | 733 | (the 14 above) |
 
 The real-server file runs the most important cases again (offline stock on 3 tablets, delete
 wins, status going backwards, cancelled and closed orders, double delivery). The real server
@@ -90,6 +91,37 @@ fixed, its test starts passing; then remove the `knownIssue` from it.
   stock, even while another tablet is offline. A removed tablet stops and sends nothing. An
   expired session loses nothing. A demo tablet sends nothing.
 
+## Fixed
+
+**F6 and F7, fixed on 2026-10-05** (`lib/data/repositories/order_ledger.dart`, called by
+`SyncApplier.apply` after each page, next to the stock rebuild):
+
+- **F6:** after receiving any order, order line, receipt or receipt line, the tablet works out
+  each line's "received so far" from the order's receipts, and the status of an open order
+  from its lines (a received or cancelled order is never touched). This is quiet, like the
+  stock rebuild: every tablet computes the same thing, so nothing is sent. The server's copy
+  of the line can stay out of date; no screen reads it. Receiving on the tablet itself still
+  works as before, and a test checks that both give the same numbers.
+- **F7:** each receipt line keeps what was still expected when the van arrived. Two receipts
+  that saw the same expected quantity and together bring in more than it are flagged:
+  - an alert « Réception en double ? Tomates », naming the order, how much each tablet
+    recorded and who. It has the same id on every tablet, so it shows once; it opens the
+    product, where a count corrects the stock;
+  - a note under « À vérifier » on each tablet, shown once there; « Compris » makes it go
+    away for good.
+
+  Nothing is undone: a second van is possible, and only a person can tell. 4 kg + 3 kg
+  against 10 expected, or a second delivery recorded after the first one was seen, is not
+  flagged.
+
+New tests: the 7 in the "F6, F7" group of `sync_restaurant_orders_test.dart`, the dismissed
+note, and the real-server E2b and E3.
+
+**Seen on the way, not caused by this work:** 3 older real-server tests fail on this branch
+with or without the fix (`existing_data_test`, `sync_pull_test`, `sync_push_test`: a PIN
+login answers "wrong password" after the sync). They come from the staff and credential
+changes and should be looked at separately.
+
 ## Findings
 
 Ordered by how much they matter in a restaurant. "Test" names the scenario that shows it
@@ -97,8 +129,8 @@ Ordered by how much they matter in a restaurant. "Test" names the scenario that 
 
 | # | What happens | What the owner expects | Test | Weight | Proposal |
 |---|---|---|---|---|---|
-| **F7** | Two tablets offline both confirm the **same delivery**. Both receipts are kept, so the stock goes up twice (10 kg → 30 kg instead of 20). Nothing warns anyone. Same on the real server. | The double is caught, or at least shown in « À vérifier ». | E3, E3b, real E3 | High | When receiving rows, if an order's receipts add up to more than was ordered, put a « Réception en double ? » note in « À vérifier » with a link to the order. Do not undo it automatically: a real second delivery is possible. |
-| **F6** | Two part deliveries of one order on two tablets offline (4 kg and 3 kg). Stock is right (+7), but the order line says **3 received**: the line is one row, and the last tablet's number replaces the other. The order can show the wrong status. | The order says 7 received. | E2b | High | Each tablet recomputes a line's received quantity from the receipts it holds, like the stock is recomputed from movements. |
+| **F7** ✅ fixed | Two tablets offline both confirm the **same delivery**. Both receipts are kept, so the stock goes up twice (10 kg → 30 kg instead of 20). Nothing warns anyone. Same on the real server. | The double is caught, or at least shown in « À vérifier ». | E3, E3b, real E3 | High | When receiving rows, if an order's receipts add up to more than was ordered, put a « Réception en double ? » note in « À vérifier » with a link to the order. Do not undo it automatically: a real second delivery is possible. |
+| **F6** ✅ fixed | Two part deliveries of one order on two tablets offline (4 kg and 3 kg). Stock is right (+7), but the order line says **3 received**: the line is one row, and the last tablet's number replaces the other. The order can show the wrong status. | The order says 7 received. | E2b | High | Each tablet recomputes a line's received quantity from the receipts it holds, like the stock is recomputed from movements. |
 | **F3** | Products, suppliers, settings and other non-staff rows send the **whole row**. Two tablets offline change two different fields of the same product (threshold on one, category on the other): one change is lost. The same goes for two different settings of the establishment. | Both changes kept. | D2, catalog test F7 | Medium | Use the "only the changed fields" sending already built for staff rows (`changed_columns`) for every table. |
 | **F12** | The server saved a change but the answer was lost. Meanwhile another tablet changed the same field. The first tablet then **sends its old change again** and undoes the newer one. | The newer change stays. | I1c | Medium | The server remembers each tablet's last accepted entry (device + outbox id) and answers "already done" to a resend instead of applying it again. |
 | **F13** | When the server refuses a change (`deleted`, `status_*`, `invalid`), the tablet keeps its own version. Usually the next download fixes it, but not always: if the tablet was edited while it was receiving a delete, it **keeps showing the deleted product for good**. | The tablet shows what the server has. | I3b, I6b | Medium | Send the server's row back with every refusal (`restore`, already done for paid days) and write it on the tablet. |
