@@ -579,8 +579,8 @@ void main() {
       }
     });
 
-    test('P6 — the journée closed on A while Léa pointed on B: both kept, '
-        'signalled', () async {
+    test('P6 — the journée closed on A, then Léa pointed on B: the close '
+        'wins, her arrival is removed, signalled', () async {
       final a = await newDevice();
       final b = await newDevice();
       final shop = await shared(a, b);
@@ -600,10 +600,39 @@ void main() {
           (await BusinessDayRepository(db).businessDay(journee.id))!.closedAt,
           isNotNull,
         );
-        expect((await dayOf(db, shop.owner.id)).sessions.single.clockOutAt, isNull);
+        expect(await AttendanceRepository(db).forEmployee(shop.owner.id), isEmpty);
+        final signalled = (await flags(db, shop.store.id)).single;
+        expect(signalled.title, contains('après la fermeture'));
+        expect(signalled.body, contains('17:45 n\'est pas comptée'));
+      }
+    });
+
+    test('P6 — Karim still in on B when A closed: his exit is the close, '
+        'signalled', () async {
+      final a = await newDevice();
+      final b = await newDevice();
+      final shop = await shared(a, b);
+      final lea = (await AttendanceRepository(
+        a,
+      ).clockIn(shop.owner.id, shop.store.id, now: at(8)))!;
+      await settle(a, b);
+      final journee = (await BusinessDayRepository(a).current(shop.store.id))!;
+
+      await AttendanceRepository(b).clockIn(shop.cook.id, shop.store.id, now: at(16));
+      await AttendanceRepository(a).clockOut(lea.id, now: at(17));
+      await BusinessDayRepository(a, clock: () => at(17, 30)).close(
+        journee.id,
+        closedByEmployeeId: shop.owner.id,
+      );
+      await settle(a, b);
+
+      for (final db in [a, b]) {
+        final session = (await dayOf(db, shop.cook.id)).sessions.single;
+        expect(session.clockOutAt, at(17, 30));
+        expect(session.exitSetByEmployeeId, shop.owner.id);
         expect(
-          (await flags(db, shop.store.id)).single.title,
-          contains('après la fermeture'),
+          (await flags(db, shop.store.id)).single.body,
+          contains('départ est mis à 17:30'),
         );
       }
     });

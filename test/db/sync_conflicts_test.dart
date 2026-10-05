@@ -518,7 +518,8 @@ void main() {
       }
     });
 
-    test('a pointage on a journée closed on the other tablet (P6)', () async {
+    test('an arrival after the close on the other tablet is removed (P6)',
+        () async {
       final a = await newDevice();
       final b = await newDevice();
       final day = await shared(a, b);
@@ -546,12 +547,51 @@ void main() {
       for (final db in [a, b]) {
         final kept = await BusinessDayRepository(db).businessDay(journee.id);
         expect(kept!.closedAt, isNotNull);
-        final lea = await dayOf(db, day.owner.id);
-        expect(lea.sessions.single.clockOutAt, isNull);
+        // The close wins: Léa's arrival at 17:45 is removed, with her day.
+        expect(await AttendanceRepository(db).forEmployee(day.owner.id), isEmpty);
         final signalled = await flags(db, day.store.id);
         expect(signalled, hasLength(1));
         expect(signalled.single.title, contains('après la fermeture'));
+        expect(signalled.single.body, contains('supprimé'));
         expect(signalled.single.relatedEmployeeId, day.owner.id);
+      }
+    });
+
+    test('a shift still open at the close on the other tablet ends at the '
+        'close (P6)', () async {
+      final a = await newDevice();
+      final b = await newDevice();
+      final day = await shared(a, b);
+      await AttendanceRepository(a).clockIn(day.owner.id, day.store.id, now: morning);
+      await settle(a, b);
+      final journee = (await BusinessDayRepository(a).current(day.store.id))!;
+
+      // B, offline, clocks Karim in and starts his break; A, not knowing,
+      // ends Léa's day and closes the journée at 17:30.
+      final karim = (await AttendanceRepository(
+        b,
+      ).clockIn(day.cook.id, day.store.id, now: at(16)))!;
+      await AttendanceRepository(b).startPause(karim.id, now: at(17));
+      await AttendanceRepository(a).clockOut(
+        (await dayOf(a, day.owner.id)).id,
+        now: at(17),
+      );
+      await BusinessDayRepository(a, clock: () => at(17, 30)).close(
+        journee.id,
+        closedByEmployeeId: day.owner.id,
+      );
+      await settle(a, b);
+
+      for (final db in [a, b]) {
+        final shift = await dayOf(db, day.cook.id);
+        expect(shift.status, AttendanceStatus.done);
+        expect(shift.sessions.single.clockOutAt, at(17, 30));
+        expect(shift.sessions.single.exitSetByEmployeeId, day.owner.id);
+        expect(shift.sessions.single.pauses.single.endAt, at(17, 30));
+        final signalled = await flags(db, day.store.id);
+        expect(signalled, hasLength(1));
+        expect(signalled.single.body, contains('départ est mis à 17:30'));
+        expect(signalled.single.relatedEmployeeId, day.cook.id);
       }
     });
 

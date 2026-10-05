@@ -221,7 +221,7 @@ connexion) et pouvait remettre un ancien mot de passe changé entre-temps sur un
 | P3 | Pause sur une tablette, départ sur l'autre | le statut n'est plus copié, il est **recalculé à partir des heures** ; une pause sans fin s'arrête au départ |
 | P4 | Deux départs pour la même arrivée | le **plus tôt** est gardé partout ; signalé si l'écart dépasse 15 min |
 | H1 / H2 | Deux gérants corrigent le même départ, ou un gérant contre l'employé | le plus tôt gagne, **toujours signalé** (c'est une correction) |
-| P6 | Journée fermée sur une tablette, pointage sur l'autre | la fermeture reste, le pointage aussi, et c'est signalé |
+| P6 | Journée fermée sur une tablette, pointage sur l'autre | **la fermeture gagne** : une arrivée encore ouverte reçoit un départ à l'heure de fermeture (une pause en cours s'arrête aussi) ; une arrivée pointée **après** la fermeture est supprimée, avec sa journée s'il n'y reste rien ; chaque cas est signalé. Un jour déjà payé n'est pas touché, seulement signalé |
 
 **Ce qui a changé.**
 
@@ -236,7 +236,9 @@ connexion) et pouvait remettre un ancien mot de passe changé entre-temps sur un
   (gérant et propriétaire, confirmation et PIN). L'action est refusée sur un jour payé ou s'il ne
   reste qu'une arrivée.
 - `SyncApplier` : `_applySessionExit` (le départ le plus tôt ; la tablette qui l'avait le remet et
-  le renvoie), `_applyPause` (la fin de pause la plus tôt), `_signalPunchesAfterClose` (P6).
+  le renvoie), `_applyPause` (la fin de pause la plus tôt), `_settlePunchesAfterClose` (P6, avec
+  `_endSessionAt` et `_removeSession`). Le départ mis à la fermeture porte comme auteur la personne
+  qui a fermé la journée, comme une correction.
 
 **Fichiers** : `attendance_repository.dart`, `sync_applier.dart`, `attendance_status.dart`,
 `attendance_history_page.dart`, `attendance_row.dart`, `models/attendance.dart` (identifiant de
@@ -398,6 +400,9 @@ existaient déjà avant ce travail : ils échouent de la même façon sans ces c
 
 - **Une ancienne journée restée ouverte** : si la synchro amène une ancienne journée ouverte à
   côté d'une plus récente, la plus récente sert, mais l'ancienne n'est ni fermée ni signalée.
+- **Un départ pointé après la fermeture** (P6) : si l'employé est arrivé avant la fermeture et a
+  pointé son départ après, sur une tablette hors ligne, ce départ est gardé tel quel. Seules une
+  arrivée encore ouverte et une arrivée faite après la fermeture sont corrigées.
 - **Qui a supprimé un doublon** : la suppression n'enregistre pas son auteur.
 - **Un jour payé seulement sur cette tablette** : si une tablette vient de payer un jour hors ligne
   et reçoit, avant d'envoyer ce paiement, une modification de ce jour faite ailleurs, la

@@ -258,7 +258,7 @@ class SyncApplier {
         return _applyPause(table, row);
       case 'business_days' when live:
         await _applyBusinessDay(table, row, storeId);
-        return _signalPunchesAfterClose(row['store_id'] as String, row['date']);
+        return _settlePunchesAfterClose(row['store_id'] as String, row['date']);
       case 'notifications':
         return _applyNotification(table, row);
       case 'supplier_prices' when live:
@@ -500,7 +500,7 @@ class SyncApplier {
   }
 
   /// A session: its exit merged with this tablet's (the earliest wins), the
-  /// day's status recomputed, a punch on a closed journée signalled. One of
+  /// day's status recomputed, a punch on a closed journée settled. One of
   /// a day merged away goes to the kept day.
   Future<void> _applySession(
     TableInfo<Table, dynamic> table,
@@ -516,7 +516,7 @@ class SyncApplier {
       if (day != null) {
         await _refreshStatus(day.id);
         if (row['deleted_at'] == null) {
-          await _signalPunchesAfterClose(day.storeId, day.date);
+          await _settlePunchesAfterClose(day.storeId, day.date);
           await _signalArchivedPunches(day.employeeId);
         }
       }
@@ -977,9 +977,11 @@ class SyncApplier {
   }
 
   /// Rule P6: a journée closed on one tablet while somebody was still
-  /// pointing on another. The close stays and so does the pointage; each
-  /// session still open on it, or begun after the close, is signalled once.
-  Future<void> _signalPunchesAfterClose(String storeId, Object? date) async {
+  /// pointing on another. The close wins, the same on every tablet: a
+  /// session still open on it ends at the close (its breaks too), one begun
+  /// after the close is removed (its day too, when nothing else is left on
+  /// it). Each is signalled once. A paid day is frozen: only signalled.
+  Future<void> _settlePunchesAfterClose(String storeId, Object? date) async {
     final day = date is DateTime
         ? date
         : _convert('business_days', _db.businessDays.date, date) as DateTime?;
@@ -1020,22 +1022,101 @@ class SyncApplier {
       final session = match.readTable(_db.attendanceSessions);
       final attendance = match.readTable(_db.attendances);
       final name = await _employeeName(attendance.employeeId);
+      final begunAfter = session.clockInAt.isAfter(closedAt);
+      final paid = attendance.payrollPeriodId != null;
+      if (!paid) {
+        await SyncQuiet.loud(
+          _db,
+          () => begunAfter
+              ? _removeSession(session)
+              : _endSessionAt(session, closedAt, journee!.closedByEmployeeId),
+        );
+        await _refreshStatus(attendance.id);
+      }
+
+      final closed =
+          'La journée du ${_numericDate(day)} a été fermée à '
+          '${_time(closedAt)} sur une autre tablette';
+      final arrival = _time(session.clockInAt);
       await SyncQuiet.loud(
         _db,
         () => AccountRepository(_db).signal(
           storeId: storeId,
           key: 'after_close:${session.id}',
           title: 'Pointage après la fermeture : $name',
-          body:
-              'La journée du ${_numericDate(day)} a été fermée à '
-              '${_time(closedAt)} sur une autre tablette pendant que $name '
-              'pointait (arrivée ${_time(session.clockInAt)}). La fermeture '
-              'est gardée, le pointage aussi : vérifiez son départ dans '
-              'l\'historique.',
+          body: paid
+              ? '$closed pendant que $name pointait (arrivée $arrival). Le '
+                    'jour est déjà payé, rien n\'est changé : vérifiez dans '
+                    'l\'historique.'
+              : begunAfter
+              ? '$closed, puis $name a pointé son arrivée à $arrival sur '
+                    'cette tablette. La fermeture gagne : ce pointage est '
+                    'supprimé, l\'arrivée de $arrival n\'est pas comptée.'
+              : '$closed pendant que $name pointait (arrivée $arrival). La '
+                    'fermeture gagne : son départ est mis à '
+                    '${_time(closedAt)}. Vérifiez dans l\'historique.',
           employeeId: attendance.employeeId,
           at: clock.now(),
         ),
       );
+    }
+  }
+
+  /// Ends [session] at [at] (rule P6): a break begun after [at] is removed,
+  /// one running past it ends there.
+  Future<void> _endSessionAt(
+    AttendanceSessionRow session,
+    DateTime at,
+    String? setByEmployeeId,
+  ) async {
+    final pauses = await (_db.select(_db.attendancePauses)..where(
+          (p) => p.sessionId.equals(session.id) & p.deletedAt.isNull(),
+        ))
+        .get();
+    for (final pause in pauses) {
+      final AttendancePausesCompanion change;
+      if (!pause.startAt.isBefore(at)) {
+        change = AttendancePausesCompanion(deletedAt: Value(clock.now()));
+      } else if (pause.endAt == null || pause.endAt!.isAfter(at)) {
+        change = AttendancePausesCompanion(endAt: Value(at));
+      } else {
+        continue;
+      }
+      await (_db.update(_db.attendancePauses)
+            ..where((p) => p.id.equals(pause.id)))
+          .write(change);
+    }
+    await (_db.update(_db.attendanceSessions)
+          ..where((s) => s.id.equals(session.id)))
+        .write(
+          AttendanceSessionsCompanion(
+            clockOutAt: Value(at),
+            exitSetByEmployeeId: Value(setByEmployeeId),
+          ),
+        );
+  }
+
+  /// Removes [session] and its breaks (rule P6), and its day when no other
+  /// session is left on it.
+  Future<void> _removeSession(AttendanceSessionRow session) async {
+    final now = clock.now();
+    await (_db.update(_db.attendancePauses)..where(
+          (p) => p.sessionId.equals(session.id) & p.deletedAt.isNull(),
+        ))
+        .write(AttendancePausesCompanion(deletedAt: Value(now)));
+    await (_db.update(_db.attendanceSessions)
+          ..where((s) => s.id.equals(session.id)))
+        .write(AttendanceSessionsCompanion(deletedAt: Value(now)));
+    final left = await (_db.select(_db.attendanceSessions)..where(
+          (s) =>
+              s.attendanceId.equals(session.attendanceId) &
+              s.deletedAt.isNull(),
+        ))
+        .get();
+    if (left.isEmpty) {
+      await (_db.update(_db.attendances)
+            ..where((a) => a.id.equals(session.attendanceId)))
+          .write(AttendancesCompanion(deletedAt: Value(now)));
     }
   }
 

@@ -23,7 +23,7 @@ paiement et les identifiants de connexion.
 | P3 | Pause sur une tablette, départ sur l'autre | le statut (au travail / en pause / terminé) n'est plus copié : **recalculé à partir des heures** ; une pause sans fin se termine au départ |
 | P4 | Deux départs pour la même arrivée | on garde **le plus tôt** ; signalé si l'écart dépasse 15 min |
 | P5 | Journée ouverte sur deux tablettes | une seule gardée (plus petit identifiant) ; aucun pointage ne bouge |
-| P6 | Journée fermée sur une tablette, pointage sur l'autre | la fermeture gagne ; le pointage est gardé et signalé |
+| P6 | Journée fermée sur une tablette, pointage sur l'autre | la fermeture gagne : une arrivée encore ouverte reçoit un départ à l'heure de fermeture (ses pauses aussi) ; une arrivée pointée après la fermeture est supprimée (et sa journée s'il n'y reste rien) ; chaque cas est signalé. Un jour déjà payé n'est pas touché, seulement signalé |
 
 ### Historique de pointage
 | | Situation | Règle |
