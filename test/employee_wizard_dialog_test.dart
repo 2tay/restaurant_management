@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stock_inventory/app/router.dart';
 import 'package:stock_inventory/app/routes.dart';
+import 'package:stock_inventory/core/utils/credential_status.dart';
 import 'package:stock_inventory/data/database/app_database.dart';
 import 'package:stock_inventory/data/repositories/repositories.dart';
 import 'package:stock_inventory/data/seed/dataset/dataset.dart';
@@ -258,9 +259,8 @@ void main() {
     expect(_enabled(tester, 'Enregistrer'), isTrue);
     await _tap(tester, 'Enregistrer');
 
-    final karim = await EmployeeRepository(db).employee(EmployeeIds.karim);
-    final attempt = await credentials.authenticate(karim!.pin, '5678');
-    expect(attempt.outcome, LoginOutcome.success);
+    final credential = await credentials.forEmployee(EmployeeIds.karim);
+    expect(passwordMatches(credential!, '5678'), isTrue);
   });
 
   testApp('a Gérant saved with a blank password keeps the current one', (

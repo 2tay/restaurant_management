@@ -264,11 +264,18 @@ void main() {
     });
   });
 
-  // Rules C1–C3 (SYNC_PERSONNEL_PLAN.md, step 5): only the password is
-  // shared; the attempts and the lockout are each tablet's.
+  // Rules C1–C2 (SYNC_PERSONNEL_PLAN.md, step 5): only the password is
+  // shared; signing in writes nothing.
   group('passwords and sign-in on two tablets', () {
-    // Léa (the owner) signs in with a PIN and a 4-digit password.
+    // Léa (the owner) signs in with her email and her PIN.
+    const email = 'Léa@resto.be';
     const pin = 'PIN-LEA';
+
+    Future<bool> holds(AppDatabase db, String id, String password) async =>
+        passwordMatches(
+          (await CredentialRepository(db).forEmployee(id))!,
+          password,
+        );
 
     test('signing in sends nothing', () async {
       final a = await newDevice();
@@ -277,8 +284,8 @@ void main() {
       await CredentialRepository(a).setPassword(day.owner.id, '1111');
       await settle(a, b);
 
-      await CredentialRepository(a).authenticate(pin, '1111');
-      await CredentialRepository(a).authenticate(pin, '9999');
+      await CredentialRepository(a).authenticate(email, pin);
+      await CredentialRepository(a).authenticate(email, 'PIN-X');
 
       expect(await OutboxRepository(a).pendingCount(), 0);
     });
@@ -290,50 +297,17 @@ void main() {
       await CredentialRepository(a).setPassword(day.owner.id, '1111');
       await settle(a, b);
 
-      // A changes the password; B, not synced yet, signs in with the old one.
+      // A changes the password; B, not synced yet, signs in.
       await CredentialRepository(a).setPassword(day.owner.id, '2222');
       expect(
-        (await CredentialRepository(b).authenticate(pin, '1111')).outcome,
+        (await CredentialRepository(b).authenticate(email, pin)).outcome,
         LoginOutcome.success,
       );
       await settle(a, b);
 
       for (final db in [a, b]) {
-        expect(
-          (await CredentialRepository(db).authenticate(pin, '2222')).outcome,
-          LoginOutcome.success,
-        );
+        expect(await holds(db, day.owner.id, '2222'), isTrue);
       }
-    });
-
-    test('a lockout stays on its tablet, a new password lifts it (C3)',
-        () async {
-      final a = await newDevice();
-      final b = await newDevice();
-      final day = await shared(a, b);
-      await CredentialRepository(a).setPassword(day.owner.id, '1111');
-      await settle(a, b);
-
-      for (var i = 0; i < AuthRules.maxFailedAttempts; i++) {
-        await CredentialRepository(a).authenticate(pin, '9999');
-      }
-      await settle(a, b);
-      expect(
-        (await CredentialRepository(a).authenticate(pin, '1111')).outcome,
-        LoginOutcome.locked,
-      );
-      expect(
-        (await CredentialRepository(b).authenticate(pin, '1111')).outcome,
-        LoginOutcome.success,
-      );
-
-      // A new password set on B reaches A and clears A's lockout.
-      await CredentialRepository(b).setPassword(day.owner.id, '3333');
-      await settle(a, b);
-      expect(
-        (await CredentialRepository(a).authenticate(pin, '3333')).outcome,
-        LoginOutcome.success,
-      );
     });
 
     test('changed on both tablets: the last one wins, and is signalled (C2)',
@@ -350,11 +324,7 @@ void main() {
       await settle(a, b);
 
       for (final db in [a, b]) {
-        final credentials = CredentialRepository(db);
-        expect(
-          (await credentials.authenticate(pin, '3333')).outcome,
-          LoginOutcome.success,
-        );
+        expect(await holds(db, day.owner.id, '3333'), isTrue);
         final flags = [
           for (final n in await AccountRepository(
             db,
@@ -1115,10 +1085,10 @@ void main() {
     await settle(a, b);
 
     for (final db in [a, b]) {
-      final login = await CredentialRepository(
+      final credential = await CredentialRepository(
         db,
-      ).authenticate('PIN-LEA', '2222');
-      expect(login.outcome, LoginOutcome.success);
+      ).forEmployee(day.owner.id);
+      expect(passwordMatches(credential!, '2222'), isTrue);
     }
   });
 

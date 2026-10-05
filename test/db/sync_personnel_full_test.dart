@@ -347,10 +347,12 @@ void main() {
   // ===========================================================================
 
   group('step 5 — credentials', () {
-    const pin = 'PIN-LEA';
-
-    Future<LoginOutcome> signIn(AppDatabase db, String password) async =>
-        (await CredentialRepository(db).authenticate(pin, password)).outcome;
+    /// Whether [password] is the one this tablet holds for Léa.
+    Future<bool> holds(AppDatabase db, Shop shop, String password) async =>
+        passwordMatches(
+          (await CredentialRepository(db).forEmployee(shop.owner.id))!,
+          password,
+        );
 
     Future<void> withPassword(AppDatabase a, AppDatabase b, Shop shop) async {
       await CredentialRepository(a).setPassword(shop.owner.id, '1111');
@@ -365,7 +367,11 @@ void main() {
       await withPassword(a, b, shop);
 
       await CredentialRepository(a).setPassword(shop.owner.id, '2222');
-      expect(await signIn(b, '1111'), LoginOutcome.success);
+      expect(
+        (await CredentialRepository(b).authenticate('Léa@resto.be', 'PIN-LEA'))
+            .outcome,
+        LoginOutcome.success,
+      );
       expect(
         await OutboxRepository(b).pendingCount(),
         0,
@@ -374,7 +380,7 @@ void main() {
       await settle(a, b);
 
       for (final db in [a, b]) {
-        expect(await signIn(db, '2222'), LoginOutcome.success);
+        expect(await holds(db, shop, '2222'), isTrue);
       }
     });
 
@@ -389,7 +395,7 @@ void main() {
       await settle(a, b);
 
       for (final db in [a, b]) {
-        expect(await signIn(db, '3333'), LoginOutcome.success);
+        expect(await holds(db, shop, '3333'), isTrue);
         final signalled = await flags(db, shop.store.id);
         expect(signalled, hasLength(1));
         expect(signalled.single.title, contains('Mot de passe'));
@@ -410,25 +416,6 @@ void main() {
       expect(await flags(a, shop.store.id), isEmpty);
     });
 
-    test('C3 — a lockout stays on its tablet; a new password lifts it',
-        () async {
-      final a = await newDevice();
-      final b = await newDevice();
-      final shop = await shared(a, b);
-      await withPassword(a, b, shop);
-
-      for (var i = 0; i < AuthRules.maxFailedAttempts; i++) {
-        await signIn(a, '9999');
-      }
-      await settle(a, b);
-      expect(await signIn(a, '1111'), LoginOutcome.locked);
-      expect(await signIn(b, '1111'), LoginOutcome.success);
-
-      await CredentialRepository(b).setPassword(shop.owner.id, '3333');
-      await settle(a, b);
-      expect(await signIn(a, '3333'), LoginOutcome.success);
-    });
-
     test('C4 — the old password works offline until the sync', () async {
       final a = await newDevice();
       final b = await newDevice();
@@ -436,11 +423,11 @@ void main() {
       await withPassword(a, b, shop);
 
       await CredentialRepository(a).setPassword(shop.owner.id, '2222');
-      expect(await signIn(b, '1111'), LoginOutcome.success);
+      expect(await holds(b, shop, '1111'), isTrue);
 
       await settle(a, b);
-      expect(await signIn(b, '1111'), LoginOutcome.wrongPassword);
-      expect(await signIn(b, '2222'), LoginOutcome.success);
+      expect(await holds(b, shop, '1111'), isFalse);
+      expect(await holds(b, shop, '2222'), isTrue);
     });
   });
 

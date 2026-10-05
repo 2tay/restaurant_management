@@ -526,6 +526,12 @@ abstract class AppLocalizations {
   /// **'Adresse e-mail'**
   String get loginEmail;
 
+  /// Placeholder on the login email field.
+  ///
+  /// In fr, this message translates to:
+  /// **'prenom.nom@exemple.be'**
+  String get loginEmailHint;
+
   /// Remember-me toggle on the login form.
   ///
   /// In fr, this message translates to:
@@ -5926,7 +5932,7 @@ abstract class AppLocalizations {
   /// **'Non payé'**
   String get paymentStatusUnpaid;
 
-  /// Login form: the national ID field, which is the login identifier (Phase 6).
+  /// Login form: the national ID field, which is the login secret (with the email).
   ///
   /// In fr, this message translates to:
   /// **'Numéro PIN'**
@@ -5956,17 +5962,11 @@ abstract class AppLocalizations {
   /// **'Mot de passe oublié ?'**
   String get loginForgotPassword;
 
-  /// Login error shown for an unknown PIN or a wrong password — deliberately not saying which.
+  /// Login error shown for an unknown email or a wrong PIN — deliberately not saying which.
   ///
   /// In fr, this message translates to:
-  /// **'PIN ou mot de passe incorrect.'**
+  /// **'E-mail ou numéro PIN incorrect.'**
   String get loginErrorBadCredentials;
-
-  /// Login error when the credential is locked out after too many failed attempts.
-  ///
-  /// In fr, this message translates to:
-  /// **'Compte verrouillé après plusieurs tentatives. Réessayez dans quelques minutes.'**
-  String get loginErrorLocked;
 
   /// Login error when a staff account, which has no active app access, tries to sign in.
   ///

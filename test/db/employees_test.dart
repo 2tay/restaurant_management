@@ -7,6 +7,7 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stock_inventory/core/utils/employee_status.dart';
+import 'package:stock_inventory/core/utils/credential_status.dart';
 import 'package:stock_inventory/data/database/app_database.dart';
 import 'package:stock_inventory/data/repositories/repositories.dart';
 import 'package:stock_inventory/data/seed/dataset/dataset.dart'
@@ -115,10 +116,7 @@ void main() {
 
       final credential = await credentials.forEmployee(created.id);
       expect(credential, isNotNull);
-      expect(
-        (await credentials.authenticate(created.pin, '4321')).employee?.id,
-        created.id,
-      );
+      expect(passwordMatches(credential!, '4321'), isTrue);
     });
 
     test('a bad password refuses the whole create', () async {
@@ -168,8 +166,8 @@ void main() {
 
       expect(promoted!.role, EmployeeRole.manager);
       expect(
-        (await credentials.authenticate(noah.pin, '4321')).outcome,
-        LoginOutcome.success,
+        passwordMatches((await credentials.forEmployee(noah.id))!, '4321'),
+        isTrue,
       );
     });
 

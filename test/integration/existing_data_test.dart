@@ -123,7 +123,7 @@ void main() {
       expect((await ItemRepository(b).item(item.id))!.quantity, 12);
       final login = await CredentialRepository(
         b,
-      ).authenticate('PIN-$run', '4321');
+      ).authenticate('lea-$run@example.test', 'PIN-$run');
       expect(login.outcome, LoginOutcome.success);
     },
     skip: skip,

@@ -12,32 +12,26 @@ import 'soft_delete.dart';
 
 /// How a [CredentialRepository.authenticate] call turned out.
 enum LoginOutcome {
-  /// PIN + password matched, the employee has app access — the caller signs them in.
+  /// Email + PIN matched, the employee has app access — the caller signs them in.
   success,
 
-  /// No employee carries this PIN.
-  unknownPin,
+  /// No employee carries this email.
+  unknownEmail,
 
-  /// Wrong password (or no password on file). The failed-attempt counter has been bumped.
-  wrongPassword,
-
-  /// The credential is locked — refused even though the password may be right.
-  locked,
+  /// The email is known, but nobody with it carries this PIN.
+  wrongPin,
 
   /// The role is `staff`: no active app access (their pointage is done at the
-  /// kiosk), whatever password was typed — an Employé holds none. Counters
-  /// untouched.
+  /// kiosk).
   noAppAccess,
 
-  /// The employee is archived (retired): their credential stays on file so a
-  /// restore needs no new password, but it no longer opens the app. Refused
-  /// whatever password was typed, counters untouched.
+  /// The employee is archived (retired): their record stays on file, but it
+  /// no longer opens the app.
   archived,
 }
 
-/// The result of an authentication attempt. [employee] is set whenever the PIN
-/// resolved, whatever the [outcome] — the login screen uses it to name the
-/// person in an error ("compte de Marc Delvaux verrouillé").
+/// The result of an authentication attempt. [employee] is set once the email
+/// and the PIN matched somebody, whatever the [outcome].
 class LoginAttempt {
   const LoginAttempt(this.outcome, [this.employee]);
 
@@ -187,48 +181,31 @@ class CredentialRepository {
   Future<bool> clear(String employeeId) async =>
       await SoftDelete(_db).credential(employeeId) > 0;
 
-  /// The whole login check, composed from the primitives above.
+  /// The login check: the email names the person, their PIN (CIN) is the
+  /// secret. No attempt is counted and nothing locks.
   ///
-  /// **Does not touch the session** — the login screen (stage 9) signs the user
-  /// in on [LoginOutcome.success].
-  Future<LoginAttempt> authenticate(
-    String pin,
-    String password, {
-    DateTime? now,
-  }) async {
-    final employee = await EmployeeRepository(_db).employeeByPin(pin.trim());
-    if (employee == null) return const LoginAttempt(LoginOutcome.unknownPin);
+  /// The email may sit on two people in two stores (rule E1): the one whose
+  /// PIN was typed is the one signing in. The archive and the role are only
+  /// weighed once the PIN matched, so they reveal nothing about an email to
+  /// somebody who does not know its PIN.
+  ///
+  /// **Does not touch the session** — the login screen signs the user in on
+  /// [LoginOutcome.success].
+  Future<LoginAttempt> authenticate(String email, String pin) async {
+    final named = await EmployeeRepository(_db).employeesByEmail(email);
+    if (named.isEmpty) return const LoginAttempt(LoginOutcome.unknownEmail);
 
-    // A retired employee keeps their PIN and password on file, but neither
-    // signs in any more — checked first, so nothing typed is even weighed.
+    final employee = named
+        .where((e) => EmployeeRepository.sameIdentifier(e.pin, pin))
+        .firstOrNull;
+    if (employee == null) return const LoginAttempt(LoginOutcome.wrongPin);
+
     if (employee.archivedAt != null) {
       return LoginAttempt(LoginOutcome.archived, employee);
     }
-
-    // An Employé never has app access — and, since the role holds no password
-    // at all, the answer must not depend on what was typed. Nothing counted.
     if (employee.role == EmployeeRole.staff) {
       return LoginAttempt(LoginOutcome.noAppAccess, employee);
     }
-
-    final credential = await forEmployee(employee.id);
-    if (credential == null) {
-      return LoginAttempt(LoginOutcome.wrongPassword, employee);
-    }
-
-    if (isLocked(credential, now: now)) {
-      return LoginAttempt(LoginOutcome.locked, employee);
-    }
-
-    if (!passwordMatches(credential, password)) {
-      final locked = await recordFailedAttempt(employee.id, now: now);
-      return LoginAttempt(
-        locked ? LoginOutcome.locked : LoginOutcome.wrongPassword,
-        employee,
-      );
-    }
-
-    await recordSuccessfulLogin(employee.id, now: now);
     return LoginAttempt(LoginOutcome.success, employee);
   }
 

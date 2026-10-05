@@ -243,6 +243,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get loginEmail => 'Adresse e-mail';
 
   @override
+  String get loginEmailHint => 'prenom.nom@exemple.be';
+
+  @override
   String get loginRemember => 'Rester connecté';
 
   @override
@@ -3680,11 +3683,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get loginForgotPassword => 'Mot de passe oublié ?';
 
   @override
-  String get loginErrorBadCredentials => 'PIN ou mot de passe incorrect.';
-
-  @override
-  String get loginErrorLocked =>
-      'Compte verrouillé après plusieurs tentatives. Réessayez dans quelques minutes.';
+  String get loginErrorBadCredentials => 'E-mail ou numéro PIN incorrect.';
 
   @override
   String get loginErrorNoAccess =>

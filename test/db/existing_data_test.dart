@@ -161,7 +161,7 @@ void main() {
     // The owner's PIN still opens the app.
     final login = await CredentialRepository(
       device.db,
-    ).authenticate('PIN-LEA', '4321');
+    ).authenticate('lea@chez-nous.be', 'PIN-LEA');
     expect(login.outcome, LoginOutcome.success);
   });
 

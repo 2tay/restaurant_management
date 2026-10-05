@@ -84,6 +84,17 @@ class EmployeeRepository {
     return null;
   }
 
+  /// Everyone using this email, across the account: usually one person, two
+  /// when the same email sits in two stores (rule E1). Archived ones too.
+  Future<List<Employee>> employeesByEmail(String email) async {
+    final needle = _normalise(email);
+    if (needle.isEmpty) return const [];
+    return [
+      for (final employee in await _all())
+        if (_normalise(employee.email) == needle) employee,
+    ];
+  }
+
   // ---------------------------------------------------------------------------
   // Writes
   // ---------------------------------------------------------------------------

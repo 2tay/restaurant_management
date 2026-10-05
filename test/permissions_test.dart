@@ -177,13 +177,34 @@ void main() {
 
       await tester.enterText(
         find.byType(TextField).at(0),
+        'amelie.v@brasserie-sablon.be',
+      );
+      await tester.enterText(
+        find.byType(TextField).at(1),
         '89.07.30-201.44', // Amélie's PIN
       );
-      await tester.enterText(find.byType(TextField).at(1), '1234');
       await tester.tap(find.widgetWithText(PrimaryButton, 'Se connecter'));
       await tester.pumpAndSettle();
 
       expect(appRouter.state.uri.path, Routes.toDashboard(_store));
+    });
+
+    testApp('a wrong PIN keeps the login screen, with an error', (
+      tester,
+    ) async {
+      await pumpApp(tester, size: _tablet, asEmployeeId: '');
+      final path = appRouter.state.uri.path;
+
+      await tester.enterText(
+        find.byType(TextField).at(0),
+        'amelie.v@brasserie-sablon.be',
+      );
+      await tester.enterText(find.byType(TextField).at(1), '00.00.00-000.00');
+      await tester.tap(find.widgetWithText(PrimaryButton, 'Se connecter'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('E-mail ou numéro PIN incorrect.'), findsOneWidget);
+      expect(appRouter.state.uri.path, path);
     });
   });
 

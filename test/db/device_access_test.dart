@@ -128,7 +128,7 @@ void main() {
 
       final login = await CredentialRepository(
         db,
-      ).authenticate('LM-2026', '4321');
+      ).authenticate('owner@resto.be', 'LM-2026');
       expect(login.outcome, LoginOutcome.success);
     });
 

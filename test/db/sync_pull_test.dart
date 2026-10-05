@@ -104,8 +104,8 @@ void main() {
     // Nothing new the second time: B asks after its cursor.
     expect((await sync(b)).received, 0);
 
-    // The owner's PIN works on B: the credential travelled, hashed.
-    final login = await CredentialRepository(b).authenticate('LM-2026', '4321');
+    // The owner's email + PIN work on B.
+    final login = await CredentialRepository(b).authenticate('owner@resto.be', 'LM-2026');
     expect(login.outcome, LoginOutcome.success);
   });
 

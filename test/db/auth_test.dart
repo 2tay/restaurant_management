@@ -1,11 +1,5 @@
-// The login rules — PIN + password, the failed-attempt lockout, and the staff
-// refusal.
-//
-// Ported from `test/auth_test.dart`: same names, same assertions, against the
-// database credential layer instead of the in-memory one. Still fake (no
-// backend, no real hash), but the state machine — attempts, lockout, reset on
-// success — is real and pinned here. The lockout-timing tests keep pinning
-// `now`.
+// The login rules — email + PIN (the CIN), the staff and archive refusals —
+// and the PIN confirmation the pointage board and the payroll screen ask for.
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stock_inventory/core/utils/credential_status.dart';
@@ -16,10 +10,13 @@ import 'package:stock_inventory/models/models.dart';
 
 import '../support/db_fixture.dart';
 
-/// PINs from the seed roster.
-const _marcPin = '78.02.14-153.24'; // owner
-const _eliePin = '03.06.09-334.02'; // Élise — staff, no app access
-const _ameliePin = '89.07.30-201.44'; // manager
+/// Emails and PINs from the seed roster.
+const _marcEmail = 'marc.delvaux@brasserie-sablon.be'; // owner
+const _marcPin = '78.02.14-153.24';
+const _elieEmail = 'elise.dupont@brasserie-sablon.be'; // Élise — staff
+const _eliePin = '03.06.09-334.02';
+const _amelieEmail = 'amelie.v@brasserie-sablon.be'; // manager
+const _ameliePin = '89.07.30-201.44';
 
 void main() {
   late AppDatabase db;
@@ -31,140 +28,72 @@ void main() {
   });
 
   group('authenticate', () {
-    test('correct PIN + password signs the owner in and stamps the login', () async {
-      final at = DateTime(2026, 8, 30, 9);
-      final attempt = await credentials.authenticate(_marcPin, '1234', now: at);
-
+    test('the right email + PIN signs the owner in', () async {
+      final attempt = await credentials.authenticate(_marcEmail, _marcPin);
       expect(attempt.outcome, LoginOutcome.success);
       expect(attempt.employee?.id, EmployeeIds.marc);
-      expect(
-        (await credentials.forEmployee(EmployeeIds.marc))!.lastLoginAt,
-        at,
-      );
     });
 
-    test('an unknown PIN is rejected without touching anything', () async {
-      final attempt = await credentials.authenticate('00.00.00-000.00', '1234');
-      expect(attempt.outcome, LoginOutcome.unknownPin);
+    test('tolerates stray spaces and capitals', () async {
+      final attempt = await credentials.authenticate(
+        '  Marc.Delvaux@Brasserie-Sablon.be ',
+        ' $_marcPin ',
+      );
+      expect(attempt.outcome, LoginOutcome.success);
+    });
+
+    test('an unknown email is refused', () async {
+      final attempt = await credentials.authenticate('nobody@x.be', _marcPin);
+      expect(attempt.outcome, LoginOutcome.unknownEmail);
       expect(attempt.employee, isNull);
     });
 
-    test('a wrong password counts as a failed attempt', () async {
-      final attempt = await credentials.authenticate(_marcPin, '0000');
-      expect(attempt.outcome, LoginOutcome.wrongPassword);
-      expect(
-        (await credentials.forEmployee(EmployeeIds.marc))!.failedAttempts,
-        1,
-      );
+    test("a wrong PIN is refused — another employee's PIN too", () async {
+      for (final typed in ['00.00.00-000.00', _ameliePin, '']) {
+        final attempt = await credentials.authenticate(_marcEmail, typed);
+        expect(attempt.outcome, LoginOutcome.wrongPin, reason: typed);
+        expect(attempt.employee, isNull);
+      }
     });
 
-    test('the account locks on the ${AuthRules.maxFailedAttempts}th wrong password',
-        () async {
-      final at = DateTime(2026, 8, 30, 9);
-      LoginAttempt? last;
-      for (var i = 0; i < AuthRules.maxFailedAttempts; i++) {
-        last = await credentials.authenticate(_marcPin, '0000', now: at);
-      }
-
-      expect(last!.outcome, LoginOutcome.locked);
-      final credential = (await credentials.forEmployee(EmployeeIds.marc))!;
-      expect(credential.lockedUntil, at.add(AuthRules.lockoutDuration));
-    });
-
-    test('a locked account refuses even the correct password until it expires',
-        () async {
-      final locked = DateTime(2026, 8, 30, 9);
-      for (var i = 0; i < AuthRules.maxFailedAttempts; i++) {
-        await credentials.authenticate(_marcPin, '0000', now: locked);
-      }
-
-      final duringLock = await credentials.authenticate(
-        _marcPin,
-        '1234',
-        now: locked.add(const Duration(minutes: 1)),
-      );
-      expect(duringLock.outcome, LoginOutcome.locked);
-
-      final afterLock = await credentials.authenticate(
-        _marcPin,
-        '1234',
-        now: locked
-            .add(AuthRules.lockoutDuration)
-            .add(const Duration(minutes: 1)),
-      );
-      expect(afterLock.outcome, LoginOutcome.success);
-      // A success wipes the counter and the lock.
-      final credential = (await credentials.forEmployee(EmployeeIds.marc))!;
-      expect(credential.failedAttempts, 0);
-      expect(credential.lockedUntil, isNull);
-    });
-
-    // Audit L8: the count used to survive the lockout, so the first miss
-    // after it locked again — one try per window instead of three.
-    test('once a lockout has run out, the full ${AuthRules.maxFailedAttempts} '
-        'tries are back', () async {
-      final locked = DateTime(2026, 8, 30, 9);
-      for (var i = 0; i < AuthRules.maxFailedAttempts; i++) {
-        await credentials.authenticate(_marcPin, '0000', now: locked);
-      }
-      final later = locked
-          .add(AuthRules.lockoutDuration)
-          .add(const Duration(minutes: 1));
-
-      final firstMiss = await credentials.authenticate(
-        _marcPin,
-        '0000',
-        now: later,
-      );
-      expect(firstMiss.outcome, LoginOutcome.wrongPassword);
-      final credential = (await credentials.forEmployee(EmployeeIds.marc))!;
-      expect(credential.failedAttempts, 1);
-      expect(credential.lockedUntil, isNull, reason: 'the old lock is cleared');
-
-      LoginAttempt? last;
-      for (var i = 1; i < AuthRules.maxFailedAttempts; i++) {
-        last = await credentials.authenticate(_marcPin, '0000', now: later);
+    test('nothing locks: the right PIN passes after many misses', () async {
+      for (var i = 0; i < 10; i++) {
+        await credentials.authenticate(_marcEmail, '0000');
       }
       expect(
-        last!.outcome,
-        LoginOutcome.locked,
-        reason: 'locks again on the ${AuthRules.maxFailedAttempts}th miss',
+        (await credentials.authenticate(_marcEmail, _marcPin)).outcome,
+        LoginOutcome.success,
       );
     });
 
-    test('a staff account has no password and is refused whatever is typed',
-        () async {
-      // No login secret for an Employé.
-      expect(await credentials.forEmployee(EmployeeIds.elise), isNull);
-
-      for (final typed in ['1234', '0000', '']) {
-        final attempt = await credentials.authenticate(_eliePin, typed);
-        expect(attempt.outcome, LoginOutcome.noAppAccess, reason: typed);
-        expect(attempt.employee?.role, EmployeeRole.staff);
-      }
+    test('a staff account is refused, once its PIN matched', () async {
+      final attempt = await credentials.authenticate(_elieEmail, _eliePin);
+      expect(attempt.outcome, LoginOutcome.noAppAccess);
+      expect(attempt.employee?.role, EmployeeRole.staff);
+      // Without the PIN, nothing tells the account apart.
+      expect(
+        (await credentials.authenticate(_elieEmail, '0000')).outcome,
+        LoginOutcome.wrongPin,
+      );
     });
   });
 
   group('archived employees', () {
     // Amélie, a manager — Marc, the only owner, cannot be archived at all.
-    test('an archived employee is refused, even with the right password',
-        () async {
+    test('an archived employee is refused, even with the right PIN', () async {
       await EmployeeRepository(db).archive(EmployeeIds.amelie);
 
-      final attempt = await credentials.authenticate(_ameliePin, '1234');
+      final attempt = await credentials.authenticate(_amelieEmail, _ameliePin);
       expect(attempt.outcome, LoginOutcome.archived);
       expect(attempt.employee?.id, EmployeeIds.amelie);
-      final credential = (await credentials.forEmployee(EmployeeIds.amelie))!;
-      expect(credential.failedAttempts, 0, reason: 'nothing counted');
-      expect(credential.lastLoginAt, isNull, reason: 'no login stamped');
     });
 
-    test('restoring gives access back with the same password', () async {
+    test('restoring gives access back', () async {
       final repo = EmployeeRepository(db);
       await repo.archive(EmployeeIds.amelie);
       await repo.restore(EmployeeIds.amelie);
 
-      final attempt = await credentials.authenticate(_ameliePin, '1234');
+      final attempt = await credentials.authenticate(_amelieEmail, _ameliePin);
       expect(attempt.outcome, LoginOutcome.success);
     });
   });
@@ -172,7 +101,7 @@ void main() {
   group('setPassword / clear', () {
     test('setPassword replaces the password and clears any lockout', () async {
       for (var i = 0; i < AuthRules.maxFailedAttempts; i++) {
-        await credentials.authenticate(_marcPin, '0000');
+        await credentials.recordFailedAttempt(EmployeeIds.marc);
       }
       expect(
         (await credentials.forEmployee(EmployeeIds.marc))!.lockedUntil,
@@ -183,15 +112,7 @@ void main() {
       expect(updated, isNotNull);
       expect(updated!.failedAttempts, 0);
       expect(updated.lockedUntil, isNull);
-
-      expect(
-        (await credentials.authenticate(_marcPin, '5678')).outcome,
-        LoginOutcome.success,
-      );
-      expect(
-        (await credentials.authenticate(_marcPin, '1234')).outcome,
-        LoginOutcome.wrongPassword,
-      );
+      expect(passwordMatches(updated, '5678'), isTrue);
     });
 
     test('setPassword rejects a password that is not ${AuthRules.passwordLength} digits',
@@ -212,8 +133,7 @@ void main() {
 
   // The identity confirmation the pointage board and the payroll screen ask
   // for: the person's PIN, checked strictly against the expected employee.
-  // Unlimited attempts, no lockout, and none of `authenticate`'s login state
-  // read or written.
+  // Unlimited attempts, no lockout.
   group('verifyPin', () {
     test("the expected employee's PIN passes", () async {
       expect(await credentials.verifyPin(_marcPin, EmployeeIds.marc), isTrue);
@@ -245,17 +165,6 @@ void main() {
 
       // The right PIN still passes after all those misses.
       expect(await credentials.verifyPin(_marcPin, EmployeeIds.marc), isTrue);
-    });
-
-    test('a login lockout neither blocks it nor is cleared by it', () async {
-      for (var i = 0; i < AuthRules.maxFailedAttempts; i++) {
-        await credentials.authenticate(_marcPin, '0000');
-      }
-      expect(await credentials.verifyPin(_marcPin, EmployeeIds.marc), isTrue);
-      expect(
-        (await credentials.forEmployee(EmployeeIds.marc))!.lockedUntil,
-        isNotNull,
-      );
     });
 
     test('an employee without a credential can still confirm', () async {

@@ -61,8 +61,10 @@
 import 'package:drift/drift.dart' show Variable;
 import 'package:drift_dev/api/migrations_native.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:stock_inventory/core/utils/credential_status.dart';
 import 'package:stock_inventory/data/database/app_database.dart';
 import 'package:stock_inventory/data/database/sync_tables.dart';
+import 'package:stock_inventory/data/mappers/mappers.dart' show credentialFromRow;
 import 'package:stock_inventory/data/repositories/repositories.dart';
 
 import '../support/sqlite.dart';
@@ -539,10 +541,10 @@ void main() {
       expect(employee.read<String>('pin'), '78.02.14-153.24');
 
       // The login still works end to end: the renamed hash matches.
-      final attempt = await CredentialRepository(
+      final credential = (await CredentialRepository(
         db,
-      ).authenticate('78.02.14-153.24', '1234');
-      expect(attempt.outcome, LoginOutcome.success);
+      ).forEmployee('emp-1'))!;
+      expect(passwordMatches(credential, '1234'), isTrue);
 
       await db.close();
     },
@@ -909,8 +911,7 @@ void main() {
     // The marker password became a real hash, and it still logs in.
     final credential = await db.select(db.employeeCredentials).getSingle();
     expect(credential.passwordHash, startsWith(r'pbkdf2-sha256$'));
-    final login = await CredentialRepository(db).authenticate('PIN-1', '1234');
-    expect(login.outcome, LoginOutcome.success);
+    expect(passwordMatches(credentialFromRow(credential, null), '1234'), isTrue);
 
     // Rebuilding `stores` with foreign keys on would have cascaded; nothing
     // points anywhere it should not.

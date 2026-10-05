@@ -116,7 +116,7 @@ void main() {
       // The owner's PIN works on the manager's tablet.
       final login = await CredentialRepository(
         b,
-      ).authenticate('PIN-$run', '4321');
+      ).authenticate('owner-$run@example.test', 'PIN-$run');
       expect(login.outcome, LoginOutcome.success);
 
       // B renames and receives a delivery; A gets both.
