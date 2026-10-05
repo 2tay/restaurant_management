@@ -1,15 +1,15 @@
-// The employee wizard, in a pop-up over Personnel: Information
-// professionnelle → Rémunération → Rôle et sécurité. Propriétaire is never
-// assignable, and only a role that signs in is asked for a password.
+// The employee wizard, in a pop-up over Personnel: Informations
+// personnelles → Tarif et rôle. Propriétaire is never assignable, and no
+// password is asked: a Gérant signs in with their email and PIN.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stock_inventory/app/router.dart';
 import 'package:stock_inventory/app/routes.dart';
-import 'package:stock_inventory/core/utils/credential_status.dart';
 import 'package:stock_inventory/data/database/app_database.dart';
 import 'package:stock_inventory/data/repositories/repositories.dart';
 import 'package:stock_inventory/data/seed/dataset/dataset.dart';
+import 'package:stock_inventory/models/models.dart';
 import 'package:stock_inventory/shared/widgets/widgets.dart';
 
 import 'support/app_harness.dart';
@@ -17,7 +17,8 @@ import 'support/app_harness.dart';
 const _owner = ValueKey('role-option-owner');
 const _manager = ValueKey('role-option-manager');
 const _staff = ValueKey('role-option-staff');
-const _staffNotice = ValueKey('staff-no-password');
+const _staffNotice = ValueKey('role-no-access');
+const _signInNotice = ValueKey('role-signs-in');
 
 Future<AppDatabase> _roster(WidgetTester tester) async {
   final db = await pumpApp(
@@ -91,13 +92,12 @@ Future<void> _fillIdentity(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
-/// Creates are walked in order: fill step 1, Suivant, fill the rate, Suivant.
-Future<void> _walkToRoleStep(WidgetTester tester) async {
+/// Creates are walked in order: fill step 1, Suivant, fill the rate.
+Future<void> _walkToRateAndRole(WidgetTester tester) async {
   await _fillIdentity(tester);
   await _tap(tester, 'Suivant');
   await tester.enterText(_fields.first, '18,5');
   await tester.pumpAndSettle();
-  await _tap(tester, 'Suivant');
 }
 
 void main() {
@@ -112,8 +112,8 @@ void main() {
       appRouter.routerDelegate.currentConfiguration.uri.toString(),
       Routes.toEmployees(StoreIds.sablon),
     );
-    expect(find.textContaining('trois étapes'), findsOneWidget);
-    expect(find.textContaining('Information professionnelle'), findsWidgets);
+    expect(find.textContaining('deux étapes'), findsOneWidget);
+    expect(find.textContaining('Informations personnelles'), findsWidgets);
     // Step 1 is empty → cannot move on.
     expect(_enabled(tester, 'Suivant'), isFalse);
   });
@@ -135,17 +135,21 @@ void main() {
     expect(tester.getTopLeft(picker).dy, greaterThan(emailY));
   });
 
-  testApp('walks the three steps; Gérant / Employé only, never Propriétaire',
-      (tester) async {
+  testApp('two steps: the rate and the role together; Gérant / Employé '
+      'only, never Propriétaire', (tester) async {
     await _openAdd(tester);
-    await _walkToRoleStep(tester);
+    await _walkToRateAndRole(tester);
 
+    expect(find.textContaining('Tarif et rôle'), findsWidgets);
     expect(find.byKey(_manager), findsOneWidget);
     expect(find.byKey(_staff), findsOneWidget);
     expect(find.byKey(_owner), findsNothing);
+    // The last step: no Suivant, Enregistrer instead.
+    expect(_button('Suivant'), findsNothing);
+    expect(_enabled(tester, 'Enregistrer'), isTrue);
   });
 
-  testApp('a negative or non-numeric rate says why and blocks Suivant', (
+  testApp('a negative or non-numeric rate says why and blocks Enregistrer', (
     tester,
   ) async {
     await _openAdd(tester);
@@ -157,36 +161,40 @@ void main() {
       await tester.enterText(_fields.first, typed);
       await tester.pumpAndSettle();
       expect(find.text(error), findsOneWidget, reason: typed);
-      expect(_enabled(tester, 'Suivant'), isFalse, reason: typed);
+      expect(_enabled(tester, 'Enregistrer'), isFalse, reason: typed);
     }
 
     for (final typed in ['18,5', '50000']) {
       await tester.enterText(_fields.first, typed);
       await tester.pumpAndSettle();
       expect(find.text(error), findsNothing, reason: typed);
-      expect(_enabled(tester, 'Suivant'), isTrue, reason: typed);
+      expect(_enabled(tester, 'Enregistrer'), isTrue, reason: typed);
     }
   });
 
-  testApp('an Employé is asked for no password; a Gérant is', (tester) async {
+  testApp('no password: the notice says how each role reaches the app', (
+    tester,
+  ) async {
     await _openAdd(tester);
-    await _walkToRoleStep(tester);
+    await _walkToRateAndRole(tester);
 
     expect(find.byKey(_staffNotice), findsOneWidget);
-    expect(find.text('Mot de passe'), findsNothing);
-    expect(_enabled(tester, 'Enregistrer'), isTrue);
+    expect(find.textContaining('Mot de passe'), findsNothing);
 
     await tester.tap(find.byKey(_manager));
     await tester.pumpAndSettle();
     expect(find.byKey(_staffNotice), findsNothing);
-    expect(find.text('Mot de passe'), findsOneWidget);
-    expect(_enabled(tester, 'Enregistrer'), isFalse);
+    expect(find.byKey(_signInNotice), findsOneWidget);
+    expect(find.textContaining('adresse e-mail et son numéro PIN'), findsOneWidget);
+    expect(find.textContaining('Mot de passe'), findsNothing);
+    expect(_enabled(tester, 'Enregistrer'), isTrue);
   });
 
-  testApp('saving an Employé closes the pop-up and adds them, with no '
-      'credential', (tester) async {
+  testApp('saving closes the pop-up and adds them', (tester) async {
     final db = await _openAdd(tester);
-    await _walkToRoleStep(tester);
+    await _walkToRateAndRole(tester);
+    await tester.tap(find.byKey(_manager));
+    await tester.pumpAndSettle();
     await _tap(tester, 'Enregistrer');
 
     expect(find.byType(WizardDialog), findsNothing);
@@ -196,7 +204,14 @@ void main() {
     ).employeeByPin('11.22.33-444.55');
     expect(created, isNotNull);
     expect(created!.pay, 18.5);
-    expect(await CredentialRepository(db).forEmployee(created.id), isNull);
+    expect(created.role, EmployeeRole.manager);
+    // The new Gérant signs in at once, with their email and PIN.
+    expect(
+      (await CredentialRepository(
+        db,
+      ).authenticate('nora.benali@example.test', '11.22.33-444.55')).outcome,
+      LoginOutcome.success,
+    );
   });
 
   testApp('Modifier in the card menu opens the same pop-up, savable at once', (
@@ -208,19 +223,14 @@ void main() {
     expect(_enabled(tester, 'Enregistrer'), isTrue);
 
     await _tap(tester, 'Suivant');
-    await _tap(tester, 'Suivant');
-    // Amélie is a Gérant: password fields, blank = keep the current one.
     expect(find.byKey(_manager), findsOneWidget);
     expect(find.byKey(_owner), findsNothing);
-    expect(find.text('Mot de passe'), findsOneWidget);
+    expect(find.byKey(_signInNotice), findsOneWidget);
   });
 
-  testApp('Gérant → Employé: saving removes their password', (tester) async {
+  testApp('Gérant → Employé: the role is saved', (tester) async {
     final db = await _roster(tester);
-    expect(await CredentialRepository(db).forEmployee(EmployeeIds.amelie),
-        isNotNull);
     await _openEditFromRoster(tester, 'Amélie Vandenberghe');
-    await _tap(tester, 'Suivant');
     await _tap(tester, 'Suivant');
 
     await tester.tap(find.byKey(_staff));
@@ -229,53 +239,10 @@ void main() {
     await _tap(tester, 'Enregistrer');
 
     expect(find.byType(WizardDialog), findsNothing);
-    expect(await CredentialRepository(db).forEmployee(EmployeeIds.amelie),
-        isNull);
-  });
-
-  testApp('Employé with no password → Gérant: a password is required', (
-    tester,
-  ) async {
-    final db = await _roster(tester);
-    final credentials = CredentialRepository(db);
-    await credentials.clear(EmployeeIds.karim);
-
-    await _openEditFromRoster(tester, 'Karim Haddouch');
-    await _tap(tester, 'Suivant');
-    await _tap(tester, 'Suivant');
-
-    await tester.tap(find.byKey(_manager));
-    await tester.pumpAndSettle();
-    // No password on file: blank is not "keep the current one".
-    expect(_enabled(tester, 'Enregistrer'), isFalse);
-
-    final passwords = find.descendant(
-      of: find.byType(Dialog),
-      matching: find.byType(TextField),
+    expect(
+      (await EmployeeRepository(db).employee(EmployeeIds.amelie))!.role,
+      EmployeeRole.staff,
     );
-    await tester.enterText(passwords.at(0), '5678');
-    await tester.enterText(passwords.at(1), '5678');
-    await tester.pumpAndSettle();
-    expect(_enabled(tester, 'Enregistrer'), isTrue);
-    await _tap(tester, 'Enregistrer');
-
-    final credential = await credentials.forEmployee(EmployeeIds.karim);
-    expect(passwordMatches(credential!, '5678'), isTrue);
-  });
-
-  testApp('a Gérant saved with a blank password keeps the current one', (
-    tester,
-  ) async {
-    final db = await _roster(tester);
-    final credentials = CredentialRepository(db);
-    final before = await credentials.forEmployee(EmployeeIds.amelie);
-
-    await _openEditFromRoster(tester, 'Amélie Vandenberghe');
-    await _tap(tester, 'Enregistrer');
-
-    final after = await credentials.forEmployee(EmployeeIds.amelie);
-    expect(after, isNotNull);
-    expect(after!.passwordHash, before!.passwordHash);
   });
 
   testApp('full screen on a phone', (tester) async {
@@ -285,7 +252,7 @@ void main() {
 
     expect(tester.takeException(), isNull);
     expect(
-      find.text('Étape 1 sur 3 · Information professionnelle'),
+      find.text('Étape 1 sur 2 · Informations personnelles'),
       findsOneWidget,
     );
     // One field per line: Prénom above Nom, not beside it.

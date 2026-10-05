@@ -67,7 +67,6 @@ void main() {
         firstName: 'Léa',
         lastName: 'Martin',
         pin: 'PIN-$run',
-        password: '4321',
       );
       await SyncRunner(db: a, backend: backendA).run();
       final code = await backendA.createJoinCode();

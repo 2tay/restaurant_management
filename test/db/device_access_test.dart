@@ -90,7 +90,6 @@ void main() {
         firstName: 'Léa',
         lastName: 'Martin',
         pin: 'LM-2026',
-        password: '4321',
       );
       return (db, c, owner);
     }
@@ -140,7 +139,7 @@ void main() {
       };
       expect(
         tables,
-        containsAll(['stores', 'employees', 'employee_credentials']),
+        containsAll(['stores', 'employees']),
       );
       expect(tables, isNot(contains('items')), reason: 'the demo is gone');
     });
@@ -159,7 +158,6 @@ void main() {
           firstName: 'Léa',
           lastName: 'Martin',
           pin: 'LM-2026',
-          password: '4321',
         ),
         throwsA(isA<AccountException>()),
       );
@@ -173,7 +171,6 @@ void main() {
         firstName: 'Léa',
         lastName: 'Martin',
         pin: 'LM-2026',
-        password: '4321',
       );
       expect(server.createOrganizationCalls, 1);
       expect(accessOf(c).mode, DeviceMode.account);
@@ -251,7 +248,6 @@ void main() {
         firstName: 'Léa',
         lastName: 'Martin',
         pin: 'LM-2026',
-        password: '4321',
       );
 
       await controllerOf(c).signOutAccount();

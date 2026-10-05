@@ -7,7 +7,6 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stock_inventory/core/utils/employee_status.dart';
-import 'package:stock_inventory/core/utils/credential_status.dart';
 import 'package:stock_inventory/data/database/app_database.dart';
 import 'package:stock_inventory/data/repositories/repositories.dart';
 import 'package:stock_inventory/data/seed/dataset/dataset.dart'
@@ -19,12 +18,10 @@ import '../support/db_fixture.dart';
 void main() {
   late AppDatabase db;
   late EmployeeRepository employees;
-  late CredentialRepository credentials;
 
   setUp(() async {
     db = await openSeededDatabase();
     employees = EmployeeRepository(db);
-    credentials = CredentialRepository(db);
   });
 
   Future<Employee?> create({
@@ -36,7 +33,6 @@ void main() {
     String email = 'test.personne@example.be',
     EmployeeRole role = EmployeeRole.staff,
     double pay = 15,
-    String? password,
   }) => employees.create(
     storeId: storeId,
     firstName: firstName,
@@ -46,7 +42,6 @@ void main() {
     email: email,
     role: role,
     pay: pay,
-    password: password,
   );
 
   group('creating', () {
@@ -110,25 +105,6 @@ void main() {
       await create(email: '');
       expect((await employees.employees(StoreIds.sablon)).length, before);
     });
-
-    test('with a password, the credential lands in the same transaction', () async {
-      final created = (await create(password: '4321'))!;
-
-      final credential = await credentials.forEmployee(created.id);
-      expect(credential, isNotNull);
-      expect(passwordMatches(credential!, '4321'), isTrue);
-    });
-
-    test('a bad password refuses the whole create', () async {
-      final before = (await employees.employees(StoreIds.sablon)).length;
-
-      expect(await create(password: '12'), isNull);
-      expect(
-        (await employees.employees(StoreIds.sablon)).length,
-        before,
-        reason: 'no employee row without its credential',
-      );
-    });
   });
 
   group('editing', () {
@@ -153,65 +129,19 @@ void main() {
       );
     });
 
-    // Audit L12: the details and the credential land together or not at all.
-    test('a password given with the edit is set in the same write', () async {
-      final noah = (await employees.employee(EmployeeIds.noah))!;
-      expect(await credentials.forEmployee(noah.id), isNull);
-
-      final promoted = await employees.update(
-        noah.id,
-        role: EmployeeRole.manager,
-        password: '4321',
-      );
-
-      expect(promoted!.role, EmployeeRole.manager);
-      expect(
-        passwordMatches((await credentials.forEmployee(noah.id))!, '4321'),
-        isTrue,
-      );
-    });
-
-    test('clearCredential removes the password with the edit', () async {
-      final marc = (await employees.employee(EmployeeIds.marc))!;
-      expect(await credentials.forEmployee(marc.id), isNotNull);
-
-      await employees.update(
-        marc.id,
-        role: EmployeeRole.staff,
-        clearCredential: true,
-      );
-      expect(await credentials.forEmployee(marc.id), isNull);
-    });
-
-    test('a refused edit writes neither the details nor the password',
-        () async {
+    test('a refused edit writes nothing', () async {
       final noah = (await employees.employee(EmployeeIds.noah))!;
       final other = (await employees.employee(EmployeeIds.marc))!;
 
-      // A bad password, both credential changes, a PIN taken by someone else.
-      for (final attempt in <Future<Employee?> Function()>[
-        () => employees.update(
-          noah.id,
-          role: EmployeeRole.manager,
-          password: '12',
-        ),
-        () => employees.update(
-          noah.id,
-          role: EmployeeRole.manager,
-          password: '4321',
-          clearCredential: true,
-        ),
-        () => employees.update(
+      expect(
+        await employees.update(
           noah.id,
           role: EmployeeRole.manager,
           pin: other.pin,
-          password: '4321',
         ),
-      ]) {
-        expect(await attempt(), isNull);
-      }
+        isNull,
+      );
       expect((await employees.employee(noah.id))!.role, noah.role);
-      expect(await credentials.forEmployee(noah.id), isNull);
     });
 
     test('refuses an invalid hourly rate and keeps the old one', () async {
@@ -273,10 +203,7 @@ void main() {
       );
       expect(await employees.archive(EmployeeIds.marc), isFalse);
 
-      final second = (await create(
-        role: EmployeeRole.owner,
-        password: '4321',
-      ))!;
+      final second = (await create(role: EmployeeRole.owner))!;
       expect(await employees.archiveRefusal(EmployeeIds.marc), isNull);
       expect(
         await employees.archive(EmployeeIds.marc, byEmployeeId: second.id),

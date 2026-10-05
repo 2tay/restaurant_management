@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../app/navigation.dart';
 import '../../../../app/routes.dart';
 import '../../../../core/theme/app_spacing.dart';
-import '../../../../core/utils/credential_status.dart';
 import '../../../../core/utils/permissions.dart';
 import '../../../../data/device_access.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -63,7 +61,6 @@ class _AccountSetupPageState extends ConsumerState<AccountSetupPage> {
   final _firstName = TextEditingController();
   final _lastName = TextEditingController();
   final _pin = TextEditingController();
-  final _password = TextEditingController();
   final _code = TextEditingController();
 
   @override
@@ -75,7 +72,6 @@ class _AccountSetupPageState extends ConsumerState<AccountSetupPage> {
       _firstName,
       _lastName,
       _pin,
-      _password,
       _code,
     ]) {
       controller.dispose();
@@ -234,19 +230,6 @@ class _AccountSetupPageState extends ConsumerState<AccountSetupPage> {
       helperText: l10n.setupPinHint,
       controller: _pin,
       prefixIcon: LucideIcons.idCard,
-      textInputAction: TextInputAction.next,
-    ),
-    const SizedBox(height: AppSpacing.lg),
-    AppTextField(
-      label: l10n.setupEmployeePassword,
-      controller: _password,
-      prefixIcon: LucideIcons.lock,
-      obscureText: true,
-      keyboardType: TextInputType.number,
-      inputFormatters: [
-        FilteringTextInputFormatter.digitsOnly,
-        LengthLimitingTextInputFormatter(AuthRules.passwordLength),
-      ],
       textInputAction: TextInputAction.done,
       onSubmitted: (_) => _create(),
     ),
@@ -299,14 +282,9 @@ class _AccountSetupPageState extends ConsumerState<AccountSetupPage> {
       _firstName,
       _lastName,
       _pin,
-      _password,
     ];
     if (required.any((c) => c.text.trim().isEmpty)) {
       setState(() => _error = l10n.setupFieldsRequired);
-      return;
-    }
-    if (!isValidPassword(_password.text)) {
-      setState(() => _error = l10n.setupPasswordFormat);
       return;
     }
 
@@ -321,7 +299,6 @@ class _AccountSetupPageState extends ConsumerState<AccountSetupPage> {
             firstName: _firstName.text,
             lastName: _lastName.text,
             pin: _pin.text,
-            password: _password.text,
           );
       if (!mounted) return;
       context.goSection(

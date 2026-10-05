@@ -4852,28 +4852,22 @@ abstract class AppLocalizations {
   /// **'Embauché le'**
   String get employeesColumnHired;
 
-  /// Employee wizard, step 1: photo, name, PIN and contact details.
+  /// Employee wizard, step 1: name, PIN, contact details and photo.
   ///
   /// In fr, this message translates to:
-  /// **'Information professionnelle'**
+  /// **'Informations personnelles'**
   String get employeeWizardStepInfo;
 
-  /// Employee wizard, step 2: the hourly rate.
+  /// Employee wizard, step 2: the hourly rate and the role.
   ///
   /// In fr, this message translates to:
-  /// **'Rémunération'**
-  String get employeeWizardStepPay;
-
-  /// Employee wizard, step 3: the role and, for a role that signs in, the password.
-  ///
-  /// In fr, this message translates to:
-  /// **'Rôle et sécurité'**
-  String get employeeWizardStepRole;
+  /// **'Tarif et rôle'**
+  String get employeeWizardStepPayRole;
 
   /// Paragraph under the add-employee title.
   ///
   /// In fr, this message translates to:
-  /// **'Renseignez la fiche en trois étapes : les informations professionnelles, la rémunération, puis le rôle et les accès.'**
+  /// **'Renseignez la fiche en deux étapes : les informations personnelles, puis le tarif et le rôle.'**
   String get employeeFormDescription;
 
   /// Paragraph under the edit-employee title.
@@ -4918,12 +4912,6 @@ abstract class AppLocalizations {
   /// **'Saisissez un taux horaire positif.'**
   String get employeeFormPayInvalid;
 
-  /// Placeholder of the confirm-password field.
-  ///
-  /// In fr, this message translates to:
-  /// **'Répétez les 4 chiffres'**
-  String get employeeFormPasswordConfirmHint;
-
   /// Label beside the photo picker circle on the employee form.
   ///
   /// In fr, this message translates to:
@@ -4942,11 +4930,17 @@ abstract class AppLocalizations {
   /// **'Payé à l\'heure réellement travaillée, pauses déduites.'**
   String get employeeFormPayHelp;
 
-  /// Employee wizard, role step: shown instead of the password fields for the Employé role.
+  /// Employee wizard, rate-and-role step: how an Employé uses the app.
   ///
   /// In fr, this message translates to:
-  /// **'Un employé pointe avec son numéro PIN et n\'a pas accès à l\'application : aucun mot de passe n\'est demandé.'**
-  String get employeeFormStaffNoPassword;
+  /// **'Un employé n\'a pas accès à l\'application : il pointe au tableau avec son numéro PIN.'**
+  String get employeeFormAccessStaff;
+
+  /// Employee wizard, rate-and-role step: how a Gérant (or the owner) signs in.
+  ///
+  /// In fr, this message translates to:
+  /// **'Se connecte à l\'application avec son adresse e-mail et son numéro PIN.'**
+  String get employeeFormAccessSignIn;
 
   /// Button under the employee photo tile when no photo is set yet.
   ///
@@ -5944,24 +5938,6 @@ abstract class AppLocalizations {
   /// **'AB.12.34-567.89'**
   String get loginPinHint;
 
-  /// Login form: the 4-digit password field.
-  ///
-  /// In fr, this message translates to:
-  /// **'Mot de passe'**
-  String get loginPassword;
-
-  /// Placeholder on the login password field.
-  ///
-  /// In fr, this message translates to:
-  /// **'4 chiffres'**
-  String get loginPasswordHint;
-
-  /// Link to the reset screen from the login form. Narrow no-break space before the question mark.
-  ///
-  /// In fr, this message translates to:
-  /// **'Mot de passe oublié ?'**
-  String get loginForgotPassword;
-
   /// Login error shown for an unknown email or a wrong PIN — deliberately not saying which.
   ///
   /// In fr, this message translates to:
@@ -5979,42 +5955,6 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Ce compte a été retiré de l\'équipe et n\'a plus accès à l\'application.'**
   String get loginErrorArchived;
-
-  /// Section heading on the employee form for the login password.
-  ///
-  /// In fr, this message translates to:
-  /// **'Identifiants'**
-  String get employeeFormCredentials;
-
-  /// Employee form: the 4-digit login password field.
-  ///
-  /// In fr, this message translates to:
-  /// **'Mot de passe'**
-  String get employeeFormPassword;
-
-  /// Employee form: re-enter the password to catch a typo.
-  ///
-  /// In fr, this message translates to:
-  /// **'Confirmer le mot de passe'**
-  String get employeeFormPasswordConfirm;
-
-  /// Helper under the password fields when creating an employee.
-  ///
-  /// In fr, this message translates to:
-  /// **'4 chiffres. La personne se connecte avec son numéro PIN et ce mot de passe.'**
-  String get employeeFormPasswordHelp;
-
-  /// Helper under the password fields when editing an employee.
-  ///
-  /// In fr, this message translates to:
-  /// **'Laisser vide pour conserver le mot de passe actuel.'**
-  String get employeeFormPasswordEditHelp;
-
-  /// Error under the confirm-password field when the two entries differ.
-  ///
-  /// In fr, this message translates to:
-  /// **'Les deux mots de passe ne correspondent pas.'**
-  String get employeeFormPasswordMismatch;
 
   /// Shown to a manager on the store settings page — visible but read-only (Phase 6).
   ///
@@ -7082,14 +7022,8 @@ abstract class AppLocalizations {
   /// Hint under the PIN field.
   ///
   /// In fr, this message translates to:
-  /// **'Votre identifiant sur les tablettes du restaurant'**
+  /// **'Avec votre adresse e-mail, il vous connecte aux tablettes du restaurant.'**
   String get setupPinHint;
-
-  /// Set-up field: the 4-digit password used with the PIN.
-  ///
-  /// In fr, this message translates to:
-  /// **'Code de connexion (4 chiffres)'**
-  String get setupEmployeePassword;
 
   /// Set-up button.
   ///
@@ -7132,12 +7066,6 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Remplissez tous les champs.'**
   String get setupFieldsRequired;
-
-  /// Form error.
-  ///
-  /// In fr, this message translates to:
-  /// **'Le code de connexion fait 4 chiffres.'**
-  String get setupPasswordFormat;
 
   /// Account password reset heading.
   ///

@@ -97,7 +97,6 @@ void main() {
         email: 'lea-$run@example.test',
         role: EmployeeRole.owner,
         pay: 0,
-        password: '4321',
       );
 
       final (backendA, controllerA) = await tablet(a);

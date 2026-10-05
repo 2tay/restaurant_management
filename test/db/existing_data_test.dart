@@ -88,7 +88,6 @@ void main() {
       email: 'lea@chez-nous.be',
       role: EmployeeRole.owner,
       pay: 0,
-      password: '4321',
     );
     return (db: db, store: store);
   }
@@ -138,7 +137,6 @@ void main() {
         'items',
         'stock_movements',
         'employees',
-        'employee_credentials',
       ]),
     );
     expect(

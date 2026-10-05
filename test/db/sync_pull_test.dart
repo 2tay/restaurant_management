@@ -74,7 +74,6 @@ void main() {
       email: 'owner@resto.be',
       role: EmployeeRole.owner,
       pay: 0,
-      password: '4321',
     ))!;
     final category = (await CatalogRepository(
       a,
@@ -93,7 +92,7 @@ void main() {
 
     final result = await sync(b);
 
-    expect(result.received, greaterThanOrEqualTo(5));
+    expect(result.received, greaterThanOrEqualTo(4));
     expect((await StoreRepository(b).stores()).single.id, day.store.id);
     expect(
       (await CatalogRepository(b).categories(day.store.id)).single.name,

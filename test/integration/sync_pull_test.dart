@@ -73,7 +73,6 @@ void main() {
         firstName: 'Léa',
         lastName: 'Martin',
         pin: 'PIN-$run',
-        password: '4321',
       );
       final store = (await StoreRepository(a).stores()).single;
       final category = (await CatalogRepository(

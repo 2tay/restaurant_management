@@ -2980,17 +2980,14 @@ class AppLocalizationsFr extends AppLocalizations {
   String get employeesColumnHired => 'Embauché le';
 
   @override
-  String get employeeWizardStepInfo => 'Information professionnelle';
+  String get employeeWizardStepInfo => 'Informations personnelles';
 
   @override
-  String get employeeWizardStepPay => 'Rémunération';
-
-  @override
-  String get employeeWizardStepRole => 'Rôle et sécurité';
+  String get employeeWizardStepPayRole => 'Tarif et rôle';
 
   @override
   String get employeeFormDescription =>
-      'Renseignez la fiche en trois étapes : les informations professionnelles, la rémunération, puis le rôle et les accès.';
+      'Renseignez la fiche en deux étapes : les informations personnelles, puis le tarif et le rôle.';
 
   @override
   String employeeFormEditDescription(String name) {
@@ -3016,9 +3013,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get employeeFormPayInvalid => 'Saisissez un taux horaire positif.';
 
   @override
-  String get employeeFormPasswordConfirmHint => 'Répétez les 4 chiffres';
-
-  @override
   String get employeeFormPhoto => 'Photo';
 
   @override
@@ -3030,8 +3024,12 @@ class AppLocalizationsFr extends AppLocalizations {
       'Payé à l\'heure réellement travaillée, pauses déduites.';
 
   @override
-  String get employeeFormStaffNoPassword =>
-      'Un employé pointe avec son numéro PIN et n\'a pas accès à l\'application : aucun mot de passe n\'est demandé.';
+  String get employeeFormAccessStaff =>
+      'Un employé n\'a pas accès à l\'application : il pointe au tableau avec son numéro PIN.';
+
+  @override
+  String get employeeFormAccessSignIn =>
+      'Se connecte à l\'application avec son adresse e-mail et son numéro PIN.';
 
   @override
   String get employeeFormPhotoAction => 'Choisir une photo';
@@ -3674,15 +3672,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get loginPinHint => 'AB.12.34-567.89';
 
   @override
-  String get loginPassword => 'Mot de passe';
-
-  @override
-  String get loginPasswordHint => '4 chiffres';
-
-  @override
-  String get loginForgotPassword => 'Mot de passe oublié ?';
-
-  @override
   String get loginErrorBadCredentials => 'E-mail ou numéro PIN incorrect.';
 
   @override
@@ -3692,27 +3681,6 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get loginErrorArchived =>
       'Ce compte a été retiré de l\'équipe et n\'a plus accès à l\'application.';
-
-  @override
-  String get employeeFormCredentials => 'Identifiants';
-
-  @override
-  String get employeeFormPassword => 'Mot de passe';
-
-  @override
-  String get employeeFormPasswordConfirm => 'Confirmer le mot de passe';
-
-  @override
-  String get employeeFormPasswordHelp =>
-      '4 chiffres. La personne se connecte avec son numéro PIN et ce mot de passe.';
-
-  @override
-  String get employeeFormPasswordEditHelp =>
-      'Laisser vide pour conserver le mot de passe actuel.';
-
-  @override
-  String get employeeFormPasswordMismatch =>
-      'Les deux mots de passe ne correspondent pas.';
 
   @override
   String get storeSettingsReadOnlyNotice =>
@@ -4373,10 +4341,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get setupPinHint =>
-      'Votre identifiant sur les tablettes du restaurant';
-
-  @override
-  String get setupEmployeePassword => 'Code de connexion (4 chiffres)';
+      'Avec votre adresse e-mail, il vous connecte aux tablettes du restaurant.';
 
   @override
   String get setupCreateSubmit => 'Créer le restaurant';
@@ -4401,9 +4366,6 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get setupFieldsRequired => 'Remplissez tous les champs.';
-
-  @override
-  String get setupPasswordFormat => 'Le code de connexion fait 4 chiffres.';
 
   @override
   String get forgotAccountTitle => 'Mot de passe oublié';

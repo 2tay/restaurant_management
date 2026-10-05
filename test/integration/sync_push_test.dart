@@ -66,7 +66,6 @@ void main() {
         firstName: 'Léa',
         lastName: 'Martin',
         pin: 'PIN-$run',
-        password: '4321',
       );
       final store = (await StoreRepository(db).stores()).single;
 
@@ -90,7 +89,7 @@ void main() {
       Set<String> tables() => {for (final c in changes) c['table'] as String};
       expect(
         tables(),
-        containsAll(['stores', 'employees', 'employee_credentials']),
+        containsAll(['stores', 'employees']),
       );
       final storeRow = changes.firstWhere((c) => c['table'] == 'stores')['row'];
       expect(storeRow['name'], 'Resto $run');

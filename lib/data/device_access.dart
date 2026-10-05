@@ -101,7 +101,6 @@ class DeviceAccessController extends Notifier<DeviceAccess> {
     required String firstName,
     required String lastName,
     required String pin,
-    required String password,
   }) async {
     var summary = await _backend.myAccount();
     if (!summary.hasOrganization) {
@@ -128,7 +127,6 @@ class DeviceAccessController extends Notifier<DeviceAccess> {
       email: summary.email,
       role: EmployeeRole.owner,
       pay: 0,
-      password: password,
     );
     if (owner == null) {
       throw const AccountException(

@@ -1,12 +1,10 @@
 import 'package:clock/clock.dart';
 import 'package:drift/drift.dart';
 
-import '../../core/utils/credential_status.dart';
 import '../../core/utils/employee_status.dart';
 import '../../models/employee.dart';
 import '../database/app_database.dart';
 import '../mappers/mappers.dart';
-import 'credential_repository.dart';
 import 'new_id.dart';
 
 /// The staff roster.
@@ -99,19 +97,13 @@ class EmployeeRepository {
   // Writes
   // ---------------------------------------------------------------------------
 
-  /// Creates an employee, and — when [password] is given — their login credential in
-  /// the same transaction.
+  /// Creates an employee. A Gérant signs in with the email and the PIN given
+  /// here — there is nothing else to set.
   ///
   /// Returns null, writing nothing, when a required text field is empty, when
-  /// [pay] is not a valid hourly rate ([isValidHourlyRate]), when the PIN or
-  /// the email is already used by another employee anywhere on the account
-  /// (both are unique account-wide, and the PIN is the login identifier), or
-  /// when [password] is set but is not [AuthRules.passwordLength] digits.
-  ///
-  /// The add-employee form creates the person and their password in one submit: an
-  /// employee row with no credential is somebody who cannot sign in, which
-  /// reads as a bug. Doing both here, in one transaction, makes that state
-  /// unreachable rather than merely unlikely.
+  /// [pay] is not a valid hourly rate ([isValidHourlyRate]), or when the PIN
+  /// or the email is already used by another employee anywhere on the account
+  /// (both are unique account-wide, and together they sign in).
   Future<Employee?> create({
     required String storeId,
     required String firstName,
@@ -123,7 +115,6 @@ class EmployeeRepository {
     required double pay,
     DateTime? hireDate,
     String? photoAsset,
-    String? password,
   }) async {
     final first = firstName.trim();
     final last = lastName.trim();
@@ -138,7 +129,6 @@ class EmployeeRepository {
       return null;
     }
     if (!isValidHourlyRate(pay)) return null;
-    if (password != null && !isValidPassword(password)) return null;
 
     final now = clock.now();
 
@@ -162,20 +152,6 @@ class EmployeeRepository {
       );
 
       await _db.into(_db.employees).insert(employeeToRow(employee));
-
-      if (password != null) {
-        // The password was checked above and the employee row now exists in this
-        // transaction, so this cannot fail — but if that ever stops holding,
-        // rolling the whole create back is the right answer to a credential
-        // that did not take.
-        final credential = await CredentialRepository(
-          _db,
-        ).setPassword(employee.id, password);
-        if (credential == null) {
-          throw StateError('setPassword refused a validated password for ${employee.id}');
-        }
-      }
-
       return employee;
     });
   }
@@ -187,16 +163,9 @@ class EmployeeRepository {
   /// audit-relevant transition should not be reachable by a field on a routine
   /// form. [clearPhoto] removes the photo.
   ///
-  /// The login credential changes **in the same transaction**, so a role
-  /// change and its password land together or not at all — never a Gérant
-  /// left without a password because the second write failed:
-  /// - [password] sets (or replaces) the password;
-  /// - [clearCredential] removes any password on file (an Employé holds none).
-  ///
   /// Returns null, writing nothing, when the id is unknown, a supplied text
-  /// field is blank, [pay] is not a valid hourly rate, the PIN / email would
-  /// now collide with another employee, [password] is not
-  /// [AuthRules.passwordLength] digits, or both credential changes are asked.
+  /// field is blank, [pay] is not a valid hourly rate, or the PIN / email
+  /// would now collide with another employee.
   Future<Employee?> update(
     String id, {
     String? firstName,
@@ -208,12 +177,7 @@ class EmployeeRepository {
     double? pay,
     String? photoAsset,
     bool clearPhoto = false,
-    String? password,
-    bool clearCredential = false,
   }) async {
-    if (password != null && (clearCredential || !isValidPassword(password))) {
-      return null;
-    }
     final first = firstName?.trim();
     if (first != null && first.isEmpty) return null;
     final last = lastName?.trim();
@@ -258,18 +222,6 @@ class EmployeeRepository {
       await (_db.update(
         _db.employees,
       )..where((e) => e.id.equals(id))).write(employeeToRow(updated));
-
-      final credentials = CredentialRepository(_db);
-      if (clearCredential) {
-        await credentials.clear(id);
-      } else if (password != null) {
-        // Checked above and the employee exists, so this cannot fail — but if
-        // that ever stops holding, rolling the details back with it is the
-        // whole point.
-        if (await credentials.setPassword(id, password) == null) {
-          throw StateError('setPassword refused a validated password for $id');
-        }
-      }
       return updated;
     });
   }

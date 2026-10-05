@@ -79,7 +79,6 @@ void main() {
         firstName: 'Léa',
         lastName: 'Martin',
         pin: 'PIN-$run',
-        password: '4321',
       );
       final category = (await CatalogRepository(
         a,

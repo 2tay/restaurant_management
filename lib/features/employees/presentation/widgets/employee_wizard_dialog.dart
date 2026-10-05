@@ -2,13 +2,11 @@ import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
-import '../../../../core/utils/credential_status.dart';
 import '../../../../core/utils/employee_status.dart';
 import '../../../../data/providers.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -17,15 +15,13 @@ import '../../../../shared/widgets/widgets.dart';
 
 /// Create or edit a member of staff, in a [WizardDialog] over the roster.
 ///
-/// Three steps:
+/// Two steps:
 ///
-/// 1. **Information professionnelle** — name, PIN, phone, email, and last
+/// 1. **Informations personnelles** — name, PIN, phone, email, and last
 ///    the photo.
-/// 2. **Rémunération** — the hourly rate.
-/// 3. **Rôle et sécurité** — the role, and the login password for a role that
-///    signs in. An Employé never signs in (their pointage is done at the
-///    kiosk with their PIN), so the password fields are not shown and nothing
-///    is saved for one.
+/// 2. **Tarif et rôle** — the hourly rate and the role. Nothing else to
+///    set: a Gérant signs in with their email and PIN, an Employé never
+///    signs in (their pointage is done at the kiosk with their PIN).
 ///
 /// Creating walks the steps in order; editing may jump to any step and save
 /// from each ([WizardDialog.freeNavigation]). The role picker shows what each
@@ -63,8 +59,6 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
   final _phone = TextEditingController();
   final _email = TextEditingController();
   final _pay = TextEditingController();
-  final _password = TextEditingController();
-  final _passwordConfirm = TextEditingController();
 
   EmployeeRole _role = EmployeeRole.staff;
 
@@ -85,16 +79,6 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
 
   bool get _isEditing => widget.employee != null;
 
-  /// Whether the chosen role signs in to the app, and so has a password.
-  bool get _needsPassword => _role != EmployeeRole.staff;
-
-  /// Whether the employee being edited already has a password on file —
-  /// loaded once, when the form opens. Null until known (and always false
-  /// when creating). It decides whether a Gérant's password is optional
-  /// (blank keeps the current one) or required (an Employé promoted to
-  /// Gérant has none yet).
-  bool? _hasCredential;
-
   /// The roles the picker offers. Propriétaire is never assignable from the
   /// form; an owner being edited keeps it, as the only choice, rather than
   /// being silently demoted by a save.
@@ -110,17 +94,6 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
   @override
   void initState() {
     super.initState();
-
-    final editing = widget.employee;
-    if (editing == null) {
-      _hasCredential = false;
-    } else {
-      ref.read(credentialRepositoryProvider).forEmployee(editing.id).then((
-        credential,
-      ) {
-        if (mounted) setState(() => _hasCredential = credential != null);
-      });
-    }
 
     final existing = _employee;
     if (existing != null) {
@@ -146,8 +119,6 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
     _phone,
     _email,
     _pay,
-    _password,
-    _passwordConfirm,
   ];
 
   @override
@@ -160,32 +131,6 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
 
   double? get _parsedPay =>
       double.tryParse(_pay.text.replaceAll(',', '.').trim());
-
-  bool get _passwordTouched =>
-      _password.text.trim().isNotEmpty || _passwordConfirm.text.trim().isNotEmpty;
-
-  /// Both password fields hold the same valid password.
-  bool get _passwordComplete =>
-      isValidPassword(_password.text) && _password.text.trim() == _passwordConfirm.text.trim();
-
-  /// Whether a blank password keeps an existing one — only when editing
-  /// someone who already has one.
-  bool get _passwordOptional => _hasCredential ?? false;
-
-  /// Not asked for an Employé. For a role that signs in: optional when the
-  /// person already has a password (blank keeps it), required otherwise —
-  /// a new Gérant, or an Employé being made Gérant.
-  bool get _passwordValid {
-    if (!_needsPassword) return true;
-    if (_hasCredential == null) return false; // still loading
-    return _passwordOptional
-        ? (!_passwordTouched || _passwordComplete)
-        : _passwordComplete;
-  }
-
-  bool get _passwordMismatch =>
-      _passwordConfirm.text.trim().isNotEmpty &&
-      _password.text.trim() != _passwordConfirm.text.trim();
 
   bool get _identityValid =>
       _firstName.text.trim().isNotEmpty &&
@@ -290,14 +235,9 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
           child: _identityStep(l10n),
         ),
         WizardStep(
-          label: l10n.employeeWizardStepPay,
+          label: l10n.employeeWizardStepPayRole,
           isValid: _payValid,
-          child: _payStep(l10n),
-        ),
-        WizardStep(
-          label: l10n.employeeWizardStepRole,
-          isValid: _passwordValid,
-          child: _roleStep(l10n),
+          child: _payRoleStep(l10n),
         ),
       ],
     );
@@ -417,10 +357,11 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
     );
   }
 
-  /// Step 2 — the hourly rate.
-  Widget _payStep(AppLocalizations l10n) {
+  /// Step 2 — the hourly rate, then the role and how it reaches the app.
+  Widget _payRoleStep(AppLocalizations l10n) {
+    final signsIn = _role != EmployeeRole.staff;
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         AppTextField(
           label: l10n.employeeFormPayHourly,
@@ -438,15 +379,7 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
             color: AppColors.textSecondary,
           ),
         ),
-      ],
-    );
-  }
-
-  /// Step 3 — the role, and the password only for a role that signs in.
-  Widget _roleStep(AppLocalizations l10n) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
+        const SizedBox(height: AppSpacing.xl),
         SectionHeader(title: l10n.employeeFormRole),
         _RolePicker(
           roles: _selectableRoles,
@@ -454,74 +387,12 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
           onChanged: (role) => setState(() => _role = role),
         ),
         const SizedBox(height: AppSpacing.lg),
-        if (_needsPassword) ...[
-          SectionHeader(title: l10n.employeeFormCredentials),
-          _passwordCard(l10n),
-        ] else
-          NoticeBanner(
-            key: const ValueKey('staff-no-password'),
-            icon: LucideIcons.info,
-            title: l10n.employeeFormStaffNoPassword,
-          ),
-      ],
-    );
-  }
-
-  Widget _passwordCard(AppLocalizations l10n) {
-    return Column(
-      children: [
-        AdaptiveRow(
-          spacing: AppSpacing.xl,
-          runSpacing: AppSpacing.xl,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          stackedCrossAxisAlignment: CrossAxisAlignment.stretch,
-          cells: [
-            AdaptiveCell.expand(
-              AppTextField(
-                label: l10n.employeeFormPassword,
-                hint: l10n.loginPasswordHint,
-                controller: _password,
-                prefixIcon: LucideIcons.lock,
-                obscureText: true,
-                keyboardType: TextInputType.number,
-                inputFormatters: [
-                  FilteringTextInputFormatter.digitsOnly,
-                  LengthLimitingTextInputFormatter(AuthRules.passwordLength),
-                ],
-                onChanged: (_) => setState(() {}),
-              ),
-            ),
-            AdaptiveCell.expand(
-              AppTextField(
-                label: l10n.employeeFormPasswordConfirm,
-                hint: l10n.employeeFormPasswordConfirmHint,
-                controller: _passwordConfirm,
-                prefixIcon: LucideIcons.lock,
-                obscureText: true,
-                keyboardType: TextInputType.number,
-                inputFormatters: [
-                  FilteringTextInputFormatter.digitsOnly,
-                  LengthLimitingTextInputFormatter(AuthRules.passwordLength),
-                ],
-                errorText: _passwordMismatch
-                    ? l10n.employeeFormPasswordMismatch
-                    : null,
-                onChanged: (_) => setState(() {}),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: AppSpacing.sm),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: Text(
-            _passwordOptional
-                ? l10n.employeeFormPasswordEditHelp
-                : l10n.employeeFormPasswordHelp,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: AppColors.textSecondary,
-            ),
-          ),
+        NoticeBanner(
+          key: ValueKey(signsIn ? 'role-signs-in' : 'role-no-access'),
+          icon: LucideIcons.info,
+          title: signsIn
+              ? l10n.employeeFormAccessSignIn
+              : l10n.employeeFormAccessStaff,
         ),
       ],
     );
@@ -537,10 +408,6 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
 
     final Employee? result;
     if (existingId != null) {
-      // The credential follows the role, in the update's own transaction:
-      // - an Employé keeps nothing: any password on file is removed;
-      // - a role that signs in gets the typed password (required when there
-      //   was none, e.g. an Employé made Gérant); blank keeps the current one.
       result = await employees.update(
         existingId,
         firstName: _firstName.text,
@@ -550,8 +417,6 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
         email: _email.text,
         role: _role,
         pay: pay,
-        clearCredential: !_needsPassword,
-        password: _needsPassword && _passwordTouched ? _password.text : null,
       );
     } else {
       result = await employees.create(
@@ -563,7 +428,6 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
         email: _email.text,
         role: _role,
         pay: pay,
-        password: _needsPassword ? _password.text : null,
       );
     }
 
@@ -589,7 +453,7 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
     }
 
     // The photo — copied into the store and written onto the row now that the
-    // id exists. A separate write from the details, like the password above.
+    // id exists. A separate write from the details.
     final photoStore = ref.read(employeePhotoStoreProvider);
     if (_pickedPhotoPath != null) {
       final stored = await photoStore.save(

@@ -806,12 +806,10 @@ void main() {
       await EmployeeRepository(a).update(
         shop.cook.id,
         role: EmployeeRole.manager,
-        password: '1234',
       );
       await EmployeeRepository(b).update(
         shop.cook.id,
         role: EmployeeRole.owner,
-        password: '5678',
       );
       await settle(a, b);
 
