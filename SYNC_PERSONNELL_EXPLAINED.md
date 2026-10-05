@@ -1,7 +1,7 @@
 # Synchronisation du personnel : ce qui a été modifié
 
-Ce fichier explique ce qui a été fait pour `SYNC_PERSONNEL_PLAN.md` (étapes 1 à 8), sur la branche
-`feat/sync-personnell-system`. Il suit l'ordre du travail. Pour chaque étape :
+Ce fichier explique ce qui a été fait pour `SYNC_PERSONNEL_PLAN.md` (étapes 1 à 8, puis la
+révision du 2026-10-05), sur la branche `feat/sync-personnell-system`. Il suit l'ordre du travail. Pour chaque étape :
 
 - **le problème** : ce qui n'allait pas avec deux tablettes ;
 - **la règle** : ce qui a été validé dans le plan ;
@@ -13,7 +13,7 @@ synchronisation de base (phases 1 à 10). Ce fichier explique ce qui a été ajo
 personnel.
 
 **Périmètre : uniquement** les employés, le tableau de pointage, l'historique de pointage, le
-paiement et les identifiants de connexion. Le stock, les fournisseurs et le catalogue ne changent pas.
+paiement et la connexion des employés. Le stock, les fournisseurs et le catalogue ne changent pas.
 
 ---
 
@@ -54,6 +54,11 @@ Les commits, dans l'ordre :
 | 7 | `2b47861` | Le paiement (PA1, PA2) |
 | 8 | `f840814` | Les employés (E1, E2, E4, E5) |
 | — | `39f7ae0` | Test complet des étapes 1 à 8 |
+| 9 | `d5cab53` | Révision P6 : la fermeture de la journée gagne |
+| 10 | `9de98c1`, `10412ce`, `d730d3d` | Connexion e-mail + PIN, plus de mot de passe (schéma v22) |
+
+L'étape 5 (les mots de passe, C1–C4) a été **remplacée** par l'étape 10 : il n'y a plus de mot de
+passe, donc plus de conflit de mot de passe.
 
 ---
 
@@ -180,7 +185,11 @@ B son nom, la dernière arrivée écrasait l'autre.
 
 ---
 
-## Étape 5 : les identifiants (C1 à C4)
+## Étape 5 : les identifiants (C1 à C4) — *remplacée par l'étape 10*
+
+> Ce qui suit décrit ce qui existait entre `996e4e7` et `d730d3d`. Depuis le schéma v22, le mot de
+> passe, `login_states` et les règles C1 à C4 n'existent plus. Seule la mécanique des colonnes
+> surveillées (`base_values`, `overwrote`) reste, pour le taux, le rôle et le retrait (étape 8).
 
 **Le problème.** Une connexion réécrivait toute la ligne du mot de passe (essais ratés, dernière
 connexion) et pouvait remettre un ancien mot de passe changé entre-temps sur une autre tablette.
@@ -285,7 +294,7 @@ payaient les mêmes jours créaient deux périodes, et chaque jour prenait le li
 
 | Règle | Situation | Ce qui se passe |
 |---|---|---|
-| E1 | Même CIN ajoutée sur deux tablettes, même établissement | **fusion** : la fiche au plus petit identifiant est gardée, pointages, paiements et mot de passe regroupés ; signalé |
+| E1 | Même CIN ajoutée sur deux tablettes, même établissement | **fusion** : la fiche au plus petit identifiant est gardée, pointages et paiements regroupés ; signalé |
 | E1 | Même CIN dans deux établissements | deux personnes, rien n'est regroupé, signalé |
 | E2 | Taux ou rôle changé des deux côtés | le dernier gagne, signalé |
 | E3 | Archivé d'un côté, modifié de l'autre | réglé à l'étape 4 : reste archivé |
@@ -295,7 +304,7 @@ payaient les mêmes jours créaient deux périodes, et chaque jour prenait le li
 
 **La fusion (E1), champ par champ** : nom, téléphone et email de la fiche gardée ; sa photo, sinon
 celle de l'autre ; la date d'embauche la plus ancienne ; le taux de la fiche gardée (signalé s'il
-diffère) ; le rôle le plus limité (signalé s'il diffère) ; le mot de passe le plus récent ; actif si
+diffère) ; le rôle le plus limité (signalé s'il diffère) ; actif si
 l'une des deux l'est. Deux jours à la même date n'en font qu'un.
 
 **Ce qui a changé.**
@@ -321,9 +330,63 @@ l'une des deux l'est. Deux jours à la même date n'en font qu'un.
 
 ---
 
+## Étape 9 : la fermeture de la journée gagne (révision de P6)
+
+**Le problème.** La journée était fermée sur la tablette A pendant que quelqu'un pointait sur la
+tablette B, hors ligne. Avant, la fermeture et le pointage restaient tous les deux : un pointage
+restait ouvert sur une journée fermée.
+
+**La règle.** La fermeture gagne, et c'est signalé (« Pointage après la fermeture : … ») :
+
+| Pointage sur la tablette B | Résultat |
+|---|---|
+| Arrivée **avant** la fermeture, encore ouverte | départ mis à l'heure de fermeture (auteur : la personne qui a fermé) ; une pause en cours s'arrête aussi |
+| Arrivée **après** la fermeture | pointage supprimé, et la journée de l'employé s'il n'y reste rien |
+| Jour déjà payé | rien ne change, seulement signalé |
+
+**Ce qui a changé.** `SyncApplier._settlePunchesAfterClose`, avec `_endSessionAt` et
+`_removeSession`. Elle tourne à la réception d'une journée fermée et à la réception d'une arrivée.
+
+---
+
+## Étape 10 : connexion e-mail + PIN, plus de mot de passe (schéma v22)
+
+**La décision (2026-10-05).** Un gérant ou le propriétaire se connecte avec son **adresse e-mail et
+son numéro PIN** (la CIN). Le mot de passe à 4 chiffres et le blocage après des erreurs sont
+supprimés. La CIN n'étant pas secrète, c'est un choix assumé : toute personne qui connaît l'e-mail
+et la CIN d'un gérant peut se connecter à sa place.
+
+**Ce qui a changé.**
+
+- **Connexion** (`9de98c1`) : `CredentialRepository.authenticate(email, pin)`. L'e-mail désigne
+  la personne, le PIN est le secret ; si le même e-mail est sur deux fiches (deux établissements),
+  c'est celle dont le PIN correspond qui se connecte. Une fiche archivée ou de rôle Employé n'est
+  refusée **qu'après** un PIN correct, pour ne rien révéler sur un e-mail. Rien n'est compté, rien
+  n'est écrit. L'écran demande l'e-mail puis le PIN (masqué) ; le lien « Mot de passe oublié » n'y
+  est plus (la page reste pour le compte Supabase, depuis les Paramètres).
+- **Assistant employé** (`10412ce`) : deux étapes, « Informations personnelles » puis « Tarif et
+  rôle », avec un bandeau qui dit comment le rôle accède à l'application. Plus de mot de passe dans
+  `EmployeeRepository.create/update`, ni à la création du compte du restaurant.
+- **Schéma v22** (`d730d3d`) : `employee_credentials` et `login_states` sont supprimées, avec ce
+  qui attendait d'être envoyé pour elles. Les anciennes étapes de migration ne touchent plus la
+  table : une installation ancienne la garde jusqu'à la v22, qui la supprime. Retirés : le modèle,
+  le mapper, le hachage, les mots de passe de la démo, la colonne surveillée `password_hash`, la
+  réception et la fusion des mots de passe, le signalement « Mot de passe changé deux fois ».
+  `verifyPin` (confirmation au pointage et avant « Payer ») ne change pas.
+
+**Serveur** : `supabase/migrations/20261005000100_no_passwords.sql` — la table quitte
+`private.sync_tables` (une ancienne appli qui en envoie reçoit `unknown_table`), `pull_changes` est
+redéfinie sans elle, puis elle est supprimée.
+
+**Tests** : `test/db/auth_test.dart` (connexion e-mail + PIN), `test/permissions_test.dart` (écran),
+`test/employee_wizard_dialog_test.dart` (deux étapes), `test/db/migration_test.dart`
+(v21 → v22).
+
+---
+
 ## Récapitulatif
 
-### Le schéma local (v21)
+### Le schéma local (v21, puis v22)
 
 | Table | Changement |
 |---|---|
@@ -332,8 +395,8 @@ l'une des deux l'est. Deux jours à la même date n'en font qu'un.
 | `attendance_sessions` | `exit_set_by_employee_id` |
 | `notifications` | `related_employee_id`, `related_target`, `read_by_manager_at`, `read_by_owner_at` |
 | `outbox` | `changed_columns`, `base_values` |
-| `employee_credentials` | `failed_attempts`, `locked_until`, `last_login_at` **retirées** |
-| `login_states` | nouvelle table, **locale** (jamais synchronisée) |
+| `employee_credentials` | v21 : colonnes de connexion retirées ; **v22 : table supprimée** |
+| `login_states` | v21 : nouvelle table locale ; **v22 : table supprimée** |
 | `payroll_periods` | `double_payment_amount` |
 | `employees` | CIN et email uniques par établissement parmi les fiches vivantes |
 
@@ -346,6 +409,7 @@ l'une des deux l'est. Deux jours à la même date n'en font qu'un.
 | `20261003000300_credentials.sql` | colonnes de connexion retirées ; réponse `overwrote` |
 | `20261003000400_paid_days.sql` | refus `day_already_paid` et `paid_day_frozen`, réponse `restore` |
 | `20261003000500_employees.sql` | comparaison typée des valeurs surveillées (retrait) |
+| `20261005000100_no_passwords.sql` | `employee_credentials` quitte la synchro et est supprimée |
 
 ⚠️ **Ces migrations n'ont pas été lancées sur un vrai Supabase** : ce PC n'a ni le CLI Supabase ni
 ses images Docker. Le comportement a été vérifié avec le faux serveur des tests
@@ -362,7 +426,6 @@ et montants `120,00 €` formatés à la main), pour être identiques sur toutes
 | P1 | « Double pointage : … » |
 | P4 / H1 / H2 | « Deux départs : … » |
 | P6 | « Pointage après la fermeture : … » |
-| C2 | « Mot de passe changé deux fois : … » |
 | PA1 | « Paiement en double : … » |
 | PA2 | « Jour déjà payé : … » |
 | E1 | « Employé ajouté deux fois : … », « Même CIN dans deux établissements : … » |
@@ -375,12 +438,12 @@ et montants `120,00 €` formatés à la main), pour être identiques sur toutes
 
 | Fichier | Ce qu'il vérifie |
 |---|---|
-| `test/db/sync_personnel_full_test.dart` | **toutes les règles des étapes 1 à 8** avec deux tablettes (33 tests) |
+| `test/db/sync_personnel_full_test.dart` | **toutes les règles des étapes 1 à 10** avec deux tablettes (30 tests) |
 | `test/db/sync_conflicts_test.dart` | les mêmes règles, avec les cas plus fins |
 | `test/db/attendance_merge_test.dart` | une journée regroupée : un départ ferme tout, statut, suppression d'un doublon |
 | `test/db/signalement_test.dart` | un signalement par situation, lu séparément |
 | `test/db/outbox_test.dart` | les colonnes modifiées, les triggers |
-| `test/db/migration_test.dart` | les mises à jour vers v21 sans rien perdre |
+| `test/db/migration_test.dart` | les mises à jour vers v22 sans rien perdre |
 | `test/attendance_history_page_test.dart` | « Supprimer ce pointage en double » à l'écran |
 | `test/payroll_history_page_test.dart` | le bandeau « Paiement en double » |
 | `test/notifications_signalement_test.dart` | le filtre « Personnel », l'ouverture de l'historique |
@@ -407,8 +470,10 @@ existaient déjà avant ce travail : ils échouent de la même façon sans ces c
 - **Un jour payé seulement sur cette tablette** : si une tablette vient de payer un jour hors ligne
   et reçoit, avant d'envoyer ce paiement, une modification de ce jour faite ailleurs, la
   modification s'applique (elle est arrivée la première au serveur) sans être signalée.
-- **Même CIN dans deux établissements** : la connexion par CIN et mot de passe tombe sur une seule
-  des deux fiches, jusqu'à ce qu'un gérant corrige la CIN.
+- **Même e-mail et même CIN dans deux établissements** : la connexion tombe sur une seule des deux
+  fiches, jusqu'à ce qu'un gérant corrige l'une d'elles.
+- **La CIN sert de secret** : elle n'est pas secrète (carte d'identité, contrats, fiches de paie).
+  Il n'y a plus de blocage après des erreurs.
 - **Une modification faite pendant l'envoi** : elle garde dans sa liste les colonnes déjà envoyées
   et les renvoie avec la suivante. Sans conséquence, sauf si une autre tablette change exactement
   la même colonne entre les deux envois.

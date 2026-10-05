@@ -4,7 +4,7 @@ Branche `feat/sync-personnell-system` = `14-sync-phase-1` (synchro, schéma v20)
 (gestion des employés + corrections de l'audit, schéma v16).
 
 **Périmètre : uniquement** les employés, le tableau de pointage, l'historique de pointage, le
-paiement et les identifiants de connexion.
+paiement et la connexion des employés.
 
 ## Principes
 
@@ -38,18 +38,17 @@ paiement et les identifiants de connexion.
 | PA1 | Même employé payé sur deux tablettes | le premier paiement arrivé au serveur garde les jours ; le second est gardé, marqué « paiement en double » ; le **trop-versé** (jours payés deux fois) est signalé |
 | PA2 | Changement arrivé sur un jour déjà payé | jour **gelé**, montant inchangé ; le changement n'est pas appliqué mais signalé avec la différence (« 1h non payée ») |
 
-### Identifiants de connexion
-| | Situation | Règle |
-|---|---|---|
-| C1 | Connexion qui écrase un nouveau mot de passe | seul le **mot de passe** est partagé ; essais ratés, blocage, dernière connexion restent **sur chaque tablette** |
-| C2 | Mot de passe changé sur deux tablettes | le dernier gagne + signalé |
-| C3 | Blocage après trop d'erreurs | par tablette |
-| C4 | Ancien mot de passe sur une tablette hors ligne | normal jusqu'à la synchro |
+### Connexion (révisé le 2026-10-05)
+Un gérant ou le propriétaire se connecte avec son **adresse e-mail et son numéro PIN** (la CIN),
+déjà sur sa fiche. Il n'y a **plus de mot de passe ni de blocage** après des erreurs : les règles
+C1 à C4 (mot de passe partagé, changé deux fois, blocage par tablette, ancien mot de passe hors
+ligne) n'ont plus d'objet. La connexion ne lit que la fiche employé, synchronisée comme le reste
+(E1 à E6), et n'écrit rien.
 
 ### Employés
 | | Situation | Règle |
 |---|---|---|
-| E1 | Même CIN ajouté sur deux tablettes | **fusion** : fiche au plus petit identifiant gardée, pointages et paiements regroupés ; nom/téléphone/email de la fiche gardée ; photo gardée sinon l'autre ; date d'embauche la plus ancienne ; taux de la fiche gardée + signalé ; rôle le plus faible + signalé ; mot de passe le plus récent ; actif si l'une est active. **Magasins différents** : pas de fusion, signalé |
+| E1 | Même CIN ajouté sur deux tablettes | **fusion** : fiche au plus petit identifiant gardée, pointages et paiements regroupés ; nom/téléphone/email de la fiche gardée ; photo gardée sinon l'autre ; date d'embauche la plus ancienne ; taux de la fiche gardée + signalé ; rôle le plus faible + signalé ; actif si l'une est active. **Magasins différents** : pas de fusion, signalé |
 | E2 | Deux modifications de la même fiche | seuls les **champs modifiés** sont envoyés ; même champ → le dernier gagne ; taux ou rôle → signalé |
 | E3 | Archivé d'un côté, modifié de l'autre | réglé par E2 : reste archivé |
 | E4 | Archivé d'un côté, pointe de l'autre | heures gardées, « retiré mais dû » sur Paiement, signalé |
@@ -71,9 +70,21 @@ suivante**.
    sur toutes les tablettes.
 4. **Envoyer seulement les champs modifiés** pour les tables du personnel (E2, E3) — générateur
    de triggers + mise à jour partielle côté serveur.
-5. **Identifiants** — séparation mot de passe / état de connexion local (C1–C3).
+5. **Identifiants** — séparation mot de passe / état de connexion local (C1–C3). *Remplacé le
+   2026-10-05 par la connexion e-mail + PIN : voir ci-dessous.*
 6. **Tableau et historique** — statut recalculé (P3), départ qui ferme tout (P1), départ le plus
    tôt (P4, H1, H2), fermeture qui gagne (P6), action « Supprimer ce pointage en double ».
 7. **Paiement** — double paiement détecté et signalé (PA1), jour payé gelé côté serveur (PA2).
 8. **Employés** — fusion par CIN (E1), signalements E2/E4/E5.
 9. **Documentation** — `SYNC_PERSONNELL_EXPLAINED.md`.
+
+## Révision du 2026-10-05
+
+- **P6** : la fermeture de la journée gagne (au lieu de « fermeture et pointage gardés tous les
+  deux ») — `d5cab53`.
+- **Connexion e-mail + PIN**, sans mot de passe ni blocage, en trois commits :
+  1. l'écran de connexion et `authenticate(email, pin)` — `9de98c1` ;
+  2. l'assistant employé en deux étapes (« Informations personnelles », « Tarif et rôle »), plus
+     de mot de passe à la création du compte — `10412ce` ;
+  3. schéma **v22** : `employee_credentials` et `login_states` supprimées, règles C1–C4 retirées
+     de la synchro, migration Supabase `20261005000100_no_passwords.sql` — `d730d3d`.
