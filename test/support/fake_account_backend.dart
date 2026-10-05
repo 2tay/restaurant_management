@@ -219,6 +219,10 @@ class FakeAccountBackend implements AccountBackend {
   /// row while its change is travelling.
   Future<void> Function()? duringPush;
 
+  /// The next `pushChanges` saves its batch, then the answer is lost on the
+  /// way back, as when the Wi-Fi drops at the wrong second.
+  bool loseAnswerOnce = false;
+
   @override
   Future<List<PushResult>> pushChanges(
     String deviceId,
@@ -240,7 +244,7 @@ class FakeAccountBackend implements AccountBackend {
       ];
     }
 
-    return [
+    final answers = [
       for (final change in changes)
         () {
           final reason = rejectWhen?.call(change);
@@ -266,6 +270,14 @@ class FakeAccountBackend implements AccountBackend {
               accepted: false,
               reason: refusal.reason,
               restore: refusal.restore,
+            );
+          }
+          final conflict = _conflictRefusal(table, sent, existing, change);
+          if (conflict != null) {
+            return PushResult(
+              id: change['id']! as int,
+              accepted: false,
+              reason: conflict,
             );
           }
           // As `push_changes`: a watched column the server holds with
@@ -307,6 +319,46 @@ class FakeAccountBackend implements AccountBackend {
           );
         }(),
     ];
+    if (loseAnswerOnce) {
+      loseAnswerOnce = false;
+      throw const AccountException(AccountErrorCode.network);
+    }
+    return answers;
+  }
+
+  /// As `push_changes`' other rules (supabase/migrations/…_employees.sql):
+  /// a row cannot move to another store, a deleted row stays deleted, and a
+  /// commande's status only moves forward and stays closed once closed.
+  static String? _conflictRefusal(
+    String table,
+    Map<String, Object?> sent,
+    Map<String, Object?>? existing,
+    Map<String, Object?> change,
+  ) {
+    if (existing == null) return null;
+    if (table != 'stores' && existing['store_id'] != change['store_id']) {
+      return 'store_changed';
+    }
+    if (existing['deleted_at'] != null && sent['deleted_at'] == null) {
+      return 'deleted';
+    }
+    if (table == 'purchase_orders' && sent['status'] != existing['status']) {
+      if (existing['status'] == 'received' ||
+          existing['status'] == 'cancelled') {
+        return 'status_closed';
+      }
+      const rank = {
+        'draft': 0,
+        'sent': 1,
+        'partial': 2,
+        'cancelled': 2,
+        'received': 3,
+      };
+      if (rank[sent['status']]! < rank[existing['status']]!) {
+        return 'status_backwards';
+      }
+    }
+    return null;
   }
 
   /// As `push_changes` (SYNC_PERSONNEL_PLAN.md, step 7): a day another
