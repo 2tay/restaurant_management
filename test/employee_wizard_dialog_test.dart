@@ -149,6 +149,18 @@ void main() {
     expect(_enabled(tester, 'Enregistrer'), isTrue);
   });
 
+  testApp('the PIN is typed hidden; Afficher shows it', (tester) async {
+    await _openEdit(tester, 'Amélie Vandenberghe');
+
+    TextField pinField() => tester.widget<TextField>(_fields.at(2));
+    expect(pinField().obscureText, isTrue);
+    expect(pinField().controller!.text, '89.07.30-201.44');
+
+    await tester.tap(find.byKey(const ValueKey('employee-pin-visibility')));
+    await tester.pumpAndSettle();
+    expect(pinField().obscureText, isFalse);
+  });
+
   testApp('a negative or non-numeric rate says why and blocks Enregistrer', (
     tester,
   ) async {

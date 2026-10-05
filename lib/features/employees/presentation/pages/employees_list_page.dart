@@ -205,7 +205,7 @@ class _EmployeesListPageState extends ConsumerState<EmployeesListPage> {
     if (query.isEmpty) return base;
     return base.where((employee) {
       return employeeDisplayName(employee).toLowerCase().contains(query) ||
-          employee.pin.toLowerCase().contains(query);
+          employee.email.toLowerCase().contains(query);
     }).toList();
   }
 }

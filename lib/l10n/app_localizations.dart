@@ -4717,7 +4717,7 @@ abstract class AppLocalizations {
   /// Placeholder in the roster search field.
   ///
   /// In fr, this message translates to:
-  /// **'Rechercher (nom, PIN)'**
+  /// **'Rechercher (nom, e-mail)'**
   String get employeesSearchHint;
 
   /// Placeholder shown in the closed EmployeeSelector combobox when nothing is picked.

@@ -2910,7 +2910,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get employeesAdd => 'Ajouter un employé';
 
   @override
-  String get employeesSearchHint => 'Rechercher (nom, PIN)';
+  String get employeesSearchHint => 'Rechercher (nom, e-mail)';
 
   @override
   String get employeeSelectorHint => 'Rechercher ou sélectionner un employé…';

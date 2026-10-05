@@ -174,7 +174,7 @@ class AttendanceIdentityRow extends StatelessWidget {
               Text(employeeDisplayName(who), style: theme.textTheme.titleSmall),
               if (showPin)
                 Text(
-                  who.pin,
+                  maskedPin(who.pin),
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: AppColors.textSecondary,
                   ),

@@ -837,26 +837,31 @@ void main() {
       expect(find.text('Karim Haddouch'), findsOneWidget);
     });
 
-    testWidgets('filters by PIN even when the PIN is not shown', (
-      tester,
-    ) async {
+    testWidgets('filters by email, never by PIN', (tester) async {
       await pumpSelector(tester);
       await tester.tap(find.byType(EmployeeSelector));
       await tester.pumpAndSettle();
 
+      // A PIN typed in the search tells nothing about whose it is.
       await tester.enterText(find.byType(TextField).last, '89.07.30');
+      await tester.pumpAndSettle();
+      expect(find.text('Amélie Vandenberghe'), findsNothing);
+      expect(find.text('Karim Haddouch'), findsNothing);
+
+      await tester.enterText(find.byType(TextField).last, 'amélie@x');
       await tester.pumpAndSettle();
       expect(find.text('Amélie Vandenberghe'), findsOneWidget);
       expect(find.text('Karim Haddouch'), findsNothing);
-      // showPin is false → the number itself is not rendered in the row.
-      expect(find.textContaining('PIN 89.07.30-201.44'), findsNothing);
     });
 
-    testWidgets('showPin renders the PIN under each name', (tester) async {
+    testWidgets('showPin renders the PIN, masked, under each name', (
+      tester,
+    ) async {
       await pumpSelector(tester, showPin: true);
       await tester.tap(find.byType(EmployeeSelector));
       await tester.pumpAndSettle();
-      expect(find.textContaining('89.07.30-201.44'), findsOneWidget);
+      expect(find.text('89*************'), findsOneWidget);
+      expect(find.textContaining('89.07.30-201.44'), findsNothing);
     });
 
     testWidgets('the clear button resets the selection', (tester) async {
@@ -916,8 +921,9 @@ void main() {
         await tester.pumpAndSettle();
         expect(find.text('Amélie Vandenberghe'), findsNothing);
         expect(find.text('Karim Haddouch'), findsOneWidget);
-        // The bare PIN, no "PIN" word before it.
-        expect(find.text('01.02.03-004.05'), findsOneWidget);
+        // The bare PIN, masked, no "PIN" word before it.
+        expect(find.text('01*************'), findsOneWidget);
+        expect(find.text('01.02.03-004.05'), findsNothing);
         expect(find.textContaining('PIN 01'), findsNothing);
       });
 
@@ -1339,7 +1345,7 @@ void main() {
     ) async {
       await pump(tester, day(overrun: true));
       final name = find.text('Amélie Laurent');
-      final pin = find.text('4821');
+      final pin = find.text('48**');
       final date = find.text('Samedi 24/10/2026');
       final session = find.text('Session N° 1');
       final summary = find.textContaining('Résumé de la journée');

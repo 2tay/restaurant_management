@@ -1761,7 +1761,7 @@
   "@employeesSubtitle": {"description": "Supporting line on the roster page."},
   "employeesAdd": "Ajouter un employé",
   "@employeesAdd": {"description": "Primary action on the roster page."},
-  "employeesSearchHint": "Rechercher (nom, PIN)",
+  "employeesSearchHint": "Rechercher (nom, e-mail)",
   "@employeesSearchHint": {"description": "Placeholder in the roster search field."},
   "employeeSelectorHint": "Rechercher ou sélectionner un employé…",
   "@employeeSelectorHint": {"description": "Placeholder shown in the closed EmployeeSelector combobox when nothing is picked."},

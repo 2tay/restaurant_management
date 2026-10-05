@@ -52,7 +52,7 @@ class EmployeeCell extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
               ),
               Text(
-                employee.pin,
+                maskedPin(employee.pin),
                 key: const ValueKey('employee-cell-pin'),
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: AppColors.textSecondary,

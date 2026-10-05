@@ -1,5 +1,6 @@
 // employeeDisplayName: every word of a full name starts with a capital,
-// whatever was typed — and nothing else about the casing changes.
+// whatever was typed — and nothing else about the casing changes. And
+// maskedPin: the PIN as every screen shows it.
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stock_inventory/core/utils/employee_status.dart';
@@ -41,5 +42,23 @@ void main() {
   test('copes with a missing part', () {
     expect(employeeDisplayName(_named('nora', '')), 'Nora');
     expect(employeeDisplayName(_named('  ', '')), '');
+  });
+
+  group('maskedPin', () {
+    test('keeps the first two characters, one * per remaining one', () {
+      expect(maskedPin('78.02.14-153.24'), '78*************');
+      expect(maskedPin('LM-2026'), 'LM*****');
+      expect(maskedPin('abc'), 'ab*');
+    });
+
+    test('ignores stray spaces', () {
+      expect(maskedPin('  LM-2026 '), 'LM*****');
+    });
+
+    test('a PIN of two characters or fewer is fully hidden', () {
+      expect(maskedPin('12'), '**');
+      expect(maskedPin('1'), '*');
+      expect(maskedPin(''), '');
+    });
   });
 }

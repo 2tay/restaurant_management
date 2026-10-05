@@ -70,7 +70,7 @@ class _EmployeeSelectorState extends State<EmployeeSelector> {
         .where(
           (e) =>
               employeeDisplayName(e).toLowerCase().contains(q) ||
-              e.pin.toLowerCase().contains(q),
+              e.email.toLowerCase().contains(q),
         )
         .toList();
   }
@@ -323,7 +323,7 @@ class _SelectedSearchBar extends StatelessWidget {
                   const SizedBox(width: AppSpacing.sm),
                   Flexible(
                     child: Text(
-                      employee.pin,
+                      maskedPin(employee.pin),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.bodySmall?.copyWith(
@@ -483,7 +483,7 @@ class _OptionRow extends StatelessWidget {
                   ),
                   if (showPin)
                     Text(
-                      employee.pin,
+                      maskedPin(employee.pin),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.bodySmall?.copyWith(

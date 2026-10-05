@@ -31,6 +31,15 @@ String employeeDisplayName(Employee employee) =>
 String _capitalised(String word) =>
     word.isEmpty ? word : word[0].toUpperCase() + word.substring(1);
 
+/// The PIN as every screen shows it: its first two characters, then one
+/// `*` per remaining character — "78.02.14-153.24" → "78*************". The
+/// PIN is the login secret (with the email), so it is never shown whole.
+String maskedPin(String pin) {
+  final trimmed = pin.trim();
+  if (trimmed.length <= 2) return '*' * trimmed.length;
+  return trimmed.substring(0, 2) + '*' * (trimmed.length - 2);
+}
+
 /// First letter of the first and last name — "Amélie Vandenberghe" → "AV".
 /// Falls back to a single initial when only one name part is present.
 String employeeInitials(Employee employee) {

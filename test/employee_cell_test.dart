@@ -44,16 +44,17 @@ void main() {
     expect(Formatters.dateShortWeekday(DateTime(2026, 10, 25)), 'Dim 25/10/2026');
   });
 
-  testWidgets('the PIN sits under the name, with no "PIN" label', (
+  testWidgets('the PIN sits under the name, masked, with no "PIN" label', (
     tester,
   ) async {
     await _pump(tester, EmployeeCell(employee: _amelie));
 
     expect(find.byType(EmployeeAvatar), findsOneWidget);
     final name = find.text('Amélie Vandenberghe');
-    final pin = find.text('85.03.12-123.45');
+    final pin = find.text('85*************');
     expect(name, findsOneWidget);
     expect(pin, findsOneWidget);
+    expect(find.text('85.03.12-123.45'), findsNothing);
     expect(find.textContaining('PIN'), findsNothing);
     expect(tester.getTopLeft(pin).dy, greaterThan(tester.getTopLeft(name).dy));
     expect(tester.getTopLeft(pin).dx, tester.getTopLeft(name).dx);

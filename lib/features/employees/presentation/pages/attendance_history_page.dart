@@ -898,7 +898,7 @@ class _AttendanceCard extends StatelessWidget {
                     ),
                     if (employee != null)
                       Text(
-                        employee.pin,
+                        maskedPin(employee.pin),
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: AppColors.textSecondary,
                         ),

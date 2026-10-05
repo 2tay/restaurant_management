@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:stock_inventory/app/router.dart';
 import 'package:stock_inventory/app/routes.dart';
+import 'package:stock_inventory/core/utils/employee_status.dart';
 import 'package:stock_inventory/core/utils/formatters.dart';
 import 'package:stock_inventory/data/database/app_database.dart';
 import 'package:stock_inventory/data/repositories/repositories.dart';
@@ -132,6 +133,24 @@ void main() {
     );
     final discColor = (disc.decoration! as BoxDecoration).color!;
     expect(discColor.a, lessThan(0.3));
+  });
+
+  testApp('search finds by name or email, never by PIN', (tester) async {
+    final db = await _open(tester);
+    final karim = (await EmployeeRepository(db).employee(EmployeeIds.karim))!;
+    final field = find.descendant(
+      of: find.byType(SearchField),
+      matching: find.byType(TextField),
+    );
+
+    // Typing a PIN tells nothing about whose it is.
+    await tester.enterText(field, karim.pin);
+    await tester.pumpAndSettle();
+    expect(find.text(_karim), findsNothing);
+
+    await tester.enterText(field, karim.email);
+    await tester.pumpAndSettle();
+    expect(find.text(_karim), findsOneWidget);
   });
 
   testApp('search: white, #777 placeholder and icon, green on focus', (
@@ -296,8 +315,9 @@ void main() {
         find.descendant(of: card, matching: find.text(text));
 
     expect(inCard('Amélie Vandenberghe'), findsOneWidget);
-    // The bare number — no "PIN" word before it.
-    expect(inCard(amelie.pin), findsOneWidget);
+    // The number, masked — no "PIN" word before it.
+    expect(inCard(maskedPin(amelie.pin)), findsOneWidget);
+    expect(inCard(amelie.pin), findsNothing);
     expect(inCard('PIN ${amelie.pin}'), findsNothing);
     expect(inCard('Actif'), findsOneWidget);
     expect(inCard('Gérant'), findsOneWidget); // the badge — no « Poste »
@@ -714,15 +734,16 @@ void main() {
       ),
       findsWidgets,
     );
-    // The PIN sits under the name, bare — no "PIN" prefix.
+    // The PIN sits under the name, masked — no "PIN" prefix.
     final cell = find.ancestor(
       of: find.text(_karim),
       matching: find.byType(EmployeeCell),
     );
     expect(
-      find.descendant(of: cell, matching: find.text(karim.pin)),
+      find.descendant(of: cell, matching: find.text(maskedPin(karim.pin))),
       findsOneWidget,
     );
+    expect(find.text(karim.pin), findsNothing);
     expect(
       find.descendant(
         of: find.byType(DataTable),

@@ -77,6 +77,10 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
   bool _pinTaken = false;
   bool _emailTaken = false;
 
+  /// The PIN is the login secret (with the email): typed and shown hidden
+  /// until someone taps « Afficher ».
+  bool _obscurePin = true;
+
   bool get _isEditing => widget.employee != null;
 
   /// The roles the picker offers. Propriétaire is never assignable from the
@@ -199,6 +203,7 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
       _photoCleared = false;
       _pinTaken = false;
       _emailTaken = false;
+      _obscurePin = true;
       _step = 0;
     });
   }
@@ -280,6 +285,16 @@ class _EmployeeFormState extends ConsumerState<_EmployeeForm> {
           hint: l10n.loginPinHint,
           controller: _pin,
           prefixIcon: LucideIcons.idCard,
+          obscureText: _obscurePin,
+          suffixIcon: IconButton(
+            key: const ValueKey('employee-pin-visibility'),
+            tooltip: _obscurePin ? l10n.actionShow : l10n.actionHide,
+            icon: Icon(
+              _obscurePin ? LucideIcons.eye : LucideIcons.eyeOff,
+              size: AppSizing.iconSm,
+            ),
+            onPressed: () => setState(() => _obscurePin = !_obscurePin),
+          ),
           errorText: _pinTaken ? l10n.employeePinTaken : null,
           onChanged: (_) => setState(() => _pinTaken = false),
         ),

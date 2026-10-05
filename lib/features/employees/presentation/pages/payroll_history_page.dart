@@ -864,7 +864,7 @@ class _PayrollDayCard extends StatelessWidget {
                           ? Formatters.date(attendance.date)
                           : (employee == null
                                 ? '—'
-                                : employee.pin),
+                                : maskedPin(employee.pin)),
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: AppColors.textSecondary,
                       ),
