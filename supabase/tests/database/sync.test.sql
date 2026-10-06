@@ -44,7 +44,8 @@ create function tests.store(p_id text) returns jsonb language sql immutable as $
     'stale_partial_order_days', 7, 'max_break_minutes', 30,
     'notify_low_stock', 1, 'notify_price_change', 1,
     'notify_large_adjustment', 1, 'notify_deliveries', 0,
-    'notify_busy_days', 1, 'busy_weekdays', '5,6,7', 'busy_reminder_days', 1)
+    'notify_busy_days', 1, 'busy_weekdays', '5,6,7', 'busy_reminder_days', 1,
+    'business_day_auto_open_minutes', 300)
 $$;
 
 create function tests.category(p_id text, p_store text, p_name text,

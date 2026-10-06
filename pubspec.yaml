@@ -84,6 +84,10 @@ dependencies:
   supabase_flutter: ^2.17.2
   connectivity_plus: ^7.3.1
   image: ^4.10.1
+  # Phone push for the owner, Android only (PUSH_NOTIFICATIONS.md). The
+  # project is named by android/app/google-services.json; the server sends.
+  firebase_core: ^4.15.0
+  firebase_messaging: ^16.7.0
 
 dev_dependencies:
   flutter_test:

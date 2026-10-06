@@ -1,3 +1,7 @@
+import 'dart:io' show Platform;
+
+import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -5,6 +9,7 @@ import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app/app.dart';
+import 'app/router.dart';
 import 'core/config/env.dart';
 import 'core/utils/formatters.dart';
 import 'data/current_employee.dart';
@@ -14,6 +19,7 @@ import 'data/device_access.dart';
 import 'data/employee_photo_store.dart';
 import 'data/providers.dart';
 import 'services/auth_service.dart';
+import 'services/push_service.dart';
 import 'services/sync_service.dart';
 
 Future<void> main() async {
@@ -66,10 +72,25 @@ Future<void> main() async {
     backend = SupabaseAccountBackend(Supabase.instance.client);
   }
 
+  // The owner's phone push (PUSH_NOTIFICATIONS.md): Android only, and only
+  // with a server to register with. Firebase finds its project in
+  // android/app/google-services.json. A failure here costs the pushes, never
+  // the app.
+  PushMessaging? messaging;
+  if (Env.hasServer && !kIsWeb && Platform.isAndroid) {
+    try {
+      await Firebase.initializeApp();
+      messaging = FirebasePushMessaging();
+    } catch (_) {
+      messaging = null;
+    }
+  }
+
   final container = ProviderContainer(
     overrides: [
       databaseProvider.overrideWithValue(database),
       accountBackendProvider.overrideWithValue(backend),
+      pushMessagingProvider.overrideWithValue(messaging),
     ],
   );
   await container.read(deviceAccessProvider.notifier).hydrate();
@@ -79,6 +100,11 @@ Future<void> main() async {
   // It watches the device mode, so it also starts when the device joins a
   // restaurant later, and stops on sign-out; in the demo it does nothing.
   container.read(syncControllerProvider);
+
+  // Registers the phone while the owner is signed in on it, and opens the
+  // page a tapped push is about.
+  container.read(pushControllerProvider);
+  container.read(pushControllerProvider.notifier).opens.listen(appRouter.go);
 
   // Orientation is deliberately left unconstrained. The app is designed
   // landscape-first for ~10" tablets, but the brief requires portrait to remain

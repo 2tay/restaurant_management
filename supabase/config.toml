@@ -413,3 +413,8 @@ enabled = true
 # formatted with uppercase keywords, indent 2, max width 180, trailing commas,
 # and column/key alignment. Set to "null" to emit raw, unformatted SQL.
 # format_options = "{\"keywordCase\":\"upper\",\"indent\":2,\"maxWidth\":180,\"commaStyle\":\"trailing\"}"
+
+# Called by the `send-owner-pushes` cron job, which proves itself with the
+# `x-push-secret` header instead of a user's sign-in (PUSH_NOTIFICATIONS.md).
+[functions.send-pushes]
+verify_jwt = false

@@ -223,7 +223,12 @@ Deliveries ship off because whoever is at the back door with the crates already 
   Those columns are no longer written, but a signalement already read that way stays read
   for that role.
 
-### Step 6 — The store grid
+### Step 6 — The owner's phone
+
+Ruptures, stock faible (grouped) and jours chargés also reach the owner's Android phone as a
+push, even with the app closed. See `PUSH_NOTIFICATIONS.md`.
+
+### Step 7 — The store grid
 
 Each card on the store grid carries **that store's bell**: the unread count for whoever is
 signed in, beside a bell icon (the words are in the tooltip). An owner with several

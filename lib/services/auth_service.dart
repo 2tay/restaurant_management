@@ -53,6 +53,14 @@ abstract interface class AccountBackend {
   /// Unregisters a device. Owners only.
   Future<bool> removeDevice(String deviceId);
 
+  /// Sends this device's Firebase token, so the owner signed in on it gets
+  /// the phone pushes (PUSH_NOTIFICATIONS.md). Owners only.
+  Future<void> registerPushDevice(String deviceId, String token);
+
+  /// Stops the pushes to this device. Any member may. Returns whether it had
+  /// any.
+  Future<bool> unregisterPushDevice(String deviceId);
+
   /// Sends outbox entries to the server's `push_changes` (Phase 5). Each
   /// entry is `{id, table, row_key, store_id, payload}`; the answer has one
   /// [PushResult] per entry, in the same order.
@@ -292,6 +300,13 @@ class UnconfiguredAccountBackend implements AccountBackend {
   Future<bool> removeDevice(String deviceId) => Future.error(_refusal);
 
   @override
+  Future<void> registerPushDevice(String deviceId, String token) =>
+      Future.error(_refusal);
+
+  @override
+  Future<bool> unregisterPushDevice(String deviceId) => Future.error(_refusal);
+
+  @override
   Future<List<PushResult>> pushChanges(
     String deviceId,
     List<Map<String, Object?>> changes,
@@ -439,6 +454,24 @@ class SupabaseAccountBackend implements AccountBackend {
   Future<bool> removeDevice(String deviceId) => _guard(
     () async =>
         await _client.rpc('remove_device', params: {'p_device_id': deviceId})
+            as bool,
+  );
+
+  @override
+  Future<void> registerPushDevice(String deviceId, String token) => _guard(
+    () => _client.rpc(
+      'register_push_device',
+      params: {'p_device_id': deviceId, 'p_token': token},
+    ),
+  );
+
+  @override
+  Future<bool> unregisterPushDevice(String deviceId) => _guard(
+    () async =>
+        await _client.rpc(
+              'unregister_push_device',
+              params: {'p_device_id': deviceId},
+            )
             as bool,
   );
 

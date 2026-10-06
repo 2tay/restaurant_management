@@ -218,6 +218,17 @@ class DeviceAccessController extends Notifier<DeviceAccess> {
   /// tablet keeps nothing of the restaurant. The screen warns first when
   /// changes are still waiting to be sent.
   Future<void> signOutAccount() async {
+    // While still signed in: a signed-out phone must not keep getting the
+    // owner's pushes (PUSH_NOTIFICATIONS.md). Offline, `PushController`
+    // deletes the phone's Firebase token instead, and the server forgets the
+    // phone the first time a push to it bounces.
+    try {
+      await _backend.unregisterPushDevice(
+        await DeviceRepository(ref.read(databaseProvider)).deviceId(),
+      );
+    } on AccountException {
+      // Offline, or nothing was registered.
+    }
     try {
       await _backend.signOut();
     } on AccountException {

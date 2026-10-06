@@ -201,7 +201,30 @@ class FakeAccountBackend implements AccountBackend {
   Future<bool> removeDevice(String deviceId) async {
     _maybeFail();
     _deviceOrganization.remove(deviceId);
+    pushTokens.remove(deviceId);
     return registeredDevices.remove(deviceId) != null;
+  }
+
+  // --- The owner's phone push ----------------------------------------------
+
+  /// The Firebase token of each device that gets the owner's pushes.
+  final Map<String, String> pushTokens = {};
+
+  @override
+  Future<void> registerPushDevice(String deviceId, String token) async {
+    _maybeFail();
+    final user = _signedIn();
+    if (user.role != 'owner') {
+      throw const AccountException(AccountErrorCode.notAllowed);
+    }
+    pushTokens[deviceId] = token;
+  }
+
+  @override
+  Future<bool> unregisterPushDevice(String deviceId) async {
+    _maybeFail();
+    _signedIn();
+    return pushTokens.remove(deviceId) != null;
   }
 
   // --- Receiving changes (Phase 5) -----------------------------------------

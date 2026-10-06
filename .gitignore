@@ -53,3 +53,9 @@ docs/
 
 # Audit reports — kept locally, not versioned
 models_rapport/
+
+# Secrets for Supabase Edge Functions run locally (`supabase functions serve`),
+# and any Firebase service account key: never committed (PUSH_NOTIFICATIONS.md).
+supabase/functions/.env
+*service-account*.json
+*firebase-adminsdk*.json
