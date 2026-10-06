@@ -185,6 +185,7 @@ void main() {
         'goods_receipts',
         'items',
         'meta',
+        'notification_reads',
         'notifications',
         'outbox',
         'payroll_periods',
@@ -201,8 +202,8 @@ void main() {
       ]);
     });
 
-    test('at schema version 22', () {
-      expect(db.schemaVersion, 22);
+    test('at schema version 23', () {
+      expect(db.schemaVersion, 23);
     });
 
     test('with foreign keys switched on', () async {

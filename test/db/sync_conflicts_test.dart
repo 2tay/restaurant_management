@@ -171,9 +171,15 @@ void main() {
 
       await settle(a, b);
 
+      const NotificationViewer manager = (
+        id: 'manager-1',
+        role: EmployeeRole.manager,
+      );
+      const NotificationViewer owner = (id: 'owner-1', role: EmployeeRole.owner);
+
       Future<List<NotificationItem>> flags(
         AppDatabase db,
-        EmployeeRole viewer,
+        NotificationViewer viewer,
       ) async => [
         for (final n in await AccountRepository(
           db,
@@ -181,8 +187,8 @@ void main() {
           if (n.kind == NotificationKind.personnel) n,
       ];
 
-      final onA = (await flags(a, EmployeeRole.owner)).single;
-      final onB = (await flags(b, EmployeeRole.owner)).single;
+      final onA = (await flags(a, owner)).single;
+      final onB = (await flags(b, owner)).single;
       expect(onB.id, onA.id);
       expect(onA.relatedEmployeeId, day.cook.id);
       expect(onA.title, contains('Karim'));
@@ -190,18 +196,18 @@ void main() {
       // The manager reads it on A, the owner on B.
       await AccountRepository(
         a,
-      ).markRead(onA.id, viewer: EmployeeRole.manager);
-      await AccountRepository(b).markRead(onB.id, viewer: EmployeeRole.owner);
+      ).markRead(onA.id, viewer: manager);
+      await AccountRepository(b).markRead(onB.id, viewer: owner);
       await settle(a, b);
 
-      // Each read travels as its own column (step 4), so both tablets end
-      // with both reads.
+      // Each read is its own row (schema v23), so both tablets end with
+      // both reads.
       for (final db in [a, b]) {
-        expect((await flags(db, EmployeeRole.manager)).single.isRead, isTrue);
-        expect((await flags(db, EmployeeRole.owner)).single.isRead, isTrue);
+        expect((await flags(db, manager)).single.isRead, isTrue);
+        expect((await flags(db, owner)).single.isRead, isTrue);
       }
       for (final db in [a, b]) {
-        expect(await flags(db, EmployeeRole.manager), hasLength(1));
+        expect(await flags(db, manager), hasLength(1));
       }
     });
   });

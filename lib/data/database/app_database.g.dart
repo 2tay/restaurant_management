@@ -15164,9 +15164,10 @@ class NotificationRow extends DataClass implements Insertable<NotificationRow> {
   /// for the pointage history.
   final String? relatedTarget;
 
-  /// When a manager, and when the owner, first read a signalement. Read
-  /// separately: a manager reading it does not hide it from the owner. A
-  /// stamp is never cleared, and sync keeps the earliest (`SyncApplier`).
+  /// When a manager, and when the owner, first read a signalement — how a
+  /// signalement was read until schema v23, by role. No longer written: a
+  /// signalement is now read per person ([NotificationReads]). Still read,
+  /// so one already marked read by a role stays read after the upgrade.
   /// Other kinds keep using [isRead].
   final DateTime? readByManagerAt;
   final DateTime? readByOwnerAt;
@@ -15659,6 +15660,482 @@ class NotificationsCompanion extends UpdateCompanion<NotificationRow> {
           ..write('relatedTarget: $relatedTarget, ')
           ..write('readByManagerAt: $readByManagerAt, ')
           ..write('readByOwnerAt: $readByOwnerAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $NotificationReadsTable extends NotificationReads
+    with TableInfo<$NotificationReadsTable, NotificationReadRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $NotificationReadsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    clientDefault: () => syncStampNow(),
+  );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(
+      minTextLength: 1,
+      maxTextLength: 64,
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _storeIdMeta = const VerificationMeta(
+    'storeId',
+  );
+  @override
+  late final GeneratedColumn<String> storeId = GeneratedColumn<String>(
+    'store_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES stores (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _notificationIdMeta = const VerificationMeta(
+    'notificationId',
+  );
+  @override
+  late final GeneratedColumn<String> notificationId = GeneratedColumn<String>(
+    'notification_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _employeeIdMeta = const VerificationMeta(
+    'employeeId',
+  );
+  @override
+  late final GeneratedColumn<String> employeeId = GeneratedColumn<String>(
+    'employee_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _readAtMeta = const VerificationMeta('readAt');
+  @override
+  late final GeneratedColumn<DateTime> readAt = GeneratedColumn<DateTime>(
+    'read_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    updatedAt,
+    deletedAt,
+    id,
+    storeId,
+    notificationId,
+    employeeId,
+    readAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'notification_reads';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<NotificationReadRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('store_id')) {
+      context.handle(
+        _storeIdMeta,
+        storeId.isAcceptableOrUnknown(data['store_id']!, _storeIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_storeIdMeta);
+    }
+    if (data.containsKey('notification_id')) {
+      context.handle(
+        _notificationIdMeta,
+        notificationId.isAcceptableOrUnknown(
+          data['notification_id']!,
+          _notificationIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_notificationIdMeta);
+    }
+    if (data.containsKey('employee_id')) {
+      context.handle(
+        _employeeIdMeta,
+        employeeId.isAcceptableOrUnknown(data['employee_id']!, _employeeIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_employeeIdMeta);
+    }
+    if (data.containsKey('read_at')) {
+      context.handle(
+        _readAtMeta,
+        readAt.isAcceptableOrUnknown(data['read_at']!, _readAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_readAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  NotificationReadRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return NotificationReadRow(
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}deleted_at'],
+      ),
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      storeId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}store_id'],
+      )!,
+      notificationId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}notification_id'],
+      )!,
+      employeeId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}employee_id'],
+      )!,
+      readAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}read_at'],
+      )!,
+    );
+  }
+
+  @override
+  $NotificationReadsTable createAlias(String alias) {
+    return $NotificationReadsTable(attachedDatabase, alias);
+  }
+}
+
+class NotificationReadRow extends DataClass
+    implements Insertable<NotificationReadRow> {
+  final DateTime updatedAt;
+  final DateTime? deletedAt;
+  final String id;
+  final String storeId;
+  final String notificationId;
+  final String employeeId;
+  final DateTime readAt;
+  const NotificationReadRow({
+    required this.updatedAt,
+    this.deletedAt,
+    required this.id,
+    required this.storeId,
+    required this.notificationId,
+    required this.employeeId,
+    required this.readAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
+    map['id'] = Variable<String>(id);
+    map['store_id'] = Variable<String>(storeId);
+    map['notification_id'] = Variable<String>(notificationId);
+    map['employee_id'] = Variable<String>(employeeId);
+    map['read_at'] = Variable<DateTime>(readAt);
+    return map;
+  }
+
+  NotificationReadsCompanion toCompanion(bool nullToAbsent) {
+    return NotificationReadsCompanion(
+      updatedAt: Value(updatedAt),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
+      id: Value(id),
+      storeId: Value(storeId),
+      notificationId: Value(notificationId),
+      employeeId: Value(employeeId),
+      readAt: Value(readAt),
+    );
+  }
+
+  factory NotificationReadRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return NotificationReadRow(
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
+      id: serializer.fromJson<String>(json['id']),
+      storeId: serializer.fromJson<String>(json['storeId']),
+      notificationId: serializer.fromJson<String>(json['notificationId']),
+      employeeId: serializer.fromJson<String>(json['employeeId']),
+      readAt: serializer.fromJson<DateTime>(json['readAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
+      'id': serializer.toJson<String>(id),
+      'storeId': serializer.toJson<String>(storeId),
+      'notificationId': serializer.toJson<String>(notificationId),
+      'employeeId': serializer.toJson<String>(employeeId),
+      'readAt': serializer.toJson<DateTime>(readAt),
+    };
+  }
+
+  NotificationReadRow copyWith({
+    DateTime? updatedAt,
+    Value<DateTime?> deletedAt = const Value.absent(),
+    String? id,
+    String? storeId,
+    String? notificationId,
+    String? employeeId,
+    DateTime? readAt,
+  }) => NotificationReadRow(
+    updatedAt: updatedAt ?? this.updatedAt,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+    id: id ?? this.id,
+    storeId: storeId ?? this.storeId,
+    notificationId: notificationId ?? this.notificationId,
+    employeeId: employeeId ?? this.employeeId,
+    readAt: readAt ?? this.readAt,
+  );
+  NotificationReadRow copyWithCompanion(NotificationReadsCompanion data) {
+    return NotificationReadRow(
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      id: data.id.present ? data.id.value : this.id,
+      storeId: data.storeId.present ? data.storeId.value : this.storeId,
+      notificationId: data.notificationId.present
+          ? data.notificationId.value
+          : this.notificationId,
+      employeeId: data.employeeId.present
+          ? data.employeeId.value
+          : this.employeeId,
+      readAt: data.readAt.present ? data.readAt.value : this.readAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('NotificationReadRow(')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('id: $id, ')
+          ..write('storeId: $storeId, ')
+          ..write('notificationId: $notificationId, ')
+          ..write('employeeId: $employeeId, ')
+          ..write('readAt: $readAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    updatedAt,
+    deletedAt,
+    id,
+    storeId,
+    notificationId,
+    employeeId,
+    readAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is NotificationReadRow &&
+          other.updatedAt == this.updatedAt &&
+          other.deletedAt == this.deletedAt &&
+          other.id == this.id &&
+          other.storeId == this.storeId &&
+          other.notificationId == this.notificationId &&
+          other.employeeId == this.employeeId &&
+          other.readAt == this.readAt);
+}
+
+class NotificationReadsCompanion extends UpdateCompanion<NotificationReadRow> {
+  final Value<DateTime> updatedAt;
+  final Value<DateTime?> deletedAt;
+  final Value<String> id;
+  final Value<String> storeId;
+  final Value<String> notificationId;
+  final Value<String> employeeId;
+  final Value<DateTime> readAt;
+  final Value<int> rowid;
+  const NotificationReadsCompanion({
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.id = const Value.absent(),
+    this.storeId = const Value.absent(),
+    this.notificationId = const Value.absent(),
+    this.employeeId = const Value.absent(),
+    this.readAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  NotificationReadsCompanion.insert({
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    required String id,
+    required String storeId,
+    required String notificationId,
+    required String employeeId,
+    required DateTime readAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       storeId = Value(storeId),
+       notificationId = Value(notificationId),
+       employeeId = Value(employeeId),
+       readAt = Value(readAt);
+  static Insertable<NotificationReadRow> custom({
+    Expression<DateTime>? updatedAt,
+    Expression<DateTime>? deletedAt,
+    Expression<String>? id,
+    Expression<String>? storeId,
+    Expression<String>? notificationId,
+    Expression<String>? employeeId,
+    Expression<DateTime>? readAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (id != null) 'id': id,
+      if (storeId != null) 'store_id': storeId,
+      if (notificationId != null) 'notification_id': notificationId,
+      if (employeeId != null) 'employee_id': employeeId,
+      if (readAt != null) 'read_at': readAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  NotificationReadsCompanion copyWith({
+    Value<DateTime>? updatedAt,
+    Value<DateTime?>? deletedAt,
+    Value<String>? id,
+    Value<String>? storeId,
+    Value<String>? notificationId,
+    Value<String>? employeeId,
+    Value<DateTime>? readAt,
+    Value<int>? rowid,
+  }) {
+    return NotificationReadsCompanion(
+      updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      id: id ?? this.id,
+      storeId: storeId ?? this.storeId,
+      notificationId: notificationId ?? this.notificationId,
+      employeeId: employeeId ?? this.employeeId,
+      readAt: readAt ?? this.readAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (storeId.present) {
+      map['store_id'] = Variable<String>(storeId.value);
+    }
+    if (notificationId.present) {
+      map['notification_id'] = Variable<String>(notificationId.value);
+    }
+    if (employeeId.present) {
+      map['employee_id'] = Variable<String>(employeeId.value);
+    }
+    if (readAt.present) {
+      map['read_at'] = Variable<DateTime>(readAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('NotificationReadsCompanion(')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('id: $id, ')
+          ..write('storeId: $storeId, ')
+          ..write('notificationId: $notificationId, ')
+          ..write('employeeId: $employeeId, ')
+          ..write('readAt: $readAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -16725,6 +17202,16 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     'CREATE TRIGGER notifications_outbox_update AFTER UPDATE ON notifications WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, base_values, queued_at) SELECT \'notifications\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'kind\', kind, \'title\', title, \'body\', body, \'created_at\', created_at, \'is_read\', is_read, \'related_item_id\', related_item_id, \'related_supplier_id\', related_supplier_id, \'related_employee_id\', related_employee_id, \'related_target\', related_target, \'read_by_manager_at\', read_by_manager_at, \'read_by_owner_at\', read_by_owner_at), (SELECT json_group_array(c) FROM (SELECT \'updated_at\' AS c WHERE NEW.updated_at IS NOT OLD.updated_at UNION ALL SELECT \'deleted_at\' AS c WHERE NEW.deleted_at IS NOT OLD.deleted_at UNION ALL SELECT \'id\' AS c WHERE NEW.id IS NOT OLD.id UNION ALL SELECT \'store_id\' AS c WHERE NEW.store_id IS NOT OLD.store_id UNION ALL SELECT \'kind\' AS c WHERE NEW.kind IS NOT OLD.kind UNION ALL SELECT \'title\' AS c WHERE NEW.title IS NOT OLD.title UNION ALL SELECT \'body\' AS c WHERE NEW.body IS NOT OLD.body UNION ALL SELECT \'created_at\' AS c WHERE NEW.created_at IS NOT OLD.created_at UNION ALL SELECT \'is_read\' AS c WHERE NEW.is_read IS NOT OLD.is_read UNION ALL SELECT \'related_item_id\' AS c WHERE NEW.related_item_id IS NOT OLD.related_item_id UNION ALL SELECT \'related_supplier_id\' AS c WHERE NEW.related_supplier_id IS NOT OLD.related_supplier_id UNION ALL SELECT \'related_employee_id\' AS c WHERE NEW.related_employee_id IS NOT OLD.related_employee_id UNION ALL SELECT \'related_target\' AS c WHERE NEW.related_target IS NOT OLD.related_target UNION ALL SELECT \'read_by_manager_at\' AS c WHERE NEW.read_by_manager_at IS NOT OLD.read_by_manager_at UNION ALL SELECT \'read_by_owner_at\' AS c WHERE NEW.read_by_owner_at IS NOT OLD.read_by_owner_at)), NULL, (SELECT now FROM sync_clock) FROM notifications WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = CASE WHEN outbox.changed_columns IS NULL OR excluded.changed_columns IS NULL THEN NULL ELSE (SELECT json_group_array(value) FROM (SELECT value FROM json_each(outbox.changed_columns)UNION SELECT value FROM json_each(excluded.changed_columns))) END, base_values = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
     'notifications_outbox_update',
   );
+  late final $NotificationReadsTable notificationReads =
+      $NotificationReadsTable(this);
+  late final Trigger notificationReadsOutboxInsert = Trigger(
+    'CREATE TRIGGER notification_reads_outbox_insert AFTER INSERT ON notification_reads WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, base_values, queued_at) SELECT \'notification_reads\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'notification_id\', notification_id, \'employee_id\', employee_id, \'read_at\', read_at), NULL, NULL, (SELECT now FROM sync_clock) FROM notification_reads WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, base_values = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'notification_reads_outbox_insert',
+  );
+  late final Trigger notificationReadsOutboxUpdate = Trigger(
+    'CREATE TRIGGER notification_reads_outbox_update AFTER UPDATE ON notification_reads WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, base_values, queued_at) SELECT \'notification_reads\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'notification_id\', notification_id, \'employee_id\', employee_id, \'read_at\', read_at), NULL, NULL, (SELECT now FROM sync_clock) FROM notification_reads WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, base_values = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'notification_reads_outbox_update',
+  );
   late final Trigger employeesOutboxInsert = Trigger(
     'CREATE TRIGGER employees_outbox_insert AFTER INSERT ON employees WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, base_values, queued_at) SELECT \'employees\', id, store_id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'store_id\', store_id, \'first_name\', first_name, \'last_name\', last_name, \'pin\', pin, \'phone\', phone, \'email\', email, \'photo_asset\', photo_asset, \'hire_date\', hire_date, \'role\', role, \'pay\', pay, \'created_at\', created_at, \'archived_at\', archived_at), NULL, NULL, (SELECT now FROM sync_clock) FROM employees WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, base_values = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
     'employees_outbox_insert',
@@ -16831,6 +17318,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     'notifications_store_time',
     'CREATE INDEX notifications_store_time ON notifications (store_id, created_at DESC)',
   );
+  late final Index notificationReadsEmployee = Index(
+    'notification_reads_employee',
+    'CREATE INDEX notification_reads_employee ON notification_reads (employee_id, notification_id)',
+  );
   late final Index outboxRow = Index(
     'outbox_row',
     'CREATE UNIQUE INDEX outbox_row ON outbox (changed_table, row_key)',
@@ -16915,6 +17406,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     'CREATE TRIGGER business_days_touch AFTER UPDATE ON business_days WHEN NEW.updated_at IS OLD.updated_at AND NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN UPDATE business_days SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
     'business_days_touch',
   );
+  late final Trigger notificationReadsTouch = Trigger(
+    'CREATE TRIGGER notification_reads_touch AFTER UPDATE ON notification_reads WHEN NEW.updated_at IS OLD.updated_at AND NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN UPDATE notification_reads SET updated_at = (SELECT now FROM sync_clock) WHERE "rowid" = NEW."rowid";END',
+    'notification_reads_touch',
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -16993,6 +17488,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     notifications,
     notificationsOutboxInsert,
     notificationsOutboxUpdate,
+    notificationReads,
+    notificationReadsOutboxInsert,
+    notificationReadsOutboxUpdate,
     employeesOutboxInsert,
     employeesOutboxUpdate,
     payrollPeriodsOutboxInsert,
@@ -17021,6 +17519,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     stockMovementsStoreTime,
     stockMovementsReceipt,
     notificationsStoreTime,
+    notificationReadsEmployee,
     outboxRow,
     storesTouch,
     categoriesTouch,
@@ -17042,6 +17541,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     attendancePausesTouch,
     busyDatesTouch,
     businessDaysTouch,
+    notificationReadsTouch,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -17474,6 +17974,27 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(
+        'stores',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('notification_reads', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'notification_reads',
+        limitUpdateKind: UpdateKind.insert,
+      ),
+      result: [TableUpdate('outbox', kind: UpdateKind.insert)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'notification_reads',
+        limitUpdateKind: UpdateKind.update,
+      ),
+      result: [TableUpdate('outbox', kind: UpdateKind.insert)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
         'employees',
         limitUpdateKind: UpdateKind.insert,
       ),
@@ -17716,6 +18237,13 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         limitUpdateKind: UpdateKind.update,
       ),
       result: [TableUpdate('business_days', kind: UpdateKind.update)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'notification_reads',
+        limitUpdateKind: UpdateKind.update,
+      ),
+      result: [TableUpdate('notification_reads', kind: UpdateKind.update)],
     ),
   ]);
   @override

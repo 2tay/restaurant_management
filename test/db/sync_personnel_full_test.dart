@@ -101,10 +101,17 @@ void main() {
   DateTime at(int hour, [int minute = 0, int day = 12]) =>
       DateTime(2026, 10, day, hour, minute);
 
+  // Who reads the signalements: a signalement is read per person.
+  const NotificationViewer manager = (
+    id: 'manager-1',
+    role: EmployeeRole.manager,
+  );
+  const NotificationViewer owner = (id: 'owner-1', role: EmployeeRole.owner);
+
   Future<List<NotificationItem>> flags(
     AppDatabase db,
     String storeId, {
-    EmployeeRole? viewer,
+    NotificationViewer? viewer,
   }) async => [
     for (final n in await AccountRepository(
       db,
@@ -146,13 +153,13 @@ void main() {
   // Step 1 — the merge: schema v21, upgrades lose nothing
   // ===========================================================================
 
-  group('step 1 — schema v21 (v22: no password tables)', () {
+  group('step 1 — schema v21 (v22: no password tables; v23: reads)', () {
     final verifier = SchemaVerifier(GeneratedHelper());
 
     test('a fresh database has the journées and no password tables', () async {
       final db = openEmptyDatabase();
       addTearDown(db.close);
-      expect(db.schemaVersion, 22);
+      expect(db.schemaVersion, 23);
       for (final (table, count) in [
         ('business_days', 1),
         ('login_states', 0),
@@ -168,11 +175,11 @@ void main() {
       }
     });
 
-    for (final from in [13, 16, 20, 21]) {
-      test('a v$from install upgrades to v22 cleanly', () async {
+    for (final from in [13, 16, 20, 21, 22]) {
+      test('a v$from install upgrades to v23 cleanly', () async {
         final connection = await verifier.startAt(from);
         final db = AppDatabase.withExecutor(connection);
-        await verifier.migrateAndValidate(db, 22);
+        await verifier.migrateAndValidate(db, 23);
         await db.close();
       });
     }
@@ -257,28 +264,28 @@ void main() {
       expect((await flags(b, shop.store.id)).single.id, onA.id);
       expect(onA.title, contains('Double pointage'));
 
-      await AccountRepository(a).markRead(onA.id, viewer: EmployeeRole.manager);
+      await AccountRepository(a).markRead(onA.id, viewer: manager);
       for (final db in [a, b]) {
         await sync(db);
       }
       expect(
-        (await flags(b, shop.store.id, viewer: EmployeeRole.manager))
+        (await flags(b, shop.store.id, viewer: manager))
             .single
             .isRead,
         isTrue,
       );
       expect(
-        (await flags(b, shop.store.id, viewer: EmployeeRole.owner))
+        (await flags(b, shop.store.id, viewer: owner))
             .single
             .isRead,
         isFalse,
         reason: 'the manager reading it does not hide it from the owner',
       );
 
-      await AccountRepository(b).markRead(onA.id, viewer: EmployeeRole.owner);
+      await AccountRepository(b).markRead(onA.id, viewer: owner);
       await settle(a, b);
       for (final db in [a, b]) {
-        for (final viewer in [EmployeeRole.manager, EmployeeRole.owner]) {
+        for (final viewer in [manager, owner]) {
           expect(
             (await flags(db, shop.store.id, viewer: viewer)).single.isRead,
             isTrue,

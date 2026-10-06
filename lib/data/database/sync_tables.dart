@@ -24,6 +24,7 @@ abstract final class SyncTables {
     'goods_receipts',
     'goods_receipt_lines',
     'notifications',
+    'notification_reads',
     'employees',
     'payroll_periods',
     'attendances',
@@ -50,6 +51,7 @@ abstract final class SyncTables {
     'price_history',
     'purchase_order_lines',
     'goods_receipt_lines',
+    'notification_reads',
     'attendance_sessions',
     'attendance_pauses',
   };

@@ -1,3 +1,9 @@
+import 'employee.dart';
+
+/// Whoever is looking at the feed: a signalement is read per person, so the
+/// feed needs to know who.
+typedef NotificationViewer = ({String id, EmployeeRole role});
+
 /// What a notification is about.
 enum NotificationKind {
   /// An item dropped to or below its threshold.

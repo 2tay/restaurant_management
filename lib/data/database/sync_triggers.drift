@@ -198,3 +198,11 @@ BEGIN
   UPDATE business_days SET updated_at = (SELECT now FROM sync_clock)
     WHERE rowid = NEW.rowid;
 END;
+
+CREATE TRIGGER notification_reads_touch AFTER UPDATE ON notification_reads
+  WHEN NEW.updated_at IS OLD.updated_at
+    AND NOT EXISTS (SELECT 1 FROM meta WHERE "key" = 'syncQuiet')
+BEGIN
+  UPDATE notification_reads SET updated_at = (SELECT now FROM sync_clock)
+    WHERE rowid = NEW.rowid;
+END;

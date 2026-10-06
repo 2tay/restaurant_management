@@ -358,6 +358,8 @@
   "@storesItemCount": {"description": "Item count on a store card.", "placeholders": {"count": {"type": "int"}}},
   "storesAlertCount": "{count, plural, =0{Aucune alerte} =1{1 alerte} other{{count} alertes}}",
   "@storesAlertCount": {"description": "Low-stock alert count badge on a store card.", "placeholders": {"count": {"type": "int"}}},
+  "storesUnreadCount": "{count, plural, =0{Aucune notification} =1{1 notification} other{{count} notifications}}",
+  "@storesUnreadCount": {"description": "Unread notification count on a store card: the number on that store's bell, for whoever is signed in.", "placeholders": {"count": {"type": "int"}}},
   "storesNewBadge": "Nouveau",
   "@storesNewBadge": {"description": "Badge on a store created recently and still empty."},
 

@@ -24,7 +24,7 @@ fails when a new table is in neither.
 
 | Synced (shared by every device) | Local (this installation only) |
 |---|---|
-| `stores`, `categories`, `units`, `items`, `suppliers`, `supplier_prices`, `price_history`, `stock_movements`, `purchase_orders`, `purchase_order_lines`, `goods_receipts`, `goods_receipt_lines`, `notifications`, `employees`, `employee_credentials`, `payroll_periods`, `attendances`, `attendance_sessions`, `attendance_pauses`, `busy_dates` | `meta`: the signed-in employee, the device id, later the sync cursors. `outbox`: the changes waiting to be sent |
+| `stores`, `categories`, `units`, `items`, `suppliers`, `supplier_prices`, `price_history`, `stock_movements`, `purchase_orders`, `purchase_order_lines`, `goods_receipts`, `goods_receipt_lines`, `notifications`, `notification_reads`, `employees`, `employee_credentials`, `payroll_periods`, `attendances`, `attendance_sessions`, `attendance_pauses`, `busy_dates` | `meta`: the signed-in employee, the device id, later the sync cursors. `outbox`: the changes waiting to be sent |
 
 A synced table follows four rules:
 

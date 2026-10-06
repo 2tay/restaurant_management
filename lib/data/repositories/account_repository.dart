@@ -9,7 +9,6 @@ import '../../models/notification_item.dart';
 import '../database/app_database.dart';
 import '../database/meta_keys.dart';
 import '../mappers/mappers.dart';
-import 'new_id.dart';
 
 /// The notification feed, and the name every write is attributed to.
 ///
@@ -42,33 +41,35 @@ class AccountRepository {
   // Notifications
   // ---------------------------------------------------------------------------
 
-  // [viewer] is the role of whoever is looking. It decides whether a
-  // signalement (`NotificationKind.personnel`) is read: a manager and the
-  // owner each read it for themselves. Every other kind is read for all.
+  // [viewer] is whoever is looking. It decides whether a signalement
+  // (`NotificationKind.personnel`) is read: each person reads it for
+  // themselves ([NotificationReads]). Every other kind is read for all.
 
   /// Newest first.
   Stream<List<NotificationItem>> watchNotifications(
     String storeId, {
-    EmployeeRole? viewer,
+    NotificationViewer? viewer,
   }) => _notifications(
     storeId,
+    viewer,
   ).watch().map((rows) => _toNotifications(rows, viewer));
 
   Future<List<NotificationItem>> notifications(
     String storeId, {
-    EmployeeRole? viewer,
+    NotificationViewer? viewer,
   }) => _notifications(
     storeId,
+    viewer,
   ).get().then((rows) => _toNotifications(rows, viewer));
 
-  Stream<int> watchUnreadCount(String storeId, {EmployeeRole? viewer}) {
+  Stream<int> watchUnreadCount(String storeId, {NotificationViewer? viewer}) {
     final (query, read) = _unreadQuery(storeId, viewer);
     return query.watchSingle().map(read);
   }
 
   Future<int> unreadNotificationCount(
     String storeId, {
-    EmployeeRole? viewer,
+    NotificationViewer? viewer,
   }) async {
     final (query, read) = _unreadQuery(storeId, viewer);
     return read(await query.getSingle());
@@ -92,9 +93,16 @@ class AccountRepository {
   ///
   /// A draft with no [relatedItemId] — a delivery — dedupes on kind alone,
   /// which is why [window] is short for those callers.
+  ///
+  /// [key] names the situation the same way on every tablet — e.g.
+  /// `low_stock:<store>:<item>:2026-10-06` — and the row's id is derived from
+  /// it, as for a signalement ([signal]). The window above only sees this
+  /// tablet's rows; two tablets that each file the same situation before
+  /// syncing file **one** row, because they file the same id.
   Future<NotificationItem?> emit({
     required String storeId,
     required NotificationKind kind,
+    required String key,
     required String title,
     required String body,
     String? relatedItemId,
@@ -103,6 +111,13 @@ class AccountRepository {
     Duration window = const Duration(hours: 12),
   }) async {
     final now = createdAt ?? clock.now();
+    final id = noteId(key);
+
+    // Already filed here, or by another tablet and received.
+    final filed = await (_db.select(
+      _db.notifications,
+    )..where((n) => n.id.equals(id))).getSingleOrNull();
+    if (filed != null) return null;
 
     final since = now.subtract(window);
     final existing =
@@ -122,7 +137,7 @@ class AccountRepository {
     if (existing != null) return null;
 
     final notification = NotificationItem(
-      id: newId(),
+      id: id,
       storeId: storeId,
       kind: kind,
       title: title,
@@ -194,9 +209,17 @@ class AccountRepository {
   static String signalId(String key) =>
       'flag-${sha1.convert(utf8.encode(key))}';
 
+  /// The id of the notification for [key] ([emit]): the same on every tablet.
+  static String noteId(String key) => 'note-${sha1.convert(utf8.encode(key))}';
+
+  /// The id of [employeeId]'s read of [notificationId]: the same on every
+  /// tablet, so reading it twice, or on two tablets, writes one row.
+  static String readId(String notificationId, String employeeId) =>
+      'read-${sha1.convert(utf8.encode('$notificationId:$employeeId'))}';
+
   /// Marks one notification read for [viewer]. False if it is missing or
   /// already was.
-  Future<bool> markRead(String id, {EmployeeRole? viewer}) async =>
+  Future<bool> markRead(String id, {NotificationViewer? viewer}) async =>
       await _markRead(_db.notifications.id.equals(id), viewer) > 0;
 
   /// Marks everything in an establishment read for [viewer]. Returns how many
@@ -205,79 +228,128 @@ class AccountRepository {
   /// The count lets the screen say "7 notifications marquées comme lues" rather
   /// than a bare acknowledgement, and lets it stay quiet when there was nothing
   /// to do.
-  Future<int> markAllRead(String storeId, {EmployeeRole? viewer}) => _markRead(
-    _db.notifications.storeId.equals(storeId) &
-        _db.notifications.deletedAt.isNull(),
-    viewer,
-  );
+  Future<int> markAllRead(String storeId, {NotificationViewer? viewer}) =>
+      _markRead(
+        _db.notifications.storeId.equals(storeId) &
+            _db.notifications.deletedAt.isNull(),
+        viewer,
+      );
 
   // ---------------------------------------------------------------------------
 
-  /// The "already read" case is in each `WHERE` rather than in a
-  /// read-then-write: the number of rows the statements touched is the
-  /// answer, and a statement cannot report a change it did not make.
-  Future<int> _markRead(Expression<bool> scope, EmployeeRole? viewer) async {
+  /// A signalement is marked read by adding [viewer]'s row to
+  /// [NotificationReads] — never by touching the notification, which every
+  /// other reader shares. Anything else, or anything without a [viewer],
+  /// sets `is_read`, in a `WHERE` that skips what already was: the number
+  /// of rows touched is the answer.
+  Future<int> _markRead(
+    Expression<bool> scope,
+    NotificationViewer? viewer,
+  ) async {
     final n = _db.notifications;
-    final stamp = _readStamp(viewer);
     final signalement = n.kind.equalsValue(NotificationKind.personnel);
-    var changed = 0;
-    if (stamp != null) {
-      changed +=
-          await (_db.update(n)
-                ..where((_) => scope & signalement & stamp.isNull()))
-              .write(
-                RawValuesInsertable<NotificationRow>({
-                  stamp.name: Variable<DateTime>(clock.now()),
-                }),
-              );
+    if (viewer == null) {
+      return (_db.update(n)..where((_) => scope & n.isRead.equals(false)))
+          .write(const NotificationsCompanion(isRead: Value(true)));
     }
-    changed +=
-        await (_db.update(n)..where(
-              (_) =>
-                  scope &
-                  n.isRead.equals(false) &
-                  (stamp == null ? const Constant(true) : signalement.not()),
-            ))
-            .write(const NotificationsCompanion(isRead: Value(true)));
-    return changed;
+
+    return _db.transaction(() async {
+      final r = _db.notificationReads;
+      final unread =
+          await (_db.select(n).join([_readBy(viewer)])..where(
+                scope &
+                    signalement &
+                    r.id.isNull() &
+                    _legacyStamp(viewer).isNull(),
+              ))
+              .map((row) => row.readTable(n))
+              .get();
+      final now = clock.now();
+      for (final row in unread) {
+        await _db
+            .into(r)
+            .insertOnConflictUpdate(
+              NotificationReadsCompanion.insert(
+                id: readId(row.id, viewer.id),
+                storeId: row.storeId,
+                notificationId: row.id,
+                employeeId: viewer.id,
+                readAt: now,
+              ),
+            );
+      }
+      final others =
+          await (_db.update(n)..where(
+                (_) => scope & signalement.not() & n.isRead.equals(false),
+              ))
+              .write(const NotificationsCompanion(isRead: Value(true)));
+      return unread.length + others;
+    });
   }
 
-  /// The column that says whether [viewer] read a signalement, or null when
-  /// their role reads `is_read` like every other kind.
-  GeneratedColumn<DateTime>? _readStamp(EmployeeRole? viewer) =>
-      switch (viewer) {
-        EmployeeRole.owner => _db.notifications.readByOwnerAt,
-        EmployeeRole.manager => _db.notifications.readByManagerAt,
-        _ => null,
-      };
+  /// [viewer]'s own read of each notification, when there is one.
+  Join<HasResultSet, dynamic> _readBy(NotificationViewer viewer) {
+    final r = _db.notificationReads;
+    return leftOuterJoin(
+      r,
+      r.notificationId.equalsExp(_db.notifications.id) &
+          r.employeeId.equals(viewer.id) &
+          r.deletedAt.isNull(),
+    );
+  }
+
+  /// How [viewer]'s role read a signalement before schema v23. Still
+  /// counted, never written.
+  GeneratedColumn<DateTime> _legacyStamp(NotificationViewer viewer) =>
+      viewer.role == EmployeeRole.owner
+      ? _db.notifications.readByOwnerAt
+      : _db.notifications.readByManagerAt;
 
   (JoinedSelectStatement<HasResultSet, dynamic>, int Function(TypedResult))
-  _unreadQuery(String storeId, EmployeeRole? viewer) {
+  _unreadQuery(String storeId, NotificationViewer? viewer) {
     final n = _db.notifications;
     final count = n.id.count();
-    final stamp = _readStamp(viewer);
     final signalement = n.kind.equalsValue(NotificationKind.personnel);
-    final unread = stamp == null
-        ? n.isRead.equals(false)
-        : (signalement & stamp.isNull()) |
-              (signalement.not() & n.isRead.equals(false));
-    final query = _db.selectOnly(n)
+    final query = _db.selectOnly(n);
+    Expression<bool> unread = n.isRead.equals(false);
+    if (viewer != null) {
+      query.join([_readBy(viewer)]);
+      unread =
+          (signalement &
+              _db.notificationReads.id.isNull() &
+              _legacyStamp(viewer).isNull()) |
+          (signalement.not() & n.isRead.equals(false));
+    }
+    query
       ..addColumns([count])
       ..where(n.storeId.equals(storeId) & n.deletedAt.isNull() & unread);
     return (query, (TypedResult row) => row.read(count) ?? 0);
   }
 
-  SimpleSelectStatement<$NotificationsTable, NotificationRow> _notifications(
+  JoinedSelectStatement<HasResultSet, dynamic> _notifications(
     String storeId,
-  ) => _db.select(_db.notifications)
-    ..where((n) => n.storeId.equals(storeId) & n.deletedAt.isNull())
-    ..orderBy([
-      (n) => OrderingTerm(expression: n.createdAt, mode: OrderingMode.desc),
-      (n) => OrderingTerm(expression: n.id, mode: OrderingMode.desc),
-    ]);
+    NotificationViewer? viewer,
+  ) {
+    final n = _db.notifications;
+    return _db.select(n).join([if (viewer != null) _readBy(viewer)])
+      ..where(n.storeId.equals(storeId) & n.deletedAt.isNull())
+      ..orderBy([
+        OrderingTerm(expression: n.createdAt, mode: OrderingMode.desc),
+        OrderingTerm(expression: n.id, mode: OrderingMode.desc),
+      ]);
+  }
 
   List<NotificationItem> _toNotifications(
-    List<NotificationRow> rows,
-    EmployeeRole? viewer,
-  ) => [for (final row in rows) notificationFromRow(row, viewer: viewer)];
+    List<TypedResult> rows,
+    NotificationViewer? viewer,
+  ) => [
+    for (final row in rows)
+      notificationFromRow(
+        row.readTable(_db.notifications),
+        viewer: viewer,
+        readByViewer:
+            viewer != null &&
+            row.readTableOrNull(_db.notificationReads) != null,
+      ),
+  ];
 }

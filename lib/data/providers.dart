@@ -580,17 +580,27 @@ final receiptsForOrderProvider =
 
 // --- Notifications ----------------------------------------------------------
 
-/// Read or unread for whoever is signed in: a signalement is read separately
-/// by a manager and by the owner.
+/// Read or unread for whoever is signed in: a signalement is read by each
+/// person for themselves.
 final notificationsProvider =
     StreamProvider.family<List<NotificationItem>, String>(
       (ref, storeId) => ref
           .watch(accountRepositoryProvider)
           .watchNotifications(
             storeId,
-            viewer: ref.watch(currentEmployeeProvider.select((e) => e?.role)),
+            viewer: ref.watch(notificationViewerProvider),
           ),
     );
+
+/// Whoever is signed in, as the feed needs them. A record, so the same
+/// person signed in again does not restart the streams that watch it.
+final notificationViewerProvider = Provider<NotificationViewer?>(
+  (ref) => ref.watch(
+    currentEmployeeProvider.select(
+      (e) => e == null ? null : (id: e.id, role: e.role),
+    ),
+  ),
+);
 
 /// The number on the bell, for whoever is signed in.
 final unreadCountProvider = StreamProvider.family<int, String>(
@@ -598,7 +608,7 @@ final unreadCountProvider = StreamProvider.family<int, String>(
       .watch(accountRepositoryProvider)
       .watchUnreadCount(
         storeId,
-        viewer: ref.watch(currentEmployeeProvider.select((e) => e?.role)),
+        viewer: ref.watch(notificationViewerProvider),
       ),
 );
 

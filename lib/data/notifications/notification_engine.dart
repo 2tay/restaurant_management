@@ -26,7 +26,9 @@ import '../repositories/item_repository.dart';
 ///   notification unread on the bell, which is the opposite of what the switch
 ///   promises.
 /// - **Only transitions are notified.** Stock that is already low does not
-///   re-announce itself every service; see [stockMoved].
+///   re-announce itself every service; see [stockMoved]. Each entry carries a
+///   key naming its situation the same way on every tablet, so two tablets
+///   filing it before they sync end with one row.
 /// - **A failure here never fails the write.** Every entry point swallows its
 ///   own errors: a delivery that was received is received, and a feed entry that
 ///   could not be filed is not a reason to roll it back. That is deliberate, and
@@ -64,6 +66,7 @@ class NotificationEngine {
         await account.emit(
           storeId: before.storeId,
           kind: NotificationKind.outOfStock,
+          key: 'out_of_stock:${before.storeId}:${before.id}:${_today()}',
           title: 'Rupture de stock : ${before.name}',
           body:
               'Il ne reste plus de ${_lower(before.name)}. Seuil : '
@@ -77,6 +80,7 @@ class NotificationEngine {
         await account.emit(
           storeId: before.storeId,
           kind: NotificationKind.lowStock,
+          key: 'low_stock:${before.storeId}:${before.id}:${_today()}',
           title: 'Stock faible : ${before.name}',
           body:
               'Il reste ${Formatters.quantityWithUnit(after, unit)}, sous le '
@@ -119,6 +123,7 @@ class NotificationEngine {
       await AccountRepository(_db).emit(
         storeId: before.storeId,
         kind: NotificationKind.largeAdjustment,
+        key: 'large_adjustment:${before.storeId}:${before.id}:${_today()}',
         title: 'Ajustement important : ${before.name}',
         body:
             'Comptage physique '
@@ -160,6 +165,7 @@ class NotificationEngine {
       await AccountRepository(_db).emit(
         storeId: storeId,
         kind: NotificationKind.priceChange,
+        key: 'price_change:$storeId:$itemId:${_today()}',
         title: '${to > from ? 'Hausse' : 'Baisse'} de prix : $itemName',
         body:
             '$supplierName est passé de ${Formatters.price(from)} à '
@@ -177,6 +183,7 @@ class NotificationEngine {
   /// whoever is standing at the back door with the crates already knows.
   Future<void> deliveryReceived({
     required String storeId,
+    required String receiptId,
     required String supplierId,
     required String supplierName,
     required int lineCount,
@@ -188,6 +195,7 @@ class NotificationEngine {
       await AccountRepository(_db).emit(
         storeId: storeId,
         kind: NotificationKind.delivery,
+        key: 'delivery:$storeId:$receiptId',
         title: 'Livraison enregistrée',
         body: '$supplierName — $lineCount produits reçus par $receivedBy.',
         relatedSupplierId: supplierId,
@@ -228,6 +236,7 @@ class NotificationEngine {
       await AccountRepository(_db).emit(
         storeId: storeId,
         kind: NotificationKind.busyDays,
+        key: 'busy_days:$storeId:${_dayKey(period.start)}',
         title: 'Jours chargés ${_whenLabel(at, period.start)}',
         body:
             '${_periodLabel(period)} : $short '
@@ -238,6 +247,18 @@ class NotificationEngine {
       );
     });
   }
+
+  /// Today as the notification keys write it — see [_dayKey].
+  static String _today() => _dayKey(clock.now());
+
+  /// A day as `2026-10-06`, in the tablet's local time: every tablet of one
+  /// establishment shares its clock's day. It is what makes a crossing
+  /// filed on two tablets before they sync one notification — at most one
+  /// of each kind per article and per day.
+  static String _dayKey(DateTime at) =>
+      '${at.year.toString().padLeft(4, '0')}-'
+      '${at.month.toString().padLeft(2, '0')}-'
+      '${at.day.toString().padLeft(2, '0')}';
 
   /// "demain", "dans 3 jours", or "en cours" once the period has started.
   static String _whenLabel(DateTime now, DateTime start) {

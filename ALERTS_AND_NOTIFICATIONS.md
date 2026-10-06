@@ -156,6 +156,21 @@ article already exists inside the window (**12 h**, or **2 min** for deliveries)
 existing row is **not refreshed**, so its timestamp keeps saying when the situation
 started.
 
+**Across tablets, the id does the deduplication.** The window only sees this tablet's
+rows, so two tablets that see the same crossing before syncing would each file one. Every
+notification's id is therefore derived from a key naming the situation — the same on every
+tablet — and two copies become one row once synced:
+
+| Kind | Key |
+|---|---|
+| `lowStock` / `outOfStock` / `largeAdjustment` | store + article + **day** |
+| `priceChange` | store + article + **day** |
+| `delivery` | store + receipt |
+| `busyDays` | store + first day of the busy period |
+
+So each of the stock kinds is filed **at most once per article per day**, on top of the
+12 h window. Signalements already worked this way (`AccountRepository.signal`).
+
 **3. A feed failure never fails the write.** Every entry point swallows its own errors. A
 delivery that was received *is* received; a feed entry that could not be filed is not a
 reason to roll it back. This is the only place in the codebase where an exception is
@@ -195,6 +210,27 @@ Deliveries ship off because whoever is at the back door with the crates already 
   Before this the only way to silence the bell was to navigate to the page it pointed at.
 - Tapping an entry marks it read **and** deep-links to the article or supplier it is about.
 
+### Step 5 — Who has read what
+
+- **Stock, price, delivery and busy-day entries are read for everyone.** One person marking
+  one read clears it from every bell: they are about the establishment, and somebody has
+  seen it.
+- **Signalements (`personnel`) are read per person** (schema v23). Each read is a row of
+  `notification_reads` — notification, employee, time — synced like any table. One manager
+  reading it hides it from nobody else: not another manager, not the owner. The row's id is
+  derived from the notification and the person, so the same read on two tablets is one row.
+- Before v23 a signalement was read per role (`read_by_manager_at` / `read_by_owner_at`).
+  Those columns are no longer written, but a signalement already read that way stays read
+  for that role.
+
+### Step 6 — The store grid
+
+Each card on the store grid carries **that store's bell**: the unread count for whoever is
+signed in, beside a bell icon (the words are in the tooltip). An owner with several
+establishments sees where something is waiting — a « Paiement en double » in one store does
+not wait for them to happen to open it. Every store an account can reach is synced to the
+tablet, so the count is there without opening the store.
+
 ---
 
 ## 4. File map
@@ -210,6 +246,8 @@ Deliveries ship off because whoever is at the back door with the crates already 
 | Alert query | `lib/data/repositories/item_repository.dart` (`watchLowStockAlerts`) |
 | Preference columns | `lib/data/database/tables/stores.dart`, migration in `app_database.dart` |
 | Preferences screen | `lib/features/settings/presentation/pages/notification_preferences_page.dart` |
+| Who read a signalement | `lib/data/database/tables/account.dart` (`NotificationReads`) |
+| Store grid badge | `lib/features/stores/presentation/widgets/store_card.dart` |
 | Sidebar order + badge | `lib/shared/widgets/app_sidebar.dart` |
 | Strings | `lib/l10n/app_fr.arb` (`alerts*`, `notifications*`) |
 

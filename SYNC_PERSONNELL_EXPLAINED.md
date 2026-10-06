@@ -130,9 +130,14 @@ moyen** de le faire, visible sur toutes les tablettes.
 - **Un seul signalement par situation** : son identifiant est calculé à partir de la situation
   (`'flag-' + sha1(clé)`, par exemple `double_clock_in:<journée gardée>`). Deux tablettes qui
   règlent le même conflit créent donc la même ligne, pas deux.
-- **Lu séparément** par le gérant et le propriétaire : colonnes `read_by_manager_at` et
-  `read_by_owner_at`. À la réception, un « lu » déjà présent n'est jamais perdu. Les autres
-  notifications (stock, livraisons…) restent lues pour tout le monde.
+- **Lu par chaque personne** (schéma v23) : chaque gérant et le propriétaire le lisent pour
+  eux-mêmes. Une lecture est une ligne de la table synchronisée `notification_reads`
+  (notification, employé, heure), d'identifiant `'read-' + sha1(notification:employé)` : la
+  même lecture faite sur deux tablettes donne une seule ligne, et deux lectures de deux
+  personnes ne s'écrasent jamais. Avant v23 la lecture se faisait par rôle (colonnes
+  `read_by_manager_at` et `read_by_owner_at`) : ces colonnes ne sont plus écrites, mais un
+  signalement déjà lu ainsi reste lu pour ce rôle. Les autres notifications (stock,
+  livraisons…) restent lues pour tout le monde.
 
 ```dart
 await AccountRepository(db).signal(
@@ -393,7 +398,8 @@ redéfinie sans elle, puis elle est supprimée.
 | `business_days` | nouvelle table, synchronisée |
 | `stores` | `business_day_auto_open_minutes` |
 | `attendance_sessions` | `exit_set_by_employee_id` |
-| `notifications` | `related_employee_id`, `related_target`, `read_by_manager_at`, `read_by_owner_at` |
+| `notifications` | `related_employee_id`, `related_target`, `read_by_manager_at`, `read_by_owner_at` (plus écrites depuis v23) |
+| `notification_reads` | **v23 : nouvelle table, synchronisée** — qui a lu quel signalement |
 | `outbox` | `changed_columns`, `base_values` |
 | `employee_credentials` | v21 : colonnes de connexion retirées ; **v22 : table supprimée** |
 | `login_states` | v21 : nouvelle table locale ; **v22 : table supprimée** |

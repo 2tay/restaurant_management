@@ -66,6 +66,7 @@ part 'app_database.g.dart';
     GoodsReceipts,
     GoodsReceiptLines,
     Notifications,
+    NotificationReads,
     Employees,
     PayrollPeriods,
     Attendances,
@@ -104,7 +105,7 @@ class AppDatabase extends _$AppDatabase {
   static const String databaseName = 'stock_inventory';
 
   @override
-  int get schemaVersion => 22;
+  int get schemaVersion => 23;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -477,6 +478,19 @@ class AppDatabase extends _$AppDatabase {
         );
         await customStatement(
           "DELETE FROM sync_errors WHERE changed_table = 'employee_credentials'",
+        );
+      }
+
+      // v22 -> v23: a signalement is read per person, not per role. The
+      // table of who read what, with its index and its touch and outbox
+      // triggers. Nothing is copied into it: the role stamps already on
+      // `notifications` keep counting as read (`AccountRepository`).
+      if (from < 23) {
+        await m.createTable(notificationReads);
+        await m.create(notificationReadsEmployee);
+        await _createTriggers(
+          m,
+          (name) => name.startsWith('notification_reads_'),
         );
       }
     },

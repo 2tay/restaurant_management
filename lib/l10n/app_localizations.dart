@@ -676,6 +676,12 @@ abstract class AppLocalizations {
   /// **'{count, plural, =0{Aucune alerte} =1{1 alerte} other{{count} alertes}}'**
   String storesAlertCount(int count);
 
+  /// Unread notification count on a store card: the number on that store's bell, for whoever is signed in.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =0{Aucune notification} =1{1 notification} other{{count} notifications}}'**
+  String storesUnreadCount(int count);
+
   /// Badge on a store created recently and still empty.
   ///
   /// In fr, this message translates to:

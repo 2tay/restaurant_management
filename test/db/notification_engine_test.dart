@@ -227,4 +227,38 @@ void main() {
       expect(await about(ItemIds.poulet), hasLength(before));
     });
   });
+
+  // The dedupe window only sees this tablet's rows. Two tablets that each see
+  // the same crossing before they sync must still end with one entry — so
+  // they file the same id, and sync makes them one row.
+  group('across tablets', () {
+    test('the same crossing on two tablets files the same id', () async {
+      final other = await openSeededDatabase();
+      addTearDown(other.close);
+
+      await consume(15);
+      await MovementRepository(other).recordStockOut(
+        storeId: StoreIds.sablon,
+        itemId: ItemIds.carbonade,
+        quantity: 15,
+        reason: StockOutReason.sale,
+      );
+
+      final here = (await about(ItemIds.carbonade)).single;
+      final there = (await AccountRepository(other).notifications(
+        StoreIds.sablon,
+      )).where((n) => n.relatedItemId == ItemIds.carbonade).single;
+      expect(there.id, here.id);
+    });
+
+    test('a different article is a different id', () async {
+      await consume(15);
+      await consume(100, item: ItemIds.poulet);
+
+      final carbonade = (await about(ItemIds.carbonade)).single;
+      final poulet = await about(ItemIds.poulet);
+      expect(poulet, isNotEmpty);
+      expect(poulet.map((n) => n.id), isNot(contains(carbonade.id)));
+    });
+  });
 }

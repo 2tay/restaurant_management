@@ -63,11 +63,11 @@ void main() {
     final account = AccountRepository(db);
     final asManager = await account.notifications(
       StoreIds.sablon,
-      viewer: EmployeeRole.manager,
+      viewer: (id: EmployeeIds.amelie, role: EmployeeRole.manager),
     );
     final asOwner = await account.notifications(
       StoreIds.sablon,
-      viewer: EmployeeRole.owner,
+      viewer: (id: EmployeeIds.marc, role: EmployeeRole.owner),
     );
     bool readIn(List<NotificationItem> items) =>
         items.singleWhere((n) => n.title == _title).isRead;

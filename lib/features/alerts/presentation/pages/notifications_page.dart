@@ -10,7 +10,6 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/utils/responsive.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../../data/current_employee.dart';
 import '../../../../data/providers.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
@@ -213,7 +212,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
 
   /// Whose "read" this page shows and writes: a signalement is read
   /// separately by a manager and by the owner.
-  EmployeeRole? get _viewer => ref.read(currentEmployeeProvider)?.role;
+  NotificationViewer? get _viewer => ref.read(notificationViewerProvider);
 
   Future<void> _markAllRead() async {
     final l10n = AppLocalizations.of(context);

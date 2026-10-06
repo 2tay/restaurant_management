@@ -835,6 +835,7 @@ class OrderRepository {
       if (supplier != null) {
         await NotificationEngine(_db).deliveryReceived(
           storeId: existing.storeId,
+          receiptId: receiptId,
           supplierId: supplier.id,
           supplierName: supplier.name,
           lineCount: receiptLines.where((l) => l.quantityReceived > 0).length,

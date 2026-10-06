@@ -13,11 +13,22 @@ import '../../../../shared/widgets/widgets.dart';
 /// Carries the alert count as a badge, so an owner with three locations can see
 /// which one needs them before choosing — that is the entire point of showing
 /// them a grid rather than dropping them into the last store they opened.
+///
+/// And the number on that store's bell: a « Paiement en double » filed in
+/// one store must not wait for the owner to happen to open it.
 class StoreCard extends StatelessWidget {
-  const StoreCard({required this.view, required this.onTap, super.key});
+  const StoreCard({
+    required this.view,
+    required this.onTap,
+    this.unreadCount = 0,
+    super.key,
+  });
 
   final StoreCardView view;
   final VoidCallback onTap;
+
+  /// Unread notifications in this store, for whoever is signed in.
+  final int unreadCount;
 
   @override
   Widget build(BuildContext context) {
@@ -110,6 +121,26 @@ class StoreCard extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
+                    // The number alone beside the bell: two worded chips do
+                    // not fit one line of a 254dp card. The words are in the
+                    // tooltip and in what a screen reader says.
+                    if (unreadCount > 0) ...[
+                      Tooltip(
+                        message: l10n.storesUnreadCount(unreadCount),
+                        child: Semantics(
+                          label: l10n.storesUnreadCount(unreadCount),
+                          excludeSemantics: true,
+                          child: LabelChip(
+                            label: '$unreadCount',
+                            background: AppColors.primaryContainer,
+                            foreground: AppColors.onPrimaryContainer,
+                            icon: LucideIcons.bell,
+                            dense: true,
+                          ),
+                        ),
+                      ),
+                      if (alertCount > 0) const SizedBox(width: AppSpacing.xs),
+                    ],
                     if (alertCount > 0)
                       LabelChip(
                         label: l10n.storesAlertCount(alertCount),

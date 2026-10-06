@@ -4,12 +4,14 @@ import '../../models/employee.dart';
 import '../../models/notification_item.dart';
 import '../database/app_database.dart';
 
-/// [viewer] is the role of whoever is looking: a signalement is read or not
-/// for a manager and for the owner separately (`readByManagerAt`,
-/// `readByOwnerAt`). Anything else, or no role, reads `is_read`.
+/// [viewer] is whoever is looking: a signalement is read or not for each
+/// person ([readByViewer], their row in `notification_reads`) — or for their
+/// role, when it was read before schema v23 (`readByManagerAt`,
+/// `readByOwnerAt`). Anything else, or no viewer, reads `is_read`.
 NotificationItem notificationFromRow(
   NotificationRow row, {
-  EmployeeRole? viewer,
+  NotificationViewer? viewer,
+  bool readByViewer = false,
 }) => NotificationItem(
   id: row.id,
   storeId: row.storeId,
@@ -17,11 +19,11 @@ NotificationItem notificationFromRow(
   title: row.title,
   body: row.body,
   createdAt: row.createdAt,
-  isRead: switch ((row.kind, viewer)) {
+  isRead: switch ((row.kind, viewer?.role)) {
     (NotificationKind.personnel, EmployeeRole.owner) =>
-      row.readByOwnerAt != null,
-    (NotificationKind.personnel, EmployeeRole.manager) =>
-      row.readByManagerAt != null,
+      readByViewer || row.readByOwnerAt != null,
+    (NotificationKind.personnel, EmployeeRole _) =>
+      readByViewer || row.readByManagerAt != null,
     _ => row.isRead,
   },
   relatedItemId: row.relatedItemId,

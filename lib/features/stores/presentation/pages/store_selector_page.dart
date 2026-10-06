@@ -122,10 +122,20 @@ class StoreSelectorPage extends ConsumerWidget {
                       itemCount: cards.length,
                       itemBuilder: (context, index) {
                         final card = cards[index];
-                        return StoreCard(
-                          view: card,
-                          onTap: () => context.goSection(
-                            Routes.toDashboard(card.store.id),
+                        // Each card watches its own store's bell, so a
+                        // notification arriving by sync updates that card
+                        // alone.
+                        return Consumer(
+                          builder: (context, ref, _) => StoreCard(
+                            view: card,
+                            unreadCount:
+                                ref
+                                    .watch(unreadCountProvider(card.store.id))
+                                    .value ??
+                                0,
+                            onTap: () => context.goSection(
+                              Routes.toDashboard(card.store.id),
+                            ),
                           ),
                         );
                       },

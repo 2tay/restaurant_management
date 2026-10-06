@@ -345,6 +345,18 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String storesUnreadCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count notifications',
+      one: '1 notification',
+      zero: 'Aucune notification',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get storesNewBadge => 'Nouveau';
 
   @override
