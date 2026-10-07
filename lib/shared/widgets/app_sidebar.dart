@@ -156,7 +156,10 @@ class _SidebarDivider extends StatelessWidget {
 
 /// The sidebar's ground — the primary button's teal, two steps darker so the
 /// rail recedes behind the page's own "Ajouter" action.
-const Color _ground = AppColors.primary800;
+/// The sidebar's dark green — also the phone top bar's ground, so the two
+/// read as one chrome.
+const Color sidebarGround = AppColors.primary800;
+const Color _ground = sidebarGround;
 
 /// Text and icons on [_ground]: white for titles, softened for the resting
 /// entries so the active one still stands out.

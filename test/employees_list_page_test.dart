@@ -254,11 +254,11 @@ void main() {
     expect(find.byType(WizardDialog), findsOneWidget);
   });
 
-  testApp('the phone top bar is the hourly rate\'s pale green', (tester) async {
+  testApp("the phone top bar is the sidebar's dark green", (tester) async {
     await _open(tester, size: const Size(390, 844), cards: false);
     final bar = tester.widget<AppBar>(find.byType(AppBar));
-    expect(bar.backgroundColor, phoneAppBarColor);
-    expect(bar.foregroundColor, AppColors.brandTint.foreground);
+    expect(bar.backgroundColor, sidebarGround);
+    expect(bar.foregroundColor, AppColors.white);
     expect(bar.shape, const Border(), reason: 'no bottom border');
   });
 
