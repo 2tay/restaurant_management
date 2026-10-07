@@ -10,6 +10,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:stock_inventory/app/navigation.dart';
 import 'package:stock_inventory/core/theme/app_colors.dart';
+import 'package:stock_inventory/core/theme/app_spacing.dart';
 import 'package:stock_inventory/core/theme/app_theme.dart';
 import 'package:stock_inventory/core/utils/formatters.dart';
 import 'package:stock_inventory/l10n/app_localizations.dart';
@@ -396,44 +397,53 @@ void main() {
   });
 
   group('StatTileRow', () {
-    testWidgets('drops to one column when four will not fit', (tester) async {
-      const tiles = [
-        StatTile(label: 'Actifs', value: '12', icon: LucideIcons.users),
-        StatTile(label: 'Gérants', value: '3', icon: LucideIcons.shieldCheck),
-        StatTile(
-          label: 'Contrats',
-          value: '9 / 3',
-          icon: LucideIcons.briefcase,
+    const tiles = [
+      StatTile(label: 'Actifs', value: '12', icon: LucideIcons.users),
+      StatTile(label: 'Gérants', value: '3', icon: LucideIcons.shieldCheck),
+      StatTile(label: 'Contrats', value: '9 / 3', icon: LucideIcons.briefcase),
+    ];
+
+    Widget host(double screenWidth, double rowWidth) => _host(
+      MediaQuery(
+        data: MediaQueryData(size: Size(screenWidth, 800)),
+        child: SizedBox(
+          width: rowWidth,
+          child: const StatTileRow(tiles: tiles),
         ),
-        StatTile(label: 'Embauches', value: '1', icon: LucideIcons.userPlus),
+      ),
+    );
+
+    testWidgets('two per line on a phone, the odd one full width', (
+      tester,
+    ) async {
+      await tester.pumpWidget(host(390, 358));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      final sizes = [
+        for (final e in find.byType(StatTile).evaluate())
+          tester.getSize(find.byWidget(e.widget)),
       ];
-
-      // A phone's content width. Four tiles across would give each one 63dp,
-      // which is the icon medallion and nothing else.
-      await tester.pumpWidget(
-        _host(const SizedBox(width: 296, child: StatTileRow(tiles: tiles))),
+      expect(sizes[0].width, (358 - AppSpacing.lg) / 2);
+      expect(sizes[1].width, (358 - AppSpacing.lg) / 2);
+      expect(sizes[2].width, 358, reason: 'the lonely last tile stretches');
+      expect(
+        tester.getTopLeft(find.text('Gérants')).dy,
+        tester.getTopLeft(find.text('Actifs')).dy,
+        reason: 'the first two share a line',
       );
+    });
+
+    testWidgets('all on one line from a medium screen up', (tester) async {
+      await tester.pumpWidget(host(1024, 900));
       await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
-      expect(
-        tester.getSize(find.byType(StatTile).first).width,
-        296,
-        reason: 'one tile per line at 296dp',
-      );
-
-      // The design baseline: all four share the line.
-      await tester.pumpWidget(
-        _host(const SizedBox(width: 1000, child: StatTileRow(tiles: tiles))),
-      );
-      await tester.pumpAndSettle();
-
-      expect(tester.takeException(), isNull);
-      expect(
-        tester.getSize(find.byType(StatTile).first).width,
-        lessThan(280),
-        reason: 'four across at 1000dp',
-      );
+      final tops = {
+        for (final label in ['Actifs', 'Gérants', 'Contrats'])
+          tester.getTopLeft(find.text(label)).dy,
+      };
+      expect(tops, hasLength(1), reason: 'one line');
     });
   });
 

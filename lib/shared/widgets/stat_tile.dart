@@ -118,27 +118,21 @@ class StatTile extends StatelessWidget {
 /// The row of KPI tiles that sits above a list or a table.
 ///
 /// Written three times — the employees roster, the attendance history and the
-/// payroll history each had their own `_KpiRow`/`_StatRow` wrapping four
-/// `Expanded` tiles in a `Row`. That is correct at the design baseline and
-/// splits four ways at 360dp, giving each tile 63dp: enough for the icon
-/// medallion and nothing else, which is exactly how all three pages overflowed
-/// on a phone.
+/// payroll history each had their own `_KpiRow`/`_StatRow` wrapping the tiles
+/// in a `Row`. They share this one now.
 ///
-/// Here the tiles get a minimum width and wrap onto as many lines as that
-/// takes — four across on a tablet, two on a large phone, one at 360dp.
+/// On a phone or a small tablet (screen narrower than
+/// [AppBreakpoints.medium]) the tiles go two per line; an odd last tile takes
+/// the whole line rather than leaving a hole beside it. Anywhere wider, they
+/// all share a single line.
 class StatTileRow extends StatelessWidget {
   const StatTileRow({
     required this.tiles,
-    this.minTileWidth = 200,
     this.spacing = AppSpacing.lg,
     super.key,
   });
 
   final List<StatTile> tiles;
-
-  /// The narrowest a tile may be squeezed to before the row uses fewer columns.
-  /// 200dp fits the medallion plus a five-digit figure and a French label.
-  final double minTileWidth;
 
   final double spacing;
 
@@ -146,21 +140,29 @@ class StatTileRow extends StatelessWidget {
   Widget build(BuildContext context) {
     if (tiles.isEmpty) return const SizedBox.shrink();
 
+    final compact =
+        MediaQuery.sizeOf(context).width < AppBreakpoints.medium;
+    final columns = compact && tiles.length > 2 ? 2 : tiles.length;
+
     return LayoutBuilder(
       builder: (context, constraints) {
         final available = constraints.maxWidth;
-        // How many minimum-width tiles fit, counting the gaps between them.
-        final fits = ((available + spacing) / (minTileWidth + spacing)).floor();
-        final columns = fits.clamp(1, tiles.length);
         final tileWidth =
             (available - spacing * (columns - 1)) / columns;
+        // An odd tile alone on the last line stretches across it.
+        final lonelyLast = tiles.length % columns == 1 && columns > 1;
 
         return Wrap(
           spacing: spacing,
           runSpacing: spacing,
           children: [
-            for (final tile in tiles)
-              SizedBox(width: tileWidth, child: tile),
+            for (var i = 0; i < tiles.length; i++)
+              SizedBox(
+                width: lonelyLast && i == tiles.length - 1
+                    ? available
+                    : tileWidth,
+                child: tiles[i],
+              ),
           ],
         );
       },
