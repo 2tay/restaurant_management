@@ -72,39 +72,52 @@ class _TimeclockBoardPageState extends ConsumerState<TimeclockBoardPage> {
       ),
     );
 
+    // On a wide screen, one line at the title's right: date | time | full
+    // screen. Below 840dp the title keeps full screen on its own line, and
+    // date and time get a centred line of their own under it.
+    final small = context.isSmallScreen;
+    final board = AsyncContent<
+      ({
+        List<Employee> employees,
+        Map<String, Attendance> board,
+        StoreSettings settings,
+        BoardDay day,
+      })
+    >(
+      value: data,
+      skeleton: const SkeletonGrid(),
+      onRetry: () {
+        ref.invalidate(activeEmployeesProvider(widget.storeId));
+        ref.invalidate(attendanceBoardProvider(widget.storeId));
+        ref.invalidate(storeSettingsProvider(widget.storeId));
+        ref.invalidate(boardDayProvider(widget.storeId));
+      },
+      builder: (context, data) => _buildBoard(
+        l10n,
+        data.employees,
+        data.board,
+        data.settings,
+        data.day,
+      ),
+    );
+
     return ShellPage(
       title: l10n.timeclockBoardTitle,
       subtitle: l10n.timeclockBoardSubtitle,
-      // One line at the title's right: date | time | full screen.
-      actions: const [
-        LiveDateTime(),
-        PipeSeparator(),
-        _FullScreenToggleButton(),
-      ],
-      child: AsyncContent<
-        ({
-          List<Employee> employees,
-          Map<String, Attendance> board,
-          StoreSettings settings,
-          BoardDay day,
-        })
-      >(
-        value: data,
-        skeleton: const SkeletonGrid(),
-        onRetry: () {
-          ref.invalidate(activeEmployeesProvider(widget.storeId));
-          ref.invalidate(attendanceBoardProvider(widget.storeId));
-          ref.invalidate(storeSettingsProvider(widget.storeId));
-          ref.invalidate(boardDayProvider(widget.storeId));
-        },
-        builder: (context, data) => _buildBoard(
-          l10n,
-          data.employees,
-          data.board,
-          data.settings,
-          data.day,
-        ),
-      ),
+      actions: small
+          ? const []
+          : const [LiveDateTime(), PipeSeparator(), _FullScreenToggleButton()],
+      titleTrailing: small ? const _FullScreenToggleButton() : null,
+      child: small
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Center(child: LiveDateTime()),
+                const SizedBox(height: AppSpacing.lg),
+                board,
+              ],
+            )
+          : board,
     );
   }
 

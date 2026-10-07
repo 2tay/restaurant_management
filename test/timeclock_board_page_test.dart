@@ -197,6 +197,32 @@ void main() {
     expect(tester.getRect(fullScreen).left, greaterThan(outerPipe.right));
   });
 
+  for (final size in const [Size(390, 844), Size(742, 1000)]) {
+    _testBoard('header below 840dp (${size.width.toInt()}): full screen on the '
+        'title line, date and time centred on their own line', (tester) async {
+      await _openBoard(tester, size: size);
+
+      final title = find.text('Tableau de pointage').last;
+      final fullScreen = find.byTooltip('Plein écran');
+      expect(fullScreen, findsOneWidget);
+      expect(
+        tester.getCenter(fullScreen).dy,
+        closeTo(tester.getCenter(title).dy, 12),
+      );
+      expect(tester.getRect(fullScreen).left, greaterThan(
+        tester.getRect(title).right,
+      ));
+      // Only the pipe between date and time — none before full screen.
+      expect(find.byType(PipeSeparator), findsOneWidget);
+
+      final clock = tester.getRect(find.byKey(const ValueKey('live-date-time')));
+      expect(clock.top, greaterThan(tester.getRect(title).bottom));
+      // Centred on the content (the rail takes the left on a tablet).
+      final grid = tester.getRect(find.byType(ResponsiveCardGrid));
+      expect(clock.center.dx, closeTo(grid.center.dx, 2));
+    });
+  }
+
   _testBoard(
     'cards: status and buttons only, "Voir détails" at the top right',
     (tester) async {

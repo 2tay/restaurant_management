@@ -403,6 +403,7 @@ class ShellPage extends StatelessWidget {
     this.subtitle,
     this.keepSubtitle = false,
     this.actions = const [],
+    this.titleTrailing,
     this.scrollable = true,
     this.padding,
     this.back,
@@ -429,6 +430,11 @@ class ShellPage extends StatelessWidget {
   /// Buttons on the title row. The primary action goes last, nearest the
   /// right-hand edge.
   final List<Widget> actions;
+
+  /// Held at the right end of the title's own line, never wrapped under it
+  /// like [actions] — a small icon (the board's full screen on a phone) that
+  /// would otherwise drop to a line of its own.
+  final Widget? titleTrailing;
 
   final Widget child;
 
@@ -542,6 +548,7 @@ class ShellPage extends StatelessWidget {
             subtitle: subtitle,
             keepSubtitle: keepSubtitle,
             actions: actions,
+            trailing: titleTrailing,
             theme: theme,
             leading: back == null
                 ? null
@@ -609,6 +616,7 @@ class _TitleRow extends StatelessWidget {
     required this.keepSubtitle,
     required this.actions,
     required this.theme,
+    this.trailing,
     this.leading,
   });
 
@@ -617,6 +625,9 @@ class _TitleRow extends StatelessWidget {
   final bool keepSubtitle;
   final List<Widget> actions;
   final ThemeData theme;
+
+  /// See [ShellPage.titleTrailing].
+  final Widget? trailing;
 
   /// The back arrow, level with the title.
   final Widget? leading;
@@ -660,7 +671,7 @@ class _TitleRow extends StatelessWidget {
       ],
     );
 
-    final titleBlock = leading == null
+    final withLeading = leading == null
         ? textBlock
         : Row(
             mainAxisSize: MainAxisSize.min,
@@ -669,6 +680,18 @@ class _TitleRow extends StatelessWidget {
               leading!,
               const SizedBox(width: _backArrowGap),
               Flexible(child: textBlock),
+            ],
+          );
+
+    final titleBlock = trailing == null
+        ? withLeading
+        : Row(
+            // Level with the title, not centred on title + subtitle.
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: withLeading),
+              const SizedBox(width: AppSpacing.sm),
+              trailing!,
             ],
           );
 
