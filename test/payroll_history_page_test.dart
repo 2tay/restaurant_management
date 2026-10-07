@@ -365,5 +365,19 @@ void main() {
         tester.getTopRight(find.byWidget(e.widget)).dx,
     };
     expect(rights, hasLength(1));
+
+    // The attendance card's header: the date with the status beside it, then
+    // the employee with their PIN rather than the date.
+    final header = find.byType(CardDateHeader);
+    expect(header, findsWidgets);
+    expect(
+      find.descendant(
+        of: header.first,
+        matching: find.byType(PaymentStatusBadge),
+      ),
+      findsOneWidget,
+    );
+    expect(find.byType(EmployeeCardIdentity), findsWidgets);
+    expect(find.byKey(const ValueKey('employee-card-pin')), findsWidgets);
   });
 }

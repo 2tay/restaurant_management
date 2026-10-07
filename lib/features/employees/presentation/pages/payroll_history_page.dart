@@ -301,7 +301,6 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
                       employeesById: data.employeesById,
                       periodsById: data.periodsById,
                       settings: settings,
-                      showEmployee: showEmployee,
                       onOpen: onOpen,
                     );
             },
@@ -772,7 +771,6 @@ class _DaysCards extends StatelessWidget {
     required this.employeesById,
     required this.periodsById,
     required this.settings,
-    required this.showEmployee,
     required this.onOpen,
   });
 
@@ -780,7 +778,6 @@ class _DaysCards extends StatelessWidget {
   final Map<String, Employee> employeesById;
   final Map<String, PayrollPeriod> periodsById;
   final StoreSettings settings;
-  final bool showEmployee;
   final ValueChanged<Attendance> onOpen;
 
   @override
@@ -791,7 +788,6 @@ class _DaysCards extends StatelessWidget {
           _PayrollDayCard(
             attendance: a,
             data: _payrollRowData(a, employeesById, periodsById, settings),
-            showEmployee: showEmployee,
             onTap: () => onOpen(a),
           ),
       ],
@@ -799,26 +795,25 @@ class _DaysCards extends StatelessWidget {
   }
 }
 
-/// One paid or unpaid day, as a card — styled after [OrderRow]: a status
-/// stripe down the left edge instead of a neutral surface, and the money
-/// figure set in the same tabular numeric style as an order total.
+/// One paid or unpaid day, as a card — the same header as the attendance card
+/// (the date, the payment status beside it), then who it is with their PIN,
+/// then the time worked and the amount. A status stripe runs down the left
+/// edge, and the money figure is set in the tabular numeric style of an order
+/// total.
 class _PayrollDayCard extends StatelessWidget {
   const _PayrollDayCard({
     required this.attendance,
     required this.data,
-    required this.showEmployee,
     required this.onTap,
   });
 
   final Attendance attendance;
   final _PayrollRowData data;
-  final bool showEmployee;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
     final employee = data.employee;
     final colors = PaymentStatusBadge.colorsFor(attendance.paymentStatus);
 
@@ -832,51 +827,14 @@ class _PayrollDayCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // A Wrap, not a Row: on a narrow card « Retiré » drops
-                    // under the name instead of pushing past the edge.
-                    Wrap(
-                      spacing: AppSpacing.sm,
-                      runSpacing: AppSpacing.xs,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        Text(
-                          showEmployee && employee != null
-                              ? employeeDisplayName(employee)
-                              : Formatters.dateLong(attendance.date),
-                          style: theme.textTheme.titleSmall,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        if (showEmployee && employee?.archivedAt != null)
-                          const RetiredChip(),
-                      ],
-                    ),
-                    Text(
-                      showEmployee
-                          ? Formatters.date(attendance.date)
-                          : (employee == null
-                                ? '—'
-                                : maskedPin(employee.pin)),
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              PaymentStatusBadge(status: attendance.paymentStatus),
-            ],
+          CardDateHeader(
+            date: attendance.date,
+            status: PaymentStatusBadge(status: attendance.paymentStatus),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          EmployeeCardIdentity(
+            employee: employee,
+            trailing: employee?.archivedAt != null ? const RetiredChip() : null,
           ),
           const SizedBox(height: AppSpacing.md),
           Row(
