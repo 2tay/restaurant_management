@@ -315,7 +315,8 @@ void main() {
     }
   });
 
-  testApp('cards: one per line on a phone, two to four on wider screens', (
+  testApp('cards: one per line on a phone or a small tablet, three or four '
+      'on wider screens', (
     tester,
   ) async {
     Future<int> perLine(Size size) async {
@@ -328,7 +329,7 @@ void main() {
     }
 
     expect(await perLine(const Size(390, 844)), 1);
-    expect(await perLine(const Size(800, 1280)), 2);
+    expect(await perLine(const Size(800, 1280)), 1);
     expect(await perLine(const Size(1280, 800)), 3);
     expect(await perLine(const Size(1440, 900)), 4);
   });

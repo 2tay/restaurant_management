@@ -35,47 +35,32 @@ class StatTile extends StatelessWidget {
 
     return AppCard(
       bordered: false,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          // The icon medallion is 52dp of the tile's width including its gap.
-          // Below this there is not enough left for a figure beside it, and the
-          // number is the point of the tile — so the medallion goes rather than
-          // the digits. [StatTileRow] normally guarantees enough width; this is
-          // for a caller that puts a tile somewhere narrower.
-          final showIcon = constraints.maxWidth >= 140;
-          return _content(theme, foreground, showIcon: showIcon);
-        },
-      ),
+      // The icon always stays; a narrow tile shrinks its figure instead.
+      child: _content(theme, foreground),
     );
   }
 
-  Widget _content(
-    ThemeData theme,
-    Color foreground, {
-    required bool showIcon,
-  }) {
+  Widget _content(ThemeData theme, Color foreground) {
     return Row(
       children: [
-        if (showIcon) ...[
-          Container(
-            width: AppSizing.statTileMedallion,
-            height: AppSizing.statTileMedallion,
-            decoration: BoxDecoration(
-              // A translucent wash of the brand green, not a flat tint — it
-              // sits lighter on the white card.
-              color:
-                  accent?.container ??
-                  AppColors.primary600.withValues(alpha: 0.10),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              icon,
-              size: AppSizing.iconMd,
-              color: accent?.foreground ?? AppColors.primary600,
-            ),
+        Container(
+          width: AppSizing.statTileMedallion,
+          height: AppSizing.statTileMedallion,
+          decoration: BoxDecoration(
+            // A translucent wash of the brand green, not a flat tint — it
+            // sits lighter on the white card.
+            color:
+                accent?.container ??
+                AppColors.primary600.withValues(alpha: 0.10),
+            shape: BoxShape.circle,
           ),
-          const SizedBox(width: AppSpacing.md),
-        ],
+          child: Icon(
+            icon,
+            size: AppSizing.iconMd,
+            color: accent?.foreground ?? AppColors.primary600,
+          ),
+        ),
+        const SizedBox(width: AppSpacing.md),
         Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -121,10 +106,9 @@ class StatTile extends StatelessWidget {
 /// payroll history each had their own `_KpiRow`/`_StatRow` wrapping the tiles
 /// in a `Row`. They share this one now.
 ///
-/// On a phone or a small tablet (screen narrower than
-/// [AppBreakpoints.medium]) the tiles go two per line; an odd last tile takes
-/// the whole line rather than leaving a hole beside it. Anywhere wider, they
-/// all share a single line.
+/// On a phone (screen narrower than [AppBreakpoints.compact]) the tiles go
+/// two per line; an odd last tile takes the whole line rather than leaving a
+/// hole beside it. From a small tablet up, they all share a single line.
 class StatTileRow extends StatelessWidget {
   const StatTileRow({
     required this.tiles,
@@ -140,9 +124,8 @@ class StatTileRow extends StatelessWidget {
   Widget build(BuildContext context) {
     if (tiles.isEmpty) return const SizedBox.shrink();
 
-    final compact =
-        MediaQuery.sizeOf(context).width < AppBreakpoints.medium;
-    final columns = compact && tiles.length > 2 ? 2 : tiles.length;
+    final phone = MediaQuery.sizeOf(context).width < AppBreakpoints.compact;
+    final columns = phone && tiles.length > 2 ? 2 : tiles.length;
 
     return LayoutBuilder(
       builder: (context, constraints) {

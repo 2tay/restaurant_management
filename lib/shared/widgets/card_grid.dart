@@ -3,14 +3,15 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/utils/responsive.dart';
 
-/// Cards in equal columns — always one on a phone, then two, three or four as
-/// the content width allows, each at least [minCardWidth] wide.
+/// Cards in equal columns — always one on a phone or a small tablet, then two,
+/// three or four as the content width allows, each at least [minCardWidth]
+/// wide.
 ///
 /// Columns come from the width the grid actually gets, not the screen's: the
 /// sidebar takes a different share at each breakpoint, so the same screen width
-/// can leave very different room. The phone rule is the exception — it goes by
-/// the screen, because a phone's content is wider than a portrait tablet's
-/// (no sidebar) and would otherwise get two cramped columns.
+/// can leave very different room. The single-column rule is the exception — it
+/// goes by the screen ([ResponsiveContext.isSmallScreen]): below a medium
+/// screen two columns are always cramped.
 ///
 /// Shared by the Personnel cards, the pointage board and both history pages,
 /// so the same width reads as the same column count everywhere.
@@ -35,11 +36,11 @@ class ResponsiveCardGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final phone = context.isPhone;
+    final single = context.isSmallScreen;
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth;
-        final columns = phone
+        final columns = single
             ? 1
             : cardGridColumns(
                 width,

@@ -94,7 +94,8 @@ class _FilterToolbarState extends State<FilterToolbar> {
     final search = widget.search;
     final filters = widget.filters;
 
-    if (context.isPhone) {
+    // A phone or a small tablet: the search, and the rest behind one icon.
+    if (context.isSmallScreen) {
       return Row(
         children: [
           Expanded(child: search),

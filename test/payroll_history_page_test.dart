@@ -207,7 +207,14 @@ void main() {
 
       expect(tester.takeException(), isNull, reason: '$size');
       expect(find.text('Jours payés'), findsOneWidget, reason: '$size');
-      expect(find.byType(DateFilter), findsNWidgets(2), reason: '$size');
+      // Dates on the strip at 1024; behind the filter icon on a small
+      // tablet, as on a phone.
+      if (size.width >= 840) {
+        expect(find.byType(DateFilter), findsNWidgets(2), reason: '$size');
+      } else {
+        expect(find.byType(DateFilter), findsNothing, reason: '$size');
+        expect(find.byType(FilterSheetButton), findsOneWidget, reason: '$size');
+      }
     }
   });
 

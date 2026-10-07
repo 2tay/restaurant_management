@@ -434,14 +434,26 @@ void main() {
       );
     });
 
-    testWidgets('all on one line from a medium screen up', (tester) async {
-      await tester.pumpWidget(host(1024, 900));
+    testWidgets('keeps every icon, even two per line on a 320dp phone', (
+      tester,
+    ) async {
+      await tester.pumpWidget(host(320, 288));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(find.byIcon(LucideIcons.users), findsOneWidget);
+      expect(find.byIcon(LucideIcons.shieldCheck), findsOneWidget);
+      expect(find.byIcon(LucideIcons.briefcase), findsOneWidget);
+    });
+
+    testWidgets('all on one line from a small tablet up', (tester) async {
+      await tester.pumpWidget(host(700, 600));
       await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
       final tops = {
-        for (final label in ['Actifs', 'Gérants', 'Contrats'])
-          tester.getTopLeft(find.text(label)).dy,
+        for (final e in find.byType(StatTile).evaluate())
+          tester.getTopLeft(find.byWidget(e.widget)).dy,
       };
       expect(tops, hasLength(1), reason: 'one line');
     });

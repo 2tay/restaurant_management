@@ -43,6 +43,10 @@ extension ResponsiveContext on BuildContext {
   /// of more than two things stacks.
   bool get isPhone => screenWidth < AppBreakpoints.compact;
 
+  /// A phone or a small tablet (below [AppBreakpoints.medium]): the personnel
+  /// pages show one card per line and their filters behind one icon here.
+  bool get isSmallScreen => screenWidth < AppBreakpoints.medium;
+
   /// Kept as the original name for the ~600dp threshold. Identical to
   /// [isPhone]; both read naturally in different call sites and there is no
   /// value in breaking the dozen existing uses.
