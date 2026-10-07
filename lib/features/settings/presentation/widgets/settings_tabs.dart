@@ -29,8 +29,10 @@ class SettingsTabs extends ConsumerWidget {
     final syncNeedsAttention =
         ref.watch(isOfflineProvider) || ref.watch(pendingChangesProvider) > 0;
 
+    // One bar across the top of the page, at every width.
     return SectionTabs(
       currentPath: currentPath,
+      fill: true,
       tabs: [
         SectionTab(
           label: l10n.settingsTabStore,

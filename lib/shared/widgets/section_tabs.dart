@@ -72,10 +72,16 @@ class SectionTabs extends StatelessWidget {
     required this.tabs,
     required this.currentPath,
     this.onSelected,
+    this.fill = false,
     super.key,
   });
 
   final List<SectionTab> tabs;
+
+  /// Stretches the bar across the whole width it is given, the tabs sharing
+  /// it equally — Paramètres' bar at the top of each settings page. Off, the
+  /// bar is as wide as its tabs and scrolls sideways when they overflow.
+  final bool fill;
 
   /// The path of the tab currently shown.
   final String currentPath;
@@ -125,31 +131,44 @@ class SectionTabs extends StatelessWidget {
             tabs.every((tab) => tab.icon != null) &&
             _fullWidth(context) > constraints.maxWidth;
 
-        return FocusTraversalGroup(
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Container(
-              padding: const EdgeInsets.all(AppSpacing.xs),
-              decoration: const BoxDecoration(
-                color: AppColors.surfaceVariant,
-                borderRadius: AppRadius.mdAll,
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  for (final (index, tab) in tabs.indexed) ...[
-                    if (index > 0) const SizedBox(width: AppSpacing.xs),
-                    _Tab(
-                      tab: tab,
-                      selected: tab.path == currentPath,
-                      iconOnly: compact && tab.path != currentPath,
-                      onTap: () => _select(context, tab),
-                    ),
-                  ],
-                ],
-              ),
-            ),
+        Widget tabFor(SectionTab tab) => _Tab(
+          tab: tab,
+          selected: tab.path == currentPath,
+          iconOnly: compact && tab.path != currentPath,
+          onTap: () => _select(context, tab),
+        );
+
+        final bar = Container(
+          width: fill ? double.infinity : null,
+          padding: const EdgeInsets.all(AppSpacing.xs),
+          decoration: const BoxDecoration(
+            color: AppColors.surfaceVariant,
+            borderRadius: AppRadius.mdAll,
           ),
+          child: Row(
+            mainAxisSize: fill ? MainAxisSize.max : MainAxisSize.min,
+            children: [
+              for (final (index, tab) in tabs.indexed) ...[
+                if (index > 0) const SizedBox(width: AppSpacing.xs),
+                // Filling, the tabs with a label share the width; one folded
+                // to its icon keeps its own (a phone: the open tab takes the
+                // rest).
+                if (fill && !(compact && tab.path != currentPath))
+                  Expanded(child: tabFor(tab))
+                else
+                  tabFor(tab),
+              ],
+            ],
+          ),
+        );
+
+        return FocusTraversalGroup(
+          child: fill
+              ? bar
+              : SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: bar,
+                ),
         );
       },
     );
@@ -212,13 +231,16 @@ class _Tab extends StatelessWidget {
           ),
         if (!iconOnly) ...[
           if (tab.icon != null) const SizedBox(width: AppSpacing.sm),
-          Text(
-            tab.label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.labelLarge?.copyWith(
-              color: color,
-              fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+          // Flexible, so a tab narrower than its label ellipsizes it.
+          Flexible(
+            child: Text(
+              tab.label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.labelLarge?.copyWith(
+                color: color,
+                fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+              ),
             ),
           ),
           if (tab.icon == null && tab.attention != null) ...[

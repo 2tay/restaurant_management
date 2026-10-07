@@ -1,14 +1,14 @@
 // Section tab bars hold at every width.
 //
-// The settings tabs become a side list on a wide page and a single scrolling
-// bar below that, whose closed tabs shrink to icons when the labels no longer
-// fit. The other tab bars (catalogue, alerts, order and supplier detail) share
+// The settings tabs are one bar across the top of the page at every width,
+// whose closed tabs shrink to icons when the labels no longer fit. The other tab bars (catalogue, alerts, order and supplier detail) share
 // the same widget and must never overflow either.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stock_inventory/app/router.dart';
 import 'package:stock_inventory/app/routes.dart';
+import 'package:stock_inventory/core/theme/app_spacing.dart';
 import 'package:stock_inventory/data/seed/dataset/dataset.dart';
 import 'package:stock_inventory/shared/widgets/widgets.dart';
 
@@ -56,16 +56,45 @@ void main() {
     }
   }
 
-  testApp('settings tabs sit beside the page when it is wide', (tester) async {
+  testApp('settings tabs: one bar under the title, across the whole page, '
+      'even when it is wide', (tester) async {
     await pumpApp(tester, size: const Size(1440, 900));
     appRouter.go(Routes.toSyncStatus(_store));
     await tester.pumpAndSettle();
 
-    // Side list: the one-line descriptions are shown.
-    expect(find.text('Connexion et données locales'), findsOneWidget);
-    final tabs = tester.getTopLeft(find.byType(SectionTabs));
-    final title = tester.getTopLeft(find.text('État de la synchronisation'));
-    expect(tabs.dx, lessThan(title.dx));
+    // No side list: no one-line descriptions.
+    expect(find.text('Connexion et données locales'), findsNothing);
+    final bar = tester.getRect(find.byType(SectionTabs));
+    final title = tester.getRect(find.text('État de la synchronisation'));
+    expect(bar.top, greaterThan(title.bottom));
+    expect(bar.left, closeTo(title.left, 1));
+    // The page's whole width: from the title's left edge to the page inset.
+    final page = tester.getRect(find.byType(ShellPage));
+    expect(bar.right, closeTo(page.right - AppSpacing.pagePadding, 1));
+    // Four tabs sharing it equally.
+    final widths = {
+      for (final label in [
+        'Établissement',
+        'Compte',
+        'Notifications',
+        'Synchronisation',
+      ])
+        tester
+            .getSize(
+              find
+                  .ancestor(
+                    of: find.descendant(
+                      of: find.byType(SectionTabs),
+                      matching: find.text(label),
+                    ),
+                    matching: find.byType(AnimatedContainer),
+                  )
+                  .first,
+            )
+            .width
+            .round(),
+    };
+    expect(widths, hasLength(1));
   });
 
   testApp('settings tabs are a bar under the title on a phone', (
