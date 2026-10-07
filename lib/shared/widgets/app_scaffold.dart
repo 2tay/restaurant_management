@@ -184,8 +184,17 @@ class _BusyDayWatcherState extends ConsumerState<_BusyDayWatcher> {
   Widget build(BuildContext context) => widget.child;
 }
 
+/// The phone bar's ground: the hourly rate's pale green on a Personnel card
+/// ([AppColors.brandTint] over white), made opaque so the page cannot show
+/// through it.
+final Color phoneAppBarColor = Color.alphaBlend(
+  AppColors.brandTint.container,
+  AppColors.surface,
+);
+
 /// The phone-only bar: open the drawer, see which establishment you are in,
-/// reach the notifications. Everything else stays in the drawer.
+/// reach the notifications. Everything else stays in the drawer. Pale green
+/// with dark teal text and icons, like the hourly rate.
 class _PhoneAppBar extends ConsumerWidget implements PreferredSizeWidget {
   const _PhoneAppBar({required this.store});
 
@@ -201,11 +210,13 @@ class _PhoneAppBar extends ConsumerWidget implements PreferredSizeWidget {
     final unread = ref.watch(unreadCountProvider(store.id)).value ?? 0;
 
     return AppBar(
-      backgroundColor: AppColors.steel800,
-      foregroundColor: AppColors.white,
+      backgroundColor: phoneAppBarColor,
+      foregroundColor: AppColors.brandTint.foreground,
+      surfaceTintColor: Colors.transparent,
       elevation: 0,
+      scrolledUnderElevation: 0,
       titleSpacing: 0,
-      iconTheme: const IconThemeData(color: AppColors.neutral300),
+      iconTheme: IconThemeData(color: AppColors.brandTint.foreground),
       title: Row(
         children: [
           const Icon(LucideIcons.store, size: AppSizing.iconMd),
@@ -216,7 +227,7 @@ class _PhoneAppBar extends ConsumerWidget implements PreferredSizeWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: theme.textTheme.titleSmall?.copyWith(
-                color: AppColors.white,
+                color: AppColors.brandTint.foreground,
               ),
             ),
           ),
@@ -226,7 +237,7 @@ class _PhoneAppBar extends ConsumerWidget implements PreferredSizeWidget {
         IconButton(
           onPressed: () => context.goSection(Routes.toNotifications(store.id)),
           tooltip: l10n.topBarNotifications,
-          color: AppColors.neutral300,
+          color: AppColors.brandTint.foreground,
           icon: unread > 0
               ? Badge.count(
                   count: unread,
@@ -263,12 +274,17 @@ class AppScaffoldSkeleton extends StatelessWidget {
       return Scaffold(
         backgroundColor: AppColors.background,
         appBar: AppBar(
-          backgroundColor: AppColors.steel800,
+          backgroundColor: phoneAppBarColor,
           elevation: 0,
           automaticallyImplyLeading: false,
-          title: const SizedBox(
+          // The store name to come, a shade darker than the pale green bar.
+          title: Container(
             width: 140,
-            child: _SidebarSkeletonBlock(height: 16),
+            height: 16,
+            decoration: BoxDecoration(
+              color: AppColors.primary600.withValues(alpha: 0.15),
+              borderRadius: AppRadius.smAll,
+            ),
           ),
         ),
         body: SafeArea(
