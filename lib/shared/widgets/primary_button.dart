@@ -59,8 +59,9 @@ class PrimaryButton extends StatelessWidget {
   /// step (a wizard's Suivant) that is the way on but not yet the commit.
   final bool tonal;
 
-  /// Below this screen width the button shows only its [icon], the label
-  /// moved to a tooltip and a semantics label — for a header action whose
+  /// Below this screen width the button shows only its [icon], on a 40dp
+  /// square in the hourly rate's tint ([AppColors.brandTint]); the label
+  /// moves to a tooltip and a semantics label. For a header action whose
   /// glyph says it all on its own (Ajouter personnel's « + » on a phone).
   /// Null, the default, keeps the words at every width.
   final double? iconOnlyBelow;
@@ -79,17 +80,17 @@ class PrimaryButton extends StatelessWidget {
             message: label,
             child: FilledButton(
               onPressed: isBusy ? null : onPressed,
-              // Square, like a collapsed SecondaryButton.
+              // A small square in the hourly rate's tint — on a phone the
+              // glyph alone is the action, and solid teal would shout.
               style: FilledButton.styleFrom(
                 padding: EdgeInsets.zero,
                 minimumSize: Size.zero,
-                fixedSize: const Size(
-                  AppSizing.buttonHeight,
-                  AppSizing.buttonHeight,
-                ),
+                fixedSize: const Size.square(_collapsedSize),
+                backgroundColor: AppColors.brandTint.container,
+                foregroundColor: AppColors.brandTint.foreground,
               ),
               child: isBusy
-                  ? const _ButtonSpinner()
+                  ? const _ButtonSpinner(color: AppColors.primary600)
                   : Icon(icon, size: AppSizing.iconMd),
             ),
           ),
@@ -350,18 +351,21 @@ class _ButtonContent extends StatelessWidget {
   }
 }
 
+/// The side of a [PrimaryButton] collapsed by [PrimaryButton.iconOnlyBelow] —
+/// the 40dp of the filter controls beside it.
+const double _collapsedSize = 40;
+
 class _ButtonSpinner extends StatelessWidget {
-  const _ButtonSpinner();
+  const _ButtonSpinner({this.color = AppColors.white});
+
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
-    return const SizedBox(
+    return SizedBox(
       width: 20,
       height: 20,
-      child: CircularProgressIndicator(
-        strokeWidth: 2.5,
-        color: AppColors.white,
-      ),
+      child: CircularProgressIndicator(strokeWidth: 2.5, color: color),
     );
   }
 }

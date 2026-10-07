@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:stock_inventory/app/router.dart';
 import 'package:stock_inventory/app/routes.dart';
+import 'package:stock_inventory/core/theme/app_colors.dart';
 import 'package:stock_inventory/core/utils/employee_status.dart';
 import 'package:stock_inventory/core/utils/formatters.dart';
 import 'package:stock_inventory/data/database/app_database.dart';
@@ -238,6 +239,16 @@ void main() {
     expect(find.text('Ajouter'), findsNothing);
     final add = find.byTooltip('Ajouter un employé');
     expect(add, findsOneWidget);
+    // A 40dp square in the hourly rate's pale green, not solid teal.
+    final button = find.descendant(of: add, matching: find.byType(FilledButton));
+    // Drawn at 40dp; the 48dp tap target around it stays.
+    final style = tester.widget<FilledButton>(button).style!;
+    expect(style.fixedSize!.resolve({}), const Size.square(40));
+    expect(
+      style.backgroundColor!.resolve({}),
+      AppColors.brandTint.container,
+    );
+    expect(style.foregroundColor!.resolve({}), AppColors.brandTint.foreground);
     await tester.tap(add);
     await tester.pumpAndSettle();
     expect(find.byType(WizardDialog), findsOneWidget);
