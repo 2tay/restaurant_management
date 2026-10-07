@@ -36,11 +36,20 @@ class StatTile extends StatelessWidget {
     return AppCard(
       bordered: false,
       // The icon always stays; a narrow tile shrinks its figure instead.
-      child: _content(theme, foreground),
+      child: _content(
+        theme,
+        foreground,
+        // A smaller label on a phone, where two tiles share the line.
+        phone: MediaQuery.sizeOf(context).width < AppBreakpoints.compact,
+      ),
     );
   }
 
-  Widget _content(ThemeData theme, Color foreground) {
+  Widget _content(
+    ThemeData theme,
+    Color foreground, {
+    required bool phone,
+  }) {
     return Row(
       children: [
         Container(
@@ -88,6 +97,7 @@ class StatTile extends StatelessWidget {
                   label,
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: AppColors.textSecondary,
+                    fontSize: phone ? 11 : null,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -106,9 +116,10 @@ class StatTile extends StatelessWidget {
 /// payroll history each had their own `_KpiRow`/`_StatRow` wrapping the tiles
 /// in a `Row`. They share this one now.
 ///
-/// On a phone (screen narrower than [AppBreakpoints.compact]) the tiles go
-/// two per line; an odd last tile takes the whole line rather than leaving a
-/// hole beside it. From a small tablet up, they all share a single line.
+/// On a phone or a small tablet (screen narrower than [AppBreakpoints.medium])
+/// the tiles go two per line; an odd last tile takes the whole line rather
+/// than leaving a hole beside it. Anywhere wider, they all share a single
+/// line.
 class StatTileRow extends StatelessWidget {
   const StatTileRow({
     required this.tiles,
@@ -124,8 +135,8 @@ class StatTileRow extends StatelessWidget {
   Widget build(BuildContext context) {
     if (tiles.isEmpty) return const SizedBox.shrink();
 
-    final phone = MediaQuery.sizeOf(context).width < AppBreakpoints.compact;
-    final columns = phone && tiles.length > 2 ? 2 : tiles.length;
+    final small = MediaQuery.sizeOf(context).width < AppBreakpoints.medium;
+    final columns = small && tiles.length > 2 ? 2 : tiles.length;
 
     return LayoutBuilder(
       builder: (context, constraints) {

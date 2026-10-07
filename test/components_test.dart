@@ -446,8 +446,31 @@ void main() {
       expect(find.byIcon(LucideIcons.briefcase), findsOneWidget);
     });
 
-    testWidgets('all on one line from a small tablet up', (tester) async {
-      await tester.pumpWidget(host(700, 600));
+    testWidgets('two per line on a small tablet too', (tester) async {
+      await tester.pumpWidget(host(742, 560));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(
+        tester.getSize(find.byType(StatTile).first).width,
+        (560 - AppSpacing.lg) / 2,
+      );
+    });
+
+    testWidgets('a smaller label on a phone only', (tester) async {
+      double labelSize() =>
+          tester.widget<Text>(find.text('Actifs')).style!.fontSize!;
+      await tester.pumpWidget(host(390, 358));
+      await tester.pumpAndSettle();
+      final phone = labelSize();
+      await tester.pumpWidget(host(742, 560));
+      await tester.pumpAndSettle();
+      expect(phone, 11);
+      expect(labelSize(), greaterThan(phone));
+    });
+
+    testWidgets('all on one line from a medium screen up', (tester) async {
+      await tester.pumpWidget(host(1024, 900));
       await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
