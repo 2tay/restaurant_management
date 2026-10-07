@@ -816,9 +816,9 @@ class _HistoryCards extends StatelessWidget {
   }
 }
 
-/// One day, as a card: the date and the detail action on top, who it is, the
-/// time worked and the pauses side by side, and the status with — only when
-/// there is one — an alert chip at the bottom.
+/// One day, as a card: the date and the status on top ([CardDateHeader]), who
+/// it is, the time worked and the pauses side by side, and — only when there
+/// is one — an alert chip at the bottom. The whole card opens the detail.
 ///
 /// No arrival → départ span: a day can hold several sessions, which one span
 /// misreads; the drawer's timeline shows them all.
@@ -836,7 +836,6 @@ class _AttendanceCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
     final employee = data.employee;
     final anomalies = attendanceAnomalies(
       attendance,
@@ -849,67 +848,12 @@ class _AttendanceCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  Formatters.dateLong(attendance.date),
-                  style: theme.textTheme.labelLarge?.copyWith(fontSize: 14),
-                ),
-              ),
-              IconButton(
-                tooltip: l10n.attendanceViewDetail,
-                icon: const Icon(LucideIcons.eye, size: AppSizing.iconSm),
-                onPressed: onTap,
-                visualDensity: VisualDensity.compact,
-              ),
-            ],
+          CardDateHeader(
+            date: attendance.date,
+            status: AttendanceStatusBadge(status: attendance.status),
           ),
-          const SizedBox(height: AppSpacing.sm),
-          Row(
-            children: [
-              if (employee != null)
-                EmployeeAvatar(employee: employee, size: 36)
-              else
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: const BoxDecoration(
-                    color: AppColors.surfaceVariant,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    LucideIcons.user,
-                    size: AppSizing.iconSm,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      employee == null ? '—' : employeeDisplayName(employee),
-                      style: theme.textTheme.labelLarge?.copyWith(fontSize: 14),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    if (employee != null)
-                      Text(
-                        maskedPin(employee.pin),
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: AppColors.textSecondary,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+          const SizedBox(height: AppSpacing.md),
+          EmployeeCardIdentity(employee: employee),
           const SizedBox(height: AppSpacing.md),
           // IntrinsicHeight so the two tiles match when one label wraps.
           IntrinsicHeight(
@@ -936,12 +880,8 @@ class _AttendanceCard extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(height: AppSpacing.md),
-          AttendanceStatusBadge(status: attendance.status),
-          // Alerts get their own line rather than sharing the status badge's —
-          // squeezed next to it, an anomaly chip has to fight the badge for
-          // width and ends up ellipsized. Full card width lets the alerts'
-          // own `Wrap` arrange chips across as many lines as it needs instead.
+          // Alerts get their own line, the full card width, so the alerts'
+          // own `Wrap` arranges chips across as many lines as it needs.
           if (anomalies.isNotEmpty) ...[
             const SizedBox(height: AppSpacing.sm),
             AttendanceAlerts(

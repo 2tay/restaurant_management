@@ -316,6 +316,19 @@ void main() {
       findsOneWidget,
     );
 
+    // The header: the date with the status beside it, and no eye button —
+    // the whole card opens the detail.
+    expect(find.byType(CardDateHeader), findsWidgets);
+    expect(
+      find.descendant(
+        of: find.byType(CardDateHeader).first,
+        matching: find.byType(AttendanceStatusBadge),
+      ),
+      findsOneWidget,
+    );
+    expect(find.byIcon(LucideIcons.eye), findsNothing);
+    expect(find.byKey(const ValueKey('employee-card-pin')), findsWidgets);
+
     // One per line: every card starts at the same left edge.
     final lefts = {
       for (final e in pauses.evaluate())
