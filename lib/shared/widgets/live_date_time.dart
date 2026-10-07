@@ -12,7 +12,10 @@ import '../../core/utils/formatters.dart';
 /// Its own stateful widget so the once-a-second tick redraws this line only,
 /// never the grid of cards around it.
 class LiveDateTime extends StatefulWidget {
-  const LiveDateTime({super.key});
+  const LiveDateTime({this.small = false, super.key});
+
+  /// A size down — under the board's title on a phone or a small tablet.
+  final bool small;
 
   @override
   State<LiveDateTime> createState() => _LiveDateTimeState();
@@ -40,10 +43,10 @@ class _LiveDateTimeState extends State<LiveDateTime> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final valueStyle = theme.textTheme.bodyMedium?.copyWith(
-      color: AppColors.textPrimary,
-      fontWeight: FontWeight.w600,
-    );
+    final small = widget.small;
+    final valueStyle =
+        (small ? theme.textTheme.bodySmall : theme.textTheme.bodyMedium)
+            ?.copyWith(color: AppColors.textPrimary, fontWeight: FontWeight.w600);
 
     // Text spans rather than a Row of widgets, so a narrow panel (the
     // drawer on a small tablet) wraps the line instead of overflowing it.
@@ -57,7 +60,7 @@ class _LiveDateTimeState extends State<LiveDateTime> {
                   padding: const EdgeInsets.only(right: AppSpacing.xs),
                   child: Icon(
                     icon,
-                    size: AppSizing.iconSm,
+                    size: small ? 14 : AppSizing.iconSm,
                     color: AppColors.textSecondary,
                   ),
                 ),
@@ -72,7 +75,7 @@ class _LiveDateTimeState extends State<LiveDateTime> {
       key: const ValueKey('live-date-time'),
       // Same gap as the header's action row, so the pipe after the clock
       // (before full screen) sits like the one between date and time.
-      spacing: AppSpacing.md,
+      spacing: small ? AppSpacing.sm : AppSpacing.md,
       runSpacing: AppSpacing.xs,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
@@ -84,7 +87,7 @@ class _LiveDateTimeState extends State<LiveDateTime> {
           ),
           TextSpan(text: ' ${Formatters.date(_now)}'),
         ]),
-        const PipeSeparator(),
+        PipeSeparator(small: small),
         part(LucideIcons.clock, [
           TextSpan(text: Formatters.time(_now)),
         ]),
@@ -95,15 +98,19 @@ class _LiveDateTimeState extends State<LiveDateTime> {
 
 /// The `|` between the items of a header line — date, time, full screen.
 class PipeSeparator extends StatelessWidget {
-  const PipeSeparator({super.key});
+  const PipeSeparator({this.small = false, super.key});
+
+  /// Matches a [LiveDateTime.small] line.
+  final bool small;
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context).textTheme;
     return Text(
       '|',
-      style: Theme.of(
-        context,
-      ).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
+      style: (small ? theme.bodySmall : theme.bodyMedium)?.copyWith(
+        color: AppColors.textSecondary,
+      ),
     );
   }
 }

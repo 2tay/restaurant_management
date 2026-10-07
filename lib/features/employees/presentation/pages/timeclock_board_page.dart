@@ -73,8 +73,8 @@ class _TimeclockBoardPageState extends ConsumerState<TimeclockBoardPage> {
     );
 
     // On a wide screen, one line at the title's right: date | time | full
-    // screen. Below 840dp the title keeps full screen on its own line, and
-    // date and time get a centred line of their own under it.
+    // screen. Below 840dp the title keeps full screen at its line's end, and
+    // date and time go right under it, a size smaller.
     final small = context.isSmallScreen;
     final board = AsyncContent<
       ({
@@ -108,16 +108,8 @@ class _TimeclockBoardPageState extends ConsumerState<TimeclockBoardPage> {
           ? const []
           : const [LiveDateTime(), PipeSeparator(), _FullScreenToggleButton()],
       titleTrailing: small ? const _FullScreenToggleButton() : null,
-      child: small
-          ? Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const Center(child: LiveDateTime()),
-                const SizedBox(height: AppSpacing.lg),
-                board,
-              ],
-            )
-          : board,
+      titleBelow: small ? const LiveDateTime(small: true) : null,
+      child: board,
     );
   }
 
@@ -326,6 +318,9 @@ class _BusinessDayNotice extends ConsumerWidget {
     final date = _lowerFirst(Formatters.dateLongWeekday(businessDay.date));
     final closedAt = businessDay.closedAt;
     if (closedAt == null) ref.watch(employeesProvider(storeId));
+    // A phone or a small tablet: the short line and the lock alone at the
+    // strip's right end. Wider: the journée's date and the labelled button.
+    final small = context.isSmallScreen;
 
     if (closedAt == null) {
       // Turns amber on its own once the journée has been open too long — a
@@ -336,30 +331,45 @@ class _BusinessDayNotice extends ConsumerWidget {
         builder: (context, overdue) => NoticeBanner(
           key: const ValueKey('timeclock-business-day-open'),
           icon: overdue ? LucideIcons.triangleAlert : LucideIcons.calendarClock,
-          title: l10n.timeclockBusinessDayOpen(
-            Formatters.time(businessDay.openedAt),
-          ),
+          title: small
+              ? l10n.timeclockBusinessDayOpenShort(
+                  Formatters.time(businessDay.openedAt),
+                )
+              : l10n.timeclockBusinessDayOpen(
+                  date,
+                  Formatters.time(businessDay.openedAt),
+                ),
           message: overdue
               ? l10n.timeclockBusinessDayOverdue(
                   AttendanceRules.businessDayAlertAfter.inHours,
                 )
               : null,
           colors: overdue ? AppColors.lowStock : null,
-          // Just the lock, beside the line it acts on; « Fermer la journée »
-          // shows on hover (and is the screen reader's name for it).
-          titleTrailing: IconButton.outlined(
-            key: const ValueKey('timeclock-close-day'),
-            tooltip: l10n.timeclockCloseDay,
-            onPressed: () => _close(context, ref),
-            visualDensity: VisualDensity.compact,
-            style: IconButton.styleFrom(
-              foregroundColor: overdue
-                  ? AppColors.lowStock.foreground
-                  : AppColors.textPrimary,
-              side: const BorderSide(color: AppColors.borderStrong),
-            ),
-            icon: const Icon(LucideIcons.lock, size: AppSizing.iconSm),
-          ),
+          // The lock alone, « Fermer la journée » on hover (and the screen
+          // reader's name for it).
+          trailing: !small
+              ? null
+              : IconButton.outlined(
+                  key: const ValueKey('timeclock-close-day'),
+                  tooltip: l10n.timeclockCloseDay,
+                  onPressed: () => _close(context, ref),
+                  visualDensity: VisualDensity.compact,
+                  style: IconButton.styleFrom(
+                    foregroundColor: overdue
+                        ? AppColors.lowStock.foreground
+                        : AppColors.textPrimary,
+                    side: const BorderSide(color: AppColors.borderStrong),
+                  ),
+                  icon: const Icon(LucideIcons.lock, size: AppSizing.iconSm),
+                ),
+          action: small
+              ? null
+              : OutlinedButton.icon(
+                  key: const ValueKey('timeclock-close-day'),
+                  onPressed: () => _close(context, ref),
+                  icon: const Icon(LucideIcons.lock, size: AppSizing.iconSm),
+                  label: Text(l10n.timeclockCloseDay),
+                ),
         ),
       );
     }

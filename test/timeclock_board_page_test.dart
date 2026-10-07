@@ -200,7 +200,7 @@ void main() {
 
   for (final size in const [Size(390, 844), Size(742, 1000)]) {
     _testBoard('header below 840dp (${size.width.toInt()}): full screen on the '
-        'title line, date and time centred on their own line', (tester) async {
+        'title line, a small date and time right under the title', (tester) async {
       await _openBoard(tester, size: size);
 
       final title = find.text('Tableau de pointage').last;
@@ -216,11 +216,14 @@ void main() {
       // Only the pipe between date and time — none before full screen.
       expect(find.byType(PipeSeparator), findsOneWidget);
 
-      final clock = tester.getRect(find.byKey(const ValueKey('live-date-time')));
-      expect(clock.top, greaterThan(tester.getRect(title).bottom));
-      // Centred on the content (the rail takes the left on a tablet).
-      final grid = tester.getRect(find.byType(ResponsiveCardGrid));
-      expect(clock.center.dx, closeTo(grid.center.dx, 2));
+      final clockFinder = find.byKey(const ValueKey('live-date-time'));
+      final clock = tester.getRect(clockFinder);
+      final titleRect = tester.getRect(title);
+      // Right under the title, at its left edge, above any subtitle.
+      expect(clock.top, greaterThan(titleRect.bottom));
+      expect(clock.top - titleRect.bottom, lessThan(12));
+      expect(clock.left, closeTo(titleRect.left, 1));
+      expect(tester.widget<LiveDateTime>(find.byType(LiveDateTime)).small, isTrue);
     });
   }
 
@@ -477,20 +480,19 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('FIN DE JOURNÉE'), findsOneWidget);
-    // Still the journée opened at 11:00 — the notice says when, not the date.
     final notice = find.byKey(const ValueKey('timeclock-business-day-open'));
     expect(
       find.descendant(
         of: notice,
-        matching: find.text('Journée ouverte à 11:00'),
+        matching: find.textContaining(Formatters.date(opened)),
       ),
       findsOneWidget,
     );
   });
 
-  _testBoard('the open-journée notice: « Journée ouverte à », no date, and a '
-      'lock beside it whose label shows on hover', (tester) async {
-    final db = await _openBoard(tester);
+  _testBoard('the open-journée notice on a phone: « Journée ouverte à », no '
+      'date, the lock alone at the right end', (tester) async {
+    final db = await _openBoard(tester, size: const Size(390, 844));
     await AttendanceRepository(
       db,
     ).clockIn(EmployeeIds.amelie, StoreIds.sablon, now: _today(8));
@@ -520,12 +522,33 @@ void main() {
       findsOneWidget,
     );
     expect(find.byTooltip('Fermer la journée'), findsOneWidget);
-    // Right after the title, on its line.
-    final titleRect = tester.getRect(title);
+    // At the strip's right end, on the text's line — not against the text.
+    final noticeRect = tester.getRect(notice);
     final closeRect = tester.getRect(close);
-    expect(closeRect.left, greaterThan(titleRect.right));
-    expect(closeRect.left - titleRect.right, lessThan(24));
-    expect(closeRect.center.dy, closeTo(titleRect.center.dy, 8));
+    expect(noticeRect.right - closeRect.right, lessThan(24));
+    expect(closeRect.center.dy, closeTo(tester.getCenter(title).dy, 12));
+  });
+
+  _testBoard('the open-journée notice on a wide screen: the date and the '
+      'labelled « Fermer la journée »', (tester) async {
+    final db = await _openBoard(tester);
+    await AttendanceRepository(
+      db,
+    ).clockIn(EmployeeIds.amelie, StoreIds.sablon, now: _today(8));
+    await tester.pumpAndSettle();
+
+    final notice = find.byKey(const ValueKey('timeclock-business-day-open'));
+    expect(
+      find.descendant(
+        of: notice,
+        matching: find.textContaining(Formatters.date(_today(8))),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: notice, matching: find.text('Fermer la journée')),
+      findsOneWidget,
+    );
   });
 
   _testBoard('a closed journée disables Pointer until the next day', (

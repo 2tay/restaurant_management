@@ -403,6 +403,7 @@ class ShellPage extends StatelessWidget {
     this.keepSubtitle = false,
     this.actions = const [],
     this.titleTrailing,
+    this.titleBelow,
     this.scrollable = true,
     this.padding,
     this.back,
@@ -434,6 +435,10 @@ class ShellPage extends StatelessWidget {
   /// like [actions] — a small icon (the board's full screen on a phone) that
   /// would otherwise drop to a line of its own.
   final Widget? titleTrailing;
+
+  /// A line right under the title, above any subtitle — the board's small
+  /// live date and time on a phone. Kept on a phone, unlike the subtitle.
+  final Widget? titleBelow;
 
   final Widget child;
 
@@ -548,6 +553,7 @@ class ShellPage extends StatelessWidget {
             keepSubtitle: keepSubtitle,
             actions: actions,
             trailing: titleTrailing,
+            below: titleBelow,
             theme: theme,
             leading: back == null
                 ? null
@@ -616,6 +622,7 @@ class _TitleRow extends StatelessWidget {
     required this.actions,
     required this.theme,
     this.trailing,
+    this.below,
     this.leading,
   });
 
@@ -627,6 +634,9 @@ class _TitleRow extends StatelessWidget {
 
   /// See [ShellPage.titleTrailing].
   final Widget? trailing;
+
+  /// See [ShellPage.titleBelow].
+  final Widget? below;
 
   /// The back arrow, level with the title.
   final Widget? leading;
@@ -663,6 +673,10 @@ class _TitleRow extends StatelessWidget {
             alignment: Alignment.centerLeft,
             child: titleText,
           ),
+        if (below != null) ...[
+          const SizedBox(height: AppSpacing.xs),
+          below!,
+        ],
         if (showSubtitle) ...[
           const SizedBox(height: AppSpacing.xs),
           Text(subtitle!, style: theme.textTheme.bodyMedium),
