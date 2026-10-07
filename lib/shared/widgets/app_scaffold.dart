@@ -215,6 +215,9 @@ class _PhoneAppBar extends ConsumerWidget implements PreferredSizeWidget {
       surfaceTintColor: Colors.transparent,
       elevation: 0,
       scrolledUnderElevation: 0,
+      // No hairline under the pale green: the theme's bottom border is for
+      // white bars on a white page.
+      shape: const Border(),
       titleSpacing: 0,
       iconTheme: IconThemeData(color: AppColors.brandTint.foreground),
       title: Row(
@@ -276,6 +279,7 @@ class AppScaffoldSkeleton extends StatelessWidget {
         appBar: AppBar(
           backgroundColor: phoneAppBarColor,
           elevation: 0,
+          shape: const Border(),
           automaticallyImplyLeading: false,
           // The store name to come, a shade darker than the pale green bar.
           title: Container(
