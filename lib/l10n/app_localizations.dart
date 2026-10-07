@@ -5242,11 +5242,11 @@ abstract class AppLocalizations {
   /// **'Vous n\'avez pas encore commencé votre journée du {date}. Pointez pour la démarrer.'**
   String timeclockStartDayPrompt(String date);
 
-  /// Board notice while a journée de service is open. {date} is e.g. 'mardi 29/09/2026' — still yesterday's date after midnight until the journée is closed.
+  /// Board notice while a journée de service is open. {time} is when it opened, e.g. '08:00'.
   ///
   /// In fr, this message translates to:
-  /// **'Journée du {date} · ouverte à {time}'**
-  String timeclockBusinessDayOpen(String date, String time);
+  /// **'Journée ouverte à {time}'**
+  String timeclockBusinessDayOpen(String time);
 
   /// Warning under the open-journée notice once it has been open too long (likely forgotten).
   ///

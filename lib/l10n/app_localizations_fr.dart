@@ -3225,8 +3225,8 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String timeclockBusinessDayOpen(String date, String time) {
-    return 'Journée du $date · ouverte à $time';
+  String timeclockBusinessDayOpen(String time) {
+    return 'Journée ouverte à $time';
   }
 
   @override

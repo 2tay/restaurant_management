@@ -21,6 +21,7 @@ class NoticeBanner extends StatelessWidget {
     required this.title,
     this.message,
     this.action,
+    this.titleTrailing,
     this.colors,
     super.key,
   });
@@ -37,6 +38,10 @@ class NoticeBanner extends StatelessWidget {
   /// when there is not enough width for both.
   final Widget? action;
 
+  /// A small control right after [title], on its line — an icon button
+  /// whose label is its tooltip — rather than out at the end of the strip.
+  final Widget? titleTrailing;
+
   /// Tint. Defaults to the neutral surface — a notice is not automatically a
   /// warning, and colouring one amber that isn't spends the signal.
   final StockStatusColors? colors;
@@ -47,6 +52,11 @@ class NoticeBanner extends StatelessWidget {
     final background = colors?.container ?? AppColors.surfaceVariant;
     final foreground = colors?.foreground ?? AppColors.textSecondary;
 
+    final titleText = Text(
+      title,
+      style: theme.textTheme.titleSmall?.copyWith(color: foreground),
+    );
+
     final text = Row(
       children: [
         Icon(icon, size: AppSizing.iconLg, color: foreground),
@@ -56,10 +66,16 @@ class NoticeBanner extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                title,
-                style: theme.textTheme.titleSmall?.copyWith(color: foreground),
-              ),
+              if (titleTrailing == null)
+                titleText
+              else
+                Row(
+                  children: [
+                    Flexible(child: titleText),
+                    const SizedBox(width: AppSpacing.sm),
+                    titleTrailing!,
+                  ],
+                ),
               if (message != null) ...[
                 const SizedBox(height: AppSpacing.xs),
                 Text(

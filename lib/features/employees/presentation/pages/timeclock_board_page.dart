@@ -337,7 +337,6 @@ class _BusinessDayNotice extends ConsumerWidget {
           key: const ValueKey('timeclock-business-day-open'),
           icon: overdue ? LucideIcons.triangleAlert : LucideIcons.calendarClock,
           title: l10n.timeclockBusinessDayOpen(
-            date,
             Formatters.time(businessDay.openedAt),
           ),
           message: overdue
@@ -346,11 +345,20 @@ class _BusinessDayNotice extends ConsumerWidget {
                 )
               : null,
           colors: overdue ? AppColors.lowStock : null,
-          action: OutlinedButton.icon(
+          // Just the lock, beside the line it acts on; « Fermer la journée »
+          // shows on hover (and is the screen reader's name for it).
+          titleTrailing: IconButton.outlined(
             key: const ValueKey('timeclock-close-day'),
+            tooltip: l10n.timeclockCloseDay,
             onPressed: () => _close(context, ref),
+            visualDensity: VisualDensity.compact,
+            style: IconButton.styleFrom(
+              foregroundColor: overdue
+                  ? AppColors.lowStock.foreground
+                  : AppColors.textPrimary,
+              side: const BorderSide(color: AppColors.borderStrong),
+            ),
             icon: const Icon(LucideIcons.lock, size: AppSizing.iconSm),
-            label: Text(l10n.timeclockCloseDay),
           ),
         ),
       );

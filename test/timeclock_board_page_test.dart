@@ -5,6 +5,7 @@
 import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:stock_inventory/app/router.dart';
 import 'package:stock_inventory/app/routes.dart';
 import 'package:stock_inventory/core/theme/app_colors.dart';
@@ -476,14 +477,55 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('FIN DE JOURNÉE'), findsOneWidget);
+    // Still the journée opened at 11:00 — the notice says when, not the date.
     final notice = find.byKey(const ValueKey('timeclock-business-day-open'));
     expect(
       find.descendant(
         of: notice,
-        matching: find.textContaining(Formatters.date(opened)),
+        matching: find.text('Journée ouverte à 11:00'),
       ),
       findsOneWidget,
     );
+  });
+
+  _testBoard('the open-journée notice: « Journée ouverte à », no date, and a '
+      'lock beside it whose label shows on hover', (tester) async {
+    final db = await _openBoard(tester);
+    await AttendanceRepository(
+      db,
+    ).clockIn(EmployeeIds.amelie, StoreIds.sablon, now: _today(8));
+    await tester.pumpAndSettle();
+
+    final notice = find.byKey(const ValueKey('timeclock-business-day-open'));
+    final title = find.descendant(
+      of: notice,
+      matching: find.text('Journée ouverte à 08:00'),
+    );
+    expect(title, findsOneWidget);
+    expect(
+      find.descendant(
+        of: notice,
+        matching: find.textContaining(Formatters.date(_today(8))),
+      ),
+      findsNothing,
+    );
+
+    final close = find.byKey(const ValueKey('timeclock-close-day'));
+    expect(
+      find.descendant(of: notice, matching: find.text('Fermer la journée')),
+      findsNothing,
+    );
+    expect(
+      find.descendant(of: close, matching: find.byIcon(LucideIcons.lock)),
+      findsOneWidget,
+    );
+    expect(find.byTooltip('Fermer la journée'), findsOneWidget);
+    // Right after the title, on its line.
+    final titleRect = tester.getRect(title);
+    final closeRect = tester.getRect(close);
+    expect(closeRect.left, greaterThan(titleRect.right));
+    expect(closeRect.left - titleRect.right, lessThan(24));
+    expect(closeRect.center.dy, closeTo(titleRect.center.dy, 8));
   });
 
   _testBoard('a closed journée disables Pointer until the next day', (
