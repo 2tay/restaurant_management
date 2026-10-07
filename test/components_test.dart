@@ -1654,10 +1654,25 @@ void main() {
       ),
     );
 
-    testWidgets('shown on a single page, arrows disabled', (tester) async {
+    testWidgets('hidden while everything fits the smallest page', (
+      tester,
+    ) async {
       await tester.pumpWidget(paginator());
-      expect(find.text('1–3 sur 3'), findsOneWidget);
+      expect(find.textContaining('sur'), findsNothing);
+      await tester.pumpWidget(paginator(total: 10, onPageSize: (_) {}));
+      expect(find.textContaining('sur'), findsNothing);
+      expect(find.byKey(const ValueKey('paginator-page-size')), findsNothing);
+    });
+
+    testWidgets('shown past the smallest page, even on one page of 25', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        paginator(total: 15, pageSize: 25, onPageSize: (_) {}),
+      );
+      expect(find.text('1–15 sur 15'), findsOneWidget);
       expect(find.text('1 / 1'), findsOneWidget);
+      expect(find.byKey(const ValueKey('paginator-page-size')), findsOneWidget);
       for (final tooltip in ['Page précédente', 'Page suivante']) {
         final button = tester.widget<IconButton>(
           find.ancestor(
@@ -1675,7 +1690,7 @@ void main() {
     });
 
     testWidgets('no rows-per-page menu without a handler', (tester) async {
-      await tester.pumpWidget(paginator());
+      await tester.pumpWidget(paginator(total: 40, pageCount: 4));
       expect(find.byKey(const ValueKey('paginator-page-size')), findsNothing);
     });
 

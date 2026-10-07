@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
@@ -8,9 +10,10 @@ import '../../l10n/app_localizations.dart';
 /// Précédent / Suivant plus an "X–Y sur Z" range, for a table that caps its
 /// rows and pages the rest — see decision 7 in the Gestion Employée brief.
 ///
-/// Shown as soon as there is a row, even on a single page, so the table always
-/// says how many rows it holds. With [onPageSizeChanged], a « Lignes par
-/// page » menu lets the reader pick among [pageSizeOptions].
+/// Shown only once there are more rows than the smallest page holds (more
+/// than 10 with the default sizes): a short list needs no paging. With
+/// [onPageSizeChanged], a « Lignes par page » menu lets the reader pick among
+/// [pageSizeOptions].
 class Paginator extends StatelessWidget {
   const Paginator({
     required this.page,
@@ -37,7 +40,12 @@ class Paginator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (totalCount <= 0) return const SizedBox.shrink();
+    // Measured against the smallest page, not the current one: with 25 per
+    // page and 15 rows, the menu must stay to go back to 10.
+    final threshold = onPageSizeChanged == null
+        ? pageSize
+        : pageSizeOptions.reduce(math.min);
+    if (totalCount <= threshold) return const SizedBox.shrink();
 
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);

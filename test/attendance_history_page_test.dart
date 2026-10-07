@@ -293,26 +293,15 @@ void main() {
     );
   });
 
-  /// Picks [size] in the paginator's rows-per-page menu.
-  Future<void> pickPageSize(WidgetTester tester, int size) async {
-    final menu = find.byKey(const ValueKey('paginator-page-size'));
-    await tester.ensureVisible(menu);
-    await tester.tap(menu);
-    await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(PopupMenuItem<int>, '$size'));
-    await tester.pumpAndSettle();
-  }
-
-  testApp('the table is paged: 10 rows by default, 25 or 50 on demand', (tester) async {
+  testApp('the paginator stays hidden while the rows fit one page of 10', (tester) async {
     await _open(tester);
     expect(find.byType(Paginator), findsOneWidget);
-    Paginator pager() => tester.widget<Paginator>(find.byType(Paginator));
-    expect(pager().pageSize, 10);
-    expect(find.textContaining(RegExp(r'^1–\d+ sur \d+$')), findsOneWidget);
-    await pickPageSize(tester, 25);
-    expect(tester.takeException(), isNull);
-    expect(pager().pageSize, 25);
-    expect(pager().page, 0);
+    final pager = tester.widget<Paginator>(find.byType(Paginator));
+    expect(pager.pageSize, 10);
+    expect(pager.totalCount, inInclusiveRange(1, 10));
+    // Shown only past 10 (see the Paginator component tests).
+    expect(find.textContaining(RegExp(r'^1–\d+ sur \d+$')), findsNothing);
+    expect(find.byKey(const ValueKey('paginator-page-size')), findsNothing);
   });
 
   testApp('a phone: one card per line, worked hours and a pause count, the '
