@@ -15,8 +15,9 @@ import 'action_density.dart';
 /// busy state, and the full-width option without every call site rebuilding
 /// them.
 ///
-/// It shortens its label in a tight header but never collapses to an icon —
-/// see [ActionDensity.iconOnly] for why.
+/// It shortens its label in a tight header but does not collapse to an icon
+/// on its own — see [ActionDensity.iconOnly] for why. A caller that wants the
+/// collapse anyway opts in with [iconOnlyBelow].
 class PrimaryButton extends StatelessWidget {
   const PrimaryButton({
     required this.label,
@@ -27,6 +28,7 @@ class PrimaryButton extends StatelessWidget {
     this.fullWidth = false,
     this.large = false,
     this.tonal = false,
+    this.iconOnlyBelow,
     super.key,
   });
 
@@ -57,8 +59,44 @@ class PrimaryButton extends StatelessWidget {
   /// step (a wizard's Suivant) that is the way on but not yet the commit.
   final bool tonal;
 
+  /// Below this screen width the button shows only its [icon], the label
+  /// moved to a tooltip and a semantics label — for a header action whose
+  /// glyph says it all on its own (Ajouter personnel's « + » on a phone).
+  /// Null, the default, keeps the words at every width.
+  final double? iconOnlyBelow;
+
   @override
   Widget build(BuildContext context) {
+    final collapseBelow = iconOnlyBelow;
+    if (icon != null &&
+        !fullWidth &&
+        collapseBelow != null &&
+        MediaQuery.sizeOf(context).width < collapseBelow) {
+      return MergeSemantics(
+        child: Semantics(
+          label: label,
+          child: Tooltip(
+            message: label,
+            child: FilledButton(
+              onPressed: isBusy ? null : onPressed,
+              // Square, like a collapsed SecondaryButton.
+              style: FilledButton.styleFrom(
+                padding: EdgeInsets.zero,
+                minimumSize: Size.zero,
+                fixedSize: const Size(
+                  AppSizing.buttonHeight,
+                  AppSizing.buttonHeight,
+                ),
+              ),
+              child: isBusy
+                  ? const _ButtonSpinner()
+                  : Icon(icon, size: AppSizing.iconMd),
+            ),
+          ),
+        ),
+      );
+    }
+
     final ButtonStyle? sizeStyle = large
         ? FilledButton.styleFrom(
             minimumSize: const Size(0, AppSizing.buttonHeightLarge),

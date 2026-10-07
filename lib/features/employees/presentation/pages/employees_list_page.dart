@@ -75,6 +75,7 @@ class _EmployeesListPageState extends ConsumerState<EmployeesListPage> {
           label: l10n.employeesAdd,
           shortLabel: l10n.shortAddEmployee,
           icon: LucideIcons.userPlus,
+          iconOnlyBelow: AppBreakpoints.medium,
           onPressed: _add,
         ),
       ],

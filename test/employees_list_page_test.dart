@@ -230,6 +230,33 @@ void main() {
     expect(toggle.left, greaterThan(kpi.left - 400));
   });
 
+  testApp('« Ajouter un employé » is one icon with a tooltip below 840dp', (
+    tester,
+  ) async {
+    await _open(tester, size: const Size(390, 844), cards: false);
+    expect(find.text('Ajouter un employé'), findsNothing);
+    expect(find.text('Ajouter'), findsNothing);
+    final add = find.byTooltip('Ajouter un employé');
+    expect(add, findsOneWidget);
+    await tester.tap(add);
+    await tester.pumpAndSettle();
+    expect(find.byType(WizardDialog), findsOneWidget);
+  });
+
+  testApp('« Ajouter un employé » keeps its label on a wide screen', (
+    tester,
+  ) async {
+    await _open(tester);
+    expect(find.byTooltip('Ajouter un employé'), findsNothing);
+    expect(
+      find.descendant(
+        of: find.byType(PrimaryButton),
+        matching: find.textContaining('Ajouter'),
+      ),
+      findsOneWidget,
+    );
+  });
+
   testApp('on a phone the filters go behind one icon, live in their sheet', (
     tester,
   ) async {
