@@ -396,6 +396,69 @@ void main() {
     });
   });
 
+  group('ResponsiveCardGrid', () {
+    /// The shell's layout at [screen]: the sidebar (a rail below 1100dp, full
+    /// above), then the page padding around the grid.
+    Widget shell(double screen, double minCardWidth) {
+      final sidebar = screen < AppBreakpoints.sidebarCollapse
+          ? AppSizing.sidebarWidthCollapsed
+          : AppSizing.sidebarWidthExpanded;
+      return _host(
+        MediaQuery(
+          data: MediaQueryData(size: Size(screen, 900)),
+          child: SizedBox(
+            width: screen,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(width: sidebar),
+                Expanded(
+                  child: Padding(
+                    padding: AppSpacing.pageInsets,
+                    child: ResponsiveCardGrid(
+                      minCardWidth: minCardWidth,
+                      children: [
+                        for (var i = 0; i < 8; i++) const SizedBox(height: 10),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    for (final min in [320.0, 300.0, 260.0]) {
+      testWidgets('widening from 840 to 1800 (min ${min.toInt()}): columns '
+          'only grow, no card under its minimum', (tester) async {
+        tester.view.physicalSize = const Size(1800, 900);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+
+        var previous = 0;
+        for (var screen = 840.0; screen <= 1800; screen += 10) {
+          await tester.pumpWidget(shell(screen, min));
+          final wrap = tester.widget<Wrap>(
+            find.descendant(
+              of: find.byType(ResponsiveCardGrid),
+              matching: find.byType(Wrap),
+            ),
+          );
+          final cardWidth = (wrap.children.first as SizedBox).width!;
+          final gridWidth = tester.getSize(find.byType(Wrap)).width;
+          final columns =
+              ((gridWidth + AppSpacing.lg) / (cardWidth + AppSpacing.lg))
+                  .round();
+          expect(columns, greaterThanOrEqualTo(previous), reason: 'at $screen');
+          expect(cardWidth, greaterThanOrEqualTo(min), reason: 'at $screen');
+          previous = columns;
+        }
+      });
+    }
+  });
+
   group('StatTileRow', () {
     const tiles = [
       StatTile(label: 'Actifs', value: '12', icon: LucideIcons.users),

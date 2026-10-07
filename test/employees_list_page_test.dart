@@ -334,8 +334,8 @@ void main() {
     }
   });
 
-  testApp('cards: one per line on a phone or a small tablet, three or four '
-      'on wider screens', (
+  testApp('cards: one per line on a phone or a small tablet, then two, three '
+      'and four as the window widens', (
     tester,
   ) async {
     Future<int> perLine(Size size) async {
@@ -349,8 +349,11 @@ void main() {
 
     expect(await perLine(const Size(390, 844)), 1);
     expect(await perLine(const Size(800, 1280)), 1);
+    // At least 300dp a card, so everything on it shows whole: three from
+    // ~1280, four once the window passes ~1600.
     expect(await perLine(const Size(1280, 800)), 3);
-    expect(await perLine(const Size(1440, 900)), 4);
+    expect(await perLine(const Size(1440, 900)), 3);
+    expect(await perLine(const Size(1680, 1000)), 4);
   });
 
   testApp('the card: identity, status, role, contact, rate, hire date — '

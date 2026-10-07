@@ -322,7 +322,7 @@ class _EmployeeGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ResponsiveCardGrid(
-      minCardWidth: 260,
+      minCardWidth: 300,
       children: [
         for (final employee in employees)
           EmployeeCard(
