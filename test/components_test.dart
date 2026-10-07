@@ -434,6 +434,51 @@ void main() {
       );
     });
 
+    testWidgets('a 900dp window less the rail: five tiles go three then two, '
+        'no label cut', (tester) async {
+      const five = [
+        ...tiles,
+        StatTile(label: 'Embauchés', value: '5', icon: LucideIcons.userPlus),
+        StatTile(label: 'Tarif moyen', value: '12 €', icon: LucideIcons.wallet),
+      ];
+      await tester.pumpWidget(
+        _host(
+          const MediaQuery(
+            data: MediaQueryData(size: Size(900, 800)),
+            child: SizedBox(width: 760, child: StatTileRow(tiles: five)),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      final rects = [
+        for (final e in find.byType(StatTile).evaluate())
+          tester.getRect(find.byWidget(e.widget)),
+      ];
+      // Three on the first line, two on the second, each line full width.
+      expect(rects[0].top, rects[2].top);
+      expect(rects[3].top, greaterThan(rects[0].bottom));
+      expect(rects[3].top, rects[4].top);
+      expect(rects[0].width, closeTo((760 - 2 * AppSpacing.lg) / 3, 0.01));
+      expect(rects[3].width, closeTo((760 - AppSpacing.lg) / 2, 0.01));
+      for (final r in rects) {
+        expect(r.width, greaterThanOrEqualTo(StatTileRow.minTileWidth));
+      }
+    });
+
+    testWidgets('a wide content area keeps every tile on one line', (
+      tester,
+    ) async {
+      await tester.pumpWidget(host(1400, 1100));
+      await tester.pumpAndSettle();
+      final tops = {
+        for (final e in find.byType(StatTile).evaluate())
+          tester.getTopLeft(find.byWidget(e.widget)).dy,
+      };
+      expect(tops, hasLength(1));
+    });
+
     testWidgets('keeps every icon, even two per line on a 320dp phone', (
       tester,
     ) async {

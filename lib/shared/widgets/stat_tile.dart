@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_colors.dart';
@@ -117,9 +119,11 @@ class StatTile extends StatelessWidget {
 /// in a `Row`. They share this one now.
 ///
 /// On a phone or a small tablet (screen narrower than [AppBreakpoints.medium])
-/// the tiles go two per line; an odd last tile takes the whole line rather
-/// than leaving a hole beside it. Anywhere wider, they all share a single
-/// line.
+/// the tiles go two per line. Anywhere wider they share one line as long as
+/// each keeps [minTileWidth]; past that — a 900dp window less the rail — they
+/// spread over balanced lines (five: three, then two) rather than cut every
+/// label to « Perso… ». Each line fills the width, so an odd last tile takes
+/// the whole line instead of leaving a hole beside it.
 class StatTileRow extends StatelessWidget {
   const StatTileRow({
     required this.tiles,
@@ -131,34 +135,51 @@ class StatTileRow extends StatelessWidget {
 
   final double spacing;
 
+  /// The narrowest a tile goes on a wide screen: the medallion, its gap and
+  /// a label such as « Embauchés ce mois » still whole.
+  static const double minTileWidth = 200;
+
   @override
   Widget build(BuildContext context) {
     if (tiles.isEmpty) return const SizedBox.shrink();
 
     final small = MediaQuery.sizeOf(context).width < AppBreakpoints.medium;
-    final columns = small && tiles.length > 2 ? 2 : tiles.length;
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final available = constraints.maxWidth;
-        final tileWidth =
-            (available - spacing * (columns - 1)) / columns;
-        // An odd tile alone on the last line stretches across it.
-        final lonelyLast = tiles.length % columns == 1 && columns > 1;
+        final fit = ((constraints.maxWidth + spacing) /
+                (minTileWidth + spacing))
+            .floor()
+            .clamp(1, tiles.length);
+        final columns = small ? math.min(2, tiles.length) : fit;
 
-        return Wrap(
-          spacing: spacing,
-          runSpacing: spacing,
-          children: [
-            for (var i = 0; i < tiles.length; i++)
-              SizedBox(
-                width: lonelyLast && i == tiles.length - 1
-                    ? available
-                    : tileWidth,
-                child: tiles[i],
+        // As many lines as [columns] needs, the tiles shared out evenly — the
+        // longer lines first.
+        final lines = (tiles.length / columns).ceil();
+        final base = tiles.length ~/ lines;
+        final extra = tiles.length % lines;
+
+        final rows = <Widget>[];
+        var next = 0;
+        for (var line = 0; line < lines; line++) {
+          final count = base + (line < extra ? 1 : 0);
+          if (line > 0) rows.add(SizedBox(height: spacing));
+          rows.add(
+            IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  for (var i = 0; i < count; i++) ...[
+                    if (i > 0) SizedBox(width: spacing),
+                    Expanded(child: tiles[next + i]),
+                  ],
+                ],
               ),
-          ],
-        );
+            ),
+          );
+          next += count;
+        }
+        return Column(mainAxisSize: MainAxisSize.min, children: rows);
       },
     );
   }
