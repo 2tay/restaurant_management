@@ -77,6 +77,25 @@ Future<void> _openFilteredToNoah(WidgetTester tester) async {
     Routes.toAttendanceHistory(StoreIds.sablon, employeeId: EmployeeIds.noah),
   );
   await tester.pumpAndSettle();
+  // The page opens on today; the days these tests look at are earlier.
+  await _pickFrom(tester, '20/08/2026');
+}
+
+/// Sets « Début » by typing [date] into the picker's text entry.
+Future<void> _pickFrom(WidgetTester tester, String date) async {
+  await tester.tap(find.byKey(const ValueKey('date-filter-from')));
+  await tester.pumpAndSettle();
+  await tester.tap(find.byIcon(Icons.edit_outlined));
+  await tester.pumpAndSettle();
+  await tester.enterText(
+    find.descendant(
+      of: find.byType(DatePickerDialog),
+      matching: find.byType(TextField),
+    ),
+    date,
+  );
+  await tester.tap(find.text('OK'));
+  await tester.pumpAndSettle();
 }
 
 Future<void> _openForgottenDrawer(WidgetTester tester) async {
@@ -122,6 +141,14 @@ void main() {
     expect(find.text('Horaires'), findsNothing);
     // The brief forbids an export affordance here.
     expect(find.text('Exporter'), findsNothing);
+  });
+
+  testApp('opens on today: Début and Fin are both today', (tester) async {
+    await _open(tester);
+    DateFilter pill(String key) =>
+        tester.widget<DateFilter>(find.byKey(ValueKey(key)));
+    expect(pill('date-filter-from').value, DateTime(2026, 8, 29));
+    expect(pill('date-filter-to').value, DateTime(2026, 8, 29));
   });
 
   testApp('clicking a row (no Détail column) opens the detail drawer', (

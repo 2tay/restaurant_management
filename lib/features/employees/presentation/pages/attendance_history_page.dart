@@ -17,9 +17,6 @@ import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 import '../widgets/correct_exit_dialog.dart';
 
-/// How far back the range picker opens on first load.
-const int _defaultRangeDays = 30;
-
 /// Below this width the table would have to scroll horizontally to show its
 /// six columns — a card per day reads better on a touch screen than a
 /// sideways-scrolling table, so the history switches to cards instead.
@@ -65,8 +62,10 @@ class _AttendanceHistoryPageState extends ConsumerState<AttendanceHistoryPage> {
   @override
   void initState() {
     super.initState();
+    // Today's sessions by default, on every screen; the range is the
+    // manager's to widen from there.
     _defaultTo = dayOf(clock.now());
-    _defaultFrom = _defaultTo.subtract(const Duration(days: _defaultRangeDays));
+    _defaultFrom = _defaultTo;
     _from = _defaultFrom;
     _to = _defaultTo;
   }
