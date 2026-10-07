@@ -48,6 +48,24 @@ class _EmployeesListPageState extends ConsumerState<EmployeesListPage> {
   int _page = 0;
   int _pageSize = Paginator.defaultPageSizes.first;
 
+  /// On the offstage full table, to measure the width its content needs.
+  final _measureKey = GlobalKey();
+
+  /// That width (full Actions column included), once measured.
+  double? _tableNeeds;
+
+  /// After a frame: reads what the table's content needs, and rebuilds when
+  /// it changed (other rows, a longer e-mail).
+  void _measureTable() {
+    if (!mounted) return;
+    final box = _measureKey.currentContext?.findRenderObject();
+    if (box is! RenderBox) return;
+    final needs = box.getMaxIntrinsicWidth(double.infinity);
+    if (_tableNeeds == null || (needs - _tableNeeds!).abs() > 0.5) {
+      setState(() => _tableNeeds = needs);
+    }
+  }
+
   void _add() => showEmployeeWizard(context, storeId: widget.storeId);
 
   late final _actions = _RosterActions(
@@ -107,10 +125,47 @@ class _EmployeesListPageState extends ConsumerState<EmployeesListPage> {
       start,
       (start + _pageSize).clamp(start, filtered.length),
     );
-    // A phone or a portrait tablet has no room for the table's eight columns
-    // — cards only, and no toggle to reach a table that would scroll sideways.
-    final cardsOnly = context.windowSize.index < WindowSize.medium.index;
+    return LayoutBuilder(
+      builder: (context, constraints) => _roster(
+        context,
+        l10n,
+        all,
+        filtered: filtered,
+        visible: visible,
+        page: page,
+        pageCount: pageCount,
+        width: constraints.maxWidth,
+      ),
+    );
+  }
+
+  Widget _roster(
+    BuildContext context,
+    AppLocalizations l10n,
+    List<Employee> all, {
+    required List<Employee> filtered,
+    required List<Employee> visible,
+    required int page,
+    required int pageCount,
+    required double width,
+  }) {
+    // A phone or a portrait tablet has no room for the table's columns.
+    // Wider, the table's own content decides: whole, it stays; short only
+    // of the two history icons, Actions folds into the ⋮ menu; shorter
+    // still, it would scroll sideways — cards only, and no toggle to reach
+    // it. Until measured (the first frame), the table is assumed to fit.
+    final tableFit = context.windowSize.index < WindowSize.medium.index
+        ? _TableFit.none
+        : _tableFit(width);
+    final cardsOnly = tableFit == _TableFit.none;
     final showTable = !cardsOnly && _viewMode == CollectionViewMode.list;
+    // Measured offstage whenever it can be shown at all, so the answer is
+    // ready before the toggle is touched and follows the rows on screen.
+    final measuring = context.windowSize.index >= WindowSize.medium.index &&
+        visible.isNotEmpty;
+    if (measuring) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _measureTable());
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -179,8 +234,20 @@ class _EmployeesListPageState extends ConsumerState<EmployeesListPage> {
                   ),
           )
         else ...[
+          if (measuring)
+            Offstage(
+              child: _EmployeeTable(
+                employees: visible,
+                actions: _actions,
+                tableKey: _measureKey,
+              ),
+            ),
           if (showTable)
-            _EmployeeTable(employees: visible, actions: _actions)
+            _EmployeeTable(
+              employees: visible,
+              actions: _actions,
+              compactActions: tableFit == _TableFit.compact,
+            )
           else
             _EmployeeGrid(employees: visible, actions: _actions),
           const SizedBox(height: AppSpacing.sm),
@@ -198,6 +265,15 @@ class _EmployeesListPageState extends ConsumerState<EmployeesListPage> {
         ],
       ],
     );
+  }
+
+  _TableFit _tableFit(double width) {
+    final needs = _tableNeeds;
+    if (needs == null || width >= needs) return _TableFit.full;
+    if (width >= needs - _EmployeeTable.historyIconsWidth) {
+      return _TableFit.compact;
+    }
+    return _TableFit.none;
   }
 
   List<Employee> _filtered(List<Employee> all) {
@@ -339,6 +415,18 @@ class _EmployeeGrid extends StatelessWidget {
   }
 }
 
+/// How much of the roster table fits the page's width.
+enum _TableFit {
+  /// Every column, Actions with its two history icons and the ⋮ menu.
+  full,
+
+  /// Short only of those icons: Actions is the ⋮ menu alone, histories in it.
+  compact,
+
+  /// It would scroll sideways: no table at this width, cards only.
+  none,
+}
+
 /// What a card or a table row can do for one person — built once by the page.
 class _RosterActions {
   const _RosterActions({
@@ -359,20 +447,35 @@ class _RosterActions {
 /// The roster as a table — the alternative to the card grid, for scanning
 /// contact details, rates and hire dates side by side. The Actions column
 /// opens the two histories directly and holds the same ⋮ menu as a card.
-/// Same [DataTableWrapper] as the pointage history: below its minimum width
-/// it scrolls sideways rather than squeezing the columns.
+/// The page only shows it where it fits whole (see [_TableFit]), so the
+/// [DataTableWrapper]'s sideways scroll is never needed here.
 class _EmployeeTable extends StatelessWidget {
-  const _EmployeeTable({required this.employees, required this.actions});
+  const _EmployeeTable({
+    required this.employees,
+    required this.actions,
+    this.compactActions = false,
+    this.tableKey,
+  });
 
   final List<Employee> employees;
   final _RosterActions actions;
+
+  /// Actions as the ⋮ menu alone, the two histories moved into it.
+  final bool compactActions;
+
+  /// See [DataTableWrapper.tableKey].
+  final Key? tableKey;
+
+  /// What [compactActions] saves: the two history [IconButton]s.
+  static const double historyIconsWidth = 2 * kMinInteractiveDimension;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
 
     return DataTableWrapper(
-      minWidth: 960,
+      minWidth: 0,
+      tableKey: tableKey,
       columns: [
         DataColumn(label: Text(l10n.employeesColumnName)),
         DataColumn(label: Text(l10n.employeesColumnRole)),
@@ -419,34 +522,43 @@ class _EmployeeTable extends StatelessWidget {
         DataCell(Text('${Formatters.price(employee.pay)} / h')),
         DataCell(WeekdayDate(employee.hireDate)),
         DataCell(
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              IconButton(
-                key: ValueKey('employee-row-attendance-${employee.id}'),
-                tooltip: l10n.employeeActionAttendance,
-                icon: const Icon(LucideIcons.history, size: AppSizing.iconSm),
-                color: AppColors.primary600,
-                onPressed: () => actions.onAttendance(employee),
-              ),
-              IconButton(
-                key: ValueKey('employee-row-payroll-${employee.id}'),
-                tooltip: l10n.employeeActionPayroll,
-                icon: const Icon(LucideIcons.wallet, size: AppSizing.iconSm),
-                color: AppColors.primary600,
-                onPressed: () => actions.onPayroll(employee),
-              ),
-              EmployeeActionsMenu(
-                employee: employee,
-                includeHistories: false,
-                onAttendance: () => actions.onAttendance(employee),
-                onPayroll: () => actions.onPayroll(employee),
-                onEdit: () => actions.onEdit(employee),
-                onArchive: () => actions.onArchive(employee),
-                onRestore: () => actions.onRestore(employee),
-              ),
-            ],
-          ),
+          compactActions
+              ? EmployeeActionsMenu(
+                  employee: employee,
+                  onAttendance: () => actions.onAttendance(employee),
+                  onPayroll: () => actions.onPayroll(employee),
+                  onEdit: () => actions.onEdit(employee),
+                  onArchive: () => actions.onArchive(employee),
+                  onRestore: () => actions.onRestore(employee),
+                )
+              : Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      key: ValueKey('employee-row-attendance-${employee.id}'),
+                      tooltip: l10n.employeeActionAttendance,
+                      icon: const Icon(LucideIcons.history, size: AppSizing.iconSm),
+                      color: AppColors.primary600,
+                      onPressed: () => actions.onAttendance(employee),
+                    ),
+                    IconButton(
+                      key: ValueKey('employee-row-payroll-${employee.id}'),
+                      tooltip: l10n.employeeActionPayroll,
+                      icon: const Icon(LucideIcons.wallet, size: AppSizing.iconSm),
+                      color: AppColors.primary600,
+                      onPressed: () => actions.onPayroll(employee),
+                    ),
+                    EmployeeActionsMenu(
+                      employee: employee,
+                      includeHistories: false,
+                      onAttendance: () => actions.onAttendance(employee),
+                      onPayroll: () => actions.onPayroll(employee),
+                      onEdit: () => actions.onEdit(employee),
+                      onArchive: () => actions.onArchive(employee),
+                      onRestore: () => actions.onRestore(employee),
+                    ),
+                  ],
+                ),
         ),
       ],
     );

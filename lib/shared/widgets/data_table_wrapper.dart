@@ -16,6 +16,7 @@ class DataTableWrapper extends StatefulWidget {
     this.minWidth = 720,
     this.sortColumnIndex,
     this.sortAscending = true,
+    this.tableKey,
     super.key,
   });
 
@@ -27,6 +28,10 @@ class DataTableWrapper extends StatefulWidget {
 
   final int? sortColumnIndex;
   final bool sortAscending;
+
+  /// Set on the [DataTable] itself, for a caller that measures the width
+  /// the table's content needs ([RenderBox.getMaxIntrinsicWidth]).
+  final Key? tableKey;
 
   @override
   State<DataTableWrapper> createState() => _DataTableWrapperState();
@@ -97,6 +102,7 @@ class _DataTableWrapperState extends State<DataTableWrapper> {
               fit: StackFit.passthrough,
               children: [
                 DataTable(
+                  key: widget.tableKey,
                   columns: columns,
                   rows: rows,
                   sortColumnIndex: sortColumnIndex,

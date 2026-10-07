@@ -13,6 +13,7 @@ import 'package:stock_inventory/core/utils/formatters.dart';
 import 'package:stock_inventory/data/database/app_database.dart';
 import 'package:stock_inventory/data/repositories/repositories.dart';
 import 'package:stock_inventory/data/seed/dataset/dataset.dart';
+import 'package:stock_inventory/features/employees/presentation/widgets/employee_actions_menu.dart';
 import 'package:stock_inventory/features/employees/presentation/widgets/employee_card.dart';
 import 'package:stock_inventory/shared/widgets/widgets.dart';
 
@@ -30,14 +31,22 @@ Future<AppDatabase> _open(
   final db = await pumpApp(tester, size: size, asEmployeeId: EmployeeIds.marc);
   appRouter.go(Routes.toEmployees(StoreIds.sablon));
   await tester.pumpAndSettle();
-  if (cards) {
+  // No toggle where the table cannot fit: the page is cards only there.
+  if (cards && find.byTooltip('Vue grille').evaluate().isNotEmpty) {
     await tester.tap(find.byTooltip('Vue grille'));
     await tester.pumpAndSettle();
   }
   return db;
 }
 
+/// The test font draws every glyph a full em, so the table needs ~2100dp
+/// here where it fits a 1440 window in Montserrat.
+const _tableWidth = Size(2600, 900);
+
+/// Switches to the table, widening the window first so it fits whole.
 Future<void> _toList(WidgetTester tester) async {
+  tester.view.physicalSize = _tableWidth;
+  await tester.pumpAndSettle();
   await tester.tap(find.byTooltip('Vue liste'));
   await tester.pumpAndSettle();
 }
@@ -50,7 +59,7 @@ Finder _cardMenu(String employeeId) => find.descendant(
 
 void main() {
   testApp('opens on the table, with the toggle on the list', (tester) async {
-    await _open(tester, cards: false);
+    await _open(tester, size: _tableWidth, cards: false);
 
     expect(tester.takeException(), isNull);
     final toggle = tester.widget<ViewModeToggle<CollectionViewMode>>(
@@ -60,6 +69,49 @@ void main() {
     expect(find.byType(DataTable), findsOneWidget);
     expect(find.byType(EmployeeCard), findsNothing);
     expect(find.text(_karim), findsOneWidget);
+  });
+
+  testApp('the table only where it fits: whole, then Actions as ⋮ alone, '
+      'then cards only', (tester) async {
+    await _open(tester, size: _tableWidth, cards: false);
+    final row = find.byKey(
+      const ValueKey('employee-row-attendance-${EmployeeIds.amelie}'),
+    );
+
+    // Whole: the two history icons beside the ⋮ menu.
+    expect(find.byType(DataTable), findsOneWidget);
+    expect(row, findsOneWidget);
+    expect(
+      tester
+          .widgetList<EmployeeActionsMenu>(find.byType(EmployeeActionsMenu))
+          .every((menu) => !menu.includeHistories),
+      isTrue,
+    );
+
+    // Short of just those icons: the ⋮ menu alone, the histories inside it.
+    tester.view.physicalSize = const Size(2380, 900);
+    await tester.pumpAndSettle();
+    expect(find.byType(DataTable), findsOneWidget);
+    expect(row, findsNothing);
+    final menus = tester.widgetList<EmployeeActionsMenu>(
+      find.byType(EmployeeActionsMenu),
+    );
+    expect(menus, isNotEmpty);
+    expect(menus.every((menu) => menu.includeHistories), isTrue);
+    expect(tester.takeException(), isNull);
+
+    // Shorter still, it would scroll sideways: cards, and no toggle.
+    tester.view.physicalSize = const Size(1440, 900);
+    await tester.pumpAndSettle();
+    expect(find.byType(DataTable), findsNothing);
+    expect(find.byType(EmployeeCard), findsWidgets);
+    expect(find.byType(ViewModeToggle<CollectionViewMode>), findsNothing);
+
+    // Wide again: the table the user had chosen comes back.
+    tester.view.physicalSize = _tableWidth;
+    await tester.pumpAndSettle();
+    expect(find.byType(DataTable), findsOneWidget);
+    expect(row, findsOneWidget);
   });
 
   testApp('a 4th KPI: the average hourly rate of the active roster', (
@@ -186,7 +238,7 @@ void main() {
   testApp('view toggle and archived filter: flat and 40dp high', (
     tester,
   ) async {
-    await _open(tester);
+    await _open(tester, size: _tableWidth);
     expect(
       tester.getSize(find.byType(ViewModeToggle<CollectionViewMode>)).height,
       40,
@@ -215,7 +267,7 @@ void main() {
 
   testApp('search, archived filter and view toggle share one line, the '
       'controls under the last KPI', (tester) async {
-    await _open(tester);
+    await _open(tester, size: _tableWidth);
 
     final search = tester.getRect(find.byType(SearchField));
     final toggle = tester.getRect(
