@@ -219,11 +219,29 @@ void main() {
       final clockFinder = find.byKey(const ValueKey('live-date-time'));
       final clock = tester.getRect(clockFinder);
       final titleRect = tester.getRect(title);
-      // Right under the title, at its left edge, above any subtitle.
+      // Right under the title, set in a little, above any subtitle.
       expect(clock.top, greaterThan(titleRect.bottom));
       expect(clock.top - titleRect.bottom, lessThan(12));
-      expect(clock.left, closeTo(titleRect.left, 1));
+      expect(clock.left - titleRect.left, closeTo(6, 1));
       expect(tester.widget<LiveDateTime>(find.byType(LiveDateTime)).small, isTrue);
+      // 11pt, two sizes under the wide header's clock: the time's own span.
+      final time = tester
+          .widgetList<RichText>(
+            find.descendant(of: clockFinder, matching: find.byType(RichText)),
+          )
+          .firstWhere((t) => t.text.toPlainText().contains(':'));
+      double? styledSize(InlineSpan span, double? inherited) {
+        if (span is! TextSpan) return null;
+        final size = span.style?.fontSize ?? inherited;
+        if (span.text != null && span.text!.contains(':')) return size;
+        for (final child in span.children ?? const <InlineSpan>[]) {
+          final found = styledSize(child, size);
+          if (found != null) return found;
+        }
+        return null;
+      }
+
+      expect(styledSize(time.text, null), 11);
     });
   }
 
