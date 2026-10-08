@@ -5,7 +5,6 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../app/navigation.dart';
 import '../../../../app/routes.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../data/device_access.dart';
@@ -56,30 +55,31 @@ class _RestaurantAccountSectionState
     final theme = Theme.of(context);
     final access = ref.watch(deviceAccessProvider);
 
+    // Laid straight on the page like the profile above it: a title, then
+    // the facts in the field style, then the actions.
     if (!access.isAccount) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          SectionHeader(title: l10n.accountSectionTitle),
-          AppCard(
-            child: AdaptiveRow(
-              cells: [
-                AdaptiveCell(
-                  flex: 1,
-                  child: Text(
-                    l10n.accountSectionDemo,
-                    style: theme.textTheme.bodyMedium,
-                  ),
+          SettingsSectionTitle(title: l10n.accountSectionTitle),
+          AdaptiveRow(
+            cells: [
+              AdaptiveCell(
+                flex: 1,
+                child: Text(
+                  l10n.accountSectionDemo,
+                  style: theme.textTheme.bodyMedium,
                 ),
-                AdaptiveCell(
-                  child: SecondaryButton(
-                    label: l10n.accountConnect,
-                    icon: LucideIcons.cloud,
-                    onPressed: () => context.goSection(Routes.welcome),
-                  ),
+              ),
+              AdaptiveCell(
+                child: SecondaryButton(
+                  label: l10n.accountConnect,
+                  icon: LucideIcons.cloud,
+                  tone: SecondaryButtonTone.surface,
+                  onPressed: () => context.goSection(Routes.welcome),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ],
       );
@@ -88,109 +88,89 @@ class _RestaurantAccountSectionState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        SectionHeader(title: l10n.accountSectionTitle),
-        AppCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                children: [
-                  const Icon(
-                    LucideIcons.store,
-                    size: AppSizing.iconMd,
-                    color: AppColors.textSecondary,
-                  ),
-                  const SizedBox(width: AppSpacing.md),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          access.organizationName ?? '',
-                          style: theme.textTheme.titleMedium,
-                        ),
-                        Text(
-                          '${access.accountEmail ?? ''} · '
-                          '${access.isOwnerAccount ? l10n.accountRoleOwner : l10n.accountRoleManager}',
-                          style: theme.textTheme.bodySmall,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+        SettingsSectionTitle(title: l10n.accountSectionTitle),
+        FieldGrid(
+          children: [
+            ReadOnlyValueField(
+              label: l10n.syncRestaurantLabel,
+              value: access.organizationName ?? '',
+              icon: LucideIcons.store,
+            ),
+            ReadOnlyValueField(
+              label: l10n.syncAccountLabel,
+              value:
+                  '${access.accountEmail ?? ''} · '
+                  '${access.isOwnerAccount ? l10n.accountRoleOwner : l10n.accountRoleManager}',
+              icon: LucideIcons.mail,
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.lg),
+        Wrap(
+          alignment: WrapAlignment.end,
+          spacing: AppSpacing.sm,
+          runSpacing: AppSpacing.sm,
+          children: [
+            if (access.isOwnerAccount)
+              SecondaryButton(
+                label: l10n.accountInvite,
+                icon: LucideIcons.userPlus,
+                tone: SecondaryButtonTone.surface,
+                onPressed: _busy ? null : _invite,
               ),
-              const SizedBox(height: AppSpacing.lg),
-              Wrap(
-                spacing: AppSpacing.sm,
-                runSpacing: AppSpacing.sm,
-                children: [
-                  if (access.isOwnerAccount)
-                    SecondaryButton(
-                      label: l10n.accountInvite,
-                      icon: LucideIcons.userPlus,
-                      onPressed: _busy ? null : _invite,
-                    ),
-                  SecondaryButton(
-                    label: l10n.accountSignOut,
-                    icon: LucideIcons.logOut,
-                    onPressed: _busy ? null : _signOut,
-                  ),
-                ],
-              ),
-            ],
-          ),
+            SecondaryButton(
+              label: l10n.accountSignOut,
+              icon: LucideIcons.logOut,
+              tone: SecondaryButtonTone.surface,
+              onPressed: _busy ? null : _signOut,
+            ),
+          ],
         ),
         if (access.isOwnerAccount) ...[
-          const SizedBox(height: AppSpacing.xl),
-          SectionHeader(title: l10n.accountDevices),
-          AppCard(
-            padding: EdgeInsets.zero,
-            child: FutureBuilder<List<DeviceInfo>>(
-              future: _devices,
-              builder: (context, snapshot) {
-                if (snapshot.hasError) {
-                  return Padding(
-                    padding: const EdgeInsets.all(AppSpacing.lg),
-                    child: Text(
-                      l10n.accountDevicesUnavailable,
-                      style: theme.textTheme.bodyMedium,
-                    ),
-                  );
-                }
-                if (!snapshot.hasData) {
-                  return const Padding(
-                    padding: EdgeInsets.all(AppSpacing.lg),
-                    child: Center(child: CircularProgressIndicator()),
-                  );
-                }
-                return Column(
-                  children: [
-                    for (final device in snapshot.data!)
-                      ListTile(
-                        leading: const Icon(LucideIcons.tablet),
-                        title: Text(
-                          device.name.isEmpty ? device.id : device.name,
-                        ),
-                        subtitle: Text(
-                          device.id == _thisDevice
-                              ? l10n.accountDeviceThis
-                              : l10n.accountDeviceLastSeen(
-                                  Formatters.date(
-                                    device.lastSeenAt ?? device.createdAt,
-                                  ),
-                                ),
-                        ),
-                        trailing: device.id == _thisDevice
-                            ? null
-                            : TextButton(
-                                onPressed: () => _remove(device),
-                                child: Text(l10n.accountDeviceRemove),
-                              ),
-                      ),
-                  ],
+          const SizedBox(height: AppSpacing.xxl),
+          SettingsSectionTitle(title: l10n.accountDevices),
+          FutureBuilder<List<DeviceInfo>>(
+            future: _devices,
+            builder: (context, snapshot) {
+              if (snapshot.hasError) {
+                return Text(
+                  l10n.accountDevicesUnavailable,
+                  style: theme.textTheme.bodyMedium,
                 );
-              },
-            ),
+              }
+              if (!snapshot.hasData) {
+                return const Padding(
+                  padding: EdgeInsets.all(AppSpacing.lg),
+                  child: Center(child: CircularProgressIndicator()),
+                );
+              }
+              // One card per device, as on the notification settings.
+              return ResponsiveCardGrid(
+                maxColumns: 2,
+                equalRowHeights: true,
+                children: [
+                  for (final device in snapshot.data!)
+                    IconInfoCard(
+                      icon: LucideIcons.tablet,
+                      title: device.name.isEmpty ? device.id : device.name,
+                      value: device.id == _thisDevice
+                          ? l10n.accountDeviceThis
+                          : l10n.accountDeviceLastSeen(
+                              Formatters.date(
+                                device.lastSeenAt ?? device.createdAt,
+                              ),
+                            ),
+                      highlighted: device.id == _thisDevice,
+                      trailing: device.id == _thisDevice
+                          ? null
+                          : TextButton(
+                              onPressed: () => _remove(device),
+                              child: Text(l10n.accountDeviceRemove),
+                            ),
+                    ),
+                ],
+              );
+            },
           ),
         ],
       ],

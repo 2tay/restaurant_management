@@ -3106,6 +3106,42 @@ abstract class AppLocalizations {
   /// **'Paramètres enregistrés'**
   String get storeSettingsSaved;
 
+  /// Store settings: heading of the block grouping preferences, orders, breaks and the journée de service.
+  ///
+  /// In fr, this message translates to:
+  /// **'Fonctionnement'**
+  String get storeSettingsOperations;
+
+  /// Unit after the stale-order threshold field.
+  ///
+  /// In fr, this message translates to:
+  /// **'jours'**
+  String get storeSettingsDaysSuffix;
+
+  /// Unit after the maximum break field.
+  ///
+  /// In fr, this message translates to:
+  /// **'min'**
+  String get storeSettingsMinutesSuffix;
+
+  /// Snackbar confirming the signed-in user's profile was saved.
+  ///
+  /// In fr, this message translates to:
+  /// **'Profil enregistré'**
+  String get accountProfileSaved;
+
+  /// Snackbar when the profile could not be saved (blank field or email taken).
+  ///
+  /// In fr, this message translates to:
+  /// **'Profil non enregistré : un champ est vide ou l\'adresse e-mail est déjà utilisée.'**
+  String get accountProfileInvalid;
+
+  /// Account settings, profile block: label of the read-only role field.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rôle'**
+  String get accountRole;
+
   /// Account settings heading.
   ///
   /// In fr, this message translates to:

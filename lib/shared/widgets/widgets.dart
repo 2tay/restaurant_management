@@ -20,6 +20,7 @@ export 'app_sidebar.dart';
 export 'app_table.dart';
 export 'app_snackbar.dart';
 export 'app_text_field.dart';
+export 'editable_section.dart';
 export 'async_content.dart';
 export 'attendance_alerts.dart';
 export 'attendance_day_detail.dart';

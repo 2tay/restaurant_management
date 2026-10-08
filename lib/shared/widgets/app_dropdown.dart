@@ -4,6 +4,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../l10n/app_localizations.dart';
+import 'app_text_field.dart';
 
 /// One option in an [AppDropdown].
 class DropdownOption<T> {
@@ -41,6 +42,7 @@ class AppDropdown<T> extends StatelessWidget {
     this.createNewLabel,
     this.errorText,
     this.enabled = true,
+    this.helperText,
     super.key,
   });
 
@@ -59,6 +61,7 @@ class AppDropdown<T> extends StatelessWidget {
 
   final String? errorText;
   final bool enabled;
+  final String? helperText;
 
   static const String _createSentinel = '__create_new__';
 
@@ -66,6 +69,14 @@ class AppDropdown<T> extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    // The same white, borderless look as a plain [AppTextField], for a
+    // dropdown among them.
+    final plain =
+        AppTextFieldVariantScope.of(context) == AppTextFieldVariant.plain;
+    const noBorder = OutlineInputBorder(
+      borderRadius: AppRadius.mdAll,
+      borderSide: BorderSide.none,
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -79,9 +90,24 @@ class AppDropdown<T> extends StatelessWidget {
           decoration: InputDecoration(
             hintText: hint,
             errorText: errorText,
-            contentPadding: const EdgeInsets.symmetric(
+            helperText: helperText,
+            helperMaxLines: 3,
+            filled: plain ? true : null,
+            fillColor: plain ? AppColors.surface : null,
+            enabledBorder: plain ? noBorder : null,
+            disabledBorder: plain ? noBorder : null,
+            focusedBorder: plain
+                ? OutlineInputBorder(
+                    borderRadius: AppRadius.mdAll,
+                    borderSide: BorderSide(
+                      color: theme.colorScheme.primary,
+                      width: 2,
+                    ),
+                  )
+                : null,
+            contentPadding: EdgeInsets.symmetric(
               horizontal: AppSpacing.lg,
-              vertical: AppSpacing.lg,
+              vertical: plain ? AppSpacing.md + AppSpacing.xxs : AppSpacing.lg,
             ),
           ),
           icon: const Icon(LucideIcons.chevronDown),

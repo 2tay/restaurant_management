@@ -1860,6 +1860,25 @@ class AppLocalizationsFr extends AppLocalizations {
   String get storeSettingsSaved => 'Paramètres enregistrés';
 
   @override
+  String get storeSettingsOperations => 'Fonctionnement';
+
+  @override
+  String get storeSettingsDaysSuffix => 'jours';
+
+  @override
+  String get storeSettingsMinutesSuffix => 'min';
+
+  @override
+  String get accountProfileSaved => 'Profil enregistré';
+
+  @override
+  String get accountProfileInvalid =>
+      'Profil non enregistré : un champ est vide ou l\'adresse e-mail est déjà utilisée.';
+
+  @override
+  String get accountRole => 'Rôle';
+
+  @override
   String get accountSettingsTitle => 'Paramètres du compte';
 
   @override

@@ -65,6 +65,9 @@ class AppTextField extends StatelessWidget {
     this.inputFormatters,
     this.textInputAction,
     this.variant,
+    this.readOnly = false,
+    this.onTap,
+    this.helperMaxLines,
     super.key,
   });
 
@@ -96,6 +99,17 @@ class AppTextField extends StatelessWidget {
 
   /// Null inherits from the nearest [AppTextFieldVariantScope].
   final AppTextFieldVariant? variant;
+
+  /// Shows the value without letting it be typed over — unlike [enabled]
+  /// false, the text keeps its normal colour (a settings block before its
+  /// pencil is pressed). Not focusable unless [onTap] is set.
+  final bool readOnly;
+
+  /// Called on a tap — with [readOnly], a field that opens a picker.
+  final VoidCallback? onTap;
+
+  /// Lines the [helperText] may wrap to. Null keeps it on one line.
+  final int? helperMaxLines;
 
   /// A money field. Accepts a comma decimal separator, because that is what a
   /// Belgian keyboard and a Belgian brain both produce.
@@ -138,6 +152,9 @@ class AppTextField extends StatelessWidget {
         TextField(
           controller: controller,
           enabled: enabled,
+          readOnly: readOnly,
+          onTap: onTap,
+          canRequestFocus: !readOnly || onTap != null,
           obscureText: obscureText,
           maxLines: obscureText ? 1 : maxLines,
           autofocus: autofocus,
@@ -172,6 +189,7 @@ class AppTextField extends StatelessWidget {
                   )
                 : null,
             helperText: helperText,
+            helperMaxLines: helperMaxLines,
             errorText: errorText,
             prefixIcon: prefixIcon == null ? null : Icon(prefixIcon),
             suffixIcon: suffixIcon,

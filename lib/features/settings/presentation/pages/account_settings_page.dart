@@ -6,7 +6,6 @@ import '../../../../app/routes.dart';
 import '../../../../app/navigation.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
-import '../../../../core/utils/employee_status.dart';
 import '../../../../core/utils/permissions.dart';
 import '../../../../data/current_employee.dart';
 import '../../../../data/providers.dart';
@@ -64,132 +63,190 @@ class AccountSettingsPage extends ConsumerWidget {
     Employee user,
     List<Store> stores,
   ) {
-    return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 720),
+    // The établissement page's look: blocks straight on the page, fields in
+    // the search bar's white borderless style.
+    return AppTextFieldVariantScope(
+      variant: AppTextFieldVariant.plain,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          SectionHeader(title: l10n.accountProfile),
-          AppCard(
-            // Identity block and the edit action; the action takes its own
-            // line rather than squeezing the name on a phone.
-            child: AdaptiveRow(
-              cells: [
-                AdaptiveCell(
-                  flex: 1,
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 64,
-                        height: 64,
-                        alignment: Alignment.center,
-                        decoration: const BoxDecoration(
-                          color: AppColors.primaryContainer,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Text(
-                          employeeInitials(user),
-                          style: theme.textTheme.headlineSmall?.copyWith(
-                            color: AppColors.onPrimaryContainer,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: AppSpacing.lg),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              employeeDisplayName(user),
-                              style: theme.textTheme.titleMedium,
-                            ),
-                            Text(user.email, style: theme.textTheme.bodyMedium),
-                            const SizedBox(height: AppSpacing.xs),
-                            Text(
-                              employeeRoleLabel(l10n, user.role),
-                              style: theme.textTheme.bodySmall,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                AdaptiveCell(
-                  child: SecondaryButton(
-                    label: l10n.actionEdit,
-                    icon: LucideIcons.pencil,
-                    onPressed: () {},
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppSpacing.xl),
+          // Keyed on the employee so a session change refills the fields.
+          _ProfileSection(key: ValueKey(user.id), user: user),
+          const SizedBox(height: AppSpacing.xxl),
 
           const RestaurantAccountSection(),
-          const SizedBox(height: AppSpacing.xl),
+          const SizedBox(height: AppSpacing.xxl),
 
-          SectionHeader(title: l10n.accountSecurity),
-          AppCard(
-            child: AdaptiveRow(
-              cells: [
-                AdaptiveCell(
-                  flex: 1,
-                  child: Row(
-                    children: [
-                      const Icon(
-                        LucideIcons.lock,
-                        size: AppSizing.iconMd,
-                        color: AppColors.textSecondary,
-                      ),
-                      const SizedBox(width: AppSpacing.md),
-                      Expanded(
-                        child: Text(
-                          l10n.accountChangePassword,
-                          style: theme.textTheme.bodyLarge,
-                        ),
-                      ),
-                    ],
-                  ),
+          SettingsSectionTitle(title: l10n.accountSecurity),
+          FieldGrid(
+            children: [
+              ReadOnlyValueField(
+                label: l10n.accountChangePassword,
+                value: '••••••••',
+                icon: LucideIcons.lock,
+                // The pencil, as on the blocks' titles: it fits at any text
+                // size where « Modifier » in words did not.
+                trailing: IconButton(
+                  onPressed: () => context.goSection(Routes.forgotPassword),
+                  tooltip: l10n.actionEdit,
+                  icon: const Icon(LucideIcons.pencil, size: AppSizing.iconSm),
+                  color: AppColors.primary600,
                 ),
-                AdaptiveCell(
-                  child: SecondaryButton(
-                    label: l10n.accountChangePassword,
-                    onPressed: () => context.goSection(Routes.forgotPassword),
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-          const SizedBox(height: AppSpacing.xl),
+          const SizedBox(height: AppSpacing.xxl),
 
-          SectionHeader(title: l10n.accountLinkedStores, count: stores.length),
-          AppCard(
-            padding: EdgeInsets.zero,
-            child: Column(
-              children: [
-                for (final store in stores)
-                  ListTile(
-                    leading: const Icon(LucideIcons.store),
-                    title: Text(store.name),
-                    subtitle: Text(
+          SettingsSectionTitle(
+            title: '${l10n.accountLinkedStores} (${stores.length})',
+          ),
+          // One card per establishment, as on the notification settings.
+          ResponsiveCardGrid(
+            maxColumns: 2,
+            equalRowHeights: true,
+            children: [
+              for (final store in stores)
+                IconInfoCard(
+                  icon: LucideIcons.store,
+                  title: store.name,
+                  value:
                       '${store.addressLine}, ${store.postalCode} ${store.city}',
-                    ),
-                    trailing: store.id == storeId
-                        ? const Icon(
-                            LucideIcons.circleCheck,
-                            color: AppColors.primary600,
-                          )
-                        : const Icon(LucideIcons.chevronRight),
-                    onTap: () =>
-                        context.goSection(Routes.toDashboard(store.id)),
-                  ),
-              ],
-            ),
+                  highlighted: store.id == storeId,
+                  trailing: store.id == storeId
+                      ? const Icon(
+                          LucideIcons.circleCheck,
+                          color: AppColors.primary600,
+                        )
+                      : const Icon(
+                          LucideIcons.chevronRight,
+                          color: AppColors.textSecondary,
+                        ),
+                  onTap: () => context.goSection(Routes.toDashboard(store.id)),
+                ),
+            ],
           ),
         ],
       ),
     );
+  }
+}
+
+/// The signed-in employee's own name and contact details, read-only until the
+/// pencil is pressed. The role is shown but never edited here: changing one's
+/// own access is the personnel page's business, and an owner's.
+class _ProfileSection extends ConsumerStatefulWidget {
+  const _ProfileSection({required this.user, super.key});
+
+  final Employee user;
+
+  @override
+  ConsumerState<_ProfileSection> createState() => _ProfileSectionState();
+}
+
+class _ProfileSectionState extends ConsumerState<_ProfileSection> {
+  late final _firstName = TextEditingController(text: widget.user.firstName);
+  late final _lastName = TextEditingController(text: widget.user.lastName);
+  late final _email = TextEditingController(text: widget.user.email);
+  late final _phone = TextEditingController(text: widget.user.phone);
+
+  bool _editing = false;
+  bool _saving = false;
+
+  @override
+  void dispose() {
+    for (final controller in [_firstName, _lastName, _email, _phone]) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
+    return EditableSection(
+      title: l10n.accountProfile,
+      editKey: const ValueKey('account-edit-profile'),
+      editing: _editing,
+      saving: _saving,
+      onEdit: () => setState(() => _editing = true),
+      onCancel: _cancel,
+      onSave: _save,
+      child: FieldGrid(
+        children: [
+          AppTextField(
+            label: l10n.employeeFormFirstName,
+            controller: _firstName,
+            readOnly: !_editing,
+          ),
+          AppTextField(
+            label: l10n.employeeFormLastName,
+            controller: _lastName,
+            readOnly: !_editing,
+          ),
+          AppTextField(
+            label: l10n.employeeFormEmail,
+            controller: _email,
+            prefixIcon: LucideIcons.mail,
+            keyboardType: TextInputType.emailAddress,
+            readOnly: !_editing,
+          ),
+          AppTextField(
+            label: l10n.employeeFormPhone,
+            controller: _phone,
+            prefixIcon: LucideIcons.phone,
+            keyboardType: TextInputType.phone,
+            readOnly: !_editing,
+          ),
+          ReadOnlyValueField(
+            label: l10n.accountRole,
+            value: employeeRoleLabel(l10n, widget.user.role),
+            icon: LucideIcons.shieldCheck,
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _cancel() {
+    final user = widget.user;
+    _firstName.text = user.firstName;
+    _lastName.text = user.lastName;
+    _email.text = user.email;
+    _phone.text = user.phone;
+    setState(() => _editing = false);
+  }
+
+  /// Writes the four fields, then re-reads the session so the sidebar and
+  /// this page show the new name. Refused as a whole when a field is blank or
+  /// the email belongs to someone else.
+  Future<void> _save() async {
+    final l10n = AppLocalizations.of(context);
+    setState(() => _saving = true);
+    final updated = await ref
+        .read(employeeRepositoryProvider)
+        .update(
+          widget.user.id,
+          firstName: _firstName.text,
+          lastName: _lastName.text,
+          email: _email.text,
+          // A profile that never had a phone may keep none.
+          phone: _phone.text.trim().isEmpty && widget.user.phone.isEmpty
+              ? null
+              : _phone.text,
+        );
+    if (updated != null) {
+      await ref.read(currentEmployeeProvider.notifier).hydrate();
+    }
+    if (!mounted) return;
+    setState(() {
+      _saving = false;
+      if (updated != null) _editing = false;
+    });
+    if (updated == null) {
+      AppSnackBar.warning(context, l10n.accountProfileInvalid);
+    } else {
+      AppSnackBar.success(context, l10n.accountProfileSaved);
+    }
   }
 }

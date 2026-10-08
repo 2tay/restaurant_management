@@ -4,8 +4,8 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
-import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/formatters.dart';
+import '../../../../core/utils/responsive.dart';
 import '../../../../data/device_access.dart';
 import '../../../../data/providers.dart';
 import '../../../../data/repositories/sync_error_repository.dart';
@@ -23,7 +23,6 @@ class AccountSyncView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
     final sync = ref.watch(syncControllerProvider);
     final pending = ref.watch(pendingChangesProvider);
     final rejected = ref.watch(syncErrorsProvider).value ?? const [];
@@ -67,148 +66,120 @@ class AccountSyncView extends ConsumerWidget {
       ),
     };
 
-    return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 720),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          AppCard(
-            child: AdaptiveRow(
-              cells: [
-                AdaptiveCell(
-                  flex: 1,
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 56,
-                        height: 56,
-                        decoration: BoxDecoration(
-                          color: background,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(icon, size: 26, color: foreground),
-                      ),
-                      const SizedBox(width: AppSpacing.lg),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(label, style: theme.textTheme.titleLarge),
-                            const SizedBox(height: AppSpacing.xs),
-                            Text(
-                              l10n.offlineBannerPending(pending),
-                              style: theme.textTheme.bodyMedium,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                AdaptiveCell(
-                  child: PrimaryButton(
-                    label: l10n.syncNow,
-                    icon: LucideIcons.refreshCw,
-                    isBusy: sync.status == SyncStatus.syncing,
-                    onPressed: sync.status == SyncStatus.syncing
-                        ? null
-                        : () => _syncNow(context, ref),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          if (_problemText(l10n, sync) case final problem?) ...[
-            const SizedBox(height: AppSpacing.lg),
-            AuthNotice.error(problem),
-            if (sync.problem == SyncOutcome.sessionExpired) ...[
-              const SizedBox(height: AppSpacing.sm),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: SecondaryButton(
-                  label: l10n.syncReconnect,
-                  icon: LucideIcons.logIn,
-                  onPressed: () => _reconnect(context, ref),
-                ),
-              ),
-            ],
-          ],
+    // Full width: the state is the point of the page. The figures under it
+    // are cards, two per line, as on the notification settings.
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SyncStatusBanner(
+          icon: icon,
+          foreground: foreground,
+          background: background,
+          label: label,
+          detail: l10n.offlineBannerPending(pending),
+          busy: sync.status == SyncStatus.syncing,
+          onSync: sync.status == SyncStatus.syncing
+              ? null
+              : () => _syncNow(context, ref),
+        ),
+        if (_problemText(l10n, sync) case final problem?) ...[
           const SizedBox(height: AppSpacing.lg),
-          AppCard(
-            child: Column(
-              children: [
-                _Stat(
-                  label: l10n.syncLastSynced,
-                  value: sync.lastSyncAt == null
-                      ? l10n.syncLastSyncedNever
-                      : Formatters.dateTime(sync.lastSyncAt!),
-                ),
-                const Divider(height: AppSpacing.xl),
-                _Stat(label: l10n.syncPending, value: '$pending'),
-                const Divider(height: AppSpacing.xl),
-                _Stat(
-                  label: l10n.syncPhotosPending,
-                  value: '${ref.watch(photoUploadsPendingProvider).value ?? 0}',
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          AppCard(
-            child: Column(
-              children: [
-                _Stat(
-                  label: l10n.syncRestaurantLabel,
-                  value: access.organizationName ?? '',
-                ),
-                const Divider(height: AppSpacing.xl),
-                _Stat(
-                  label: l10n.syncAccountLabel,
-                  value: access.accountEmail ?? '',
-                ),
-                const Divider(height: AppSpacing.xl),
-                _Stat(label: l10n.syncDeviceLabel, value: deviceDisplayName()),
-              ],
-            ),
-          ),
-          if (rejected.isNotEmpty) ...[
-            const SizedBox(height: AppSpacing.xl),
-            SectionHeader(
-              title: l10n.syncRejectedTitle,
-              count: rejected.length,
-            ),
-            AppCard(
-              padding: EdgeInsets.zero,
-              child: Column(
-                children: [
-                  for (final error in rejected)
-                    ListTile(
-                      leading: Icon(
-                        error.isResolution
-                            ? LucideIcons.gitMerge
-                            : LucideIcons.circleAlert,
-                        color: error.isResolution
-                            ? AppColors.lowStock.foreground
-                            : AppColors.outOfStock.foreground,
-                      ),
-                      title: Text(l10n.syncTableName(error.table)),
-                      subtitle: Text(
-                        '${_reasonText(l10n, error)} · '
-                        '${Formatters.dateTime(error.rejectedAt)}',
-                      ),
-                      trailing: TextButton(
-                        onPressed: () => ref
-                            .read(syncErrorRepositoryProvider)
-                            .dismiss(error.id),
-                        child: Text(l10n.syncRejectedDismiss),
-                      ),
-                    ),
-                ],
+          AuthNotice.error(problem),
+          if (sync.problem == SyncOutcome.sessionExpired) ...[
+            const SizedBox(height: AppSpacing.sm),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: SecondaryButton(
+                label: l10n.syncReconnect,
+                icon: LucideIcons.logIn,
+                onPressed: () => _reconnect(context, ref),
               ),
             ),
           ],
         ],
-      ),
+        const SizedBox(height: AppSpacing.xl),
+        ResponsiveCardGrid(
+          maxColumns: 2,
+          equalRowHeights: true,
+          children: [
+            IconInfoCard(
+              icon: LucideIcons.history,
+              title: l10n.syncLastSynced,
+              value: sync.lastSyncAt == null
+                  ? l10n.syncLastSyncedNever
+                  : Formatters.dateTime(sync.lastSyncAt!),
+              valueIsFigure: true,
+            ),
+            IconInfoCard(
+              icon: LucideIcons.cloudUpload,
+              title: l10n.syncPending,
+              value: '$pending',
+              valueIsFigure: true,
+              highlighted: pending > 0,
+            ),
+            IconInfoCard(
+              icon: LucideIcons.image,
+              title: l10n.syncPhotosPending,
+              value: '${ref.watch(photoUploadsPendingProvider).value ?? 0}',
+              valueIsFigure: true,
+            ),
+            IconInfoCard(
+              icon: LucideIcons.store,
+              title: l10n.syncRestaurantLabel,
+              value: access.organizationName ?? '',
+              valueIsFigure: true,
+            ),
+            IconInfoCard(
+              icon: LucideIcons.mail,
+              title: l10n.syncAccountLabel,
+              value: access.accountEmail ?? '',
+              valueIsFigure: true,
+            ),
+            IconInfoCard(
+              icon: LucideIcons.tablet,
+              title: l10n.syncDeviceLabel,
+              value: deviceDisplayName(),
+              valueIsFigure: true,
+            ),
+          ],
+        ),
+        if (rejected.isNotEmpty) ...[
+          const SizedBox(height: AppSpacing.xl),
+          SectionHeader(
+            title: l10n.syncRejectedTitle,
+            count: rejected.length,
+          ),
+          AppCard(
+            padding: EdgeInsets.zero,
+            child: Column(
+              children: [
+                for (final error in rejected)
+                  ListTile(
+                    leading: Icon(
+                      error.isResolution
+                          ? LucideIcons.gitMerge
+                          : LucideIcons.circleAlert,
+                      color: error.isResolution
+                          ? AppColors.lowStock.foreground
+                          : AppColors.outOfStock.foreground,
+                    ),
+                    title: Text(l10n.syncTableName(error.table)),
+                    subtitle: Text(
+                      '${_reasonText(l10n, error)} · '
+                      '${Formatters.dateTime(error.rejectedAt)}',
+                    ),
+                    trailing: TextButton(
+                      onPressed: () => ref
+                          .read(syncErrorRepositoryProvider)
+                          .dismiss(error.id),
+                      child: Text(l10n.syncRejectedDismiss),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ],
     );
   }
 
@@ -311,29 +282,101 @@ class AccountSyncView extends ConsumerWidget {
   }
 }
 
-class _Stat extends StatelessWidget {
-  const _Stat({required this.label, required this.value});
+/// The sync state across the whole page width: a tinted round icon, the state
+/// and what waits, and « Synchroniser maintenant » — reduced to its icon, still
+/// green, below a medium screen ([ResponsiveContext.isSmallScreen]) so the
+/// state keeps the line.
+///
+/// Shared by the account view and the demo page.
+class SyncStatusBanner extends StatelessWidget {
+  const SyncStatusBanner({
+    required this.icon,
+    required this.foreground,
+    required this.background,
+    required this.label,
+    required this.detail,
+    required this.onSync,
+    this.busy = false,
+    super.key,
+  });
 
+  final IconData icon;
+  final Color foreground;
+  final Color background;
   final String label;
-  final String value;
+  final String detail;
+
+  /// Null disables the button.
+  final VoidCallback? onSync;
+  final bool busy;
 
   @override
   Widget build(BuildContext context) {
-    return AdaptiveRow(
-      breakpoint: 360,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      cells: [
-        AdaptiveCell(
-          flex: 1,
-          child: Text(
-            label,
-            style: Theme.of(
-              context,
-            ).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final small = context.isSmallScreen;
+
+    final Widget button = small
+        ? Tooltip(
+            message: l10n.syncNow,
+            child: Semantics(
+              label: l10n.syncNow,
+              button: true,
+              child: FilledButton(
+                key: const ValueKey('sync-now'),
+                onPressed: busy ? null : onSync,
+                style: FilledButton.styleFrom(
+                  padding: EdgeInsets.zero,
+                  minimumSize: Size.zero,
+                  fixedSize: const Size.square(AppSizing.minTapTarget),
+                ),
+                child: busy
+                    ? const SizedBox.square(
+                        dimension: AppSizing.iconSm,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(LucideIcons.refreshCw, size: AppSizing.iconMd),
+              ),
+            ),
+          )
+        : PrimaryButton(
+            key: const ValueKey('sync-now'),
+            label: l10n.syncNow,
+            icon: LucideIcons.refreshCw,
+            isBusy: busy,
+            onPressed: onSync,
+          );
+
+    return AppCard(
+      bordered: false,
+      child: Row(
+        children: [
+          Container(
+            width: small ? 44 : 56,
+            height: small ? 44 : 56,
+            decoration: BoxDecoration(color: background, shape: BoxShape.circle),
+            child: Icon(icon, size: small ? 22 : 26, color: foreground),
           ),
-        ),
-        AdaptiveCell(child: Text(value, style: AppTypography.numeric)),
-      ],
+          SizedBox(width: small ? AppSpacing.md : AppSpacing.lg),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: small
+                      ? theme.textTheme.titleMedium
+                      : theme.textTheme.titleLarge,
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                Text(detail, style: theme.textTheme.bodyMedium),
+              ],
+            ),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          button,
+        ],
+      ),
     );
   }
 }

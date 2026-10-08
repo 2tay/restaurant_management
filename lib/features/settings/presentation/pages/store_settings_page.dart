@@ -121,6 +121,9 @@ class _StoreSettingsFormState extends ConsumerState<_StoreSettingsForm> {
   /// The journée's auto-open time, minutes after midnight. Picked with the
   /// time picker, so it is always valid.
   late int _autoOpenMinutes = widget.settings.businessDayAutoOpenMinutes;
+  late final _autoOpen = TextEditingController(
+    text: _formatMinutes(_autoOpenMinutes),
+  );
 
   /// Which unit a new article starts with. Local to this screen: there is no
   /// column behind it, because "the unit the form pre-selects" is a convenience
@@ -128,6 +131,18 @@ class _StoreSettingsFormState extends ConsumerState<_StoreSettingsForm> {
   late String? _defaultUnitId = widget.units.isEmpty
       ? null
       : widget.units.first.id;
+
+  /// What « Annuler » puts the unit back to — it has no row to re-read.
+  late String? _savedUnitId = _defaultUnitId;
+
+  /// The unit's name, for the read-only field shown outside editing.
+  late final _unitName = TextEditingController(text: _unitLabel());
+
+  /// Which block is open for editing. Each has its own pencil and its own
+  /// « Enregistrer », so one is saved without touching the other.
+  bool _editingGeneral = false;
+  bool _editingOperations = false;
+  bool _saving = false;
 
   @override
   void dispose() {
@@ -139,6 +154,8 @@ class _StoreSettingsFormState extends ConsumerState<_StoreSettingsForm> {
       _phone,
       _staleDays,
       _maxBreak,
+      _autoOpen,
+      _unitName,
     ]) {
       controller.dispose();
     }
@@ -147,7 +164,7 @@ class _StoreSettingsFormState extends ConsumerState<_StoreSettingsForm> {
 
   /// Phase 6: only an owner may change store settings. A manager still sees the
   /// page (the route is not guarded, so the settings section has no dead end),
-  /// but the fields and the save button are read-only.
+  /// but the fields stay read-only and no pencil is offered.
   bool get _canEdit {
     final employee = ref.watch(currentEmployeeProvider);
     return employee != null && can(employee.role, Capability.editStoreSettings);
@@ -158,6 +175,8 @@ class _StoreSettingsFormState extends ConsumerState<_StoreSettingsForm> {
     final l10n = AppLocalizations.of(context);
     final storeId = widget.store.id;
     final canEdit = _canEdit;
+    final general = _editingGeneral;
+    final operations = _editingOperations;
 
     return ShellPage(
       tabs: SettingsTabs(
@@ -166,15 +185,9 @@ class _StoreSettingsFormState extends ConsumerState<_StoreSettingsForm> {
       ),
       tabsAboveTitle: true,
       title: l10n.storeSettingsTitle,
-      actions: [
-        PrimaryButton(
-          label: l10n.actionSave,
-          icon: LucideIcons.check,
-          onPressed: canEdit ? _save : null,
-        ),
-      ],
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 720),
+      // Laid straight on the page, in the search bar's white borderless look.
+      child: AppTextFieldVariantScope(
+        variant: AppTextFieldVariant.plain,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -182,128 +195,127 @@ class _StoreSettingsFormState extends ConsumerState<_StoreSettingsForm> {
               _ReadOnlyNotice(message: l10n.storeSettingsReadOnlyNotice),
               const SizedBox(height: AppSpacing.xl),
             ],
-            SectionHeader(title: l10n.storeSettingsGeneral),
-            AppCard(
-              child: Column(
+            EditableSection(
+              title: l10n.storeSettingsGeneral,
+              editKey: const ValueKey('store-settings-edit-general'),
+              editing: general,
+              saving: _saving,
+              onEdit: canEdit
+                  ? () => setState(() => _editingGeneral = true)
+                  : null,
+              onCancel: _cancelGeneral,
+              onSave: _saveGeneral,
+              child: FieldGrid(
                 children: [
-                  AppTextField(label: l10n.addStoreName, controller: _name),
-                  const SizedBox(height: AppSpacing.lg),
+                  AppTextField(
+                    label: l10n.addStoreName,
+                    controller: _name,
+                    readOnly: !general,
+                  ),
                   AppTextField(
                     label: l10n.addStoreAddress,
                     controller: _address,
                     prefixIcon: LucideIcons.mapPin,
+                    readOnly: !general,
                   ),
-                  const SizedBox(height: AppSpacing.lg),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SizedBox(
-                        width: 160,
-                        child: AppTextField(
-                          label: l10n.addStorePostalCode,
-                          controller: _postalCode,
-                          keyboardType: TextInputType.number,
-                        ),
-                      ),
-                      const SizedBox(width: AppSpacing.lg),
-                      Expanded(
-                        child: AppTextField(
-                          label: l10n.addStoreCity,
-                          controller: _city,
-                        ),
-                      ),
-                    ],
+                  // Kept side by side at every width: one line of an address.
+                  FieldPair(
+                    first: AppTextField(
+                      label: l10n.addStorePostalCode,
+                      controller: _postalCode,
+                      keyboardType: TextInputType.number,
+                      readOnly: !general,
+                    ),
+                    second: AppTextField(
+                      label: l10n.addStoreCity,
+                      controller: _city,
+                      readOnly: !general,
+                    ),
                   ),
-                  const SizedBox(height: AppSpacing.lg),
                   AppTextField(
                     label: l10n.addStorePhone,
                     controller: _phone,
                     prefixIcon: LucideIcons.phone,
                     keyboardType: TextInputType.phone,
+                    readOnly: !general,
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: AppSpacing.xl),
+            const SizedBox(height: AppSpacing.xxl),
 
-            SectionHeader(title: l10n.storeSettingsPreferences),
-            AppCard(
-              child: AppDropdown<String>(
-                label: l10n.storeSettingsDefaultUnit,
-                value: _defaultUnitId,
-                options: [
-                  for (final unit in widget.units)
-                    DropdownOption(
-                      value: unit.id,
-                      label: unit.name,
-                      secondaryLabel: unit.abbreviation,
-                    ),
-                ],
-                onChanged: (value) => setState(() => _defaultUnitId = value),
-              ),
-            ),
-            const SizedBox(height: AppSpacing.xl),
-
-            SectionHeader(title: l10n.storeSettingsOrders),
-            AppCard(
-              child: SizedBox(
-                width: 260,
-                child: AppTextField(
-                  label: l10n.storeSettingsStaleDays,
-                  controller: _staleDays,
-                  helperText: l10n.storeSettingsStaleDaysHelp,
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  prefixIcon: LucideIcons.clock,
-                ),
-              ),
-            ),
-            const SizedBox(height: AppSpacing.xl),
-
-            SectionHeader(title: l10n.storeSettingsHours),
-            AppCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            EditableSection(
+              title: l10n.storeSettingsOperations,
+              editKey: const ValueKey('store-settings-edit-operations'),
+              editing: operations,
+              saving: _saving,
+              onEdit: canEdit
+                  ? () => setState(() => _editingOperations = true)
+                  : null,
+              onCancel: _cancelOperations,
+              onSave: _saveOperations,
+              child: FieldGrid(
                 children: [
-                  SizedBox(
-                    width: 260,
-                    child: AppTextField(
-                      label: l10n.storeSettingsMaxBreak,
-                      controller: _maxBreak,
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                      prefixIcon: LucideIcons.coffee,
+                  // A dropdown only while editing: disabled, it would grey
+                  // the unit out instead of reading like the fields beside it.
+                  if (operations)
+                    AppDropdown<String>(
+                      label: l10n.storeSettingsPreferences,
+                      helperText: l10n.storeSettingsDefaultUnit,
+                      value: _defaultUnitId,
+                      options: [
+                        for (final unit in widget.units)
+                          DropdownOption(
+                            value: unit.id,
+                            label: unit.name,
+                            secondaryLabel: unit.abbreviation,
+                          ),
+                      ],
+                      onChanged: (value) => setState(() {
+                        _defaultUnitId = value;
+                        _unitName.text = _unitLabel();
+                      }),
+                    )
+                  else
+                    AppTextField(
+                      label: l10n.storeSettingsPreferences,
+                      controller: _unitName,
+                      helperText: l10n.storeSettingsDefaultUnit,
+                      prefixIcon: LucideIcons.ruler,
+                      readOnly: true,
                     ),
+                  AppTextField(
+                    label: l10n.storeSettingsOrders,
+                    controller: _staleDays,
+                    helperText: l10n.storeSettingsStaleDaysHelp,
+                    helperMaxLines: 3,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    prefixIcon: LucideIcons.clock,
+                    suffixText: l10n.storeSettingsDaysSuffix,
+                    readOnly: !operations,
                   ),
-                  const SizedBox(height: AppSpacing.sm),
-                  Text(
-                    l10n.storeSettingsHoursHelp,
-                    style: Theme.of(context).textTheme.bodySmall,
+                  AppTextField(
+                    label: l10n.storeSettingsHours,
+                    controller: _maxBreak,
+                    helperText: l10n.storeSettingsHoursHelp,
+                    helperMaxLines: 3,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    prefixIcon: LucideIcons.coffee,
+                    suffixText: l10n.storeSettingsMinutesSuffix,
+                    readOnly: !operations,
                   ),
-                ],
-              ),
-            ),
-            const SizedBox(height: AppSpacing.xl),
-
-            SectionHeader(title: l10n.storeSettingsBusinessDay),
-            AppCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  OutlinedButton.icon(
+                  AppTextField(
                     key: const ValueKey('store-settings-auto-open'),
-                    onPressed: canEdit ? _pickAutoOpen : null,
-                    icon: const Icon(LucideIcons.sunrise, size: AppSizing.iconSm),
-                    label: Text(
-                      l10n.storeSettingsAutoOpen(
-                        _formatMinutes(_autoOpenMinutes),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-                  Text(
-                    l10n.storeSettingsAutoOpenHelp,
-                    style: Theme.of(context).textTheme.bodySmall,
+                    label: l10n.storeSettingsBusinessDay,
+                    controller: _autoOpen,
+                    helperText: l10n.storeSettingsAutoOpenHelp,
+                    helperMaxLines: 4,
+                    prefixIcon: LucideIcons.sunrise,
+                    // Always picked, never typed: the picker keeps it valid.
+                    readOnly: true,
+                    onTap: operations ? _pickAutoOpen : null,
                   ),
                 ],
               ),
@@ -312,6 +324,13 @@ class _StoreSettingsFormState extends ConsumerState<_StoreSettingsForm> {
         ),
       ),
     );
+  }
+
+  String _unitLabel() {
+    for (final unit in widget.units) {
+      if (unit.id == _defaultUnitId) return unit.name;
+    }
+    return '—';
   }
 
   static String _formatMinutes(int minutes) =>
@@ -331,57 +350,105 @@ class _StoreSettingsFormState extends ConsumerState<_StoreSettingsForm> {
       ),
     );
     if (picked == null || !mounted) return;
-    setState(() => _autoOpenMinutes = picked.hour * 60 + picked.minute);
+    setState(() {
+      _autoOpenMinutes = picked.hour * 60 + picked.minute;
+      _autoOpen.text = _formatMinutes(_autoOpenMinutes);
+    });
   }
 
-  /// Saves the establishment, the stale-order threshold, the break allowance
-  /// and the journée's auto-open time. Each survives closing the app now — which is the only way
+  /// Puts the fields back to the saved establishment.
+  void _cancelGeneral() {
+    final store = widget.store;
+    _name.text = store.name;
+    _address.text = store.addressLine;
+    _postalCode.text = store.postalCode;
+    _city.text = store.city;
+    _phone.text = store.phone;
+    setState(() => _editingGeneral = false);
+  }
+
+  void _cancelOperations() {
+    final settings = widget.settings;
+    _staleDays.text = '${settings.stalePartialOrderDays}';
+    _maxBreak.text = '${settings.maxBreakMinutes}';
+    _autoOpenMinutes = settings.businessDayAutoOpenMinutes;
+    _autoOpen.text = _formatMinutes(_autoOpenMinutes);
+    setState(() {
+      _defaultUnitId = _savedUnitId;
+      _unitName.text = _unitLabel();
+      _editingOperations = false;
+    });
+  }
+
+  /// Saves the name, address and phone.
+  Future<void> _saveGeneral() async {
+    final l10n = AppLocalizations.of(context);
+    setState(() => _saving = true);
+    try {
+      await ref
+          .read(storeRepositoryProvider)
+          .updateStore(
+            widget.store.id,
+            name: _name.text,
+            addressLine: _address.text,
+            postalCode: _postalCode.text,
+            city: _city.text,
+            phone: _phone.text,
+          );
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+    if (!mounted) return;
+    setState(() => _editingGeneral = false);
+    AppSnackBar.success(context, l10n.storeSettingsSaved);
+  }
+
+  /// Saves the stale-order threshold, the break allowance and the journée's
+  /// auto-open time. Each survives closing the app now — which is the only way
   /// the dashboard warning and the "pause dépassée" mark it drives can be
   /// demonstrated properly.
-  Future<void> _save() async {
+  Future<void> _saveOperations() async {
     final l10n = AppLocalizations.of(context);
     final stores = ref.read(storeRepositoryProvider);
+    setState(() => _saving = true);
+    try {
+      final days = int.tryParse(_staleDays.text.trim());
+      if (days != null && days > 0) {
+        await stores.setStalePartialOrderDays(widget.store.id, days);
+      } else {
+        // Falling back rather than refusing: an empty or nonsense value should
+        // restore the default, not leave the dashboard with no threshold at
+        // all.
+        await stores.setStalePartialOrderDays(
+          widget.store.id,
+          OrderRules.defaultStalePartialDays,
+        );
+        _staleDays.text = '${OrderRules.defaultStalePartialDays}';
+      }
 
-    await stores.updateStore(
-      widget.store.id,
-      name: _name.text,
-      addressLine: _address.text,
-      postalCode: _postalCode.text,
-      city: _city.text,
-      phone: _phone.text,
-    );
-
-    final days = int.tryParse(_staleDays.text.trim());
-    if (days != null && days > 0) {
-      await stores.setStalePartialOrderDays(widget.store.id, days);
-    } else {
-      // Falling back rather than refusing: an empty or nonsense value should
-      // restore the default, not leave the dashboard with no threshold at all.
-      await stores.setStalePartialOrderDays(
+      // The break allowance. A nonsense value is ignored here rather than
+      // refused, so a half-typed field does not block the rest.
+      final maxBreak = int.tryParse(_maxBreak.text.trim());
+      final updated = await stores.updateStoreSettings(
         widget.store.id,
-        OrderRules.defaultStalePartialDays,
+        maxBreakMinutes: maxBreak,
+        businessDayAutoOpenMinutes: _autoOpenMinutes,
       );
-      _staleDays.text = '${OrderRules.defaultStalePartialDays}';
+
+      // Reflect what actually stuck.
+      _maxBreak.text = '${updated.maxBreakMinutes}';
+      _savedUnitId = _defaultUnitId;
+    } finally {
+      if (mounted) setState(() => _saving = false);
     }
 
-    // The break allowance. A nonsense value is ignored here rather than
-    // refused, so a half-typed field does not block the rest.
-    final maxBreak = int.tryParse(_maxBreak.text.trim());
-    final updated = await stores.updateStoreSettings(
-      widget.store.id,
-      maxBreakMinutes: maxBreak,
-      businessDayAutoOpenMinutes: _autoOpenMinutes,
-    );
-
-    // Reflect what actually stuck.
-    _maxBreak.text = '${updated.maxBreakMinutes}';
-
     if (!mounted) return;
+    setState(() => _editingOperations = false);
     AppSnackBar.success(context, l10n.storeSettingsSaved);
   }
 }
 
-/// Shown to a manager: the store settings are visible but not theirs to change.
+// Shown to a manager: the store settings are visible but not theirs to change.
 class _ReadOnlyNotice extends StatelessWidget {
   const _ReadOnlyNotice({required this.message});
 
