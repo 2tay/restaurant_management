@@ -39,57 +39,51 @@ class NotificationPreferencesPage extends ConsumerWidget {
       tabsAboveTitle: true,
       title: l10n.notificationPrefsTitle,
       subtitle: l10n.notificationPrefsSubtitle,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 720),
-        child: AsyncContent<StoreSettings>(
-          value: asyncSettings,
-          onRetry: () => ref.invalidate(storeSettingsProvider(storeId)),
-          builder: (context, settings) => AppCard(
-            padding: EdgeInsets.zero,
-            child: Column(
-              children: [
-                _PreferenceRow(
-                  icon: LucideIcons.triangleAlert,
-                  title: l10n.notificationPrefLowStock,
-                  body: l10n.notificationPrefLowStockBody,
-                  value: settings.notifyLowStock,
-                  onChanged: (value) => _save(ref, lowStock: value),
-                ),
-                const Divider(height: 1),
-                _PreferenceRow(
-                  icon: LucideIcons.trendingUp,
-                  title: l10n.notificationPrefPriceChange,
-                  body: l10n.notificationPrefPriceChangeBody,
-                  value: settings.notifyPriceChange,
-                  onChanged: (value) => _save(ref, priceChange: value),
-                ),
-                const Divider(height: 1),
-                _PreferenceRow(
-                  icon: LucideIcons.clipboardCheck,
-                  title: l10n.notificationPrefLargeAdjustment,
-                  body: l10n.notificationPrefLargeAdjustmentBody,
-                  value: settings.notifyLargeAdjustment,
-                  onChanged: (value) => _save(ref, largeAdjustment: value),
-                ),
-                const Divider(height: 1),
-                _PreferenceRow(
-                  icon: LucideIcons.truck,
-                  title: l10n.notificationPrefDeliveries,
-                  body: l10n.notificationPrefDeliveriesBody,
-                  value: settings.notifyDeliveries,
-                  onChanged: (value) => _save(ref, deliveries: value),
-                ),
-                const Divider(height: 1),
-                _PreferenceRow(
-                  icon: LucideIcons.calendarDays,
-                  title: l10n.notificationPrefBusyDays,
-                  body: l10n.notificationPrefBusyDaysBody,
-                  value: settings.notifyBusyDays,
-                  onChanged: (value) => _save(ref, busyDays: value),
-                ),
-              ],
+      // One card per notification, two side by side where there is room
+      // and one per line below a medium screen.
+      child: AsyncContent<StoreSettings>(
+        value: asyncSettings,
+        onRetry: () => ref.invalidate(storeSettingsProvider(storeId)),
+        builder: (context, settings) => ResponsiveCardGrid(
+          maxColumns: 2,
+          equalRowHeights: true,
+          children: [
+            _PreferenceCard(
+              icon: LucideIcons.triangleAlert,
+              title: l10n.notificationPrefLowStock,
+              body: l10n.notificationPrefLowStockBody,
+              value: settings.notifyLowStock,
+              onChanged: (value) => _save(ref, lowStock: value),
             ),
-          ),
+            _PreferenceCard(
+              icon: LucideIcons.trendingUp,
+              title: l10n.notificationPrefPriceChange,
+              body: l10n.notificationPrefPriceChangeBody,
+              value: settings.notifyPriceChange,
+              onChanged: (value) => _save(ref, priceChange: value),
+            ),
+            _PreferenceCard(
+              icon: LucideIcons.clipboardCheck,
+              title: l10n.notificationPrefLargeAdjustment,
+              body: l10n.notificationPrefLargeAdjustmentBody,
+              value: settings.notifyLargeAdjustment,
+              onChanged: (value) => _save(ref, largeAdjustment: value),
+            ),
+            _PreferenceCard(
+              icon: LucideIcons.truck,
+              title: l10n.notificationPrefDeliveries,
+              body: l10n.notificationPrefDeliveriesBody,
+              value: settings.notifyDeliveries,
+              onChanged: (value) => _save(ref, deliveries: value),
+            ),
+            _PreferenceCard(
+              icon: LucideIcons.calendarDays,
+              title: l10n.notificationPrefBusyDays,
+              body: l10n.notificationPrefBusyDaysBody,
+              value: settings.notifyBusyDays,
+              onChanged: (value) => _save(ref, busyDays: value),
+            ),
+          ],
         ),
       ),
     );
@@ -118,8 +112,8 @@ class NotificationPreferencesPage extends ConsumerWidget {
   }
 }
 
-class _PreferenceRow extends StatelessWidget {
-  const _PreferenceRow({
+class _PreferenceCard extends StatelessWidget {
+  const _PreferenceCard({
     required this.icon,
     required this.title,
     required this.body,
@@ -137,8 +131,11 @@ class _PreferenceRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return InkWell(
-      // The whole row toggles, not just the switch — a 40dp switch is a small
+    // No hairline: the card's soft shadow alone sets it off the page.
+    return AppCard(
+      bordered: false,
+      padding: EdgeInsets.zero,
+      // The whole card toggles, not just the switch — a 40dp switch is a small
       // target for someone in a hurry.
       onTap: () => onChanged(!value),
       child: Padding(

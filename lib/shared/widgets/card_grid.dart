@@ -29,6 +29,7 @@ class ResponsiveCardGrid extends StatelessWidget {
     this.minCardWidth = 320,
     this.maxColumns = 4,
     this.itemHeight,
+    this.equalRowHeights = false,
     super.key,
   });
 
@@ -42,6 +43,11 @@ class ResponsiveCardGrid extends StatelessWidget {
   /// A fixed height for every card — for cards whose content is laid out
   /// against the bottom edge. Null lets each card size itself.
   final double? itemHeight;
+
+  /// Stretches the cards of a row to its tallest — for cards side by side
+  /// whose text runs to different lengths (the notification settings), where
+  /// a ragged bottom edge reads as a mistake. Ignored with [itemHeight].
+  final bool equalRowHeights;
 
   static const double _spacing = AppSpacing.lg;
 
@@ -72,6 +78,33 @@ class ResponsiveCardGrid extends StatelessWidget {
           columns = math.min(columns, _fit(_widthAtSidebarOpen));
         }
         final cardWidth = (width - _spacing * (columns - 1)) / columns;
+
+        if (equalRowHeights && itemHeight == null && columns > 1) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (var start = 0; start < children.length; start += columns) ...[
+                if (start > 0) const SizedBox(height: _spacing),
+                IntrinsicHeight(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      for (var i = start; i < start + columns; i++) ...[
+                        if (i > start) const SizedBox(width: _spacing),
+                        SizedBox(
+                          width: cardWidth,
+                          child: i < children.length
+                              ? children[i]
+                              : const SizedBox.shrink(),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          );
+        }
 
         return Wrap(
           spacing: _spacing,
