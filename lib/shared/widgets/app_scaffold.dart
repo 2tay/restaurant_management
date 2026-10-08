@@ -411,6 +411,7 @@ class ShellPage extends StatelessWidget {
     this.onBack,
     this.tabs,
     this.sideTabsOnWide = false,
+    this.tabsAboveTitle = false,
     this.footer,
     this.maxContentWidth,
     super.key,
@@ -465,6 +466,11 @@ class ShellPage extends StatelessWidget {
   /// own and a list with descriptions says more than a row of four words.
   /// Below [sideTabsMinWidth] they stay a bar under the title.
   final bool sideTabsOnWide;
+
+  /// Puts [tabs] above the title instead of under it — for pages whose title
+  /// is the open tab's (Paramètres): the bar is the way between them, and
+  /// the title names where it led.
+  final bool tabsAboveTitle;
 
   /// Page width from which [sideTabsOnWide] takes effect: the 240dp column,
   /// its gap, and enough left for a 720dp form.
@@ -536,6 +542,10 @@ class ShellPage extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (showTabs && tabs != null && tabsAboveTitle) ...[
+            tabs!,
+            const SizedBox(height: AppSpacing.lg),
+          ],
           // Indented past the back arrow, so the trail lines up with the title
           // text it leads to rather than with the arrow.
           if (crumbs.length > 1) ...[
@@ -559,7 +569,7 @@ class ShellPage extends StatelessWidget {
                 ? null
                 : BackControl(destination: back!, onBack: onBack),
           ),
-          if (showTabs && tabs != null) ...[
+          if (showTabs && tabs != null && !tabsAboveTitle) ...[
             const SizedBox(height: AppSpacing.lg),
             tabs!,
           ],

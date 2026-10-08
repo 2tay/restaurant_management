@@ -43,6 +43,7 @@ class SyncStatusPage extends ConsumerWidget {
           storeId: storeId,
           currentPath: Routes.toSyncStatus(storeId),
         ),
+        tabsAboveTitle: true,
         title: l10n.syncTitle,
         subtitle: l10n.syncSubtitle,
         child: const AccountSyncView(),
@@ -58,6 +59,7 @@ class SyncStatusPage extends ConsumerWidget {
         storeId: storeId,
         currentPath: Routes.toSyncStatus(storeId),
       ),
+      tabsAboveTitle: true,
       title: l10n.syncTitle,
       subtitle: l10n.syncSubtitle,
       child: ConstrainedBox(

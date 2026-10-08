@@ -38,6 +38,7 @@ class AccountSettingsPage extends ConsumerWidget {
         storeId: storeId,
         currentPath: Routes.toAccountSettings(storeId),
       ),
+      tabsAboveTitle: true,
       title: l10n.accountSettingsTitle,
       child: AsyncContent<List<Store>>(
         value: stores,

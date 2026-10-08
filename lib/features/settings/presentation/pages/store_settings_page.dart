@@ -55,6 +55,7 @@ class StoreSettingsPage extends ConsumerWidget {
           storeId: storeId,
           currentPath: Routes.toStoreSettings(storeId),
         ),
+        tabsAboveTitle: true,
         title: l10n.storeSettingsTitle,
         child: const SkeletonList(rows: 3, rowHeight: 180),
       ),
@@ -66,6 +67,7 @@ class StoreSettingsPage extends ConsumerWidget {
               storeId: storeId,
               currentPath: Routes.toStoreSettings(storeId),
             ),
+            tabsAboveTitle: true,
             title: l10n.storeSettingsTitle,
             child: ErrorState(
               title: l10n.shellNoStoreTitle,
@@ -162,6 +164,7 @@ class _StoreSettingsFormState extends ConsumerState<_StoreSettingsForm> {
         storeId: storeId,
         currentPath: Routes.toStoreSettings(storeId),
       ),
+      tabsAboveTitle: true,
       title: l10n.storeSettingsTitle,
       actions: [
         PrimaryButton(

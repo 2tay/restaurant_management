@@ -56,9 +56,12 @@ void main() {
     }
   }
 
-  testApp('settings tabs: one bar under the title, across the whole page, '
+  testApp('settings tabs: one bar above the title, across the whole page, '
       'even when it is wide', (tester) async {
-    await pumpApp(tester, size: const Size(1440, 900));
+    // Wider than the app needs: the test font draws every letter as a 14dp
+    // square, so « Synchronisation » takes ~280dp here against ~190dp in
+    // Montserrat, and four such shares outgrow a 1440dp window.
+    await pumpApp(tester, size: const Size(1920, 1080));
     appRouter.go(Routes.toSyncStatus(_store));
     await tester.pumpAndSettle();
 
@@ -66,7 +69,8 @@ void main() {
     expect(find.text('Connexion et données locales'), findsNothing);
     final bar = tester.getRect(find.byType(SectionTabs));
     final title = tester.getRect(find.text('État de la synchronisation'));
-    expect(bar.top, greaterThan(title.bottom));
+    // Above the title, which names the open tab.
+    expect(bar.bottom, lessThan(title.top));
     expect(bar.left, closeTo(title.left, 1));
     // The page's whole width: from the title's left edge to the page inset.
     final page = tester.getRect(find.byType(ShellPage));
@@ -97,7 +101,7 @@ void main() {
     expect(widths, hasLength(1));
   });
 
-  testApp('settings tabs are a bar under the title on a phone', (
+  testApp('settings tabs on a phone: icons only, every label in a tooltip', (
     tester,
   ) async {
     await pumpApp(tester, size: const Size(360, 780));
@@ -105,9 +109,27 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Connexion et données locales'), findsNothing);
-    // Only the open tab keeps its label; the others are icons with tooltips.
-    expect(find.text('Synchronisation'), findsOneWidget);
-    expect(find.text('Compte'), findsNothing);
-    expect(find.byTooltip('Compte'), findsOneWidget);
+    final tabs = find.byType(SectionTabs);
+    // The open tab too: the title under the bar says where this is.
+    for (final label in [
+      'Établissement',
+      'Compte',
+      'Notifications',
+      'Synchronisation',
+    ]) {
+      expect(
+        find.descendant(of: tabs, matching: find.text(label)),
+        findsNothing,
+      );
+      expect(
+        find.descendant(of: tabs, matching: find.byTooltip(label)),
+        findsOneWidget,
+      );
+    }
+    expect(
+      tester.getRect(tabs).bottom,
+      lessThan(tester.getRect(find.text('État de la synchronisation')).top),
+    );
+    expect(tester.takeException(), isNull);
   });
 }

@@ -36,6 +36,7 @@ class NotificationPreferencesPage extends ConsumerWidget {
         storeId: storeId,
         currentPath: Routes.toNotificationSettings(storeId),
       ),
+      tabsAboveTitle: true,
       title: l10n.notificationPrefsTitle,
       subtitle: l10n.notificationPrefsSubtitle,
       child: ConstrainedBox(

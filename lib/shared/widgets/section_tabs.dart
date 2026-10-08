@@ -79,8 +79,11 @@ class SectionTabs extends StatelessWidget {
   final List<SectionTab> tabs;
 
   /// Stretches the bar across the whole width it is given, the tabs sharing
-  /// it equally — Paramètres' bar at the top of each settings page. Off, the
-  /// bar is as wide as its tabs and scrolls sideways when they overflow.
+  /// it equally — Paramètres' bar at the top of each settings page. Where the
+  /// labels do not fit, every tab — the open one too — folds to its icon,
+  /// its label in a tooltip: the page title under the bar names the open
+  /// one. Off, the bar is as wide as its tabs and scrolls sideways when they
+  /// overflow, the open tab keeping its label.
   final bool fill;
 
   /// The path of the tab currently shown.
@@ -131,10 +134,13 @@ class SectionTabs extends StatelessWidget {
             tabs.every((tab) => tab.icon != null) &&
             _fullWidth(context) > constraints.maxWidth;
 
+        bool folded(SectionTab tab) =>
+            compact && (fill || tab.path != currentPath);
+
         Widget tabFor(SectionTab tab) => _Tab(
           tab: tab,
           selected: tab.path == currentPath,
-          iconOnly: compact && tab.path != currentPath,
+          iconOnly: folded(tab),
           onTap: () => _select(context, tab),
         );
 
@@ -150,13 +156,7 @@ class SectionTabs extends StatelessWidget {
             children: [
               for (final (index, tab) in tabs.indexed) ...[
                 if (index > 0) const SizedBox(width: AppSpacing.xs),
-                // Filling, the tabs with a label share the width; one folded
-                // to its icon keeps its own (a phone: the open tab takes the
-                // rest).
-                if (fill && !(compact && tab.path != currentPath))
-                  Expanded(child: tabFor(tab))
-                else
-                  tabFor(tab),
+                if (fill) Expanded(child: tabFor(tab)) else tabFor(tab),
               ],
             ],
           ),
@@ -175,13 +175,23 @@ class SectionTabs extends StatelessWidget {
   }
 
   /// Width of the bar with every label shown, at the current text scale.
-  /// Labels are measured at the selected weight, the widest they get.
+  /// Labels are measured at the selected weight, the widest they get. When
+  /// the tabs [fill] the bar in equal shares, the widest one sets every share.
   double _fullWidth(BuildContext context) {
+    final widths = _tabWidths(context);
+    final gaps = AppSpacing.xs * 2 + AppSpacing.xs * (tabs.length - 1);
+    return fill
+        ? gaps + widths.reduce((a, b) => a > b ? a : b) * tabs.length
+        : gaps + widths.fold(0.0, (a, b) => a + b);
+  }
+
+  /// Each tab's natural width with its label shown.
+  List<double> _tabWidths(BuildContext context) {
     final style = Theme.of(
       context,
     ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600);
     final scaler = MediaQuery.textScalerOf(context);
-    var width = AppSpacing.xs * 2 + AppSpacing.xs * (tabs.length - 1);
+    final widths = <double>[];
     for (final tab in tabs) {
       final painter = TextPainter(
         text: TextSpan(text: tab.label, style: style),
@@ -189,11 +199,12 @@ class SectionTabs extends StatelessWidget {
         textScaler: scaler,
         maxLines: 1,
       )..layout();
-      width += painter.width + AppSpacing.lg * 2;
+      var width = painter.width + AppSpacing.lg * 2;
       if (tab.icon != null) width += AppSizing.iconSm + AppSpacing.sm;
+      widths.add(width);
       painter.dispose();
     }
-    return width;
+    return widths;
   }
 }
 
