@@ -583,9 +583,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get itemNoteLabel => 'Note';
 
   @override
-  String get itemSuppliersTitle => 'Fournisseurs et prix';
-
-  @override
   String get itemNoSuppliersTitle => 'Aucun fournisseur associé';
 
   @override
@@ -613,9 +610,6 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get itemViewPriceHistory => 'Historique des prix';
-
-  @override
-  String get itemMovementsTitle => 'Mouvements récents';
 
   @override
   String get itemNoMovements => 'Aucun mouvement enregistré';
@@ -1506,11 +1500,11 @@ class AppLocalizationsFr extends AppLocalizations {
       'Produits à réapprovisionner, les plus urgents en premier.';
 
   @override
-  String get alertsEmpty => 'Aucune alerte';
+  String get alertsEmpty => 'Tout est en ordre';
 
   @override
   String get alertsEmptyBody =>
-      'Tous vos produits sont au-dessus de leur seuil d\'alerte.';
+      'Aucun produit ne nécessite de réapprovisionnement.';
 
   @override
   String get alertsSeverityOutOfStock => 'Ruptures';
@@ -1591,10 +1585,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String get alertsColumnItem => 'Produit';
 
   @override
-  String get alertsColumnStock => 'Stock';
+  String get alertsColumnStock => 'Stock actuel';
 
   @override
-  String get alertsColumnThreshold => 'Seuil';
+  String get alertsColumnThreshold => 'Seuil minimum';
 
   @override
   String get alertsColumnShortfall => 'Manque';
@@ -1604,6 +1598,44 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get alertsColumnStatus => 'Statut';
+
+  @override
+  String get alertsColumnMinimum => 'Minimum';
+
+  @override
+  String alertsShortfall(String quantity) {
+    return 'Manque $quantity';
+  }
+
+  @override
+  String get alertsNothingToReport => 'Rien à signaler';
+
+  @override
+  String get alertsTabAll => 'Tous';
+
+  @override
+  String get alertsSearchHint => 'Rechercher un produit…';
+
+  @override
+  String get alertsSummaryAlerts => 'Produits en alerte';
+
+  @override
+  String get alertsSummaryAlertsCaption => 'Stock sous le minimum';
+
+  @override
+  String get alertsSummaryOutCaption => 'Plus de stock';
+
+  @override
+  String get alertsSummaryLowCaption => 'Sous le minimum';
+
+  @override
+  String get alertsSummaryOk => 'Stock OK';
+
+  @override
+  String get alertsSummaryOkCaption => 'Aucun problème';
+
+  @override
+  String get alertsOpenProduct => 'Voir le produit';
 
   @override
   String get notificationsTitle => 'Notifications';
@@ -2166,11 +2198,6 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String orderSentOn(String date) {
-    return 'Envoyée le $date';
-  }
-
-  @override
   String orderClosedOn(String date) {
     return 'Clôturée le $date';
   }
@@ -2474,15 +2501,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get itemOnOrderLabel => 'En commande';
 
   @override
-  String itemRangeInline(String minimum, String maximum) {
-    return 'min $minimum · max $maximum';
-  }
-
-  @override
   String get itemStockValueLabel => 'Valeur du stock';
-
-  @override
-  String get itemStockValueUnknown => 'Coût inconnu';
 
   @override
   String get stockGaugeOverMaximum => 'Au-dessus du stock maximum';
@@ -2491,15 +2510,39 @@ class AppLocalizationsFr extends AppLocalizations {
   String get itemStockRangeLabel => 'Stock min/max';
 
   @override
-  String itemTopUpSuggestion(String quantity) {
-    return 'Pour remonter au maximum : $quantity';
+  String get itemTabOverview => 'Aperçu';
+
+  @override
+  String get itemTabSuppliers => 'Fournisseurs';
+
+  @override
+  String get itemTabHistory => 'Historique';
+
+  @override
+  String itemGaugeMin(String quantity) {
+    return 'Min $quantity';
   }
 
   @override
-  String get itemDetailsTitle => 'Détails';
+  String itemGaugeMax(String quantity) {
+    return 'Max $quantity';
+  }
 
   @override
-  String get itemDetailsSubtitle => 'Fiche du produit';
+  String get itemChipValue => 'valeur';
+
+  @override
+  String get itemChipOnOrder => 'en route';
+
+  @override
+  String get itemChipTopUp => 'pour le max';
+
+  @override
+  String get itemTopUpTooltip =>
+      'Quantité à commander pour atteindre le stock maximum';
+
+  @override
+  String get itemMoreActions => 'Plus d\'actions';
 
   @override
   String get itemOpenOrdersTitle => 'Commandes en cours';

@@ -19,12 +19,25 @@ class StatTile extends StatelessWidget {
     required this.value,
     required this.icon,
     this.accent,
+    this.caption,
+    this.onTap,
+    this.selected = false,
     super.key,
   });
 
   final String label;
   final String value;
   final IconData icon;
+
+  /// A short muted line under the label — what the count is measured against
+  /// (« Stock sous le minimum »), for a row of tiles that reads as a summary.
+  final String? caption;
+
+  /// Makes the tile a way in: the alerts summary filters the list on tap.
+  final VoidCallback? onTap;
+
+  /// Outlined in the tile's own colour — the filter the tile stands for is on.
+  final bool selected;
 
   /// Tints the tile — use for a count that should read as something to act on
   /// (late breaks, unpaid periods) rather than a neutral statistic.
@@ -36,7 +49,9 @@ class StatTile extends StatelessWidget {
     final foreground = accent?.foreground ?? AppColors.textPrimary;
 
     return AppCard(
-      bordered: false,
+      bordered: selected,
+      borderColor: selected ? (accent?.solid ?? AppColors.primary600) : null,
+      onTap: onTap,
       // The icon always stays; a narrow tile shrinks its figure instead.
       child: _content(
         theme,
@@ -47,11 +62,7 @@ class StatTile extends StatelessWidget {
     );
   }
 
-  Widget _content(
-    ThemeData theme,
-    Color foreground, {
-    required bool phone,
-  }) {
+  Widget _content(ThemeData theme, Color foreground, {required bool phone}) {
     return Row(
       children: [
         Container(
@@ -73,33 +84,46 @@ class StatTile extends StatelessWidget {
         ),
         const SizedBox(width: AppSpacing.md),
         Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Scaled down rather than ellipsized. A truncated number is
-                // worse than a small one — "1 2…" reads as a different figure,
-                // where 11pt still reads as 1 234. Aligned left so a row of
-                // tiles keeps its rhythm whatever each one shrinks to.
-                Align(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Scaled down rather than ellipsized. A truncated number is
+              // worse than a small one — "1 2…" reads as a different figure,
+              // where 11pt still reads as 1 234. Aligned left so a row of
+              // tiles keeps its rhythm whatever each one shrinks to.
+              Align(
+                alignment: Alignment.centerLeft,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
                   alignment: Alignment.centerLeft,
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      value,
-                      style: theme.textTheme.headlineSmall?.copyWith(
-                        color: foreground,
-                      ),
-                      maxLines: 1,
+                  child: Text(
+                    value,
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      color: foreground,
                     ),
+                    maxLines: 1,
                   ),
                 ),
+              ),
+              Text(
+                label,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: AppColors.textSecondary,
+                  fontSize: phone ? 11 : null,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              // Dropped on a phone, where two tiles share the line and the
+              // caption would only ever show as « Stock sous … ».
+              if (caption != null && !phone)
                 Text(
-                  label,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: AppColors.textSecondary,
-                    fontSize: phone ? 11 : null,
+                  caption!,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    // neutral500, not textDisabled: still 4.5:1 on white.
+                    color: AppColors.neutral500,
+                    fontWeight: FontWeight.w400,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -147,10 +171,10 @@ class StatTileRow extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final fit = ((constraints.maxWidth + spacing) /
-                (minTileWidth + spacing))
-            .floor()
-            .clamp(1, tiles.length);
+        final fit =
+            ((constraints.maxWidth + spacing) / (minTileWidth + spacing))
+                .floor()
+                .clamp(1, tiles.length);
         final columns = small ? math.min(2, tiles.length) : fit;
 
         // As many lines as [columns] needs, the tiles shared out evenly — the

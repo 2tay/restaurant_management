@@ -33,21 +33,57 @@ class DetailDrawer extends StatelessWidget {
 
   /// The same panel around content that brings its own header — a view that
   /// is also a page or a pane elsewhere, like a product's detail. [width] on
-  /// a tablet and up; the full width on a phone.
+  /// a tablet and up.
+  ///
+  /// On a phone it is a bottom sheet instead: a panel sliding in from the
+  /// right at full width is a page with no way to swipe it away, and the
+  /// sheet's handle is the gesture a phone user already reaches for.
   static Future<void> showCustom(
     BuildContext context, {
     required WidgetBuilder builder,
     double width = 440,
-  }) => _slideIn(
-    context,
-    (context) => _DrawerPanel(
-      width: width,
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.xl),
-        child: builder(context),
+  }) {
+    if (MediaQuery.sizeOf(context).width < AppBreakpoints.compact) {
+      return _sheet(context, builder);
+    }
+    return _slideIn(
+      context,
+      (context) => _DrawerPanel(
+        width: width,
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.xl),
+          child: builder(context),
+        ),
       ),
-    ),
-  );
+    );
+  }
+
+  /// Most of the screen's height, so the content under it still shows above
+  /// and reads as "this is over the list", not as a new page.
+  static Future<void> _sheet(BuildContext context, WidgetBuilder builder) {
+    return showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      showDragHandle: true,
+      backgroundColor: AppColors.surface,
+      builder: (context) => DrawerScope(
+        close: () => Navigator.of(context).pop(),
+        child: FractionallySizedBox(
+          heightFactor: 0.92,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.lg,
+              0,
+              AppSpacing.lg,
+              AppSpacing.lg,
+            ),
+            child: builder(context),
+          ),
+        ),
+      ),
+    );
+  }
 
   static Future<void> _slideIn(BuildContext context, WidgetBuilder builder) {
     return showGeneralDialog<void>(
@@ -126,8 +162,9 @@ class DetailDrawer extends StatelessWidget {
   }
 }
 
-/// The sheet itself: pinned right, full height, [width] wide — or the whole
-/// screen on a phone.
+/// The sheet itself: pinned right, full height, [width] wide — at most 480 on
+/// a tablet in portrait, where 560 would cover most of the list it opened
+/// from — or the whole screen on a phone.
 class _DrawerPanel extends StatelessWidget {
   const _DrawerPanel({required this.width, required this.child});
 
@@ -139,6 +176,8 @@ class _DrawerPanel extends StatelessWidget {
     final screenWidth = MediaQuery.sizeOf(context).width;
     final panelWidth = screenWidth < AppBreakpoints.compact
         ? screenWidth
+        : screenWidth < AppBreakpoints.medium
+        ? width.clamp(0.0, 480.0)
         : width.clamp(0.0, screenWidth);
 
     return Align(

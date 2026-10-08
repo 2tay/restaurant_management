@@ -124,15 +124,17 @@ class LowStockAlertsPage extends ConsumerWidget {
               ),
               const SizedBox(height: AppSpacing.md),
             ],
+            _Summary(alerts: all, storeId: storeId),
+            const SizedBox(height: AppSpacing.xl),
             if (all.isEmpty && busyAll.isEmpty)
               EmptyState(
-                icon: LucideIcons.circleCheck,
+                icon: LucideIcons.packageCheck,
                 title: l10n.alertsEmpty,
                 message: l10n.alertsEmptyBody,
               )
             else ...[
               _Toolbar(alerts: all, busyAlerts: busyAll),
-              const SizedBox(height: AppSpacing.md),
+              const SizedBox(height: AppSpacing.lg),
               _Results(shown: shown, storeId: storeId, filter: filter),
             ],
           ],
@@ -195,22 +197,96 @@ Map<String, ({String name, int count})> groupBySupplier(
 }
 
 // -----------------------------------------------------------------------------
+// The summary.
+// -----------------------------------------------------------------------------
+
+/// Four counts above the list: how many need something, how many are out, how
+/// many are low, how many are fine.
+///
+/// It replaces nothing the list does not also say — it says it in two seconds.
+/// The first three are filters as well: tapping one shows those rows. "Stock
+/// OK" is the reassurance that the other three are the whole problem, and it
+/// counts the catalogue rather than the alerts, since the alerts by definition
+/// hold none of them.
+class _Summary extends ConsumerWidget {
+  const _Summary({required this.alerts, required this.storeId});
+
+  /// Every alert, before any filtering.
+  final List<LowStockAlertView> alerts;
+  final String storeId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final notifier = ref.read(alertsFilterProvider.notifier);
+    final items =
+        ref.watch(itemsByNameProvider(storeId)).value ?? const <Item>[];
+
+    final out = alerts
+        .where((v) => stockStatusOf(v.row.item) == StockStatus.outOfStock)
+        .length;
+    final low = alerts.length - out;
+    final ok = items
+        .where((i) => stockStatusOf(i) == StockStatus.inStock)
+        .length;
+
+    void show(AlertSeverity severity) => notifier.setSeverity(severity);
+
+    return StatTileRow(
+      spacing: AppSpacing.md,
+      tiles: [
+        StatTile(
+          value: '${alerts.length}',
+          label: l10n.alertsSummaryAlerts,
+          caption: l10n.alertsSummaryAlertsCaption,
+          icon: LucideIcons.triangleAlert,
+          onTap: () => show(AlertSeverity.all),
+        ),
+        StatTile(
+          value: '$out',
+          label: l10n.alertsSeverityOutOfStock,
+          caption: l10n.alertsSummaryOutCaption,
+          icon: StockStatusBadge.iconFor(StockStatus.outOfStock),
+          // Tinted only when there is something to see. A red zero is an
+          // alarm about nothing.
+          accent: out > 0 ? AppColors.outOfStock : null,
+          onTap: () => show(AlertSeverity.outOfStock),
+        ),
+        StatTile(
+          value: '$low',
+          label: l10n.alertsSeverityLowStock,
+          caption: l10n.alertsSummaryLowCaption,
+          icon: StockStatusBadge.iconFor(StockStatus.lowStock),
+          accent: low > 0 ? AppColors.lowStock : null,
+          onTap: () => show(AlertSeverity.lowStock),
+        ),
+        StatTile(
+          value: '$ok',
+          label: l10n.alertsSummaryOk,
+          caption: l10n.alertsSummaryOkCaption,
+          icon: StockStatusBadge.iconFor(StockStatus.inStock),
+          accent: AppColors.inStock,
+        ),
+      ],
+    );
+  }
+}
+
+// -----------------------------------------------------------------------------
 // The toolbar.
 // -----------------------------------------------------------------------------
 
-/// Severity, filters, sort and view mode — one row.
+/// Severity tabs, search, the two narrowing menus, sort and view mode.
 ///
-/// These were three stacked rows: a tab strip, a line of filter pills, and a
-/// result count underneath. Between them they pushed the first article a third
-/// of the way down a laptop screen to say things that fit on one line.
+/// Each tab carries the number tapping it would show — counted with the
+/// *other* filters applied, so "Ruptures 3" means three after the supplier,
+/// coverage and search narrowing, not three in the abstract.
 ///
-/// The count went first. Each tab already carries the number tapping it would
-/// show — counted with the *other* filters applied, so "Ruptures 3" means three
-/// after the supplier and coverage narrowing, not three in the abstract — which
-/// made a separate "12 produits" a third telling of the same figure.
-///
-/// What is left reads left to right as what it does: which ones, narrowed how,
-/// then ordered and drawn how, pushed to the far end.
+/// Wide, everything shares one line; the tabs scroll rather than wrap so a long
+/// supplier name picked in a menu never reflows the row. Narrower, the search
+/// and the view controls take a line above the tabs. On a phone the search is
+/// full width, the two menus go behind one filter button, and the tabs scroll
+/// sideways with the sort pinned at the end.
 class _Toolbar extends ConsumerWidget {
   const _Toolbar({required this.alerts, required this.busyAlerts});
 
@@ -225,6 +301,7 @@ class _Toolbar extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final filter = ref.watch(alertsFilterProvider);
     final notifier = ref.read(alertsFilterProvider.notifier);
+    final phone = context.isPhone;
 
     // Counted with everything except severity applied, so each tab says how
     // many rows tapping it would leave.
@@ -234,26 +311,35 @@ class _Toolbar extends ConsumerWidget {
       if (stockStatusOf(alert.row.item) == StockStatus.outOfStock) out++;
     }
 
-    final tabs = <Widget>[
-      for (final (i, (value, label, count)) in <(AlertSeverity, String, int)>[
-        (AlertSeverity.all, l10n.alertsFilterAll, base.length),
-        (AlertSeverity.outOfStock, l10n.alertsSeverityOutOfStock, out),
-        (AlertSeverity.lowStock, l10n.alertsSeverityLowStock, base.length - out),
-        (
-          AlertSeverity.busy,
-          l10n.alertsBusyTab,
-          filter.copyWith(severity: AlertSeverity.busy).apply(busyAlerts).length,
-        ),
-      ].indexed) ...[
-        if (i > 0) const SizedBox(width: AppSpacing.xs),
-        _SeverityTab(
-          label: label,
-          count: count,
-          selected: value == filter.severity,
-          onTap: () => notifier.setSeverity(value),
-        ),
+    final tabs = Row(
+      children: [
+        for (final (i, (value, label, count)) in <(AlertSeverity, String, int)>[
+          (AlertSeverity.all, l10n.alertsTabAll, base.length),
+          (AlertSeverity.outOfStock, l10n.alertsSeverityOutOfStock, out),
+          (
+            AlertSeverity.lowStock,
+            l10n.alertsSeverityLowStock,
+            base.length - out,
+          ),
+          (
+            AlertSeverity.busy,
+            l10n.alertsBusyTab,
+            filter
+                .copyWith(severity: AlertSeverity.busy)
+                .apply(busyAlerts)
+                .length,
+          ),
+        ].indexed) ...[
+          if (i > 0) const SizedBox(width: AppSpacing.sm),
+          _SeverityTab(
+            label: label,
+            count: count,
+            selected: value == filter.severity,
+            onTap: () => notifier.setSeverity(value),
+          ),
+        ],
       ],
-    ];
+    );
 
     // Only the suppliers who actually appear. A menu offering every supplier in
     // the establishment would be mostly dead ends.
@@ -306,7 +392,7 @@ class _Toolbar extends ConsumerWidget {
     ];
 
     // Sorting reorders and never hides, so it is not counted among the filters
-    // and not cleared with them — and it sits on the other side of the row.
+    // and not cleared with them.
     final sort = FilterMenu<AlertSort>(
       label: l10n.alertsFilterSort,
       selectedLabel: switch (filter.sort) {
@@ -324,92 +410,145 @@ class _Toolbar extends ConsumerWidget {
       onSelected: notifier.setSort,
     );
 
-    // On a phone the two filter menus go behind one button; the tabs and the
-    // sort are what people reach for, and they stay on the row.
-    final narrowing = context.isPhone
-        ? <Widget>[
-            FilterSheetButton(
-              activeCount: filter.activeFilterCount,
-              onPressed: () => FilterSheet.show(
-                context,
-                onClear: filter.hasActiveFilters ? notifier.clear : null,
-                builder: (context) => Consumer(
-                  builder: (context, ref, _) {
-                    // Watched, not captured: the pills inside the sheet have to
-                    // follow the taps made on them.
-                    ref.watch(alertsFilterProvider);
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        for (final (i, control) in controls.indexed) ...[
-                          if (i > 0) const SizedBox(height: AppSpacing.md),
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: control,
-                          ),
+    final search = SearchField(
+      hint: l10n.alertsSearchHint,
+      initialValue: filter.query,
+      onChanged: notifier.setQuery,
+      maxWidth: phone ? double.infinity : AppSizing.filterFieldWidth + 60,
+    );
+
+    if (phone) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(child: search),
+              const SizedBox(width: AppSpacing.sm),
+              FilterSheetButton(
+                compact: true,
+                activeCount: filter.activeFilterCount,
+                onPressed: () => FilterSheet.show(
+                  context,
+                  onClear: filter.hasActiveFilters ? notifier.clear : null,
+                  builder: (context) => Consumer(
+                    builder: (context, ref, _) {
+                      // Watched, not captured: the pills inside the sheet have
+                      // to follow the taps made on them.
+                      ref.watch(alertsFilterProvider);
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          for (final (i, control) in controls.indexed) ...[
+                            if (i > 0) const SizedBox(height: AppSpacing.md),
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: control,
+                            ),
+                          ],
                         ],
-                      ],
-                    );
-                  },
+                      );
+                    },
+                  ),
                 ),
               ),
-            ),
-          ]
-        : <Widget>[
-            for (final control in controls) ...[
-              control,
-              const SizedBox(width: AppSpacing.xs),
             ],
-            if (filter.hasActiveFilters)
-              IconButton(
-                onPressed: notifier.clear,
-                tooltip: l10n.inventoryClearFilters,
-                visualDensity: VisualDensity.compact,
-                icon: const Icon(LucideIcons.x, size: AppSizing.iconSm),
-              ),
-          ];
-
-    return Row(
-      children: [
-        // The row scrolls rather than wrapping: a toolbar that reflows onto a
-        // second line when a long supplier name is picked moves everything
-        // under it, which is worse than having to swipe it.
-        Expanded(
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                ...tabs,
-                const SizedBox(width: AppSpacing.md),
-                const _ToolbarDivider(),
-                const SizedBox(width: AppSpacing.md),
-                ...narrowing,
-              ],
-            ),
           ),
-        ),
-        const SizedBox(width: AppSpacing.md),
-        sort,
-        if (!context.isPhone) ...[
-          const SizedBox(width: AppSpacing.xs),
-          ViewModeToggle<AlertsViewMode>(
-            value: ref.watch(alertsViewModeProvider),
-            onSelected: ref.read(alertsViewModeProvider.notifier).select,
-            options: [
-              ViewModeOption(
-                value: AlertsViewMode.list,
-                icon: LucideIcons.list,
-                label: l10n.movementsViewList,
+          const SizedBox(height: AppSpacing.sm),
+          Row(
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: tabs,
+                ),
               ),
-              ViewModeOption(
-                value: AlertsViewMode.table,
-                icon: LucideIcons.table,
-                label: l10n.movementsViewTable,
-              ),
+              const SizedBox(width: AppSpacing.sm),
+              sort,
             ],
           ),
         ],
+      );
+    }
+
+    final narrowing = <Widget>[
+      for (final (i, control) in controls.indexed) ...[
+        if (i > 0) const SizedBox(width: AppSpacing.xs),
+        control,
       ],
+      if (filter.hasActiveFilters)
+        IconButton(
+          onPressed: notifier.clear,
+          tooltip: l10n.inventoryClearFilters,
+          visualDensity: VisualDensity.compact,
+          icon: const Icon(LucideIcons.x, size: AppSizing.iconSm),
+        ),
+    ];
+
+    final viewToggle = ViewModeToggle<AlertsViewMode>(
+      value: ref.watch(alertsViewModeProvider),
+      onSelected: ref.read(alertsViewModeProvider.notifier).select,
+      options: [
+        ViewModeOption(
+          value: AlertsViewMode.table,
+          icon: LucideIcons.list,
+          label: l10n.movementsViewList,
+        ),
+        ViewModeOption(
+          value: AlertsViewMode.grid,
+          icon: LucideIcons.layoutGrid,
+          label: l10n.viewModeGrid,
+        ),
+      ],
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final scrollingTabs = SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              tabs,
+              const SizedBox(width: AppSpacing.md),
+              const _ToolbarDivider(),
+              const SizedBox(width: AppSpacing.md),
+              ...narrowing,
+            ],
+          ),
+        );
+
+        // One line when the search can sit beside the tabs at a useful width.
+        if (constraints.maxWidth >= 1180) {
+          return Row(
+            children: [
+              Expanded(child: scrollingTabs),
+              const SizedBox(width: AppSpacing.md),
+              SizedBox(width: AppSizing.filterFieldWidth + 20, child: search),
+              const SizedBox(width: AppSpacing.sm),
+              sort,
+              const SizedBox(width: AppSpacing.sm),
+              viewToggle,
+            ],
+          );
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Expanded(child: search),
+                const SizedBox(width: AppSpacing.sm),
+                sort,
+                const SizedBox(width: AppSpacing.sm),
+                viewToggle,
+              ],
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            scrollingTabs,
+          ],
+        );
+      },
     );
   }
 }
@@ -419,14 +558,15 @@ class _ToolbarDivider extends StatelessWidget {
   const _ToolbarDivider();
 
   @override
-  Widget build(BuildContext context) => Container(
-    width: 1,
-    height: AppSizing.iconLg,
-    color: AppColors.hairline,
-  );
+  Widget build(BuildContext context) =>
+      Container(width: 1, height: AppSizing.iconLg, color: AppColors.hairline);
 }
 
 /// One severity tab: a word, and the count tapping it would leave.
+///
+/// A soft rectangle rather than a pill: four of them in a row read as one
+/// segmented choice, and the selected one is filled in the brand teal so it
+/// is the first thing the eye lands on in the toolbar.
 class _SeverityTab extends StatelessWidget {
   const _SeverityTab({
     required this.label,
@@ -443,26 +583,27 @@ class _SeverityTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final foreground = selected ? AppColors.white : AppColors.textPrimary;
 
     return Semantics(
       button: true,
       selected: selected,
       child: InkWell(
         onTap: onTap,
-        borderRadius: AppRadius.pillAll,
+        borderRadius: AppRadius.smAll,
         child: AnimatedContainer(
           duration: AppMotion.duration(context, AppMotion.fast),
-          constraints: const BoxConstraints(minHeight: AppSizing.minTapTarget),
+          constraints: BoxConstraints(
+            minHeight: context.isPhone
+                ? AppSizing.minTapTarget - 4
+                : AppSizing.toolbarControlHeight,
+          ),
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
           decoration: BoxDecoration(
-            // Teal marks the selection and nothing else here. The severities
-            // keep their own colours down in the rows, where they belong to an
-            // article rather than to a control.
-            color: selected ? AppColors.primaryContainer : AppColors.surface,
-            borderRadius: AppRadius.pillAll,
+            color: selected ? AppColors.primary600 : AppColors.surface,
+            borderRadius: AppRadius.smAll,
             border: Border.all(
               color: selected ? AppColors.primary600 : AppColors.border,
-              width: selected ? 2 : 1,
             ),
           ),
           child: Row(
@@ -470,19 +611,15 @@ class _SeverityTab extends StatelessWidget {
             children: [
               Text(
                 label,
-                style: theme.textTheme.labelLarge?.copyWith(
-                  color: selected
-                      ? AppColors.onPrimaryContainer
-                      : AppColors.textPrimary,
-                ),
+                style: theme.textTheme.labelLarge?.copyWith(color: foreground),
               ),
-              const SizedBox(width: AppSpacing.sm),
+              const SizedBox(width: AppSpacing.xs + 2),
               Text(
                 '$count',
                 style: theme.textTheme.labelSmall?.copyWith(
                   fontWeight: FontWeight.w700,
                   color: selected
-                      ? AppColors.onPrimaryContainer
+                      ? AppColors.white.withValues(alpha: 0.85)
                       : AppColors.textSecondary,
                 ),
               ),
@@ -495,7 +632,7 @@ class _SeverityTab extends StatelessWidget {
 }
 
 // -----------------------------------------------------------------------------
-// The list.
+// The results.
 // -----------------------------------------------------------------------------
 
 class _Results extends ConsumerWidget {
@@ -519,7 +656,9 @@ class _Results extends ConsumerWidget {
       // Nothing narrowing the list: it is genuinely empty, which is good news
       // rather than a filter to clear.
       final narrowed =
-          filter.coverage != AlertCoverage.all || filter.supplierId != null;
+          filter.coverage != AlertCoverage.all ||
+          filter.supplierId != null ||
+          filter.query.trim().isNotEmpty;
       if (!narrowed && busy) {
         return EmptyState(
           icon: LucideIcons.calendarCheck,
@@ -529,7 +668,7 @@ class _Results extends ConsumerWidget {
       }
       if (!narrowed && filter.severity == AlertSeverity.all) {
         return EmptyState(
-          icon: LucideIcons.circleCheck,
+          icon: LucideIcons.packageCheck,
           title: l10n.alertsEmpty,
           message: l10n.alertsEmptyBody,
         );
@@ -540,60 +679,87 @@ class _Results extends ConsumerWidget {
       );
     }
 
-    if (ref.watch(alertsViewModeProvider) == AlertsViewMode.table &&
-        !context.isPhone) {
-      return _AlertsTable(alerts: shown, storeId: storeId, busy: busy);
-    }
+    // The order is the query's — worst first — or the one the user picked.
+    // Ruptures carry a red edge in every view, so they stand out without the
+    // list being cut into sections.
+    final wantsTable =
+        !context.isPhone &&
+        ref.watch(alertsViewModeProvider) == AlertsViewMode.table;
 
-    // Grouped by severity only in the default order. A list the user has asked
-    // to sort by name, still cut into two blocks, is not sorted by name.
-    final grouped =
-        filter.sort == AlertSort.urgency && filter.severity == AlertSeverity.all;
-    if (!grouped) {
-      return _AlertList(alerts: shown, storeId: storeId, busy: busy);
-    }
+    final cards = [
+      for (final view in shown)
+        _AlertCard(view: view, storeId: storeId, busy: busy),
+    ];
 
-    final out = shown
-        .where((v) => stockStatusOf(v.row.item) == StockStatus.outOfStock)
-        .toList();
-    final low = shown
-        .where((v) => stockStatusOf(v.row.item) == StockStatus.lowStock)
-        .toList();
+    // The table's fixed columns — checkbox, status, actions — take 400dp
+    // before the product gets any, so below [_tableMinWidth] (a small tablet
+    // in portrait, or a large text size) the cards stand in for it rather
+    // than a product name squeezed to nothing.
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (wantsTable && constraints.maxWidth >= _tableMinWidth) {
+          return _AlertsTable(alerts: shown, storeId: storeId, busy: busy);
+        }
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _CardListHeader(alerts: shown),
+            const SizedBox(height: AppSpacing.sm),
+            if (context.isPhone)
+              for (final (i, card) in cards.indexed) ...[
+                if (i > 0) const SizedBox(height: AppSpacing.sm),
+                card,
+              ]
+            else
+              ResponsiveCardGrid(minCardWidth: 300, children: cards),
+          ],
+        );
+      },
+    );
+  }
+}
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+/// The narrowest content width the alerts table is drawn at.
+const double _tableMinWidth = 760;
+
+/// Above the cards: select everything shown, and how many that is. The table
+/// has the same checkbox in its header.
+class _CardListHeader extends ConsumerWidget {
+  const _CardListHeader({required this.alerts});
+
+  final List<LowStockAlertView> alerts;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+
+    return Row(
       children: [
-        if (out.isNotEmpty) ...[
-          _SectionBlock(
-            title: l10n.alertsSeverityOutOfStock,
-            alerts: out,
-            storeId: storeId,
+        _SelectAllCheckbox(alerts: alerts),
+        const SizedBox(width: AppSpacing.xs),
+        Expanded(
+          child: Text(
+            l10n.alertsSelectAll,
+            style: theme.textTheme.labelLarge,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
-          if (low.isNotEmpty) const SizedBox(height: AppSpacing.xl),
-        ],
-        if (low.isNotEmpty)
-          _SectionBlock(
-            title: l10n.alertsSeverityLowStock,
-            alerts: low,
-            storeId: storeId,
-          ),
+        ),
+        Text(
+          l10n.inventoryCount(alerts.length),
+          style: theme.textTheme.bodySmall,
+        ),
       ],
     );
   }
 }
 
-/// One severity block: a header that counts it and selects it wholesale, then
-/// its rows.
-class _SectionBlock extends ConsumerWidget {
-  const _SectionBlock({
-    required this.title,
-    required this.alerts,
-    required this.storeId,
-  });
+/// Ticks every row shown, or clears them — a dash while only some are ticked.
+class _SelectAllCheckbox extends ConsumerWidget {
+  const _SelectAllCheckbox({required this.alerts});
 
-  final String title;
   final List<LowStockAlertView> alerts;
-  final String storeId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -601,37 +767,352 @@ class _SectionBlock extends ConsumerWidget {
     final selection = ref.watch(alertSelectionProvider);
     final notifier = ref.read(alertSelectionProvider.notifier);
     final ids = alerts.map((v) => v.row.item.id).toList();
-    final allSelected = ids.every(selection.contains);
+    final ticked = ids.where(selection.contains).length;
+    final all = ticked == ids.length && ids.isNotEmpty;
+
+    return Checkbox(
+      tristate: true,
+      value: all ? true : (ticked == 0 ? false : null),
+      semanticLabel: l10n.alertsSelectAll,
+      visualDensity: VisualDensity.compact,
+      onChanged: (_) => all ? notifier.removeAll(ids) : notifier.addAll(ids),
+    );
+  }
+}
+
+// -----------------------------------------------------------------------------
+// The pieces a row and a card share.
+// -----------------------------------------------------------------------------
+
+/// What one alert row says, worked out once for the table and the card alike.
+class _AlertFacts {
+  _AlertFacts(this.view, {required this.busy});
+
+  final LowStockAlertView view;
+
+  /// Measured against the busy-day minimum rather than the ordinary one.
+  final bool busy;
+
+  Item get item => view.row.item;
+  String get unit => view.row.unitAbbreviation;
+  StockStatus get status => stockStatusOf(item);
+  double get minimum => busy ? holidayMinimumOf(item) : item.lowStockThreshold;
+  double get shortfall => minimum - item.quantity;
+
+  String quantity(double value) => Formatters.quantityWithUnit(value, unit);
+
+  /// Only the articles at zero are edged, so the eye can find them down a
+  /// column of otherwise identical rows. An edge on every row would stop
+  /// meaning "look here".
+  Color? get accent => status == StockStatus.outOfStock
+      ? StockStatusBadge.colorsFor(StockStatus.outOfStock).solid
+      : null;
+}
+
+/// The figure, then a slim bar under it.
+class _StockLevel extends StatelessWidget {
+  const _StockLevel({required this.facts, this.showFigure = true});
+
+  final _AlertFacts facts;
+  final bool showFigure;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final view = facts.view;
 
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
-        SectionHeader(
-          title: title,
-          count: alerts.length,
-          // An icon, not a labelled button: "Tout sélectionner" beside every
-          // section heading is the same three words twice on one screen, and
-          // the heading it sits on already says what "tout" covers.
-          trailing: IconButton(
-            onPressed: () =>
-                allSelected ? notifier.removeAll(ids) : notifier.addAll(ids),
-            tooltip: l10n.alertsSelectAll,
-            visualDensity: VisualDensity.compact,
-            icon: Icon(
-              allSelected ? LucideIcons.squareMinus : LucideIcons.squareCheck,
-              size: AppSizing.iconMd,
-            ),
+        if (showFigure) ...[
+          Text(
+            facts.quantity(facts.item.quantity),
+            // Weight, not colour: the badge beside it carries the alarm.
+            style: AppTypography.numeric.copyWith(fontWeight: FontWeight.w700),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
+          const SizedBox(height: AppSpacing.xs + 2),
+        ],
+        StockGauge(
+          quantity: facts.item.quantity,
+          minimum: facts.minimum,
+          maximum: facts.item.maxStock,
+          height: 5,
         ),
-        const SizedBox(height: AppSpacing.sm),
-        _AlertList(alerts: alerts, storeId: storeId),
+        // Only stock genuinely on its way says so: silence means nothing is
+        // coming, which is the case that needs a commande.
+        if (view.onOrderQuantity > 0) ...[
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            l10n.alertsOnOrder(facts.quantity(view.onOrderQuantity)),
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: AppColors.primary700,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
       ],
     );
   }
 }
 
-class _AlertList extends StatelessWidget {
-  const _AlertList({
+/// The badge, and what is missing in two words under it.
+class _StatusBlock extends StatelessWidget {
+  const _StatusBlock({required this.facts, this.inline = false});
+
+  final _AlertFacts facts;
+
+  /// The note beside the badge rather than under it — the phone card.
+  final bool inline;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final status = facts.status;
+
+    // The shared colours, icon and words for a status — so colour is never
+    // alone — in a squarer shape that sits better in a dense table.
+    final badge = StatusPill(
+      colors: StockStatusBadge.colorsFor(status),
+      icon: StockStatusBadge.iconFor(status),
+      label: StockStatusBadge.labelFor(l10n, status),
+      borderRadius: AppRadius.smAll,
+    );
+    final note = Text(
+      facts.shortfall > 0
+          ? l10n.alertsShortfall(facts.quantity(facts.shortfall))
+          : l10n.alertsNothingToReport,
+      style: theme.textTheme.bodySmall,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+    );
+
+    if (inline) {
+      // Both give way on a narrow card: the pill ellipsizes its label
+      // rather than pushing the note off the edge.
+      return Row(
+        children: [
+          Flexible(child: badge),
+          const SizedBox(width: AppSpacing.sm),
+          Flexible(child: note),
+        ],
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        badge,
+        const SizedBox(height: AppSpacing.xs),
+        note,
+      ],
+    );
+  }
+}
+
+/// The row's checkbox.
+class _RowCheckbox extends ConsumerWidget {
+  const _RowCheckbox({required this.item});
+
+  final Item item;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final selected = ref.watch(alertSelectionProvider).contains(item.id);
+    return Checkbox(
+      value: selected,
+      semanticLabel: item.name,
+      visualDensity: VisualDensity.compact,
+      onChanged: (_) =>
+          ref.read(alertSelectionProvider.notifier).toggle(item.id),
+    );
+  }
+}
+
+/// Starts a commande with this row's supplier, the low items already on it.
+/// Compact: it sits on every row.
+class _OrderButton extends StatelessWidget {
+  const _OrderButton({
+    required this.storeId,
+    required this.supplierId,
+    required this.busy,
+  });
+
+  final String storeId;
+  final String supplierId;
+  final bool busy;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return OutlinedButton.icon(
+      onPressed: () =>
+          context.pushScreen(_orderPath(storeId, supplierId, busy)),
+      icon: const Icon(LucideIcons.truck, size: AppSizing.iconSm),
+      // Ellipsizes rather than overflows when the actions column or the card
+      // leaves it less than its natural width.
+      label: Text(
+        l10n.alertsOrder,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+      style: OutlinedButton.styleFrom(
+        minimumSize: Size(
+          0,
+          context.isPhone
+              ? AppSizing.minTapTarget - 4
+              : AppSizing.toolbarControlHeight,
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+        foregroundColor: AppColors.primary700,
+        side: const BorderSide(color: AppColors.border),
+        shape: const RoundedRectangleBorder(borderRadius: AppRadius.smAll),
+      ),
+    );
+  }
+}
+
+String _orderPath(String storeId, String supplierId, bool busy) =>
+    '${Routes.toNewOrder(storeId)}?supplier=$supplierId'
+    '&prefill=${busy ? 'busy' : '1'}';
+
+enum _RowAction { open, order, delivery }
+
+/// The ⋮ on each row: the product's panel, the commande, a delivery.
+class _RowMenu extends StatelessWidget {
+  const _RowMenu({required this.facts, required this.storeId});
+
+  final _AlertFacts facts;
+  final String storeId;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final supplierId = facts.view.defaultSupplierId;
+
+    return PopupMenuButton<_RowAction>(
+      tooltip: l10n.itemMoreActions,
+      icon: const Icon(LucideIcons.ellipsisVertical, size: AppSizing.iconSm),
+      color: AppColors.surface,
+      surfaceTintColor: Colors.transparent,
+      position: PopupMenuPosition.under,
+      shape: const RoundedRectangleBorder(borderRadius: AppRadius.mdAll),
+      onSelected: (action) => switch (action) {
+        _RowAction.open => openProductDrawer(
+          context,
+          storeId: storeId,
+          itemId: facts.item.id,
+        ),
+        _RowAction.order => context.pushScreen(
+          _orderPath(storeId, supplierId!, facts.busy),
+        ),
+        _RowAction.delivery => context.pushScreen(Routes.toStockIn(storeId)),
+      },
+      itemBuilder: (context) => [
+        _menuItem(
+          _RowAction.open,
+          LucideIcons.packageSearch,
+          l10n.alertsOpenProduct,
+        ),
+        if (supplierId != null)
+          _menuItem(_RowAction.order, LucideIcons.truck, l10n.alertsOrder),
+        _menuItem(
+          _RowAction.delivery,
+          LucideIcons.arrowDownToLine,
+          l10n.actionAddDelivery,
+        ),
+      ],
+    );
+  }
+
+  PopupMenuItem<_RowAction> _menuItem(
+    _RowAction value,
+    IconData icon,
+    String label,
+  ) => PopupMenuItem(
+    value: value,
+    child: Row(
+      children: [
+        Icon(icon, size: AppSizing.iconSm, color: AppColors.textSecondary),
+        const SizedBox(width: AppSpacing.md),
+        Text(label),
+      ],
+    ),
+  );
+}
+
+/// The photo, the name, and the category and supplier in one muted line.
+class _ProductIdentity extends StatelessWidget {
+  const _ProductIdentity({
+    required this.facts,
+    this.thumbnail = 40,
+    this.nameLines = 1,
+  });
+
+  final _AlertFacts facts;
+  final double thumbnail;
+  final int nameLines;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final view = facts.view;
+    final supplierName = view.defaultSupplierName;
+
+    return Row(
+      children: [
+        ProductImage(
+          imagePath: facts.item.imagePath,
+          size: thumbnail,
+          radius: AppRadius.sm,
+          placeholder: ProductImagePlaceholder.disc,
+        ),
+        const SizedBox(width: AppSpacing.md),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                facts.item.name,
+                style: theme.textTheme.titleSmall,
+                maxLines: nameLines,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: AppSpacing.xxs),
+              Text(
+                supplierName == null
+                    ? view.row.categoryName
+                    : '${view.row.categoryName} · $supplierName',
+                style: theme.textTheme.bodySmall,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// -----------------------------------------------------------------------------
+// The table — the default on a wide screen.
+// -----------------------------------------------------------------------------
+
+/// One aligned line per product: who, how much, against what, how bad, and
+/// what to do.
+///
+/// On a tablet the unit goes first (the quantities already carry it), then
+/// the minimum (the status note says how far under it the row is), so the
+/// four columns that decide the row are always there.
+class _AlertsTable extends ConsumerWidget {
+  const _AlertsTable({
     required this.alerts,
     required this.storeId,
     this.busy = false,
@@ -644,40 +1125,90 @@ class _AlertList extends StatelessWidget {
   final bool busy;
 
   @override
-  Widget build(BuildContext context) {
-    // Part of the page: the whole page scrolls, title included.
-    return ListView.separated(
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final selection = ref.watch(alertSelectionProvider);
+
+    return AppTable<LowStockAlertView>(
+      rows: alerts,
       shrinkWrap: true,
-      primary: false,
-      physics: const NeverScrollableScrollPhysics(),
-      padding: EdgeInsets.zero,
-      itemCount: alerts.length,
-      separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.xs),
-      itemBuilder: (context, index) =>
-          _AlertCard(view: alerts[index], storeId: storeId, busy: busy),
+      rowHeight: 72,
+      onRowTap: (v) =>
+          openProductDrawer(context, storeId: storeId, itemId: v.row.item.id),
+      isSelected: (v) => selection.contains(v.row.item.id),
+      rowAccent: (v) => _AlertFacts(v, busy: busy).accent,
+      columns: [
+        AppTableColumn(
+          label: l10n.alertsSelectAll,
+          width: 52,
+          header: _SelectAllCheckbox(alerts: alerts),
+        ),
+        AppTableColumn(label: l10n.alertsColumnItem, flex: 5),
+        AppTableColumn(label: l10n.alertsColumnStock, flex: 3),
+        AppTableColumn(
+          label: l10n.alertsColumnThreshold,
+          width: 136,
+          minTableWidth: 860,
+        ),
+        AppTableColumn(
+          label: l10n.itemUnitLabel,
+          width: 76,
+          minTableWidth: 1000,
+        ),
+        // Wide enough for « Rupture de stock » whole.
+        AppTableColumn(label: l10n.alertsColumnStatus, width: 196),
+        AppTableColumn(label: l10n.employeesColumnActions, width: 176),
+      ],
+      cell: (context, v, column) {
+        final facts = _AlertFacts(v, busy: busy);
+        final supplierId = v.defaultSupplierId;
+        return switch (column) {
+          0 => _RowCheckbox(item: facts.item),
+          1 => _ProductIdentity(facts: facts),
+          2 => ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 160),
+            child: _StockLevel(facts: facts),
+          ),
+          3 => Text(
+            facts.quantity(facts.minimum),
+            style: AppTypography.numeric,
+          ),
+          4 => Text(facts.unit, style: theme.textTheme.bodyMedium),
+          5 => _StatusBlock(facts: facts),
+          _ => Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (supplierId != null)
+                Flexible(
+                  child: _OrderButton(
+                    storeId: storeId,
+                    supplierId: supplierId,
+                    busy: busy,
+                  ),
+                ),
+              const SizedBox(width: AppSpacing.xs),
+              _RowMenu(facts: facts, storeId: storeId),
+            ],
+          ),
+        };
+      },
     );
   }
 }
 
 // -----------------------------------------------------------------------------
-// One row.
+// The card — phones always, and the grid view on a wide screen.
 // -----------------------------------------------------------------------------
 
-/// One article, as compactly as it can still be read.
+/// The same row as a card, laid out for one hand:
 ///
-/// The row used to carry five things: the name, the level, a status badge, an
-/// on-order pill and a button naming the supplier — most of them repeating what
-/// a neighbour already said, on four lines, fifteen times down the page. What
-/// is left is three zones:
-///
-/// - **who** — the article, with its category and supplier underneath;
-/// - **how bad** — the level, the bar, and the shortfall in two words;
-/// - **what to do** — one button.
-///
-/// The status badge went because the number is the status: "0 / 8 kg" needs no
-/// label, and in the default order the section heading above already names it.
-/// "Rien en commande" went because it was on almost every row — silence now
-/// means nothing is coming, and only stock genuinely on its way says so.
+///     ☐ [photo] Carottes                    ⋮
+///               Fruits et légumes
+///     Stock actuel                       0 kg
+///     Minimum                           50 kg
+///     ▭▭▭▭▭▭▭▭▭▭▭▭▭▭▭▭▭▭▭▭▭▭▭▭▭▭▭▭▭▭▭▭▭▭▭▭▭▭
+///     (✕ Rupture de stock) Manque 50 kg   [Commander]
 class _AlertCard extends ConsumerWidget {
   const _AlertCard({
     required this.view,
@@ -687,266 +1218,128 @@ class _AlertCard extends ConsumerWidget {
 
   final LowStockAlertView view;
   final String storeId;
-
-  /// See [_AlertList.busy].
   final bool busy;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-
-    final item = view.row.item;
-    final status = stockStatusOf(item);
-    final colors = StockStatusBadge.colorsFor(status);
-    final unit = view.row.unitAbbreviation;
-    final minimum = busy ? holidayMinimumOf(item) : item.lowStockThreshold;
-    final shortfall = minimum - item.quantity;
+    final facts = _AlertFacts(view, busy: busy);
+    final selected = ref.watch(alertSelectionProvider).contains(facts.item.id);
     final supplierId = view.defaultSupplierId;
-    final supplierName = view.defaultSupplierName;
-    final selected = ref.watch(alertSelectionProvider).contains(item.id);
 
-    final checkbox = Checkbox(
-      value: selected,
-      onChanged: (_) =>
-          ref.read(alertSelectionProvider.notifier).toggle(item.id),
-      visualDensity: VisualDensity.compact,
-    );
-
-    final nameBlock = Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
+    // Label left, figure right. Both loose, so neither is handed half the
+    // line it does not need — the figure sits against the right edge.
+    Widget figure(String label, String value, {bool strong = false}) => Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          item.name,
-          style: theme.textTheme.titleSmall,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-        Text(
-          // Category and supplier on one muted line. The supplier being here is
-          // what lets the button below be one word.
-          supplierName == null
-              ? view.row.categoryName
-              : '${view.row.categoryName} · $supplierName',
-          style: theme.textTheme.bodySmall,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-      ],
-    );
-
-    // "manque 2 kg · 20 kg en route" — the two facts that decide the row, as a
-    // single quiet line under the bar.
-    final notes = <String>[
-      if (shortfall > 0)
-        l10n.alertsShortfallShort(
-          Formatters.quantityWithUnit(shortfall, unit),
-        ),
-      if (view.onOrderQuantity > 0)
-        l10n.alertsOnOrder(
-          Formatters.quantityWithUnit(view.onOrderQuantity, unit),
-        ),
-    ];
-
-    final levelBlock = Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          l10n.alertsLevel(
-            Formatters.quantityWithUnit(item.quantity, unit),
-            Formatters.quantityWithUnit(minimum, unit),
-          ),
-          // Weight, not colour. The figure was tinted on every row, which made
-          // the one thing every row has look like the alarm — and left nothing
-          // louder for a rupture to be.
-          style: AppTypography.numeric.copyWith(fontWeight: FontWeight.w700),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-        const SizedBox(height: AppSpacing.xs),
-        StockGauge(
-          quantity: item.quantity,
-          minimum: minimum,
-          maximum: item.maxStock,
-        ),
-        if (notes.isNotEmpty) ...[
-          const SizedBox(height: AppSpacing.xs),
-          Text(
-            notes.join(' · '),
+        Flexible(
+          child: Text(
+            label,
             style: theme.textTheme.bodySmall,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
-        ],
+        ),
+        const SizedBox(width: AppSpacing.sm),
+        Flexible(
+          child: Text(
+            value,
+            style: strong
+                ? AppTypography.numeric.copyWith(fontWeight: FontWeight.w700)
+                : AppTypography.numeric,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.end,
+          ),
+        ),
       ],
     );
 
     final orderButton = supplierId == null
         ? null
-        : SecondaryButton(
-            label: l10n.alertsOrder,
-            icon: LucideIcons.truck,
-            onPressed: () => context.pushScreen(
-              '${Routes.toNewOrder(storeId)}?supplier=$supplierId'
-              '&prefill=${busy ? 'busy' : '1'}',
-            ),
-          );
+        : _OrderButton(storeId: storeId, supplierId: supplierId, busy: busy);
 
     return AppCard(
       onTap: () =>
-          openProductDrawer(context, storeId: storeId, itemId: item.id),
-      // Tighter than the default card: this is a list to work down, not a panel
-      // to read, and sixteen points of padding a side turned fifteen rows into
-      // two screens of scrolling.
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.sm,
+          openProductDrawer(context, storeId: storeId, itemId: facts.item.id),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.xs,
+        AppSpacing.xs,
+        AppSpacing.xs,
+        AppSpacing.md,
       ),
-      // Only a rupture earns the coloured edge. When every row had one the edge
-      // stopped meaning "look here" and became the list's wallpaper; reserved
-      // for the articles at zero, a glance down the page finds them.
-      accentColor: status == StockStatus.outOfStock ? colors.solid : null,
+      accentColor: facts.accent,
       selected: selected,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          // Narrow, or at large text: the level goes under the name rather than
-          // beside it, and the button takes the width. Side by side, neither
-          // the name nor the button can shrink past its own words.
-          if (constraints.maxWidth < 560 || context.isLargeText) {
-            return Column(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              _RowCheckbox(item: facts.item),
+              Expanded(
+                child: _ProductIdentity(
+                  facts: facts,
+                  thumbnail: 36,
+                  nameLines: 2,
+                ),
+              ),
+              _RowMenu(facts: facts, storeId: storeId),
+            ],
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Row(
-                  children: [
-                    checkbox,
-                    const SizedBox(width: AppSpacing.xs),
-                    Expanded(child: nameBlock),
-                  ],
-                ),
                 const SizedBox(height: AppSpacing.sm),
-                levelBlock,
-                if (orderButton != null) ...[
-                  const SizedBox(height: AppSpacing.sm),
-                  Align(alignment: Alignment.centerLeft, child: orderButton),
-                ],
+                figure(
+                  l10n.alertsColumnStock,
+                  facts.quantity(facts.item.quantity),
+                  strong: true,
+                ),
+                const SizedBox(height: AppSpacing.xxs),
+                figure(l10n.alertsColumnMinimum, facts.quantity(facts.minimum)),
+                const SizedBox(height: AppSpacing.sm),
+                _StockLevel(facts: facts, showFigure: false),
+                const SizedBox(height: AppSpacing.md),
+                // The badge over its note, the button beside them: the badge
+                // keeps its whole label. At large text, or on a very narrow
+                // phone, the button goes under instead.
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    if (context.isLargeText || constraints.maxWidth < 280) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _StatusBlock(facts: facts, inline: true),
+                          if (orderButton != null) ...[
+                            const SizedBox(height: AppSpacing.sm),
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: orderButton,
+                            ),
+                          ],
+                        ],
+                      );
+                    }
+                    return Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Expanded(child: _StatusBlock(facts: facts)),
+                        if (orderButton != null) ...[
+                          const SizedBox(width: AppSpacing.sm),
+                          Flexible(child: orderButton),
+                        ],
+                      ],
+                    );
+                  },
+                ),
               ],
-            );
-          }
-
-          return Row(
-            children: [
-              checkbox,
-              const SizedBox(width: AppSpacing.xs),
-              Expanded(flex: 5, child: nameBlock),
-              const SizedBox(width: AppSpacing.lg),
-              Expanded(flex: 4, child: levelBlock),
-              if (orderButton != null) ...[
-                const SizedBox(width: AppSpacing.lg),
-                orderButton,
-              ],
-            ],
-          );
-        },
+            ),
+          ),
+        ],
       ),
-    );
-  }
-}
-
-// -----------------------------------------------------------------------------
-// Table view.
-// -----------------------------------------------------------------------------
-
-class _AlertsTable extends StatelessWidget {
-  const _AlertsTable({
-    required this.alerts,
-    required this.storeId,
-    this.busy = false,
-  });
-
-  final List<LowStockAlertView> alerts;
-  final String storeId;
-
-  /// See [_AlertList.busy].
-  final bool busy;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-
-    String quantity(LowStockAlertView v, double value) =>
-        Formatters.quantityWithUnit(value, v.row.unitAbbreviation);
-
-    return AppTable<LowStockAlertView>(
-      rows: alerts,
-      shrinkWrap: true,
-      onRowTap: (v) => openProductDrawer(
-        context,
-        storeId: storeId,
-        itemId: v.row.item.id,
-      ),
-      // As on the cards: only the articles at zero are edged, so the eye can
-      // find them down a column of otherwise identical rows.
-      rowAccent: (v) => stockStatusOf(v.row.item) == StockStatus.outOfStock
-          ? StockStatusBadge.colorsFor(StockStatus.outOfStock).solid
-          : null,
-      columns: [
-        AppTableColumn(label: l10n.alertsColumnItem, flex: 4),
-        AppTableColumn(label: l10n.alertsColumnStock, flex: 2, numeric: true),
-        // The threshold and the shortfall say the same thing twice on a narrow
-        // table. The shortfall is the one that answers "how much do I order",
-        // so the threshold is what goes when there is no room.
-        AppTableColumn(
-          label: l10n.alertsColumnThreshold,
-          flex: 2,
-          numeric: true,
-          minTableWidth: 900,
-        ),
-        AppTableColumn(
-          label: l10n.alertsColumnShortfall,
-          flex: 2,
-          numeric: true,
-        ),
-        AppTableColumn(
-          label: l10n.alertsColumnOnOrder,
-          flex: 2,
-          numeric: true,
-          minTableWidth: 760,
-        ),
-        AppTableColumn(label: l10n.alertsColumnStatus, width: 140),
-      ],
-      cell: (context, v, column) {
-        final item = v.row.item;
-        final minimum = busy ? holidayMinimumOf(item) : item.lowStockThreshold;
-        final gap = minimum - item.quantity;
-        return switch (column) {
-          0 => Text(
-            item.name,
-            style: theme.textTheme.titleSmall,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          1 => Text(
-            quantity(v, item.quantity),
-            style: AppTypography.numeric.copyWith(fontWeight: FontWeight.w700),
-          ),
-          2 => Text(
-            quantity(v, minimum),
-            style: AppTypography.numeric,
-          ),
-          3 => Text(
-            gap > 0 ? quantity(v, gap) : '—',
-            style: AppTypography.numeric,
-          ),
-          4 => Text(
-            v.onOrderQuantity > 0 ? quantity(v, v.onOrderQuantity) : '—',
-            style: AppTypography.numeric,
-          ),
-          _ => StockStatusBadge(status: stockStatusOf(item)),
-        };
-      },
     );
   }
 }

@@ -15,11 +15,14 @@ import '../../../../l10n/app_localizations.dart';
 /// cost, and the item detail screen shows a list of these instead of one
 /// number.
 ///
-/// Two badges do the analytical work — which supplier is used by default, and
+/// Two marks do the analytical work — which supplier is used by default, and
 /// which is cheapest. When those are not the same supplier, the store is
-/// overpaying, and the two tags sitting on different rows are what say so.
-/// There was an amber callout above the list spelling it out in euros; the
-/// tags carry it without a block of warning colour on a reference screen.
+/// overpaying, and the two marks sitting on different rows are what say so.
+/// The default is a star beside the name (its label in a tooltip); "Meilleur
+/// prix" keeps its words, because it is the finding the screen exists for.
+///
+/// The whole row opens the price history — the one thing a row is tapped for.
+/// Removing the offer is rare and destructive, so it waits behind the "⋯".
 class SupplierPriceRow extends StatelessWidget {
   const SupplierPriceRow({
     required this.view,
@@ -27,6 +30,7 @@ class SupplierPriceRow extends StatelessWidget {
     required this.isCheapest,
     required this.onViewHistory,
     this.onRemove,
+    this.showDivider = true,
     super.key,
   });
 
@@ -36,111 +40,162 @@ class SupplierPriceRow extends StatelessWidget {
   final VoidCallback onViewHistory;
   final VoidCallback? onRemove;
 
+  /// A hairline under the row. Off for the last row of a bordered list.
+  final bool showDivider;
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final price = view.price;
 
-    return Container(
-      // Tighter than it was: this is a list to work down, and the section sits
-      // at the foot of a long product page where the rows are counted more
-      // often than they are read one by one.
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.sm,
-      ),
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: AppColors.hairline)),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            flex: 5,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // A Wrap, not a Row. An item can carry both badges at once —
-                // the default supplier that is also the cheapest — and on a
-                // narrow pane the name plus two tags does not fit one line.
-                // Wrapping drops the tags below the name instead of clipping
-                // them, and they are exactly the part that must stay readable.
-                Wrap(
-                  spacing: AppSpacing.sm,
-                  runSpacing: AppSpacing.xs,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    Text(
-                      view.supplierName,
-                      style: theme.textTheme.titleSmall,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    if (price.isDefault)
-                      _Tag(
-                        label: l10n.itemDefaultSupplier,
-                        background: AppColors.primaryContainer,
-                        foreground: AppColors.onPrimaryContainer,
-                        icon: LucideIcons.star,
+    return InkWell(
+      onTap: onViewHistory,
+      child: Container(
+        constraints: const BoxConstraints(minHeight: AppSizing.minTapTarget),
+        padding: const EdgeInsetsDirectional.fromSTEB(
+          AppSpacing.lg,
+          AppSpacing.md,
+          AppSpacing.xs,
+          AppSpacing.md,
+        ),
+        decoration: BoxDecoration(
+          border: showDivider
+              ? const Border(bottom: BorderSide(color: AppColors.hairline))
+              : null,
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          view.supplierName,
+                          style: theme.textTheme.titleSmall,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
-                    if (isCheapest)
-                      _Tag(
-                        label: l10n.itemCheapest,
-                        background: AppColors.inStock.container,
-                        foreground: AppColors.inStock.foreground,
-                        icon: LucideIcons.trendingDown,
+                      if (price.isDefault) ...[
+                        const SizedBox(width: AppSpacing.xs),
+                        Tooltip(
+                          message: l10n.itemDefaultSupplier,
+                          child: Semantics(
+                            label: l10n.itemDefaultSupplier,
+                            child: const Icon(
+                              LucideIcons.star,
+                              size: 16,
+                              color: AppColors.primary600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.xxs),
+                  Wrap(
+                    spacing: AppSpacing.sm,
+                    runSpacing: AppSpacing.xxs,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Text(
+                        // The date alone. "Prix mis à jour le 12/03/2026" on
+                        // every row is five words of scaffolding around the
+                        // one that changes.
+                        Formatters.date(price.effectiveDate),
+                        style: theme.textTheme.bodySmall,
                       ),
-                  ],
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  // The date alone. "Prix mis à jour le 12/03/2026" on every
-                  // row is five words of scaffolding around the one that
-                  // changes, in a column already headed by a price.
-                  Formatters.date(price.effectiveDate),
-                  style: theme.textTheme.bodySmall,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: AppSpacing.md),
-          Expanded(
-            flex: 2,
-            child: Align(
-              alignment: Alignment.centerRight,
-              child: Text(
-                '${Formatters.price(price.pricePerUnit)} / $unitAbbreviation',
-                style: AppTypography.numeric,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.right,
+                      if (isCheapest)
+                        _Tag(
+                          label: l10n.itemCheapest,
+                          background: AppColors.inStock.container,
+                          foreground: AppColors.inStock.foreground,
+                          icon: LucideIcons.trendingDown,
+                        ),
+                    ],
+                  ),
+                ],
               ),
             ),
-          ),
-          const SizedBox(width: AppSpacing.xs),
-          // Compact: two default-sized icon buttons took 96dp of a row whose
-          // supplier name is the part that needs the width.
-          IconButton(
-            onPressed: onViewHistory,
-            icon: const Icon(LucideIcons.chartLine, size: AppSizing.iconSm),
-            tooltip: l10n.itemViewPriceHistory,
-            visualDensity: VisualDensity.compact,
-          ),
-          if (onRemove != null)
-            IconButton(
-              onPressed: onRemove,
-              // A cross, not a broken link: `unlink` reads as a chain and
-              // needed explaining. Removing an offer is the same gesture as
-              // closing anything else.
-              icon: const Icon(LucideIcons.x, size: AppSizing.iconSm),
-              tooltip: l10n.actionDelete,
-              color: AppColors.error,
-              visualDensity: VisualDensity.compact,
+            const SizedBox(width: AppSpacing.md),
+            Text.rich(
+              TextSpan(
+                children: [
+                  TextSpan(
+                    text: Formatters.price(price.pricePerUnit),
+                    style: AppTypography.numeric.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  TextSpan(
+                    text: ' /$unitAbbreviation',
+                    style: theme.textTheme.bodySmall,
+                  ),
+                ],
+              ),
+              maxLines: 1,
             ),
-        ],
+            if (onRemove != null)
+              PopupMenuButton<VoidCallback>(
+                tooltip: l10n.itemMoreActions,
+                icon: const Icon(
+                  LucideIcons.ellipsisVertical,
+                  size: AppSizing.iconSm,
+                ),
+                onSelected: (action) => action(),
+                itemBuilder: (_) => [
+                  PopupMenuItem(
+                    value: onViewHistory,
+                    child: _MenuLabel(
+                      icon: LucideIcons.chartLine,
+                      label: l10n.itemViewPriceHistory,
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: onRemove,
+                    child: _MenuLabel(
+                      icon: LucideIcons.x,
+                      label: l10n.actionDelete,
+                      color: AppColors.error,
+                    ),
+                  ),
+                ],
+              )
+            else
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+                child: Icon(
+                  LucideIcons.chevronRight,
+                  size: AppSizing.iconSm,
+                  color: AppColors.textDisabled,
+                ),
+              ),
+          ],
+        ),
       ),
+    );
+  }
+}
+
+class _MenuLabel extends StatelessWidget {
+  const _MenuLabel({required this.icon, required this.label, this.color});
+
+  final IconData icon;
+  final String label;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, size: AppSizing.iconSm, color: color),
+        const SizedBox(width: AppSpacing.md),
+        Text(label, style: TextStyle(color: color)),
+      ],
     );
   }
 }
@@ -174,8 +229,6 @@ class _Tag extends StatelessWidget {
         children: [
           Icon(icon, size: 12, color: foreground),
           const SizedBox(width: AppSpacing.xs),
-          // Gives way on a narrow phone, where the price column leaves the
-          // name and its tags little over a hundred pixels.
           Flexible(
             child: Text(
               label,

@@ -17,9 +17,14 @@ class AppTableColumn {
     this.numeric = false,
     this.minTableWidth = 0,
     this.sortKey,
+    this.header,
   });
 
   final String label;
+
+  /// Drawn in the header instead of [label] — a select-all checkbox over a
+  /// column of row checkboxes.
+  final Widget? header;
 
   /// Share of the leftover width, when [width] is not set.
   final int flex;
@@ -267,6 +272,7 @@ class _HeaderCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (column.header != null) return column.header!;
     final label = Flexible(
       child: Text(
         column.label.toUpperCase(),

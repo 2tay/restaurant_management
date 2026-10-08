@@ -1090,12 +1090,6 @@ abstract class AppLocalizations {
   /// **'Note'**
   String get itemNoteLabel;
 
-  /// Section heading listing every supplier for this item with their price.
-  ///
-  /// In fr, this message translates to:
-  /// **'Fournisseurs et prix'**
-  String get itemSuppliersTitle;
-
   /// Empty state when an item has no supplier links.
   ///
   /// In fr, this message translates to:
@@ -1143,12 +1137,6 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Historique des prix'**
   String get itemViewPriceHistory;
-
-  /// Section heading for this item's stock movement history.
-  ///
-  /// In fr, this message translates to:
-  /// **'Mouvements récents'**
-  String get itemMovementsTitle;
 
   /// Empty state for an item with no movement history.
   ///
@@ -2485,13 +2473,13 @@ abstract class AppLocalizations {
   /// Empty state when nothing is below threshold.
   ///
   /// In fr, this message translates to:
-  /// **'Aucune alerte'**
+  /// **'Tout est en ordre'**
   String get alertsEmpty;
 
   /// Supporting line for the no-alerts state.
   ///
   /// In fr, this message translates to:
-  /// **'Tous vos produits sont au-dessus de leur seuil d\'alerte.'**
+  /// **'Aucun produit ne nécessite de réapprovisionnement.'**
   String get alertsEmptyBody;
 
   /// Severity tab and section heading for articles at zero.
@@ -2617,13 +2605,13 @@ abstract class AppLocalizations {
   /// Table column: what is physically there.
   ///
   /// In fr, this message translates to:
-  /// **'Stock'**
+  /// **'Stock actuel'**
   String get alertsColumnStock;
 
   /// Table column: the low-stock threshold.
   ///
   /// In fr, this message translates to:
-  /// **'Seuil'**
+  /// **'Seuil minimum'**
   String get alertsColumnThreshold;
 
   /// Table column: how much is needed to get back above the threshold.
@@ -2643,6 +2631,78 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Statut'**
   String get alertsColumnStatus;
+
+  /// Short label for the threshold on a phone card, beside the figure.
+  ///
+  /// In fr, this message translates to:
+  /// **'Minimum'**
+  String get alertsColumnMinimum;
+
+  /// Under a status badge: how much is needed to get back to the minimum.
+  ///
+  /// In fr, this message translates to:
+  /// **'Manque {quantity}'**
+  String alertsShortfall(String quantity);
+
+  /// Under a status badge when nothing is missing.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rien à signaler'**
+  String get alertsNothingToReport;
+
+  /// Severity tab: every alert.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tous'**
+  String get alertsTabAll;
+
+  /// Search box on the alerts screen.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rechercher un produit…'**
+  String get alertsSearchHint;
+
+  /// Summary card: every product at or under its minimum.
+  ///
+  /// In fr, this message translates to:
+  /// **'Produits en alerte'**
+  String get alertsSummaryAlerts;
+
+  /// Caption under the alerts count.
+  ///
+  /// In fr, this message translates to:
+  /// **'Stock sous le minimum'**
+  String get alertsSummaryAlertsCaption;
+
+  /// Caption under the out-of-stock count.
+  ///
+  /// In fr, this message translates to:
+  /// **'Plus de stock'**
+  String get alertsSummaryOutCaption;
+
+  /// Caption under the low-stock count.
+  ///
+  /// In fr, this message translates to:
+  /// **'Sous le minimum'**
+  String get alertsSummaryLowCaption;
+
+  /// Summary card: products above their minimum.
+  ///
+  /// In fr, this message translates to:
+  /// **'Stock OK'**
+  String get alertsSummaryOk;
+
+  /// Caption under the stock-OK count.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun problème'**
+  String get alertsSummaryOkCaption;
+
+  /// Row menu: opens the product's detail panel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Voir le produit'**
+  String get alertsOpenProduct;
 
   /// Notification centre heading.
   ///
@@ -3610,12 +3670,6 @@ abstract class AppLocalizations {
   /// **'Créée le {date}'**
   String orderCreatedOn(String date);
 
-  /// Date line on the order detail once sent.
-  ///
-  /// In fr, this message translates to:
-  /// **'Envoyée le {date}'**
-  String orderSentOn(String date);
-
   /// Date line on the order detail once final.
   ///
   /// In fr, this message translates to:
@@ -4084,23 +4138,11 @@ abstract class AppLocalizations {
   /// **'En commande'**
   String get itemOnOrderLabel;
 
-  /// The declared stock range under the gauge. Written with its two labels because "8 / 20" directly below a filled bar reads as "8 out of 20" — the current level — which is what the figure above it already says.
-  ///
-  /// In fr, this message translates to:
-  /// **'min {minimum} · max {maximum}'**
-  String itemRangeInline(String minimum, String maximum);
-
   /// Header figure on the product page: what the stock on hand is worth, quantity times average cost.
   ///
   /// In fr, this message translates to:
   /// **'Valeur du stock'**
   String get itemStockValueLabel;
-
-  /// Replaces the stock value when the article has no average cost yet, so no value can be worked out. Shown instead of a zero, which would be a claim rather than an absence.
-  ///
-  /// In fr, this message translates to:
-  /// **'Coût inconnu'**
-  String get itemStockValueUnknown;
 
   /// Tooltip on the mark at the end of a full stock gauge, when the quantity on hand exceeds the declared maximum. A full bar cannot tell "exactly at the maximum" from "far past it".
   ///
@@ -4114,23 +4156,65 @@ abstract class AppLocalizations {
   /// **'Stock min/max'**
   String get itemStockRangeLabel;
 
-  /// Under the stock gauge on the product page: how much a commande would order to refill to the declared maximum. A statement, not a button.
+  /// Product detail tab: the stock, open commandes and reference facts.
   ///
   /// In fr, this message translates to:
-  /// **'Pour remonter au maximum : {quantity}'**
-  String itemTopUpSuggestion(String quantity);
+  /// **'Aperçu'**
+  String get itemTabOverview;
 
-  /// Section heading over the product's reference fields — category, unit, stock range, barcode, note, last updated.
+  /// Product detail tab: the suppliers offering this product and their prices.
   ///
   /// In fr, this message translates to:
-  /// **'Détails'**
-  String get itemDetailsTitle;
+  /// **'Fournisseurs'**
+  String get itemTabSuppliers;
 
-  /// Supporting line under the details heading, marking the section as reference rather than as something to act on.
+  /// Product detail tab: the product's recent stock movements.
   ///
   /// In fr, this message translates to:
-  /// **'Fiche du produit'**
-  String get itemDetailsSubtitle;
+  /// **'Historique'**
+  String get itemTabHistory;
+
+  /// Under the left of the stock gauge: the declared minimum.
+  ///
+  /// In fr, this message translates to:
+  /// **'Min {quantity}'**
+  String itemGaugeMin(String quantity);
+
+  /// Under the right of the stock gauge: the declared maximum.
+  ///
+  /// In fr, this message translates to:
+  /// **'Max {quantity}'**
+  String itemGaugeMax(String quantity);
+
+  /// Short caption after the stock value figure in the product's stock card, e.g. "186,00 € valeur".
+  ///
+  /// In fr, this message translates to:
+  /// **'valeur'**
+  String get itemChipValue;
+
+  /// Short caption after the quantity still expected on open commandes, e.g. "10 kg en route".
+  ///
+  /// In fr, this message translates to:
+  /// **'en route'**
+  String get itemChipOnOrder;
+
+  /// Short caption after the quantity needed to refill to the declared maximum, e.g. "7,5 kg pour le max".
+  ///
+  /// In fr, this message translates to:
+  /// **'pour le max'**
+  String get itemChipTopUp;
+
+  /// Tooltip on the top-up figure in the product's stock card.
+  ///
+  /// In fr, this message translates to:
+  /// **'Quantité à commander pour atteindre le stock maximum'**
+  String get itemTopUpTooltip;
+
+  /// Tooltip on the three-dot menu in the product panel header and on a supplier row.
+  ///
+  /// In fr, this message translates to:
+  /// **'Plus d\'actions'**
+  String get itemMoreActions;
 
   /// Section on the item detail listing the open orders containing this item.
   ///

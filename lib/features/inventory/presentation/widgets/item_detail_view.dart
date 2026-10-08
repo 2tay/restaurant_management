@@ -34,7 +34,13 @@ import '../../../orders/presentation/widgets/order_detail_view.dart';
 /// The four are combined into one decision rather than rendered separately.
 /// Four `.when`s would give four skeletons resolving at four different moments,
 /// which reads as a page assembling itself rather than a page loading.
-class ItemDetailView extends ConsumerWidget {
+///
+/// **One stock card, then three tabs.** The card answers what a product is
+/// opened for — how much, how full, what is coming — and stays above the tabs.
+/// Everything else was six sections stacked down one scroll, the suppliers
+/// last; split into Aperçu / Fournisseurs / Historique, no tab is longer than
+/// a phone screen.
+class ItemDetailView extends ConsumerStatefulWidget {
   const ItemDetailView({
     required this.itemId,
     required this.storeId,
@@ -72,12 +78,26 @@ class ItemDetailView extends ConsumerWidget {
   final bool scrollsItself;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ItemDetailView> createState() => _ItemDetailViewState();
+}
+
+const _tabOverview = 'overview';
+const _tabSuppliers = 'suppliers';
+const _tabHistory = 'history';
+
+class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
+  String _tab = _tabOverview;
+
+  String get _itemId => widget.itemId;
+  String get _storeId => widget.storeId;
+
+  @override
+  Widget build(BuildContext context) {
     final data = asyncAll4(
-      ref.watch(itemRowProvider(itemId)),
-      ref.watch(itemPricingProvider(itemId)),
-      ref.watch(movementRowsForItemProvider(itemId)),
-      ref.watch(itemOnOrderProvider((storeId: storeId, itemId: itemId))),
+      ref.watch(itemRowProvider(_itemId)),
+      ref.watch(itemPricingProvider(_itemId)),
+      ref.watch(movementRowsForItemProvider(_itemId)),
+      ref.watch(itemOnOrderProvider((storeId: _storeId, itemId: _itemId))),
       (row, pricing, movements, onOrder) =>
           (row: row, pricing: pricing, movements: movements, onOrder: onOrder),
     );
@@ -93,10 +113,12 @@ class ItemDetailView extends ConsumerWidget {
       value: data,
       skeleton: const SkeletonList(rows: 4, rowHeight: 120),
       onRetry: () {
-        ref.invalidate(itemRowProvider(itemId));
-        ref.invalidate(itemPricingProvider(itemId));
-        ref.invalidate(movementRowsForItemProvider(itemId));
-        ref.invalidate(itemOnOrderProvider((storeId: storeId, itemId: itemId)));
+        ref.invalidate(itemRowProvider(_itemId));
+        ref.invalidate(itemPricingProvider(_itemId));
+        ref.invalidate(movementRowsForItemProvider(_itemId));
+        ref.invalidate(
+          itemOnOrderProvider((storeId: _storeId, itemId: _itemId)),
+        );
       },
       builder: (context, data) {
         final row = data.row;
@@ -106,7 +128,6 @@ class ItemDetailView extends ConsumerWidget {
 
         return _body(
           context,
-          ref,
           row,
           data.pricing,
           data.movements,
@@ -118,243 +139,250 @@ class ItemDetailView extends ConsumerWidget {
 
   Widget _body(
     BuildContext context,
-    WidgetRef ref,
     ItemRowView row,
     ItemPricing pricing,
     List<MovementRowView> movements,
     ItemOnOrder onOrderData,
   ) {
     final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-
-    final item = row.item;
-    final unit = row.unitAbbreviation;
     final prices = pricing.prices;
-    final cheapest = pricing.cheapest;
-    final onOrder = onOrderData.quantity;
-    final openOrders = onOrderData.orders;
+
+    final tabBody = switch (_tab) {
+      _tabSuppliers => _suppliersTab(context, row, pricing),
+      _tabHistory => _historyTab(context, movements),
+      _ => _overviewTab(row, onOrderData),
+    };
 
     final content = ListView(
       padding: EdgeInsets.zero,
-      shrinkWrap: !scrollsItself,
-      primary: scrollsItself ? null : false,
-      physics: scrollsItself ? null : const NeverScrollableScrollPhysics(),
+      shrinkWrap: !widget.scrollsItself,
+      primary: widget.scrollsItself ? null : false,
+      physics: widget.scrollsItself
+          ? null
+          : const NeverScrollableScrollPhysics(),
       children: [
-        // --- The figures ------------------------------------------------------
-        //
-        // The three numbers somebody opens a product to check: how much is
-        // there, what it is worth, and whether anything is coming. They were
-        // spread down an eight-row fact table that gave the category and the
-        // last-updated date exactly as much weight.
-        //
-        // The photo rides here on the *page*, whose own header carries the name
-        // but no picture. In the panel it is up in the bar that stays put, so
-        // it is not drawn twice.
-        _StatsCard(row: row, onOrder: onOrder, showPhoto: !showTitle),
+        // The photo rides here on the *page*, whose own header carries the
+        // name but no picture. In the panel it is up in the bar that stays
+        // put, so it is not drawn twice. The status badge is the other way
+        // round: the page header has one, the panel's bar does not.
+        _StockCard(
+          row: row,
+          onOrder: onOrderData.quantity,
+          showPhoto: !widget.showTitle,
+          showStatus: widget.showTitle,
+        ),
         const SizedBox(height: AppSpacing.lg),
-
-        // --- Open orders -----------------------------------------------------
-        //
-        // Present only when something is on its way. This is the answer to
-        // "stock is low, has anybody done anything about it?", and it is the
-        // question a manager asks right before ordering the same thing twice.
-        //
-        // It sits under the suppliers rather than above them: both are about
-        // buying, and the prices are what a decision is made from while this is
-        // what has already been decided.
-        if (openOrders.isNotEmpty) ...[
-          SectionHeader(
-            title: l10n.itemOpenOrdersTitle,
-            count: openOrders.length,
-          ),
-          AppCard(
-            padding: EdgeInsets.zero,
-            child: Column(
-              children: [
-                for (final view in openOrders)
-                  _OpenOrderLine(
-                    view: view,
-                    storeId: storeId,
-                    unitAbbreviation: unit,
-                  ),
-              ],
+        _DetailTabs(
+          current: _tab,
+          onSelected: (tab) => setState(() => _tab = tab),
+          tabs: [
+            (
+              id: _tabOverview,
+              label: l10n.itemTabOverview,
+              icon: LucideIcons.layoutGrid,
+              count: null,
             ),
-          ),
-          const SizedBox(height: AppSpacing.xl),
-        ],
-
-        // --- Recent movements ------------------------------------------------
-        SectionHeader(
-          title: l10n.itemMovementsTitle,
-          trailing: TextButton(
-            onPressed: () =>
-                context.goSection(Routes.toMovements(storeId, itemId: itemId)),
-            child: Text(l10n.actionViewAll),
-          ),
-        ),
-        if (movements.isEmpty)
-          AppCard(
-            child: Padding(
-              padding: const EdgeInsets.all(AppSpacing.lg),
-              child: Text(
-                l10n.itemNoMovements,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: AppColors.textSecondary,
-                ),
-              ),
-            ),
-          )
-        else
-          AppCard(
-            padding: EdgeInsets.zero,
-            child: Column(
-              children: [
-                for (final movement in movements) _MovementLine(view: movement),
-              ],
-            ),
-          ),
-        const SizedBox(height: AppSpacing.xl),
-
-        // --- Details ---------------------------------------------------------
-        //
-        // Reference, and last. Every one of these was a row in the fact table
-        // at the top, weighted the same as the quantity on hand — which is the
-        // one number the screen exists to show. They are worth having and not
-        // worth reading first.
-        SectionHeader(
-          title: l10n.itemDetailsTitle,
-          subtitle: l10n.itemDetailsSubtitle,
-        ),
-        AppCard(
-          child: Column(
-            children: [
-              _FactRow(
-                label: l10n.itemStockRangeLabel,
-                value:
-                    '${Formatters.quantity(item.lowStockThreshold)} / '
-                    '${Formatters.quantityWithUnit(item.maxStock, unit)}',
-              ),
-              const Divider(height: AppSpacing.xl),
-              _FactRow(
-                label: l10n.itemAverageCost,
-                value: item.averageCost == null
-                    ? l10n.itemAverageCostUnknown
-                    : '${Formatters.price(item.averageCost!)} / $unit',
-              ),
-              const Divider(height: AppSpacing.xl),
-              _FactRow(label: l10n.itemCategoryLabel, value: row.categoryName),
-              const Divider(height: AppSpacing.xl),
-              _FactRow(label: l10n.itemUnitLabel, value: unit),
-              const Divider(height: AppSpacing.xl),
-              _FactRow(
-                label: l10n.itemUpdatedLabel,
-                value: Formatters.relative(item.updatedAt),
-              ),
-              // Shown only when the item has one. A dash-filled "Code-barres :
-              // —" row on the thirty items that will never have a barcode
-              // would make the absence look like missing data rather than a
-              // fact about produce.
-              if (item.barcode != null) ...[
-                const Divider(height: AppSpacing.xl),
-                _BarcodeRow(barcode: item.barcode!),
-              ],
-              if (item.note != null) ...[
-                const Divider(height: AppSpacing.xl),
-                _FactRow(label: l10n.itemNoteLabel, value: item.note!),
-              ],
-            ],
-          ),
-        ),
-        const SizedBox(height: AppSpacing.xl),
-
-        // --- Suppliers and prices --------------------------------------------
-        //
-        // The heart of the screen. Not a single "cost" field, because a cost
-        // field would be a lie about how this restaurant actually buys.
-        SectionHeader(
-          title: l10n.itemSuppliersTitle,
-          count: prices.isEmpty ? null : prices.length,
-          trailing: IconButton(
-            onPressed: () =>
-                context.pushScreen(Routes.toLinkSupplier(storeId, item.id)),
-            tooltip: l10n.itemLinkSupplier,
-            icon: const Icon(LucideIcons.plus, size: AppSizing.iconMd),
-          ),
-        ),
-
-        if (prices.isEmpty)
-          AppCard(
-            child: EmptyState(
+            (
+              id: _tabSuppliers,
+              label: l10n.itemTabSuppliers,
               icon: LucideIcons.truck,
-              title: l10n.itemNoSuppliersTitle,
-              message: l10n.itemNoSuppliersBody,
-              actionLabel: l10n.itemLinkSupplier,
-              actionIcon: LucideIcons.plus,
-              onAction: () =>
-                  context.pushScreen(Routes.toLinkSupplier(storeId, item.id)),
+              count: prices.isEmpty ? null : prices.length,
             ),
-          )
-        else
-          Container(
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: AppRadius.lgAll,
-              border: Border.all(color: AppColors.border),
+            (
+              id: _tabHistory,
+              label: l10n.itemTabHistory,
+              icon: LucideIcons.history,
+              count: null,
             ),
-            clipBehavior: Clip.antiAlias,
-            child: Column(
-              children: [
-                for (final entry in prices)
-                  SupplierPriceRow(
-                    view: entry,
-                    unitAbbreviation: unit,
-                    isCheapest:
-                        prices.length > 1 &&
-                        entry.price.id == cheapest?.price.id,
-                    onViewHistory: () => context.pushScreen(
-                      Routes.toPriceHistory(
-                        storeId,
-                        item.id,
-                        entry.price.supplierId,
-                      ),
-                    ),
-                    onRemove: () =>
-                        _confirmRemoveSupplier(context, ref, pricing, entry),
-                  ),
-              ],
-            ),
-          ),
-        const SizedBox(height: AppSpacing.xl),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.lg),
+        ...tabBody,
         const SizedBox(height: AppSpacing.xxl),
       ],
     );
 
     // The page scrolls as a whole — its title and buttons go up with the
     // content — so there is nothing to pin and the caller owns the scrolling.
-    if (!showTitle) return content;
+    if (!widget.showTitle) return content;
 
-    // The panel is its own scrolling box, and a 560dp column holding the
-    // figures, the suppliers, the open commandes, the movements and the details
-    // is a long one. Which product you are reading, and the way out, must not
-    // scroll away from you halfway down it.
+    // Which product you are reading, and the way out, must not scroll away
+    // from you halfway down a long tab.
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _IdentityBar(
           row: row,
-          storeId: storeId,
-          onClose: onClose,
-          panel: panel,
+          storeId: _storeId,
+          onClose: widget.onClose,
+          panel: widget.panel,
         ),
-        const Divider(height: AppSpacing.lg, color: AppColors.hairline),
+        const SizedBox(height: AppSpacing.md),
         Expanded(child: content),
       ],
     );
   }
 
+  /// What is on its way, then the reference facts.
+  ///
+  /// Open commandes come first and only when there are any: they answer
+  /// "stock is low, has anybody done anything about it?" — the question asked
+  /// right before ordering the same thing twice.
+  List<Widget> _overviewTab(ItemRowView row, ItemOnOrder onOrderData) {
+    final l10n = AppLocalizations.of(context);
+    final item = row.item;
+    final openOrders = onOrderData.orders;
+
+    return [
+      if (openOrders.isNotEmpty) ...[
+        SectionHeader(
+          title: l10n.itemOpenOrdersTitle,
+          count: openOrders.length,
+        ),
+        AppCard(
+          padding: EdgeInsets.zero,
+          child: Column(
+            children: [
+              for (final view in openOrders)
+                _OpenOrderLine(
+                  view: view,
+                  storeId: _storeId,
+                  unitAbbreviation: row.unitAbbreviation,
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(height: AppSpacing.lg),
+      ],
+      _FactGrid(row: row),
+      if (item.note != null) ...[
+        const SizedBox(height: AppSpacing.md),
+        _NoteBlock(note: item.note!),
+      ],
+    ];
+  }
+
+  /// The heart of the screen. Not a single "cost" field, because a cost field
+  /// would be a lie about how this restaurant actually buys.
+  List<Widget> _suppliersTab(
+    BuildContext context,
+    ItemRowView row,
+    ItemPricing pricing,
+  ) {
+    final l10n = AppLocalizations.of(context);
+    final item = row.item;
+    final prices = pricing.prices;
+    final cheapest = pricing.cheapest;
+
+    void link() => context.pushScreen(Routes.toLinkSupplier(_storeId, item.id));
+
+    if (prices.isEmpty) {
+      return [
+        AppCard(
+          child: EmptyState(
+            icon: LucideIcons.truck,
+            title: l10n.itemNoSuppliersTitle,
+            message: l10n.itemNoSuppliersBody,
+            actionLabel: l10n.itemLinkSupplier,
+            actionIcon: LucideIcons.plus,
+            onAction: link,
+          ),
+        ),
+      ];
+    }
+
+    return [
+      Container(
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: AppRadius.lgAll,
+          border: Border.all(color: AppColors.border),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          children: [
+            for (final (index, entry) in prices.indexed)
+              SupplierPriceRow(
+                view: entry,
+                unitAbbreviation: row.unitAbbreviation,
+                isCheapest:
+                    prices.length > 1 && entry.price.id == cheapest?.price.id,
+                showDivider: index < prices.length - 1,
+                onViewHistory: () => context.pushScreen(
+                  Routes.toPriceHistory(
+                    _storeId,
+                    item.id,
+                    entry.price.supplierId,
+                  ),
+                ),
+                onRemove: () => _confirmRemoveSupplier(context, pricing, entry),
+              ),
+          ],
+        ),
+      ),
+      const SizedBox(height: AppSpacing.sm),
+      Align(
+        alignment: AlignmentDirectional.centerStart,
+        child: TextButton.icon(
+          onPressed: link,
+          icon: const Icon(LucideIcons.plus, size: AppSizing.iconSm),
+          label: Text(l10n.itemLinkSupplier),
+        ),
+      ),
+    ];
+  }
+
+  List<Widget> _historyTab(
+    BuildContext context,
+    List<MovementRowView> movements,
+  ) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+
+    if (movements.isEmpty) {
+      return [
+        AppCard(
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            child: Text(
+              l10n.itemNoMovements,
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ),
+        ),
+      ];
+    }
+
+    return [
+      AppCard(
+        padding: EdgeInsets.zero,
+        child: Column(
+          children: [
+            for (final (index, movement) in movements.indexed)
+              _MovementLine(
+                view: movement,
+                showDivider: index < movements.length - 1,
+              ),
+          ],
+        ),
+      ),
+      const SizedBox(height: AppSpacing.sm),
+      Align(
+        alignment: AlignmentDirectional.centerEnd,
+        child: TextButton(
+          onPressed: () =>
+              context.goSection(Routes.toMovements(_storeId, itemId: _itemId)),
+          child: Text(l10n.actionViewAll),
+        ),
+      ),
+    ];
+  }
+
   Future<void> _confirmRemoveSupplier(
     BuildContext context,
-    WidgetRef ref,
     ItemPricing pricing,
     SupplierPriceView entry,
   ) async {
@@ -400,137 +428,163 @@ class ItemDetailView extends ConsumerWidget {
   }
 }
 
-/// The barcode, in a monospaced style and copyable.
-///
-/// Tabular figures rather than the body font: a barcode is read one digit at a
-/// time, usually while comparing it against something printed, and proportional
-/// digits make that harder than it needs to be. Tapping copies it, which is the
-/// only thing anybody ever wants to do with one on screen.
-class _BarcodeRow extends StatelessWidget {
-  const _BarcodeRow({required this.barcode});
+typedef _TabSpec = ({String id, String label, IconData icon, int? count});
 
-  final String barcode;
+/// Aperçu / Fournisseurs / Historique as one segmented control.
+///
+/// Not [SectionTabs]: in a 560dp panel its full-width bar folds every tab to
+/// a bare icon, and three icons are a guessing game. Here the labels always
+/// stay — beside the icon where a third of the width allows it, under it in
+/// a panel or a phone sheet.
+class _DetailTabs extends StatelessWidget {
+  const _DetailTabs({
+    required this.tabs,
+    required this.current,
+    required this.onSelected,
+  });
+
+  final List<_TabSpec> tabs;
+  final String current;
+  final ValueChanged<String> onSelected;
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-
-    return InkWell(
-      borderRadius: AppRadius.smAll,
-      onTap: () async {
-        await Clipboard.setData(ClipboardData(text: barcode));
-        if (context.mounted) {
-          AppSnackBar.success(context, l10n.itemBarcodeCopied);
-        }
-      },
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            flex: 2,
-            child: Text(
-              l10n.itemBarcodeShortLabel,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: AppColors.textSecondary,
-              ),
-            ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final stacked = constraints.maxWidth / tabs.length < 190;
+        return Container(
+          padding: const EdgeInsets.all(AppSpacing.xs),
+          decoration: const BoxDecoration(
+            color: AppColors.surfaceVariant,
+            borderRadius: AppRadius.mdAll,
           ),
-          const SizedBox(width: AppSpacing.md),
-          Expanded(
-            flex: 3,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                Flexible(
-                  child: Text(
-                    barcode,
-                    textAlign: TextAlign.right,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppTypography.numeric.copyWith(letterSpacing: 1),
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.sm),
-                Tooltip(
-                  message: l10n.itemBarcodeCopyTooltip,
-                  child: const Icon(
-                    LucideIcons.copy,
-                    size: AppSizing.iconSm,
-                    color: AppColors.textDisabled,
+          child: Row(
+            children: [
+              for (final (index, tab) in tabs.indexed) ...[
+                if (index > 0) const SizedBox(width: AppSpacing.xs),
+                Expanded(
+                  child: _DetailTab(
+                    tab: tab,
+                    selected: tab.id == current,
+                    stacked: stacked,
+                    onTap: () => onSelected(tab.id),
                   ),
                 ),
               ],
-            ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
 
-/// One open commande carrying this item, with what is still outstanding on it.
-class _OpenOrderLine extends StatelessWidget {
-  const _OpenOrderLine({
-    required this.view,
-    required this.storeId,
-    required this.unitAbbreviation,
+class _DetailTab extends StatelessWidget {
+  const _DetailTab({
+    required this.tab,
+    required this.selected,
+    required this.stacked,
+    required this.onTap,
   });
 
-  final OrderRowView view;
-  final String storeId;
-  final String unitAbbreviation;
+  final _TabSpec tab;
+  final bool selected;
+  final bool stacked;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    final color = selected ? AppColors.primary700 : AppColors.textSecondary;
+    final label = Text(
+      tab.label,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: (stacked ? theme.textTheme.labelMedium : theme.textTheme.labelLarge)
+          ?.copyWith(
+            color: selected ? AppColors.textPrimary : AppColors.textSecondary,
+            fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+          ),
+    );
+    final count = tab.count == null
+        ? null
+        : Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+            decoration: BoxDecoration(
+              color: selected ? AppColors.primaryContainer : AppColors.surface,
+              borderRadius: AppRadius.pillAll,
+            ),
+            child: Text(
+              '${tab.count}',
+              style: theme.textTheme.labelSmall?.copyWith(color: color),
+            ),
+          );
 
-    final order = view.order;
-    final outstanding = view.outstandingForItem;
-
-    return InkWell(
-      // Walks the panel forward when this product is itself in one, and opens
-      // a panel over the page when it is not.
-      onTap: () =>
-          openOrderPanel(context, storeId: storeId, orderId: order.id),
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.lg,
-          vertical: AppSpacing.md,
-        ),
-        decoration: const BoxDecoration(
-          border: Border(bottom: BorderSide(color: AppColors.hairline)),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+    final content = stacked
+        ? Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    view.supplierName,
-                    style: theme.textTheme.titleSmall,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  Text(
-                    '${order.reference} · ${l10n.orderSentOn(Formatters.date(order.sentAt ?? order.createdAt))}',
-                    style: theme.textTheme.bodySmall,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                  Icon(tab.icon, size: AppSizing.iconSm, color: color),
+                  if (count != null) ...[
+                    const SizedBox(width: AppSpacing.xs),
+                    count,
+                  ],
                 ],
               ),
-            ),
-            const SizedBox(width: AppSpacing.md),
-            Text(
-              Formatters.quantityWithUnit(outstanding, unitAbbreviation),
-              style: AppTypography.numeric,
-            ),
-            const SizedBox(width: AppSpacing.md),
-            OrderStatusBadge(status: order.status, compact: true),
+              const SizedBox(height: AppSpacing.xxs),
+              label,
+            ],
+          )
+        : Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(tab.icon, size: AppSizing.iconSm, color: color),
+              const SizedBox(width: AppSpacing.sm),
+              Flexible(child: label),
+              if (count != null) ...[
+                const SizedBox(width: AppSpacing.xs),
+                count,
+              ],
+            ],
+          );
+
+    return Semantics(
+      selected: selected,
+      button: true,
+      child: AnimatedContainer(
+        duration: AppMotion.duration(context, AppMotion.fast),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.surface : AppColors.surfaceVariant,
+          borderRadius: AppRadius.smAll,
+          boxShadow: [
+            if (selected)
+              BoxShadow(
+                color: AppColors.neutral950.withValues(alpha: 0.10),
+                blurRadius: 3,
+                offset: const Offset(0, 1),
+              ),
           ],
+        ),
+        child: Material(
+          type: MaterialType.transparency,
+          child: InkWell(
+            onTap: selected ? null : onTap,
+            borderRadius: AppRadius.smAll,
+            child: Container(
+              constraints: const BoxConstraints(
+                minHeight: AppSizing.minTapTarget,
+              ),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.sm,
+                vertical: AppSpacing.xs + 2,
+              ),
+              alignment: Alignment.center,
+              child: content,
+            ),
+          ),
         ),
       ),
     );
@@ -539,11 +593,9 @@ class _OpenOrderLine extends StatelessWidget {
 
 /// Who this is and the way out, pinned above the panel's scrolling body.
 ///
-/// Photo, name, status, and the three things that act on the product: edit,
-/// delete, close. Edit and delete were a full-width button row inside the
-/// scroll, which cost a line of a narrow panel and scrolled out of reach
-/// exactly when a long product page made them hardest to get back to. As icons
-/// on the bar they are always there and take no room of their own.
+/// Photo, name, category, and what acts on the product: edit and close as
+/// icons, delete behind the "⋯" — it is rare, it is destructive, and an icon
+/// a thumb's width from "Modifier" is how the wrong one gets pressed.
 class _IdentityBar extends ConsumerWidget {
   const _IdentityBar({
     required this.row,
@@ -578,7 +630,7 @@ class _IdentityBar extends ConsumerWidget {
           ),
           const SizedBox(width: AppSpacing.xs),
         ],
-        ProductImage(imagePath: item.imagePath, size: 48, radius: 10),
+        ProductImage(imagePath: item.imagePath, size: 44, radius: 10),
         const SizedBox(width: AppSpacing.md),
         Expanded(
           child: Column(
@@ -591,7 +643,6 @@ class _IdentityBar extends ConsumerWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
-              const SizedBox(height: AppSpacing.xxs),
               Text(
                 row.categoryName,
                 style: theme.textTheme.bodySmall,
@@ -601,23 +652,35 @@ class _IdentityBar extends ConsumerWidget {
             ],
           ),
         ),
-        const SizedBox(width: AppSpacing.sm),
         IconButton(
           onPressed: () =>
               context.pushScreen(Routes.toEditItem(storeId, item.id)),
           tooltip: l10n.actionEdit,
           icon: const Icon(LucideIcons.pencil, size: AppSizing.iconMd),
         ),
-        IconButton(
-          onPressed: () async {
-            final deleted = await confirmDeleteItem(context, ref, storeId, item);
-            // The panel was showing a product that is gone. Closing it is the
-            // only honest thing left to do.
-            if (deleted) onClose?.call();
-          },
-          tooltip: l10n.actionDelete,
-          color: AppColors.error,
-          icon: const Icon(LucideIcons.trash2, size: AppSizing.iconMd),
+        PopupMenuButton<void>(
+          tooltip: l10n.itemMoreActions,
+          icon: const Icon(LucideIcons.ellipsisVertical, size: AppSizing.iconMd),
+          itemBuilder: (_) => [
+            PopupMenuItem<void>(
+              onTap: () async {
+                final deleted = await confirmDeleteItem(
+                  context,
+                  ref,
+                  storeId,
+                  item,
+                );
+                // The panel was showing a product that is gone. Closing it is
+                // the only honest thing left to do.
+                if (deleted) onClose?.call();
+              },
+              child: _MenuLabel(
+                icon: LucideIcons.trash2,
+                label: l10n.actionDelete,
+                color: AppColors.error,
+              ),
+            ),
+          ],
         ),
         if (onClose != null)
           IconButton(
@@ -630,24 +693,44 @@ class _IdentityBar extends ConsumerWidget {
   }
 }
 
-/// The three figures, and the gauge across the full width under them.
+class _MenuLabel extends StatelessWidget {
+  const _MenuLabel({required this.icon, required this.label, this.color});
+
+  final IconData icon;
+  final String label;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, size: AppSizing.iconSm, color: color),
+        const SizedBox(width: AppSpacing.md),
+        Text(label, style: TextStyle(color: color)),
+      ],
+    );
+  }
+}
+
+/// The figure a product is opened for, how full the shelf is, and what is
+/// worth knowing next to it.
 ///
-/// The gauge used to sit inside the first figure's column, so it was as wide as
-/// the words "50 kg" — a bar too short to read a proportion off. It spans the
-/// card now, which is the only width at which a proportion is worth drawing.
-class _StatsCard extends StatelessWidget {
-  const _StatsCard({
+/// The quantity is the one large number. The range is two short labels under
+/// the ends of the gauge, not a sentence; value, what is on its way and what a
+/// refill would take are chips, each present only when it has something to
+/// say — a permanent "0 en route" would be noise on every product.
+class _StockCard extends StatelessWidget {
+  const _StockCard({
     required this.row,
     required this.onOrder,
     required this.showPhoto,
+    required this.showStatus,
   });
 
   final ItemRowView row;
   final double onOrder;
-
-  /// True on the page, whose own header names the product but shows no picture.
-  /// False in the panel, where the bar above already has one.
   final bool showPhoto;
+  final bool showStatus;
 
   @override
   Widget build(BuildContext context) {
@@ -655,31 +738,34 @@ class _StatsCard extends StatelessWidget {
     final theme = Theme.of(context);
     final item = row.item;
     final unit = row.unitAbbreviation;
+    final caption = theme.textTheme.labelMedium?.copyWith(
+      color: AppColors.textSecondary,
+    );
 
-    final figures = <Widget>[
-      _Figure(
-        // "Quantité", not "En stock": the status badge a few pixels away says
-        // "En stock" and means something else entirely.
-        label: l10n.itemQuantityLabel,
-        value: Formatters.quantityWithUnit(item.quantity, unit),
-        emphasis: true,
-      ),
-      _Figure(
-        label: l10n.itemStockValueLabel,
-        // No average cost means no value can be worked out. A zero here would
-        // be a claim about the stock rather than an absence of information.
-        value: item.averageCost == null
-            ? l10n.itemStockValueUnknown
-            : Formatters.price(item.quantity * item.averageCost!),
-        emphasis: item.averageCost != null,
-      ),
-      // Only when something is actually coming. A permanent "En commande : 0"
-      // would be a column of noise on every product in the catalogue.
+    final chips = <Widget>[
+      // No average cost means no value can be worked out; no chip rather than
+      // a zero, which would be a claim about the stock.
+      if (item.averageCost != null)
+        _MetricChip(
+          icon: LucideIcons.wallet,
+          value: Formatters.price(item.quantity * item.averageCost!),
+          caption: l10n.itemChipValue,
+          tooltip: l10n.itemStockValueLabel,
+        ),
       if (onOrder > 0)
-        _Figure(
-          label: l10n.itemOnOrderLabel,
+        _MetricChip(
+          icon: LucideIcons.truck,
           value: Formatters.quantityWithUnit(onOrder, unit),
-          emphasis: true,
+          caption: l10n.itemChipOnOrder,
+          tooltip: l10n.itemOnOrderLabel,
+          highlighted: true,
+        ),
+      if (item.quantity < item.maxStock)
+        _MetricChip(
+          icon: LucideIcons.arrowUpToLine,
+          value: Formatters.quantityWithUnit(topUpQuantity(item), unit),
+          caption: l10n.itemChipTopUp,
+          tooltip: l10n.itemTopUpTooltip,
         ),
     ];
 
@@ -688,197 +774,462 @@ class _StatsCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               if (showPhoto) ...[
-                ProductImage(imagePath: item.imagePath, size: 72),
+                ProductImage(imagePath: item.imagePath, size: 56),
                 const SizedBox(width: AppSpacing.lg),
               ],
               Expanded(
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    // Three figures need about 110dp each before the numbers
-                    // start wrapping under their own labels. Below that they
-                    // stack two-up instead of being squeezed.
-                    final perFigure = constraints.maxWidth / figures.length;
-                    if (perFigure >= 110) {
-                      return Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          for (final figure in figures)
-                            Expanded(child: figure),
-                        ],
-                      );
-                    }
-                    return Wrap(
-                      spacing: AppSpacing.xl,
-                      runSpacing: AppSpacing.md,
-                      children: figures,
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          StockGauge(
-            quantity: item.quantity,
-            minimum: item.lowStockThreshold,
-            maximum: item.maxStock,
-            height: 8,
-          ),
-          const SizedBox(height: AppSpacing.xs),
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  // Named bounds, not "8 / 20": that shape directly under a
-                  // filled bar reads as "8 out of 20", which is the current
-                  // level — and the figure above already said it.
-                  l10n.itemRangeInline(
-                    Formatters.quantityWithUnit(item.lowStockThreshold, unit),
-                    Formatters.quantityWithUnit(item.maxStock, unit),
-                  ),
-                  style: theme.textTheme.bodySmall,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              // What a commande would put on the line, stated rather than
-              // offered: ordering happens on the Achats screens, and this is
-              // the figure that says whether it is worth going there.
-              if (item.quantity < item.maxStock) ...[
-                const SizedBox(width: AppSpacing.md),
-                Flexible(
-                  child: Text(
-                    l10n.itemTopUpSuggestion(
-                      Formatters.quantityWithUnit(topUpQuantity(item), unit),
+                child: Semantics(
+                  label:
+                      '${l10n.itemQuantityLabel} '
+                      '${Formatters.quantityWithUnit(item.quantity, unit)}',
+                  excludeSemantics: true,
+                  child: Text.rich(
+                    TextSpan(
+                      children: [
+                        TextSpan(
+                          text: Formatters.quantity(item.quantity),
+                          style: AppTypography.numericLarge,
+                        ),
+                        TextSpan(
+                          text: ' $unit',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
                     ),
-                    style: theme.textTheme.bodySmall,
-                    textAlign: TextAlign.right,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
+              ),
+              if (showStatus) ...[
+                const SizedBox(width: AppSpacing.sm),
+                StockStatusBadge(status: stockStatusOf(item)),
               ],
             ],
           ),
+          const SizedBox(height: AppSpacing.md),
+          StockGauge(
+            quantity: item.quantity,
+            minimum: item.lowStockThreshold,
+            maximum: item.maxStock,
+            height: 10,
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          Row(
+            children: [
+              Text(
+                l10n.itemGaugeMin(
+                  Formatters.quantityWithUnit(item.lowStockThreshold, unit),
+                ),
+                style: caption,
+              ),
+              const Spacer(),
+              Text(
+                l10n.itemGaugeMax(
+                  Formatters.quantityWithUnit(item.maxStock, unit),
+                ),
+                style: caption,
+              ),
+            ],
+          ),
+          if (chips.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.md),
+            Wrap(
+              spacing: AppSpacing.sm,
+              runSpacing: AppSpacing.sm,
+              children: chips,
+            ),
+          ],
         ],
       ),
     );
   }
 }
 
-/// One figure in the header: a quiet label with the number under it.
-class _Figure extends StatelessWidget {
-  const _Figure({
-    required this.label,
+/// A figure with a one-word caption — "186,00 € valeur" — in a soft pill. The
+/// full label is the tooltip and what a screen reader hears.
+class _MetricChip extends StatelessWidget {
+  const _MetricChip({
+    required this.icon,
     required this.value,
-    this.emphasis = false,
+    required this.caption,
+    required this.tooltip,
+    this.highlighted = false,
   });
 
-  final String label;
+  final IconData icon;
   final String value;
+  final String caption;
+  final String tooltip;
 
-  /// Numeric type for a figure, ordinary body type for a phrase like
-  /// "Coût inconnu", which in numeric type reads as a broken number.
-  final bool emphasis;
+  /// Tinted, for the figure that changes what to do next — stock on its way.
+  final bool highlighted;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final foreground = highlighted
+        ? AppColors.onPrimaryContainer
+        : AppColors.textPrimary;
+    final muted = highlighted
+        ? AppColors.onPrimaryContainer
+        : AppColors.textSecondary;
 
-    return ConstrainedBox(
-      // Wide enough for a five-figure price, narrow enough that three fit
-      // across a split pane before the Wrap breaks them onto two lines.
-      constraints: const BoxConstraints(minWidth: 120, maxWidth: 220),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            label.toUpperCase(),
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: AppColors.textSecondary,
-              letterSpacing: 0.6,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+    return Tooltip(
+      message: tooltip,
+      child: Semantics(
+        label: '$tooltip $value',
+        excludeSemantics: true,
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md,
+            vertical: AppSpacing.xs + 2,
           ),
-          const SizedBox(height: AppSpacing.xxs),
-          Text(
-            value,
-            style: emphasis
-                ? AppTypography.numericMedium
-                : theme.textTheme.titleMedium,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+          decoration: BoxDecoration(
+            color: highlighted
+                ? AppColors.primaryContainer
+                : AppColors.surfaceVariant,
+            borderRadius: AppRadius.pillAll,
           ),
-        ],
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: AppSizing.iconSm - 2, color: muted),
+              const SizedBox(width: AppSpacing.xs + 2),
+              Flexible(
+                child: Text.rich(
+                  TextSpan(
+                    children: [
+                      TextSpan(
+                        text: value,
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          color: foreground,
+                          fontWeight: FontWeight.w600,
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                        ),
+                      ),
+                      TextSpan(
+                        text: ' $caption',
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          color: muted,
+                        ),
+                      ),
+                    ],
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
 }
 
-class _FactRow extends StatelessWidget {
-  const _FactRow({required this.label, required this.value});
+/// The reference facts as small tiles — two across in a phone-width panel,
+/// four across where there is room — instead of a label/value table whose
+/// rows all weighed the same as the quantity.
+///
+/// Category and range are not here: the header and the stock card already
+/// show them.
+class _FactGrid extends StatelessWidget {
+  const _FactGrid({required this.row});
 
+  final ItemRowView row;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final item = row.item;
+    final unit = row.unitAbbreviation;
+
+    final tiles = <Widget>[
+      _FactTile(
+        icon: LucideIcons.ruler,
+        label: l10n.itemUnitLabel,
+        value: unit,
+      ),
+      _FactTile(
+        icon: LucideIcons.calculator,
+        label: l10n.itemAverageCost,
+        value: item.averageCost == null
+            ? l10n.itemAverageCostUnknown
+            : '${Formatters.price(item.averageCost!)} / $unit',
+      ),
+      _FactTile(
+        icon: LucideIcons.clock,
+        label: l10n.itemUpdatedLabel,
+        value: Formatters.relative(item.updatedAt),
+      ),
+      // Only when the item has one. A dash on the thirty items that will
+      // never have a barcode would make the absence look like missing data
+      // rather than a fact about produce.
+      if (item.barcode != null) _BarcodeTile(barcode: item.barcode!),
+    ];
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const gap = AppSpacing.sm;
+        final columns = constraints.maxWidth >= 520 ? 4 : 2;
+        final width = (constraints.maxWidth - gap * (columns - 1)) / columns;
+        return Wrap(
+          spacing: gap,
+          runSpacing: gap,
+          children: [
+            for (final tile in tiles) SizedBox(width: width, child: tile),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _FactTile extends StatelessWidget {
+  const _FactTile({
+    required this.icon,
+    required this.label,
+    required this.value,
+    this.valueStyle,
+    this.trailing,
+    this.onTap,
+  });
+
+  final IconData icon;
   final String label;
   final String value;
+  final TextStyle? valueStyle;
+  final Widget? trailing;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          flex: 2,
-          child: Text(
-            label,
-            style: theme.textTheme.bodyMedium?.copyWith(
+    return Material(
+      color: AppColors.surfaceVariant,
+      borderRadius: AppRadius.mdAll,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: AppRadius.mdAll,
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(icon, size: 14, color: AppColors.textSecondary),
+                  const SizedBox(width: AppSpacing.xs),
+                  Expanded(
+                    child: Text(
+                      label,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  ?trailing,
+                ],
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                value,
+                style: valueStyle ?? theme.textTheme.titleSmall,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The barcode, in tabular figures and copyable.
+///
+/// A barcode is read one digit at a time, usually while comparing it against
+/// something printed, and proportional digits make that harder than it needs
+/// to be. Tapping copies it, which is the only thing anybody ever wants to do
+/// with one on screen.
+class _BarcodeTile extends StatelessWidget {
+  const _BarcodeTile({required this.barcode});
+
+  final String barcode;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
+    return Tooltip(
+      message: l10n.itemBarcodeCopyTooltip,
+      child: _FactTile(
+        icon: LucideIcons.scanBarcode,
+        label: l10n.itemBarcodeShortLabel,
+        value: barcode,
+        valueStyle: AppTypography.numeric.copyWith(
+          fontSize: 15,
+          letterSpacing: 0.5,
+        ),
+        trailing: const Icon(
+          LucideIcons.copy,
+          size: 14,
+          color: AppColors.textDisabled,
+        ),
+        onTap: () async {
+          await Clipboard.setData(ClipboardData(text: barcode));
+          if (context.mounted) {
+            AppSnackBar.success(context, l10n.itemBarcodeCopied);
+          }
+        },
+      ),
+    );
+  }
+}
+
+class _NoteBlock extends StatelessWidget {
+  const _NoteBlock({required this.note});
+
+  final String note;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+
+    return Semantics(
+      label: l10n.itemNoteLabel,
+      child: Container(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        decoration: const BoxDecoration(
+          color: AppColors.surfaceVariant,
+          borderRadius: AppRadius.mdAll,
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Icon(
+              LucideIcons.stickyNote,
+              size: AppSizing.iconSm,
               color: AppColors.textSecondary,
             ),
-          ),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(child: Text(note, style: theme.textTheme.bodyMedium)),
+          ],
         ),
-        const SizedBox(width: AppSpacing.md),
-        Expanded(
-          flex: 3,
-          child: Text(
-            value,
-            textAlign: TextAlign.right,
-            style: theme.textTheme.bodyLarge,
-          ),
+      ),
+    );
+  }
+}
+
+/// One open commande carrying this item, with what is still outstanding on it.
+class _OpenOrderLine extends StatelessWidget {
+  const _OpenOrderLine({
+    required this.view,
+    required this.storeId,
+    required this.unitAbbreviation,
+  });
+
+  final OrderRowView view;
+  final String storeId;
+  final String unitAbbreviation;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final order = view.order;
+
+    return InkWell(
+      // Walks the panel forward when this product is itself in one, and opens
+      // a panel over the page when it is not.
+      onTap: () => openOrderPanel(context, storeId: storeId, orderId: order.id),
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.lg,
+          vertical: AppSpacing.md,
         ),
-      ],
+        decoration: const BoxDecoration(
+          border: Border(bottom: BorderSide(color: AppColors.hairline)),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    view.supplierName,
+                    style: theme.textTheme.titleSmall,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    order.reference,
+                    style: theme.textTheme.bodySmall,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Text(
+              '+${Formatters.quantityWithUnit(view.outstandingForItem, unitAbbreviation)}',
+              style: AppTypography.numeric,
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            OrderStatusBadge(status: order.status, compact: true),
+          ],
+        ),
+      ),
     );
   }
 }
 
 class _MovementLine extends StatelessWidget {
-  const _MovementLine({required this.view});
+  const _MovementLine({required this.view, required this.showDivider});
 
   final MovementRowView view;
+  final bool showDivider;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final movement = view.movement;
+    final colors = movementColors(movement.type);
+
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.lg,
         vertical: AppSpacing.md,
       ),
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: AppColors.border)),
+      decoration: BoxDecoration(
+        border: showDivider
+            ? const Border(bottom: BorderSide(color: AppColors.hairline))
+            : null,
       ),
       child: Row(
         children: [
-          Icon(
-            movementTypeIcon(movement.type),
-            size: AppSizing.iconMd,
-            color: movementColors(movement.type).solid,
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: colors.container,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              movementTypeIcon(movement.type),
+              size: AppSizing.iconSm - 2,
+              color: colors.solid,
+            ),
           ),
           const SizedBox(width: AppSpacing.md),
           Expanded(
@@ -893,7 +1244,7 @@ class _MovementLine extends StatelessWidget {
                     orderReference: view.orderReference,
                     unit: view.unitAbbreviation,
                   ),
-                  style: theme.textTheme.bodyLarge,
+                  style: theme.textTheme.bodyMedium,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -911,6 +1262,7 @@ class _MovementLine extends StatelessWidget {
             Formatters.quantityDelta(movement.quantity, view.unitAbbreviation),
             style: AppTypography.numeric.copyWith(
               color: quantityDeltaColor(movement.quantity),
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],

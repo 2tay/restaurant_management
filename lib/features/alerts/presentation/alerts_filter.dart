@@ -53,6 +53,7 @@ class AlertsFilter {
     this.coverage = AlertCoverage.all,
     this.supplierId,
     this.sort = AlertSort.urgency,
+    this.query = '',
   });
 
   final AlertSeverity severity;
@@ -63,6 +64,12 @@ class AlertsFilter {
   final String? supplierId;
 
   final AlertSort sort;
+
+  /// What is typed in the search box: matched against the name, the category
+  /// and the supplier. Not counted among the filters, and not cleared with
+  /// them — the search box has its own clear button, and wiping the text from
+  /// under the cursor would be a surprise.
+  final String query;
 
   /// Stands in for "the articles nobody supplies" in [supplierId]. They are a
   /// real group worth isolating — they are the ones no shortcut can order, and
@@ -83,6 +90,7 @@ class AlertsFilter {
     AlertCoverage? coverage,
     String? supplierId,
     AlertSort? sort,
+    String? query,
     bool clearSupplier = false,
   }) {
     return AlertsFilter(
@@ -90,6 +98,7 @@ class AlertsFilter {
       coverage: coverage ?? this.coverage,
       supplierId: clearSupplier ? null : supplierId ?? this.supplierId,
       sort: sort ?? this.sort,
+      query: query ?? this.query,
     );
   }
 
@@ -104,7 +113,8 @@ class AlertsFilter {
         break;
       case AlertSort.shortfall:
         kept.sort(
-          (a, b) => shortfallOf(b, severity).compareTo(shortfallOf(a, severity)),
+          (a, b) =>
+              shortfallOf(b, severity).compareTo(shortfallOf(a, severity)),
         );
       case AlertSort.name:
         kept.sort(
@@ -133,6 +143,14 @@ class AlertsFilter {
     };
     if (!coverageOk) return false;
 
+    final needle = query.trim().toLowerCase();
+    if (needle.isNotEmpty &&
+        !view.row.item.name.toLowerCase().contains(needle) &&
+        !view.row.categoryName.toLowerCase().contains(needle) &&
+        !(view.defaultSupplierName?.toLowerCase().contains(needle) ?? false)) {
+      return false;
+    }
+
     if (supplierId == null) return true;
     if (supplierId == noSupplier) return view.defaultSupplierId == null;
     return view.defaultSupplierId == supplierId;
@@ -152,9 +170,11 @@ class AlertsFilterNotifier extends Notifier<AlertsFilter> {
   @override
   AlertsFilter build() => const AlertsFilter();
 
-  void setSeverity(AlertSeverity value) => state = state.copyWith(severity: value);
+  void setSeverity(AlertSeverity value) =>
+      state = state.copyWith(severity: value);
 
-  void setCoverage(AlertCoverage value) => state = state.copyWith(coverage: value);
+  void setCoverage(AlertCoverage value) =>
+      state = state.copyWith(coverage: value);
 
   void setSupplier(String? id) => id == null
       ? state = state.copyWith(clearSupplier: true)
@@ -162,8 +182,11 @@ class AlertsFilterNotifier extends Notifier<AlertsFilter> {
 
   void setSort(AlertSort value) => state = state.copyWith(sort: value);
 
-  /// Clears what is hiding rows, keeping the order the user chose.
-  void clear() => state = AlertsFilter(sort: state.sort);
+  void setQuery(String value) => state = state.copyWith(query: value);
+
+  /// Clears what is hiding rows, keeping the order the user chose and what is
+  /// typed in the search box.
+  void clear() => state = AlertsFilter(sort: state.sort, query: state.query);
 }
 
 /// Kept for the session, like the orders list's own filter.
@@ -172,12 +195,15 @@ final alertsFilterProvider =
       AlertsFilterNotifier.new,
     );
 
-/// Cards or a table — kept for the session, like the orders list.
-enum AlertsViewMode { list, table }
+/// A table or a grid of cards — kept for the session, like the orders list.
+///
+/// The table is the default on a wide screen: one aligned line per product is
+/// what scans fastest. A phone always gets the cards, whatever is chosen here.
+enum AlertsViewMode { table, grid }
 
 class AlertsViewModeNotifier extends Notifier<AlertsViewMode> {
   @override
-  AlertsViewMode build() => AlertsViewMode.list;
+  AlertsViewMode build() => AlertsViewMode.table;
 
   void select(AlertsViewMode mode) => state = mode;
 }

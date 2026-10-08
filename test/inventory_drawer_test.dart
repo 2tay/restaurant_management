@@ -22,6 +22,7 @@ import 'package:stock_inventory/app/routes.dart';
 import 'package:stock_inventory/data/seed/dataset/dataset.dart';
 import 'package:stock_inventory/features/inventory/presentation/widgets/item_card.dart';
 import 'package:stock_inventory/features/inventory/presentation/widgets/item_detail_view.dart';
+import 'package:stock_inventory/features/inventory/presentation/widgets/supplier_price_row.dart';
 import 'package:stock_inventory/shared/widgets/widgets.dart';
 import 'package:stock_inventory/features/stock_movement/presentation/widgets/movement_row.dart';
 
@@ -96,15 +97,51 @@ void main() {
     expect(find.text('Modifier le produit'), findsWidgets);
   });
 
-  testApp('on a phone the drawer takes the whole width', (tester) async {
+  // A bottom sheet on a phone: the full width, swiped away by its handle.
+  testApp('on a phone the drawer is a full-width bottom sheet', (
+    tester,
+  ) async {
     await open(tester, _phone);
     await tapFirstProduct(tester);
 
     expect(tester.takeException(), isNull);
+    expect(find.byType(BottomSheet), findsOneWidget);
     final drawer = tester.getRect(find.byType(ItemDetailView));
-    // The full screen, less the drawer's own padding.
+    // The full screen, less the sheet's own padding.
     expect(drawer.width, greaterThan(_phone.width - 80));
   });
+
+  // The stock card stays above three tabs instead of six stacked sections.
+  for (final (name, size) in [('tablet', _tablet), ('phone', _phone)]) {
+    testApp('the tabs switch the body without overflowing ($name)', (
+      tester,
+    ) async {
+      await open(tester, size);
+      await tapFirstProduct(tester);
+
+      final view = find.byType(ItemDetailView);
+      Finder inView(Finder f) => find.descendant(of: view, matching: f);
+
+      // Aperçu first: the facts, no supplier rows.
+      expect(inView(find.text('Unité')), findsOneWidget);
+      expect(inView(find.byType(SupplierPriceRow)), findsNothing);
+
+      await tester.tap(inView(find.text('Fournisseurs')));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(inView(find.byType(SupplierPriceRow)), findsWidgets);
+
+      await tester.tap(inView(find.text('Historique')));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(inView(find.byType(SupplierPriceRow)), findsNothing);
+      expect(
+        inView(find.text('Tout afficher')).evaluate().length +
+            inView(find.text('Aucun mouvement enregistré')).evaluate().length,
+        1,
+      );
+    });
+  }
 
   group('the other lists open the same drawer', () {
     /// Goes to [route] and taps its first product row.
