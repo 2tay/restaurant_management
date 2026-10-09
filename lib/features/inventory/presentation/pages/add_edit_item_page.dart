@@ -8,6 +8,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/formatters.dart';
+import '../../../../core/utils/responsive.dart';
 import '../../../../core/utils/stock_status.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../data/providers.dart';
@@ -166,6 +167,7 @@ class _ItemFormState extends ConsumerState<_ItemForm> {
 
   String? _categoryId;
   String? _unitId;
+
   /// The picker's stand-in for "no preference".
   ///
   /// A dropdown cannot carry null as a selectable option — null is what it
@@ -285,6 +287,10 @@ class _ItemFormState extends ConsumerState<_ItemForm> {
         ),
     ];
 
+    // The gap between the stock fields: a phone needs every line of height
+    // it has for the fields themselves.
+    final fieldGap = context.isPhone ? AppSpacing.lg : AppSpacing.xl;
+
     var unitAbbreviation = '';
     for (final unit in widget.units) {
       if (unit.id == _unitId) unitAbbreviation = unit.abbreviation;
@@ -314,61 +320,61 @@ class _ItemFormState extends ConsumerState<_ItemForm> {
           _FormSection(
             title: l10n.itemFormSectionIdentity,
             children: [
-                // First, because it is the only field somebody can answer
-                // without reading a label, and because the product grid is now
-                // mostly photographs — a form that buried this under six text
-                // fields would keep producing products that look empty there.
-                ItemImageField(
-                  imagePath: _imagePath,
-                  onChanged: (value) => setState(() => _imagePath = value),
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                AppTextField(
-                  label: l10n.itemFormName,
-                  controller: _nameController,
-                  hint: l10n.itemFormNameHint,
-                  autofocus: !_isEditing,
-                  onChanged: (_) => setState(() {}),
-                ),
-                const SizedBox(height: AppSpacing.lg),
+              // First, because it is the only field somebody can answer
+              // without reading a label, and because the product grid is now
+              // mostly photographs — a form that buried this under six text
+              // fields would keep producing products that look empty there.
+              ItemImageField(
+                imagePath: _imagePath,
+                onChanged: (value) => setState(() => _imagePath = value),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              AppTextField(
+                label: l10n.itemFormName,
+                controller: _nameController,
+                hint: l10n.itemFormNameHint,
+                autofocus: !_isEditing,
+                onChanged: (_) => setState(() {}),
+              ),
+              const SizedBox(height: AppSpacing.lg),
 
-                // Optional, and the label says so. Most restaurant stock —
-                // produce, meat, fish, bread — arrives loose with nothing to
-                // scan, so a field that looked required would be wrong far more
-                // often than it was right.
-                //
-                // It sits with the name because that is what it is: another way
-                // of naming this exact product.
-                AppTextField(
-                  label: l10n.itemBarcodeLabel,
-                  controller: _barcodeController,
-                  hint: l10n.itemBarcodeHint,
-                  helperText: _barcodeConflictName == null
-                      ? l10n.itemBarcodeHelp
-                      : null,
-                  errorText: _barcodeConflictName == null
-                      ? null
-                      : l10n.itemBarcodeDuplicate(_barcodeConflictName!),
-                  // Numeric by default because most barcodes are digits, but
-                  // input is *not* restricted to them: internal and regional
-                  // codes contain letters, and a field that silently refuses a
-                  // real barcode is worse than one that accepts a wrong one.
-                  keyboardType: TextInputType.number,
-                  suffixIcon: IconButton(
-                    // The scan button's seat, kept warm. Disabled rather than
-                    // absent so adding the camera later is a swap rather than a
-                    // reflow of the field around a control that appeared.
-                    onPressed: null,
-                    tooltip: l10n.itemBarcodeScanTooltip,
-                    icon: const Icon(LucideIcons.scanLine),
-                  ),
-                  onChanged: (_) => setState(() {
-                    // Clearing on edit rather than on save: leaving a stale
-                    // error under a field the user has already fixed is how a
-                    // form starts feeling broken.
-                    _barcodeConflictName = null;
-                  }),
+              // Optional, and the label says so. Most restaurant stock —
+              // produce, meat, fish, bread — arrives loose with nothing to
+              // scan, so a field that looked required would be wrong far more
+              // often than it was right.
+              //
+              // It sits with the name because that is what it is: another way
+              // of naming this exact product.
+              AppTextField(
+                label: l10n.itemBarcodeLabel,
+                controller: _barcodeController,
+                hint: l10n.itemBarcodeHint,
+                helperText: _barcodeConflictName == null
+                    ? l10n.itemBarcodeHelp
+                    : null,
+                errorText: _barcodeConflictName == null
+                    ? null
+                    : l10n.itemBarcodeDuplicate(_barcodeConflictName!),
+                // Numeric by default because most barcodes are digits, but
+                // input is *not* restricted to them: internal and regional
+                // codes contain letters, and a field that silently refuses a
+                // real barcode is worse than one that accepts a wrong one.
+                keyboardType: TextInputType.number,
+                suffixIcon: IconButton(
+                  // The scan button's seat, kept warm. Disabled rather than
+                  // absent so adding the camera later is a swap rather than a
+                  // reflow of the field around a control that appeared.
+                  onPressed: null,
+                  tooltip: l10n.itemBarcodeScanTooltip,
+                  icon: const Icon(LucideIcons.scanLine),
                 ),
+                onChanged: (_) => setState(() {
+                  // Clearing on edit rather than on save: leaving a stale
+                  // error under a field the user has already fixed is how a
+                  // form starts feeling broken.
+                  _barcodeConflictName = null;
+                }),
+              ),
             ],
           ),
           const SizedBox(height: AppSpacing.lg),
@@ -376,74 +382,77 @@ class _ItemFormState extends ConsumerState<_ItemForm> {
           _FormSection(
             title: l10n.itemFormSectionClassification,
             children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: AppDropdown<String>(
-                        label: l10n.itemCategoryLabel,
-                        value: _categoryId,
-                        options: categories,
-                        hint: l10n.inventoryFilterAll,
-                        onChanged: (value) =>
-                            setState(() => _categoryId = value),
-                        onCreateNew: _createCategory,
-                        createNewLabel: l10n.itemFormCreateCategory,
-                      ),
+              // Side by side where each gets a usable width; one under the
+              // other on a phone, where two dropdowns of 140dp truncated
+              // every category name worth reading.
+              AdaptiveRow(
+                breakpoint: 440,
+                stackedCrossAxisAlignment: CrossAxisAlignment.stretch,
+                spacing: AppSpacing.lg,
+                runSpacing: AppSpacing.lg,
+                cells: [
+                  AdaptiveCell(
+                    flex: 1,
+                    child: AppDropdown<String>(
+                      label: l10n.itemCategoryLabel,
+                      value: _categoryId,
+                      options: categories,
+                      hint: l10n.inventoryFilterAll,
+                      onChanged: (value) => setState(() => _categoryId = value),
+                      onCreateNew: _createCategory,
+                      createNewLabel: l10n.itemFormCreateCategory,
                     ),
-                    const SizedBox(width: AppSpacing.lg),
-                    Expanded(
-                      child: AppDropdown<String>(
-                        label: l10n.itemUnitLabel,
-                        value: _unitId,
-                        options: units,
-                        onChanged: (value) => setState(() => _unitId = value),
-                        onCreateNew: _createUnit,
-                        createNewLabel: l10n.itemFormCreateUnit,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.lg),
-
-                // A preference, not a price. Which supplier is pre-selected
-                // when a delivery is received; what any of them charges is an
-                // item–supplier link and lives on its own screen, which is
-                // what the notice at the bottom of this form explains.
-                //
-                // **Editing only.** A product being created has no supplier
-                // links yet — they are made on the "associer un fournisseur"
-                // screen, which needs the product to exist first — so at
-                // creation this could only ever offer a preference between
-                // suppliers that do not sell the product. It stayed at "Aucun"
-                // because "Aucun" was the only honest answer available.
-                //
-                // "Aucun" remains a real answer on an edit, and picking it
-                // clears the preference: that is what the empty option in the
-                // list is for.
-                if (_isEditing) ...[
-                  AppDropdown<String>(
-                    label: l10n.itemDefaultSupplierLabel,
-                    value: _defaultSupplierId,
-                    options: [
-                      DropdownOption(
-                        value: _noSupplier,
-                        label: l10n.itemDefaultSupplierNone,
-                      ),
-                      for (final supplier in widget.suppliers)
-                        DropdownOption(
-                          value: supplier.id,
-                          label: supplier.name,
-                        ),
-                    ],
-                    hint: l10n.itemDefaultSupplierNone,
-                    onChanged: (value) => setState(
-                      () => _defaultSupplierId = value == _noSupplier
-                          ? null
-                          : value,
+                  ),
+                  AdaptiveCell(
+                    flex: 1,
+                    child: AppDropdown<String>(
+                      label: l10n.itemUnitLabel,
+                      value: _unitId,
+                      options: units,
+                      onChanged: (value) => setState(() => _unitId = value),
+                      onCreateNew: _createUnit,
+                      createNewLabel: l10n.itemFormCreateUnit,
                     ),
                   ),
                 ],
+              ),
+              const SizedBox(height: AppSpacing.lg),
+
+              // A preference, not a price. Which supplier is pre-selected
+              // when a delivery is received; what any of them charges is an
+              // item–supplier link and lives on its own screen, which is
+              // what the notice at the bottom of this form explains.
+              //
+              // **Editing only.** A product being created has no supplier
+              // links yet — they are made on the "associer un fournisseur"
+              // screen, which needs the product to exist first — so at
+              // creation this could only ever offer a preference between
+              // suppliers that do not sell the product. It stayed at "Aucun"
+              // because "Aucun" was the only honest answer available.
+              //
+              // "Aucun" remains a real answer on an edit, and picking it
+              // clears the preference: that is what the empty option in the
+              // list is for.
+              if (_isEditing) ...[
+                AppDropdown<String>(
+                  label: l10n.itemDefaultSupplierLabel,
+                  value: _defaultSupplierId,
+                  options: [
+                    DropdownOption(
+                      value: _noSupplier,
+                      label: l10n.itemDefaultSupplierNone,
+                    ),
+                    for (final supplier in widget.suppliers)
+                      DropdownOption(value: supplier.id, label: supplier.name),
+                  ],
+                  hint: l10n.itemDefaultSupplierNone,
+                  onChanged: (value) => setState(
+                    () => _defaultSupplierId = value == _noSupplier
+                        ? null
+                        : value,
+                  ),
+                ),
+              ],
             ],
           ),
           const SizedBox(height: AppSpacing.lg),
@@ -451,135 +460,135 @@ class _ItemFormState extends ConsumerState<_ItemForm> {
           _FormSection(
             title: l10n.itemFormSectionLevels,
             children: [
-                // The quantity appears here on an edit and nowhere on a create,
-                // because this form describes the product rather than its
-                // stock.
-                //
-                // Dragging a stepper from 40 to 35 on a routine edit form would
-                // be an untraceable stock change: the most consequential thing
-                // in the app, done by accident, with nothing in the movement
-                // log to explain it. Adjusting stock has its own screen, and it
-                // asks for the counted figure and leaves a record.
-                //
-                // A new product therefore starts at zero and reads as "Rupture
-                // de stock" until a receipt or an adjustment says otherwise.
-                // That is the truth — you have none of it yet — and it is
-                // preferred over a friendlier-looking state that would have to
-                // be invented.
-                if (_isEditing) ...[
-                  Text(
-                    l10n.itemOnHandLabel,
-                    style: Theme.of(context).textTheme.labelMedium,
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-                  _QuantityFact(
-                    value: Formatters.quantityWithUnit(
-                      _quantity,
-                      unitAbbreviation,
-                    ),
-                    onAdjust: () =>
-                        context.pushScreen(Routes.toAdjustment(widget.storeId)),
-                  ),
-                  const SizedBox(height: AppSpacing.xl),
-                ],
+              // The quantity appears here on an edit and nowhere on a create,
+              // because this form describes the product rather than its
+              // stock.
+              //
+              // Dragging a stepper from 40 to 35 on a routine edit form would
+              // be an untraceable stock change: the most consequential thing
+              // in the app, done by accident, with nothing in the movement
+              // log to explain it. Adjusting stock has its own screen, and it
+              // asks for the counted figure and leaves a record.
+              //
+              // A new product therefore starts at zero and reads as "Rupture
+              // de stock" until a receipt or an adjustment says otherwise.
+              // That is the truth — you have none of it yet — and it is
+              // preferred over a friendlier-looking state that would have to
+              // be invented.
+              if (_isEditing) ...[
                 Text(
-                  l10n.itemThresholdLabel,
+                  l10n.itemOnHandLabel,
                   style: Theme.of(context).textTheme.labelMedium,
                 ),
                 const SizedBox(height: AppSpacing.sm),
-                QuantityStepper(
-                  value: _threshold,
-                  unitAbbreviation: unitAbbreviation,
-                  onChanged: (value) => setState(() {
-                    _threshold = value;
-                    _maxBelowThreshold = false;
-                    _thresholdMissing = false;
-                  }),
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                Text(
-                  _thresholdMissing
-                      ? l10n.itemFormThresholdRequired
-                      : l10n.itemFormThresholdHelp,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: _thresholdMissing
-                        ? Theme.of(context).colorScheme.error
-                        : null,
+                _QuantityFact(
+                  value: Formatters.quantityWithUnit(
+                    _quantity,
+                    unitAbbreviation,
                   ),
+                  onAdjust: () =>
+                      context.pushScreen(Routes.toAdjustment(widget.storeId)),
                 ),
+                SizedBox(height: fieldGap),
+              ],
+              Text(
+                l10n.itemThresholdLabel,
+                style: Theme.of(context).textTheme.labelMedium,
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              QuantityStepper(
+                value: _threshold,
+                unitAbbreviation: unitAbbreviation,
+                onChanged: (value) => setState(() {
+                  _threshold = value;
+                  _maxBelowThreshold = false;
+                  _thresholdMissing = false;
+                }),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                _thresholdMissing
+                    ? l10n.itemFormThresholdRequired
+                    : l10n.itemFormThresholdHelp,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: _thresholdMissing
+                      ? Theme.of(context).colorScheme.error
+                      : null,
+                ),
+              ),
 
-                // The ceiling, immediately under the floor it has to clear.
-                // Ordering only the shortfall below the threshold refills a
-                // product to exactly its alert line, where the next portion
-                // sold makes it low again. The maximum is what a commande tops
-                // up *to* instead.
-                const SizedBox(height: AppSpacing.xl),
-                Text(
-                  l10n.itemMaxStockLabel,
-                  style: Theme.of(context).textTheme.labelMedium,
+              // The ceiling, immediately under the floor it has to clear.
+              // Ordering only the shortfall below the threshold refills a
+              // product to exactly its alert line, where the next portion
+              // sold makes it low again. The maximum is what a commande tops
+              // up *to* instead.
+              SizedBox(height: fieldGap),
+              Text(
+                l10n.itemMaxStockLabel,
+                style: Theme.of(context).textTheme.labelMedium,
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              QuantityStepper(
+                value: _maxStock,
+                unitAbbreviation: unitAbbreviation,
+                onChanged: (value) => setState(() {
+                  _maxStock = value;
+                  _maxBelowThreshold = false;
+                }),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                _maxBelowThreshold
+                    ? l10n.itemFormMaxStockInvalid
+                    : l10n.itemFormMaxStockHelp,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: _maxBelowThreshold
+                      ? Theme.of(context).colorScheme.error
+                      : null,
                 ),
-                const SizedBox(height: AppSpacing.sm),
-                QuantityStepper(
-                  value: _maxStock,
-                  unitAbbreviation: unitAbbreviation,
-                  onChanged: (value) => setState(() {
-                    _maxStock = value;
-                    _maxBelowThreshold = false;
-                  }),
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                Text(
-                  _maxBelowThreshold
-                      ? l10n.itemFormMaxStockInvalid
-                      : l10n.itemFormMaxStockHelp,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: _maxBelowThreshold
-                        ? Theme.of(context).colorScheme.error
-                        : null,
-                  ),
-                ),
+              ),
 
-                // The busy-week minimum: a holiday, a festival, the run-up to
-                // a long weekend. Optional, and left alone it follows twice the
-                // ordinary minimum rather than being written down — so raising
-                // the minimum later raises this too.
-                //
-                // Nothing reads it yet. It is captured now so the figure is
-                // already there when the app starts using it.
-                const SizedBox(height: AppSpacing.xl),
-                Text(
-                  l10n.itemHolidayMinLabel,
-                  style: Theme.of(context).textTheme.labelMedium,
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                QuantityStepper(
-                  value: _holidayMinimum,
-                  unitAbbreviation: unitAbbreviation,
-                  onChanged: (value) => setState(() {
-                    _holidayMinimum = value;
-                    _holidayBelowThreshold = false;
-                  }),
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                Text(
-                  _holidayBelowThreshold
-                      ? l10n.itemHolidayMinInvalid
-                      // Names the figure it falls back to, worked out from the
-                      // minimum currently typed above — so the default is
-                      // visible without being written into the field, where
-                      // nobody would remember they had not chosen it.
-                      : l10n.itemHolidayMinHelp(
-                          Formatters.quantityWithUnit(
-                            _threshold * 2,
-                            unitAbbreviation,
-                          ),
+              // The busy-week minimum: a holiday, a festival, the run-up to
+              // a long weekend. Optional, and left alone it follows twice the
+              // ordinary minimum rather than being written down — so raising
+              // the minimum later raises this too.
+              //
+              // Nothing reads it yet. It is captured now so the figure is
+              // already there when the app starts using it.
+              SizedBox(height: fieldGap),
+              Text(
+                l10n.itemHolidayMinLabel,
+                style: Theme.of(context).textTheme.labelMedium,
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              QuantityStepper(
+                value: _holidayMinimum,
+                unitAbbreviation: unitAbbreviation,
+                onChanged: (value) => setState(() {
+                  _holidayMinimum = value;
+                  _holidayBelowThreshold = false;
+                }),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                _holidayBelowThreshold
+                    ? l10n.itemHolidayMinInvalid
+                    // Names the figure it falls back to, worked out from the
+                    // minimum currently typed above — so the default is
+                    // visible without being written into the field, where
+                    // nobody would remember they had not chosen it.
+                    : l10n.itemHolidayMinHelp(
+                        Formatters.quantityWithUnit(
+                          _threshold * 2,
+                          unitAbbreviation,
                         ),
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: _holidayBelowThreshold
-                        ? Theme.of(context).colorScheme.error
-                        : null,
-                  ),
+                      ),
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: _holidayBelowThreshold
+                      ? Theme.of(context).colorScheme.error
+                      : null,
                 ),
+              ),
             ],
           ),
           const SizedBox(height: AppSpacing.lg),
@@ -646,8 +655,7 @@ class _ItemFormState extends ConsumerState<_ItemForm> {
     // A busy week needs more than an ordinary one, so an explicit figure that
     // does not clear the ordinary minimum is not a busy-week minimum. Zero is
     // the exception and means "not set", which is the field's default state.
-    final holidayTooLow =
-        _holidayMinimum > 0 && _holidayMinimum <= _threshold;
+    final holidayTooLow = _holidayMinimum > 0 && _holidayMinimum <= _threshold;
     if (problems.minimumMissing || problems.maximumTooLow || holidayTooLow) {
       setState(() {
         _thresholdMissing = problems.minimumMissing;

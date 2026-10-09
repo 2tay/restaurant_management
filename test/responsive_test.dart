@@ -49,11 +49,7 @@ const _sizes = <String, Size>{
 /// so the first frame after `pumpApp` renders *that* page. Its exception
 /// belongs to the test that navigated there, not to this one — dropping it here
 /// is what stops a single broken screen failing every test after it.
-Future<Object?> _renderAt(
-  WidgetTester tester,
-  Size size,
-  String path,
-) async {
+Future<Object?> _renderAt(WidgetTester tester, Size size, String path) async {
   await pumpApp(tester, size: size);
   tester.takeException();
 
@@ -307,7 +303,8 @@ void main() {
       );
 
       expect(
-        tester.widget<FilterSheetButton>(find.byType(FilterSheetButton))
+        tester
+            .widget<FilterSheetButton>(find.byType(FilterSheetButton))
             .activeCount,
         0,
       );
@@ -316,7 +313,8 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-        tester.widget<FilterSheetButton>(find.byType(FilterSheetButton))
+        tester
+            .widget<FilterSheetButton>(find.byType(FilterSheetButton))
             .activeCount,
         1,
         reason: 'the search box narrows the list too, so it counts',
@@ -406,6 +404,50 @@ void main() {
         tester.getSize(find.byType(AppSidebar)).width,
         AppSizing.sidebarWidthCollapsed,
         reason: '600 is above the phone threshold but below the 1100dp one',
+      );
+    });
+  });
+
+  group('buttons are sized for the screen', () {
+    Finder button(String label) => find.ancestor(
+      of: find.text(label),
+      matching: find.byWidgetPredicate(
+        (w) => w is FilledButton || w is OutlinedButton,
+      ),
+    );
+
+    // Stacked one per line, Enregistrer and Annuler made a footer taller than
+    // a fifth of a phone screen.
+    testApp('a form puts Annuler and Enregistrer on one row on a phone', (
+      tester,
+    ) async {
+      expect(
+        await _renderAt(
+          tester,
+          const Size(360, 780),
+          Routes.toAddItem(StoreIds.sablon),
+        ),
+        isNull,
+      );
+
+      final cancel = tester.getRect(button('Annuler').first);
+      final save = tester.getRect(button('Enregistrer').first);
+      expect(cancel.center.dy, moreOrLessEquals(save.center.dy));
+      expect(cancel.right, lessThan(save.left), reason: 'Annuler on the left');
+      expect(save.width, greaterThan(cancel.width), reason: 'submit gets more');
+      expect(save.height, AppSizing.minTapTarget);
+    });
+
+    testApp('and keeps them at full height on a desktop', (tester) async {
+      await _renderAt(
+        tester,
+        const Size(1600, 900),
+        Routes.toAddItem(StoreIds.sablon),
+      );
+
+      expect(
+        tester.getSize(button('Enregistrer').first).height,
+        AppSizing.buttonHeight,
       );
     });
   });

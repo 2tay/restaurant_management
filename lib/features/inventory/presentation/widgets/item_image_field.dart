@@ -6,6 +6,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/utils/responsive.dart';
 import '../../../../data/images/product_images.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../shared/widgets/widgets.dart';
@@ -87,12 +88,14 @@ class _ItemImageFieldState extends State<ItemImageField> {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Smaller on a phone, where 96dp left the button beside it too
+        // narrow for "Choisir une photo".
         ProductImage(
           imagePath: widget.imagePath,
-          size: 96,
+          size: context.isPhone ? 72 : 96,
           icon: LucideIcons.camera,
         ),
-        const SizedBox(width: AppSpacing.lg),
+        SizedBox(width: context.isPhone ? AppSpacing.md : AppSpacing.lg),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

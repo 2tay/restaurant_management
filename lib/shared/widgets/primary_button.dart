@@ -100,7 +100,10 @@ class PrimaryButton extends StatelessWidget {
 
     final ButtonStyle? sizeStyle = large
         ? FilledButton.styleFrom(
-            minimumSize: const Size(0, AppSizing.buttonHeightLarge),
+            minimumSize: Size(
+              0,
+              AppSizing.buttonHeightLargeFor(MediaQuery.sizeOf(context).width),
+            ),
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
           )
         : null;
@@ -292,14 +295,13 @@ Widget _collapsible({
         message: label,
         child: builder(
           Icon(icon, size: AppSizing.iconMd),
-          // Square. The theme's horizontal padding is sized for a label that
-          // is no longer there, and 56dp is comfortably over the 48dp
-          // tap-target floor.
+          // Square, as tall as the labelled buttons beside it on this
+          // screen. The theme's horizontal padding is sized for a label that
+          // is no longer there.
           OutlinedButton.styleFrom(
             padding: EdgeInsets.zero,
-            fixedSize: const Size(
-              AppSizing.buttonHeight,
-              AppSizing.buttonHeight,
+            fixedSize: Size.square(
+              AppSizing.buttonHeightFor(MediaQuery.sizeOf(context).width),
             ),
           ),
         ),
@@ -328,12 +330,17 @@ class _ButtonContent extends StatelessWidget {
     // `iconOnly` reaches here only when the caller refused the collapse — the
     // teal primary, or a button with no icon to collapse to. Both fall back to
     // the short label rather than to nothing.
-    final text = density == ActionDensity.full
-        ? label
-        : (shortLabel ?? label);
+    final text = density == ActionDensity.full ? label : (shortLabel ?? label);
 
+    // One line, always: a label wrapping to two inside a 48dp button on a
+    // phone is clipped top and bottom. Shrunk a little when it truly does
+    // not fit — "Enregistrer l'ajustement" sharing a row with Annuler — and
+    // left at its size everywhere else.
     if (icon == null) {
-      return Text(text, textAlign: TextAlign.center);
+      return FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Text(text, textAlign: TextAlign.center, maxLines: 1),
+      );
     }
 
     return Row(

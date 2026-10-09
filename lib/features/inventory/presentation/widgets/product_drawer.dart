@@ -31,12 +31,13 @@ Future<void> openProductDrawer(
   required String storeId,
   required String itemId,
 }) {
-  PanelBuilder build() => (context, panel) => ItemDetailView(
-    itemId: itemId,
-    storeId: storeId,
-    panel: panel,
-    onClose: panel.close,
-  );
+  PanelBuilder build() =>
+      (context, panel) => ItemDetailView(
+        itemId: itemId,
+        storeId: storeId,
+        panel: panel,
+        onClose: panel.close,
+      );
 
   // Already in a panel — a product opened from a commande's lines — walks that
   // panel forward rather than stacking a second one.

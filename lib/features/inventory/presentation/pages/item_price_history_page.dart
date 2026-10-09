@@ -42,22 +42,12 @@ class ItemPriceHistoryPage extends ConsumerWidget {
     final data = asyncAll3(
       ref.watch(itemRowProvider(itemId)),
       ref.watch(itemPricingProvider(itemId)),
-      ref.watch(
-        priceHistoryProvider((itemId: itemId, supplierId: supplierId)),
-      ),
-      (row, pricing, entries) => (
-        row: row,
-        pricing: pricing,
-        entries: entries,
-      ),
+      ref.watch(priceHistoryProvider((itemId: itemId, supplierId: supplierId))),
+      (row, pricing, entries) => (row: row, pricing: pricing, entries: entries),
     );
 
     return AsyncContent<
-      ({
-        ItemRowView? row,
-        ItemPricing pricing,
-        List<PriceHistoryEntry> entries,
-      })
+      ({ItemRowView? row, ItemPricing pricing, List<PriceHistoryEntry> entries})
     >(
       value: data,
       skeleton: ShellPage(

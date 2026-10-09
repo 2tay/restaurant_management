@@ -55,9 +55,26 @@ abstract final class AppSizing {
   /// 40dp square hit area.
   static const double toolbarControlHeight = 40;
 
-  /// Primary actions get more than the minimum.
+  /// Primary actions get more than the minimum — on a desktop or a
+  /// landscape tablet. See [buttonHeightFor] for the smaller screens.
   static const double buttonHeight = 56;
   static const double buttonHeightLarge = 64;
+
+  /// The height of a filled or outlined button at a screen [width].
+  ///
+  /// 56dp on a wide screen, 52 on a tablet, 48 on a phone — the touch floor,
+  /// never under it. A 56dp button is right at arm's length from a kitchen
+  /// tablet, but on a phone two of them stacked in a form's footer ate a
+  /// fifth of the screen the form itself needed.
+  static double buttonHeightFor(double width) {
+    if (width < AppBreakpoints.compact) return minTapTarget;
+    if (width < AppBreakpoints.expanded) return 52;
+    return buttonHeight;
+  }
+
+  /// The large variant at a screen [width], keeping its 8dp over the regular.
+  static double buttonHeightLargeFor(double width) =>
+      buttonHeightFor(width) + 8;
 
   /// Text fields match button height so forms align on a single rhythm.
   static const double inputHeight = 56;

@@ -16,6 +16,35 @@ import 'app_typography.dart';
 /// later means a second [ColorScheme] here and nothing else, provided screens
 /// keep reading colours from the scheme rather than from [AppColors] directly.
 abstract final class AppTheme {
+  /// [base] with its filled and outlined buttons sized for a screen [width]
+  /// — see [AppSizing.buttonHeightFor]. Applied once above the whole app, so
+  /// every button, dialog and sheet follows the screen it is on without each
+  /// call site asking.
+  static ThemeData sizedFor(ThemeData base, double width) {
+    final height = AppSizing.buttonHeightFor(width);
+    if (height == AppSizing.buttonHeight) return base;
+
+    final size = ButtonStyle(
+      minimumSize: WidgetStatePropertyAll(Size(0, height)),
+      // Less side padding on a phone, where two buttons share a row.
+      padding: WidgetStatePropertyAll(
+        EdgeInsets.symmetric(
+          horizontal: width < AppBreakpoints.compact
+              ? AppSpacing.lg
+              : AppSpacing.xl,
+        ),
+      ),
+    );
+    return base.copyWith(
+      filledButtonTheme: FilledButtonThemeData(
+        style: size.merge(base.filledButtonTheme.style),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: size.merge(base.outlinedButtonTheme.style),
+      ),
+    );
+  }
+
   static ThemeData get light {
     const colorScheme = _colorScheme;
     const textTheme = AppTypography.textTheme;
@@ -35,7 +64,8 @@ abstract final class AppTheme {
       // ---------------------------------------------------------------------
       // Buttons
       //
-      // Every variant is at least AppSizing.buttonHeight tall. Widths are left
+      // Every variant is at least AppSizing.buttonHeight tall — less on a
+      // tablet or a phone, see [sizedFor]. Widths are left
       // to the caller: French labels ("Enregistrer une livraison") are long,
       // and a fixed width would clip them.
       // ---------------------------------------------------------------------

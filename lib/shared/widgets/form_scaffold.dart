@@ -101,21 +101,17 @@ class FormScaffold extends StatelessWidget {
         maxContentWidth: maxWidth,
         footer: _ActionBar(
           maxWidth: maxWidth,
-          leading: [
-            SecondaryButton(
-              label: l10n.actionCancel,
-              onPressed: () => _leave(context),
-            ),
-            ?secondaryAction,
-          ],
-          trailing: [
-            ?submitSecondary,
-            PrimaryButton(
-              label: submitLabel,
-              icon: submitIcon,
-              onPressed: onSubmit,
-            ),
-          ],
+          cancel: SecondaryButton(
+            label: l10n.actionCancel,
+            onPressed: () => _leave(context),
+          ),
+          submit: PrimaryButton(
+            label: submitLabel,
+            icon: submitIcon,
+            onPressed: onSubmit,
+          ),
+          leading: [?secondaryAction],
+          trailing: [?submitSecondary],
         ),
         child: child,
       ),
@@ -146,29 +142,36 @@ class FormScaffold extends StatelessWidget {
 /// The pinned bar along the bottom of a form.
 class _ActionBar extends StatelessWidget {
   const _ActionBar({
+    required this.cancel,
+    required this.submit,
     required this.leading,
     required this.trailing,
     required this.maxWidth,
   });
 
-  /// Dismissive actions, left to right. Cancel first.
+  final Widget cancel;
+  final Widget submit;
+
+  /// Dismissive extras, after Cancel — Delete on an edit form.
   final List<Widget> leading;
 
-  /// Constructive actions, with the most consequential last.
+  /// Constructive extras, before the submit — Save draft, a cart summary.
   final List<Widget> trailing;
 
   final double maxWidth;
 
   @override
   Widget build(BuildContext context) {
+    final phone = context.isPhone;
+
     return Container(
       decoration: const BoxDecoration(
         color: AppColors.surface,
         border: Border(top: BorderSide(color: AppColors.border)),
       ),
       padding: EdgeInsets.symmetric(
-        horizontal: context.isPhone ? AppSpacing.lg : AppSpacing.xl,
-        vertical: AppSpacing.lg,
+        horizontal: phone ? AppSpacing.lg : AppSpacing.xl,
+        vertical: phone ? AppSpacing.md : AppSpacing.lg,
       ),
       // Top-left, and deliberately: `ShellPage` aligns the form's own column
       // the same way, under the same `maxWidth` and the same page insets. The
@@ -181,38 +184,47 @@ class _ActionBar extends StatelessWidget {
           constraints: BoxConstraints(maxWidth: maxWidth),
           child: LayoutBuilder(
             builder: (context, constraints) {
-              // Phone: one action per line, full width, constructive on top.
-              // Half-width buttons side by side at 360dp leave French labels
-              // like "Enregistrer les modifications" nowhere to go, and the
-              // submit is the reason the user is on this screen.
+              // Phone: Annuler and the submit share one row — Annuler at its
+              // own width on the left, the submit taking the rest so a long
+              // French label like "Enregistrer la livraison" has room. Any
+              // extra goes full width on a line above. Stacking every button
+              // on its own line used to make the bar taller than a fifth of
+              // the screen, which is what the form needed to show its fields.
               if (constraints.maxWidth < AppBreakpoints.compact) {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    for (final (i, action) in [
-                      ...trailing.reversed,
-                      ...leading,
-                    ].indexed) ...[
-                      if (i > 0) const SizedBox(height: AppSpacing.sm),
-                      action,
+                    for (final extra in [...trailing.reversed, ...leading]) ...[
+                      extra,
+                      const SizedBox(height: AppSpacing.sm),
                     ],
+                    Row(
+                      children: [
+                        cancel,
+                        const SizedBox(width: AppSpacing.md),
+                        Expanded(child: submit),
+                      ],
+                    ),
                   ],
                 );
               }
 
+              final leadingAll = [cancel, ...leading];
+              final trailingAll = [...trailing, submit];
+
               // An edit form carries three controls — Cancel, Delete, Save —
               // and three French labels do not fit one bar on a narrow pane.
               // Stacking keeps the convention readable: the constructive
-              // action stays on top and full width, dismissive ones below.
+              // action stays on top, dismissive ones below.
               if (constraints.maxWidth < 560) {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    _wrap(trailing, WrapAlignment.end),
+                    _wrap(trailingAll, WrapAlignment.end),
                     const SizedBox(height: AppSpacing.md),
                     Align(
                       alignment: Alignment.centerLeft,
-                      child: _wrap(leading, WrapAlignment.start),
+                      child: _wrap(leadingAll, WrapAlignment.start),
                     ),
                   ],
                 );
@@ -224,9 +236,9 @@ class _ActionBar extends StatelessWidget {
               return Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Flexible(child: _wrap(leading, WrapAlignment.start)),
+                  Flexible(child: _wrap(leadingAll, WrapAlignment.start)),
                   const SizedBox(width: AppSpacing.lg),
-                  Flexible(child: _wrap(trailing, WrapAlignment.end)),
+                  Flexible(child: _wrap(trailingAll, WrapAlignment.end)),
                 ],
               );
             },

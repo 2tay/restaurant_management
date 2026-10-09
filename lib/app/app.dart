@@ -27,6 +27,16 @@ class StockInventoryApp extends StatelessWidget {
         GlobalCupertinoLocalizations.delegate,
       ],
       theme: AppTheme.light,
+      // Buttons sized for the screen they are on — shorter on a tablet and
+      // a phone. Here rather than in `theme:` because only below the app is
+      // the screen's width known.
+      builder: (context, child) => Theme(
+        data: AppTheme.sizedFor(
+          Theme.of(context),
+          MediaQuery.sizeOf(context).width,
+        ),
+        child: child!,
+      ),
     );
   }
 }

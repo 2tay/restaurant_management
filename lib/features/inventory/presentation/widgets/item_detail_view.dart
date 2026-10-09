@@ -9,6 +9,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/formatters.dart';
+import '../../../../core/utils/responsive.dart';
 import '../../../../core/utils/stock_status.dart';
 import '../../../../data/providers.dart';
 import '../../../../data/view_models/view_models.dart';
@@ -653,7 +654,6 @@ class _ActionFooter extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final item = row.item;
-    const buttonSize = Size.fromHeight(48);
     const shape = RoundedRectangleBorder(borderRadius: AppRadius.mdAll);
 
     return DecoratedBox(
@@ -661,17 +661,16 @@ class _ActionFooter extends ConsumerWidget {
         border: Border(top: BorderSide(color: AppColors.border)),
       ),
       child: Padding(
-        padding: const EdgeInsets.only(top: AppSpacing.lg),
+        padding: EdgeInsets.only(
+          top: context.isPhone ? AppSpacing.md : AppSpacing.lg,
+        ),
         child: Row(
           children: [
             Expanded(
               child: FilledButton.icon(
                 onPressed: () =>
                     context.pushScreen(Routes.toEditItem(storeId, item.id)),
-                style: FilledButton.styleFrom(
-                  minimumSize: buttonSize,
-                  shape: shape,
-                ),
+                style: FilledButton.styleFrom(shape: shape),
                 icon: const Icon(LucideIcons.pencil, size: AppSizing.iconSm),
                 label: Text(
                   l10n.actionEdit,
@@ -695,7 +694,6 @@ class _ActionFooter extends ConsumerWidget {
                   if (deleted) onClose?.call();
                 },
                 style: OutlinedButton.styleFrom(
-                  minimumSize: buttonSize,
                   shape: shape,
                   foregroundColor: AppColors.error,
                   side: const BorderSide(color: AppColors.error),
