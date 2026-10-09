@@ -3106,6 +3106,48 @@ abstract class AppLocalizations {
   /// **'Paramètres enregistrés'**
   String get storeSettingsSaved;
 
+  /// Store settings: paragraph under the general information heading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le nom, l\'adresse et le téléphone de l\'établissement, tels qu\'ils apparaissent dans l\'application.'**
+  String get storeSettingsGeneralDescription;
+
+  /// Store settings: paragraph under the operations heading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Les réglages du quotidien : unité proposée par défaut, suivi des commandes, pauses et ouverture de la journée de service.'**
+  String get storeSettingsOperationsDescription;
+
+  /// Account settings: paragraph under the profile heading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Vos coordonnées personnelles. Votre rôle est attribué par le propriétaire depuis la page Personnel.'**
+  String get accountProfileDescription;
+
+  /// Account settings: paragraph under the restaurant account heading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le compte en ligne qui relie vos établissements et vos appareils.'**
+  String get accountSectionDescription;
+
+  /// Account settings: paragraph under the devices heading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Les appareils connectés au compte du restaurant.'**
+  String get accountDevicesDescription;
+
+  /// Account settings: paragraph under the security heading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le mot de passe qui protège l\'accès à votre compte.'**
+  String get accountSecurityDescription;
+
+  /// Account settings: paragraph under the linked stores heading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Les établissements auxquels vous avez accès. Touchez-en un pour vous y rendre.'**
+  String get accountLinkedStoresDescription;
+
   /// Store settings: heading of the block grouping preferences, orders, breaks and the journée de service.
   ///
   /// In fr, this message translates to:

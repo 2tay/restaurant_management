@@ -56,6 +56,7 @@ class StoreSettingsPage extends ConsumerWidget {
           currentPath: Routes.toStoreSettings(storeId),
         ),
         tabsAboveTitle: true,
+        showTitle: false,
         title: l10n.storeSettingsTitle,
         child: const SkeletonList(rows: 3, rowHeight: 180),
       ),
@@ -68,6 +69,7 @@ class StoreSettingsPage extends ConsumerWidget {
               currentPath: Routes.toStoreSettings(storeId),
             ),
             tabsAboveTitle: true,
+            showTitle: false,
             title: l10n.storeSettingsTitle,
             child: ErrorState(
               title: l10n.shellNoStoreTitle,
@@ -184,6 +186,7 @@ class _StoreSettingsFormState extends ConsumerState<_StoreSettingsForm> {
         currentPath: Routes.toStoreSettings(storeId),
       ),
       tabsAboveTitle: true,
+      showTitle: false,
       title: l10n.storeSettingsTitle,
       // Laid straight on the page, in the search bar's white borderless look.
       child: AppTextFieldVariantScope(
@@ -197,6 +200,7 @@ class _StoreSettingsFormState extends ConsumerState<_StoreSettingsForm> {
             ],
             EditableSection(
               title: l10n.storeSettingsGeneral,
+              description: l10n.storeSettingsGeneralDescription,
               editKey: const ValueKey('store-settings-edit-general'),
               editing: general,
               saving: _saving,
@@ -246,6 +250,7 @@ class _StoreSettingsFormState extends ConsumerState<_StoreSettingsForm> {
 
             EditableSection(
               title: l10n.storeSettingsOperations,
+              description: l10n.storeSettingsOperationsDescription,
               editKey: const ValueKey('store-settings-edit-operations'),
               editing: operations,
               saving: _saving,
@@ -261,7 +266,7 @@ class _StoreSettingsFormState extends ConsumerState<_StoreSettingsForm> {
                   if (operations)
                     AppDropdown<String>(
                       label: l10n.storeSettingsPreferences,
-                      helperText: l10n.storeSettingsDefaultUnit,
+                      labelHelp: l10n.storeSettingsDefaultUnit,
                       value: _defaultUnitId,
                       options: [
                         for (final unit in widget.units)
@@ -280,15 +285,14 @@ class _StoreSettingsFormState extends ConsumerState<_StoreSettingsForm> {
                     AppTextField(
                       label: l10n.storeSettingsPreferences,
                       controller: _unitName,
-                      helperText: l10n.storeSettingsDefaultUnit,
+                      labelHelp: l10n.storeSettingsDefaultUnit,
                       prefixIcon: LucideIcons.ruler,
                       readOnly: true,
                     ),
                   AppTextField(
                     label: l10n.storeSettingsOrders,
                     controller: _staleDays,
-                    helperText: l10n.storeSettingsStaleDaysHelp,
-                    helperMaxLines: 3,
+                    labelHelp: l10n.storeSettingsStaleDaysHelp,
                     keyboardType: TextInputType.number,
                     inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     prefixIcon: LucideIcons.clock,
@@ -298,8 +302,7 @@ class _StoreSettingsFormState extends ConsumerState<_StoreSettingsForm> {
                   AppTextField(
                     label: l10n.storeSettingsHours,
                     controller: _maxBreak,
-                    helperText: l10n.storeSettingsHoursHelp,
-                    helperMaxLines: 3,
+                    labelHelp: l10n.storeSettingsHoursHelp,
                     keyboardType: TextInputType.number,
                     inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     prefixIcon: LucideIcons.coffee,
@@ -310,8 +313,7 @@ class _StoreSettingsFormState extends ConsumerState<_StoreSettingsForm> {
                     key: const ValueKey('store-settings-auto-open'),
                     label: l10n.storeSettingsBusinessDay,
                     controller: _autoOpen,
-                    helperText: l10n.storeSettingsAutoOpenHelp,
-                    helperMaxLines: 4,
+                    labelHelp: l10n.storeSettingsAutoOpenHelp,
                     prefixIcon: LucideIcons.sunrise,
                     // Always picked, never typed: the picker keeps it valid.
                     readOnly: true,

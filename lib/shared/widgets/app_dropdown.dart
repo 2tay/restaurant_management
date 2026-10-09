@@ -43,6 +43,7 @@ class AppDropdown<T> extends StatelessWidget {
     this.errorText,
     this.enabled = true,
     this.helperText,
+    this.labelHelp,
     super.key,
   });
 
@@ -63,6 +64,9 @@ class AppDropdown<T> extends StatelessWidget {
   final bool enabled;
   final String? helperText;
 
+  /// See [AppTextField.labelHelp].
+  final String? labelHelp;
+
   static const String _createSentinel = '__create_new__';
 
   @override
@@ -81,7 +85,7 @@ class AppDropdown<T> extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: theme.textTheme.labelMedium),
+        FieldLabel(label: label, help: labelHelp),
         const SizedBox(height: AppSpacing.sm),
         DropdownButtonFormField<Object?>(
           initialValue: value,

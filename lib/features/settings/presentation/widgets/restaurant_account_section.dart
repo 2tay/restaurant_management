@@ -61,7 +61,10 @@ class _RestaurantAccountSectionState
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          SettingsSectionTitle(title: l10n.accountSectionTitle),
+          SettingsSectionTitle(
+            title: l10n.accountSectionTitle,
+            description: l10n.accountSectionDescription,
+          ),
           AdaptiveRow(
             cells: [
               AdaptiveCell(
@@ -88,7 +91,10 @@ class _RestaurantAccountSectionState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        SettingsSectionTitle(title: l10n.accountSectionTitle),
+        SettingsSectionTitle(
+          title: l10n.accountSectionTitle,
+          description: l10n.accountSectionDescription,
+        ),
         FieldGrid(
           children: [
             ReadOnlyValueField(
@@ -128,7 +134,10 @@ class _RestaurantAccountSectionState
         ),
         if (access.isOwnerAccount) ...[
           const SizedBox(height: AppSpacing.xxl),
-          SettingsSectionTitle(title: l10n.accountDevices),
+          SettingsSectionTitle(
+            title: l10n.accountDevices,
+            description: l10n.accountDevicesDescription,
+          ),
           FutureBuilder<List<DeviceInfo>>(
             future: _devices,
             builder: (context, snapshot) {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
@@ -68,6 +69,7 @@ class AppTextField extends StatelessWidget {
     this.readOnly = false,
     this.onTap,
     this.helperMaxLines,
+    this.labelHelp,
     super.key,
   });
 
@@ -111,6 +113,10 @@ class AppTextField extends StatelessWidget {
   /// Lines the [helperText] may wrap to. Null keeps it on one line.
   final int? helperMaxLines;
 
+  /// An explanation behind a help icon beside the label, shown on hover (or
+  /// a tap on a touch screen) instead of as a helper line under the field.
+  final String? labelHelp;
+
   /// A money field. Accepts a comma decimal separator, because that is what a
   /// Belgian keyboard and a Belgian brain both produce.
   factory AppTextField.currency({
@@ -147,7 +153,7 @@ class AppTextField extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: theme.textTheme.labelMedium),
+        FieldLabel(label: label, help: labelHelp),
         const SizedBox(height: AppSpacing.sm),
         TextField(
           controller: controller,
@@ -203,4 +209,40 @@ class AppTextField extends StatelessWidget {
 
   static OutlineInputBorder _plainBorder(BorderSide side) =>
       OutlineInputBorder(borderRadius: AppRadius.mdAll, borderSide: side);
+}
+
+/// A field's label above it, with an optional help icon whose tooltip carries
+/// the explanation — for settings whose meaning needs a sentence but whose
+/// form should not be a wall of helper lines.
+class FieldLabel extends StatelessWidget {
+  const FieldLabel({required this.label, this.help, super.key});
+
+  final String label;
+  final String? help;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Text(label, style: Theme.of(context).textTheme.labelMedium);
+    if (help == null) return text;
+
+    return Row(
+      children: [
+        Flexible(child: text),
+        const SizedBox(width: AppSpacing.xs),
+        Tooltip(
+          message: help,
+          // A tap too, so a touch screen without hover still reaches it.
+          triggerMode: TooltipTriggerMode.tap,
+          showDuration: const Duration(seconds: 6),
+          waitDuration: const Duration(milliseconds: 150),
+          constraints: const BoxConstraints(maxWidth: 320),
+          child: const Icon(
+            LucideIcons.circleQuestionMark,
+            size: 16,
+            color: AppColors.textSecondary,
+          ),
+        ),
+      ],
+    );
+  }
 }

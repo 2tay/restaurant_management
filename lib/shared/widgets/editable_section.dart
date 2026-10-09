@@ -20,6 +20,7 @@ class EditableSection extends StatelessWidget {
   const EditableSection({
     required this.title,
     required this.child,
+    this.description,
     this.editing = false,
     this.saving = false,
     this.onEdit,
@@ -30,6 +31,10 @@ class EditableSection extends StatelessWidget {
   });
 
   final String title;
+
+  /// A short paragraph under the title saying what the block is for.
+  final String? description;
+
   final Widget child;
   final bool editing;
 
@@ -52,6 +57,7 @@ class EditableSection extends StatelessWidget {
       children: [
         SettingsSectionTitle(
           title: title,
+          description: description,
           trailing: onEdit != null && !editing
               ? IconButton(
                   key: editKey,
@@ -95,35 +101,60 @@ class EditableSection extends StatelessWidget {
 /// The title of a settings block, with an optional control right beside it
 /// (the pencil) rather than pushed to the far edge.
 class SettingsSectionTitle extends StatelessWidget {
-  const SettingsSectionTitle({required this.title, this.trailing, super.key});
+  const SettingsSectionTitle({
+    required this.title,
+    this.description,
+    this.trailing,
+    super.key,
+  });
 
   final String title;
+
+  /// A short paragraph under the title, in the secondary text colour.
+  final String? description;
+
   final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final titleRow = ConstrainedBox(
+      // The pencil's height, so a block with and one without line up.
+      constraints: const BoxConstraints(minHeight: 40),
+      child: Row(
+        children: [
+          Flexible(
+            child: Text(
+              title,
+              style: theme.textTheme.titleLarge,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          if (trailing != null) ...[
+            const SizedBox(width: AppSpacing.sm),
+            trailing!,
+          ],
+        ],
+      ),
+    );
+
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.lg),
-      child: ConstrainedBox(
-        // The pencil's height, so a block with and one without line up.
-        constraints: const BoxConstraints(minHeight: 40),
-        child: Row(
-          children: [
-            Flexible(
-              child: Text(
-                title,
-                style: Theme.of(context).textTheme.titleLarge,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
+      child: description == null
+          ? titleRow
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                titleRow,
+                Text(
+                  description!,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
             ),
-            if (trailing != null) ...[
-              const SizedBox(width: AppSpacing.sm),
-              trailing!,
-            ],
-          ],
-        ),
-      ),
     );
   }
 }

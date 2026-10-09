@@ -1860,6 +1860,34 @@ class AppLocalizationsFr extends AppLocalizations {
   String get storeSettingsSaved => 'Paramètres enregistrés';
 
   @override
+  String get storeSettingsGeneralDescription =>
+      'Le nom, l\'adresse et le téléphone de l\'établissement, tels qu\'ils apparaissent dans l\'application.';
+
+  @override
+  String get storeSettingsOperationsDescription =>
+      'Les réglages du quotidien : unité proposée par défaut, suivi des commandes, pauses et ouverture de la journée de service.';
+
+  @override
+  String get accountProfileDescription =>
+      'Vos coordonnées personnelles. Votre rôle est attribué par le propriétaire depuis la page Personnel.';
+
+  @override
+  String get accountSectionDescription =>
+      'Le compte en ligne qui relie vos établissements et vos appareils.';
+
+  @override
+  String get accountDevicesDescription =>
+      'Les appareils connectés au compte du restaurant.';
+
+  @override
+  String get accountSecurityDescription =>
+      'Le mot de passe qui protège l\'accès à votre compte.';
+
+  @override
+  String get accountLinkedStoresDescription =>
+      'Les établissements auxquels vous avez accès. Touchez-en un pour vous y rendre.';
+
+  @override
   String get storeSettingsOperations => 'Fonctionnement';
 
   @override

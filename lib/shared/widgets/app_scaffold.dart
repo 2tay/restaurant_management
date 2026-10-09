@@ -412,6 +412,7 @@ class ShellPage extends StatelessWidget {
     this.tabs,
     this.sideTabsOnWide = false,
     this.tabsAboveTitle = false,
+    this.showTitle = true,
     this.footer,
     this.maxContentWidth,
     super.key,
@@ -471,6 +472,10 @@ class ShellPage extends StatelessWidget {
   /// is the open tab's (Paramètres): the bar is the way between them, and
   /// the title names where it led.
   final bool tabsAboveTitle;
+
+  /// Draws no title row — for the settings tabs, where the selected tab
+  /// already names the page. [title] is still what « Retour à … » says.
+  final bool showTitle;
 
   /// Page width from which [sideTabsOnWide] takes effect: the 240dp column,
   /// its gap, and enough left for a 720dp form.
@@ -544,7 +549,7 @@ class ShellPage extends StatelessWidget {
         children: [
           if (showTabs && tabs != null && tabsAboveTitle) ...[
             tabs!,
-            const SizedBox(height: AppSpacing.lg),
+            if (showTitle) const SizedBox(height: AppSpacing.lg),
           ],
           // Indented past the back arrow, so the trail lines up with the title
           // text it leads to rather than with the arrow.
@@ -557,18 +562,19 @@ class ShellPage extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.xs),
           ],
-          _TitleRow(
-            title: title,
-            subtitle: subtitle,
-            keepSubtitle: keepSubtitle,
-            actions: actions,
-            trailing: titleTrailing,
-            below: titleBelow,
-            theme: theme,
-            leading: back == null
-                ? null
-                : BackControl(destination: back!, onBack: onBack),
-          ),
+          if (showTitle)
+            _TitleRow(
+              title: title,
+              subtitle: subtitle,
+              keepSubtitle: keepSubtitle,
+              actions: actions,
+              trailing: titleTrailing,
+              below: titleBelow,
+              theme: theme,
+              leading: back == null
+                  ? null
+                  : BackControl(destination: back!, onBack: onBack),
+            ),
           if (showTabs && tabs != null && !tabsAboveTitle) ...[
             const SizedBox(height: AppSpacing.lg),
             tabs!,

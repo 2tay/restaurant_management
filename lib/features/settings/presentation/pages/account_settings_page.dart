@@ -38,6 +38,7 @@ class AccountSettingsPage extends ConsumerWidget {
         currentPath: Routes.toAccountSettings(storeId),
       ),
       tabsAboveTitle: true,
+      showTitle: false,
       title: l10n.accountSettingsTitle,
       child: AsyncContent<List<Store>>(
         value: stores,
@@ -77,7 +78,10 @@ class AccountSettingsPage extends ConsumerWidget {
           const RestaurantAccountSection(),
           const SizedBox(height: AppSpacing.xxl),
 
-          SettingsSectionTitle(title: l10n.accountSecurity),
+          SettingsSectionTitle(
+            title: l10n.accountSecurity,
+            description: l10n.accountSecurityDescription,
+          ),
           FieldGrid(
             children: [
               ReadOnlyValueField(
@@ -99,6 +103,7 @@ class AccountSettingsPage extends ConsumerWidget {
 
           SettingsSectionTitle(
             title: '${l10n.accountLinkedStores} (${stores.length})',
+            description: l10n.accountLinkedStoresDescription,
           ),
           // One card per establishment, as on the notification settings.
           ResponsiveCardGrid(
@@ -166,6 +171,7 @@ class _ProfileSectionState extends ConsumerState<_ProfileSection> {
 
     return EditableSection(
       title: l10n.accountProfile,
+      description: l10n.accountProfileDescription,
       editKey: const ValueKey('account-edit-profile'),
       editing: _editing,
       saving: _saving,
