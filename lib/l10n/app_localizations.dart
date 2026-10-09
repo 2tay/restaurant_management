@@ -2473,13 +2473,13 @@ abstract class AppLocalizations {
   /// Empty state when nothing is below threshold.
   ///
   /// In fr, this message translates to:
-  /// **'Tout est en ordre'**
+  /// **'Aucune alerte de stock'**
   String get alertsEmpty;
 
   /// Supporting line for the no-alerts state.
   ///
   /// In fr, this message translates to:
-  /// **'Aucun produit ne nécessite de réapprovisionnement.'**
+  /// **'Tous les produits suivis atteignent leur stock minimum.'**
   String get alertsEmptyBody;
 
   /// Severity tab and section heading for articles at zero.
@@ -2653,7 +2653,7 @@ abstract class AppLocalizations {
   /// Severity tab: every alert.
   ///
   /// In fr, this message translates to:
-  /// **'Tous'**
+  /// **'Toutes les alertes'**
   String get alertsTabAll;
 
   /// Search box on the alerts screen.
@@ -2703,6 +2703,60 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Voir le produit'**
   String get alertsOpenProduct;
+
+  /// Alerts table column: the quantity a commande would top the product up by (the existing top-up rule).
+  ///
+  /// In fr, this message translates to:
+  /// **'À commander'**
+  String get alertsColumnToOrder;
+
+  /// Alerts table column: the product's default supplier.
+  ///
+  /// In fr, this message translates to:
+  /// **'Fournisseur'**
+  String get alertsColumnSupplier;
+
+  /// Alerts table column: the stock status badge.
+  ///
+  /// In fr, this message translates to:
+  /// **'Priorité'**
+  String get alertsColumnPriority;
+
+  /// Short priority badge on an alert: nothing left.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rupture'**
+  String get alertsPriorityOut;
+
+  /// Short priority badge on an alert: under the minimum.
+  ///
+  /// In fr, this message translates to:
+  /// **'Stock bas'**
+  String get alertsPriorityLow;
+
+  /// Short priority badge on an alert: fine on an ordinary day (seen on the busy-days list).
+  ///
+  /// In fr, this message translates to:
+  /// **'Stock OK'**
+  String get alertsPriorityOk;
+
+  /// Alerts summary card: products under their busy-day minimum.
+  ///
+  /// In fr, this message translates to:
+  /// **'Jours chargés'**
+  String get alertsSummaryBusy;
+
+  /// Alerts summary card caption when no busy period is near.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucune période à venir'**
+  String get alertsSummaryBusyNone;
+
+  /// Button on an alert with no supplier: opens the screen that links one.
+  ///
+  /// In fr, this message translates to:
+  /// **'Associer'**
+  String get alertsLinkSupplierShort;
 
   /// Notification centre heading.
   ///
@@ -2817,6 +2871,48 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Changez le filtre pour voir les autres notifications.'**
   String get notificationsNoneOfKindBody;
+
+  /// Sort option: newest notifications first.
+  ///
+  /// In fr, this message translates to:
+  /// **'Plus récentes'**
+  String get notificationsSortNewest;
+
+  /// Sort option: oldest notifications first.
+  ///
+  /// In fr, this message translates to:
+  /// **'Plus anciennes'**
+  String get notificationsSortOldest;
+
+  /// Tooltip on the notification sort menu.
+  ///
+  /// In fr, this message translates to:
+  /// **'Trier'**
+  String get notificationsSortTooltip;
+
+  /// Opens what a notification is about.
+  ///
+  /// In fr, this message translates to:
+  /// **'Voir le détail'**
+  String get notificationsOpen;
+
+  /// Tooltip on the button leading to the notification settings.
+  ///
+  /// In fr, this message translates to:
+  /// **'Préférences de notification'**
+  String get notificationsPreferences;
+
+  /// Tooltip hiding the notifications of one day.
+  ///
+  /// In fr, this message translates to:
+  /// **'Replier ce jour'**
+  String get notificationsCollapseDay;
+
+  /// Tooltip showing the notifications of one day again.
+  ///
+  /// In fr, this message translates to:
+  /// **'Déplier ce jour'**
+  String get notificationsExpandDay;
 
   /// Reports dashboard heading.
   ///
@@ -4579,7 +4675,7 @@ abstract class AppLocalizations {
   /// Action on the low stock alerts screen that starts drafts grouped by supplier.
   ///
   /// In fr, this message translates to:
-  /// **'Créer les commandes'**
+  /// **'Créer une commande'**
   String get alertsCreateOrders;
 
   /// Supplier detail tab showing contact details and prices.

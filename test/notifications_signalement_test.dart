@@ -15,10 +15,13 @@ import 'support/app_harness.dart';
 
 const _title = 'Double pointage : Noah';
 
-Future<AppDatabase> _openAsManager(WidgetTester tester) async {
+Future<AppDatabase> _openAsManager(
+  WidgetTester tester, {
+  Size size = const Size(1400, 900),
+}) async {
   final db = await pumpApp(
     tester,
-    size: const Size(1400, 900),
+    size: size,
     asEmployeeId: EmployeeIds.amelie,
   );
   await AccountRepository(db).signal(
@@ -41,13 +44,34 @@ void main() {
 
     expect(find.text(_title), findsOneWidget);
 
-    await tester.tap(find.text('Type'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Personnel (1)').last);
+    await tester.tap(
+      find.byKey(const ValueKey('notifications-filter-personnel')),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text(_title), findsOneWidget);
   });
+
+  testApp(
+    'on a phone the filters and the card fit, and the menu marks it read',
+    (tester) async {
+      await _openAsManager(tester, size: const Size(390, 844));
+
+      expect(find.text(_title), findsOneWidget);
+      await tester.tap(
+        find.byKey(const ValueKey('notifications-filter-personnel')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text(_title), findsOneWidget);
+
+      await tester.tap(find.byTooltip("Plus d'actions").first);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Marquer comme lue'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Notification marquée comme lue.'), findsOneWidget);
+    },
+  );
 
   testApp('tapping it opens the employee history, read for the manager only', (
     tester,
@@ -57,7 +81,10 @@ void main() {
     await tester.tap(find.text(_title));
     await tester.pumpAndSettle();
 
-    expect(appRouter.state.uri.path, Routes.toAttendanceHistory(StoreIds.sablon));
+    expect(
+      appRouter.state.uri.path,
+      Routes.toAttendanceHistory(StoreIds.sablon),
+    );
     expect(appRouter.state.uri.queryParameters['employee'], EmployeeIds.noah);
 
     final account = AccountRepository(db);

@@ -45,6 +45,11 @@ class NotificationsPage extends ConsumerStatefulWidget {
 class _NotificationsPageState extends ConsumerState<NotificationsPage> {
   bool _unreadOnly = false;
   NotificationFilter _kind = NotificationFilter.all;
+  bool _newestFirst = true;
+
+  /// Days folded away by their header's chevron. Kept by date rather than by
+  /// position, so a new notification arriving does not fold a different day.
+  final Set<DateTime> _collapsed = {};
 
   @override
   Widget build(BuildContext context) {
@@ -57,10 +62,14 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
     final all = asyncAll.value ?? const <NotificationItem>[];
     final unreadCount = all.where((n) => !n.isRead).length;
 
-    final shown = all
+    // The feed arrives newest first; the other order is the same list read
+    // backwards.
+    final filtered = all
         .where((n) => !_unreadOnly || !n.isRead)
-        .where((n) => _matches(_kind, n.kind))
-        .toList();
+        .where((n) => _matches(_kind, n.kind));
+    final shown = _newestFirst
+        ? filtered.toList()
+        : filtered.toList().reversed.toList();
 
     return ShellPage(
       tabs: SectionTabs(
@@ -88,18 +97,26 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
             icon: LucideIcons.checkCheck,
             onPressed: _markAllRead,
           ),
+        _IconAction(
+          icon: LucideIcons.slidersHorizontal,
+          tooltip: l10n.notificationsPreferences,
+          onPressed: () =>
+              context.goSection(Routes.toNotificationSettings(widget.storeId)),
+        ),
       ],
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _Filters(
+          _FilterBar(
             all: all,
             kind: _kind,
             unreadOnly: _unreadOnly,
+            newestFirst: _newestFirst,
             onKind: (value) => setState(() => _kind = value),
             onUnreadOnly: (value) => setState(() => _unreadOnly = value),
+            onNewestFirst: (value) => setState(() => _newestFirst = value),
           ),
-          const SizedBox(height: AppSpacing.lg),
+          SizedBox(height: context.isPhone ? AppSpacing.md : AppSpacing.lg),
           // Part of the page: the whole page scrolls, title included.
           Builder(
             builder: (context) => AsyncContent<List<NotificationItem>>(
@@ -146,13 +163,14 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
 
     // Grouped by the day they happened. The feed is in date order already, so
     // one pass over it is enough — no sorting, and no map to lose the order.
-    final groups = <({String label, List<NotificationItem> items})>[];
+    final groups =
+        <({DateTime day, String label, List<NotificationItem> items})>[];
     DateTime? currentDay;
     for (final notification in shown) {
       final day = DateUtils.dateOnly(notification.createdAt);
       if (currentDay == null || day != currentDay) {
         currentDay = day;
-        groups.add((label: _dayLabel(l10n, day), items: []));
+        groups.add((day: day, label: _dayLabel(l10n, day), items: []));
       }
       groups.last.items.add(notification);
     }
@@ -161,27 +179,40 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         for (final (index, group) in groups.indexed) ...[
-          if (index > 0) const SizedBox(height: AppSpacing.xl),
-          SectionHeader(title: group.label, count: group.items.length),
-          const SizedBox(height: AppSpacing.sm),
-          ListView.separated(
-            shrinkWrap: true,
-            primary: false,
-            physics: const NeverScrollableScrollPhysics(),
-            padding: EdgeInsets.zero,
-            itemCount: group.items.length,
-            separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
-            itemBuilder: (context, i) {
-              final notification = group.items[i];
-              return _NotificationCard(
-                notification: notification,
-                onTap: () => _open(notification),
-                onMarkRead: notification.isRead
-                    ? null
-                    : () => _markOneRead(notification),
-              );
-            },
+          if (index > 0) const SizedBox(height: AppSpacing.lg),
+          _DayHeader(
+            label: group.label,
+            // The date written out only where the label is relative: under
+            // « 6 octobre 2026 » it would say the same thing twice.
+            date: group.label == Formatters.dateLong(group.day)
+                ? null
+                : Formatters.dateLong(group.day),
+            count: group.items.length,
+            collapsed: _collapsed.contains(group.day),
+            onToggle: () => setState(() {
+              if (!_collapsed.remove(group.day)) _collapsed.add(group.day);
+            }),
           ),
+          const SizedBox(height: AppSpacing.sm),
+          if (!_collapsed.contains(group.day))
+            ListView.separated(
+              shrinkWrap: true,
+              primary: false,
+              physics: const NeverScrollableScrollPhysics(),
+              padding: EdgeInsets.zero,
+              itemCount: group.items.length,
+              separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
+              itemBuilder: (context, i) {
+                final notification = group.items[i];
+                return _NotificationCard(
+                  notification: notification,
+                  onTap: () => _open(notification),
+                  onMarkRead: notification.isRead
+                      ? null
+                      : () => _markOneRead(notification),
+                );
+              },
+            ),
         ],
       ],
     );
@@ -287,27 +318,73 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
 }
 
 // -----------------------------------------------------------------------------
+// Header action.
+// -----------------------------------------------------------------------------
+
+/// A square outlined icon button the height of the buttons beside it.
+class _IconAction extends StatelessWidget {
+  const _IconAction({
+    required this.icon,
+    required this.tooltip,
+    required this.onPressed,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final side = context.isPhone ? 40.0 : AppSizing.minTapTarget;
+    return Tooltip(
+      message: tooltip,
+      child: SizedBox.square(
+        dimension: side,
+        child: OutlinedButton(
+          onPressed: onPressed,
+          style: OutlinedButton.styleFrom(
+            padding: EdgeInsets.zero,
+            minimumSize: Size.square(side),
+            foregroundColor: AppColors.textPrimary,
+            side: const BorderSide(color: AppColors.border),
+            shape: const RoundedRectangleBorder(borderRadius: AppRadius.mdAll),
+          ),
+          child: Icon(icon, size: AppSizing.iconSm),
+        ),
+      ),
+    );
+  }
+}
+
+// -----------------------------------------------------------------------------
 // Filters.
 // -----------------------------------------------------------------------------
 
-/// The kind menu and the unread toggle, each carrying its own count.
+/// One bar: the kinds as tabs on the left, the unread toggle and the order on
+/// the right — a single row on a wide screen, two lines below a tablet.
 ///
-/// Counts on the controls rather than only in the list: "Prix (3)" tells you
+/// Counts sit on the tabs rather than only in the list: « Prix 3 » tells you
 /// whether the filter is worth applying before you apply it and find nothing.
-class _Filters extends StatelessWidget {
-  const _Filters({
+/// A kind with nothing in it is left out, unless it is the one selected — six
+/// tabs where two are ever used is a lot of bar on a phone.
+class _FilterBar extends StatelessWidget {
+  const _FilterBar({
     required this.all,
     required this.kind,
     required this.unreadOnly,
+    required this.newestFirst,
     required this.onKind,
     required this.onUnreadOnly,
+    required this.onNewestFirst,
   });
 
   final List<NotificationItem> all;
   final NotificationFilter kind;
   final bool unreadOnly;
+  final bool newestFirst;
   final ValueChanged<NotificationFilter> onKind;
   final ValueChanged<bool> onUnreadOnly;
+  final ValueChanged<bool> onNewestFirst;
 
   @override
   Widget build(BuildContext context) {
@@ -318,63 +395,397 @@ class _Filters extends StatelessWidget {
         .where((n) => _NotificationsPageState._matches(filter, n.kind))
         .length;
 
-    String labelled(String label, NotificationFilter filter) {
-      final n = count(filter);
-      return n == 0 ? label : '$label ($n)';
-    }
-
-    final entries = {
-      NotificationFilter.all: labelled(
-        l10n.notificationsFilterAll,
-        NotificationFilter.all,
-      ),
-      NotificationFilter.stock: labelled(
-        l10n.notificationsKindStock,
+    final tabs = <(NotificationFilter, IconData, String)>[
+      (NotificationFilter.all, LucideIcons.inbox, l10n.notificationsFilterAll),
+      (
         NotificationFilter.stock,
+        LucideIcons.package,
+        l10n.notificationsKindStock,
       ),
-      NotificationFilter.price: labelled(
-        l10n.notificationsKindPrice,
+      (
         NotificationFilter.price,
+        LucideIcons.trendingUp,
+        l10n.notificationsKindPrice,
       ),
-      NotificationFilter.adjustment: labelled(
-        l10n.notificationsKindAdjustment,
+      (
         NotificationFilter.adjustment,
+        LucideIcons.clipboardCheck,
+        l10n.notificationsKindAdjustment,
       ),
-      NotificationFilter.delivery: labelled(
-        l10n.notificationsKindDelivery,
+      (
         NotificationFilter.delivery,
+        LucideIcons.truck,
+        l10n.notificationsKindDelivery,
       ),
-      NotificationFilter.personnel: labelled(
-        l10n.notificationsKindPersonnel,
+      (
         NotificationFilter.personnel,
+        LucideIcons.usersRound,
+        l10n.notificationsKindPersonnel,
       ),
-    };
+    ];
 
-    return Wrap(
-      spacing: AppSpacing.sm,
-      runSpacing: AppSpacing.sm,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      children: [
-        FilterMenu<NotificationFilter>(
-          label: l10n.notificationsFilterKind,
-          // The default names nothing: a pill reading "Type : Toutes" says only
-          // that no choice has been made.
-          selectedLabel: kind == NotificationFilter.all ? null : entries[kind],
-          entries: entries,
-          onSelected: onKind,
+    final kindTabs = SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          for (final (filter, icon, label) in tabs)
+            if (filter == NotificationFilter.all ||
+                filter == kind ||
+                count(filter) > 0)
+              Padding(
+                padding: const EdgeInsets.only(right: AppSpacing.xs),
+                child: _FilterTab(
+                  key: ValueKey('notifications-filter-${filter.name}'),
+                  icon: icon,
+                  label: label,
+                  count: count(filter),
+                  selected: filter == kind,
+                  onTap: () => onKind(filter),
+                ),
+              ),
+        ],
+      ),
+    );
+
+    final unreadToggle = _FilterTab(
+      key: const ValueKey('notifications-filter-unread'),
+      icon: LucideIcons.mail,
+      label: l10n.notificationsFilterUnread,
+      count: unread,
+      selected: unreadOnly,
+      outlined: true,
+      onTap: () => onUnreadOnly(!unreadOnly),
+    );
+
+    final sort = _SortMenu(newestFirst: newestFirst, onChanged: onNewestFirst);
+
+    return Container(
+      padding: EdgeInsets.all(context.isPhone ? AppSpacing.xs : AppSpacing.sm),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: AppRadius.lgAll,
+        border: Border.all(color: AppColors.hairline),
+      ),
+      child: context.isSmallScreen || context.isLargeText
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                kindTabs,
+                const SizedBox(height: AppSpacing.xs),
+                Row(
+                  children: [
+                    Flexible(child: unreadToggle),
+                    const Spacer(),
+                    const SizedBox(width: AppSpacing.sm),
+                    sort,
+                  ],
+                ),
+              ],
+            )
+          : Row(
+              children: [
+                Expanded(child: kindTabs),
+                const SizedBox(width: AppSpacing.sm),
+                unreadToggle,
+                const SizedBox(width: AppSpacing.sm),
+                sort,
+              ],
+            ),
+    );
+  }
+}
+
+/// A tab of the filter bar: icon, name and a count badge, filled when on.
+class _FilterTab extends StatelessWidget {
+  const _FilterTab({
+    required this.icon,
+    required this.label,
+    required this.count,
+    required this.selected,
+    required this.onTap,
+    this.outlined = false,
+    super.key,
+  });
+
+  final IconData icon;
+  final String label;
+  final int count;
+  final bool selected;
+  final VoidCallback onTap;
+
+  /// A toggle rather than one of the kinds: drawn with an outline at rest so
+  /// it does not read as another tab of the same row.
+  final bool outlined;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final foreground = selected ? AppColors.white : AppColors.textPrimary;
+    final background = selected
+        ? AppColors.primary700
+        : (outlined ? AppColors.surface : AppColors.surfaceVariant);
+
+    return Semantics(
+      selected: selected,
+      button: true,
+      child: Material(
+        color: background,
+        shape: RoundedRectangleBorder(
+          borderRadius: AppRadius.mdAll,
+          side: outlined && !selected
+              ? const BorderSide(color: AppColors.border)
+              : BorderSide.none,
         ),
-        FilterMenu<bool>(
-          label: l10n.notificationsFilterUnread,
-          selectedLabel: unreadOnly ? l10n.notificationsFilterUnread : null,
-          entries: {
-            false: l10n.notificationsFilterAll,
-            true: unread == 0
-                ? l10n.notificationsFilterUnread
-                : '${l10n.notificationsFilterUnread} ($unread)',
-          },
-          onSelected: onUnreadOnly,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: AppRadius.mdAll,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(
+              minHeight: AppSizing.toolbarControlHeight,
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(icon, size: 16, color: foreground),
+                  const SizedBox(width: AppSpacing.sm),
+                  Flexible(
+                    child: Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        color: foreground,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  if (count > 0) ...[
+                    const SizedBox(width: AppSpacing.sm),
+                    _CountBadge(
+                      count: count,
+                      background: selected
+                          ? AppColors.primary500
+                          : AppColors.neutral100,
+                      foreground: selected
+                          ? AppColors.white
+                          : AppColors.textSecondary,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A small pill with a number in it.
+class _CountBadge extends StatelessWidget {
+  const _CountBadge({
+    required this.count,
+    this.background = AppColors.neutral100,
+    this.foreground = AppColors.textSecondary,
+  });
+
+  final int count;
+  final Color background;
+  final Color foreground;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: const BoxConstraints(minWidth: 22),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: AppRadius.pillAll,
+      ),
+      child: Text(
+        '$count',
+        textAlign: TextAlign.center,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+          color: foreground,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}
+
+/// « Plus récentes » / « Plus anciennes ».
+class _SortMenu extends StatelessWidget {
+  const _SortMenu({required this.newestFirst, required this.onChanged});
+
+  final bool newestFirst;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final label = newestFirst
+        ? l10n.notificationsSortNewest
+        : l10n.notificationsSortOldest;
+    final compact = context.isPhone;
+
+    PopupMenuItem<bool> item(bool value, IconData icon, String text) =>
+        PopupMenuItem(
+          value: value,
+          child: Row(
+            children: [
+              Icon(
+                icon,
+                size: AppSizing.iconSm,
+                color: AppColors.textSecondary,
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(child: Text(text)),
+              if (value == newestFirst)
+                const Icon(
+                  LucideIcons.check,
+                  size: AppSizing.iconSm,
+                  color: AppColors.primary600,
+                ),
+            ],
+          ),
+        );
+
+    return PopupMenuButton<bool>(
+      tooltip: l10n.notificationsSortTooltip,
+      color: AppColors.surface,
+      surfaceTintColor: Colors.transparent,
+      position: PopupMenuPosition.under,
+      shape: const RoundedRectangleBorder(borderRadius: AppRadius.mdAll),
+      onSelected: onChanged,
+      itemBuilder: (context) => [
+        item(
+          true,
+          LucideIcons.arrowDownWideNarrow,
+          l10n.notificationsSortNewest,
+        ),
+        item(
+          false,
+          LucideIcons.arrowUpNarrowWide,
+          l10n.notificationsSortOldest,
         ),
       ],
+      child: Container(
+        height: AppSizing.toolbarControlHeight,
+        padding: EdgeInsets.symmetric(
+          horizontal: compact ? AppSpacing.sm : AppSpacing.md,
+        ),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: AppRadius.mdAll,
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              compact ? LucideIcons.arrowDownUp : LucideIcons.clock,
+              size: 16,
+              color: AppColors.textSecondary,
+            ),
+            // On a phone the icon alone: the menu says the rest, and the room
+            // goes to the unread toggle beside it.
+            if (!compact) ...[
+              const SizedBox(width: AppSpacing.sm),
+              Text(
+                label,
+                style: theme.textTheme.labelLarge?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+            const SizedBox(width: AppSpacing.xs),
+            const Icon(
+              LucideIcons.chevronDown,
+              size: 16,
+              color: AppColors.textSecondary,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Day heading.
+// -----------------------------------------------------------------------------
+
+/// The day, its count, the date in full when the day is a relative one, and a
+/// chevron — the whole line folds the day away.
+class _DayHeader extends StatelessWidget {
+  const _DayHeader({
+    required this.label,
+    required this.date,
+    required this.count,
+    required this.collapsed,
+    required this.onToggle,
+  });
+
+  final String label;
+
+  /// The date in full, when [label] is a relative one.
+  final String? date;
+  final int count;
+  final bool collapsed;
+  final VoidCallback onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+
+    return Tooltip(
+      message: collapsed
+          ? l10n.notificationsExpandDay
+          : l10n.notificationsCollapseDay,
+      child: InkWell(
+        onTap: onToggle,
+        borderRadius: AppRadius.smAll,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+          child: Row(
+            children: [
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              _CountBadge(count: count),
+              const Spacer(),
+              if (date != null)
+                Text(
+                  date!,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+                child: Icon(
+                  collapsed ? LucideIcons.chevronDown : LucideIcons.chevronUp,
+                  size: AppSizing.iconSm,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -382,6 +793,8 @@ class _Filters extends StatelessWidget {
 // -----------------------------------------------------------------------------
 // One entry.
 // -----------------------------------------------------------------------------
+
+enum _CardAction { open, markRead }
 
 class _NotificationCard extends StatelessWidget {
   const _NotificationCard({
@@ -400,79 +813,116 @@ class _NotificationCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    final phone = context.isPhone;
     final isRead = notification.isRead;
     final (icon, colors, kindLabel) = _appearance(l10n, notification.kind);
 
-    final card = AppCard(
-      onTap: onTap,
-      // The unread marker is the accent edge itself rather than a 10dp dot:
-      // the same information, readable from further away, and it leaves the
-      // right-hand end of the row free for the action.
-      accentColor: isRead ? null : colors.solid,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: colors.container,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, size: AppSizing.iconMd, color: colors.foreground),
+    // The busy-days reminder is the one entry that asks for something ahead
+    // of time, so it stands out: tinted, outlined, with its action in words.
+    final featured = notification.kind == NotificationKind.busyDays;
+
+    final texts = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          notification.title,
+          style: theme.textTheme.titleSmall?.copyWith(
+            fontWeight: isRead ? FontWeight.w500 : FontWeight.w700,
           ),
-          const SizedBox(width: AppSpacing.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        ),
+        const SizedBox(height: 2),
+        Text(
+          notification.body,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: AppColors.textSecondary,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        // The kind in words beside the time, so the medallion's colour is
+        // never the only thing saying what this is.
+        Wrap(
+          spacing: AppSpacing.md,
+          runSpacing: AppSpacing.xs,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            LabelChip(
+              label: kindLabel,
+              background: colors.container,
+              foreground: colors.foreground,
+              dense: true,
+            ),
+            Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  notification.title,
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: isRead ? FontWeight.w500 : FontWeight.w700,
-                  ),
+                const Icon(
+                  LucideIcons.clock,
+                  size: 14,
+                  color: AppColors.textSecondary,
                 ),
-                const SizedBox(height: 2),
-                Text(notification.body, style: theme.textTheme.bodyMedium),
-                const SizedBox(height: AppSpacing.sm),
-                // The kind in words beside the time, so the medallion's colour
-                // is never the only thing saying what this is.
-                Wrap(
-                  spacing: AppSpacing.sm,
-                  runSpacing: AppSpacing.xs,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    LabelChip(
-                      label: kindLabel,
-                      background: colors.container,
-                      foreground: colors.foreground,
-                      dense: true,
+                const SizedBox(width: AppSpacing.xs),
+                Flexible(
+                  child: Text(
+                    _when(notification.createdAt),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: AppColors.textSecondary,
                     ),
-                    Text(
-                      Formatters.relative(notification.createdAt),
-                      style: theme.textTheme.bodySmall,
-                    ),
-                  ],
+                  ),
                 ),
               ],
             ),
+          ],
+        ),
+      ],
+    );
+
+    final card = AppCard(
+      onTap: onTap,
+      padding: EdgeInsets.all(phone ? AppSpacing.md : AppSpacing.lg),
+      // The unread marker is the accent edge itself rather than a dot: the
+      // same information, readable from further away.
+      accentColor: isRead ? null : colors.solid,
+      borderColor: featured ? colors.solid.withValues(alpha: 0.4) : null,
+      child: Row(
+        children: [
+          _Leading(
+            notification: notification,
+            icon: icon,
+            colors: colors,
+            size: phone ? 44 : 52,
           ),
-          // On a phone the row is already tight; there the swipe is the way to
-          // clear one, and this button would cost the message a word a line.
-          if (onMarkRead != null && !context.isPhone) ...[
-            const SizedBox(width: AppSpacing.sm),
-            IconButton(
-              onPressed: onMarkRead,
-              tooltip: l10n.notificationsMarkRead,
-              icon: const Icon(LucideIcons.check, size: AppSizing.iconSm),
+          SizedBox(width: phone ? AppSpacing.md : AppSpacing.lg),
+          Expanded(child: texts),
+          const SizedBox(width: AppSpacing.xs),
+          if (featured && !phone) ...[
+            _OpenPill(label: l10n.notificationsOpen, onTap: onTap),
+            const SizedBox(width: AppSpacing.xs),
+          ],
+          _CardMenu(onOpen: onTap, onMarkRead: onMarkRead),
+          // The whole card opens; on a phone the chevron would only cost the
+          // message width.
+          if (!phone)
+            const Icon(
+              LucideIcons.chevronRight,
+              size: AppSizing.iconSm,
               color: AppColors.textSecondary,
             ),
-          ],
         ],
       ),
     );
 
-    if (onMarkRead == null) return card;
+    final framed = featured
+        ? DecoratedBox(
+            decoration: BoxDecoration(
+              color: colors.container.withValues(alpha: 0.4),
+              borderRadius: AppRadius.mdAll,
+            ),
+            child: card,
+          )
+        : card;
+
+    if (onMarkRead == null) return framed;
 
     // Swipe to clear, in the direction reading goes. `confirmDismiss` returning
     // false is deliberate: the row stays, because marking it read is what
@@ -503,15 +953,23 @@ class _NotificationCard extends StatelessWidget {
             const SizedBox(width: AppSpacing.sm),
             Text(
               l10n.notificationsMarkRead,
-              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+              style: theme.textTheme.labelLarge?.copyWith(
                 color: AppColors.onPrimaryContainer,
               ),
             ),
           ],
         ),
       ),
-      child: card,
+      child: framed,
     );
+  }
+
+  /// The day is the heading's; the card says the time. Today also says how
+  /// long ago, which is what matters within the day.
+  static String _when(DateTime createdAt) {
+    final time = Formatters.time(createdAt);
+    final today = DateUtils.isSameDay(createdAt, clock.now());
+    return today ? '${Formatters.relative(createdAt)} · $time' : time;
   }
 
   /// Icon, colour and name per kind.
@@ -520,7 +978,7 @@ class _NotificationCard extends StatelessWidget {
   /// altogether — a price change and a low stock warning looked identical.
   /// Price and adjustment now take the neutral informational tint: neither is
   /// a stock level, and neither is bad news on its own.
-  (IconData, StockStatusColors, String) _appearance(
+  static (IconData, StockStatusColors, String) _appearance(
     AppLocalizations l10n,
     NotificationKind kind,
   ) => switch (kind) {
@@ -560,4 +1018,155 @@ class _NotificationCard extends StatelessWidget {
       l10n.notificationsKindPersonnel,
     ),
   };
+}
+
+/// The product's photo with the kind as a small badge on its corner, or — for
+/// anything without a photo — the kind's icon in a tinted disc.
+class _Leading extends ConsumerWidget {
+  const _Leading({
+    required this.notification,
+    required this.icon,
+    required this.colors,
+    required this.size,
+  });
+
+  final NotificationItem notification;
+  final IconData icon;
+  final StockStatusColors colors;
+  final double size;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final itemId = notification.relatedItemId;
+    final imagePath = itemId == null
+        ? null
+        : ref.watch(itemProvider(itemId)).value?.imagePath;
+
+    if (imagePath == null) {
+      return Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          color: colors.container,
+          shape: BoxShape.circle,
+        ),
+        child: Icon(icon, size: size * 0.45, color: colors.foreground),
+      );
+    }
+
+    final badge = size * 0.42;
+    return SizedBox.square(
+      dimension: size,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          ProductImage(imagePath: imagePath, size: size, radius: size / 2),
+          Positioned(
+            left: -badge * 0.25,
+            top: -badge * 0.25,
+            child: Container(
+              width: badge,
+              height: badge,
+              decoration: BoxDecoration(
+                color: colors.solid,
+                shape: BoxShape.circle,
+                border: Border.all(color: AppColors.surface, width: 2),
+              ),
+              child: Icon(icon, size: badge * 0.55, color: AppColors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// « Voir le détail », the featured card's action in words.
+class _OpenPill extends StatelessWidget {
+  const _OpenPill({required this.label, required this.onTap});
+
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppColors.primaryContainer,
+      borderRadius: AppRadius.pillAll,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: AppRadius.pillAll,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.lg,
+            vertical: AppSpacing.sm,
+          ),
+          child: Text(
+            label,
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+              color: AppColors.onPrimaryContainer,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The three dots: open it, or mark it read without going anywhere.
+///
+/// Before the menu the only way to mark something read without opening it was
+/// a button kept off phones, where the swipe alone — invisible — did it.
+class _CardMenu extends StatelessWidget {
+  const _CardMenu({required this.onOpen, required this.onMarkRead});
+
+  final VoidCallback onOpen;
+  final VoidCallback? onMarkRead;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
+    PopupMenuItem<_CardAction> item(
+      _CardAction value,
+      IconData icon,
+      String label,
+    ) => PopupMenuItem(
+      value: value,
+      child: Row(
+        children: [
+          Icon(icon, size: AppSizing.iconSm, color: AppColors.textSecondary),
+          const SizedBox(width: AppSpacing.md),
+          Flexible(child: Text(label)),
+        ],
+      ),
+    );
+
+    return PopupMenuButton<_CardAction>(
+      tooltip: l10n.itemMoreActions,
+      icon: const Icon(LucideIcons.ellipsisVertical, size: AppSizing.iconSm),
+      color: AppColors.surface,
+      surfaceTintColor: Colors.transparent,
+      position: PopupMenuPosition.under,
+      shape: const RoundedRectangleBorder(borderRadius: AppRadius.mdAll),
+      onSelected: (action) => switch (action) {
+        _CardAction.open => onOpen(),
+        _CardAction.markRead => onMarkRead?.call(),
+      },
+      itemBuilder: (context) => [
+        item(
+          _CardAction.open,
+          LucideIcons.arrowUpRight,
+          l10n.notificationsOpen,
+        ),
+        if (onMarkRead != null)
+          item(
+            _CardAction.markRead,
+            LucideIcons.check,
+            l10n.notificationsMarkRead,
+          ),
+      ],
+    );
+  }
 }

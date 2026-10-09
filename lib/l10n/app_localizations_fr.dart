@@ -1500,11 +1500,11 @@ class AppLocalizationsFr extends AppLocalizations {
       'Produits à réapprovisionner, les plus urgents en premier.';
 
   @override
-  String get alertsEmpty => 'Tout est en ordre';
+  String get alertsEmpty => 'Aucune alerte de stock';
 
   @override
   String get alertsEmptyBody =>
-      'Aucun produit ne nécessite de réapprovisionnement.';
+      'Tous les produits suivis atteignent leur stock minimum.';
 
   @override
   String get alertsSeverityOutOfStock => 'Ruptures';
@@ -1611,7 +1611,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get alertsNothingToReport => 'Rien à signaler';
 
   @override
-  String get alertsTabAll => 'Tous';
+  String get alertsTabAll => 'Toutes les alertes';
 
   @override
   String get alertsSearchHint => 'Rechercher un produit…';
@@ -1636,6 +1636,33 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get alertsOpenProduct => 'Voir le produit';
+
+  @override
+  String get alertsColumnToOrder => 'À commander';
+
+  @override
+  String get alertsColumnSupplier => 'Fournisseur';
+
+  @override
+  String get alertsColumnPriority => 'Priorité';
+
+  @override
+  String get alertsPriorityOut => 'Rupture';
+
+  @override
+  String get alertsPriorityLow => 'Stock bas';
+
+  @override
+  String get alertsPriorityOk => 'Stock OK';
+
+  @override
+  String get alertsSummaryBusy => 'Jours chargés';
+
+  @override
+  String get alertsSummaryBusyNone => 'Aucune période à venir';
+
+  @override
+  String get alertsLinkSupplierShort => 'Associer';
 
   @override
   String get notificationsTitle => 'Notifications';
@@ -1704,6 +1731,27 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get notificationsNoneOfKindBody =>
       'Changez le filtre pour voir les autres notifications.';
+
+  @override
+  String get notificationsSortNewest => 'Plus récentes';
+
+  @override
+  String get notificationsSortOldest => 'Plus anciennes';
+
+  @override
+  String get notificationsSortTooltip => 'Trier';
+
+  @override
+  String get notificationsOpen => 'Voir le détail';
+
+  @override
+  String get notificationsPreferences => 'Préférences de notification';
+
+  @override
+  String get notificationsCollapseDay => 'Replier ce jour';
+
+  @override
+  String get notificationsExpandDay => 'Déplier ce jour';
 
   @override
   String get reportsTitle => 'Rapports';
@@ -2779,7 +2827,7 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get alertsCreateOrders => 'Créer les commandes';
+  String get alertsCreateOrders => 'Créer une commande';
 
   @override
   String get supplierTabDetails => 'Fiche';
