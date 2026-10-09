@@ -126,13 +126,7 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
         // here: the page around this already shows the error and the way back.
         if (row == null) return const SizedBox.shrink();
 
-        return _body(
-          context,
-          row,
-          data.pricing,
-          data.movements,
-          data.onOrder,
-        );
+        return _body(context, row, data.pricing, data.movements, data.onOrder);
       },
     );
   }
@@ -153,6 +147,31 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
       _ => _overviewTab(row, onOrderData),
     };
 
+    final tabs = _DetailTabs(
+      current: _tab,
+      onSelected: (tab) => setState(() => _tab = tab),
+      tabs: [
+        (id: _tabOverview, label: l10n.itemTabOverview, count: null),
+        (
+          id: _tabSuppliers,
+          label: l10n.itemTabSuppliers,
+          count: prices.isEmpty ? null : prices.length,
+        ),
+        (id: _tabHistory, label: l10n.itemTabHistory, count: null),
+      ],
+    );
+
+    // In the panel the stock card belongs to the Détail tab — the tabs sit
+    // right under the product's name, as in a phone's own app sheets. On the
+    // page it stays above them, carrying the photo the page header lacks.
+    final stockCard = _StockCard(
+      row: row,
+      onOrder: onOrderData.quantity,
+      showPhoto: !widget.showTitle,
+      // The page header already carries the badge.
+      showStatus: widget.showTitle,
+    );
+
     final content = ListView(
       padding: EdgeInsets.zero,
       shrinkWrap: !widget.scrollsItself,
@@ -161,42 +180,15 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
           ? null
           : const NeverScrollableScrollPhysics(),
       children: [
-        // The photo rides here on the *page*, whose own header carries the
-        // name but no picture. In the panel it is up in the bar that stays
-        // put, so it is not drawn twice. The status badge is the other way
-        // round: the page header has one, the panel's bar does not.
-        _StockCard(
-          row: row,
-          onOrder: onOrderData.quantity,
-          showPhoto: !widget.showTitle,
-          showStatus: widget.showTitle,
-        ),
-        const SizedBox(height: AppSpacing.lg),
-        _DetailTabs(
-          current: _tab,
-          onSelected: (tab) => setState(() => _tab = tab),
-          tabs: [
-            (
-              id: _tabOverview,
-              label: l10n.itemTabOverview,
-              icon: LucideIcons.layoutGrid,
-              count: null,
-            ),
-            (
-              id: _tabSuppliers,
-              label: l10n.itemTabSuppliers,
-              icon: LucideIcons.truck,
-              count: prices.isEmpty ? null : prices.length,
-            ),
-            (
-              id: _tabHistory,
-              label: l10n.itemTabHistory,
-              icon: LucideIcons.history,
-              count: null,
-            ),
-          ],
-        ),
-        const SizedBox(height: AppSpacing.lg),
+        if (!widget.showTitle) ...[
+          stockCard,
+          const SizedBox(height: AppSpacing.lg),
+          tabs,
+        ] else if (_tab == _tabOverview) ...[
+          stockCard,
+          const SizedBox(height: AppSpacing.md),
+        ],
+        if (!widget.showTitle) const SizedBox(height: AppSpacing.lg),
         ...tabBody,
         const SizedBox(height: AppSpacing.xxl),
       ],
@@ -206,19 +198,17 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
     // content — so there is nothing to pin and the caller owns the scrolling.
     if (!widget.showTitle) return content;
 
-    // Which product you are reading, and the way out, must not scroll away
-    // from you halfway down a long tab.
+    // Which product you are reading, the tabs, and what acts on it must not
+    // scroll away from you halfway down a long tab.
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _IdentityBar(
-          row: row,
-          storeId: _storeId,
-          onClose: widget.onClose,
-          panel: widget.panel,
-        ),
+        _IdentityBar(row: row, onClose: widget.onClose, panel: widget.panel),
         const SizedBox(height: AppSpacing.md),
+        tabs,
+        const SizedBox(height: AppSpacing.lg),
         Expanded(child: content),
+        _ActionFooter(row: row, storeId: _storeId, onClose: widget.onClose),
       ],
     );
   }
@@ -428,14 +418,13 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
   }
 }
 
-typedef _TabSpec = ({String id, String label, IconData icon, int? count});
+typedef _TabSpec = ({String id, String label, int? count});
 
-/// Aperçu / Fournisseurs / Historique as one segmented control.
+/// Détail / Fournisseurs / Historique as an underlined tab bar.
 ///
-/// Not [SectionTabs]: in a 560dp panel its full-width bar folds every tab to
-/// a bare icon, and three icons are a guessing game. Here the labels always
-/// stay — beside the icon where a third of the width allows it, under it in
-/// a panel or a phone sheet.
+/// Each tab takes a third of the width and keeps its word — three icons
+/// alone are a guessing game. The selected one is in the brand green with a
+/// bar under it, sitting on a hairline that runs the full width.
 class _DetailTabs extends StatelessWidget {
   const _DetailTabs({
     required this.tabs,
@@ -449,32 +438,22 @@ class _DetailTabs extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final stacked = constraints.maxWidth / tabs.length < 190;
-        return Container(
-          padding: const EdgeInsets.all(AppSpacing.xs),
-          decoration: const BoxDecoration(
-            color: AppColors.surfaceVariant,
-            borderRadius: AppRadius.mdAll,
-          ),
-          child: Row(
-            children: [
-              for (final (index, tab) in tabs.indexed) ...[
-                if (index > 0) const SizedBox(width: AppSpacing.xs),
-                Expanded(
-                  child: _DetailTab(
-                    tab: tab,
-                    selected: tab.id == current,
-                    stacked: stacked,
-                    onTap: () => onSelected(tab.id),
-                  ),
-                ),
-              ],
-            ],
-          ),
-        );
-      },
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: AppColors.border)),
+      ),
+      child: Row(
+        children: [
+          for (final tab in tabs)
+            Expanded(
+              child: _DetailTab(
+                tab: tab,
+                selected: tab.id == current,
+                onTap: () => onSelected(tab.id),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }
@@ -483,107 +462,88 @@ class _DetailTab extends StatelessWidget {
   const _DetailTab({
     required this.tab,
     required this.selected,
-    required this.stacked,
     required this.onTap,
   });
 
   final _TabSpec tab;
   final bool selected;
-  final bool stacked;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final color = selected ? AppColors.primary700 : AppColors.textSecondary;
-    final label = Text(
-      tab.label,
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-      style: (stacked ? theme.textTheme.labelMedium : theme.textTheme.labelLarge)
-          ?.copyWith(
-            color: selected ? AppColors.textPrimary : AppColors.textSecondary,
-            fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
-          ),
-    );
-    final count = tab.count == null
-        ? null
-        : Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-            decoration: BoxDecoration(
-              color: selected ? AppColors.primaryContainer : AppColors.surface,
-              borderRadius: AppRadius.pillAll,
-            ),
-            child: Text(
-              '${tab.count}',
-              style: theme.textTheme.labelSmall?.copyWith(color: color),
-            ),
-          );
-
-    final content = stacked
-        ? Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(tab.icon, size: AppSizing.iconSm, color: color),
-                  if (count != null) ...[
-                    const SizedBox(width: AppSpacing.xs),
-                    count,
-                  ],
-                ],
-              ),
-              const SizedBox(height: AppSpacing.xxs),
-              label,
-            ],
-          )
-        : Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(tab.icon, size: AppSizing.iconSm, color: color),
-              const SizedBox(width: AppSpacing.sm),
-              Flexible(child: label),
-              if (count != null) ...[
-                const SizedBox(width: AppSpacing.xs),
-                count,
-              ],
-            ],
-          );
 
     return Semantics(
       selected: selected,
       button: true,
-      child: AnimatedContainer(
-        duration: AppMotion.duration(context, AppMotion.fast),
-        decoration: BoxDecoration(
-          color: selected ? AppColors.surface : AppColors.surfaceVariant,
-          borderRadius: AppRadius.smAll,
-          boxShadow: [
-            if (selected)
-              BoxShadow(
-                color: AppColors.neutral950.withValues(alpha: 0.10),
-                blurRadius: 3,
-                offset: const Offset(0, 1),
+      child: InkWell(
+        onTap: selected ? null : onTap,
+        child: SizedBox(
+          height: AppSizing.minTapTarget,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Flexible(
+                      child: Text(
+                        tab.label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          color: selected
+                              ? AppColors.primary700
+                              : AppColors.textSecondary,
+                          fontWeight: selected
+                              ? FontWeight.w600
+                              : FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                    if (tab.count != null) ...[
+                      const SizedBox(width: AppSpacing.xs),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 1,
+                        ),
+                        decoration: BoxDecoration(
+                          color: selected
+                              ? AppColors.primaryContainer
+                              : AppColors.surfaceVariant,
+                          borderRadius: AppRadius.pillAll,
+                        ),
+                        child: Text(
+                          '${tab.count}',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: color,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
               ),
-          ],
-        ),
-        child: Material(
-          type: MaterialType.transparency,
-          child: InkWell(
-            onTap: selected ? null : onTap,
-            borderRadius: AppRadius.smAll,
-            child: Container(
-              constraints: const BoxConstraints(
-                minHeight: AppSizing.minTapTarget,
+              Positioned(
+                left: AppSpacing.sm,
+                right: AppSpacing.sm,
+                bottom: 0,
+                child: AnimatedContainer(
+                  duration: AppMotion.duration(context, AppMotion.fast),
+                  height: 2.5,
+                  decoration: BoxDecoration(
+                    color: selected ? AppColors.primary600 : Colors.transparent,
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(2),
+                    ),
+                  ),
+                ),
               ),
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.sm,
-                vertical: AppSpacing.xs + 2,
-              ),
-              alignment: Alignment.center,
-              child: content,
-            ),
+            ],
           ),
         ),
       ),
@@ -593,29 +553,26 @@ class _DetailTab extends StatelessWidget {
 
 /// Who this is and the way out, pinned above the panel's scrolling body.
 ///
-/// Photo, name, category, and what acts on the product: edit and close as
-/// icons, delete behind the "⋯" — it is rare, it is destructive, and an icon
-/// a thumb's width from "Modifier" is how the wrong one gets pressed.
-class _IdentityBar extends ConsumerWidget {
-  const _IdentityBar({
-    required this.row,
-    required this.storeId,
-    this.onClose,
-    this.panel,
-  });
+/// Photo, name and category, read at a glance. Editing and deleting moved to
+/// the footer; what stays here is the way out — a back arrow once the panel
+/// has walked forward, and a close button on a tablet. A phone's bottom sheet
+/// has its handle for that, and a cross beside it would be a second way to do
+/// the same thing.
+class _IdentityBar extends StatelessWidget {
+  const _IdentityBar({required this.row, this.onClose, this.panel});
 
   final ItemRowView row;
-  final String storeId;
   final VoidCallback? onClose;
   final PanelController? panel;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final item = row.item;
 
     final canGoBack = panel?.canGoBack ?? false;
+    final isSheet = MediaQuery.sizeOf(context).width < AppBreakpoints.compact;
 
     return Row(
       children: [
@@ -630,7 +587,7 @@ class _IdentityBar extends ConsumerWidget {
           ),
           const SizedBox(width: AppSpacing.xs),
         ],
-        ProductImage(imagePath: item.imagePath, size: 44, radius: 10),
+        ProductImage(imagePath: item.imagePath, size: 56, radius: 12),
         const SizedBox(width: AppSpacing.md),
         Expanded(
           child: Column(
@@ -639,50 +596,37 @@ class _IdentityBar extends ConsumerWidget {
             children: [
               Text(
                 item.name,
-                style: theme.textTheme.titleMedium,
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
-              Text(
-                row.categoryName,
-                style: theme.textTheme.bodySmall,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+              const SizedBox(height: AppSpacing.xxs),
+              Row(
+                children: [
+                  const Icon(
+                    LucideIcons.leaf,
+                    size: 14,
+                    color: AppColors.primary600,
+                  ),
+                  const SizedBox(width: AppSpacing.xs),
+                  Flexible(
+                    child: Text(
+                      row.categoryName,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
         ),
-        IconButton(
-          onPressed: () =>
-              context.pushScreen(Routes.toEditItem(storeId, item.id)),
-          tooltip: l10n.actionEdit,
-          icon: const Icon(LucideIcons.pencil, size: AppSizing.iconMd),
-        ),
-        PopupMenuButton<void>(
-          tooltip: l10n.itemMoreActions,
-          icon: const Icon(LucideIcons.ellipsisVertical, size: AppSizing.iconMd),
-          itemBuilder: (_) => [
-            PopupMenuItem<void>(
-              onTap: () async {
-                final deleted = await confirmDeleteItem(
-                  context,
-                  ref,
-                  storeId,
-                  item,
-                );
-                // The panel was showing a product that is gone. Closing it is
-                // the only honest thing left to do.
-                if (deleted) onClose?.call();
-              },
-              child: _MenuLabel(
-                icon: LucideIcons.trash2,
-                label: l10n.actionDelete,
-                color: AppColors.error,
-              ),
-            ),
-          ],
-        ),
-        if (onClose != null)
+        if (onClose != null && !isSheet)
           IconButton(
             onPressed: onClose,
             tooltip: l10n.actionClose,
@@ -693,21 +637,80 @@ class _IdentityBar extends ConsumerWidget {
   }
 }
 
-class _MenuLabel extends StatelessWidget {
-  const _MenuLabel({required this.icon, required this.label, this.color});
+/// Modifier and Supprimer, side by side and pinned under the scrolling body.
+///
+/// Two halves of the width, the edit filled in green and the delete only
+/// outlined in red — far enough apart, and different enough, that one is not
+/// pressed for the other. Supprimer still asks before it deletes.
+class _ActionFooter extends ConsumerWidget {
+  const _ActionFooter({required this.row, required this.storeId, this.onClose});
 
-  final IconData icon;
-  final String label;
-  final Color? color;
+  final ItemRowView row;
+  final String storeId;
+  final VoidCallback? onClose;
 
   @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Icon(icon, size: AppSizing.iconSm, color: color),
-        const SizedBox(width: AppSpacing.md),
-        Text(label, style: TextStyle(color: color)),
-      ],
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final item = row.item;
+    const buttonSize = Size.fromHeight(48);
+    const shape = RoundedRectangleBorder(borderRadius: AppRadius.mdAll);
+
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        border: Border(top: BorderSide(color: AppColors.border)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.only(top: AppSpacing.lg),
+        child: Row(
+          children: [
+            Expanded(
+              child: FilledButton.icon(
+                onPressed: () =>
+                    context.pushScreen(Routes.toEditItem(storeId, item.id)),
+                style: FilledButton.styleFrom(
+                  minimumSize: buttonSize,
+                  shape: shape,
+                ),
+                icon: const Icon(LucideIcons.pencil, size: AppSizing.iconSm),
+                label: Text(
+                  l10n.actionEdit,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () async {
+                  final deleted = await confirmDeleteItem(
+                    context,
+                    ref,
+                    storeId,
+                    item,
+                  );
+                  // The panel was showing a product that is gone. Closing it
+                  // is the only honest thing left to do.
+                  if (deleted) onClose?.call();
+                },
+                style: OutlinedButton.styleFrom(
+                  minimumSize: buttonSize,
+                  shape: shape,
+                  foregroundColor: AppColors.error,
+                  side: const BorderSide(color: AppColors.error),
+                ),
+                icon: const Icon(LucideIcons.trash2, size: AppSizing.iconSm),
+                label: Text(
+                  l10n.actionDelete,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -950,13 +953,9 @@ class _FactGrid extends StatelessWidget {
     final unit = row.unitAbbreviation;
 
     final tiles = <Widget>[
+      _FactTile(icon: LucideIcons.box, label: l10n.itemUnitLabel, value: unit),
       _FactTile(
-        icon: LucideIcons.ruler,
-        label: l10n.itemUnitLabel,
-        value: unit,
-      ),
-      _FactTile(
-        icon: LucideIcons.calculator,
+        icon: LucideIcons.coins,
         label: l10n.itemAverageCost,
         value: item.averageCost == null
             ? l10n.itemAverageCostUnknown
@@ -978,11 +977,20 @@ class _FactGrid extends StatelessWidget {
         const gap = AppSpacing.sm;
         final columns = constraints.maxWidth >= 520 ? 4 : 2;
         final width = (constraints.maxWidth - gap * (columns - 1)) / columns;
+        // A tile left alone on the last row of two takes the whole row
+        // rather than leaving a hole beside it.
+        final lastAlone = columns == 2 && tiles.length.isOdd;
         return Wrap(
           spacing: gap,
           runSpacing: gap,
           children: [
-            for (final tile in tiles) SizedBox(width: width, child: tile),
+            for (final (index, tile) in tiles.indexed)
+              SizedBox(
+                width: lastAlone && index == tiles.length - 1
+                    ? constraints.maxWidth
+                    : width,
+                child: tile,
+              ),
           ],
         );
       },
@@ -1019,32 +1027,47 @@ class _FactTile extends StatelessWidget {
         borderRadius: AppRadius.mdAll,
         child: Padding(
           padding: const EdgeInsets.all(AppSpacing.md),
-          child: Column(
+          child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Icon(icon, size: 14, color: AppColors.textSecondary),
-                  const SizedBox(width: AppSpacing.xs),
-                  Expanded(
-                    child: Text(
-                      label,
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
+              Icon(
+                icon,
+                size: AppSizing.iconMd,
+                color: AppColors.textSecondary,
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            label,
+                            style: theme.textTheme.labelMedium?.copyWith(
+                              color: AppColors.textSecondary,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        ?trailing,
+                      ],
+                    ),
+                    const SizedBox(height: AppSpacing.xs),
+                    Text(
+                      value,
+                      style:
+                          valueStyle ??
+                          theme.textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                  ),
-                  ?trailing,
-                ],
-              ),
-              const SizedBox(height: AppSpacing.xs),
-              Text(
-                value,
-                style: valueStyle ?? theme.textTheme.titleSmall,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+                  ],
+                ),
               ),
             ],
           ),

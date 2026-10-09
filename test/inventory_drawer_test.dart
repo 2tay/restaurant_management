@@ -77,8 +77,8 @@ void main() {
     expect(find.byType(ItemDetailView), findsNothing);
   });
 
-  // Modifier, Supprimer and Fermer are icons on the bar that stays put, so
-  // they are always reachable however far down a long product you have read.
+  // Modifier and Supprimer are buttons on the footer that stays put, so they
+  // are always reachable however far down a long product you have read.
   testApp('"Modifier" closes the drawer and opens the form in view', (
     tester,
   ) async {
@@ -88,7 +88,7 @@ void main() {
     await tester.tap(
       find.descendant(
         of: find.byType(ItemDetailView),
-        matching: find.byTooltip('Modifier'),
+        matching: find.text('Modifier'),
       ),
     );
     await tester.pumpAndSettle();
@@ -111,7 +111,7 @@ void main() {
     expect(drawer.width, greaterThan(_phone.width - 80));
   });
 
-  // The stock card stays above three tabs instead of six stacked sections.
+  // Three tabs under the product's name instead of six stacked sections.
   for (final (name, size) in [('tablet', _tablet), ('phone', _phone)]) {
     testApp('the tabs switch the body without overflowing ($name)', (
       tester,
@@ -122,7 +122,7 @@ void main() {
       final view = find.byType(ItemDetailView);
       Finder inView(Finder f) => find.descendant(of: view, matching: f);
 
-      // Aperçu first: the facts, no supplier rows.
+      // Détail first: the facts, no supplier rows.
       expect(inView(find.text('Unité')), findsOneWidget);
       expect(inView(find.byType(SupplierPriceRow)), findsNothing);
 

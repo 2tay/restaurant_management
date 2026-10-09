@@ -2557,7 +2557,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get itemStockRangeLabel => 'Stock min/max';
 
   @override
-  String get itemTabOverview => 'Aperçu';
+  String get itemTabOverview => 'Détail';
 
   @override
   String get itemTabSuppliers => 'Fournisseurs';

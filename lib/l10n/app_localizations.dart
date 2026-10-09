@@ -4237,7 +4237,7 @@ abstract class AppLocalizations {
   /// Product detail tab: the stock, open commandes and reference facts.
   ///
   /// In fr, this message translates to:
-  /// **'Aperçu'**
+  /// **'Détail'**
   String get itemTabOverview;
 
   /// Product detail tab: the suppliers offering this product and their prices.

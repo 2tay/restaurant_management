@@ -1583,7 +1583,7 @@
   "@stockGaugeOverMaximum": {"description": "Tooltip on the mark at the end of a full stock gauge, when the quantity on hand exceeds the declared maximum. A full bar cannot tell \"exactly at the maximum\" from \"far past it\"."},
   "itemStockRangeLabel": "Stock min/max",
   "@itemStockRangeLabel": {"description": "Label for the product's declared stock range on the details card. Same wording as the products table column."},
-  "itemTabOverview": "Aperçu",
+  "itemTabOverview": "Détail",
   "@itemTabOverview": {"description": "Product detail tab: the stock, open commandes and reference facts."},
   "itemTabSuppliers": "Fournisseurs",
   "@itemTabSuppliers": {"description": "Product detail tab: the suppliers offering this product and their prices."},
