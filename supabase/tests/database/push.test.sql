@@ -6,7 +6,7 @@
 
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(25);
+select plan(29);
 
 insert into auth.users (id, email) values
   ('bbbbbbbb-0000-0000-0000-000000000001', 'owner@example.be'),
@@ -69,6 +69,7 @@ select is(
       'max_break_minutes', 30, 'notify_low_stock', 1,
       'notify_price_change', 1, 'notify_large_adjustment', 1,
       'notify_deliveries', 0, 'notify_busy_days', 1,
+      'notify_clock_in', 1, 'notify_clock_out', 1,
       'busy_weekdays', '5,6,7', 'busy_reminder_days', 1,
       'business_day_auto_open_minutes', 300)))) -> 0 ->> 'status',
   'accepted', 'the store reaches the server');
@@ -140,6 +141,21 @@ insert into public.push_queue (notification_id, store_id, kind, title, body)
 set local role service_role;
 select is(public.claim_pushes() -> 0 ->> 'body',
   'Brasserie A — Il ne reste plus de lait.', 'a single push keeps its words');
+
+-- An arrivée and a départ: each its own push, at once.
+reset role;
+set local role authenticated;
+set local request.jwt.claims to
+  '{"sub": "bbbbbbbb-0000-0000-0000-000000000001", "role": "authenticated"}';
+select is(tests.file(8, tests.note('n-in', 'clockIn',
+  'Arrivée : Noah Van Damme')), 'accepted', 'an arrivée arrives');
+select is(tests.file(9, tests.note('n-leave', 'clockOut',
+  'Départ : Noah Van Damme')), 'accepted', 'a départ arrives');
+reset role;
+set local role service_role;
+select is(tests.pending(), 2::bigint, 'both are queued');
+select is(jsonb_array_length(public.claim_pushes()), 2,
+  'each goes as its own push, without waiting');
 
 -- A token Firebase says is gone.
 select public.forget_push_token('token-phone-2');

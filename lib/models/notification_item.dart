@@ -25,6 +25,13 @@ enum NotificationKind {
   /// their busy-day minimum.
   busyDays,
 
+  /// An employee pointed in (Pointer). Off unless the owner switches it on.
+  clockIn,
+
+  /// An employee ended their shift (Fin de journée). Off unless the owner
+  /// switches it on.
+  clockOut,
+
   /// A signalement about the staff (SYNC_PERSONNEL_PLAN.md): something sync
   /// settled that a manager and the owner should check — a double pointage,
   /// a double payment. Always filed, no preference switches it off, and read

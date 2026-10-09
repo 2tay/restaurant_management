@@ -6,6 +6,7 @@ import '../../core/utils/dates.dart';
 import '../../models/attendance.dart';
 import '../database/app_database.dart';
 import '../mappers/mappers.dart';
+import '../notifications/notification_engine.dart';
 import 'attendance_assembler.dart';
 import 'business_day_repository.dart';
 import 'new_id.dart';
@@ -225,6 +226,7 @@ class AttendanceRepository {
           maxBreakMinutes: settings.maxBreakMinutes,
         );
         await _db.into(_db.attendances).insert(attendanceToRow(entry));
+        final sessionId = newId();
         await _db
             .into(_db.attendanceSessions)
             .insert(
@@ -233,9 +235,15 @@ class AttendanceRepository {
                 storeId: storeId,
                 attendanceId: attendanceId,
                 position: 0,
-                id: newId(),
+                id: sessionId,
               ),
             );
+        await NotificationEngine(_db).employeeClockedIn(
+          storeId: storeId,
+          employeeId: employeeId,
+          sessionId: sessionId,
+          at: at,
+        );
         return attendance(attendanceId);
       }
 
@@ -243,6 +251,7 @@ class AttendanceRepository {
       if (existing.status != AttendanceStatus.done) return null;
 
       final count = await _sessionCount(existing.id);
+      final sessionId = newId();
       await _db
           .into(_db.attendanceSessions)
           .insert(
@@ -251,9 +260,15 @@ class AttendanceRepository {
               storeId: existing.storeId,
               attendanceId: existing.id,
               position: count,
-              id: newId(),
+              id: sessionId,
             ),
           );
+      await NotificationEngine(_db).employeeClockedIn(
+        storeId: existing.storeId,
+        employeeId: employeeId,
+        sessionId: sessionId,
+        at: at,
+      );
       await (_db.update(_db.attendances)..where((a) => a.id.equals(existing.id)))
           .write(const AttendancesCompanion(status: Value(AttendanceStatus.working)));
       return attendance(existing.id);
@@ -329,7 +344,14 @@ class AttendanceRepository {
       if (row.status != AttendanceStatus.working) return null;
       final open = await _openSessions(attendanceId);
       if (open.isEmpty) return null;
-      await _closeSessions(open, now ?? _clock());
+      final at = now ?? _clock();
+      await _closeSessions(open, at);
+      await NotificationEngine(_db).employeeClockedOut(
+        storeId: row.storeId,
+        employeeId: row.employeeId,
+        sessionIds: [for (final s in open) s.id],
+        at: at,
+      );
       return AttendanceStatus.done;
     });
   }

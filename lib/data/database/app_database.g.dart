@@ -236,6 +236,36 @@ class $StoresTable extends Stores with TableInfo<$StoresTable, StoreRow> {
     ),
     defaultValue: const Constant(true),
   );
+  static const VerificationMeta _notifyClockInMeta = const VerificationMeta(
+    'notifyClockIn',
+  );
+  @override
+  late final GeneratedColumn<bool> notifyClockIn = GeneratedColumn<bool>(
+    'notify_clock_in',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("notify_clock_in" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _notifyClockOutMeta = const VerificationMeta(
+    'notifyClockOut',
+  );
+  @override
+  late final GeneratedColumn<bool> notifyClockOut = GeneratedColumn<bool>(
+    'notify_clock_out',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("notify_clock_out" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   static const VerificationMeta _busyWeekdaysMeta = const VerificationMeta(
     'busyWeekdays',
   );
@@ -281,6 +311,8 @@ class $StoresTable extends Stores with TableInfo<$StoresTable, StoreRow> {
     notifyLargeAdjustment,
     notifyDeliveries,
     notifyBusyDays,
+    notifyClockIn,
+    notifyClockOut,
     busyWeekdays,
     busyReminderDays,
   ];
@@ -448,6 +480,24 @@ class $StoresTable extends Stores with TableInfo<$StoresTable, StoreRow> {
         ),
       );
     }
+    if (data.containsKey('notify_clock_in')) {
+      context.handle(
+        _notifyClockInMeta,
+        notifyClockIn.isAcceptableOrUnknown(
+          data['notify_clock_in']!,
+          _notifyClockInMeta,
+        ),
+      );
+    }
+    if (data.containsKey('notify_clock_out')) {
+      context.handle(
+        _notifyClockOutMeta,
+        notifyClockOut.isAcceptableOrUnknown(
+          data['notify_clock_out']!,
+          _notifyClockOutMeta,
+        ),
+      );
+    }
     if (data.containsKey('busy_weekdays')) {
       context.handle(
         _busyWeekdaysMeta,
@@ -551,6 +601,14 @@ class $StoresTable extends Stores with TableInfo<$StoresTable, StoreRow> {
         DriftSqlType.bool,
         data['${effectivePrefix}notify_busy_days'],
       )!,
+      notifyClockIn: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}notify_clock_in'],
+      )!,
+      notifyClockOut: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}notify_clock_out'],
+      )!,
       busyWeekdays: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}busy_weekdays'],
@@ -611,6 +669,12 @@ class StoreRow extends DataClass implements Insertable<StoreRow> {
   /// The "jours chargés" reminder: on unless switched off, like the stock ones.
   final bool notifyBusyDays;
 
+  /// An employee's Pointer (arrivée) and Fin de journée (départ). Off by
+  /// default: one per pointage is a lot of noise, and only the owner may
+  /// switch them on.
+  final bool notifyClockIn;
+  final bool notifyClockOut;
+
   /// The weekdays that are busy every week, as ISO numbers joined by commas
   /// (`DateTime.monday` = 1 … `DateTime.sunday` = 7). Friday, Saturday and
   /// Sunday by default — `BusyCalendarRules.defaultWeekdays`.
@@ -643,6 +707,8 @@ class StoreRow extends DataClass implements Insertable<StoreRow> {
     required this.notifyLargeAdjustment,
     required this.notifyDeliveries,
     required this.notifyBusyDays,
+    required this.notifyClockIn,
+    required this.notifyClockOut,
     required this.busyWeekdays,
     required this.busyReminderDays,
   });
@@ -676,6 +742,8 @@ class StoreRow extends DataClass implements Insertable<StoreRow> {
     map['notify_large_adjustment'] = Variable<bool>(notifyLargeAdjustment);
     map['notify_deliveries'] = Variable<bool>(notifyDeliveries);
     map['notify_busy_days'] = Variable<bool>(notifyBusyDays);
+    map['notify_clock_in'] = Variable<bool>(notifyClockIn);
+    map['notify_clock_out'] = Variable<bool>(notifyClockOut);
     map['busy_weekdays'] = Variable<String>(busyWeekdays);
     map['busy_reminder_days'] = Variable<int>(busyReminderDays);
     return map;
@@ -708,6 +776,8 @@ class StoreRow extends DataClass implements Insertable<StoreRow> {
       notifyLargeAdjustment: Value(notifyLargeAdjustment),
       notifyDeliveries: Value(notifyDeliveries),
       notifyBusyDays: Value(notifyBusyDays),
+      notifyClockIn: Value(notifyClockIn),
+      notifyClockOut: Value(notifyClockOut),
       busyWeekdays: Value(busyWeekdays),
       busyReminderDays: Value(busyReminderDays),
     );
@@ -744,6 +814,8 @@ class StoreRow extends DataClass implements Insertable<StoreRow> {
       ),
       notifyDeliveries: serializer.fromJson<bool>(json['notifyDeliveries']),
       notifyBusyDays: serializer.fromJson<bool>(json['notifyBusyDays']),
+      notifyClockIn: serializer.fromJson<bool>(json['notifyClockIn']),
+      notifyClockOut: serializer.fromJson<bool>(json['notifyClockOut']),
       busyWeekdays: serializer.fromJson<String>(json['busyWeekdays']),
       busyReminderDays: serializer.fromJson<int>(json['busyReminderDays']),
     );
@@ -773,6 +845,8 @@ class StoreRow extends DataClass implements Insertable<StoreRow> {
       'notifyLargeAdjustment': serializer.toJson<bool>(notifyLargeAdjustment),
       'notifyDeliveries': serializer.toJson<bool>(notifyDeliveries),
       'notifyBusyDays': serializer.toJson<bool>(notifyBusyDays),
+      'notifyClockIn': serializer.toJson<bool>(notifyClockIn),
+      'notifyClockOut': serializer.toJson<bool>(notifyClockOut),
       'busyWeekdays': serializer.toJson<String>(busyWeekdays),
       'busyReminderDays': serializer.toJson<int>(busyReminderDays),
     };
@@ -798,6 +872,8 @@ class StoreRow extends DataClass implements Insertable<StoreRow> {
     bool? notifyLargeAdjustment,
     bool? notifyDeliveries,
     bool? notifyBusyDays,
+    bool? notifyClockIn,
+    bool? notifyClockOut,
     String? busyWeekdays,
     int? busyReminderDays,
   }) => StoreRow(
@@ -821,6 +897,8 @@ class StoreRow extends DataClass implements Insertable<StoreRow> {
     notifyLargeAdjustment: notifyLargeAdjustment ?? this.notifyLargeAdjustment,
     notifyDeliveries: notifyDeliveries ?? this.notifyDeliveries,
     notifyBusyDays: notifyBusyDays ?? this.notifyBusyDays,
+    notifyClockIn: notifyClockIn ?? this.notifyClockIn,
+    notifyClockOut: notifyClockOut ?? this.notifyClockOut,
     busyWeekdays: busyWeekdays ?? this.busyWeekdays,
     busyReminderDays: busyReminderDays ?? this.busyReminderDays,
   );
@@ -867,6 +945,12 @@ class StoreRow extends DataClass implements Insertable<StoreRow> {
       notifyBusyDays: data.notifyBusyDays.present
           ? data.notifyBusyDays.value
           : this.notifyBusyDays,
+      notifyClockIn: data.notifyClockIn.present
+          ? data.notifyClockIn.value
+          : this.notifyClockIn,
+      notifyClockOut: data.notifyClockOut.present
+          ? data.notifyClockOut.value
+          : this.notifyClockOut,
       busyWeekdays: data.busyWeekdays.present
           ? data.busyWeekdays.value
           : this.busyWeekdays,
@@ -898,6 +982,8 @@ class StoreRow extends DataClass implements Insertable<StoreRow> {
           ..write('notifyLargeAdjustment: $notifyLargeAdjustment, ')
           ..write('notifyDeliveries: $notifyDeliveries, ')
           ..write('notifyBusyDays: $notifyBusyDays, ')
+          ..write('notifyClockIn: $notifyClockIn, ')
+          ..write('notifyClockOut: $notifyClockOut, ')
           ..write('busyWeekdays: $busyWeekdays, ')
           ..write('busyReminderDays: $busyReminderDays')
           ..write(')'))
@@ -925,6 +1011,8 @@ class StoreRow extends DataClass implements Insertable<StoreRow> {
     notifyLargeAdjustment,
     notifyDeliveries,
     notifyBusyDays,
+    notifyClockIn,
+    notifyClockOut,
     busyWeekdays,
     busyReminderDays,
   ]);
@@ -951,6 +1039,8 @@ class StoreRow extends DataClass implements Insertable<StoreRow> {
           other.notifyLargeAdjustment == this.notifyLargeAdjustment &&
           other.notifyDeliveries == this.notifyDeliveries &&
           other.notifyBusyDays == this.notifyBusyDays &&
+          other.notifyClockIn == this.notifyClockIn &&
+          other.notifyClockOut == this.notifyClockOut &&
           other.busyWeekdays == this.busyWeekdays &&
           other.busyReminderDays == this.busyReminderDays);
 }
@@ -975,6 +1065,8 @@ class StoresCompanion extends UpdateCompanion<StoreRow> {
   final Value<bool> notifyLargeAdjustment;
   final Value<bool> notifyDeliveries;
   final Value<bool> notifyBusyDays;
+  final Value<bool> notifyClockIn;
+  final Value<bool> notifyClockOut;
   final Value<String> busyWeekdays;
   final Value<int> busyReminderDays;
   final Value<int> rowid;
@@ -998,6 +1090,8 @@ class StoresCompanion extends UpdateCompanion<StoreRow> {
     this.notifyLargeAdjustment = const Value.absent(),
     this.notifyDeliveries = const Value.absent(),
     this.notifyBusyDays = const Value.absent(),
+    this.notifyClockIn = const Value.absent(),
+    this.notifyClockOut = const Value.absent(),
     this.busyWeekdays = const Value.absent(),
     this.busyReminderDays = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -1022,6 +1116,8 @@ class StoresCompanion extends UpdateCompanion<StoreRow> {
     this.notifyLargeAdjustment = const Value.absent(),
     this.notifyDeliveries = const Value.absent(),
     this.notifyBusyDays = const Value.absent(),
+    this.notifyClockIn = const Value.absent(),
+    this.notifyClockOut = const Value.absent(),
     this.busyWeekdays = const Value.absent(),
     this.busyReminderDays = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -1052,6 +1148,8 @@ class StoresCompanion extends UpdateCompanion<StoreRow> {
     Expression<bool>? notifyLargeAdjustment,
     Expression<bool>? notifyDeliveries,
     Expression<bool>? notifyBusyDays,
+    Expression<bool>? notifyClockIn,
+    Expression<bool>? notifyClockOut,
     Expression<String>? busyWeekdays,
     Expression<int>? busyReminderDays,
     Expression<int>? rowid,
@@ -1079,6 +1177,8 @@ class StoresCompanion extends UpdateCompanion<StoreRow> {
         'notify_large_adjustment': notifyLargeAdjustment,
       if (notifyDeliveries != null) 'notify_deliveries': notifyDeliveries,
       if (notifyBusyDays != null) 'notify_busy_days': notifyBusyDays,
+      if (notifyClockIn != null) 'notify_clock_in': notifyClockIn,
+      if (notifyClockOut != null) 'notify_clock_out': notifyClockOut,
       if (busyWeekdays != null) 'busy_weekdays': busyWeekdays,
       if (busyReminderDays != null) 'busy_reminder_days': busyReminderDays,
       if (rowid != null) 'rowid': rowid,
@@ -1105,6 +1205,8 @@ class StoresCompanion extends UpdateCompanion<StoreRow> {
     Value<bool>? notifyLargeAdjustment,
     Value<bool>? notifyDeliveries,
     Value<bool>? notifyBusyDays,
+    Value<bool>? notifyClockIn,
+    Value<bool>? notifyClockOut,
     Value<String>? busyWeekdays,
     Value<int>? busyReminderDays,
     Value<int>? rowid,
@@ -1132,6 +1234,8 @@ class StoresCompanion extends UpdateCompanion<StoreRow> {
           notifyLargeAdjustment ?? this.notifyLargeAdjustment,
       notifyDeliveries: notifyDeliveries ?? this.notifyDeliveries,
       notifyBusyDays: notifyBusyDays ?? this.notifyBusyDays,
+      notifyClockIn: notifyClockIn ?? this.notifyClockIn,
+      notifyClockOut: notifyClockOut ?? this.notifyClockOut,
       busyWeekdays: busyWeekdays ?? this.busyWeekdays,
       busyReminderDays: busyReminderDays ?? this.busyReminderDays,
       rowid: rowid ?? this.rowid,
@@ -1204,6 +1308,12 @@ class StoresCompanion extends UpdateCompanion<StoreRow> {
     if (notifyBusyDays.present) {
       map['notify_busy_days'] = Variable<bool>(notifyBusyDays.value);
     }
+    if (notifyClockIn.present) {
+      map['notify_clock_in'] = Variable<bool>(notifyClockIn.value);
+    }
+    if (notifyClockOut.present) {
+      map['notify_clock_out'] = Variable<bool>(notifyClockOut.value);
+    }
     if (busyWeekdays.present) {
       map['busy_weekdays'] = Variable<String>(busyWeekdays.value);
     }
@@ -1238,6 +1348,8 @@ class StoresCompanion extends UpdateCompanion<StoreRow> {
           ..write('notifyLargeAdjustment: $notifyLargeAdjustment, ')
           ..write('notifyDeliveries: $notifyDeliveries, ')
           ..write('notifyBusyDays: $notifyBusyDays, ')
+          ..write('notifyClockIn: $notifyClockIn, ')
+          ..write('notifyClockOut: $notifyClockOut, ')
           ..write('busyWeekdays: $busyWeekdays, ')
           ..write('busyReminderDays: $busyReminderDays, ')
           ..write('rowid: $rowid')
@@ -17091,11 +17203,11 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   );
   late final $OutboxTable outbox = $OutboxTable(this);
   late final Trigger storesOutboxInsert = Trigger(
-    'CREATE TRIGGER stores_outbox_insert AFTER INSERT ON stores WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, base_values, queued_at) SELECT \'stores\', id, id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'name\', name, \'address_line\', address_line, \'postal_code\', postal_code, \'city\', city, \'phone\', phone, \'created_at\', created_at, \'vat_number\', vat_number, \'image_asset\', image_asset, \'stale_partial_order_days\', stale_partial_order_days, \'max_break_minutes\', max_break_minutes, \'business_day_auto_open_minutes\', business_day_auto_open_minutes, \'notify_low_stock\', notify_low_stock, \'notify_price_change\', notify_price_change, \'notify_large_adjustment\', notify_large_adjustment, \'notify_deliveries\', notify_deliveries, \'notify_busy_days\', notify_busy_days, \'busy_weekdays\', busy_weekdays, \'busy_reminder_days\', busy_reminder_days), NULL, NULL, (SELECT now FROM sync_clock) FROM stores WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, base_values = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'CREATE TRIGGER stores_outbox_insert AFTER INSERT ON stores WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, base_values, queued_at) SELECT \'stores\', id, id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'name\', name, \'address_line\', address_line, \'postal_code\', postal_code, \'city\', city, \'phone\', phone, \'created_at\', created_at, \'vat_number\', vat_number, \'image_asset\', image_asset, \'stale_partial_order_days\', stale_partial_order_days, \'max_break_minutes\', max_break_minutes, \'business_day_auto_open_minutes\', business_day_auto_open_minutes, \'notify_low_stock\', notify_low_stock, \'notify_price_change\', notify_price_change, \'notify_large_adjustment\', notify_large_adjustment, \'notify_deliveries\', notify_deliveries, \'notify_busy_days\', notify_busy_days, \'notify_clock_in\', notify_clock_in, \'notify_clock_out\', notify_clock_out, \'busy_weekdays\', busy_weekdays, \'busy_reminder_days\', busy_reminder_days), NULL, NULL, (SELECT now FROM sync_clock) FROM stores WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, base_values = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
     'stores_outbox_insert',
   );
   late final Trigger storesOutboxUpdate = Trigger(
-    'CREATE TRIGGER stores_outbox_update AFTER UPDATE ON stores WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, base_values, queued_at) SELECT \'stores\', id, id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'name\', name, \'address_line\', address_line, \'postal_code\', postal_code, \'city\', city, \'phone\', phone, \'created_at\', created_at, \'vat_number\', vat_number, \'image_asset\', image_asset, \'stale_partial_order_days\', stale_partial_order_days, \'max_break_minutes\', max_break_minutes, \'business_day_auto_open_minutes\', business_day_auto_open_minutes, \'notify_low_stock\', notify_low_stock, \'notify_price_change\', notify_price_change, \'notify_large_adjustment\', notify_large_adjustment, \'notify_deliveries\', notify_deliveries, \'notify_busy_days\', notify_busy_days, \'busy_weekdays\', busy_weekdays, \'busy_reminder_days\', busy_reminder_days), NULL, NULL, (SELECT now FROM sync_clock) FROM stores WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, base_values = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
+    'CREATE TRIGGER stores_outbox_update AFTER UPDATE ON stores WHEN NOT EXISTS (SELECT 1 FROM meta WHERE "key" = \'syncQuiet\') BEGIN INSERT INTO outbox (changed_table, row_key, store_id, payload, changed_columns, base_values, queued_at) SELECT \'stores\', id, id, json_object(\'updated_at\', updated_at, \'deleted_at\', deleted_at, \'id\', id, \'name\', name, \'address_line\', address_line, \'postal_code\', postal_code, \'city\', city, \'phone\', phone, \'created_at\', created_at, \'vat_number\', vat_number, \'image_asset\', image_asset, \'stale_partial_order_days\', stale_partial_order_days, \'max_break_minutes\', max_break_minutes, \'business_day_auto_open_minutes\', business_day_auto_open_minutes, \'notify_low_stock\', notify_low_stock, \'notify_price_change\', notify_price_change, \'notify_large_adjustment\', notify_large_adjustment, \'notify_deliveries\', notify_deliveries, \'notify_busy_days\', notify_busy_days, \'notify_clock_in\', notify_clock_in, \'notify_clock_out\', notify_clock_out, \'busy_weekdays\', busy_weekdays, \'busy_reminder_days\', busy_reminder_days), NULL, NULL, (SELECT now FROM sync_clock) FROM stores WHERE "rowid" = NEW."rowid" ON CONFLICT (changed_table, row_key) DO UPDATE SET store_id = excluded.store_id, payload = excluded.payload, changed_columns = NULL, base_values = NULL, queued_at = excluded.queued_at, attempts = 0, last_error = NULL;END',
     'stores_outbox_update',
   );
   late final Trigger categoriesOutboxInsert = Trigger(

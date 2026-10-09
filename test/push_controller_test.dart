@@ -190,6 +190,10 @@ void main() {
         Routes.toAlerts('s1'));
     expect(pushRoute({'store_id': 's1', 'kind': 'busyDays'}),
         Routes.toNotifications('s1'));
+    expect(pushRoute({'store_id': 's1', 'kind': 'clockIn'}),
+        Routes.toNotifications('s1'));
+    expect(pushRoute({'store_id': 's1', 'kind': 'clockOut'}),
+        Routes.toNotifications('s1'));
     expect(pushRoute({'store_id': 's1', 'kind': 'priceChange'}), isNull);
     expect(pushRoute({'kind': 'lowStock'}), isNull);
   });

@@ -6995,6 +6995,42 @@ abstract class AppLocalizations {
   /// **'Soyez prévenu avant les jours de forte affluence du calendrier, avec les produits à commander.'**
   String get notificationPrefBusyDaysBody;
 
+  /// Toggle: notify each time an employee clocks in (Pointer).
+  ///
+  /// In fr, this message translates to:
+  /// **'Arrivée des employés'**
+  String get notificationPrefClockIn;
+
+  /// Describes the clock-in notification toggle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Soyez prévenu chaque fois qu\'un employé pointe son arrivée, avec l\'heure.'**
+  String get notificationPrefClockInBody;
+
+  /// Toggle: notify each time an employee ends their shift (Fin de journée).
+  ///
+  /// In fr, this message translates to:
+  /// **'Départ des employés'**
+  String get notificationPrefClockOut;
+
+  /// Describes the clock-out notification toggle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Soyez prévenu chaque fois qu\'un employé termine sa journée, avec l\'heure.'**
+  String get notificationPrefClockOutBody;
+
+  /// Shown on a notification toggle a manager can see but not change.
+  ///
+  /// In fr, this message translates to:
+  /// **'Seul le propriétaire peut modifier ce réglage.'**
+  String get notificationPrefOwnerOnly;
+
+  /// Notifications: kind and filter label of an employee's arrival or departure.
+  ///
+  /// In fr, this message translates to:
+  /// **'Pointage'**
+  String get notificationsKindPointage;
+
   /// Summary card eyebrow: the next busy period.
   ///
   /// In fr, this message translates to:

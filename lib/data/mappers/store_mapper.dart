@@ -28,6 +28,8 @@ StoreSettings storeSettingsFromRow(StoreRow row) => StoreSettings(
   notifyLargeAdjustment: row.notifyLargeAdjustment,
   notifyDeliveries: row.notifyDeliveries,
   notifyBusyDays: row.notifyBusyDays,
+  notifyClockIn: row.notifyClockIn,
+  notifyClockOut: row.notifyClockOut,
   businessDayAutoOpenMinutes: row.businessDayAutoOpenMinutes,
 );
 

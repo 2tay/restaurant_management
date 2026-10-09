@@ -8,13 +8,14 @@ restaurant. Everything else stays in the bell.
 | **Rupture de stock** | at once, one per product | *Rupture de stock : Poulet* — *Brasserie du Sablon — Il ne reste plus de poulet.* |
 | **Stock faible** | grouped: two minutes after the first, every stock faible of that store as one push | *Stock faible : 5 produits* — *Brasserie du Sablon — Tomates, Oignons, Lait et 2 autres.* |
 | **Jours chargés** | at once, once per busy period | *Jours chargés demain* — *… 4 produits sont sous le minimum de forte affluence.* |
+| **Arrivée / Départ** | at once, one per pointage (switches off by default) | *Arrivée : Noah Van Damme* — *Brasserie du Sablon — A pointé à 08:02.* |
 
 - **Owner only.** A manager's phone, or a tablet a manager is signed in on, gets nothing.
 - **Android only** for now. No Google Play account is needed: the app is installed from an APK.
 - **The in-app switches still decide.** *Paramètres → Notifications → Stock faible / Jours
-  chargés* off means no notification, so no push either.
-- **Tapping** a stock push opens the store's *Alertes*; a jours chargés push opens the
-  notifications.
+  chargés / Arrivée / Départ* off means no notification, so no push either.
+- **Tapping** a stock push opens the store's *Alertes*; a jours chargés, arrivée or départ
+  push opens the notifications.
 - **A push goes when the alert reaches the server**, not when it happens: an offline tablet's
   alerts are pushed when it reconnects. Nothing older than a day is pushed.
 
@@ -38,8 +39,9 @@ tablet ──sync──▶ notifications (server) ──trigger──▶ push_qu
    `unregister_push_device`. Signing the account out of the device unregisters it and drops
    the token.
 2. **The server queues** (`supabase/migrations/20261006000200_owner_push.sql`). A trigger on
-   `notifications` puts each rupture, stock faible and jours chargés into `push_queue` the
-   first time it reaches the server. A notification filed on two tablets has one id, so it is
+   `notifications` puts each rupture, stock faible, jours chargés, arrivée and départ
+   (`20261009000100_clock_notifications.sql`) into `push_queue` the first time it reaches
+   the server. A notification filed on two tablets has one id, so it is
    queued once.
 3. **The server groups** (`claim_pushes`). A rupture or a jours chargés is due at once. A
    stock faible waits until the oldest one of its store is two minutes old; then all of them

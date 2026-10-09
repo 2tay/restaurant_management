@@ -74,6 +74,13 @@ class Stores extends Table with Touched, Deletable {
   /// The "jours chargés" reminder: on unless switched off, like the stock ones.
   BoolColumn get notifyBusyDays => boolean().withDefault(const Constant(true))();
 
+  /// An employee's Pointer (arrivée) and Fin de journée (départ). Off by
+  /// default: one per pointage is a lot of noise, and only the owner may
+  /// switch them on.
+  BoolColumn get notifyClockIn => boolean().withDefault(const Constant(false))();
+  BoolColumn get notifyClockOut =>
+      boolean().withDefault(const Constant(false))();
+
   // --- Busy-day calendar -----------------------------------------------------
   //
   // The weekly half of the calendar. The one-off dates live in [BusyDates].

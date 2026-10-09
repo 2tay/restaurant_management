@@ -84,13 +84,13 @@ final Provider<PushMessaging?> pushMessagingProvider = Provider<PushMessaging?>(
 );
 
 /// Where a tapped push opens: the Alertes of its store for a stock push, the
-/// notifications for jours chargés. Null for a push this app does not know.
+/// notifications for jours chargés and for an arrivée or a départ. Null for a push this app does not know.
 String? pushRoute(Map<String, String> data) {
   final storeId = data['store_id'];
   if (storeId == null || storeId.isEmpty) return null;
   return switch (data['kind']) {
     'outOfStock' || 'lowStock' => Routes.toAlerts(storeId),
-    'busyDays' => Routes.toNotifications(storeId),
+    'busyDays' || 'clockIn' || 'clockOut' => Routes.toNotifications(storeId),
     _ => null,
   };
 }

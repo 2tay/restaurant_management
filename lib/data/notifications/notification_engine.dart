@@ -248,6 +248,70 @@ class NotificationEngine {
     });
   }
 
+  /// An employee pointed in: their Pointer opened session [sessionId] at [at].
+  ///
+  /// One notification per session, not per day — a split shift is two
+  /// arrivals, and both are worth knowing. The key is the session's, so the
+  /// same arrival received from another tablet is the same row; the window is
+  /// zero for the same reason: an employee's second arrival of the day is
+  /// news, not a repeat.
+  Future<void> employeeClockedIn({
+    required String storeId,
+    required String employeeId,
+    required String sessionId,
+    required DateTime at,
+  }) async {
+    await _guard(() async {
+      if (!await _allows(storeId, (row) => row.notifyClockIn)) return;
+
+      final name = await _employeeName(employeeId);
+      if (name == null) return;
+      await AccountRepository(_db).emit(
+        storeId: storeId,
+        kind: NotificationKind.clockIn,
+        key: 'clock_in:$storeId:$sessionId',
+        title: 'Arrivée : $name',
+        body: 'A pointé à ${Formatters.time(at)}.',
+        relatedEmployeeId: employeeId,
+        createdAt: at,
+        window: Duration.zero,
+      );
+    });
+  }
+
+  /// An employee ended their shift: their Fin de journée closed
+  /// [sessionIds] at [at].
+  ///
+  /// Only the employee's own Fin de journée: an exit a manager enters in
+  /// their place (closing the journée, correcting a forgotten exit) is not a
+  /// departure that happened now. Keyed on the first of the sessions it
+  /// closed, for the same reason as [employeeClockedIn].
+  Future<void> employeeClockedOut({
+    required String storeId,
+    required String employeeId,
+    required List<String> sessionIds,
+    required DateTime at,
+  }) async {
+    await _guard(() async {
+      if (sessionIds.isEmpty) return;
+      if (!await _allows(storeId, (row) => row.notifyClockOut)) return;
+
+      final name = await _employeeName(employeeId);
+      if (name == null) return;
+      final first = ([...sessionIds]..sort()).first;
+      await AccountRepository(_db).emit(
+        storeId: storeId,
+        kind: NotificationKind.clockOut,
+        key: 'clock_out:$storeId:$first',
+        title: 'Départ : $name',
+        body: 'A terminé sa journée à ${Formatters.time(at)}.',
+        relatedEmployeeId: employeeId,
+        createdAt: at,
+        window: Duration.zero,
+      );
+    });
+  }
+
   /// Today as the notification keys write it — see [_dayKey].
   static String _today() => _dayKey(clock.now());
 
@@ -290,6 +354,15 @@ class NotificationEngine {
       _db.stores,
     )..where((s) => s.id.equals(storeId) & s.deletedAt.isNull())).getSingleOrNull();
     return row != null && preference(row);
+  }
+
+  /// "Prénom Nom", or null when the employee is not on file.
+  Future<String?> _employeeName(String employeeId) async {
+    final row = await (_db.select(
+      _db.employees,
+    )..where((e) => e.id.equals(employeeId))).getSingleOrNull();
+    if (row == null) return null;
+    return '${row.firstName} ${row.lastName}'.trim();
   }
 
   /// The unit's abbreviation — "kg", "bac" — which every quantity in the app is

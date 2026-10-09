@@ -153,13 +153,13 @@ void main() {
   // Step 1 — the merge: schema v21, upgrades lose nothing
   // ===========================================================================
 
-  group('step 1 — schema v21 (v22: no password tables; v23: reads)', () {
+  group('step 1 — schema v21 (v22: no password tables; v23: reads; v24: pointage switches)', () {
     final verifier = SchemaVerifier(GeneratedHelper());
 
     test('a fresh database has the journées and no password tables', () async {
       final db = openEmptyDatabase();
       addTearDown(db.close);
-      expect(db.schemaVersion, 23);
+      expect(db.schemaVersion, 24);
       for (final (table, count) in [
         ('business_days', 1),
         ('login_states', 0),
@@ -176,10 +176,10 @@ void main() {
     });
 
     for (final from in [13, 16, 20, 21, 22]) {
-      test('a v$from install upgrades to v23 cleanly', () async {
+      test('a v$from install upgrades to v24 cleanly', () async {
         final connection = await verifier.startAt(from);
         final db = AppDatabase.withExecutor(connection);
-        await verifier.migrateAndValidate(db, 23);
+        await verifier.migrateAndValidate(db, 24);
         await db.close();
       });
     }

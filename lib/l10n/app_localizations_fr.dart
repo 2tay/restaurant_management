@@ -4311,6 +4311,27 @@ class AppLocalizationsFr extends AppLocalizations {
       'Soyez prévenu avant les jours de forte affluence du calendrier, avec les produits à commander.';
 
   @override
+  String get notificationPrefClockIn => 'Arrivée des employés';
+
+  @override
+  String get notificationPrefClockInBody =>
+      'Soyez prévenu chaque fois qu\'un employé pointe son arrivée, avec l\'heure.';
+
+  @override
+  String get notificationPrefClockOut => 'Départ des employés';
+
+  @override
+  String get notificationPrefClockOutBody =>
+      'Soyez prévenu chaque fois qu\'un employé termine sa journée, avec l\'heure.';
+
+  @override
+  String get notificationPrefOwnerOnly =>
+      'Seul le propriétaire peut modifier ce réglage.';
+
+  @override
+  String get notificationsKindPointage => 'Pointage';
+
+  @override
   String get calendarHeroNextLabel => 'Prochains jours chargés';
 
   @override

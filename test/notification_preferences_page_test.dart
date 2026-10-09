@@ -1,11 +1,13 @@
 // Paramètres → Notifications: one borderless card per notification, two side
-// by side on a wide screen, one per line on a small one.
+// by side on a wide screen, one per line on a small one. The arrivée and
+// départ cards are off by default and the owner's alone.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stock_inventory/app/router.dart';
 import 'package:stock_inventory/app/routes.dart';
 import 'package:stock_inventory/data/seed/dataset/dataset.dart';
+import 'package:stock_inventory/data/repositories/repositories.dart';
 import 'package:stock_inventory/shared/widgets/widgets.dart';
 
 import 'support/app_harness.dart';
@@ -65,5 +67,70 @@ void main() {
     await tester.tap(find.text('Changements de prix'));
     await tester.pumpAndSettle();
     expect(toggle().value, !before);
+  });
+
+  Switch switchOf(WidgetTester tester, String title) => tester.widget<Switch>(
+    find.descendant(of: _card(title), matching: find.byType(Switch)),
+  );
+
+  testApp('the owner switches the arrivée notification on', (tester) async {
+    final db = await pumpApp(tester, size: const Size(1440, 900));
+    appRouter.go(Routes.toNotificationSettings(StoreIds.sablon));
+    await tester.pumpAndSettle();
+
+    expect(switchOf(tester, 'Arrivée des employés').value, isFalse);
+    expect(switchOf(tester, 'Départ des employés').value, isFalse);
+    expect(
+      find.text('Seul le propriétaire peut modifier ce réglage.'),
+      findsNothing,
+    );
+
+    await tester.ensureVisible(find.text('Arrivée des employés'));
+    await tester.tap(find.text('Arrivée des employés'));
+    await tester.pumpAndSettle();
+
+    expect(switchOf(tester, 'Arrivée des employés').value, isTrue);
+    final settings = await StoreRepository(db).settings(StoreIds.sablon);
+    expect(settings.notifyClockIn, isTrue);
+    expect(settings.notifyClockOut, isFalse);
+  });
+
+  testApp('a manager sees the pointage switches, read-only', (tester) async {
+    final db = await pumpApp(
+      tester,
+      size: const Size(1440, 900),
+      asEmployeeId: EmployeeIds.amelie,
+    );
+    appRouter.go(Routes.toNotificationSettings(StoreIds.sablon));
+    await tester.pumpAndSettle();
+
+    expect(switchOf(tester, 'Arrivée des employés').onChanged, isNull);
+    expect(switchOf(tester, 'Départ des employés').onChanged, isNull);
+    expect(
+      find.text('Seul le propriétaire peut modifier ce réglage.'),
+      findsNWidgets(2),
+    );
+    // The other notifications stay theirs to change.
+    expect(switchOf(tester, 'Changements de prix').onChanged, isNotNull);
+
+    await tester.ensureVisible(find.text('Arrivée des employés'));
+    await tester.tap(find.text('Arrivée des employés'));
+    await tester.pumpAndSettle();
+    final settings = await StoreRepository(db).settings(StoreIds.sablon);
+    expect(settings.notifyClockIn, isFalse);
+  });
+
+  testApp('phone: the pointage cards fit', (tester) async {
+    await pumpApp(
+      tester,
+      size: const Size(360, 780),
+      asEmployeeId: EmployeeIds.amelie,
+    );
+    appRouter.go(Routes.toNotificationSettings(StoreIds.sablon));
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(find.text('Départ des employés'));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
   });
 }

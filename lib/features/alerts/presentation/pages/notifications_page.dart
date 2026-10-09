@@ -21,7 +21,15 @@ import '../alerts_filter.dart';
 /// Coarser than [NotificationKind] on purpose: low stock and rupture are the
 /// same worry at two severities, and nobody looking for one wants the other
 /// hidden.
-enum NotificationFilter { all, stock, price, adjustment, delivery, personnel }
+enum NotificationFilter {
+  all,
+  stock,
+  price,
+  adjustment,
+  delivery,
+  pointage,
+  personnel,
+}
 
 /// The notification centre.
 ///
@@ -238,6 +246,8 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
         NotificationFilter.adjustment =>
           kind == NotificationKind.largeAdjustment,
         NotificationFilter.delivery => kind == NotificationKind.delivery,
+        NotificationFilter.pointage =>
+          kind == NotificationKind.clockIn || kind == NotificationKind.clockOut,
         NotificationFilter.personnel => kind == NotificationKind.personnel,
       };
 
@@ -297,7 +307,8 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
       );
     } else if (notification.relatedEmployeeId != null) {
       // A signalement: where it is checked — the employee's payroll for a
-      // payment, their pointage history otherwise.
+      // payment, their pointage history otherwise. An arrivée or a départ
+      // opens that history too.
       context.goSection(
         notification.relatedTarget == 'payroll'
             ? Routes.toPayroll(
@@ -416,6 +427,11 @@ class _FilterBar extends StatelessWidget {
         NotificationFilter.delivery,
         LucideIcons.truck,
         l10n.notificationsKindDelivery,
+      ),
+      (
+        NotificationFilter.pointage,
+        LucideIcons.clock,
+        l10n.notificationsKindPointage,
       ),
       (
         NotificationFilter.personnel,
@@ -1011,6 +1027,16 @@ class _NotificationCard extends StatelessWidget {
       LucideIcons.calendarClock,
       AppColors.lowStock,
       l10n.notificationsKindBusyDays,
+    ),
+    NotificationKind.clockIn => (
+      LucideIcons.logIn,
+      AppColors.inStock,
+      l10n.notificationsKindPointage,
+    ),
+    NotificationKind.clockOut => (
+      LucideIcons.logOut,
+      AppColors.info,
+      l10n.notificationsKindPointage,
     ),
     NotificationKind.personnel => (
       LucideIcons.userRoundSearch,

@@ -293,6 +293,8 @@ class StoreRepository {
     bool? largeAdjustment,
     bool? deliveries,
     bool? busyDays,
+    bool? clockIn,
+    bool? clockOut,
   }) async {
     Value<bool> v(bool? value) =>
         value == null ? const Value.absent() : Value(value);
@@ -306,6 +308,8 @@ class StoreRepository {
                 notifyLargeAdjustment: v(largeAdjustment),
                 notifyDeliveries: v(deliveries),
                 notifyBusyDays: v(busyDays),
+                notifyClockIn: v(clockIn),
+                notifyClockOut: v(clockOut),
               ),
             );
     return changed > 0;

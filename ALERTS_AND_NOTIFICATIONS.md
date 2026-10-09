@@ -142,6 +142,8 @@ A repository finishes a write successfully, then calls the engine
 | Big count discrepancy | `recordAdjustment` | `abs(delta) >= 1` **and** `>= 20%` of the system quantity | `largeAdjustment` |
 | Supplier price moved | `SupplierRepository.updatePrice` | the price actually changed | `priceChange` |
 | Delivery received | `OrderRepository.confirmReceipt` | one per receipt, not per line | `delivery` |
+| Employee arrives | `AttendanceRepository.clockIn` | every Pointer, one per session | `clockIn` |
+| Employee leaves | `AttendanceRepository.clockOut` | every Fin de journée (not an exit a manager enters) | `clockOut` |
 
 ### Step 2 — Three rules decide whether it is written
 
@@ -167,6 +169,7 @@ tablet — and two copies become one row once synced:
 | `priceChange` | store + article + **day** |
 | `delivery` | store + receipt |
 | `busyDays` | store + first day of the busy period |
+| `clockIn` / `clockOut` | store + session (window **0**, deduped per employee) |
 
 So each of the stock kinds is filed **at most once per article per day**, on top of the
 12 h window. Signalements already worked this way (`AccountRepository.signal`).
@@ -199,10 +202,15 @@ own, so a screen left open on another tablet cannot revert a change it never saw
 
 Deliveries ship off because whoever is at the back door with the crates already knows.
 
+**Arrivée des employés / Départ des employés** (schema v24, `stores.notify_clock_in` /
+`notify_clock_out`): **off** by default — one per pointage is a lot of noise. Only the
+owner can switch them (`Capability.editStoreSettings`); a manager sees their state,
+greyed, with « Seul le propriétaire peut modifier ce réglage. »
+
 ### Step 4 — Reading the feed
 
 - Grouped under **Aujourd'hui / Hier / the date**.
-- Filtered by **type** (Stock / Prix / Ajustements / Livraisons), each carrying its count so
+- Filtered by **type** (Stock / Prix / Ajustements / Livraisons / Pointage / Personnel), each carrying its count so
   you can see whether a filter is worth applying before it returns nothing.
 - Unread entries have a filled left edge and a heavier title — a bold font alone is too
   subtle at arm's length.
@@ -225,8 +233,8 @@ Deliveries ship off because whoever is at the back door with the crates already 
 
 ### Step 6 — The owner's phone
 
-Ruptures, stock faible (grouped) and jours chargés also reach the owner's Android phone as a
-push, even with the app closed. See `PUSH_NOTIFICATIONS.md`.
+Ruptures, stock faible (grouped), jours chargés, arrivées and départs also reach the owner's
+Android phone as a push, even with the app closed. See `PUSH_NOTIFICATIONS.md`.
 
 ### Step 7 — The store grid
 

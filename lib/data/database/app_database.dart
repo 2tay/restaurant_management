@@ -105,7 +105,7 @@ class AppDatabase extends _$AppDatabase {
   static const String databaseName = 'stock_inventory';
 
   @override
-  int get schemaVersion => 23;
+  int get schemaVersion => 24;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -492,6 +492,21 @@ class AppDatabase extends _$AppDatabase {
           m,
           (name) => name.startsWith('notification_reads_'),
         );
+      }
+
+      // v23 -> v24: the arrivée and départ notification switches on `stores`,
+      // off by default. The stores outbox triggers are recreated so their
+      // payload carries the two new columns.
+      if (from < 24) {
+        await _addColumnIfMissing(m, stores, stores.notifyClockIn);
+        await _addColumnIfMissing(m, stores, stores.notifyClockOut);
+        if (from >= 16) {
+          await _createTriggers(
+            m,
+            (name) => name.startsWith('stores_outbox_'),
+            replace: true,
+          );
+        }
       }
     },
 

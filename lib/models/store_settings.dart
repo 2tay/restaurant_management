@@ -22,6 +22,8 @@ class StoreSettings {
     this.notifyLargeAdjustment = true,
     this.notifyDeliveries = false,
     this.notifyBusyDays = true,
+    this.notifyClockIn = false,
+    this.notifyClockOut = false,
     this.businessDayAutoOpenMinutes = 300,
   });
 
@@ -51,4 +53,9 @@ class StoreSettings {
 
   /// The reminder before a busy period on the calendar.
   final bool notifyBusyDays;
+
+  /// An employee's Pointer (arrivée) and Fin de journée (départ). Off by
+  /// default; only the owner switches them on.
+  final bool notifyClockIn;
+  final bool notifyClockOut;
 }

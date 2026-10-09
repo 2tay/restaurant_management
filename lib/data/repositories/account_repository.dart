@@ -91,8 +91,9 @@ class AccountRepository {
   /// existing one is left alone rather than refreshed, so its timestamp keeps
   /// saying when the situation actually started.
   ///
-  /// A draft with no [relatedItemId] — a delivery — dedupes on kind alone,
-  /// which is why [window] is short for those callers.
+  /// A draft about an employee ([relatedEmployeeId]) dedupes on that employee
+  /// rather than on an article. A draft with neither — a delivery — dedupes on
+  /// kind alone, which is why [window] is short for those callers.
   ///
   /// [key] names the situation the same way on every tablet — e.g.
   /// `low_stock:<store>:<item>:2026-10-06` — and the row's id is derived from
@@ -107,6 +108,7 @@ class AccountRepository {
     required String body,
     String? relatedItemId,
     String? relatedSupplierId,
+    String? relatedEmployeeId,
     DateTime? createdAt,
     Duration window = const Duration(hours: 12),
   }) async {
@@ -130,7 +132,10 @@ class AccountRepository {
                     n.createdAt.isBiggerThanValue(since) &
                     (relatedItemId == null
                         ? n.relatedItemId.isNull()
-                        : n.relatedItemId.equals(relatedItemId)),
+                        : n.relatedItemId.equals(relatedItemId)) &
+                    (relatedEmployeeId == null
+                        ? n.relatedEmployeeId.isNull()
+                        : n.relatedEmployeeId.equals(relatedEmployeeId)),
               )
               ..limit(1))
             .getSingleOrNull();
@@ -146,6 +151,7 @@ class AccountRepository {
       isRead: false,
       relatedItemId: relatedItemId,
       relatedSupplierId: relatedSupplierId,
+      relatedEmployeeId: relatedEmployeeId,
     );
     await _db.into(_db.notifications).insert(notificationToRow(notification));
     return notification;

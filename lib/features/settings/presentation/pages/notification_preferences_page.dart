@@ -5,6 +5,8 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../app/routes.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/utils/permissions.dart';
+import '../../../../data/current_employee.dart';
 import '../../../../data/providers.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../models/models.dart';
@@ -21,6 +23,10 @@ import '../widgets/settings_tabs.dart';
 /// from the stream it just wrote to. Until the notifications became real these
 /// four lived in a `setState` that nothing read and nothing saved: the screen
 /// looked like a setting and was a decoration.
+///
+/// The arrivée and départ switches are the owner's alone: a manager sees
+/// whether they are on, and cannot change them (`Capability.editStoreSettings`,
+/// as on Établissement).
 class NotificationPreferencesPage extends ConsumerWidget {
   const NotificationPreferencesPage({required this.storeId, super.key});
 
@@ -30,6 +36,9 @@ class NotificationPreferencesPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final asyncSettings = ref.watch(storeSettingsProvider(storeId));
+    final employee = ref.watch(currentEmployeeProvider);
+    final isOwner =
+        employee != null && can(employee.role, Capability.editStoreSettings);
 
     return ShellPage(
       tabs: SettingsTabs(
@@ -83,6 +92,26 @@ class NotificationPreferencesPage extends ConsumerWidget {
               value: settings.notifyBusyDays,
               onChanged: (value) => _save(ref, busyDays: value),
             ),
+            _PreferenceCard(
+              icon: LucideIcons.logIn,
+              title: l10n.notificationPrefClockIn,
+              body: l10n.notificationPrefClockInBody,
+              value: settings.notifyClockIn,
+              onChanged: isOwner
+                  ? (value) => _save(ref, clockIn: value)
+                  : null,
+              lockedNote: isOwner ? null : l10n.notificationPrefOwnerOnly,
+            ),
+            _PreferenceCard(
+              icon: LucideIcons.logOut,
+              title: l10n.notificationPrefClockOut,
+              body: l10n.notificationPrefClockOutBody,
+              value: settings.notifyClockOut,
+              onChanged: isOwner
+                  ? (value) => _save(ref, clockOut: value)
+                  : null,
+              lockedNote: isOwner ? null : l10n.notificationPrefOwnerOnly,
+            ),
           ],
         ),
       ),
@@ -98,6 +127,8 @@ class NotificationPreferencesPage extends ConsumerWidget {
     bool? largeAdjustment,
     bool? deliveries,
     bool? busyDays,
+    bool? clockIn,
+    bool? clockOut,
   }) {
     ref
         .read(storeRepositoryProvider)
@@ -108,6 +139,8 @@ class NotificationPreferencesPage extends ConsumerWidget {
           largeAdjustment: largeAdjustment,
           deliveries: deliveries,
           busyDays: busyDays,
+          clockIn: clockIn,
+          clockOut: clockOut,
         );
   }
 }
@@ -119,13 +152,20 @@ class _PreferenceCard extends StatelessWidget {
     required this.body,
     required this.value,
     required this.onChanged,
+    this.lockedNote,
   });
 
   final IconData icon;
   final String title;
   final String body;
   final bool value;
-  final ValueChanged<bool> onChanged;
+
+  /// Null when the viewer may not change this switch: it shows its state,
+  /// greyed, and nothing toggles.
+  final ValueChanged<bool>? onChanged;
+
+  /// Why the switch cannot be changed, under the description.
+  final String? lockedNote;
 
   @override
   Widget build(BuildContext context) {
@@ -137,7 +177,7 @@ class _PreferenceCard extends StatelessWidget {
       padding: EdgeInsets.zero,
       // The whole card toggles, not just the switch — a 40dp switch is a small
       // target for someone in a hurry.
-      onTap: () => onChanged(!value),
+      onTap: onChanged == null ? null : () => onChanged!(!value),
       child: Padding(
         padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.lg,
@@ -170,6 +210,28 @@ class _PreferenceCard extends StatelessWidget {
                   Text(title, style: theme.textTheme.titleSmall),
                   const SizedBox(height: 2),
                   Text(body, style: theme.textTheme.bodySmall),
+                  if (lockedNote != null) ...[
+                    const SizedBox(height: AppSpacing.xs),
+                    Row(
+                      children: [
+                        const Icon(
+                          LucideIcons.lock,
+                          size: 14,
+                          color: AppColors.textSecondary,
+                        ),
+                        const SizedBox(width: AppSpacing.xs),
+                        Expanded(
+                          child: Text(
+                            lockedNote!,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: AppColors.textSecondary,
+                              fontStyle: FontStyle.italic,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ],
               ),
             ),
