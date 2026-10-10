@@ -1210,6 +1210,24 @@ abstract class AppLocalizations {
   /// **'Le minimum en forte affluence doit dépasser le stock minimum.'**
   String get itemHolidayMinInvalid;
 
+  /// Product drawer fact tile: the stock minimum to hold on busy days (explicit, or twice the ordinary minimum).
+  ///
+  /// In fr, this message translates to:
+  /// **'Min. affluence'**
+  String get itemBusyMinShort;
+
+  /// Product card: label before the category name.
+  ///
+  /// In fr, this message translates to:
+  /// **'Catégorie :'**
+  String get itemCardCategoryLabel;
+
+  /// Product card: label before the quantity in stock.
+  ///
+  /// In fr, this message translates to:
+  /// **'Qté :'**
+  String get itemCardQuantityLabel;
+
   /// Product form section: the photo, the name and the barcode — what identifies this product.
   ///
   /// In fr, this message translates to:

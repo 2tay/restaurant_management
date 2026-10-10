@@ -145,22 +145,12 @@ class StoreDashboardPage extends ConsumerWidget {
         ?storeName,
       ].join(' · '),
       keepSubtitle: true,
-      actions: [
-        PrimaryButton(
-          label: l10n.actionAddDelivery,
-          shortLabel: l10n.shortAddDelivery,
-          icon: LucideIcons.arrowDownToLine,
-          onPressed: () => context.pushScreen(Routes.toStockIn(storeId)),
-        ),
-      ],
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // The figures — one row, always. Equal cards when they fit; a
-          // sideways scroll with the next card peeking in when they do not.
-          CardRow(
-            minCardWidth: 176,
-            scrollCardWidth: 172,
+          // The figures — one row where they fit, two per row otherwise, the
+          // last one taking a row of its own. Never a sideways scroll.
+          _KpiGrid(
             spacing: phone ? AppSpacing.md : AppSpacing.lg,
             children: [
               SummaryTile(
@@ -236,7 +226,6 @@ class StoreDashboardPage extends ConsumerWidget {
                     shortLabel: l10n.shortAddDelivery,
                     icon: LucideIcons.arrowDownToLine,
                     colors: movementColors(StockMovementType.stockIn),
-                    emphasised: true,
                     compact: compact,
                     onPressed: () =>
                         context.pushScreen(Routes.toStockIn(storeId)),
@@ -299,8 +288,10 @@ class StoreDashboardPage extends ConsumerWidget {
   }
 }
 
-/// A card with a header — the frame both lower panels share, so they line up
-/// and read as a pair.
+/// A heading over its content — the frame both lower panels share, so they
+/// line up and read as a pair. The table under it is the shared
+/// [DataTableWrapper], which draws its own frame; an empty state sits in a
+/// card instead.
 class _Panel extends StatelessWidget {
   const _Panel({
     required this.title,
@@ -323,19 +314,14 @@ class _Panel extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
 
-    return AppCard(
-      padding: EdgeInsets.zero,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          if (showHeader)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppSpacing.lg,
-                AppSpacing.md,
-                AppSpacing.sm,
-                AppSpacing.sm,
-              ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (showHeader)
+          Padding(
+            padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: 40),
               child: Row(
                 children: [
                   // The title takes whatever the link leaves, so the link
@@ -346,7 +332,7 @@ class _Panel extends StatelessWidget {
                         Flexible(
                           child: Text(
                             title,
-                            style: theme.textTheme.titleSmall,
+                            style: theme.textTheme.titleMedium,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -388,11 +374,70 @@ class _Panel extends StatelessWidget {
                 ],
               ),
             ),
-          child,
-        ],
-      ),
+          ),
+        child,
+      ],
     );
   }
+}
+
+/// Five figures: on one row where each gets [minCardWidth], otherwise two
+/// per row with the last one alone across the full width.
+class _KpiGrid extends StatelessWidget {
+  const _KpiGrid({required this.children, required this.spacing});
+
+  final List<Widget> children;
+  final double spacing;
+
+  static const double minCardWidth = 176;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final count = children.length;
+        final oneRow =
+            constraints.maxWidth >=
+            count * minCardWidth + (count - 1) * spacing;
+
+        Widget line(List<Widget> cards) => IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (final (i, card) in cards.indexed) ...[
+                if (i > 0) SizedBox(width: spacing),
+                Expanded(child: card),
+              ],
+            ],
+          ),
+        );
+
+        if (oneRow) return line(children);
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            for (var i = 0; i < count; i += 2) ...[
+              if (i > 0) SizedBox(height: spacing),
+              line(children.sublist(i, i + 2 > count ? count : i + 2)),
+            ],
+          ],
+        );
+      },
+    );
+  }
+}
+
+/// An empty panel's message, in a card of its own — there is no table frame
+/// to hold it.
+class _PanelEmpty extends StatelessWidget {
+  const _PanelEmpty({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) =>
+      AppCard(padding: EdgeInsets.zero, child: child);
 }
 
 class _CountBadge extends StatelessWidget {
@@ -437,20 +482,24 @@ class _ActivityPanel extends StatelessWidget {
       showHeader: showHeader,
       onViewAll: () => context.goSection(Routes.toMovements(storeId)),
       child: activity.isEmpty
-          ? EmptyState(
-              icon: LucideIcons.arrowRightLeft,
-              title: l10n.dashboardNoActivity,
-              message: l10n.dashboardNoActivityBody,
-              actionLabel: l10n.actionAddDelivery,
-              onAction: () => context.pushScreen(Routes.toStockIn(storeId)),
+          ? _PanelEmpty(
+              child: EmptyState(
+                icon: LucideIcons.arrowRightLeft,
+                title: l10n.dashboardNoActivity,
+                message: l10n.dashboardNoActivityBody,
+                actionLabel: l10n.actionAddDelivery,
+                onAction: () => context.pushScreen(Routes.toStockIn(storeId)),
+              ),
             )
           : _ActivityTable(storeId: storeId, activity: activity),
     );
   }
 }
 
-/// The latest movements as a compact table: product with its type's dot,
-/// the signed quantity, who, and when. Each row opens the product.
+/// The latest movements as a table: product, type, the signed quantity,
+/// who, and when — in the shared [DataTableWrapper], like the pointage
+/// history. Each row opens the product. Narrower, who and then the type
+/// drop out rather than the table scrolling sideways.
 class _ActivityTable extends StatelessWidget {
   const _ActivityTable({required this.storeId, required this.activity});
 
@@ -463,69 +512,78 @@ class _ActivityTable extends StatelessWidget {
     final theme = Theme.of(context);
     final now = clock.now();
 
-    return AppTable<MovementRowView>(
-      rows: activity,
-      shrinkWrap: true,
-      bordered: false,
-      headerColor: AppColors.surface,
-      rowHeight: 52,
-      // The product, not the movement: a row here names an article, and the
-      // panel answers everything about it — this movement included, in its own
-      // recent history.
-      onRowTap: (view) => openProductDrawer(
-        context,
-        storeId: storeId,
-        itemId: view.movement.itemId,
-      ),
-      columns: [
-        AppTableColumn(label: l10n.tableColProduct, flex: 3),
-        AppTableColumn(
-          label: l10n.tableColType,
-          width: 128,
-          minTableWidth: 480,
-        ),
-        AppTableColumn(label: l10n.tableColQuantity, width: 104, numeric: true),
-        AppTableColumn(label: l10n.tableColBy, flex: 2, minTableWidth: 600),
-        AppTableColumn(label: l10n.tableColTime, width: 72, numeric: true),
-      ],
-      cell: (context, view, column) {
-        final movement = view.movement;
-        return switch (column) {
-          0 => Row(
-            children: [
-              ProductImage(imagePath: view.itemImagePath, size: 32, radius: 6),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: Text(
-                  view.itemName,
-                  style: theme.textTheme.titleSmall,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final showType = width >= 620;
+        final showBy = width >= 780;
+
+        return DataTableWrapper(
+          minWidth: width,
+          columns: [
+            DataColumn(label: Text(l10n.tableColProduct)),
+            if (showType) DataColumn(label: Text(l10n.tableColType)),
+            DataColumn(label: Text(l10n.tableColQuantity), numeric: true),
+            if (showBy) DataColumn(label: Text(l10n.tableColBy)),
+            DataColumn(label: Text(l10n.tableColTime), numeric: true),
+          ],
+          rows: [
+            for (final view in activity)
+              DataRow(
+                // The product, not the movement: a row here names an
+                // article, and the panel answers everything about it — this
+                // movement included, in its own recent history.
+                onSelectChanged: (_) => openProductDrawer(
+                  context,
+                  storeId: storeId,
+                  itemId: view.movement.itemId,
                 ),
+                cells: [
+                  DataCell(
+                    _ProductCell(
+                      imagePath: view.itemImagePath,
+                      name: view.itemName,
+                      maxWidth: _productCellWidth(width),
+                    ),
+                  ),
+                  if (showType)
+                    DataCell(MovementTypeBadge(type: view.movement.type)),
+                  DataCell(
+                    Text(
+                      Formatters.quantityDelta(
+                        view.movement.quantity,
+                        view.unitAbbreviation,
+                      ),
+                      style: AppTypography.numeric.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: movementQuantityColor(view.movement.type),
+                      ),
+                      maxLines: 1,
+                    ),
+                  ),
+                  if (showBy)
+                    DataCell(
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 140),
+                        child: Text(
+                          view.movement.userName,
+                          style: theme.textTheme.bodyMedium,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ),
+                  DataCell(
+                    Text(
+                      _when(view.movement.occurredAt, now),
+                      style: theme.textTheme.bodySmall,
+                      maxLines: 1,
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
-          1 => MovementTypeBadge(type: movement.type),
-          2 => Text(
-            Formatters.quantityDelta(movement.quantity, view.unitAbbreviation),
-            style: AppTypography.numeric.copyWith(
-              fontWeight: FontWeight.w700,
-              color: movementQuantityColor(movement.type),
-            ),
-            maxLines: 1,
-          ),
-          3 => Text(
-            movement.userName,
-            style: theme.textTheme.bodyMedium,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          _ => Text(
-            _when(movement.occurredAt, now),
-            style: theme.textTheme.bodySmall,
-            maxLines: 1,
-          ),
-        };
+          ],
+        );
       },
     );
   }
@@ -535,6 +593,46 @@ class _ActivityTable extends StatelessWidget {
       at.year == now.year && at.month == now.month && at.day == now.day
       ? Formatters.time(at)
       : Formatters.dayMonth(at);
+}
+
+/// How wide a product's name may run in a table this wide — what is left
+/// once the other columns have had theirs, so a phone does not scroll.
+double _productCellWidth(double tableWidth) =>
+    (tableWidth * 0.36).clamp(96.0, 240.0);
+
+/// A product's photo and name, as the first cell of a dashboard table.
+class _ProductCell extends StatelessWidget {
+  const _ProductCell({
+    required this.imagePath,
+    required this.name,
+    required this.maxWidth,
+  });
+
+  final String? imagePath;
+  final String name;
+  final double maxWidth;
+
+  @override
+  Widget build(BuildContext context) {
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxWidth: maxWidth),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ProductImage(imagePath: imagePath, size: 32, radius: 6),
+          const SizedBox(width: AppSpacing.sm),
+          Flexible(
+            child: Text(
+              name,
+              style: Theme.of(context).textTheme.titleSmall,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _AlertsPanel extends StatelessWidget {
@@ -571,10 +669,12 @@ class _AlertsPanel extends StatelessWidget {
           ? null
           : () => context.goSection(Routes.toAlerts(storeId)),
       child: shown.isEmpty
-          ? EmptyState(
-              icon: LucideIcons.circleCheck,
-              title: l10n.dashboardAllGood,
-              message: l10n.dashboardAllGoodBody,
+          ? _PanelEmpty(
+              child: EmptyState(
+                icon: LucideIcons.circleCheck,
+                title: l10n.dashboardAllGood,
+                message: l10n.dashboardAllGoodBody,
+              ),
             )
           : _AlertsTable(storeId: storeId, alerts: shown),
     );
@@ -588,13 +688,12 @@ class _AlertsPanel extends StatelessWidget {
 /// its own out. Keyed to the maximum rather than to the threshold so the order
 /// down the panel matches the length of the bars beside it; against the
 /// threshold an article at 2 of 8 and one at 2 of 80 sorted the same.
-double _fill(Item item) => item.maxStock <= 0
-    ? 0
-    : (item.quantity / item.maxStock).clamp(0.0, 1.0);
+double _fill(Item item) =>
+    item.maxStock <= 0 ? 0 : (item.quantity / item.maxStock).clamp(0.0, 1.0);
 
-/// The products under their threshold as a compact table: photo and name,
-/// stock against threshold with a gauge, and the status. Each row opens the
-/// product.
+/// The products under their threshold as a table: photo and name, stock
+/// against threshold, a gauge, and the status — in the shared
+/// [DataTableWrapper]. Each row opens the product.
 class _AlertsTable extends StatelessWidget {
   const _AlertsTable({required this.storeId, required this.alerts});
 
@@ -606,52 +705,58 @@ class _AlertsTable extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
 
-    return AppTable<ItemRowView>(
-      rows: alerts,
-      shrinkWrap: true,
-      bordered: false,
-      headerColor: AppColors.surface,
-      rowHeight: 52,
-      onRowTap: (view) => openProductDrawer(
-        context,
-        storeId: storeId,
-        itemId: view.item.id,
-      ),
-      columns: [
-        AppTableColumn(label: l10n.tableColProduct, flex: 3),
-        AppTableColumn(label: l10n.tableColStock, width: 112, numeric: true),
-        AppTableColumn(
-          label: l10n.tableColLevel,
-          width: 88,
-          minTableWidth: 400,
-        ),
-        AppTableColumn(
-          label: l10n.tableColStatus,
-          width: 132,
-          minTableWidth: 440,
-        ),
-      ],
-      cell: (context, view, column) {
-        final item = view.item;
-        final status = stockStatusOf(item);
-        final colors = StockStatusBadge.colorsFor(status);
-        return switch (column) {
-          0 => Row(
-            children: [
-              ProductImage(imagePath: item.imagePath, size: 32, radius: 6),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: Text(
-                  item.name,
-                  style: theme.textTheme.titleSmall,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        // The status before the gauge: it says the same in words.
+        final showStatus = width >= 400;
+        final showLevel = width >= 560;
+
+        return DataTableWrapper(
+          minWidth: width,
+          columns: [
+            DataColumn(label: Text(l10n.tableColProduct)),
+            DataColumn(label: Text(l10n.tableColStock), numeric: true),
+            if (showLevel) DataColumn(label: Text(l10n.tableColLevel)),
+            if (showStatus) DataColumn(label: Text(l10n.tableColStatus)),
+          ],
+          rows: [
+            for (final view in alerts)
+              _row(context, l10n, theme, view, width, showLevel, showStatus),
+          ],
+        );
+      },
+    );
+  }
+
+  DataRow _row(
+    BuildContext context,
+    AppLocalizations l10n,
+    ThemeData theme,
+    ItemRowView view,
+    double width,
+    bool showLevel,
+    bool showStatus,
+  ) {
+    final item = view.item;
+    final status = stockStatusOf(item);
+    final colors = StockStatusBadge.colorsFor(status);
+
+    return DataRow(
+      onSelectChanged: (_) =>
+          openProductDrawer(context, storeId: storeId, itemId: item.id),
+      cells: [
+        DataCell(
+          _ProductCell(
+            imagePath: item.imagePath,
+            name: item.name,
+            maxWidth: _productCellWidth(width),
           ),
-          1 => Column(
+        ),
+        DataCell(
+          Column(
             crossAxisAlignment: CrossAxisAlignment.end,
+            mainAxisAlignment: MainAxisAlignment.center,
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
@@ -672,20 +777,28 @@ class _AlertsTable extends StatelessWidget {
               ),
             ],
           ),
-          // The shared gauge: it fills to the declared maximum and marks the
-          // minimum, where this filled at the minimum and so showed every
-          // alerted product as a nearly empty bar of the same length.
-          2 => StockGauge(
-            quantity: item.quantity,
-            minimum: item.lowStockThreshold,
-            maximum: item.maxStock,
+        ),
+        // The shared gauge: it fills to the declared maximum and marks the
+        // minimum.
+        if (showLevel)
+          DataCell(
+            SizedBox(
+              width: 72,
+              child: StockGauge(
+                quantity: item.quantity,
+                minimum: item.lowStockThreshold,
+                maximum: item.maxStock,
+              ),
+            ),
           ),
-          _ => StatusDot(
-            color: colors.solid,
-            label: StockStatusBadge.labelFor(l10n, status),
+        if (showStatus)
+          DataCell(
+            StatusDot(
+              color: colors.solid,
+              label: StockStatusBadge.labelFor(l10n, status),
+            ),
           ),
-        };
-      },
+      ],
     );
   }
 }

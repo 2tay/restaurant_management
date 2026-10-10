@@ -328,9 +328,9 @@ class _ListPane extends ConsumerWidget {
 /// same kind of thing (narrow the list down) and they belong on the same line
 /// wherever the line has room.
 ///
-/// Ordering and view mode stay on the right, so they keep reading as "how this
-/// list is shown" rather than joining the filters — until the pane is too
-/// narrow for two sides, where they drop under and stay right-aligned.
+/// « Stock faible uniquement » and the view mode stay on the right — until
+/// the pane is too narrow for two sides, where they drop under and stay
+/// right-aligned. The order is a menu among the filters.
 class _ListControls extends StatelessWidget {
   const _ListControls({
     required this.filter,
@@ -414,9 +414,9 @@ class _ListControls extends StatelessWidget {
           ],
         ),
         const SizedBox(height: AppSpacing.sm),
-        // A `Wrap`, not a `Row`. The sort pill takes its natural width when
-        // nothing bounds it, and "24 produits" plus "Stock prioritaire" plus
-        // the view toggle is 48dp more than a 328dp phone has — a Row
+        // A `Wrap`, not a `Row`. The toggle takes its natural width when
+        // nothing bounds it, and "24 produits" plus "Stock faible uniquement"
+        // plus the view toggle is more than a 328dp phone has — a Row
         // overflows there rather than giving way.
         Wrap(
           alignment: WrapAlignment.spaceBetween,
@@ -431,14 +431,14 @@ class _ListControls extends StatelessWidget {
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Flexible so the sort pill gives way rather than overflowing.
-                // The view toggle beside it is two 48dp squares that cannot
-                // shrink, so the sort label is the only thing left that can —
-                // and `FilterPill` ellipsizes once something bounds it.
+                // Flexible so the pill gives way rather than overflowing. The
+                // view toggle beside it is two 48dp squares that cannot
+                // shrink, so the pill's label is the only thing left that can
+                // — and `FilterPill` ellipsizes once something bounds it.
                 Flexible(
-                  child: _SortMenu(
-                    sort: filter.sort,
-                    onSelected: notifier.setSort,
+                  child: _LowStockToggle(
+                    active: filter.lowStockOnly,
+                    onTap: notifier.toggleLowStockOnly,
                   ),
                 ),
                 const SizedBox(width: AppSpacing.sm),
@@ -462,8 +462,11 @@ class _ListControls extends StatelessWidget {
     ],
   );
 
-  /// The three filter controls, as the wide bar and the phone sheet both draw
-  /// them. One definition, so the sheet cannot drift from the bar.
+  /// The two filter menus and the order, as the wide bar and the phone sheet
+  /// both draw them. One definition, so the sheet cannot drift from the bar.
+  ///
+  /// « Stock faible uniquement » is not here: it sits on the right, beside
+  /// the view toggle, where the order used to be.
   List<Widget> _filterControls(BuildContext context, AppLocalizations l10n) => [
     _FilterMenu(
       label: l10n.inventoryFilterCategory,
@@ -479,26 +482,7 @@ class _ListControls extends StatelessWidget {
       options: suppliers,
       onSelected: notifier.setSupplier,
     ),
-    // A pill rather than a Material `FilterChip`: the chip drew itself 385dp
-    // wide for a three-word label, next to two 180dp pills saying the same
-    // kind of thing. Same control, same shape as its neighbours, half the
-    // width — and the roster's "afficher les retirés" toggle is built exactly
-    // this way, so the two now match.
-    Material(
-      color: Colors.transparent,
-      borderRadius: AppRadius.pillAll,
-      child: InkWell(
-        onTap: notifier.toggleLowStockOnly,
-        borderRadius: AppRadius.pillAll,
-        child: FilterPill(
-          label: l10n.inventoryFilterLowOnly,
-          selectedLabel: filter.lowStockOnly
-              ? l10n.inventoryFilterLowOnly
-              : null,
-          icon: LucideIcons.triangleAlert,
-        ),
-      ),
-    ),
+    _SortMenu(sort: filter.sort, onSelected: notifier.setSort),
   ];
 
   @override
@@ -548,7 +532,10 @@ class _ListControls extends StatelessWidget {
       runSpacing: AppSpacing.sm,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        _SortMenu(sort: filter.sort, onSelected: notifier.setSort),
+        _LowStockToggle(
+          active: filter.lowStockOnly,
+          onTap: notifier.toggleLowStockOnly,
+        ),
         _ViewModeToggle(mode: viewMode, onSelected: onViewMode),
       ],
     );
@@ -816,13 +803,9 @@ class _ProductGrid extends StatelessWidget {
   }
 }
 
-/// The products as compact rows.
-///
-/// Everything the card carries, on one line: thumbnail, name, category,
-/// status, quantity, and the same arrow. For the user who knows what they are
-/// looking for and wants twenty products on screen rather than six.
 /// The products as a table: what it is, how much is left against its
-/// threshold and its ceiling, what it is worth, and whether that is a problem.
+/// threshold and its ceiling, what it is worth, and whether that is a problem
+/// — in the shared [DataTableWrapper], like the pointage history.
 ///
 /// The headers sort — name, stock, status — through the same [ItemSort] the
 /// sort menu sets, so the two can never disagree. On a narrow screen the
@@ -842,140 +825,191 @@ class _ProductTable extends StatelessWidget {
   final ItemSort sort;
   final ValueChanged<ItemSort> onSort;
 
-  static const _byName = 'name';
-  static const _byStock = 'stock';
-  static const _byStatus = 'status';
-
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
 
-    final (Object? key, bool ascending) = switch (sort) {
-      ItemSort.nameAsc => (_byName, true),
-      ItemSort.nameDesc => (_byName, false),
-      ItemSort.stockAsc => (_byStock, true),
-      ItemSort.stockDesc => (_byStock, false),
-      ItemSort.status => (_byStatus, true),
-      ItemSort.recent => (null, true),
-    };
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final showThreshold = width >= 860;
+        final showLevel = width >= 1080;
+        final showValue = width >= 640;
+        final showStatus = width >= 480;
 
-    return AppTable<ItemRowView>(
-      rows: rows,
-      shrinkWrap: true,
-      sortKey: key,
-      sortAscending: ascending,
-      onSort: (column) => onSort(switch (column) {
-        _byName =>
-          sort == ItemSort.nameAsc ? ItemSort.nameDesc : ItemSort.nameAsc,
-        _byStock =>
-          sort == ItemSort.stockAsc ? ItemSort.stockDesc : ItemSort.stockAsc,
-        _ => ItemSort.status,
-      }),
-      onRowTap: (row) => onTap(row.item.id),
-      isSelected: (row) => row.item.id == selectedId,
-      columns: [
-        AppTableColumn(label: l10n.tableColProduct, flex: 4, sortKey: _byName),
-        AppTableColumn(
-          label: l10n.tableColStock,
-          width: 128,
-          numeric: true,
-          sortKey: _byStock,
-        ),
-        AppTableColumn(
-          label: l10n.tableColThreshold,
-          width: 132,
-          numeric: true,
-          minTableWidth: 720,
-        ),
-        AppTableColumn(
-          label: l10n.tableColLevel,
-          width: 140,
-          minTableWidth: 860,
-        ),
-        AppTableColumn(
-          label: l10n.tableColValue,
-          width: 112,
-          numeric: true,
-          minTableWidth: 620,
-        ),
-        AppTableColumn(
-          label: l10n.tableColStatus,
-          width: 168,
-          sortKey: _byStatus,
-          minTableWidth: 480,
-        ),
-      ],
-      cell: (context, row, column) {
-        final item = row.item;
-        final unit = row.unitAbbreviation;
-        final status = stockStatusOf(item);
-        final colors = StockStatusBadge.colorsFor(status);
+        // Column positions, for the sort arrow: they move as columns drop.
+        const nameIndex = 0;
+        const stockIndex = 1;
+        final statusIndex =
+            2 +
+            (showThreshold ? 1 : 0) +
+            (showLevel ? 1 : 0) +
+            (showValue ? 1 : 0);
 
-        return switch (column) {
-          0 => Row(
-            children: [
-              ProductImage(imagePath: item.imagePath, size: 40, radius: 8),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      item.name,
-                      style: theme.textTheme.titleSmall,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    Text(
-                      row.categoryName,
-                      style: theme.textTheme.bodySmall,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
+        final (int? sortIndex, bool ascending) = switch (sort) {
+          ItemSort.nameAsc => (nameIndex, true),
+          ItemSort.nameDesc => (nameIndex, false),
+          ItemSort.stockAsc => (stockIndex, true),
+          ItemSort.stockDesc => (stockIndex, false),
+          ItemSort.status => (showStatus ? statusIndex : null, true),
+          ItemSort.recent => (null, true),
+        };
+
+        return DataTableWrapper(
+          minWidth: width,
+          sortColumnIndex: sortIndex,
+          sortAscending: ascending,
+          columns: [
+            DataColumn(
+              label: Text(l10n.tableColProduct),
+              onSort: (_, _) => onSort(
+                sort == ItemSort.nameAsc ? ItemSort.nameDesc : ItemSort.nameAsc,
               ),
-            ],
+            ),
+            DataColumn(
+              label: Text(l10n.tableColStock),
+              numeric: true,
+              onSort: (_, _) => onSort(
+                sort == ItemSort.stockAsc
+                    ? ItemSort.stockDesc
+                    : ItemSort.stockAsc,
+              ),
+            ),
+            if (showThreshold)
+              DataColumn(label: Text(l10n.tableColThreshold), numeric: true),
+            if (showLevel) DataColumn(label: Text(l10n.tableColLevel)),
+            if (showValue)
+              DataColumn(label: Text(l10n.tableColValue), numeric: true),
+            if (showStatus)
+              DataColumn(
+                label: Text(l10n.tableColStatus),
+                onSort: (_, _) => onSort(ItemSort.status),
+              ),
+          ],
+          rows: [
+            for (final row in rows)
+              _row(
+                l10n,
+                theme,
+                row,
+                width: width,
+                showThreshold: showThreshold,
+                showLevel: showLevel,
+                showValue: showValue,
+                showStatus: showStatus,
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  DataRow _row(
+    AppLocalizations l10n,
+    ThemeData theme,
+    ItemRowView row, {
+    required double width,
+    required bool showThreshold,
+    required bool showLevel,
+    required bool showValue,
+    required bool showStatus,
+  }) {
+    final item = row.item;
+    final unit = row.unitAbbreviation;
+    final status = stockStatusOf(item);
+    final colors = StockStatusBadge.colorsFor(status);
+
+    return DataRow(
+      selected: item.id == selectedId,
+      onSelectChanged: (_) => onTap(item.id),
+      cells: [
+        DataCell(
+          ConstrainedBox(
+            // What the other columns leave, so a phone does not scroll.
+            constraints: BoxConstraints(
+              maxWidth: (width * 0.45).clamp(120.0, 320.0),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ProductImage(imagePath: item.imagePath, size: 40, radius: 8),
+                const SizedBox(width: AppSpacing.md),
+                Flexible(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        Formatters.capitalized(item.name),
+                        style: theme.textTheme.titleSmall,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        row.categoryName,
+                        style: theme.textTheme.bodySmall,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
-          1 => Text(
+        ),
+        DataCell(
+          Text(
             Formatters.quantityWithUnit(item.quantity, unit),
             style: AppTypography.numeric.copyWith(
               fontWeight: FontWeight.w600,
               color: AppColors.textPrimary,
             ),
             maxLines: 1,
-            overflow: TextOverflow.ellipsis,
           ),
-          // Both bounds in one cell rather than a column each: the table
-          // already drops columns below 860dp, and a seventh would compete for
-          // room with the gauge that reads them. The unit is on the Stock
-          // column two cells left, so it is not repeated here.
-          2 => Text(
-            '${Formatters.quantity(item.lowStockThreshold)} / '
-            '${Formatters.quantity(item.maxStock)}',
-            style: AppTypography.numeric.copyWith(
-              color: AppColors.textSecondary,
+        ),
+        // Both bounds in one cell rather than a column each. The unit is on
+        // the Stock column, so it is not repeated here.
+        if (showThreshold)
+          DataCell(
+            Text(
+              '${Formatters.quantity(item.lowStockThreshold)} / '
+              '${Formatters.quantity(item.maxStock)}',
+              style: AppTypography.numeric.copyWith(
+                color: AppColors.textSecondary,
+              ),
+              maxLines: 1,
             ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
           ),
-          3 => _LevelBar(item: item, status: status),
-          4 => Text(
-            item.averageCost == null
-                ? '—'
-                : Formatters.price(item.quantity * item.averageCost!),
-            style: AppTypography.numeric.copyWith(
-              color: AppColors.textSecondary,
+        if (showLevel)
+          DataCell(
+            SizedBox(
+              width: 120,
+              child: _LevelBar(item: item, status: status),
             ),
-            maxLines: 1,
           ),
-          _ => StatusDot(
-            color: colors.solid,
-            label: StockStatusBadge.labelFor(l10n, status),
+        if (showValue)
+          DataCell(
+            Text(
+              item.averageCost == null
+                  ? '—'
+                  : Formatters.price(item.quantity * item.averageCost!),
+              style: AppTypography.numeric.copyWith(
+                color: AppColors.textSecondary,
+              ),
+              maxLines: 1,
+            ),
           ),
-        };
-      },
+        if (showStatus)
+          DataCell(
+            StatusDot(
+              color: colors.solid,
+              label: StockStatusBadge.labelFor(l10n, status),
+            ),
+          ),
+      ],
     );
   }
 }
@@ -1002,6 +1036,40 @@ class _LevelBar extends StatelessWidget {
       quantity: item.quantity,
       minimum: item.lowStockThreshold,
       maximum: item.maxStock,
+    );
+  }
+}
+
+/// « Stock faible uniquement » — a plain on/off flip in the shape of the
+/// filter pills, red while it is on, like the roster's « afficher le
+/// personnel retiré »: what it narrows to is the stock in trouble.
+class _LowStockToggle extends StatelessWidget {
+  const _LowStockToggle({required this.active, required this.onTap});
+
+  final bool active;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
+    return Semantics(
+      button: true,
+      toggled: active,
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: AppRadius.smAll,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: AppRadius.smAll,
+          child: FilterPill(
+            label: l10n.inventoryFilterLowOnly,
+            selectedLabel: active ? l10n.inventoryFilterLowOnly : null,
+            icon: LucideIcons.triangleAlert,
+            activeColors: AppColors.outOfStock,
+          ),
+        ),
+      ),
     );
   }
 }

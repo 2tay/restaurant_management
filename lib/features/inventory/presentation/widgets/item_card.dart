@@ -13,8 +13,8 @@ import '../../../../shared/widgets/widgets.dart';
 /// The height of a card below its picture.
 ///
 /// Stated rather than derived, and the grid adds it to the image height to size
-/// each tile — see [ItemCard]. It covers the name, the category, the rule under
-/// them, and the quantity sharing a row with the stock range.
+/// each tile — see [ItemCard]. It covers the name, the category line and the
+/// quantity line.
 ///
 /// 108dp. It was 120 while a 40dp arrow button sat on the quantity's line and
 /// set that row's height; the card opens on a tap anywhere, so the arrow was
@@ -127,71 +127,28 @@ class ItemCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        item.name,
-                        style: theme.textTheme.titleSmall,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        view.categoryName,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: AppColors.textSecondary,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
+                  Text(
+                    Formatters.capitalized(item.name),
+                    style: theme.textTheme.titleSmall,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-
-                  // The rule separates what the product *is* from how much of
-                  // it there is. They are read at different moments — one to
-                  // find the product, the other to decide something about it.
-                  const Divider(
-                    height: AppSpacing.md,
-                    thickness: 1,
-                    color: AppColors.hairline,
+                  // Each figure says what it is: « Catégorie : » and
+                  // « Qté : » in muted text before the value.
+                  _LabelledLine(
+                    label: l10n.itemCardCategoryLabel,
+                    child: Text(
+                      view.categoryName,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppColors.textPrimary,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
-
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      // Both flexible, both ellipsizing: on the narrowest card
-                      // a long quantity and a long range each give way rather
-                      // than one of them pushing the other off the card.
-                      Flexible(
-                        child: ItemStockQuantity(view: view, status: status),
-                      ),
-                      const SizedBox(width: AppSpacing.xs),
-                      // What the quantity is measured against, at the far end
-                      // of its own line. Without it the figure is a number
-                      // with no scale — 6 kg is comfortable for one product
-                      // and a rupture for the next.
-                      //
-                      // The bounds alone, unlabelled. "Seuil" in front of them
-                      // is a word repeated on every card in the grid to
-                      // introduce two numbers that sit beside the quantity
-                      // they bound; the tooltip carries it for anyone who
-                      // needs it spelled out.
-                      Tooltip(
-                        message: l10n.itemStockRangeLabel,
-                        child: Text(
-                          '${Formatters.quantity(item.lowStockThreshold)}'
-                          ' / '
-                          '${Formatters.quantity(item.maxStock)}',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: AppColors.textSecondary,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
+                  _LabelledLine(
+                    label: l10n.itemCardQuantityLabel,
+                    child: ItemStockQuantity(view: view, status: status),
                   ),
                 ],
               ),
@@ -234,6 +191,37 @@ class ItemStockQuantity extends StatelessWidget {
       ),
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
+    );
+  }
+}
+
+/// « Catégorie : Légumes » — a muted label, then the value, on one line.
+class _LabelledLine extends StatelessWidget {
+  const _LabelledLine({required this.label, required this.child});
+
+  final String label;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.baseline,
+      textBaseline: TextBaseline.alphabetic,
+      children: [
+        // Both give way on the narrowest card, the label too, rather than
+        // the line running off the edge.
+        Flexible(
+          child: Text(
+            '$label ',
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        Flexible(flex: 2, child: child),
+      ],
     );
   }
 }

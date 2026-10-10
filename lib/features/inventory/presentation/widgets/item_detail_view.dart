@@ -13,6 +13,7 @@ import '../../../../core/utils/responsive.dart';
 import '../../../../core/utils/stock_status.dart';
 import '../../../../data/providers.dart';
 import '../../../../data/view_models/view_models.dart';
+import '../../../../models/models.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../shared/widgets/widgets.dart';
 import '../../../orders/presentation/widgets/order_status_badge.dart';
@@ -148,6 +149,14 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
       _ => _overviewTab(row, onOrderData),
     };
 
+    // A tab with nothing in it shows its empty state in the middle of the
+    // space the tab has, rather than as a box at the top of it.
+    final emptyTab = switch (_tab) {
+      _tabSuppliers when prices.isEmpty => _suppliersEmpty(context, row),
+      _tabHistory when movements.isEmpty => _historyEmpty(context),
+      _ => null,
+    };
+
     final tabs = _DetailTabs(
       current: _tab,
       onSelected: (tab) => setState(() => _tab = tab),
@@ -165,12 +174,12 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
     // In the panel the stock card belongs to the Détail tab — the tabs sit
     // right under the product's name, as in a phone's own app sheets. On the
     // page it stays above them, carrying the photo the page header lacks.
+    // The status is not on it: the panel shows it at the top right of its
+    // header, the page in its own header.
     final stockCard = _StockCard(
       row: row,
       onOrder: onOrderData.quantity,
       showPhoto: !widget.showTitle,
-      // The page header already carries the badge.
-      showStatus: widget.showTitle,
     );
 
     final content = ListView(
@@ -199,6 +208,11 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
     // content — so there is nothing to pin and the caller owns the scrolling.
     if (!widget.showTitle) return content;
 
+    // Centred both ways in what the panel has left under the tabs.
+    final body = emptyTab == null
+        ? content
+        : Center(child: SingleChildScrollView(child: emptyTab));
+
     // Which product you are reading, the tabs, and what acts on it must not
     // scroll away from you halfway down a long tab.
     return Column(
@@ -208,8 +222,13 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
         const SizedBox(height: AppSpacing.md),
         tabs,
         const SizedBox(height: AppSpacing.lg),
-        Expanded(child: content),
-        _ActionFooter(row: row, storeId: _storeId, onClose: widget.onClose),
+        Expanded(child: body),
+        _ActionFooter(
+          row: row,
+          storeId: _storeId,
+          tab: _tab,
+          onClose: widget.onClose,
+        ),
       ],
     );
   }
@@ -232,6 +251,7 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
         ),
         AppCard(
           padding: EdgeInsets.zero,
+          elevated: false,
           child: Column(
             children: [
               for (final view in openOrders)
@@ -267,20 +287,7 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
 
     void link() => context.pushScreen(Routes.toLinkSupplier(_storeId, item.id));
 
-    if (prices.isEmpty) {
-      return [
-        AppCard(
-          child: EmptyState(
-            icon: LucideIcons.truck,
-            title: l10n.itemNoSuppliersTitle,
-            message: l10n.itemNoSuppliersBody,
-            actionLabel: l10n.itemLinkSupplier,
-            actionIcon: LucideIcons.plus,
-            onAction: link,
-          ),
-        ),
-      ];
-    }
+    if (prices.isEmpty) return [_suppliersEmpty(context, row)];
 
     return [
       Container(
@@ -311,64 +318,75 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
           ],
         ),
       ),
-      const SizedBox(height: AppSpacing.sm),
-      Align(
-        alignment: AlignmentDirectional.centerStart,
-        child: TextButton.icon(
-          onPressed: link,
-          icon: const Icon(LucideIcons.plus, size: AppSizing.iconSm),
-          label: Text(l10n.itemLinkSupplier),
+      // In the panel « Associer un fournisseur » is the footer's button.
+      if (!widget.showTitle) ...[
+        const SizedBox(height: AppSpacing.sm),
+        Align(
+          alignment: AlignmentDirectional.centerStart,
+          child: TextButton.icon(
+            onPressed: link,
+            icon: const Icon(LucideIcons.plus, size: AppSizing.iconSm),
+            label: Text(l10n.itemLinkSupplier),
+          ),
         ),
-      ),
+      ],
     ];
   }
+
+  /// No supplier yet. The page offers the link here; the panel has it in its
+  /// footer, and a second button saying the same thing would be noise.
+  Widget _suppliersEmpty(BuildContext context, ItemRowView row) {
+    final l10n = AppLocalizations.of(context);
+    final onPage = !widget.showTitle;
+    return EmptyState(
+      icon: LucideIcons.truck,
+      title: l10n.itemNoSuppliersTitle,
+      message: l10n.itemNoSuppliersBody,
+      actionLabel: onPage ? l10n.itemLinkSupplier : null,
+      actionIcon: LucideIcons.plus,
+      onAction: onPage
+          ? () =>
+                context.pushScreen(Routes.toLinkSupplier(_storeId, row.item.id))
+          : null,
+    );
+  }
+
+  Widget _historyEmpty(BuildContext context) => EmptyState(
+    icon: LucideIcons.history,
+    title: AppLocalizations.of(context).itemNoMovements,
+  );
 
   List<Widget> _historyTab(
     BuildContext context,
     List<MovementRowView> movements,
   ) {
     final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
 
-    if (movements.isEmpty) {
-      return [
+    if (movements.isEmpty) return [_historyEmpty(context)];
+
+    // One flat card per movement.
+    return [
+      for (final (index, movement) in movements.indexed) ...[
+        if (index > 0) const SizedBox(height: AppSpacing.sm),
         AppCard(
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.md),
-            child: Text(
-              l10n.itemNoMovements,
-              textAlign: TextAlign.center,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: AppColors.textSecondary,
-              ),
+          padding: EdgeInsets.zero,
+          elevated: false,
+          child: _MovementLine(view: movement),
+        ),
+      ],
+      // In the panel « Tout afficher » is the footer's button.
+      if (!widget.showTitle) ...[
+        const SizedBox(height: AppSpacing.sm),
+        Align(
+          alignment: AlignmentDirectional.centerEnd,
+          child: TextButton(
+            onPressed: () => context.goSection(
+              Routes.toMovements(_storeId, itemId: _itemId),
             ),
+            child: Text(l10n.actionViewAll),
           ),
         ),
-      ];
-    }
-
-    return [
-      AppCard(
-        padding: EdgeInsets.zero,
-        child: Column(
-          children: [
-            for (final (index, movement) in movements.indexed)
-              _MovementLine(
-                view: movement,
-                showDivider: index < movements.length - 1,
-              ),
-          ],
-        ),
-      ),
-      const SizedBox(height: AppSpacing.sm),
-      Align(
-        alignment: AlignmentDirectional.centerEnd,
-        child: TextButton(
-          onPressed: () =>
-              context.goSection(Routes.toMovements(_storeId, itemId: _itemId)),
-          child: Text(l10n.actionViewAll),
-        ),
-      ),
+      ],
     ];
   }
 
@@ -554,7 +572,9 @@ class _DetailTab extends StatelessWidget {
 
 /// Who this is and the way out, pinned above the panel's scrolling body.
 ///
-/// Photo, name and category, read at a glance. Editing and deleting moved to
+/// Photo, name and category, read at a glance, and the stock status at the
+/// top right — what the product is opened to find out. Editing and deleting
+/// moved to
 /// the footer; what stays here is the way out — a back arrow once the panel
 /// has walked forward, and a close button on a tablet. A phone's bottom sheet
 /// has its handle for that, and a cross beside it would be a second way to do
@@ -627,6 +647,9 @@ class _IdentityBar extends StatelessWidget {
             ],
           ),
         ),
+        // The status where the eye lands first, at the top right.
+        const SizedBox(width: AppSpacing.sm),
+        StockStatusBadge(status: stockStatusOf(item)),
         if (onClose != null && !isSheet)
           IconButton(
             onPressed: onClose,
@@ -638,16 +661,25 @@ class _IdentityBar extends StatelessWidget {
   }
 }
 
-/// Modifier and Supprimer, side by side and pinned under the scrolling body.
+/// The footer pinned under the scrolling body, following the tab:
 ///
-/// Two halves of the width, the edit filled in green and the delete only
-/// outlined in red — far enough apart, and different enough, that one is not
-/// pressed for the other. Supprimer still asks before it deletes.
+/// * Détail — Modifier and Supprimer, side by side. Two halves of the width,
+///   the edit filled in green and the delete only outlined in red — far
+///   enough apart, and different enough, that one is not pressed for the
+///   other. Supprimer still asks before it deletes.
+/// * Fournisseurs — « Associer un fournisseur ».
+/// * Historique — « Tout afficher », the product's full movement history.
 class _ActionFooter extends ConsumerWidget {
-  const _ActionFooter({required this.row, required this.storeId, this.onClose});
+  const _ActionFooter({
+    required this.row,
+    required this.storeId,
+    required this.tab,
+    this.onClose,
+  });
 
   final ItemRowView row;
   final String storeId;
+  final String tab;
   final VoidCallback? onClose;
 
   @override
@@ -655,6 +687,27 @@ class _ActionFooter extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final item = row.item;
     const shape = RoundedRectangleBorder(borderRadius: AppRadius.mdAll);
+
+    Widget label(String text) =>
+        Text(text, maxLines: 1, overflow: TextOverflow.ellipsis);
+
+    final buttons = switch (tab) {
+      _tabSuppliers => FilledButton.icon(
+        onPressed: () =>
+            context.pushScreen(Routes.toLinkSupplier(storeId, item.id)),
+        style: FilledButton.styleFrom(shape: shape),
+        icon: const Icon(LucideIcons.link, size: AppSizing.iconSm),
+        label: label(l10n.itemLinkSupplier),
+      ),
+      _tabHistory => FilledButton.icon(
+        onPressed: () =>
+            context.goSection(Routes.toMovements(storeId, itemId: item.id)),
+        style: FilledButton.styleFrom(shape: shape),
+        icon: const Icon(LucideIcons.history, size: AppSizing.iconSm),
+        label: label(l10n.actionViewAll),
+      ),
+      _ => _editDelete(context, ref, l10n, item, shape),
+    };
 
     return DecoratedBox(
       decoration: const BoxDecoration(
@@ -664,51 +717,61 @@ class _ActionFooter extends ConsumerWidget {
         padding: EdgeInsets.only(
           top: context.isPhone ? AppSpacing.md : AppSpacing.lg,
         ),
-        child: Row(
-          children: [
-            Expanded(
-              child: FilledButton.icon(
-                onPressed: () =>
-                    context.pushScreen(Routes.toEditItem(storeId, item.id)),
-                style: FilledButton.styleFrom(shape: shape),
-                icon: const Icon(LucideIcons.pencil, size: AppSizing.iconSm),
-                label: Text(
-                  l10n.actionEdit,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: () async {
-                  final deleted = await confirmDeleteItem(
-                    context,
-                    ref,
-                    storeId,
-                    item,
-                  );
-                  // The panel was showing a product that is gone. Closing it
-                  // is the only honest thing left to do.
-                  if (deleted) onClose?.call();
-                },
-                style: OutlinedButton.styleFrom(
-                  shape: shape,
-                  foregroundColor: AppColors.error,
-                  side: const BorderSide(color: AppColors.error),
-                ),
-                icon: const Icon(LucideIcons.trash2, size: AppSizing.iconSm),
-                label: Text(
-                  l10n.actionDelete,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ),
-          ],
-        ),
+        child: buttons,
       ),
+    );
+  }
+
+  Widget _editDelete(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations l10n,
+    Item item,
+    OutlinedBorder shape,
+  ) {
+    return Row(
+      children: [
+        Expanded(
+          child: FilledButton.icon(
+            onPressed: () =>
+                context.pushScreen(Routes.toEditItem(storeId, item.id)),
+            style: FilledButton.styleFrom(shape: shape),
+            icon: const Icon(LucideIcons.pencil, size: AppSizing.iconSm),
+            label: Text(
+              l10n.actionEdit,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ),
+        const SizedBox(width: AppSpacing.md),
+        Expanded(
+          child: OutlinedButton.icon(
+            onPressed: () async {
+              final deleted = await confirmDeleteItem(
+                context,
+                ref,
+                storeId,
+                item,
+              );
+              // The panel was showing a product that is gone. Closing it
+              // is the only honest thing left to do.
+              if (deleted) onClose?.call();
+            },
+            style: OutlinedButton.styleFrom(
+              shape: shape,
+              foregroundColor: AppColors.error,
+              side: const BorderSide(color: AppColors.error),
+            ),
+            icon: const Icon(LucideIcons.trash2, size: AppSizing.iconSm),
+            label: Text(
+              l10n.actionDelete,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -725,13 +788,11 @@ class _StockCard extends StatelessWidget {
     required this.row,
     required this.onOrder,
     required this.showPhoto,
-    required this.showStatus,
   });
 
   final ItemRowView row;
   final double onOrder;
   final bool showPhoto;
-  final bool showStatus;
 
   @override
   Widget build(BuildContext context) {
@@ -771,6 +832,7 @@ class _StockCard extends StatelessWidget {
     ];
 
     return AppCard(
+      elevated: false,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -806,10 +868,6 @@ class _StockCard extends StatelessWidget {
                   ),
                 ),
               ),
-              if (showStatus) ...[
-                const SizedBox(width: AppSpacing.sm),
-                StockStatusBadge(status: stockStatusOf(item)),
-              ],
             ],
           ),
           const SizedBox(height: AppSpacing.md),
@@ -938,7 +996,8 @@ class _MetricChip extends StatelessWidget {
 /// rows all weighed the same as the quantity.
 ///
 /// Category and range are not here: the header and the stock card already
-/// show them.
+/// show them. The busy-day minimum is, first: the stock card's range is the
+/// ordinary week's.
 class _FactGrid extends StatelessWidget {
   const _FactGrid({required this.row});
 
@@ -951,6 +1010,13 @@ class _FactGrid extends StatelessWidget {
     final unit = row.unitAbbreviation;
 
     final tiles = <Widget>[
+      // The busy-day minimum: the explicit figure, or twice the ordinary one.
+      // First, beside the stock card whose range it extends.
+      _FactTile(
+        icon: LucideIcons.calendarClock,
+        label: l10n.itemBusyMinShort,
+        value: Formatters.quantityWithUnit(holidayMinimumOf(item), unit),
+      ),
       _FactTile(icon: LucideIcons.box, label: l10n.itemUnitLabel, value: unit),
       _FactTile(
         icon: LucideIcons.coins,
@@ -1216,10 +1282,9 @@ class _OpenOrderLine extends StatelessWidget {
 }
 
 class _MovementLine extends StatelessWidget {
-  const _MovementLine({required this.view, required this.showDivider});
+  const _MovementLine({required this.view});
 
   final MovementRowView view;
-  final bool showDivider;
 
   @override
   Widget build(BuildContext context) {
@@ -1227,15 +1292,10 @@ class _MovementLine extends StatelessWidget {
     final movement = view.movement;
     final colors = movementColors(movement.type);
 
-    return Container(
+    return Padding(
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.lg,
         vertical: AppSpacing.md,
-      ),
-      decoration: BoxDecoration(
-        border: showDivider
-            ? const Border(bottom: BorderSide(color: AppColors.hairline))
-            : null,
       ),
       child: Row(
         children: [

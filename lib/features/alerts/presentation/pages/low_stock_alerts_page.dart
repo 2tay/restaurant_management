@@ -65,16 +65,6 @@ class LowStockAlertsPage extends ConsumerWidget {
         .toList();
 
     return ShellPage(
-      tabs: SectionTabs(
-        currentPath: Routes.toAlerts(storeId),
-        tabs: [
-          SectionTab(label: l10n.alertsTitle, path: Routes.toAlerts(storeId)),
-          SectionTab(
-            label: l10n.notificationsTitle,
-            path: Routes.toNotifications(storeId),
-          ),
-        ],
-      ),
       title: l10n.alertsTitle,
       // No header actions: each row carries its own « Commander », and ticking
       // rows brings up the bar that orders several at once. Only while
@@ -110,14 +100,9 @@ class LowStockAlertsPage extends ConsumerWidget {
                 message: l10n.alertsEmptyBody,
               )
             else ...[
-              _Toolbar(alerts: all, busyAlerts: busyAll),
+              const _Toolbar(),
               const SizedBox(height: AppSpacing.md),
-              _Results(
-                shown: shown,
-                storeId: storeId,
-                filter: filter,
-                suppliers: _suppliersIn(busy ? busyAll : all),
-              ),
+              _Results(shown: shown, storeId: storeId, filter: filter),
             ],
           ],
         ),
@@ -288,117 +273,19 @@ class _Summary extends ConsumerWidget {
 // The toolbar.
 // -----------------------------------------------------------------------------
 
-/// The suppliers who appear in [alerts], by id — and whether some have none.
+/// The search, and the view mode beside it.
 ///
-/// Only those: a menu offering every supplier in the establishment would be
-/// mostly dead ends.
-({Map<String, String> named, bool hasUnsupplied}) _suppliersIn(
-  List<LowStockAlertView> alerts,
-) {
-  final named = <String, String>{};
-  var hasUnsupplied = false;
-  for (final alert in alerts) {
-    final id = alert.defaultSupplierId;
-    if (id == null) {
-      hasUnsupplied = true;
-      continue;
-    }
-    named[id] = alert.defaultSupplierName ?? '—';
-  }
-  return (named: named, hasUnsupplied: hasUnsupplied);
-}
-
-/// The name a supplier filter shows, or null when it is off.
-String? _supplierFilterLabel(
-  AppLocalizations l10n,
-  AlertsFilter filter,
-  Map<String, String> suppliers,
-) {
-  final id = filter.supplierId;
-  if (id == null) return null;
-  if (id == AlertsFilter.noSupplier) return l10n.alertsNoSupplier;
-  return suppliers[id] ?? '—';
-}
-
-/// The content width from which the filter menus sit in the bar itself.
-/// Narrower, one « Filtres » button opens them in a sheet — so they are never
-/// pushed off the edge of the screen.
-const double _inlineFiltersMinWidth = 880;
-
-/// Search, the coverage and supplier menus, the sort, and the view mode.
-///
-/// Severity is not here: the counts above the list are its filter, and a
-/// second row of tabs repeating them was the crowd this screen used to have.
-///
-/// Wide, everything shares one line. Narrower, the search takes the line and
-/// the menus go behind a « Filtres » button carrying how many are on.
+/// No filter menus: the counts above the list are the filters — Jours
+/// chargés, Rupture, Stock bas — and a second set of controls narrowing the
+/// same list was more than the screen needed.
 class _Toolbar extends ConsumerWidget {
-  const _Toolbar({required this.alerts, required this.busyAlerts});
-
-  /// Every alert, before any filtering.
-  final List<LowStockAlertView> alerts;
-
-  /// Every product under its busy-day minimum, before any filtering.
-  final List<LowStockAlertView> busyAlerts;
+  const _Toolbar();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final filter = ref.watch(alertsFilterProvider);
     final notifier = ref.read(alertsFilterProvider.notifier);
-    final phone = context.isPhone;
-
-    final (:named, :hasUnsupplied) = _suppliersIn(
-      filter.severity == AlertSeverity.busy ? busyAlerts : alerts,
-    );
-
-    // Built from the filter passed in, so the sheet can rebuild them from the
-    // provider it watches while it stays open.
-    List<Widget> menus(AlertsFilter filter) => [
-      FilterMenu<AlertCoverage>(
-        label: l10n.alertsFilterCoverage,
-        selectedLabel: switch (filter.coverage) {
-          AlertCoverage.all => null,
-          AlertCoverage.uncovered => l10n.alertsCoverageUncovered,
-          AlertCoverage.onOrder => l10n.alertsCoverageOnOrder,
-        },
-        entries: {
-          AlertCoverage.all: l10n.alertsFilterAll,
-          AlertCoverage.uncovered: l10n.alertsCoverageUncovered,
-          AlertCoverage.onOrder: l10n.alertsCoverageOnOrder,
-        },
-        onSelected: notifier.setCoverage,
-      ),
-      if (named.isNotEmpty || hasUnsupplied)
-        FilterMenu<String>(
-          label: l10n.alertsFilterSupplier,
-          selectedLabel: _supplierFilterLabel(l10n, filter, named),
-          entries: {
-            '': l10n.alertsFilterAllSuppliers,
-            for (final entry in named.entries) entry.key: entry.value,
-            if (hasUnsupplied) AlertsFilter.noSupplier: l10n.alertsNoSupplier,
-          },
-          onSelected: (id) => notifier.setSupplier(id.isEmpty ? null : id),
-        ),
-      // Sorting reorders and never hides, so it is not counted among the
-      // filters and not cleared with them.
-      FilterMenu<AlertSort>(
-        label: l10n.alertsFilterSort,
-        selectedLabel: switch (filter.sort) {
-          // Urgency is the default: naming it would put a pill on screen
-          // saying nothing had been chosen.
-          AlertSort.urgency => null,
-          AlertSort.shortfall => l10n.alertsSortShortfall,
-          AlertSort.name => l10n.alertsSortName,
-        },
-        entries: {
-          AlertSort.urgency: l10n.alertsSortUrgency,
-          AlertSort.shortfall: l10n.alertsSortShortfall,
-          AlertSort.name: l10n.alertsSortName,
-        },
-        onSelected: notifier.setSort,
-      ),
-    ];
 
     final search = SearchField(
       hint: l10n.alertsSearchHint,
@@ -409,93 +296,39 @@ class _Toolbar extends ConsumerWidget {
 
     // The table needs the room a phone does not have, so a phone has no
     // choice to offer.
-    final viewToggle = phone
-        ? null
-        : ViewModeToggle<AlertsViewMode>(
-            value: ref.watch(alertsViewModeProvider),
-            onSelected: ref.read(alertsViewModeProvider.notifier).select,
-            options: [
-              ViewModeOption(
-                value: AlertsViewMode.table,
-                icon: LucideIcons.list,
-                label: l10n.movementsViewList,
-              ),
-              ViewModeOption(
-                value: AlertsViewMode.grid,
-                icon: LucideIcons.layoutGrid,
-                label: l10n.viewModeGrid,
-              ),
-            ],
-          );
+    if (context.isPhone) return search;
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        if (constraints.maxWidth >= _inlineFiltersMinWidth) {
-          return Row(
-            children: [
-              SizedBox(width: AppSizing.filterFieldWidth + 40, child: search),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Wrap(
-                  spacing: AppSpacing.xs,
-                  runSpacing: AppSpacing.xs,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: menus(filter),
-                ),
+    return Row(
+      children: [
+        Expanded(
+          child: Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(
+                maxWidth: AppSizing.filterFieldWidth + 40,
               ),
-              if (viewToggle != null) ...[
-                const SizedBox(width: AppSpacing.md),
-                viewToggle,
-              ],
-            ],
-          );
-        }
-
-        // Coverage and supplier only: severity has its own way in, above.
-        final narrowing =
-            (filter.coverage != AlertCoverage.all ? 1 : 0) +
-            (filter.supplierId != null ? 1 : 0);
-
-        return Row(
-          children: [
-            Expanded(child: search),
-            const SizedBox(width: AppSpacing.sm),
-            FilterSheetButton(
-              compact: phone,
-              activeCount: narrowing,
-              onPressed: () => FilterSheet.show(
-                context,
-                onClear: narrowing > 0 || filter.sort != AlertSort.urgency
-                    ? () => notifier
-                        ..setCoverage(AlertCoverage.all)
-                        ..setSupplier(null)
-                        ..setSort(AlertSort.urgency)
-                    : null,
-                builder: (context) => Consumer(
-                  builder: (context, ref, _) {
-                    // Watched, not captured: the pills inside the sheet have
-                    // to follow the taps made on them.
-                    final live = ref.watch(alertsFilterProvider);
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        for (final (i, menu) in menus(live).indexed) ...[
-                          if (i > 0) const SizedBox(height: AppSpacing.md),
-                          menu,
-                        ],
-                      ],
-                    );
-                  },
-                ),
-              ),
+              child: search,
             ),
-            if (viewToggle != null) ...[
-              const SizedBox(width: AppSpacing.sm),
-              viewToggle,
-            ],
+          ),
+        ),
+        const SizedBox(width: AppSpacing.md),
+        ViewModeToggle<AlertsViewMode>(
+          value: ref.watch(alertsViewModeProvider),
+          onSelected: ref.read(alertsViewModeProvider.notifier).select,
+          options: [
+            ViewModeOption(
+              value: AlertsViewMode.table,
+              icon: LucideIcons.list,
+              label: l10n.movementsViewList,
+            ),
+            ViewModeOption(
+              value: AlertsViewMode.grid,
+              icon: LucideIcons.layoutGrid,
+              label: l10n.viewModeGrid,
+            ),
           ],
-        );
-      },
+        ),
+      ],
     );
   }
 }
@@ -509,15 +342,11 @@ class _Results extends ConsumerWidget {
     required this.shown,
     required this.storeId,
     required this.filter,
-    required this.suppliers,
   });
 
   final List<LowStockAlertView> shown;
   final String storeId;
   final AlertsFilter filter;
-
-  /// The suppliers on the current list, to name the supplier filter's chip.
-  final ({Map<String, String> named, bool hasUnsupplied}) suppliers;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -541,12 +370,8 @@ class _Results extends ConsumerWidget {
         final header = _ResultsHeader(
           alerts: shown,
           filter: filter,
-          suppliers: suppliers.named,
           // The table has its own select-all in its header.
           selectAll: !table && shown.isNotEmpty,
-          // Wide, the coverage and supplier pills already show what they are
-          // set to; narrower they are behind the button, so chips say it.
-          showNarrowing: constraints.maxWidth < _inlineFiltersMinWidth,
         );
 
         final Widget body;
@@ -591,10 +416,7 @@ class _Results extends ConsumerWidget {
   }) {
     // Nothing narrowing the list: it is genuinely empty, which is good news
     // rather than a filter to clear.
-    final narrowed =
-        filter.coverage != AlertCoverage.all ||
-        filter.supplierId != null ||
-        filter.query.trim().isNotEmpty;
+    final narrowed = filter.query.trim().isNotEmpty;
     if (!narrowed && busy) {
       return EmptyState(
         icon: LucideIcons.calendarCheck,
@@ -617,25 +439,20 @@ class _Results extends ConsumerWidget {
 }
 
 /// The narrowest content width the alerts table is drawn at.
-const double _tableMinWidth = 760;
+const double _tableMinWidth = 900;
 
-/// Above the rows: how many there are, and a chip for each filter on — tap
-/// its ✕ to drop it. The severity picked from the counts above shows here
-/// too, which is how « every alert » is always one tap away.
+/// Above the rows: how many there are, and a chip for the count picked above
+/// — tap its ✕, or the count again, to see every alert.
 class _ResultsHeader extends ConsumerWidget {
   const _ResultsHeader({
     required this.alerts,
     required this.filter,
-    required this.suppliers,
     required this.selectAll,
-    required this.showNarrowing,
   });
 
   final List<LowStockAlertView> alerts;
   final AlertsFilter filter;
-  final Map<String, String> suppliers;
   final bool selectAll;
-  final bool showNarrowing;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -652,18 +469,6 @@ class _ResultsHeader extends ConsumerWidget {
             _ => l10n.alertsBusyTab,
           },
           onRemoved: () => notifier.setSeverity(AlertSeverity.all),
-        ),
-      if (showNarrowing && filter.coverage != AlertCoverage.all)
-        _FilterChip(
-          label: filter.coverage == AlertCoverage.uncovered
-              ? l10n.alertsCoverageUncovered
-              : l10n.alertsCoverageOnOrder,
-          onRemoved: () => notifier.setCoverage(AlertCoverage.all),
-        ),
-      if (showNarrowing && filter.supplierId != null)
-        _FilterChip(
-          label: _supplierFilterLabel(l10n, filter, suppliers)!,
-          onRemoved: () => notifier.setSupplier(null),
         ),
     ];
 
@@ -694,14 +499,6 @@ class _ResultsHeader extends ConsumerWidget {
                   ),
                 ),
                 ...chips,
-                if (filter.activeFilterCount > 1)
-                  TextButton(
-                    onPressed: notifier.clear,
-                    style: TextButton.styleFrom(
-                      visualDensity: VisualDensity.compact,
-                    ),
-                    child: Text(l10n.filtersClearAll),
-                  ),
               ],
             ),
           ),
@@ -797,7 +594,7 @@ const double _rowHeight = 72;
 
 /// Below this table width the supplier column goes, and the supplier moves
 /// under the product's name instead — a tablet in portrait.
-const double _supplierColumnMinWidth = 1040;
+const double _supplierColumnMinWidth = 1240;
 
 /// What one alert row says, worked out once for the table and the card alike.
 class _AlertFacts {
@@ -1133,6 +930,7 @@ class _ProductIdentity extends StatelessWidget {
     final supplierName = showSupplier ? view.defaultSupplierName : null;
 
     return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
         ProductImage(
           imagePath: facts.item.imagePath,
@@ -1141,7 +939,7 @@ class _ProductIdentity extends StatelessWidget {
           placeholder: ProductImagePlaceholder.disc,
         ),
         const SizedBox(width: AppSpacing.md),
-        Expanded(
+        Flexible(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
@@ -1178,13 +976,14 @@ class _ProductIdentity extends StatelessWidget {
 // -----------------------------------------------------------------------------
 
 /// One aligned line per product: who, how much, against what, how much to
-/// order, from whom, how bad, and the action.
+/// order, from whom, how bad, and the action — « Commander », or « Associer »
+/// for a product nobody supplies.
 ///
-/// The headings are the shared table's, worded like the inventory's —
-/// « Produit », « Stock », « Statut » — so the two screens read alike.
-/// Narrower, the supplier goes first — it moves under the product's name —
-/// then the minimum, so the stock, the quantity to order, the status and the
-/// action are always there. Below [_tableMinWidth] the cards take over.
+/// Drawn in the same [DataTableWrapper] as the pointage and payment
+/// histories, so every table in the app reads alike. Narrower, the supplier
+/// goes first — it moves under the product's name — then the minimum, so the
+/// stock, the quantity to order, the status and the action are always there.
+/// Below [_tableMinWidth] the cards take over.
 class _AlertsTable extends ConsumerWidget {
   const _AlertsTable({
     required this.alerts,
@@ -1205,83 +1004,82 @@ class _AlertsTable extends ConsumerWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        // The same width the table hides its columns by.
-        final supplierColumn = constraints.maxWidth >= _supplierColumnMinWidth;
+        final width = constraints.maxWidth;
+        final supplierColumn = width >= _supplierColumnMinWidth;
+        final minimumColumn = width >= 1080;
 
-        return AppTable<LowStockAlertView>(
-          rows: alerts,
-          shrinkWrap: true,
-          rowHeight: _rowHeight,
-          onRowTap: (v) => openProductDrawer(
-            context,
-            storeId: storeId,
-            itemId: v.row.item.id,
-          ),
-          isSelected: (v) => selection.contains(v.row.item.id),
+        return DataTableWrapper(
+          minWidth: _tableMinWidth,
           columns: [
-            AppTableColumn(
-              label: l10n.alertsSelectAll,
-              width: 52,
-              header: _SelectAllCheckbox(alerts: alerts),
-            ),
-            AppTableColumn(label: l10n.tableColProduct, flex: 5),
-            AppTableColumn(label: l10n.tableColStock, flex: 3),
-            AppTableColumn(
-              label: l10n.alertsColumnMinimum,
-              width: 116,
-              numeric: true,
-              minTableWidth: 900,
-            ),
-            AppTableColumn(
-              label: l10n.alertsColumnToOrder,
-              width: 124,
-              numeric: true,
-            ),
-            AppTableColumn(
-              label: l10n.tableColSupplier,
-              flex: 3,
-              minTableWidth: _supplierColumnMinWidth,
-            ),
-            AppTableColumn(label: l10n.tableColStatus, width: 128),
-            AppTableColumn(label: l10n.employeesColumnActions, width: 168),
+            DataColumn(label: _SelectAllCheckbox(alerts: alerts)),
+            DataColumn(label: Text(l10n.tableColProduct)),
+            DataColumn(label: Text(l10n.tableColStock)),
+            if (minimumColumn)
+              DataColumn(label: Text(l10n.alertsColumnMinimum), numeric: true),
+            DataColumn(label: Text(l10n.alertsColumnToOrder), numeric: true),
+            if (supplierColumn) DataColumn(label: Text(l10n.tableColSupplier)),
+            DataColumn(label: Text(l10n.tableColStatus)),
+            DataColumn(label: Text(l10n.employeesColumnActions)),
           ],
-          cell: (context, v, column) {
-            final facts = _AlertFacts(v, busy: busy);
-            return switch (column) {
-              0 => _RowCheckbox(item: facts.item),
-              1 => _ProductIdentity(
-                facts: facts,
-                showSupplier: !supplierColumn,
+          rows: [
+            for (final v in alerts)
+              _row(
+                context,
+                _AlertFacts(v, busy: busy),
+                selected: selection.contains(v.row.item.id),
+                supplierColumn: supplierColumn,
+                minimumColumn: minimumColumn,
               ),
-              2 => ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 170),
-                child: _StockLevel(facts: facts),
-              ),
-              3 => Text(
-                facts.quantity(facts.minimum),
-                style: AppTypography.numeric.copyWith(
-                  color: AppColors.textSecondary,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              4 => _ToOrder(facts: facts),
-              5 => _SupplierName(facts: facts),
-              6 => _Priority(facts: facts),
-              _ => Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Flexible(
-                    child: _OrderAction(facts: facts, storeId: storeId),
-                  ),
-                  const SizedBox(width: AppSpacing.xs),
-                  _RowMenu(facts: facts, storeId: storeId),
-                ],
-              ),
-            };
-          },
+          ],
         );
       },
+    );
+  }
+
+  DataRow _row(
+    BuildContext context,
+    _AlertFacts facts, {
+    required bool selected,
+    required bool supplierColumn,
+    required bool minimumColumn,
+  }) {
+    return DataRow(
+      selected: selected,
+      onSelectChanged: (_) =>
+          openProductDrawer(context, storeId: storeId, itemId: facts.item.id),
+      cells: [
+        DataCell(_RowCheckbox(item: facts.item)),
+        DataCell(
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 220),
+            child: _ProductIdentity(
+              facts: facts,
+              showSupplier: !supplierColumn,
+            ),
+          ),
+        ),
+        DataCell(SizedBox(width: 130, child: _StockLevel(facts: facts))),
+        if (minimumColumn)
+          DataCell(
+            Text(
+              facts.quantity(facts.minimum),
+              style: AppTypography.numeric.copyWith(
+                color: AppColors.textSecondary,
+              ),
+              maxLines: 1,
+            ),
+          ),
+        DataCell(_ToOrder(facts: facts)),
+        if (supplierColumn)
+          DataCell(
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 180),
+              child: _SupplierName(facts: facts),
+            ),
+          ),
+        DataCell(_Priority(facts: facts)),
+        DataCell(_OrderAction(facts: facts, storeId: storeId)),
+      ],
     );
   }
 }

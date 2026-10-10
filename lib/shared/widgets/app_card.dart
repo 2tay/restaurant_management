@@ -23,6 +23,7 @@ class AppCard extends StatefulWidget {
     this.bordered = true,
     this.dashedBorderColor,
     this.borderColor,
+    this.elevated = true,
     super.key,
   });
 
@@ -54,6 +55,11 @@ class AppCard extends StatefulWidget {
   /// content does not move: it is inset by the hairline's width, like every
   /// other card in the row.
   final Color? borderColor;
+
+  /// False drops the shadow, at rest and on hover alike — a card inside a
+  /// panel that is already its own surface (the product drawer), where a
+  /// lifted card would read as a second layer stacked on the first.
+  final bool elevated;
 
   /// The hairline a resting card is drawn with.
   static const double borderWidth = 1;
@@ -130,7 +136,9 @@ class _AppCardState extends State<AppCard> {
               : null,
           // Pressed drops back to resting so the card appears to sink under
           // the finger rather than staying lifted.
-          boxShadow: _pressed
+          boxShadow: !widget.elevated
+              ? null
+              : _pressed
               ? AppElevation.card
               : lifted
               ? AppElevation.cardHovered
@@ -217,8 +225,7 @@ class _DashedRRectPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.5;
     final rect = (Offset.zero & size).deflate(0.75);
-    final path = Path()
-      ..addRRect(AppRadius.lgAll.toRRect(rect));
+    final path = Path()..addRRect(AppRadius.lgAll.toRRect(rect));
     for (final metric in path.computeMetrics()) {
       for (var d = 0.0; d < metric.length; d += _dash + _gap) {
         canvas.drawPath(metric.extractPath(d, d + _dash), paint);

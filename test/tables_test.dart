@@ -10,11 +10,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:stock_inventory/app/router.dart';
 import 'package:stock_inventory/app/routes.dart';
 import 'package:stock_inventory/data/seed/dataset/dataset.dart';
-import 'package:stock_inventory/data/view_models/view_models.dart';
 import 'package:stock_inventory/features/inventory/presentation/widgets/item_detail_view.dart';
 import 'package:stock_inventory/features/stock_movement/presentation/widgets/movement_row.dart';
 import 'package:stock_inventory/features/stock_movement/presentation/widgets/movement_table.dart';
-import 'package:stock_inventory/shared/widgets/app_table.dart';
 import 'package:stock_inventory/shared/widgets/view_mode_toggle.dart';
 
 import 'support/app_harness.dart';
@@ -32,15 +30,24 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  /// The product names in the table, top to bottom, as far as it has built.
+  /// The product names in the table, top to bottom, the first eight — the
+  /// first text of each row's first cell, lower-cased as the sort compares.
   List<String> namesInTable(WidgetTester tester) {
-    final table = find.byType(AppTable<ItemRowView>);
-    final names = <String>[];
-    for (final row
-        in tester.widget<AppTable<ItemRowView>>(table).rows.take(8)) {
-      names.add(row.item.name);
-    }
-    return names;
+    final table = tester.widget<DataTable>(find.byType(DataTable));
+    return [
+      for (final row in table.rows.take(8))
+        tester
+            .widget<Text>(
+              find
+                  .descendant(
+                    of: find.byWidget(row.cells.first.child),
+                    matching: find.byType(Text),
+                  )
+                  .first,
+            )
+            .data!
+            .toLowerCase(),
+    ];
   }
 
   group('the product table', () {
@@ -51,7 +58,7 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(tester.takeException(), isNull);
-        expect(find.byType(AppTable<ItemRowView>), findsOneWidget);
+        expect(find.byType(DataTable), findsOneWidget);
       });
     }
 
@@ -63,9 +70,8 @@ void main() {
       await tester.pumpAndSettle();
 
       final header = find.descendant(
-        of: find.byType(AppTable<ItemRowView>),
-        // Headers are set in capitals.
-        matching: find.text('PRODUIT'),
+        of: find.byType(DataTable),
+        matching: find.text('Produit'),
       );
       await tester.tap(header);
       await tester.pumpAndSettle();
@@ -86,15 +92,14 @@ void main() {
       await tester.tap(find.byTooltip('Vue tableau').first);
       await tester.pumpAndSettle();
 
-      final first = tester
-          .widget<AppTable<ItemRowView>>(find.byType(AppTable<ItemRowView>))
-          .rows
-          .first;
+      final first = tester.widget<DataTable>(find.byType(DataTable)).rows.first;
       await tester.tap(
-        find.descendant(
-          of: find.byType(AppTable<ItemRowView>),
-          matching: find.text(first.item.name),
-        ),
+        find
+            .descendant(
+              of: find.byWidget(first.cells.first.child),
+              matching: find.byType(Text),
+            )
+            .first,
       );
       await tester.pumpAndSettle();
 
@@ -133,8 +138,8 @@ void main() {
     await open(tester, _tablet, Routes.toDashboard(_store));
 
     expect(tester.takeException(), isNull);
-    expect(find.byType(AppTable<MovementRowView>), findsOneWidget);
-    expect(find.byType(AppTable<ItemRowView>), findsOneWidget);
+    // The activity and the alerts, in the shared table frame.
+    expect(find.byType(DataTable), findsNWidgets(2));
   });
 
   testApp('the list/table switch sits at the right end of the filter bar', (
@@ -168,18 +173,19 @@ void main() {
         tester.getRect(find.byWidget(element.widget)),
     ];
 
-    for (final type in [AppTable<MovementRowView>, AppTable<ItemRowView>]) {
-      final table = tester.getRect(find.byType(type));
+    for (final (i, element) in find.byType(DataTable).evaluate().indexed) {
+      final type = 'table $i';
+      final table = tester.getRect(find.byWidget(element.widget));
       // The button above this table ends at the table's right edge — not
       // somewhere in the middle of the header.
       final above = buttons.where(
         (rect) => rect.bottom <= table.top && rect.left >= table.left,
       );
-      expect(above, isNotEmpty, reason: '$type');
+      expect(above, isNotEmpty, reason: type);
       expect(
         above.any((rect) => (table.right - rect.right).abs() < 16),
         isTrue,
-        reason: '$type',
+        reason: type,
       );
     }
   });

@@ -31,8 +31,6 @@ void main() {
     'Synchronisation': Routes.toSyncStatus(_store),
     'Catégories': Routes.toCategories(_store),
     'Unités': Routes.toUnits(_store),
-    'Alertes': Routes.toAlerts(_store),
-    'Notifications': Routes.toNotifications(_store),
     'Fournisseur': Routes.toSupplier(_store, mockSuppliers.first.id),
   };
 
@@ -54,6 +52,22 @@ void main() {
         });
       }
     }
+  }
+
+  // Alertes and Notifications are two pages of their own, each reached from
+  // the rail or the bell — no bar switching between them.
+  for (final route in [
+    Routes.toAlerts(_store),
+    Routes.toNotifications(_store),
+  ]) {
+    testApp('$route has no section tabs', (tester) async {
+      await pumpApp(tester, size: const Size(800, 1280));
+      appRouter.go(route);
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(find.byType(SectionTabs), findsNothing);
+    });
   }
 
   testApp('settings tabs: one bar above the title, across the whole page, '

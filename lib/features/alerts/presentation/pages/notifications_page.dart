@@ -80,19 +80,6 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
         : filtered.toList().reversed.toList();
 
     return ShellPage(
-      tabs: SectionTabs(
-        currentPath: Routes.toNotifications(widget.storeId),
-        tabs: [
-          SectionTab(
-            label: l10n.alertsTitle,
-            path: Routes.toAlerts(widget.storeId),
-          ),
-          SectionTab(
-            label: l10n.notificationsTitle,
-            path: Routes.toNotifications(widget.storeId),
-          ),
-        ],
-      ),
       title: l10n.notificationsTitle,
       subtitle: l10n.notificationsUnread(unreadCount),
       // Information, not description — kept on a phone.

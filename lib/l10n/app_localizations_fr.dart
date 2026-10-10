@@ -653,6 +653,15 @@ class AppLocalizationsFr extends AppLocalizations {
       'Le minimum en forte affluence doit dépasser le stock minimum.';
 
   @override
+  String get itemBusyMinShort => 'Min. affluence';
+
+  @override
+  String get itemCardCategoryLabel => 'Catégorie :';
+
+  @override
+  String get itemCardQuantityLabel => 'Qté :';
+
+  @override
   String get itemFormSectionIdentity => 'Identité';
 
   @override

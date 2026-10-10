@@ -17,6 +17,13 @@ import 'package:intl/intl.dart';
 abstract final class Formatters {
   static const String locale = 'fr_BE';
 
+  /// `Tomates cerises` from `tomates cerises` — a name typed in lower case
+  /// shown with its first letter up, the rest as typed.
+  static String capitalized(String value) {
+    final text = value.trimLeft();
+    return text.isEmpty ? text : text[0].toUpperCase() + text.substring(1);
+  }
+
   // ---------------------------------------------------------------------------
   // Money
   // ---------------------------------------------------------------------------

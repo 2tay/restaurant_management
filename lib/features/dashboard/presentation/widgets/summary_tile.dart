@@ -121,7 +121,8 @@ class SummaryTile extends StatelessWidget {
 ///
 /// Compact enough that all four share one row even on a phone: there the icon
 /// sits over a short label, like an app shortcut; with room, the icon sits
-/// beside the full label. [emphasised] fills it — the one most common action.
+/// beside the full label. White and borderless, all four alike: the
+/// coloured badge is what tells them apart.
 class QuickActionButton extends StatelessWidget {
   const QuickActionButton({
     required this.label,
@@ -129,7 +130,6 @@ class QuickActionButton extends StatelessWidget {
     required this.icon,
     required this.colors,
     required this.onPressed,
-    this.emphasised = false,
     this.compact = false,
     super.key,
   });
@@ -144,20 +144,18 @@ class QuickActionButton extends StatelessWidget {
   final IconData icon;
   final StockStatusColors colors;
   final VoidCallback onPressed;
-  final bool emphasised;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final background = emphasised ? colors.solid : AppColors.surface;
-    final foreground = emphasised ? AppColors.white : AppColors.textPrimary;
+    const foreground = AppColors.textPrimary;
 
     return Semantics(
       button: true,
       label: label,
       excludeSemantics: true,
       child: Material(
-        color: background,
+        color: AppColors.surface,
         borderRadius: AppRadius.lgAll,
         child: InkWell(
           onTap: onPressed,
@@ -168,27 +166,19 @@ class QuickActionButton extends StatelessWidget {
               horizontal: AppSpacing.md,
               vertical: AppSpacing.sm,
             ),
-            decoration: BoxDecoration(
-              borderRadius: AppRadius.lgAll,
-              border: Border.all(
-                color: emphasised ? colors.solid : AppColors.border,
-              ),
-            ),
             child: Builder(
               builder: (context) {
                 final badge = Container(
                   width: 36,
                   height: 36,
                   decoration: BoxDecoration(
-                    color: emphasised
-                        ? AppColors.white.withValues(alpha: 0.18)
-                        : colors.container,
+                    color: colors.container,
                     borderRadius: AppRadius.mdAll,
                   ),
                   child: Icon(
                     icon,
                     size: AppSizing.iconMd,
-                    color: emphasised ? AppColors.white : colors.foreground,
+                    color: colors.foreground,
                   ),
                 );
 

@@ -13,7 +13,6 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:stock_inventory/shared/widgets/widgets.dart';
 import 'package:stock_inventory/core/theme/app_spacing.dart';
 import 'package:stock_inventory/app/router.dart';
 import 'package:stock_inventory/app/routes.dart';
@@ -22,8 +21,6 @@ import 'package:stock_inventory/data/database/app_database.dart';
 import 'package:stock_inventory/data/seed/dataset/dataset.dart';
 import 'package:stock_inventory/features/inventory/presentation/pages/inventory_list_page.dart';
 import 'package:stock_inventory/features/inventory/presentation/widgets/item_card.dart';
-import 'package:stock_inventory/data/view_models/view_models.dart';
-import 'package:stock_inventory/shared/widgets/app_table.dart';
 import 'package:drift/drift.dart' show Value;
 
 import 'support/app_harness.dart';
@@ -35,8 +32,6 @@ const _store = StoreIds.sablon;
 const _narrow = Size(720, 1000);
 const _tablet = Size(1024, 768);
 const _desktop = Size(1600, 900);
-
-
 
 Future<void> _openInventory(WidgetTester tester, Size size) async {
   await pumpApp(tester, size: size);
@@ -100,7 +95,7 @@ void main() {
         await _switchToList(tester);
 
         expect(tester.takeException(), isNull);
-        expect(find.byType(AppTable<ItemRowView>), findsWidgets);
+        expect(find.byType(DataTable), findsWidgets);
         expect(find.byType(ItemCard), findsNothing);
       });
     }
@@ -112,7 +107,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(ItemCard), findsWidgets);
-      expect(find.byType(AppTable<ItemRowView>), findsNothing);
+      expect(find.byType(DataTable), findsNothing);
     });
   });
 
@@ -179,8 +174,7 @@ void main() {
       // of every number in this group.
       const pane = 1280.0 - AppSizing.sidebarWidthExpanded - AppSpacing.xl * 2;
       final columns = inventoryGridColumns(pane);
-      final cellWidth =
-          (pane - AppSpacing.sm * (columns - 1)) / columns;
+      final cellWidth = (pane - AppSpacing.sm * (columns - 1)) / columns;
       final tile = inventoryImageHeight(cellWidth) + itemCardTextHeight;
 
       expect(columns, 5);
@@ -199,9 +193,10 @@ void main() {
       expect(ascending, isNotEmpty);
       expect(
         ascending,
-        equals([...ascending]..sort(
-          (a, b) => a.toLowerCase().compareTo(b.toLowerCase()),
-        )),
+        equals(
+          [...ascending]
+            ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase())),
+        ),
       );
 
       // Not the reverse of the list above: the grid is lazy, so what is built
@@ -212,9 +207,10 @@ void main() {
       expect(descending, isNotEmpty);
       expect(
         descending,
-        equals([...descending]..sort(
-          (a, b) => b.toLowerCase().compareTo(a.toLowerCase()),
-        )),
+        equals(
+          [...descending]
+            ..sort((a, b) => b.toLowerCase().compareTo(a.toLowerCase())),
+        ),
       );
       expect(descending.first, isNot(equals(ascending.first)));
     });
@@ -237,7 +233,7 @@ void main() {
       await _sortBy(tester, 'Nom A → Z');
 
       expect(tester.takeException(), isNull);
-      expect(find.byType(AppTable<ItemRowView>), findsWidgets);
+      expect(find.byType(DataTable), findsWidgets);
     });
 
     // The ordering is not a filter, and clearing the filters must not quietly

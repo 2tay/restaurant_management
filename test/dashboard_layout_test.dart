@@ -1,22 +1,18 @@
-// The dashboard, one row per section.
+// The dashboard's sections, at every width.
 //
-// The rule this exists to defend:
+// The rules this exists to defend:
 //
-//   **Each section of the tableau de bord is one row, at every width.**
+//   **The quick actions are one row, at every width.**
 //
-// The figures used to sit in a wrapping grid: five in four columns left one
-// alone on a second row, and on a phone they stacked one per line — five
-// screens of scrolling before the first quick action. `CardRow` makes the
-// rule structural; these read the cards' positions to hold it there.
+//   **The figures never scroll sideways.** One row where the five fit; two
+//   per row otherwise, the last one alone across the full width.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stock_inventory/app/router.dart';
 import 'package:stock_inventory/app/routes.dart';
 import 'package:stock_inventory/data/seed/dataset/dataset.dart';
-import 'package:stock_inventory/data/view_models/view_models.dart';
 import 'package:stock_inventory/features/dashboard/presentation/widgets/summary_tile.dart';
-import 'package:stock_inventory/shared/widgets/app_table.dart';
 
 import 'support/app_harness.dart';
 
@@ -49,17 +45,56 @@ void main() {
     expect(tops, hasLength(1), reason: '$T cards sit on ${tops.length} rows');
   }
 
+  /// The figures: all on one line, or two per line with the last alone and
+  /// as wide as a full line — and every one inside the screen.
+  void expectFiguresGrid(WidgetTester tester, Size size) {
+    final rects = [
+      for (final element in find.byType(SummaryTile).evaluate())
+        tester.getRect(find.byWidget(element.widget)),
+    ];
+    expect(rects, hasLength(5));
+    for (final rect in rects) {
+      expect(rect.left, greaterThanOrEqualTo(0));
+      expect(rect.right, lessThanOrEqualTo(size.width));
+    }
+
+    final lines = <int, List<Rect>>{};
+    for (final rect in rects) {
+      lines.putIfAbsent(rect.top.round(), () => []).add(rect);
+    }
+    if (lines.length == 1) return;
+
+    final ordered = lines.keys.toList()..sort();
+    expect(ordered, hasLength(3), reason: 'two, two, then one');
+    expect(lines[ordered[0]], hasLength(2));
+    expect(lines[ordered[1]], hasLength(2));
+    final last = lines[ordered[2]]!.single;
+    final full = lines[ordered[0]]!;
+    expect(last.left, closeTo(full.first.left, 1));
+    expect(last.right, closeTo(full.last.right, 1));
+  }
+
   for (final MapEntry(key: name, value: size) in _sizes.entries) {
-    testApp('on a $name, the figures and the actions are one row each', (
+    testApp('on a $name, the figures fit and the actions are one row', (
       tester,
     ) async {
       await open(tester, size);
 
       expect(tester.takeException(), isNull);
-      expectOneRow<SummaryTile>(tester, 5);
+      expectFiguresGrid(tester, size);
       expectOneRow<QuickActionButton>(tester, 4);
     });
   }
+
+  testApp('on a phone, the figures are two per row', (tester) async {
+    await open(tester, _sizes['phone']!);
+
+    final tops = {
+      for (final element in find.byType(SummaryTile).evaluate())
+        tester.getTopLeft(find.byWidget(element.widget)).dy.round(),
+    };
+    expect(tops, hasLength(3));
+  });
 
   testApp('the four quick actions fit a phone without scrolling', (
     tester,
@@ -81,13 +116,16 @@ void main() {
     final alertsTab = find.text('À surveiller');
     await tester.ensureVisible(alertsTab);
     await tester.pumpAndSettle();
-    expect(find.byType(AppTable<ItemRowView>), findsNothing);
+    // The activity first: its table has no « Stock » column.
+    expect(find.byType(DataTable), findsOneWidget);
+    expect(find.text('Stock'), findsNothing);
 
     await tester.tap(alertsTab);
     await tester.pumpAndSettle();
 
     // The alerts, as their table.
-    expect(find.byType(AppTable<ItemRowView>), findsOneWidget);
+    expect(find.byType(DataTable), findsOneWidget);
+    expect(find.text('Stock'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }
