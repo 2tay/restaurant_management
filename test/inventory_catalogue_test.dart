@@ -136,22 +136,23 @@ void main() {
       expect(inventoryGridColumns(2400), 6);
     });
 
-    test('the picture stays about half the card at every column width', () {
+    test('the picture stays a large share of the card at every width', () {
       // Not a fixed share: the image is a ratio of the column width and the
-      // text block under it is a fixed height, so a narrow column gives the
-      // picture proportionally less. The band is what keeps a card from
-      // becoming either a poster or a caption with a thumbnail.
+      // text block under it — identity and the « Stock actuel » panel — is a
+      // fixed height, so a narrow column gives the picture proportionally
+      // less. The band is what keeps a card from becoming either a poster or
+      // a caption with a thumbnail.
       for (final cellWidth in [440.0, 300.0, 260.0, 220.0, 160.0]) {
         final image = inventoryImageHeight(cellWidth);
         final share = image / (image + itemCardTextHeight);
-        expect(share, greaterThan(0.45), reason: 'at a $cellWidth column');
-        expect(share, lessThan(0.62), reason: 'at a $cellWidth column');
+        expect(share, greaterThan(0.36), reason: 'at a $cellWidth column');
+        expect(share, lessThan(0.5), reason: 'at a $cellWidth column');
       }
     });
 
     test('and is bounded at both ends', () {
-      expect(inventoryImageHeight(120), 100);
-      expect(inventoryImageHeight(900), 136);
+      expect(inventoryImageHeight(120), 104);
+      expect(inventoryImageHeight(900), 160);
     });
 
     test('a card is not taller than it needs to be', () {
@@ -160,10 +161,11 @@ void main() {
       // block was 140dp, which made a card 376dp tall — one and a half
       // products on a phone, six on the 1280dp design baseline. It is now
       // under 260 at every width, which is what makes a long catalogue
-      // navigable by scrolling rather than by searching.
+      // navigable by scrolling rather than by searching. The « Stock actuel »
+      // panel added a line; the card still stays under 340.
       for (final cellWidth in [440.0, 300.0, 230.0]) {
         final tile = inventoryImageHeight(cellWidth) + itemCardTextHeight;
-        expect(tile, lessThan(260), reason: 'at a $cellWidth column');
+        expect(tile, lessThan(340), reason: 'at a $cellWidth column');
       }
     });
 
@@ -178,9 +180,9 @@ void main() {
       final tile = inventoryImageHeight(cellWidth) + itemCardTextHeight;
 
       expect(columns, 5);
-      // Three full rows in an 800dp window, where three cards across at 376dp
-      // tall managed one and the top of a second.
-      expect(tile, lessThan(240));
+      // Two and a half rows in an 800dp window, where three cards across at
+      // 376dp tall managed one and the top of a second.
+      expect(tile, lessThan(300));
     });
   });
 
