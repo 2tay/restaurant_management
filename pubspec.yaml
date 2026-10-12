@@ -88,6 +88,11 @@ dependencies:
   # project is named by android/app/google-services.json; the server sends.
   firebase_core: ^4.15.0
   firebase_messaging: ^16.7.0
+  # Barcode scanning with the camera — Android, iOS, macOS and the web. Not
+  # Windows or Linux, where a handheld USB/Bluetooth scanner types the code
+  # instead (`lib/features/barcode/`). Brings its own CAMERA permission on
+  # Android; iOS and macOS declare theirs in Info.plist.
+  mobile_scanner: ^7.4.2
 
 dev_dependencies:
   flutter_test:

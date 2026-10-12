@@ -293,7 +293,13 @@ final GoRouter appRouter = GoRouter(
           path: Routes.addItem,
           pageBuilder: (context, state) => appPage(
             key: state.pageKey,
-            child: AddEditItemPage(storeId: _storeId(state)),
+            child: AddEditItemPage(
+              storeId: _storeId(state),
+              // From « Code inconnu » on a scan: the code filled in, and the
+              // new product's id handed back to the screen that was scanning.
+              initialBarcode: state.uri.queryParameters['barcode'],
+              returnCreatedId: state.uri.queryParameters['return'] == '1',
+            ),
           ),
         ),
         GoRoute(

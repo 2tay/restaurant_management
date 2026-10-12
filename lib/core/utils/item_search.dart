@@ -20,3 +20,14 @@ bool itemMatchesSearch(Item item, String query) {
   if (item.name.toLowerCase().contains(query)) return true;
   return item.barcode != null && item.barcode!.toLowerCase() == query;
 }
+
+/// Whether [item] carries exactly this barcode — what a scan matches on.
+///
+/// The same rule as the search box above: exact, trimmed, and blind to case,
+/// since an internal code typed by hand and the same code from a scanner can
+/// differ in nothing else.
+bool itemHasBarcode(Item item, String code) {
+  final needle = code.trim().toLowerCase();
+  if (needle.isEmpty) return false;
+  return item.barcode != null && item.barcode!.trim().toLowerCase() == needle;
+}

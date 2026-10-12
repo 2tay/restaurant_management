@@ -18,6 +18,8 @@ import '../widgets/movement_labels.dart';
 import '../../../../core/utils/employee_status.dart';
 import '../widgets/picker/movement_cart.dart';
 import '../widgets/picker/product_picker_sheet.dart';
+import '../../../barcode/presentation/barcode_flow.dart';
+import '../../../barcode/presentation/barcode_support.dart';
 
 /// Correct the recorded stock after a physical count — a whole shelf at once.
 ///
@@ -50,6 +52,11 @@ class _CountLine {
   final String itemId;
   final FocusNode focus = FocusNode();
   double counted;
+
+  /// Set once a scan has counted this product. Until then the figure is what
+  /// the system believes — seeded by the picker — and the first scan replaces
+  /// it rather than adding to it: scanning is counting from zero.
+  bool scanned = false;
 
   /// Marked "Juste": counted and found to match. Cleared by any change to the
   /// count, so a green row always means what it says.
@@ -105,6 +112,47 @@ class _StockAdjustmentPageState extends ConsumerState<StockAdjustmentPage> {
         for (final row in picked) _CountLine(row.item.id, row.item.quantity),
       ]);
     });
+  }
+
+  /// A scanned product, counted: the first scan of it is one, each scan after
+  /// is one more — walking the shelf with the scanner is the count. A weighed
+  /// product asks for the figure off the scale instead.
+  Future<ScanOutcome> _onScanned(ItemRowView row) async {
+    final l10n = AppLocalizations.of(context);
+    final unit = row.unitAbbreviation;
+    var amount = 1.0;
+    if (isMeasuredUnit(unit)) {
+      final entered = await askScanQuantity(
+        context,
+        row: row,
+        title: l10n.scanQuantityCounted,
+      );
+      if (entered == null) return const ScanOutcome.cancelled();
+      amount = entered;
+    }
+    if (!mounted) return const ScanOutcome.cancelled();
+
+    _CountLine? line;
+    for (final existing in _lines) {
+      if (existing.itemId == row.item.id) line = existing;
+    }
+    setState(() {
+      if (line == null) {
+        line = _CountLine(row.item.id, amount)..scanned = true;
+        _lines.add(line!);
+      } else {
+        line!
+          ..counted = line!.scanned ? line!.counted + amount : amount
+          ..scanned = true
+          ..confirmed = false;
+      }
+    });
+    return ScanOutcome.added(
+      l10n.scanCounted(
+        Formatters.quantityWithUnit(line!.counted, unit),
+        row.item.name,
+      ),
+    );
   }
 
   void _remove(_CountLine line) {
@@ -185,6 +233,8 @@ class _StockAdjustmentPageState extends ConsumerState<StockAdjustmentPage> {
             message: l10n.adjustmentSubtitle,
           ),
           const SizedBox(height: AppSpacing.lg),
+          BarcodeScanBar(storeId: widget.storeId, onItem: _onScanned),
+          const SizedBox(height: AppSpacing.md),
           MovementProductsCard(
             accent: colors,
             onPick: _pick,

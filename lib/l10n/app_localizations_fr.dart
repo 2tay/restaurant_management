@@ -2207,12 +2207,118 @@ class AppLocalizationsFr extends AppLocalizations {
       'Facultatif. Les produits frais — légumes, viande, poisson — n\'en ont généralement pas.';
 
   @override
-  String get itemBarcodeScanTooltip =>
-      'Scanner un code-barres (bientôt disponible)';
+  String get itemBarcodeScanTooltip => 'Scanner le code-barres';
 
   @override
   String itemBarcodeDuplicate(String item) {
     return 'Ce code-barres est déjà utilisé par « $item ».';
+  }
+
+  @override
+  String get scanFieldHint => 'Scanner ou saisir un code-barres';
+
+  @override
+  String get scanFieldSubmit => 'Valider le code';
+
+  @override
+  String get scanCameraButton => 'Scanner';
+
+  @override
+  String get scanCameraTooltip => 'Scanner avec la caméra';
+
+  @override
+  String get scanCameraTitle => 'Scanner un code-barres';
+
+  @override
+  String get scanCameraHint => 'Placez le code-barres dans le cadre';
+
+  @override
+  String get scanCameraContinuousHint =>
+      'Scannez les produits les uns après les autres. Retirez le produit du cadre pour le compter à nouveau.';
+
+  @override
+  String get scanDone => 'Terminer';
+
+  @override
+  String get scanTorch => 'Lampe';
+
+  @override
+  String get scanSwitchCamera => 'Changer de caméra';
+
+  @override
+  String get scanPermissionDenied =>
+      'L\'accès à la caméra est refusé. Autorisez-le dans les réglages de l\'appareil pour scanner.';
+
+  @override
+  String get scanCameraUnavailable =>
+      'La caméra n\'est pas disponible sur cet appareil.';
+
+  @override
+  String get scanUnknownTitle => 'Code inconnu';
+
+  @override
+  String get scanUnknownBody =>
+      'Aucun produit n\'a ce code-barres. Créez le produit avec ce code, ou associez-le à un produit qui n\'a pas encore de code-barres.';
+
+  @override
+  String get scanUnknownCreate => 'Créer un produit avec ce code';
+
+  @override
+  String get scanUnknownLink => 'Associer à un produit existant';
+
+  @override
+  String get scanQuantityConfirm => 'Valider';
+
+  @override
+  String get scanQuantityReceived => 'Quantité reçue';
+
+  @override
+  String get scanQuantityUsed => 'Quantité sortie';
+
+  @override
+  String get scanQuantityCounted => 'Quantité comptée';
+
+  @override
+  String get scanSearchTooltip => 'Scanner un produit';
+
+  @override
+  String get scanLinkFailed =>
+      'Ce code-barres est déjà utilisé par un autre produit.';
+
+  @override
+  String scanCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count scans',
+      one: '1 scan',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String scanLinked(String item) {
+    return 'Code-barres associé à « $item ».';
+  }
+
+  @override
+  String scanAdded(String quantity, String item) {
+    return '+$quantity · $item';
+  }
+
+  @override
+  String scanCounted(String quantity, String item) {
+    return '$item : $quantity compté';
+  }
+
+  @override
+  String scanReceived(String quantity, String item) {
+    return '$item : $quantity reçu';
+  }
+
+  @override
+  String scanNotOnOrder(String item) {
+    return '« $item » ne fait pas partie de cette commande.';
   }
 
   @override
@@ -4035,6 +4141,41 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get orderDocActionShort => 'PDF';
+
+  @override
+  String get orderDocPreview => 'Voir le PDF';
+
+  @override
+  String get orderDocDownload => 'Télécharger';
+
+  @override
+  String get orderPanelTabItems => 'Articles commandés';
+
+  @override
+  String get orderPanelTabHistory => 'Historique';
+
+  @override
+  String get orderPanelDate => 'Date de commande';
+
+  @override
+  String orderPanelItems(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count articles',
+      one: '1 article',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get orderPanelGrandTotal => 'Total général';
+
+  @override
+  String get orderPanelReferenceCopied => 'Référence copiée.';
+
+  @override
+  String get orderPanelCopyReference => 'Copier la référence';
 
   @override
   String get orderDocTitle => 'BON DE COMMANDE';

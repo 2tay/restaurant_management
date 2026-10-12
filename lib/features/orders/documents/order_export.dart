@@ -100,4 +100,26 @@ abstract final class OrderExport {
     await Printing.sharePdf(bytes: bytes, filename: document.fileName);
     return true;
   }
+
+  /// Builds the PDF and opens it in the platform's preview — the print
+  /// dialog on desktop and in the browser, the system viewer on a phone — to
+  /// read it over before sending. Returns false when the order could not be
+  /// resolved.
+  static Future<bool> preview(
+    BuildContext context,
+    OrderDocumentSources? sources,
+  ) async {
+    if (sources == null) return false;
+
+    final document = buildDocument(AppLocalizations.of(context), sources);
+    final bytes = await buildOrderDocumentPdf(
+      document,
+      await DocumentFonts.load(),
+    );
+    await Printing.layoutPdf(
+      onLayout: (_) async => bytes,
+      name: document.fileName,
+    );
+    return true;
+  }
 }

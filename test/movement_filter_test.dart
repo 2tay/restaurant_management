@@ -37,9 +37,6 @@ const String _store = StoreIds.sablon;
 // AppLocalizations, so the test fails when the screen changes rather than
 // following it.
 const String _productPill = 'Produit';
-const String _periodPill = 'Période';
-const String _thirtyDays = '30 derniers jours';
-const String _wholeHistory = "Tout l'historique";
 
 void main() {
   /// The product the seed gives the busiest history.
@@ -72,6 +69,16 @@ void main() {
       .firstWhere((pill) => pill.label == label)
       .selectedLabel;
 
+  /// The « Début » picker — the period's first day, and whether it is the
+  /// thirty days the log opens on.
+  DateFilter startPicker(WidgetTester tester) => tester.widget<DateFilter>(
+    find.byKey(const ValueKey('movements-date-from')),
+  );
+
+  DateFilter endPicker(WidgetTester tester) => tester.widget<DateFilter>(
+    find.byKey(const ValueKey('movements-date-to')),
+  );
+
   testApp('the log opens on the product it was reached from', (tester) async {
     await pumpApp(tester, size: _tablet);
     final itemId = busiestItem();
@@ -100,7 +107,9 @@ void main() {
 
     await open(tester, Routes.toMovements(_store, itemId: busiestItem()));
 
-    expect(selectionOn(tester, _periodPill), _wholeHistory);
+    // « Début » on the first movement rather than the thirty-day default.
+    final start = startPicker(tester);
+    expect(start.isDefault, isFalse);
   });
 
   testApp('the whole store over thirty days is still the default', (
@@ -115,7 +124,13 @@ void main() {
       isNull,
       reason: 'no product was asked for, so none should be filtered to',
     );
-    expect(selectionOn(tester, _periodPill), _thirtyDays);
+    expect(startPicker(tester).isDefault, isTrue);
+    expect(endPicker(tester).isDefault, isTrue);
+    expect(
+      endPicker(tester).value.difference(startPicker(tester).value).inDays,
+      29,
+      reason: 'thirty days, today included',
+    );
   });
 
   // The shell keeps a section page mounted while it is the current one, so
@@ -135,7 +150,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(selectionOn(tester, _productPill), isNull);
-    expect(selectionOn(tester, _periodPill), _thirtyDays);
+    expect(startPicker(tester).isDefault, isTrue);
   });
 
   test('the sidebar destination stays a plain section route', () {

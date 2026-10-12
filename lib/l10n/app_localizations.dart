@@ -3718,10 +3718,10 @@ abstract class AppLocalizations {
   /// **'Facultatif. Les produits frais — légumes, viande, poisson — n\'en ont généralement pas.'**
   String get itemBarcodeHelp;
 
-  /// Tooltip on the disabled scan button reserved inside the barcode field. The slot exists now so adding the camera later does not reflow the form.
+  /// Tooltip on the camera button inside the barcode field of the product form.
   ///
   /// In fr, this message translates to:
-  /// **'Scanner un code-barres (bientôt disponible)'**
+  /// **'Scanner le code-barres'**
   String get itemBarcodeScanTooltip;
 
   /// Inline error under the barcode field when the entered code already belongs to another item. Names the conflicting item so the user can go and look at it.
@@ -3729,6 +3729,174 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Ce code-barres est déjà utilisé par « {item} ».'**
   String itemBarcodeDuplicate(String item);
+
+  /// Placeholder of the scan field on the movement forms. A handheld scanner types into it; a person can type a code too.
+  ///
+  /// In fr, this message translates to:
+  /// **'Scanner ou saisir un code-barres'**
+  String get scanFieldHint;
+
+  /// Tooltip on the button at the end of the scan field that looks the typed code up.
+  ///
+  /// In fr, this message translates to:
+  /// **'Valider le code'**
+  String get scanFieldSubmit;
+
+  /// Button beside the scan field that opens the camera viewfinder.
+  ///
+  /// In fr, this message translates to:
+  /// **'Scanner'**
+  String get scanCameraButton;
+
+  /// Tooltip on a camera scan icon button (product search, item form).
+  ///
+  /// In fr, this message translates to:
+  /// **'Scanner avec la caméra'**
+  String get scanCameraTooltip;
+
+  /// Title on the camera viewfinder.
+  ///
+  /// In fr, this message translates to:
+  /// **'Scanner un code-barres'**
+  String get scanCameraTitle;
+
+  /// Under the viewfinder window when one code is expected.
+  ///
+  /// In fr, this message translates to:
+  /// **'Placez le code-barres dans le cadre'**
+  String get scanCameraHint;
+
+  /// Under the viewfinder window on a movement form, where it stays open for several scans.
+  ///
+  /// In fr, this message translates to:
+  /// **'Scannez les produits les uns après les autres. Retirez le produit du cadre pour le compter à nouveau.'**
+  String get scanCameraContinuousHint;
+
+  /// Closes the continuous viewfinder.
+  ///
+  /// In fr, this message translates to:
+  /// **'Terminer'**
+  String get scanDone;
+
+  /// Tooltip of the torch button on the viewfinder.
+  ///
+  /// In fr, this message translates to:
+  /// **'Lampe'**
+  String get scanTorch;
+
+  /// Tooltip of the button switching between the front and back camera.
+  ///
+  /// In fr, this message translates to:
+  /// **'Changer de caméra'**
+  String get scanSwitchCamera;
+
+  /// Shown in the viewfinder when camera permission was refused.
+  ///
+  /// In fr, this message translates to:
+  /// **'L\'accès à la caméra est refusé. Autorisez-le dans les réglages de l\'appareil pour scanner.'**
+  String get scanPermissionDenied;
+
+  /// Shown in the viewfinder when there is no usable camera.
+  ///
+  /// In fr, this message translates to:
+  /// **'La caméra n\'est pas disponible sur cet appareil.'**
+  String get scanCameraUnavailable;
+
+  /// Title of the sheet shown when a scanned code matches no product.
+  ///
+  /// In fr, this message translates to:
+  /// **'Code inconnu'**
+  String get scanUnknownTitle;
+
+  /// Body of the unknown-code sheet.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun produit n\'a ce code-barres. Créez le produit avec ce code, ou associez-le à un produit qui n\'a pas encore de code-barres.'**
+  String get scanUnknownBody;
+
+  /// Unknown-code sheet: opens the new product form with the barcode filled in.
+  ///
+  /// In fr, this message translates to:
+  /// **'Créer un produit avec ce code'**
+  String get scanUnknownCreate;
+
+  /// Unknown-code sheet: pick an existing product (one without a barcode) to give this code to.
+  ///
+  /// In fr, this message translates to:
+  /// **'Associer à un produit existant'**
+  String get scanUnknownLink;
+
+  /// Confirms the quantity dialog shown after scanning a weighed product.
+  ///
+  /// In fr, this message translates to:
+  /// **'Valider'**
+  String get scanQuantityConfirm;
+
+  /// Title of the quantity dialog after scanning a weighed product on a delivery or an order reception.
+  ///
+  /// In fr, this message translates to:
+  /// **'Quantité reçue'**
+  String get scanQuantityReceived;
+
+  /// Title of the quantity dialog after scanning a weighed product on the stock-out form.
+  ///
+  /// In fr, this message translates to:
+  /// **'Quantité sortie'**
+  String get scanQuantityUsed;
+
+  /// Title of the quantity dialog after scanning a weighed product on the count form.
+  ///
+  /// In fr, this message translates to:
+  /// **'Quantité comptée'**
+  String get scanQuantityCounted;
+
+  /// Tooltip of the camera button beside the product search.
+  ///
+  /// In fr, this message translates to:
+  /// **'Scanner un produit'**
+  String get scanSearchTooltip;
+
+  /// Snackbar when linking a code fails because another product took it meanwhile.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ce code-barres est déjà utilisé par un autre produit.'**
+  String get scanLinkFailed;
+
+  /// How many products the open viewfinder has added.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =1{1 scan} other{{count} scans}}'**
+  String scanCount(int count);
+
+  /// Snackbar after giving an unknown code to an existing product.
+  ///
+  /// In fr, this message translates to:
+  /// **'Code-barres associé à « {item} ».'**
+  String scanLinked(String item);
+
+  /// Feedback after a scan added to a delivery or a stock-out: the quantity added, then the product.
+  ///
+  /// In fr, this message translates to:
+  /// **'+{quantity} · {item}'**
+  String scanAdded(String quantity, String item);
+
+  /// Feedback after a scan on the count form: the running count for the product.
+  ///
+  /// In fr, this message translates to:
+  /// **'{item} : {quantity} compté'**
+  String scanCounted(String quantity, String item);
+
+  /// Feedback after a scan on an order reception: the received quantity now on the line.
+  ///
+  /// In fr, this message translates to:
+  /// **'{item} : {quantity} reçu'**
+  String scanReceived(String quantity, String item);
+
+  /// Feedback when a scanned product has no line on the order being received.
+  ///
+  /// In fr, this message translates to:
+  /// **'« {item} » ne fait pas partie de cette commande.'**
+  String scanNotOnOrder(String item);
 
   /// Snackbar after tapping the barcode row on the item detail to copy it.
   ///
@@ -6567,6 +6735,60 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'PDF'**
   String get orderDocActionShort;
+
+  /// Order panel footer: opens the bon de commande PDF in a preview.
+  ///
+  /// In fr, this message translates to:
+  /// **'Voir le PDF'**
+  String get orderDocPreview;
+
+  /// Order panel footer: downloads / shares the bon de commande PDF.
+  ///
+  /// In fr, this message translates to:
+  /// **'Télécharger'**
+  String get orderDocDownload;
+
+  /// Order panel tab listing the ordered lines.
+  ///
+  /// In fr, this message translates to:
+  /// **'Articles commandés'**
+  String get orderPanelTabItems;
+
+  /// Order panel tab with the order's timeline: created, sent, each delivery, closed.
+  ///
+  /// In fr, this message translates to:
+  /// **'Historique'**
+  String get orderPanelTabHistory;
+
+  /// Order panel summary: label above the date the order was created.
+  ///
+  /// In fr, this message translates to:
+  /// **'Date de commande'**
+  String get orderPanelDate;
+
+  /// Order panel summary: number of lines on the order.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =1{1 article} other{{count} articles}}'**
+  String orderPanelItems(int count);
+
+  /// Order panel: the highlighted total under the ordered lines.
+  ///
+  /// In fr, this message translates to:
+  /// **'Total général'**
+  String get orderPanelGrandTotal;
+
+  /// Snackbar after copying the order reference from the order panel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Référence copiée.'**
+  String get orderPanelReferenceCopied;
+
+  /// Tooltip of the copy button beside the order reference in the order panel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Copier la référence'**
+  String get orderPanelCopyReference;
 
   /// Main heading of the order PDF.
   ///

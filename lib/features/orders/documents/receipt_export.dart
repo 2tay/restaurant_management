@@ -65,9 +65,7 @@ abstract final class ReceiptExport {
         contactName: supplier.contactName,
       ),
       orderReference: order.reference,
-      orderSentAt: order.sentAt == null
-          ? null
-          : Formatters.date(order.sentAt!),
+      orderSentAt: order.sentAt == null ? null : Formatters.date(order.sentAt!),
       receivedAt: Formatters.dateTime(receipt.receivedAt),
       receivedByName: receipt.receivedByName,
       lines: lines,

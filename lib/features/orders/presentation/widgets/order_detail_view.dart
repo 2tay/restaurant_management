@@ -14,12 +14,11 @@ import '../../../../data/view_models/view_models.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
-import '../../documents/order_document_button.dart';
 import '../../documents/receipt_document_button.dart';
 import 'order_status_badge.dart';
+import 'order_panel_parts.dart';
 import 'order_summary_card.dart';
 import 'order_visuals.dart';
-import 'panel_header.dart';
 import 'receipt_detail_view.dart';
 
 /// The body of one commande: what was ordered, what has arrived, and the trail
@@ -60,6 +59,9 @@ class OrderDetailBody extends ConsumerWidget {
   static const String tabLines = 'lines';
   static const String tabReceipts = 'receipts';
 
+  /// The timeline. A panel only: the page draws it in its header.
+  static const String tabHistory = 'history';
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
@@ -78,94 +80,172 @@ class OrderDetailBody extends ConsumerWidget {
     final order = view.order;
     final receipts = view.receipts;
 
+    if (panel != null) return _panel(context, view);
+
     final body = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-          _Header(
-            order: order,
-            receiptCount: receipts.length,
-            receiptDates: [for (final r in receipts) r.receipt.receivedAt],
-          ),
+        _Header(
+          order: order,
+          receiptCount: receipts.length,
+          receiptDates: [for (final r in receipts) r.receipt.receivedAt],
+        ),
+        const SizedBox(height: AppSpacing.xl),
+
+        if (order.status == PurchaseOrderStatus.sent ||
+            order.status == PurchaseOrderStatus.partial) ...[
+          _LockedNotice(message: l10n.orderLockedNotice),
           const SizedBox(height: AppSpacing.xl),
+        ],
 
-          if (order.status == PurchaseOrderStatus.sent ||
-              order.status == PurchaseOrderStatus.partial) ...[
-            _LockedNotice(message: l10n.orderLockedNotice),
-            const SizedBox(height: AppSpacing.xl),
-          ],
-
-          if (tab == tabLines)
-            _LinesTable(lines: view.lines)
-          else
-            _Receipts(
+        if (tab == tabLines)
+          _LinesTable(lines: view.lines)
+        else
+          _Receipts(
+            storeId: storeId,
+            receipts: receipts,
+            emptyMessage: l10n.orderReceiptsEmpty,
+            // A réception here is a detail *of* the commande: you check what
+            // arrived and then go back to the lines. `openReceiptPanel`
+            // opens a panel from the page and walks this one forward when
+            // the commande is itself in a panel — the branch used to live
+            // here, and the helper is where it belongs.
+            onOpen: (receiptId) => openReceiptPanel(
+              context,
               storeId: storeId,
-              receipts: receipts,
-              emptyMessage: l10n.orderReceiptsEmpty,
-              // A réception here is a detail *of* the commande: you check what
-              // arrived and then go back to the lines. `openReceiptPanel`
-              // opens a panel from the page and walks this one forward when
-              // the commande is itself in a panel — the branch used to live
-              // here, and the helper is where it belongs.
-              onOpen: (receiptId) => openReceiptPanel(
-                context,
-                storeId: storeId,
-                receiptId: receiptId,
-              ),
+              receiptId: receiptId,
             ),
+          ),
 
-          if (order.note != null) ...[
-            const SizedBox(height: AppSpacing.xl),
-            SectionHeader(title: l10n.orderNoteLabel),
-            AppCard(
-              child: Text(
-                order.note!,
-                style: Theme.of(context).textTheme.bodyLarge,
-              ),
+        if (order.note != null) ...[
+          const SizedBox(height: AppSpacing.xl),
+          SectionHeader(title: l10n.orderNoteLabel),
+          AppCard(
+            child: Text(
+              order.note!,
+              style: Theme.of(context).textTheme.bodyLarge,
             ),
-          ],
+          ),
+        ],
       ],
     );
 
-    if (panel == null) return body;
+    return body;
+  }
 
-    return PanelScaffold(
-      panel: panel!,
-      title: l10n.orderDetailTitle(order.reference),
-      subtitle: view.supplierName,
-      // Compact, because a panel is 560dp wide and these sit under a title
-      // that has already named the commande. Spelled out — "Bon de commande",
-      // "Réceptionner la livraison" — the three of them wrapped onto two rows
-      // and pushed the content down before it had said anything.
-      status: OrderStatusBadge(status: order.status),
-      actions: [
-        OrderDocumentButton(order: order),
-        if (orderCanReceive(order))
-          PrimaryButton(
-            label: l10n.shortReceive,
-            icon: LucideIcons.packageCheck,
-            // Receiving is a form, and a form in a 560dp panel is cramped —
-            // so this leaves for the page. `DrawerScope` closes the panel
-            // first, or the form would open behind it.
-            onPressed: () => context.pushScreen(
-              Routes.toReceiveOrder(storeId, order.id),
-            ),
-          ),
-      ],
-      child: Column(
+  /// The commande as a panel: a pinned header and footer around a scrolling
+  /// summary, tabs and their content.
+  Widget _panel(BuildContext context, OrderDetailView view) {
+    final l10n = AppLocalizations.of(context);
+    final order = view.order;
+    final receipts = view.receipts;
+
+    // A shortfall only exists once somebody has closed lines short — it is
+    // the figure that answers "which suppliers under-deliver?".
+    var shortfall = 0.0;
+    for (final line in order.lines) {
+      shortfall += lineShortfall(line);
+    }
+
+    final Widget content;
+    if (tab == tabReceipts) {
+      content = _Receipts(
+        storeId: storeId,
+        receipts: receipts,
+        emptyMessage: l10n.orderReceiptsEmpty,
+        onOpen: (receiptId) =>
+            openReceiptPanel(context, storeId: storeId, receiptId: receiptId),
+      );
+    } else if (tab == tabHistory) {
+      content = OrderPanelHistory(
+        order: order,
+        receiptDates: [for (final r in receipts) r.receipt.receivedAt],
+      );
+    } else {
+      content = Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          SectionTabs(
-            currentPath: tab,
-            onSelected: onTabChanged,
-            tabs: [
-              SectionTab(label: l10n.orderTabLines, path: tabLines),
-              SectionTab(label: l10n.orderTabReceipts, path: tabReceipts),
-            ],
-          ),
+          OrderPanelLines(lines: view.lines),
           const SizedBox(height: AppSpacing.lg),
-          body,
+          OrderPanelGrandTotal(order: order),
         ],
-      ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        OrderPanelHeader(
+          panel: panel!,
+          order: order,
+          supplierName: view.supplierName,
+        ),
+        const SizedBox(height: AppSpacing.xl),
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.only(bottom: AppSpacing.xl),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                OrderPanelSummary(
+                  order: order,
+                  supplierName: view.supplierName,
+                ),
+                if (order.status == PurchaseOrderStatus.sent ||
+                    order.status == PurchaseOrderStatus.partial) ...[
+                  const SizedBox(height: AppSpacing.md),
+                  _LockedNotice(message: l10n.orderLockedNotice),
+                ],
+                if (shortfall > 0) ...[
+                  const SizedBox(height: AppSpacing.md),
+                  OrderPanelShortfall(shortfall: shortfall),
+                ],
+                const SizedBox(height: AppSpacing.xl),
+                OrderPanelTabs(
+                  current: tab,
+                  onSelected: onTabChanged,
+                  tabs: [
+                    OrderPanelTab(
+                      id: tabLines,
+                      label: l10n.orderPanelTabItems,
+                      shortLabel: l10n.orderTabLines,
+                      count: view.lines.length,
+                    ),
+                    OrderPanelTab(
+                      id: tabReceipts,
+                      label: l10n.orderTabReceipts,
+                      count: receipts.length,
+                    ),
+                    OrderPanelTab(
+                      id: tabHistory,
+                      label: l10n.orderPanelTabHistory,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                content,
+                if (order.note != null) ...[
+                  const SizedBox(height: AppSpacing.xl),
+                  SectionHeader(title: l10n.orderNoteLabel),
+                  AppCard(
+                    child: Text(
+                      order.note!,
+                      style: Theme.of(context).textTheme.bodyLarge,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+        OrderPanelFooter(
+          order: order,
+          onReceive: orderCanReceive(order)
+              ? () =>
+                    context.pushScreen(Routes.toReceiveOrder(storeId, order.id))
+              : null,
+        ),
+      ],
     );
   }
 }
@@ -212,11 +292,9 @@ Future<void> openOrderPanel(
   required String storeId,
   required String orderId,
 }) {
-  PanelBuilder build() => (context, panel) => OrderDetailPanel(
-    storeId: storeId,
-    orderId: orderId,
-    panel: panel,
-  );
+  PanelBuilder build() =>
+      (context, panel) =>
+          OrderDetailPanel(storeId: storeId, orderId: orderId, panel: panel);
 
   final current = PanelController.maybeOf(context);
   if (current != null) {
@@ -232,11 +310,12 @@ Future<void> openReceiptPanel(
   required String storeId,
   required String receiptId,
 }) {
-  PanelBuilder build() => (context, panel) => ReceiptDetailBody(
-    storeId: storeId,
-    receiptId: receiptId,
-    panel: panel,
-  );
+  PanelBuilder build() =>
+      (context, panel) => ReceiptDetailBody(
+        storeId: storeId,
+        receiptId: receiptId,
+        panel: panel,
+      );
 
   final current = PanelController.maybeOf(context);
   if (current != null) {
@@ -528,7 +607,7 @@ class _LinesTable extends StatelessWidget {
                 style: figure?.copyWith(fontWeight: FontWeight.w700),
                 maxLines: 1,
               ),
-              _ => _LineState(
+              _ => OrderLineState(
                 line: line,
                 outstanding: lineOutstanding(line),
                 unit: unit,
@@ -617,7 +696,7 @@ class _StackedLine extends StatelessWidget {
           const SizedBox(height: AppSpacing.sm),
           Align(
             alignment: Alignment.centerLeft,
-            child: _LineState(
+            child: OrderLineState(
               line: line,
               outstanding: lineOutstanding(line),
               unit: unit,
@@ -630,11 +709,12 @@ class _StackedLine extends StatelessWidget {
 }
 
 /// Where one line stands: outstanding, closed short, or complete.
-class _LineState extends StatelessWidget {
-  const _LineState({
+class OrderLineState extends StatelessWidget {
+  const OrderLineState({
     required this.line,
     required this.outstanding,
     required this.unit,
+    super.key,
   });
 
   final PurchaseOrderLine line;
@@ -745,10 +825,10 @@ class _Receipts extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(bottom: AppSpacing.sm),
             child: _ReceiptCard(
-            storeId: storeId,
-            view: view,
-            onOpen: () => onOpen(view.receipt.id),
-          ),
+              storeId: storeId,
+              view: view,
+              onOpen: () => onOpen(view.receipt.id),
+            ),
           ),
       ],
     );

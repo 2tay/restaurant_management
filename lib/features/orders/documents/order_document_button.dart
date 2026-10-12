@@ -13,16 +13,34 @@ import 'order_export.dart';
 /// Downloads the order as a bon de commande PDF, to send to the supplier.
 ///
 /// A labelled button on the order's page; an icon in a row of the orders
-/// list ([compact]).
+/// list ([compact]). The order panel's footer uses the two [footer] forms:
+/// one to read the PDF over, one to send it.
 class OrderDocumentButton extends ConsumerStatefulWidget {
   const OrderDocumentButton({
     required this.order,
     this.compact = false,
     super.key,
-  });
+  }) : preview = false,
+       prominent = false,
+       footer = false;
+
+  /// A full-width footer button: « Voir le PDF » when [preview], otherwise
+  /// « Télécharger » — teal when [prominent], outlined when not.
+  const OrderDocumentButton.footer({
+    required this.order,
+    this.preview = false,
+    this.prominent = false,
+    super.key,
+  }) : compact = false,
+       footer = true;
 
   final PurchaseOrder order;
   final bool compact;
+  final bool footer;
+
+  /// Opens the PDF in a preview instead of the share sheet.
+  final bool preview;
+  final bool prominent;
 
   @override
   ConsumerState<OrderDocumentButton> createState() =>
@@ -38,7 +56,7 @@ class _OrderDocumentButtonState extends ConsumerState<OrderDocumentButton> {
 
     if (widget.compact) {
       return IconButton(
-        onPressed: _busy ? null : _share,
+        onPressed: _busy ? null : _run,
         tooltip: l10n.orderDocAction,
         icon: _busy
             ? const SizedBox(
@@ -54,15 +72,36 @@ class _OrderDocumentButtonState extends ConsumerState<OrderDocumentButton> {
       );
     }
 
+    if (widget.footer) {
+      final label = widget.preview
+          ? l10n.orderDocPreview
+          : l10n.orderDocDownload;
+      final icon = widget.preview ? LucideIcons.eye : LucideIcons.download;
+      return widget.prominent
+          ? PrimaryButton(
+              label: label,
+              icon: icon,
+              isBusy: _busy,
+              fullWidth: true,
+              onPressed: _busy ? null : _run,
+            )
+          : SecondaryButton(
+              label: label,
+              icon: icon,
+              fullWidth: true,
+              onPressed: _busy ? null : _run,
+            );
+    }
+
     return SecondaryButton(
       label: l10n.orderDocAction,
       shortLabel: l10n.orderDocActionShort,
       icon: LucideIcons.fileDown,
-      onPressed: _busy ? null : _share,
+      onPressed: _busy ? null : _run,
     );
   }
 
-  Future<void> _share() async {
+  Future<void> _run() async {
     final l10n = AppLocalizations.of(context);
     setState(() => _busy = true);
 
@@ -72,7 +111,12 @@ class _OrderDocumentButtonState extends ConsumerState<OrderDocumentButton> {
           .orderDocumentSources(widget.order);
       if (!mounted) return;
 
-      final shared = await OrderExport.share(context, sources);
+      final bool shared;
+      if (widget.preview) {
+        shared = await OrderExport.preview(context, sources);
+      } else {
+        shared = await OrderExport.share(context, sources);
+      }
       if (!mounted) return;
       if (!shared) AppSnackBar.error(context, l10n.receiptDocFailed);
     } catch (_) {

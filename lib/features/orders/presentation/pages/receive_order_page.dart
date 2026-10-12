@@ -17,6 +17,8 @@ import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 import '../widgets/receive_line_row.dart';
 import '../widgets/order_summary_card.dart';
+import '../../../barcode/presentation/barcode_flow.dart';
+import '../../../barcode/presentation/barcode_support.dart';
 
 /// Check in a delivery.
 ///
@@ -84,6 +86,11 @@ class _ReceiveForm extends ConsumerStatefulWidget {
 class _ReceiveOrderPageState extends ConsumerState<_ReceiveForm> {
   final _noteController = TextEditingController();
   final List<ReceiveLineDraft> _lines = [];
+
+  /// The lines a scan has counted. A line starts on what was ordered; the
+  /// first scan of its product replaces that with one and every scan after
+  /// adds one — scanning the crates as they come off the van is the count.
+  final Set<ReceiveLineDraft> _scanned = {};
 
   /// The article on each line, by id — for the row labels and the price
   /// warnings. Taken from the commande, which already names every line.
@@ -179,6 +186,10 @@ class _ReceiveOrderPageState extends ConsumerState<_ReceiveForm> {
             ),
           ),
 
+          if (_lines.isNotEmpty) ...[
+            BarcodeScanBar(storeId: widget.storeId, onItem: _onScanned),
+            const SizedBox(height: AppSpacing.md),
+          ],
           if (_lines.isEmpty)
             AppCard(
               child: EmptyState(
@@ -242,9 +253,50 @@ class _ReceiveOrderPageState extends ConsumerState<_ReceiveForm> {
     );
   }
 
+  /// A scanned product, counted onto its line. A product the commande does
+  /// not carry is turned down rather than added: « Ajouter un produit non
+  /// commandé » is the deliberate way to do that, with its price.
+  Future<ScanOutcome> _onScanned(ItemRowView row) async {
+    final l10n = AppLocalizations.of(context);
+    ReceiveLineDraft? line;
+    for (final existing in _lines) {
+      if (existing.itemId == row.item.id) line = existing;
+    }
+    if (line == null) {
+      return ScanOutcome.refused(l10n.scanNotOnOrder(row.item.name));
+    }
+
+    final unit = _unitOf(line.itemId);
+    var amount = 1.0;
+    if (isMeasuredUnit(unit)) {
+      final entered = await askScanQuantity(
+        context,
+        row: row,
+        title: l10n.scanQuantityReceived,
+      );
+      if (entered == null) return const ScanOutcome.cancelled();
+      amount = entered;
+    }
+    if (!mounted) return const ScanOutcome.cancelled();
+
+    final target = line;
+    setState(() {
+      target.quantityReceived = _scanned.add(target)
+          ? amount
+          : target.quantityReceived + amount;
+    });
+    return ScanOutcome.added(
+      l10n.scanReceived(
+        Formatters.quantityWithUnit(target.quantityReceived, unit),
+        _nameOf(target.itemId),
+      ),
+    );
+  }
+
   void _removeLine(ReceiveLineDraft line) {
     setState(() {
       _lines.remove(line);
+      _scanned.remove(line);
       line.dispose();
     });
     AppSnackBar.success(

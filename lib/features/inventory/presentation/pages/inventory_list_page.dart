@@ -19,6 +19,10 @@ import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 import '../widgets/item_card.dart';
 import '../widgets/product_drawer.dart';
+import '../../../barcode/presentation/barcode_camera_page.dart';
+import '../../../barcode/presentation/barcode_flow.dart';
+import '../../../barcode/presentation/barcode_support.dart';
+import '../../../barcode/presentation/hardware_scan_listener.dart';
 
 /// How the visible products are ordered.
 ///
@@ -251,56 +255,99 @@ class _ListPane extends ConsumerWidget {
     // product the drawer is about once it slides away again.
     final selectedId = filter.selectedItemId;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Search, filters, the result count and the display controls are one
-        // bar rather than three stacked rows. As three, they cost 373dp on a
-        // 360dp phone and 260 on the 1280dp design baseline — before a single
-        // product. The screen is the products.
-        _ListControls(
-          filter: filter,
-          notifier: notifier,
-          count: rows.length,
-          categories: {for (final c in categories) c.id: c.name},
-          suppliers: {for (final s in suppliers) s.id: s.name},
-          viewMode: viewMode,
-          onViewMode: ref.read(inventoryViewModeProvider.notifier).select,
-        ),
-        const SizedBox(height: AppSpacing.md),
+    // A scan opens the product it names — or, for a code nobody has, offers
+    // to create the product or give the code to one.
+    Future<void> scanned(String code) => handleScannedCode(
+      context,
+      ref,
+      storeId: storeId,
+      code: code,
+      onItem: (row) async {
+        onTap(row.item.id);
+        return const ScanOutcome.cancelled();
+      },
+    );
 
-        // Part of the page, not a box of its own: the whole page scrolls,
-        // title and filters included.
-        Builder(
-          builder: (context) => rows.isEmpty
-              ? _EmptyList(
-                  storeId: storeId,
-                  // With no filter active, an empty result means the
-                  // establishment is empty. With one active it means the
-                  // filter matched nothing. Two different sentences and two
-                  // different buttons, and this is the whole difference
-                  // between them.
-                  storeHasItems: filter.hasActiveFilters,
-                  onClearFilters: notifier.clear,
-                )
-              : viewMode == InventoryViewMode.grid
-              ? _CatalogueGrid(
-                  rows: rows,
-                  onTap: onTap,
-                  selectedId: selectedId,
-                  sort: filter.sort,
-                )
-              : _ProductTable(
-                  rows: rows,
-                  onTap: onTap,
-                  selectedId: selectedId,
-                  sort: filter.sort,
-                  onSort: notifier.setSort,
-                ),
-        ),
-      ],
+    // Enter in the search box: a code typed or scanned into it opens its
+    // product. A name search stays a search — only something shaped like a
+    // barcode goes on to « Code inconnu » when nothing has it.
+    void submitted(String text) {
+      final code = text.trim();
+      if (code.isEmpty) return;
+      final match = rows
+          .where((row) => itemHasBarcode(row.item, code))
+          .firstOrNull;
+      if (match != null) {
+        onTap(match.item.id);
+      } else if (_looksLikeBarcode(code)) {
+        scanned(code);
+      }
+    }
+
+    Future<void> camera() async {
+      final code = await BarcodeCameraPage.scanOnce(context);
+      if (code != null && context.mounted) await scanned(code);
+    }
+
+    return HardwareScanListener(
+      onScan: scanned,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Search, filters, the result count and the display controls are one
+          // bar rather than three stacked rows. As three, they cost 373dp on a
+          // 360dp phone and 260 on the 1280dp design baseline — before a single
+          // product. The screen is the products.
+          _ListControls(
+            filter: filter,
+            notifier: notifier,
+            count: rows.length,
+            categories: {for (final c in categories) c.id: c.name},
+            suppliers: {for (final s in suppliers) s.id: s.name},
+            viewMode: viewMode,
+            onViewMode: ref.read(inventoryViewModeProvider.notifier).select,
+            onSubmitted: submitted,
+            onCamera: cameraScanAvailable ? camera : null,
+          ),
+          const SizedBox(height: AppSpacing.md),
+
+          // Part of the page, not a box of its own: the whole page scrolls,
+          // title and filters included.
+          Builder(
+            builder: (context) => rows.isEmpty
+                ? _EmptyList(
+                    storeId: storeId,
+                    // With no filter active, an empty result means the
+                    // establishment is empty. With one active it means the
+                    // filter matched nothing. Two different sentences and two
+                    // different buttons, and this is the whole difference
+                    // between them.
+                    storeHasItems: filter.hasActiveFilters,
+                    onClearFilters: notifier.clear,
+                  )
+                : viewMode == InventoryViewMode.grid
+                ? _CatalogueGrid(
+                    rows: rows,
+                    onTap: onTap,
+                    selectedId: selectedId,
+                    sort: filter.sort,
+                  )
+                : _ProductTable(
+                    rows: rows,
+                    onTap: onTap,
+                    selectedId: selectedId,
+                    sort: filter.sort,
+                    onSort: notifier.setSort,
+                  ),
+          ),
+        ],
+      ),
     );
   }
+
+  /// Digits only, and at least as long as the shortest retail code (EAN-8).
+  static bool _looksLikeBarcode(String text) =>
+      text.length >= 8 && RegExp(r'^[0-9]+$').hasMatch(text);
 
   /// What tapping a product does: its detail slides in as a drawer over the
   /// list — on a phone, the drawer takes the whole screen. Both views, and
@@ -340,9 +387,29 @@ class _ListControls extends StatelessWidget {
     required this.suppliers,
     required this.viewMode,
     required this.onViewMode,
+    this.onSubmitted,
+    this.onCamera,
   });
 
   final InventoryFilter filter;
+
+  /// Enter in the search box — see [_ListPane].
+  final ValueChanged<String>? onSubmitted;
+
+  /// Opens the camera to find a product by its code; null where there is no
+  /// camera to scan with.
+  final VoidCallback? onCamera;
+
+  Widget _cameraButton(AppLocalizations l10n) => IconButton.outlined(
+    onPressed: onCamera,
+    tooltip: l10n.scanSearchTooltip,
+    icon: const Icon(LucideIcons.scanLine, size: AppSizing.iconSm),
+    style: IconButton.styleFrom(
+      minimumSize: const Size.square(AppSizing.minTapTarget),
+      side: const BorderSide(color: AppColors.border),
+      shape: const RoundedRectangleBorder(borderRadius: AppRadius.mdAll),
+    ),
+  );
   final InventoryFilterNotifier notifier;
 
   /// How many products matched — the answer to whatever was just typed or
@@ -383,8 +450,13 @@ class _ListControls extends StatelessWidget {
                 hint: l10n.inventorySearchHint,
                 initialValue: filter.query,
                 onChanged: notifier.setQuery,
+                onSubmitted: onSubmitted,
               ),
             ),
+            if (onCamera != null) ...[
+              const SizedBox(width: AppSpacing.sm),
+              _cameraButton(l10n),
+            ],
             const SizedBox(width: AppSpacing.sm),
             FilterSheetButton(
               activeCount: filter.activeFilterCount,
@@ -508,8 +580,10 @@ class _ListControls extends StatelessWidget {
             hint: l10n.inventorySearchHint,
             initialValue: filter.query,
             onChanged: notifier.setQuery,
+            onSubmitted: onSubmitted,
           ),
         ),
+        if (onCamera != null) _cameraButton(l10n),
         ..._filterControls(context, l10n),
         if (filter.hasActiveFilters)
           TextButton.icon(
@@ -1238,20 +1312,20 @@ const double _singleColumn = 320;
 
 /// How tall the picture on a card is, for a column this wide.
 ///
-/// Just under three fifths of the column's width, which keeps the picture a
-/// little over half the card once [itemCardTextHeight] is added under it.
+/// Three fifths of the column's width. Since the card took its « Stock
+/// actuel » panel the text block under it is taller, so the picture is about
+/// two fifths of the card rather than half.
 /// Bounded at both ends: a single-column phone layout would otherwise draw a
 /// poster, and a six-column pane on a small tablet a postage stamp.
 ///
 /// The ceiling came down from 190 to 136 with the same reasoning as
 /// [_columnTarget]: a photograph here is there to be recognised at a glance,
 /// not studied, and the ceiling only binds on a wide single-column phone card
-/// that would otherwise draw a poster. The floor of 100 is about where a plate
-/// of food stops being identifiable — and it is also what keeps the picture
-/// above the 45% of the card the tests pin, since the text block under it does
-/// not shrink with the column.
+/// that would otherwise draw a poster. The floor of 104 is about where a plate
+/// of food stops being identifiable, and where the category tag and the status
+/// badge still sit on the picture without covering all of it.
 double inventoryImageHeight(double cellWidth) =>
-    (cellWidth * 0.58).clamp(100, 136);
+    (cellWidth * 0.6).clamp(104, 160);
 
 /// Distinguishes "this store has nothing yet" from "your filters matched
 /// nothing". They need different words and a different button.

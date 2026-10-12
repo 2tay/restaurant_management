@@ -33,8 +33,7 @@ class ReceiptDocumentButton extends ConsumerStatefulWidget {
       _ReceiptDocumentButtonState();
 }
 
-class _ReceiptDocumentButtonState
-    extends ConsumerState<ReceiptDocumentButton> {
+class _ReceiptDocumentButtonState extends ConsumerState<ReceiptDocumentButton> {
   bool _busy = false;
 
   @override

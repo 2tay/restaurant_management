@@ -72,108 +72,108 @@ class ReceiptDetailBody extends ConsumerWidget {
     final body = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-          // Who checked it in, with their face when the receipt names them —
-          // the person to ask when a figure below looks wrong.
-          Align(
-            alignment: Alignment.centerLeft,
-            child: EmployeeNameTag(
-              name: l10n.receiptReceivedBy(receipt.receivedByName),
-              employeeId: receipt.receivedByEmployeeId,
-              style: Theme.of(context).textTheme.bodyMedium,
-              avatarSize: 28,
+        // Who checked it in, with their face when the receipt names them —
+        // the person to ask when a figure below looks wrong.
+        Align(
+          alignment: Alignment.centerLeft,
+          child: EmployeeNameTag(
+            name: l10n.receiptReceivedBy(receipt.receivedByName),
+            employeeId: receipt.receivedByEmployeeId,
+            style: Theme.of(context).textTheme.bodyMedium,
+            avatarSize: 28,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        OrderSummaryCard(
+          figures: [
+            OrderFigure(
+              label: l10n.receiptValueLabel,
+              value: Formatters.price(receiptValue(receipt)),
+              emphasis: true,
             ),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          OrderSummaryCard(
-            figures: [
-              OrderFigure(
-                label: l10n.receiptValueLabel,
-                value: Formatters.price(receiptValue(receipt)),
-                emphasis: true,
-              ),
-              OrderFigure(
-                label: l10n.receiveSummaryLines,
-                value: '${receipt.lines.length}',
-              ),
-              OrderFigure(
-                label: l10n.receiveSummaryDiscrepancies,
-                value: '$discrepancies',
-                accent: discrepancies == 0 ? null : AppColors.lowStock,
-              ),
-            ],
-            footnote: Row(
-              children: [
-                const Icon(
-                  LucideIcons.lock,
-                  size: AppSizing.iconSm,
-                  color: AppColors.textSecondary,
-                ),
-                const SizedBox(width: AppSpacing.sm),
-                Expanded(
-                  child: Text(
-                    l10n.receiptReadOnlyNotice,
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ),
-              ],
+            OrderFigure(
+              label: l10n.receiveSummaryLines,
+              value: '${receipt.lines.length}',
             ),
-          ),
-          const SizedBox(height: AppSpacing.xl),
-
-          SectionHeader(title: l10n.orderTabLines, count: receipt.lines.length),
-          // A table of five columns wants 900dp and a panel has 560, so on the
-          // page it stays a table and in a panel each line becomes a card.
-          // Scrolling a table sideways inside a panel that is itself a narrow
-          // column is two axes of movement to read one delivery.
-          LayoutBuilder(
-            builder: (context, constraints) {
-              if (constraints.maxWidth >= 700) {
-                return DataTableWrapper(
-                  minWidth: 900,
-                  columns: [
-                    DataColumn(label: Text(l10n.orderColumnItem)),
-                    DataColumn(
-                      label: Text(l10n.receiveColumnOrdered),
-                      numeric: true,
-                    ),
-                    DataColumn(
-                      label: Text(l10n.receiveColumnReceived),
-                      numeric: true,
-                    ),
-                    DataColumn(
-                      label: Text(l10n.orderColumnUnitPrice),
-                      numeric: true,
-                    ),
-                    DataColumn(label: Text(l10n.receiptColumnNote)),
-                  ],
-                  rows: [
-                    for (final line in view.lines) _row(context, l10n, line),
-                  ],
-                );
-              }
-
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  for (final (i, line) in view.lines.indexed) ...[
-                    if (i > 0) const SizedBox(height: AppSpacing.xs),
-                    _LineCard(view: line),
-                  ],
-                ],
-              );
-            },
-          ),
-
-          if (receipt.note != null) ...[
-            const SizedBox(height: AppSpacing.xl),
-            SectionHeader(title: l10n.receiveNoteLabel),
-            AppCard(
-              child: Text(
-                receipt.note!,
-                style: Theme.of(context).textTheme.bodyLarge,
-              ),
+            OrderFigure(
+              label: l10n.receiveSummaryDiscrepancies,
+              value: '$discrepancies',
+              accent: discrepancies == 0 ? null : AppColors.lowStock,
             ),
           ],
+          footnote: Row(
+            children: [
+              const Icon(
+                LucideIcons.lock,
+                size: AppSizing.iconSm,
+                color: AppColors.textSecondary,
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: Text(
+                  l10n.receiptReadOnlyNotice,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: AppSpacing.xl),
+
+        SectionHeader(title: l10n.orderTabLines, count: receipt.lines.length),
+        // A table of five columns wants 900dp and a panel has 560, so on the
+        // page it stays a table and in a panel each line becomes a card.
+        // Scrolling a table sideways inside a panel that is itself a narrow
+        // column is two axes of movement to read one delivery.
+        LayoutBuilder(
+          builder: (context, constraints) {
+            if (constraints.maxWidth >= 700) {
+              return DataTableWrapper(
+                minWidth: 900,
+                columns: [
+                  DataColumn(label: Text(l10n.orderColumnItem)),
+                  DataColumn(
+                    label: Text(l10n.receiveColumnOrdered),
+                    numeric: true,
+                  ),
+                  DataColumn(
+                    label: Text(l10n.receiveColumnReceived),
+                    numeric: true,
+                  ),
+                  DataColumn(
+                    label: Text(l10n.orderColumnUnitPrice),
+                    numeric: true,
+                  ),
+                  DataColumn(label: Text(l10n.receiptColumnNote)),
+                ],
+                rows: [
+                  for (final line in view.lines) _row(context, l10n, line),
+                ],
+              );
+            }
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (final (i, line) in view.lines.indexed) ...[
+                  if (i > 0) const SizedBox(height: AppSpacing.xs),
+                  _LineCard(view: line),
+                ],
+              ],
+            );
+          },
+        ),
+
+        if (receipt.note != null) ...[
+          const SizedBox(height: AppSpacing.xl),
+          SectionHeader(title: l10n.receiveNoteLabel),
+          AppCard(
+            child: Text(
+              receipt.note!,
+              style: Theme.of(context).textTheme.bodyLarge,
+            ),
+          ),
+        ],
       ],
     );
 

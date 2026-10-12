@@ -22,10 +22,14 @@ class SearchField extends StatefulWidget {
     this.initialValue,
     this.autofocus = false,
     this.maxWidth = AppSizing.searchFieldMaxWidth,
+    this.onSubmitted,
     super.key,
   });
 
   final ValueChanged<String> onChanged;
+
+  /// Enter in the box — a handheld barcode scanner ends every code with one.
+  final ValueChanged<String>? onSubmitted;
   final String? hint;
   final String? initialValue;
   final bool autofocus;
@@ -73,6 +77,7 @@ class _SearchFieldState extends State<SearchField> {
           controller: _controller,
           autofocus: widget.autofocus,
           textInputAction: TextInputAction.search,
+          onSubmitted: widget.onSubmitted,
           onChanged: (value) {
             widget.onChanged(value);
             // Rebuilds only to show or hide the clear button.

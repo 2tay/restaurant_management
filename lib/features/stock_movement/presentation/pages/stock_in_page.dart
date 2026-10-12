@@ -23,6 +23,8 @@ import '../../../../core/utils/employee_status.dart';
 import '../widgets/picker/movement_cart.dart';
 import '../widgets/picker/product_picker_sheet.dart';
 import '../widgets/picker/supplier_choice.dart';
+import '../../../barcode/presentation/barcode_flow.dart';
+import '../../../barcode/presentation/barcode_support.dart';
 
 /// Receive a delivery — several products at once.
 ///
@@ -130,6 +132,46 @@ class _StockInPageState extends ConsumerState<StockInPage> {
     for (final line in added) {
       unawaited(_prefill(line));
     }
+  }
+
+  /// A scanned product: a new row at one — its usual supplier and price
+  /// filled in like a picked one — or one more on the row already there.
+  /// A weighed product asks how much came instead.
+  Future<ScanOutcome> _onScanned(ItemRowView row) async {
+    final l10n = AppLocalizations.of(context);
+    final unit = row.unitAbbreviation;
+    var amount = 1.0;
+    if (isMeasuredUnit(unit)) {
+      final entered = await askScanQuantity(
+        context,
+        row: row,
+        title: l10n.scanQuantityReceived,
+      );
+      if (entered == null) return const ScanOutcome.cancelled();
+      amount = entered;
+    }
+    if (!mounted) return const ScanOutcome.cancelled();
+
+    _DeliveryLine? line;
+    for (final existing in _lines) {
+      if (existing.itemId == row.item.id) line = existing;
+    }
+    final isNew = line == null;
+    setState(() {
+      if (line == null) {
+        line = _DeliveryLine(row.item.id)..quantity = amount;
+        _lines.add(line!);
+      } else {
+        line!.quantity += amount;
+      }
+    });
+    if (isNew) unawaited(_prefill(line!));
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (line!.key.currentContext != null) scrollToLine(line!.key);
+    });
+    return ScanOutcome.added(
+      l10n.scanAdded(Formatters.quantityWithUnit(amount, unit), row.item.name),
+    );
   }
 
   /// A new row pre-selects the product's usual supplier and pulls that price
@@ -322,9 +364,7 @@ class _StockInPageState extends ConsumerState<StockInPage> {
                 shape: const RoundedRectangleBorder(
                   borderRadius: AppRadius.pillAll,
                 ),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.md,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
                 visualDensity: VisualDensity.compact,
                 textStyle: Theme.of(context).textTheme.labelLarge,
               ),
@@ -332,6 +372,8 @@ class _StockInPageState extends ConsumerState<StockInPage> {
           ),
           const SizedBox(height: AppSpacing.lg),
 
+          BarcodeScanBar(storeId: widget.storeId, onItem: _onScanned),
+          const SizedBox(height: AppSpacing.md),
           MovementProductsCard(
             accent: movementColors(StockMovementType.stockIn),
             onPick: () => _pick(rows),

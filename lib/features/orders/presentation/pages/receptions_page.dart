@@ -410,8 +410,11 @@ class _History extends ConsumerWidget {
 
         // A recorded réception is pure reference — there is nothing to do with
         // it but read it — which is exactly what a panel is for.
-        void open(StoreReceiptRowView row) =>
-            openReceiptPanel(context, storeId: storeId, receiptId: row.receipt.id);
+        void open(StoreReceiptRowView row) => openReceiptPanel(
+          context,
+          storeId: storeId,
+          receiptId: row.receipt.id,
+        );
 
         // A table only where it has the width to be one; below that, a table
         // would keep three of its seven columns and read as a list anyway.

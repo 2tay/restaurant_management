@@ -18,6 +18,8 @@ import '../widgets/movement_labels.dart';
 import '../../../../core/utils/employee_status.dart';
 import '../widgets/picker/movement_cart.dart';
 import '../widgets/picker/product_picker_sheet.dart';
+import '../../../barcode/presentation/barcode_flow.dart';
+import '../../../barcode/presentation/barcode_support.dart';
 
 /// Record stock leaving — sold, used, wasted or transferred — for several
 /// products at once.
@@ -78,6 +80,44 @@ class _StockOutPageState extends ConsumerState<StockOutPage> {
     setState(() {
       _lines.addAll([for (final row in picked) _StockOutLine(row.item.id)]);
     });
+  }
+
+  /// A scanned product: on the form at one, or one more when it is already
+  /// there — six scans of the same bottle are six bottles. A weighed product
+  /// asks how much instead, since a scan cannot say.
+  Future<ScanOutcome> _onScanned(ItemRowView row) async {
+    final l10n = AppLocalizations.of(context);
+    final unit = row.unitAbbreviation;
+    var amount = 1.0;
+    if (isMeasuredUnit(unit)) {
+      final entered = await askScanQuantity(
+        context,
+        row: row,
+        title: l10n.scanQuantityUsed,
+      );
+      if (entered == null) return const ScanOutcome.cancelled();
+      amount = entered;
+    }
+    if (!mounted) return const ScanOutcome.cancelled();
+
+    _StockOutLine? line;
+    for (final existing in _lines) {
+      if (existing.itemId == row.item.id) line = existing;
+    }
+    setState(() {
+      if (line == null) {
+        line = _StockOutLine(row.item.id)..quantity = amount;
+        _lines.add(line!);
+      } else {
+        line!.quantity += amount;
+      }
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (line!.key.currentContext != null) scrollToLine(line!.key);
+    });
+    return ScanOutcome.added(
+      l10n.scanAdded(Formatters.quantityWithUnit(amount, unit), row.item.name),
+    );
   }
 
   void _remove(_StockOutLine line) {
@@ -166,6 +206,8 @@ class _StockOutPageState extends ConsumerState<StockOutPage> {
           ),
           const SizedBox(height: AppSpacing.lg),
 
+          BarcodeScanBar(storeId: widget.storeId, onItem: _onScanned),
+          const SizedBox(height: AppSpacing.md),
           MovementProductsCard(
             accent: colors,
             onPick: _pick,
