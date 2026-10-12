@@ -656,10 +656,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get itemBusyMinShort => 'Min. affluence';
 
   @override
-  String get itemCardCategoryLabel => 'Catégorie :';
-
-  @override
-  String get itemCardQuantityLabel => 'Qté :';
+  String get itemCardQuantityLabel => 'En stock';
 
   @override
   String get itemFormSectionIdentity => 'Identité';

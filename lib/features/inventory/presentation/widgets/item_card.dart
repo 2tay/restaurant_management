@@ -14,9 +14,12 @@ import '../../../../shared/widgets/widgets.dart';
 ///
 /// Stated rather than derived, and the grid adds it to the image height to size
 /// each tile — see [ItemCard]. It covers the name, the category line and the
-/// quantity line.
+/// quantity with the small label above it.
 ///
-/// 108dp. It was 120 while a 40dp arrow button sat on the quantity's line and
+/// 116dp since the category became a chip and the quantity got back a small
+/// « EN STOCK » label above it: a figure set large reads as the card's answer,
+/// and the label says which question it answers. It was 108 with « Catégorie : »
+/// and « Qté : » inline, and 120 while a 40dp arrow button sat on the quantity's line and
 /// set that row's height; the card opens on a tap anywhere, so the arrow was
 /// an affordance pretending to be an action, and its twelve points went with
 /// it. Before that it was 126 with a "Stock actuel" caption above the figure —
@@ -27,7 +30,7 @@ import '../../../../shared/widgets/widgets.dart';
 /// 150%, which is where this grid overflowed for anyone who had turned the text
 /// up. Capped at 2x so an extreme accessibility setting makes the tiles tall
 /// rather than making them a page each.
-const double itemCardTextHeight = 108;
+const double itemCardTextHeight = 116;
 
 /// [itemCardTextHeight] grown for the user's current type size.
 double itemCardTextHeightFor(BuildContext context) {
@@ -122,33 +125,50 @@ class ItemCard extends StatelessWidget {
           SizedBox(
             height: itemCardTextHeightFor(context),
             child: Padding(
-              padding: const EdgeInsets.all(AppSpacing.md),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.md,
+                vertical: AppSpacing.sm + 2,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    Formatters.capitalized(item.name),
-                    style: theme.textTheme.titleSmall,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  // Each figure says what it is: « Catégorie : » and
-                  // « Qté : » in muted text before the value.
-                  _LabelledLine(
-                    label: l10n.itemCardCategoryLabel,
-                    child: Text(
-                      view.categoryName,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: AppColors.textPrimary,
+                  // What it is: the name, and its category as a chip — a
+                  // tag, not a sentence to read.
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        Formatters.capitalized(item.name),
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                      const SizedBox(height: AppSpacing.xs + 2),
+                      _CategoryChip(name: view.categoryName),
+                    ],
                   ),
-                  _LabelledLine(
-                    label: l10n.itemCardQuantityLabel,
-                    child: ItemStockQuantity(view: view, status: status),
+                  // How much is left: a small label, then the figure large
+                  // and in the colour of its status.
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        l10n.itemCardQuantityLabel.toUpperCase(),
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: AppColors.textSecondary,
+                          letterSpacing: 0.6,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      ItemStockQuantity(view: view, status: status),
+                    ],
                   ),
                 ],
               ),
@@ -195,33 +215,35 @@ class ItemStockQuantity extends StatelessWidget {
   }
 }
 
-/// « Catégorie : Légumes » — a muted label, then the value, on one line.
-class _LabelledLine extends StatelessWidget {
-  const _LabelledLine({required this.label, required this.child});
+/// The category as a small neutral pill. Neutral on purpose: the colours on
+/// this card belong to the stock status, and a tinted category would compete
+/// with them for what the eye reads first.
+class _CategoryChip extends StatelessWidget {
+  const _CategoryChip({required this.name});
 
-  final String label;
-  final Widget child;
+  final String name;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.baseline,
-      textBaseline: TextBaseline.alphabetic,
-      children: [
-        // Both give way on the narrowest card, the label too, rather than
-        // the line running off the edge.
-        Flexible(
-          child: Text(
-            '$label ',
-            style: Theme.of(
-              context,
-            ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.sm,
+        vertical: AppSpacing.xxs,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceVariant,
+        borderRadius: AppRadius.pillAll,
+        border: Border.all(color: AppColors.hairline),
+      ),
+      child: Text(
+        name,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+          color: AppColors.textSecondary,
+          fontWeight: FontWeight.w600,
         ),
-        Flexible(flex: 2, child: child),
-      ],
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
     );
   }
 }

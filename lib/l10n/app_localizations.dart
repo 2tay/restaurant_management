@@ -1216,16 +1216,10 @@ abstract class AppLocalizations {
   /// **'Min. affluence'**
   String get itemBusyMinShort;
 
-  /// Product card: label before the category name.
+  /// Product card: small label above the quantity on hand, shown in capitals.
   ///
   /// In fr, this message translates to:
-  /// **'Catégorie :'**
-  String get itemCardCategoryLabel;
-
-  /// Product card: label before the quantity in stock.
-  ///
-  /// In fr, this message translates to:
-  /// **'Qté :'**
+  /// **'En stock'**
   String get itemCardQuantityLabel;
 
   /// Product form section: the photo, the name and the barcode — what identifies this product.
