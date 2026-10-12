@@ -7,6 +7,7 @@ import '../../../../app/routes.dart';
 import '../../../../app/navigation.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/utils/dates.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/utils/responsive.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -19,21 +20,12 @@ import '../widgets/movement_row.dart';
 import '../widgets/movement_table.dart';
 import '../../../inventory/presentation/widgets/product_drawer.dart';
 
-/// A date range for the history filter.
-enum HistoryPeriod {
-  last7(7),
-  last30(30),
-  last90(90),
-  all(null);
-
-  const HistoryPeriod(this.days);
-
-  final int? days;
-}
+/// How many days the log opens on, today included.
+const int _defaultDays = 30;
 
 /// The chronological movement log.
 ///
-/// Filterable by type, period, item and user — the four questions actually
+/// Filterable by type, dates, item and user — the four questions actually
 /// asked of a stock log: "what came in this week", "who logged that", "what
 /// happened to the chicken", "how much did we throw away".
 class StockHistoryPage extends ConsumerStatefulWidget {
@@ -63,23 +55,30 @@ class _StockHistoryPageState extends ConsumerState<StockHistoryPage> {
   int _shown = _batch;
 
   StockMovementType? _type;
-  HistoryPeriod _period = HistoryPeriod.last30;
+
+  /// The first day shown, or null for "since the first movement" — what a
+  /// single product's log opens on. The two « Début » / « Fin » pickers are
+  /// the same ones as the pointage history.
+  DateTime? _from;
+
+  /// The last day shown, included.
+  late DateTime _to;
+
   String? _itemId;
   String? _userName;
 
-  /// How many filters are narrowing the log, for the button that stands in for
-  /// them on a phone.
-  ///
-  /// The period counts whenever it is not "tout", including the thirty days
-  /// the screen opens on. That reads as "Filtres · 1" on a page nobody has
-  /// touched, which is the truth: the log on screen is not the whole log. It
-  /// also matches what [_clearFilters] does, which is to widen the period back
-  /// out to everything — a count that ignored the period would leave the clear
-  /// button changing something the count said was not set.
+  /// The thirty days the log opens on, ending today.
+  DateTime get _defaultTo => dayOf(clock.now());
+  DateTime get _defaultFrom =>
+      _defaultTo.subtract(const Duration(days: _defaultDays - 1));
+
+  bool get _rangeIsDefault => _from == _defaultFrom && _to == _defaultTo;
+
   /// Filters behind the phone's filter button. The type is not one of them:
-  /// it has its own row of chips, always on screen.
+  /// it has its own row of chips, always on screen. The period counts once it
+  /// is off the thirty days the screen opens on, as on the pointage history.
   int get _activeFilterCount =>
-      (_period != HistoryPeriod.all ? 1 : 0) +
+      (_rangeIsDefault ? 0 : 1) +
       (_itemId != null ? 1 : 0) +
       (_userName != null ? 1 : 0);
 
@@ -118,7 +117,8 @@ class _StockHistoryPageState extends ConsumerState<StockHistoryPage> {
   /// short.
   void _applyRoute() {
     _itemId = widget.initialItemId;
-    _period = _itemId == null ? HistoryPeriod.last30 : HistoryPeriod.all;
+    _to = _defaultTo;
+    _from = _itemId == null ? _defaultFrom : null;
   }
 
   @override
@@ -182,15 +182,42 @@ class _StockHistoryPageState extends ConsumerState<StockHistoryPage> {
               allMovements.map((row) => row.movement.userName).toSet().toList()
                 ..sort();
 
+          // "Since the first movement" shows as the day of that movement: the
+          // pill states a date the log really starts on, not a sentinel.
+          final earliest = allMovements.isEmpty
+              ? _to
+              : dayOf(
+                  allMovements
+                      .map((row) => row.movement.occurredAt)
+                      .reduce((a, b) => a.isBefore(b) ? a : b),
+                );
+          final from = _from ?? (earliest.isAfter(_to) ? _to : earliest);
+
           final filters = <Widget>[
-            _Menu<HistoryPeriod>(
-              label: l10n.movementsFilterPeriod,
-              selectedLabel: _periodLabel(l10n, _period),
-              entries: {
-                for (final period in HistoryPeriod.values)
-                  period: _periodLabel(l10n, period),
-              },
-              onSelected: (value) => setState(() => _period = value),
+            DateFilter(
+              key: const ValueKey('movements-date-from'),
+              label: l10n.historyFilterFrom,
+              value: from,
+              firstDate: DateTime(2000),
+              lastDate: _to,
+              isDefault: _from == _defaultFrom,
+              onChanged: (value) => setState(() {
+                _from = value;
+                _shown = _batch;
+              }),
+            ),
+            DateFilter(
+              key: const ValueKey('movements-date-to'),
+              label: l10n.historyFilterTo,
+              value: _to,
+              firstDate: from,
+              lastDate: _defaultTo,
+              isDefault: _to == _defaultTo,
+              onChanged: (value) => setState(() {
+                _to = value;
+                if (_from != null && _from!.isAfter(value)) _from = value;
+                _shown = _batch;
+              }),
             ),
             _Menu<String?>(
               label: l10n.stockInItem,
@@ -318,6 +345,22 @@ class _StockHistoryPageState extends ConsumerState<StockHistoryPage> {
                     ),
                   ],
                 ),
+              if (!_rangeIsDefault) ...[
+                const SizedBox(height: AppSpacing.sm),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: RemovableFilterChip(
+                    label: l10n.attendanceFilterDateRange(
+                      Formatters.date(from),
+                      Formatters.date(_to),
+                    ),
+                    onRemove: () => setState(() {
+                      _from = _defaultFrom;
+                      _to = _defaultTo;
+                    }),
+                  ),
+                ),
+              ],
               const SizedBox(height: AppSpacing.md),
 
               // Part of the page rather than a box of its own: the whole page
@@ -339,7 +382,7 @@ class _StockHistoryPageState extends ConsumerState<StockHistoryPage> {
                             ? () => context.pushScreen(
                                 Routes.toStockIn(widget.storeId),
                               )
-                            : _clearFilters,
+                            : _showEverything,
                       )
                     // The table on a tablet or wider when chosen; a phone
                     // keeps the cards, which a narrow table would only
@@ -418,33 +461,44 @@ class _StockHistoryPageState extends ConsumerState<StockHistoryPage> {
     return null;
   }
 
+  /// The filter sheet's "Tout effacer": every filter back to how the screen
+  /// opens, the thirty days included — as on the pointage history.
   void _clearFilters() {
     setState(() {
       _type = null;
-      _period = HistoryPeriod.all;
+      _from = _defaultFrom;
+      _to = _defaultTo;
       _itemId = null;
       _userName = null;
+      _shown = _batch;
     });
   }
 
-  String _periodLabel(AppLocalizations l10n, HistoryPeriod period) =>
-      switch (period) {
-        HistoryPeriod.last7 => l10n.periodLast7Days,
-        HistoryPeriod.last30 => l10n.periodLast30Days,
-        HistoryPeriod.last90 => l10n.periodLast90Days,
-        HistoryPeriod.all => l10n.periodAll,
-      };
+  /// The empty list's way out: no filter at all, the period widened to the
+  /// first movement. Resetting to the thirty days would leave a store whose
+  /// last movement is older than that on the same empty screen.
+  void _showEverything() {
+    setState(() {
+      _type = null;
+      _from = null;
+      _to = _defaultTo;
+      _itemId = null;
+      _userName = null;
+      _shown = _batch;
+    });
+  }
 
   List<MovementRowView> _filtered(List<MovementRowView> rows) {
-    final cutoff = _period.days == null
-        ? null
-        : clock.now().subtract(Duration(days: _period.days!));
+    final start = _from;
+    // The end day is included: everything before the next midnight.
+    final end = _to.add(const Duration(days: 1));
 
     return rows.where((row) {
       final movement = row.movement;
       if (_itemId != null && movement.itemId != _itemId) return false;
       if (_userName != null && movement.userName != _userName) return false;
-      if (cutoff != null && movement.occurredAt.isBefore(cutoff)) return false;
+      if (start != null && movement.occurredAt.isBefore(start)) return false;
+      if (!movement.occurredAt.isBefore(end)) return false;
       return true;
     }).toList();
   }
