@@ -451,78 +451,17 @@ class _StatusTabs extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: [
-          for (final (i, value) in OrdersTab.values.indexed) ...[
-            if (i > 0) const SizedBox(width: AppSpacing.sm),
-            Semantics(
-              button: true,
-              selected: value == tab,
-              child: InkWell(
-                onTap: () => onSelected(value),
-                borderRadius: AppRadius.pillAll,
-                child: AnimatedContainer(
-                  duration: AppMotion.duration(context, AppMotion.fast),
-                  constraints: const BoxConstraints(
-                    minHeight: AppSizing.minTapTarget,
-                  ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.md,
-                  ),
-                  decoration: BoxDecoration(
-                    color: value == tab
-                        ? AppColors.primaryContainer
-                        : AppColors.surface,
-                    borderRadius: AppRadius.pillAll,
-                    border: Border.all(
-                      color: value == tab
-                          ? AppColors.primary600
-                          : AppColors.border,
-                      width: value == tab ? 2 : 1,
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        value.label(l10n),
-                        style: theme.textTheme.labelLarge?.copyWith(
-                          color: value == tab
-                              ? AppColors.onPrimaryContainer
-                              : AppColors.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(width: AppSpacing.sm),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.sm,
-                          vertical: AppSpacing.xxs,
-                        ),
-                        decoration: BoxDecoration(
-                          color: value == tab
-                              ? AppColors.surface
-                              : AppColors.surfaceVariant,
-                          borderRadius: AppRadius.pillAll,
-                        ),
-                        child: Text(
-                          '${counts[value] ?? 0}',
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ],
-      ),
+    return CountTabs<OrdersTab>(
+      selected: tab,
+      onSelected: onSelected,
+      tabs: [
+        for (final value in OrdersTab.values)
+          CountTab(
+            value: value,
+            label: value.label(l10n),
+            count: counts[value] ?? 0,
+          ),
+      ],
     );
   }
 }

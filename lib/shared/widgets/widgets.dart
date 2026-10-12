@@ -29,6 +29,7 @@ export 'attendance_status_badge.dart';
 export 'attendance_timeline.dart';
 export 'back_control.dart';
 export 'confirm_dialog.dart';
+export 'count_tabs.dart';
 export 'data_table_wrapper.dart';
 export 'date_field.dart';
 export 'day_summary_table.dart';

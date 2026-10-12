@@ -1674,6 +1674,23 @@ class AppLocalizationsFr extends AppLocalizations {
   String get alertsLinkSupplierShort => 'Associer';
 
   @override
+  String alertsOrderFrom(String supplier) {
+    return 'Commander chez $supplier';
+  }
+
+  @override
+  String get alertsViewMovements => 'Voir les mouvements';
+
+  @override
+  String get alertsEditThresholds => 'Modifier les seuils';
+
+  @override
+  String get alertsTabEvery => 'Tous';
+
+  @override
+  String get filtersReset => 'Réinitialiser';
+
+  @override
   String get notificationsTitle => 'Notifications';
 
   @override

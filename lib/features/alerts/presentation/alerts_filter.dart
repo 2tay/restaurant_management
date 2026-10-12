@@ -52,6 +52,7 @@ class AlertsFilter {
     this.severity = AlertSeverity.all,
     this.coverage = AlertCoverage.all,
     this.supplierId,
+    this.categoryId,
     this.sort = AlertSort.urgency,
     this.query = '',
   });
@@ -62,6 +63,9 @@ class AlertsFilter {
   /// The supplier who would fill the article, or [noSupplier] for the articles
   /// that have none.
   final String? supplierId;
+
+  /// The category the article is filed under.
+  final String? categoryId;
 
   final AlertSort sort;
 
@@ -78,25 +82,29 @@ class AlertsFilter {
 
   bool get hasActiveFilters => activeFilterCount > 0;
 
-  /// How many controls are narrowing the list, for the button that stands in
-  /// for them on a phone. The sort is not one: it reorders, it hides nothing.
+  /// How many dropdowns are narrowing the list, for the button that stands in
+  /// for them on a phone. The severity is not one: it has its own tabs, always
+  /// on screen. Nor is the sort: it reorders, it hides nothing.
   int get activeFilterCount =>
-      (severity != AlertSeverity.all ? 1 : 0) +
       (coverage != AlertCoverage.all ? 1 : 0) +
-      (supplierId != null ? 1 : 0);
+      (supplierId != null ? 1 : 0) +
+      (categoryId != null ? 1 : 0);
 
   AlertsFilter copyWith({
     AlertSeverity? severity,
     AlertCoverage? coverage,
     String? supplierId,
+    String? categoryId,
     AlertSort? sort,
     String? query,
     bool clearSupplier = false,
+    bool clearCategory = false,
   }) {
     return AlertsFilter(
       severity: severity ?? this.severity,
       coverage: coverage ?? this.coverage,
       supplierId: clearSupplier ? null : supplierId ?? this.supplierId,
+      categoryId: clearCategory ? null : categoryId ?? this.categoryId,
       sort: sort ?? this.sort,
       query: query ?? this.query,
     );
@@ -151,6 +159,10 @@ class AlertsFilter {
       return false;
     }
 
+    if (categoryId != null && view.row.item.categoryId != categoryId) {
+      return false;
+    }
+
     if (supplierId == null) return true;
     if (supplierId == noSupplier) return view.defaultSupplierId == null;
     return view.defaultSupplierId == supplierId;
@@ -180,13 +192,21 @@ class AlertsFilterNotifier extends Notifier<AlertsFilter> {
       ? state = state.copyWith(clearSupplier: true)
       : state = state.copyWith(supplierId: id);
 
+  void setCategory(String? id) => id == null
+      ? state = state.copyWith(clearCategory: true)
+      : state = state.copyWith(categoryId: id);
+
   void setSort(AlertSort value) => state = state.copyWith(sort: value);
 
   void setQuery(String value) => state = state.copyWith(query: value);
 
-  /// Clears what is hiding rows, keeping the order the user chose and what is
-  /// typed in the search box.
-  void clear() => state = AlertsFilter(sort: state.sort, query: state.query);
+  /// Clears the dropdowns, keeping the tab, the order the user chose and what
+  /// is typed in the search box — each of those has its own control on screen.
+  void clear() => state = AlertsFilter(
+    severity: state.severity,
+    sort: state.sort,
+    query: state.query,
+  );
 }
 
 /// Kept for the session, like the orders list's own filter.

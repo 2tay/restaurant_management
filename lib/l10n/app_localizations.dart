@@ -2776,6 +2776,36 @@ abstract class AppLocalizations {
   /// **'Associer'**
   String get alertsLinkSupplierShort;
 
+  /// First entry of an alert row's menu: starts a commande with the product's default supplier.
+  ///
+  /// In fr, this message translates to:
+  /// **'Commander chez {supplier}'**
+  String alertsOrderFrom(String supplier);
+
+  /// Alert row menu: opens the stock movements log narrowed to this product.
+  ///
+  /// In fr, this message translates to:
+  /// **'Voir les mouvements'**
+  String get alertsViewMovements;
+
+  /// Alert row menu: opens the product form to change its minimum and maximum.
+  ///
+  /// In fr, this message translates to:
+  /// **'Modifier les seuils'**
+  String get alertsEditThresholds;
+
+  /// Alerts status tab showing every alert, ordinary days.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tous'**
+  String get alertsTabEvery;
+
+  /// Button beside a list's filter dropdowns that puts them all back to their default.
+  ///
+  /// In fr, this message translates to:
+  /// **'Réinitialiser'**
+  String get filtersReset;
+
   /// Notification centre heading.
   ///
   /// In fr, this message translates to:
