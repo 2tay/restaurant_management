@@ -465,68 +465,30 @@ class _ReceiptPanelState extends ConsumerState<_ReceiptPanel> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // The same header as the commande's.
-        Row(
-          children: [
-            if (panel.canGoBack) ...[
-              IconButton(
-                onPressed: panel.back,
-                tooltip: l10n.actionBack,
-                icon: const Icon(LucideIcons.arrowLeft, size: AppSizing.iconMd),
-              ),
-              const SizedBox(width: AppSpacing.xs),
-            ],
-            SupplierMonogram(name: supplierName, size: 44),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    supplierName,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: AppSpacing.xxs),
-                  Row(
-                    children: [
-                      Flexible(
-                        child: PanelReferenceCopy(reference: view.reference),
-                      ),
-                      const SizedBox(width: AppSpacing.sm),
-                      StatusPill(
-                        colors: verdict,
-                        icon: conform
-                            ? LucideIcons.circleCheck
-                            : LucideIcons.triangleAlert,
-                        label: conform
-                            ? l10n.receptionsConform
-                            : l10n.receptionsDiscrepancies(issues.length),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: AppSpacing.xs),
-            ReceiptDocumentButton(receipt: receipt, compact: true),
-            IconButton(
-              onPressed: panel.close,
-              tooltip: l10n.actionClose,
-              icon: const Icon(LucideIcons.x, size: AppSizing.iconMd),
-            ),
-          ],
-        ),
-        const SizedBox(height: AppSpacing.lg),
         Expanded(
           child: PanelFillLayout(
             top: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                PanelIdentityHeader(
+                  panel: panel,
+                  supplierName: supplierName,
+                  reference: view.reference,
+                  badge: StatusPill(
+                    colors: verdict,
+                    icon: conform
+                        ? LucideIcons.circleCheck
+                        : LucideIcons.triangleAlert,
+                    label: conform
+                        ? l10n.receptionsConform
+                        : l10n.receptionsDiscrepancies(issues.length),
+                  ),
+                  action: ReceiptDocumentButton(
+                    receipt: receipt,
+                    compact: true,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.lg),
                 _ReceiptHero(view: view),
                 if (receipt.note != null) ...[
                   const SizedBox(height: AppSpacing.md),
@@ -589,44 +551,28 @@ class _ReceiptPanelState extends ConsumerState<_ReceiptPanel> {
             ),
           ),
         ),
-        // The same footer as the commande's: secondary left, primary right.
-        Container(
-          padding: const EdgeInsets.only(top: AppSpacing.lg),
-          decoration: const BoxDecoration(
-            border: Border(top: BorderSide(color: AppColors.hairline)),
+        // The same footer as the commande: secondary left, primary right.
+        PanelFooterBar(
+          secondary: SecondaryButton(
+            label: l10n.receiptPanelOpenOrder,
+            icon: LucideIcons.fileText,
+            fullWidth: true,
+            onPressed: () => openOrderPanel(
+              context,
+              storeId: storeId,
+              orderId: receipt.orderId,
+            ),
           ),
-          child: Row(
-            children: [
-              Expanded(
-                child: SecondaryButton(
-                  label: l10n.receiptPanelOpenOrder,
-                  icon: LucideIcons.fileText,
+          primary: canReceive
+              ? PrimaryButton(
+                  label: l10n.receiptPanelReceiveRest,
+                  icon: LucideIcons.packageCheck,
                   fullWidth: true,
-                  onPressed: () => openOrderPanel(
-                    context,
-                    storeId: storeId,
-                    orderId: receipt.orderId,
+                  onPressed: () => context.pushScreen(
+                    Routes.toReceiveOrder(storeId, order.id),
                   ),
-                ),
-              ),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: canReceive
-                    ? PrimaryButton(
-                        label: l10n.receiptPanelReceiveRest,
-                        icon: LucideIcons.packageCheck,
-                        fullWidth: true,
-                        onPressed: () => context.pushScreen(
-                          Routes.toReceiveOrder(storeId, order.id),
-                        ),
-                      )
-                    : ReceiptDocumentButton.footer(
-                        receipt: receipt,
-                        prominent: true,
-                      ),
-              ),
-            ],
-          ),
+                )
+              : ReceiptDocumentButton.footer(receipt: receipt, prominent: true),
         ),
       ],
     );
@@ -702,20 +648,21 @@ class _ReceiptHero extends StatelessWidget {
             ],
           ),
           const SizedBox(height: AppSpacing.lg),
-          Row(
+          // Wraps on a phone rather than squeezing the name.
+          Wrap(
+            spacing: AppSpacing.lg,
+            runSpacing: AppSpacing.sm,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              Expanded(
-                child: EmployeeNameTag(
-                  name: receipt.receivedByName,
-                  employeeId: receipt.receivedByEmployeeId,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.w600,
-                  ),
-                  avatarSize: 24,
+              EmployeeNameTag(
+                name: receipt.receivedByName,
+                employeeId: receipt.receivedByEmployeeId,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.w600,
                 ),
+                avatarSize: 24,
               ),
-              const SizedBox(width: AppSpacing.sm),
               MetaItem(
                 icon: LucideIcons.calendarClock,
                 label: Formatters.dateTime(receipt.receivedAt),

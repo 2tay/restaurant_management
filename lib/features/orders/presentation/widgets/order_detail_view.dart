@@ -164,17 +164,17 @@ class OrderDetailBody extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        OrderPanelHeader(
-          panel: panel!,
-          order: order,
-          supplierName: view.supplierName,
-        ),
-        const SizedBox(height: AppSpacing.lg),
         Expanded(
           child: PanelFillLayout(
             top: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                OrderPanelHeader(
+                  panel: panel!,
+                  order: order,
+                  supplierName: view.supplierName,
+                ),
+                const SizedBox(height: AppSpacing.lg),
                 OrderPanelHero(order: order, receiptDates: receiptDates),
                 if (order.note != null) ...[
                   const SizedBox(height: AppSpacing.md),

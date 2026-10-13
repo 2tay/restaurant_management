@@ -41,55 +41,117 @@ class OrderPanelHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return PanelIdentityHeader(
+      panel: panel,
+      supplierName: supplierName,
+      reference: order.reference,
+      badge: OrderStatusBadge(status: order.status),
+      action: OrderDocumentButton(order: order, compact: true),
+    );
+  }
+}
+
+/// The top of a commande or réception panel: the supplier, the document's
+/// reference with its status, a document action and the way out.
+///
+/// With room it is one row. On a phone the actions take a row of their own
+/// beside the supplier's initials, and the name and reference get the whole
+/// width under it, wrapping rather than being cut.
+class PanelIdentityHeader extends StatelessWidget {
+  const PanelIdentityHeader({
+    required this.panel,
+    required this.supplierName,
+    required this.reference,
+    required this.badge,
+    required this.action,
+    super.key,
+  });
+
+  final PanelController panel;
+  final String supplierName;
+  final String reference;
+  final Widget badge;
+
+  /// The icon button for the PDF.
+  final Widget action;
+
+  static const double _stacksBelow = 400;
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
 
-    return Row(
-      children: [
-        if (panel.canGoBack) ...[
-          IconButton(
+    final back = panel.canGoBack
+        ? IconButton(
             onPressed: panel.back,
             tooltip: l10n.actionBack,
             icon: const Icon(LucideIcons.arrowLeft, size: AppSizing.iconMd),
+          )
+        : null;
+    final close = IconButton(
+      onPressed: panel.close,
+      tooltip: l10n.actionClose,
+      icon: const Icon(LucideIcons.x, size: AppSizing.iconMd),
+    );
+    final identity = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          supplierName,
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w700,
           ),
-          const SizedBox(width: AppSpacing.xs),
-        ],
-        SupplierMonogram(name: supplierName, size: 44),
-        const SizedBox(width: AppSpacing.md),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                supplierName,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: AppSpacing.xxs),
-              Row(
-                children: [
-                  Flexible(
-                    child: PanelReferenceCopy(reference: order.reference),
-                  ),
-                  const SizedBox(width: AppSpacing.sm),
-                  OrderStatusBadge(status: order.status),
-                ],
-              ),
-            ],
-          ),
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
         ),
-        const SizedBox(width: AppSpacing.xs),
-        OrderDocumentButton(order: order, compact: true),
-        IconButton(
-          onPressed: panel.close,
-          tooltip: l10n.actionClose,
-          icon: const Icon(LucideIcons.x, size: AppSizing.iconMd),
+        const SizedBox(height: AppSpacing.xs),
+        Wrap(
+          spacing: AppSpacing.sm,
+          runSpacing: AppSpacing.xs,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            PanelReferenceCopy(reference: reference),
+            badge,
+          ],
         ),
       ],
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < _stacksBelow) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  ?back,
+                  SupplierMonogram(name: supplierName, size: 40),
+                  const Spacer(),
+                  action,
+                  close,
+                ],
+              ),
+              const SizedBox(height: AppSpacing.md),
+              identity,
+            ],
+          );
+        }
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (back != null) ...[back, const SizedBox(width: AppSpacing.xs)],
+            SupplierMonogram(name: supplierName, size: 44),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(child: identity),
+            const SizedBox(width: AppSpacing.xs),
+            action,
+            close,
+          ],
+        );
+      },
     );
   }
 }
@@ -184,57 +246,75 @@ class OrderPanelHero extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Expanded(
-                child: Column(
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final hasChips = locked || shortfall > 0;
+              final total = Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    l10n.orderTotalLabel,
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.xxs),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      Formatters.price(orderTotal(order)),
+                      style: AppTypography.numericHero,
+                      maxLines: 1,
+                    ),
+                  ),
+                ],
+              );
+              final chips = Wrap(
+                spacing: AppSpacing.xs,
+                runSpacing: AppSpacing.xs,
+                alignment: WrapAlignment.end,
+                children: [
+                  if (locked)
+                    _InfoChip(
+                      icon: LucideIcons.lock,
+                      label: l10n.orderPanelLocked,
+                      tooltip: l10n.orderLockedNotice,
+                    ),
+                  if (shortfall > 0)
+                    _InfoChip(
+                      icon: LucideIcons.packageX,
+                      label: l10n.orderPanelShortfall(
+                        Formatters.quantity(shortfall),
+                      ),
+                      colors: AppColors.lowStock,
+                    ),
+                ],
+              );
+              // A phone keeps the total on its own line; the chips go under.
+              if (constraints.maxWidth < 360) {
+                return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      l10n.orderTotalLabel,
-                      style: theme.textTheme.labelMedium?.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.xxs),
-                    FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        Formatters.price(orderTotal(order)),
-                        style: AppTypography.numericHero,
-                        maxLines: 1,
-                      ),
-                    ),
+                    total,
+                    if (hasChips) ...[
+                      const SizedBox(height: AppSpacing.sm),
+                      chips,
+                    ],
                   ],
-                ),
-              ),
-              if (locked || shortfall > 0) ...[
-                const SizedBox(width: AppSpacing.sm),
-                Wrap(
-                  spacing: AppSpacing.xs,
-                  runSpacing: AppSpacing.xs,
-                  alignment: WrapAlignment.end,
-                  children: [
-                    if (locked)
-                      _InfoChip(
-                        icon: LucideIcons.lock,
-                        label: l10n.orderPanelLocked,
-                        tooltip: l10n.orderLockedNotice,
-                      ),
-                    if (shortfall > 0)
-                      _InfoChip(
-                        icon: LucideIcons.packageX,
-                        label: l10n.orderPanelShortfall(
-                          Formatters.quantity(shortfall),
-                        ),
-                        colors: AppColors.lowStock,
-                      ),
+                );
+              }
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Expanded(child: total),
+                  if (hasChips) ...[
+                    const SizedBox(width: AppSpacing.sm),
+                    chips,
                   ],
-                ),
-              ],
-            ],
+                ],
+              );
+            },
           ),
           const SizedBox(height: AppSpacing.lg),
           _Journey(order: order, receiptDates: receiptDates),
@@ -595,46 +675,24 @@ class _TabChip extends StatelessWidget {
   }
 }
 
-/// A panel body that uses the whole height it is given.
-///
-/// With room, [top] stays put and [fill] stretches down to the footer and
-/// scrolls inside itself — so a short list never leaves a blank strip under
-/// it, and a long one keeps the summary in view. Without room (a phone in
-/// landscape) everything scrolls together, [fill] drawn at its natural size.
+/// A panel body that scrolls as one: [top] (header and summary) and [fill]
+/// (the list) move together, so nothing stays stuck while the rest scrolls.
 class PanelFillLayout extends StatelessWidget {
   const PanelFillLayout({required this.top, required this.fill, super.key});
 
   final Widget top;
 
-  /// Built with `pinned: true` when it is given the remaining height and must
-  /// scroll itself, `false` when it is laid out at its natural size.
+  /// Built with `pinned: false`: laid out at its natural size in the scroll.
   final Widget Function(bool pinned) fill;
-
-  /// Below this height the summary would squeeze the list to a sliver.
-  static const double _pinsFrom = 540;
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        if (constraints.maxHeight >= _pinsFrom) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              top,
-              Expanded(child: fill(true)),
-              const SizedBox(height: AppSpacing.lg),
-            ],
-          );
-        }
-        return SingleChildScrollView(
-          padding: const EdgeInsets.only(bottom: AppSpacing.lg),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [top, fill(false)],
-          ),
-        );
-      },
+    return SingleChildScrollView(
+      padding: const EdgeInsets.only(bottom: AppSpacing.lg),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [top, fill(false)],
+      ),
     );
   }
 }
@@ -1006,6 +1064,58 @@ class PanelNote extends StatelessWidget {
   }
 }
 
+/// A panel's bottom bar: a supporting action and the primary one.
+///
+/// Side by side and equal where there is room. On a phone the supporting
+/// action collapses to its icon (the label moves to a tooltip) so the teal
+/// button keeps its full wording instead of both being cut short.
+class PanelFooterBar extends StatelessWidget {
+  const PanelFooterBar({
+    required this.secondary,
+    required this.primary,
+    super.key,
+  });
+
+  /// A `SecondaryButton`, or a widget that builds one, so it can collapse.
+  final Widget secondary;
+  final Widget primary;
+
+  static const double _compactBelow = 420;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.only(top: AppSpacing.lg),
+      decoration: const BoxDecoration(
+        border: Border(top: BorderSide(color: AppColors.hairline)),
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          if (constraints.maxWidth < _compactBelow) {
+            return Row(
+              children: [
+                ActionDensityScope(
+                  density: ActionDensity.iconOnly,
+                  child: secondary,
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(child: primary),
+              ],
+            );
+          }
+          return Row(
+            children: [
+              Expanded(child: secondary),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(child: primary),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
 /// The panel's bottom bar, pinned under the scrolling body: read the PDF, and
 /// either receive the delivery or download the PDF.
 ///
@@ -1028,29 +1138,16 @@ class OrderPanelFooter extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
 
-    return Container(
-      padding: const EdgeInsets.only(top: AppSpacing.lg),
-      decoration: const BoxDecoration(
-        border: Border(top: BorderSide(color: AppColors.hairline)),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: OrderDocumentButton.footer(order: order, preview: true),
-          ),
-          const SizedBox(width: AppSpacing.md),
-          Expanded(
-            child: onReceive == null
-                ? OrderDocumentButton.footer(order: order, prominent: true)
-                : PrimaryButton(
-                    label: l10n.shortReceive,
-                    icon: LucideIcons.packageCheck,
-                    fullWidth: true,
-                    onPressed: onReceive,
-                  ),
-          ),
-        ],
-      ),
+    return PanelFooterBar(
+      secondary: OrderDocumentButton.footer(order: order, preview: true),
+      primary: onReceive == null
+          ? OrderDocumentButton.footer(order: order, prominent: true)
+          : PrimaryButton(
+              label: l10n.shortReceive,
+              icon: LucideIcons.packageCheck,
+              fullWidth: true,
+              onPressed: onReceive,
+            ),
     );
   }
 }

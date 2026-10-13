@@ -2,8 +2,8 @@
 //
 // What these hold: the group holds the three pages; Réceptions lists what is
 // waiting with a button to receive it, and the history of every bon; the
-// orders list filters by status tab; a finished order can be reordered in one
-// tap; a new order goes through its three steps.
+// orders list filters by status and searches by reference, with its KPI tiles
+// and no Dupliquer button; a new order goes through its three steps.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -14,6 +14,7 @@ import 'package:stock_inventory/data/repositories/repositories.dart';
 import 'package:stock_inventory/data/seed/dataset/dataset.dart';
 import 'package:stock_inventory/data/view_models/view_models.dart';
 import 'package:stock_inventory/features/orders/presentation/pages/receive_order_page.dart';
+import 'package:stock_inventory/features/orders/presentation/widgets/order_status_badge.dart';
 import 'package:stock_inventory/models/models.dart';
 import 'package:stock_inventory/shared/widgets/widgets.dart';
 
@@ -81,47 +82,69 @@ void main() {
     expect(find.byType(AppTable<StoreReceiptRowView>), findsOneWidget);
   });
 
-  testApp('Commandes: a status tab shows only that status', (tester) async {
+  testApp('Commandes: the Statut filter shows only that status', (
+    tester,
+  ) async {
     await pumpApp(tester, size: _tablet);
     await open(tester, Routes.toOrders(_store));
 
-    await tester.tap(find.textContaining('Brouillons').first);
+    await tester.tap(find.byType(FilterMenu<PurchaseOrderStatus?>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Brouillon').last);
     await tester.pumpAndSettle();
 
-    final rows = tester
-        .widget<AppTable<OrderRowView>>(find.byType(AppTable<OrderRowView>))
-        .rows;
-    expect(rows, isNotEmpty);
-    for (final view in rows) {
-      expect(view.order.status, PurchaseOrderStatus.draft);
+    final badges = tester.widgetList<OrderStatusBadge>(
+      find.byType(OrderStatusBadge),
+    );
+    expect(badges, isNotEmpty);
+    for (final badge in badges) {
+      expect(badge.status, PurchaseOrderStatus.draft);
     }
   });
 
-  testApp('Commandes: a finished order is reordered in one tap', (
+  testApp('Commandes: the search finds an order by its reference', (
     tester,
   ) async {
     final db = await pumpApp(tester, size: _tablet);
-    final before = (await OrderRepository(db).orders(_store)).length;
+    final reference = (await OrderRepository(
+      db,
+    ).orders(_store)).first.reference;
     await open(tester, Routes.toOrders(_store));
 
-    await tester.tap(find.textContaining('Terminées').first);
-    await tester.pumpAndSettle();
-    final duplicate = find.widgetWithText(SecondaryButton, 'Dupliquer');
-    expect(duplicate, findsWidgets);
-    await tester.ensureVisible(duplicate.first);
-    await tester.pumpAndSettle();
-    await tester.tap(duplicate.first);
-    await tester.runAsync(
-      () => Future<void>.delayed(const Duration(milliseconds: 100)),
+    await tester.enterText(
+      find.descendant(
+        of: find.byType(SearchField),
+        matching: find.byType(TextField),
+      ),
+      reference,
     );
     await tester.pumpAndSettle();
 
-    final after = await OrderRepository(db).orders(_store);
-    expect(after.length, before + 1);
-    expect(
-      after.where((o) => o.status == PurchaseOrderStatus.draft).length,
-      greaterThan(0),
-    );
+    expect(tester.takeException(), isNull);
+    expect(find.text('1 commande'), findsOneWidget);
+    expect(find.text(reference), findsWidgets);
+  });
+
+  testApp('Commandes: KPI tiles sit above the table, no Dupliquer button', (
+    tester,
+  ) async {
+    await pumpApp(tester, size: _tablet);
+    await open(tester, Routes.toOrders(_store));
+
+    expect(tester.takeException(), isNull);
+    for (final label in [
+      'Montant total',
+      'À recevoir',
+      'En retard',
+    ]) {
+      expect(find.text(label), findsWidgets, reason: label);
+    }
+    // The date pills read « Début : 01/10/2026 », as on the pointage history.
+    expect(find.textContaining('Début :'), findsOneWidget);
+    expect(find.textContaining('Fin :'), findsOneWidget);
+    expect(find.byType(DataTableWrapper), findsOneWidget);
+    expect(find.byTooltip('Dupliquer'), findsNothing);
+    expect(find.text('Dupliquer'), findsNothing);
   });
 
   testApp('a new order shows its three steps', (tester) async {

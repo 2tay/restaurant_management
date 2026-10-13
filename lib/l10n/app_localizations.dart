@@ -3970,35 +3970,41 @@ abstract class AppLocalizations {
   /// **'Tous les statuts'**
   String get ordersFilterAllStatuses;
 
-  /// Date range filter chip on the orders list.
+  /// Placeholder in the orders list search field.
   ///
   /// In fr, this message translates to:
-  /// **'Période'**
-  String get ordersFilterPeriod;
+  /// **'Rechercher (référence, fournisseur)'**
+  String get ordersSearchHint;
 
-  /// Clears the date range filter.
+  /// Removable chip for the period picked with Début / Fin on the orders list.
   ///
   /// In fr, this message translates to:
-  /// **'Toutes les dates'**
-  String get ordersFilterAllPeriods;
+  /// **'{from} – {to}'**
+  String ordersFilterDateRange(String from, String to);
 
-  /// Date range option on the orders list.
+  /// KPI card above the orders list: how many orders match the filters.
   ///
   /// In fr, this message translates to:
-  /// **'7 derniers jours'**
-  String get ordersFilterLast7;
+  /// **'Commandes'**
+  String get ordersStatCount;
 
-  /// Date range option on the orders list.
+  /// KPI card above the orders list: total amount of the orders matching the filters.
   ///
   /// In fr, this message translates to:
-  /// **'30 derniers jours'**
-  String get ordersFilterLast30;
+  /// **'Montant total'**
+  String get ordersStatAmount;
 
-  /// Date range option on the orders list.
+  /// KPI card above the orders list: sent or partial orders still waiting for goods.
   ///
   /// In fr, this message translates to:
-  /// **'90 derniers jours'**
-  String get ordersFilterLast90;
+  /// **'À recevoir'**
+  String get ordersStatToReceive;
+
+  /// KPI card above the orders list: partial orders open longer than the store's threshold.
+  ///
+  /// In fr, this message translates to:
+  /// **'En retard'**
+  String get ordersStatLate;
 
   /// Line count on an order row.
   ///
@@ -4305,6 +4311,12 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Nouvelle commande'**
   String get createOrderTitle;
+
+  /// Paragraph under the title of the new order pop-up.
+  ///
+  /// In fr, this message translates to:
+  /// **'Choisissez un fournisseur, ajoutez les produits, puis envoyez la commande ou gardez-la en brouillon.'**
+  String get createOrderDescription;
 
   /// Title of the edit order screen. Drafts only.
   ///
@@ -6532,6 +6544,24 @@ abstract class AppLocalizations {
   /// **'Choisir des produits'**
   String get orderPickProducts;
 
+  /// New order pop-up: the wide tile that opens the product picker.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ajouter des produits'**
+  String get orderAddProductsTile;
+
+  /// New order pop-up: link that reveals the note field.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ajouter une note'**
+  String get orderAddNote;
+
+  /// New order pop-up: heading of the low-stock suggestion chips.
+  ///
+  /// In fr, this message translates to:
+  /// **'Stock bas'**
+  String get orderSuggestedShort;
+
   /// Starts a new draft with the same supplier, products and quantities as this order.
   ///
   /// In fr, this message translates to:
@@ -6543,36 +6573,6 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Nouveau brouillon {reference} créé'**
   String orderDuplicated(String reference);
-
-  /// Orders status tab: every order.
-  ///
-  /// In fr, this message translates to:
-  /// **'Toutes'**
-  String get ordersTabAll;
-
-  /// Orders status tab: drafts, not sent yet.
-  ///
-  /// In fr, this message translates to:
-  /// **'Brouillons'**
-  String get ordersTabDrafts;
-
-  /// Orders status tab: sent, nothing received yet.
-  ///
-  /// In fr, this message translates to:
-  /// **'Envoyées'**
-  String get ordersTabSent;
-
-  /// Orders status tab: partly received.
-  ///
-  /// In fr, this message translates to:
-  /// **'Partielles'**
-  String get ordersTabPartial;
-
-  /// Orders status tab: fully received or cancelled.
-  ///
-  /// In fr, this message translates to:
-  /// **'Terminées'**
-  String get ordersTabDone;
 
   /// Table column: the order reference.
   ///

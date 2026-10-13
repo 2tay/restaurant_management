@@ -14,6 +14,7 @@ import '../../../../data/providers.dart';
 import '../../../../data/view_models/view_models.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
+import '../../../orders/presentation/pages/create_order_page.dart';
 import '../../../orders/presentation/widgets/order_row.dart';
 import '../../../inventory/presentation/widgets/product_drawer.dart';
 
@@ -355,7 +356,7 @@ class _OrderHistory extends StatelessWidget {
           message: l10n.ordersEmptyBody,
           actionLabel: l10n.ordersNewAction,
           actionIcon: LucideIcons.plus,
-          onAction: () => context.pushScreen(Routes.toNewOrder(storeId)),
+          onAction: () => createOrder(context, storeId: storeId),
         ),
       );
     }
@@ -369,7 +370,7 @@ class _OrderHistory extends StatelessWidget {
           trailing: SecondaryButton(
             label: l10n.ordersNewAction,
             icon: LucideIcons.plus,
-            onPressed: () => context.pushScreen(Routes.toNewOrder(storeId)),
+            onPressed: () => createOrder(context, storeId: storeId),
           ),
         ),
         for (final view in orders)

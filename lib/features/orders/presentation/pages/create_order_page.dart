@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
@@ -17,7 +18,9 @@ import '../../../../data/view_models/view_models.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 import '../../../stock_movement/presentation/widgets/picker/product_picker_sheet.dart';
+import '../widgets/order_detail_view.dart';
 import '../widgets/order_line_editor.dart';
+import '../widgets/order_visuals.dart';
 import '../widgets/suggested_items_panel.dart';
 
 /// Create a commande.
@@ -58,6 +61,45 @@ class CreateOrderPage extends StatelessWidget {
       forBusyDays: forBusyDays,
     );
   }
+}
+
+/// Opens « Nouvelle commande » as a pop-up over the screen it was asked from,
+/// the same [WizardDialog] as « Ajouter un employé »: Fournisseur, Produits,
+/// Récapitulatif, then Envoyer — or Enregistrer le brouillon.
+///
+/// Resolves to the new commande's id, or null when the dialog was closed
+/// without saving. The caller decides where to show it.
+Future<String?> showCreateOrderWizard(
+  BuildContext context, {
+  required String storeId,
+  String? initialSupplierId,
+}) {
+  return WizardDialog.show<String>(
+    context,
+    builder: (_) => _OrderForm(
+      storeId: storeId,
+      existing: null,
+      initialSupplierId: initialSupplierId,
+      prefillSuggested: false,
+      asDialog: true,
+    ),
+  );
+}
+
+/// Opens « Nouvelle commande » as a pop-up and, once it is saved or sent,
+/// shows the new commande in a panel over the screen that asked for it.
+Future<void> createOrder(
+  BuildContext context, {
+  required String storeId,
+  String? supplierId,
+}) async {
+  final orderId = await showCreateOrderWizard(
+    context,
+    storeId: storeId,
+    initialSupplierId: supplierId,
+  );
+  if (orderId == null || !context.mounted) return;
+  await openOrderPanel(context, storeId: storeId, orderId: orderId);
 }
 
 /// The order form, used for both creating and editing a draft.
@@ -130,10 +172,15 @@ class _OrderForm extends ConsumerStatefulWidget {
     required this.initialSupplierId,
     required this.prefillSuggested,
     this.forBusyDays = false,
+    this.asDialog = false,
     super.key,
   });
 
   final String storeId;
+
+  /// In a [WizardDialog] rather than a page. Saving then closes the dialog
+  /// with the commande's id instead of navigating.
+  final bool asDialog;
 
   /// The draft being edited, or null when creating.
   final PurchaseOrder? existing;
@@ -164,6 +211,9 @@ class _OrderFormPageState extends ConsumerState<_OrderForm> {
 
   /// On the third step — the summary before sending.
   bool _reviewing = false;
+
+  /// The pop-up's note field, shown once « Ajouter une note » is tapped.
+  bool _showNote = false;
 
   /// 0 supplier, 1 products, 2 summary.
   int get _step => _supplierId == null || _pickingSupplier
@@ -389,9 +439,82 @@ class _OrderFormPageState extends ConsumerState<_OrderForm> {
   // Build
   // ---------------------------------------------------------------------------
 
+  /// Moves to a wizard step: back to the supplier, to the products, or on to
+  /// the summary.
+  void _goToStep(int target) => setState(() {
+    _pickingSupplier = target == 0;
+    _reviewing = target == 2;
+  });
+
+  /// Empties the form back to where it opened.
+  void _reset() => setState(() {
+    for (final line in _lines) {
+      line.dispose();
+    }
+    _lines.clear();
+    _noteController.clear();
+    _supplierId = widget.initialSupplierId;
+    _pickingSupplier = false;
+    _reviewing = false;
+    _showNote = false;
+  });
+
+  Widget _dialog(BuildContext context, AppLocalizations l10n) {
+    final step = _step;
+
+    return WizardDialog(
+      title: l10n.createOrderTitle,
+      description: l10n.createOrderDescription,
+      currentStep: step,
+      onStepChanged: _goToStep,
+      steps: [
+        WizardStep(
+          label: l10n.orderStepSupplier,
+          isValid: _supplierId != null,
+          child: step == 0
+              ? _SupplierStep(
+                  storeId: widget.storeId,
+                  onChosen: _chooseSupplier,
+                )
+              : const SizedBox.shrink(),
+        ),
+        // Only the step on screen is built: the products and the summary
+        // both need a chosen supplier.
+        WizardStep(
+          label: l10n.orderStepProducts,
+          isValid: _canSubmit,
+          child: step == 1
+              ? _productsStep(context, l10n)
+              : const SizedBox.shrink(),
+        ),
+        WizardStep(
+          label: l10n.orderStepReview,
+          child: step == 2
+              ? _reviewStep(context, l10n)
+              : const SizedBox.shrink(),
+        ),
+      ],
+      submitLabel: l10n.orderActionSend,
+      submitIcon: LucideIcons.send,
+      onSubmit: _canSubmit ? _send : null,
+      extraActions: [
+        if (step == 2)
+          SecondaryButton(
+            label: l10n.orderActionSaveDraft,
+            icon: LucideIcons.check,
+            tone: SecondaryButtonTone.surface,
+            onPressed: _canSubmit ? _saveDraft : null,
+          ),
+      ],
+      isDirty: _isDirty,
+      onReset: _reset,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    if (widget.asDialog) return _dialog(context, l10n);
 
     final back = BackDestination(
       label: l10n.ordersTitle,
@@ -585,7 +708,185 @@ class _OrderFormPageState extends ConsumerState<_OrderForm> {
     AppSnackBar.success(context, l10n.orderSuggestedAdded(picked.length));
   }
 
-  Widget _linesStep(BuildContext context, AppLocalizations l10n) {
+  /// Step 2 in the pop-up, kept to one way of doing each thing: a tile that
+  /// opens the product picker, the low-stock suggestions as chips you tap to
+  /// add, and one compact row per product — photo, name, price, quantity,
+  /// total. The note hides behind a link until it is wanted.
+  Widget _productsStep(BuildContext context, AppLocalizations l10n) {
+    final theme = Theme.of(context);
+    final suggestions = _watchProducts();
+    final supplierId = _supplierId!;
+    final supplierName = _supplierName(supplierId);
+    final chosen = {for (final line in _lines) line.itemId};
+    final remaining = [
+      for (final row in suggestions)
+        if (!chosen.contains(row.item.id)) row,
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // Who it goes to; tapping it goes back to choose another.
+        Align(
+          alignment: Alignment.centerLeft,
+          child: Tooltip(
+            message: l10n.orderSupplierChange,
+            child: InkWell(
+              borderRadius: AppRadius.pillAll,
+              onTap: () => setState(() => _pickingSupplier = true),
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.xs,
+                  AppSpacing.xs,
+                  AppSpacing.md,
+                  AppSpacing.xs,
+                ),
+                decoration: const BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: AppRadius.pillAll,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SupplierMonogram(name: supplierName, size: 28),
+                    const SizedBox(width: AppSpacing.sm),
+                    Flexible(
+                      child: Text(
+                        supplierName,
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    const Icon(
+                      LucideIcons.pencil,
+                      size: 14,
+                      color: AppColors.textSecondary,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.lg),
+
+        _AddProductsTile(
+          label: l10n.orderAddProductsTile,
+          onTap: _availableItems().isEmpty ? null : _pickProducts,
+        ),
+
+        if (remaining.isNotEmpty) ...[
+          const SizedBox(height: AppSpacing.md),
+          _LowStockChips(
+            rows: remaining,
+            onAdd: (item) => setState(() => _addItems([item])),
+            onAddAll: () {
+              setState(() => _addItems([for (final r in remaining) r.item]));
+              AppSnackBar.success(
+                context,
+                l10n.orderSuggestedAdded(remaining.length),
+              );
+            },
+          ),
+        ],
+
+        if (_lines.isNotEmpty) ...[
+          const SizedBox(height: AppSpacing.xl),
+          AppCard(
+            padding: EdgeInsets.zero,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (final (i, line) in _lines.indexed) ...[
+                  if (i > 0)
+                    const Divider(height: 1, color: AppColors.hairline),
+                  _CompactLine(
+                    key: ValueKey(line.id),
+                    draft: line,
+                    name: _itemNameOf(line.itemId),
+                    imagePath: _stockById[line.itemId]?.imagePath,
+                    unit: _unitOf(line.itemId),
+                    onQuantityChanged: (value) =>
+                        setState(() => line.quantity = value),
+                    onPriceChanged: () => setState(() {}),
+                    onRemove: () => _removeLine(line),
+                  ),
+                ],
+                // The commitment, under the lines it adds up.
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.lg,
+                    vertical: AppSpacing.md,
+                  ),
+                  decoration: const BoxDecoration(
+                    border: Border(top: BorderSide(color: AppColors.hairline)),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          l10n.orderPanelItems(_lines.length),
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ),
+                      Text(
+                        l10n.orderTotalLabel,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.md),
+                      Text(
+                        Formatters.price(_total),
+                        style: AppTypography.numeric.copyWith(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+
+        const SizedBox(height: AppSpacing.md),
+        if (_showNote || _noteController.text.isNotEmpty)
+          AppTextField(
+            label: l10n.orderNoteLabel,
+            controller: _noteController,
+            hint: l10n.orderNoteHint,
+            maxLines: 2,
+            onChanged: (_) => setState(() {}),
+          )
+        else
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: () => setState(() => _showNote = true),
+              icon: const Icon(LucideIcons.stickyNote, size: 16),
+              label: Text(l10n.orderAddNote),
+              style: TextButton.styleFrom(
+                foregroundColor: AppColors.textSecondary,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  /// Watches what the products step shows — the supplier's offers, their
+  /// articles, the low-stock suggestions — and prefills once when asked to.
+  /// Returns the suggestions.
+  List<ItemRowView> _watchProducts() {
     final supplierId = _supplierId!;
 
     // Everything this supplier sells, with prices and names already resolved.
@@ -631,6 +932,13 @@ class _OrderFormPageState extends ConsumerState<_OrderForm> {
       _addItems([for (final row in suggestions) row.item]);
       _snapshot();
     }
+
+    return suggestions;
+  }
+
+  Widget _linesStep(BuildContext context, AppLocalizations l10n) {
+    final supplierId = _supplierId!;
+    final suggestions = _watchProducts();
 
     final supplierName = _supplierName(supplierId);
 
@@ -803,6 +1111,10 @@ class _OrderFormPageState extends ConsumerState<_OrderForm> {
     if (!mounted) return;
     _snapshot();
     AppSnackBar.success(context, l10n.orderDraftSaved);
+    if (widget.asDialog) {
+      Navigator.of(context).pop(order.id);
+      return;
+    }
     context.replaceScreen(Routes.toOrder(widget.storeId, order.id));
   }
 
@@ -845,6 +1157,10 @@ class _OrderFormPageState extends ConsumerState<_OrderForm> {
 
     _snapshot();
     AppSnackBar.success(context, l10n.orderSent(supplierName));
+    if (widget.asDialog) {
+      Navigator.of(context).pop(orderId);
+      return;
+    }
     context.replaceScreen(Routes.toOrder(widget.storeId, orderId));
   }
 
@@ -1147,6 +1463,259 @@ class _StepIndicator extends StatelessWidget {
           step(i),
         ],
       ],
+    );
+  }
+}
+
+/// The supplier's low-stock products as chips: tap one to add it, or add
+/// them all at once.
+class _LowStockChips extends StatelessWidget {
+  const _LowStockChips({
+    required this.rows,
+    required this.onAdd,
+    required this.onAddAll,
+  });
+
+  final List<ItemRowView> rows;
+  final ValueChanged<Item> onAdd;
+  final VoidCallback onAddAll;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(
+                color: AppColors.lowStock.solid,
+                shape: BoxShape.circle,
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: Text(
+                '${l10n.orderSuggestedShort} (${rows.length})',
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: AppColors.textSecondary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            TextButton(
+              onPressed: onAddAll,
+              style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
+              child: Text(l10n.orderSuggestedAddAll),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.xs),
+        Wrap(
+          spacing: AppSpacing.sm,
+          runSpacing: AppSpacing.sm,
+          children: [
+            for (final row in rows)
+              ActionChip(
+                avatar: const Icon(
+                  LucideIcons.plus,
+                  size: 14,
+                  color: AppColors.textSecondary,
+                ),
+                label: Text(row.item.name),
+                labelStyle: theme.textTheme.labelMedium?.copyWith(
+                  color: AppColors.textPrimary,
+                ),
+                onPressed: () => onAdd(row.item),
+                backgroundColor: AppColors.surface,
+                side: const BorderSide(color: AppColors.border),
+                shape: const StadiumBorder(),
+                visualDensity: VisualDensity.compact,
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+/// The one way to add products: a wide tile that opens the photo picker.
+class _AddProductsTile extends StatelessWidget {
+  const _AddProductsTile({required this.label, required this.onTap});
+
+  final String label;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final fg = onTap == null ? AppColors.textDisabled : AppColors.textPrimary;
+
+    return AppCard(
+      onTap: onTap,
+      elevated: false,
+      dashedBorderColor: AppColors.borderStrong,
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(LucideIcons.plus, size: AppSizing.iconMd, color: fg),
+          const SizedBox(width: AppSpacing.sm),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              color: fg,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// One product on the order: photo and name, the unit price (typed), the
+/// quantity (stepped), the line total and a way to take it off.
+///
+/// One row with room; on a phone the price, quantity and total move under the
+/// name.
+class _CompactLine extends StatelessWidget {
+  const _CompactLine({
+    required this.draft,
+    required this.name,
+    required this.imagePath,
+    required this.unit,
+    required this.onQuantityChanged,
+    required this.onPriceChanged,
+    required this.onRemove,
+    super.key,
+  });
+
+  final OrderLineDraft draft;
+  final String name;
+  final String? imagePath;
+  final String unit;
+  final ValueChanged<double> onQuantityChanged;
+  final VoidCallback onPriceChanged;
+  final VoidCallback onRemove;
+
+  static const double _stacksBelow = 600;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+
+    final photo = ProductImage(
+      imagePath: imagePath,
+      size: 44,
+      radius: 10,
+      placeholder: ProductImagePlaceholder.disc,
+    );
+    final title = Text(
+      name,
+      style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+    );
+    final price = SizedBox(
+      width: 112,
+      child: TextField(
+        controller: draft.priceController,
+        onChanged: (_) => onPriceChanged(),
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        inputFormatters: [
+          FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+        ],
+        textAlign: TextAlign.right,
+        style: AppTypography.numeric,
+        decoration: InputDecoration(
+          isDense: true,
+          hintText: '0,00',
+          suffixText: unit.isEmpty ? '€' : '€/$unit',
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.sm,
+            vertical: AppSpacing.sm,
+          ),
+        ),
+      ),
+    );
+    final quantity = QuantityStepper(
+      value: draft.quantity,
+      unitAbbreviation: unit,
+      compact: true,
+      onChanged: onQuantityChanged,
+    );
+    final total = SizedBox(
+      width: 88,
+      child: Text(
+        Formatters.price(draft.total),
+        textAlign: TextAlign.right,
+        style: AppTypography.numeric.copyWith(
+          fontSize: 15,
+          fontWeight: FontWeight.w700,
+        ),
+        maxLines: 1,
+      ),
+    );
+    final remove = IconButton(
+      onPressed: onRemove,
+      tooltip: l10n.orderRemoveLine,
+      icon: const Icon(LucideIcons.x, size: 18),
+      color: AppColors.textSecondary,
+      visualDensity: VisualDensity.compact,
+    );
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.sm,
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          if (constraints.maxWidth < _stacksBelow) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    photo,
+                    const SizedBox(width: AppSpacing.md),
+                    Expanded(child: title),
+                    remove,
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                Wrap(
+                  spacing: AppSpacing.md,
+                  runSpacing: AppSpacing.sm,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  alignment: WrapAlignment.spaceBetween,
+                  children: [quantity, price, total],
+                ),
+              ],
+            );
+          }
+          return Row(
+            children: [
+              photo,
+              const SizedBox(width: AppSpacing.md),
+              Expanded(child: title),
+              const SizedBox(width: AppSpacing.md),
+              price,
+              const SizedBox(width: AppSpacing.md),
+              quantity,
+              const SizedBox(width: AppSpacing.md),
+              total,
+              remove,
+            ],
+          );
+        },
+      ),
     );
   }
 }
