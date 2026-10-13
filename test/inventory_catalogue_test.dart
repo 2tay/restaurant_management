@@ -13,6 +13,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:stock_inventory/core/theme/app_colors.dart';
 import 'package:stock_inventory/core/theme/app_spacing.dart';
 import 'package:stock_inventory/app/router.dart';
 import 'package:stock_inventory/app/routes.dart';
@@ -367,6 +368,53 @@ void main() {
       final sorted = [...names]
         ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
       expect(names, sorted);
+    });
+  });
+
+  group('the filter menus', () {
+    testApp('are white lists dropped under their pill, like Personnel', (
+      tester,
+    ) async {
+      await _openInventory(tester, _tablet);
+
+      // Catégorie, Fournisseur and the ordering all wear the same dress.
+      final menus = tester.widgetList<PopupMenuButton<dynamic>>(
+        find.byWidgetPredicate((w) => w is PopupMenuButton),
+      );
+      final filters = menus.where(
+        (m) => const {
+          'Catégorie',
+          'Fournisseur',
+          'Trier par',
+        }.contains(m.tooltip),
+      );
+      expect(filters, hasLength(3));
+      for (final menu in filters) {
+        expect(menu.color, AppColors.surface, reason: menu.tooltip);
+        expect(menu.position, PopupMenuPosition.under, reason: menu.tooltip);
+      }
+
+      // « Toutes » still clears a picked category.
+      await tester.tap(find.byTooltip('Catégorie').first);
+      await tester.pumpAndSettle();
+      final before = _countShown(tester);
+      final entries = tester
+          .widgetList<PopupMenuItem<int>>(
+            find.byWidgetPredicate((w) => w is PopupMenuItem<int>),
+          )
+          .toList();
+      expect(entries.length, greaterThan(1));
+      await tester.tap(find.byWidget(entries[1]));
+      await tester.pumpAndSettle();
+      expect(_countShown(tester), lessThan(before));
+
+      await tester.tap(find.byTooltip('Catégorie').first);
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byWidgetPredicate((w) => w is PopupMenuItem<int>).first,
+      );
+      await tester.pumpAndSettle();
+      expect(_countShown(tester), before);
     });
   });
 }

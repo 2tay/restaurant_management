@@ -1167,6 +1167,11 @@ class _SortMenu extends StatelessWidget {
     final menu = PopupMenuButton<ItemSort>(
       tooltip: l10n.inventorySortLabel,
       initialValue: sort,
+      // Dressed as [FilterMenu]: white, and dropped under the pill.
+      color: AppColors.surface,
+      surfaceTintColor: Colors.transparent,
+      position: PopupMenuPosition.under,
+      offset: const Offset(0, AppSpacing.xs),
       shape: const RoundedRectangleBorder(borderRadius: AppRadius.mdAll),
       onSelected: onSelected,
       itemBuilder: (context) => [
@@ -1379,23 +1384,15 @@ class _FilterMenu extends StatelessWidget {
   final Map<String, String> options;
   final ValueChanged<String?> onSelected;
 
-  static const String _allValue = '__all__';
-
   @override
   Widget build(BuildContext context) {
-    final selectedLabel = selectedId == null ? null : options[selectedId];
-
-    return PopupMenuButton<String>(
-      tooltip: label,
-      shape: const RoundedRectangleBorder(borderRadius: AppRadius.mdAll),
-      onSelected: (value) => onSelected(value == _allValue ? null : value),
-      itemBuilder: (context) => [
-        PopupMenuItem<String>(value: _allValue, child: Text(allLabel)),
-        const PopupMenuDivider(),
-        for (final entry in options.entries)
-          PopupMenuItem<String>(value: entry.key, child: Text(entry.value)),
-      ],
-      child: FilterPill(label: label, selectedLabel: selectedLabel),
+    // The shared pill-and-menu: a white list dropped under the pill, like
+    // the personnel pages' filters. « Tous » first, keyed null.
+    return FilterMenu<String?>(
+      label: label,
+      selectedLabel: selectedId == null ? null : options[selectedId],
+      entries: {null: allLabel, ...options},
+      onSelected: onSelected,
     );
   }
 }
