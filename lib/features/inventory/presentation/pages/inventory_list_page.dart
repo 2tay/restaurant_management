@@ -324,12 +324,15 @@ class _ListPane extends ConsumerWidget {
                     storeHasItems: filter.hasActiveFilters,
                     onClearFilters: notifier.clear,
                   )
-                : viewMode == InventoryViewMode.grid
+                // No table on a phone: the toggle is gone there, and the
+                // cards are the one view.
+                : viewMode == InventoryViewMode.grid || context.isPhone
                 ? _CatalogueGrid(
                     rows: rows,
                     onTap: onTap,
                     selectedId: selectedId,
                     sort: filter.sort,
+                    lowStockOnly: filter.lowStockOnly,
                   )
                 : _ProductTable(
                     rows: rows,
@@ -506,14 +509,14 @@ class _ListControls extends StatelessWidget {
                 // view toggle beside it is two 48dp squares that cannot
                 // shrink, so the pill's label is the only thing left that can
                 // — and `FilterPill` ellipsizes once something bounds it.
+                // No grid / table toggle on a phone: the cards are the one
+                // view there.
                 Flexible(
                   child: _LowStockToggle(
                     active: filter.lowStockOnly,
                     onTap: notifier.toggleLowStockOnly,
                   ),
                 ),
-                const SizedBox(width: AppSpacing.sm),
-                _ViewModeToggle(mode: viewMode, onSelected: onViewMode),
               ],
             ),
           ],
@@ -663,11 +666,15 @@ class _CatalogueGrid extends StatefulWidget {
     required this.onTap,
     required this.selectedId,
     required this.sort,
+    this.lowStockOnly = false,
   });
 
   final List<ItemRowView> rows;
   final ValueChanged<String> onTap;
   final String? selectedId;
+
+  /// « Stock faible uniquement » is on: every card gets a red top edge.
+  final bool lowStockOnly;
 
   /// Whether the cards are in the order the screen chose or in one the user
   /// asked for.
@@ -697,6 +704,7 @@ class _CatalogueGridState extends State<_CatalogueGrid> {
         rows: widget.rows,
         onTap: widget.onTap,
         selectedId: widget.selectedId,
+        lowStockOnly: widget.lowStockOnly,
       );
     }
 
@@ -721,6 +729,7 @@ class _CatalogueGridState extends State<_CatalogueGrid> {
               rows: grouped[category]!,
               onTap: widget.onTap,
               selectedId: widget.selectedId,
+              lowStockOnly: widget.lowStockOnly,
             ),
           ],
         ],
@@ -811,11 +820,13 @@ class _ProductGrid extends StatelessWidget {
     required this.rows,
     required this.onTap,
     required this.selectedId,
+    this.lowStockOnly = false,
   });
 
   final List<ItemRowView> rows;
   final ValueChanged<String> onTap;
   final String? selectedId;
+  final bool lowStockOnly;
 
   @override
   Widget build(BuildContext context) {
@@ -849,6 +860,7 @@ class _ProductGrid extends StatelessWidget {
             return ItemCard(
               view: row,
               selected: selectedId == row.item.id,
+              alertEdge: lowStockOnly,
               onTap: () => onTap(row.item.id),
             );
           },
@@ -913,6 +925,10 @@ class _ProductTable extends StatelessWidget {
 
         return DataTableWrapper(
           minWidth: width,
+          // The secondary columns drop out as the width shrinks, so the
+          // table never needs to scroll sideways.
+          scrollable: false,
+          columnSpacing: AppSpacing.xl,
           sortColumnIndex: sortIndex,
           sortAscending: ascending,
           columns: [
@@ -981,9 +997,9 @@ class _ProductTable extends StatelessWidget {
       cells: [
         DataCell(
           ConstrainedBox(
-            // What the other columns leave, so a phone does not scroll.
+            // A long name ellipsizes rather than widening the table.
             constraints: BoxConstraints(
-              maxWidth: (width * 0.45).clamp(120.0, 320.0),
+              maxWidth: (width * 0.4).clamp(120.0, 240.0),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,

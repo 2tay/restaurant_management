@@ -17,6 +17,8 @@ class DataTableWrapper extends StatefulWidget {
     this.sortColumnIndex,
     this.sortAscending = true,
     this.tableKey,
+    this.scrollable = true,
+    this.columnSpacing,
     super.key,
   });
 
@@ -32,6 +34,14 @@ class DataTableWrapper extends StatefulWidget {
   /// Set on the [DataTable] itself, for a caller that measures the width
   /// the table's content needs ([RenderBox.getMaxIntrinsicWidth]).
   final Key? tableKey;
+
+  /// False keeps the table to the width it is given — no sideways scroll.
+  /// For a table that drops its secondary columns as the width shrinks
+  /// rather than overflowing (the product list).
+  final bool scrollable;
+
+  /// The gap between columns; null keeps [DataTable]'s 56.
+  final double? columnSpacing;
 
   @override
   State<DataTableWrapper> createState() => _DataTableWrapperState();
@@ -90,7 +100,7 @@ class _DataTableWrapperState extends State<DataTableWrapper> {
           // its content, and content can exceed the pane at any width — French
           // product names are long and the pricing table has four columns — so
           // "only scroll when narrow" is not a safe assumption.
-          final floor = constraints.maxWidth < minWidth
+          final floor = widget.scrollable && constraints.maxWidth < minWidth
               ? minWidth
               : constraints.maxWidth;
 
@@ -111,6 +121,7 @@ class _DataTableWrapperState extends State<DataTableWrapper> {
                     AppColors.tableHeader,
                   ),
                   dividerThickness: _rule,
+                  columnSpacing: widget.columnSpacing,
                   showCheckboxColumn: false,
                 ),
                 // No rule under the heading: DataTable draws it as the first
@@ -132,6 +143,17 @@ class _DataTableWrapperState extends State<DataTableWrapper> {
               ],
             ),
           );
+
+          // No sideways scroll: the table fills the width, and in the rare
+          // case its content is wider still (a very large type size), it is
+          // scaled down to fit rather than clipped or scrolled.
+          if (!widget.scrollable) {
+            return FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.topLeft,
+              child: table,
+            );
+          }
 
           // A visible scrollbar rather than the platform default, which on
           // desktop only fades in once the pointer moves. A table that scrolls

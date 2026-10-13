@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../app/navigation.dart';
@@ -9,7 +8,6 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/utils/stock_status.dart';
-import '../../../../data/providers.dart';
 import '../../../../data/view_models/view_models.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../models/models.dart';
@@ -19,10 +17,10 @@ import 'product_wizard_dialog.dart';
 /// The height of a product card, before the user's type size.
 ///
 /// Stated rather than derived, and the grid uses it as each tile's height —
-/// see [ItemCard]. It covers the top row (the photo beside the name, the
-/// category and « Stock actuel »), the supplier / category row, and the
-/// Qté min / Qté max footer.
-const double itemCardHeight = 236;
+/// see [ItemCard]. It covers the top row (the photo beside the name and the
+/// status), the category / « Stock actuel » row, and the Qté min / Qté max
+/// footer.
+const double itemCardHeight = 220;
 
 /// [itemCardHeight] grown for the user's current type size.
 ///
@@ -36,89 +34,158 @@ double itemCardHeightFor(BuildContext context) {
 
 /// The photo's largest side: the top row is usually shorter, and then the
 /// photo is as tall as the row.
-const double _photoMaxSide = 112;
+const double _photoMaxSide = 104;
+
+/// The red edge across the top of a card while « Stock faible uniquement »
+/// is on.
+const double _alertEdgeHeight = 3;
+
+/// The captions under a value, and the footer's labels: a step under
+/// `bodySmall`, so the figures carry the card.
+const double _captionSize = 11;
 
 /// One product in the catalogue grid, laid out like the mock-up:
 ///
-/// - **Top:** the photo on the left; on the right the category's round icon,
-///   the name and the category, the ⋮ menu, then « Stock actuel » over the
-///   quantity — in the colour of its status, legible from a step back — with
-///   the status pill beside it.
-/// - **Middle:** the default supplier and the category, each beside a round
-///   icon, split by a hairline.
+/// - **Top:** the photo on the left; on the right the category's icon, the
+///   name and the ⋮ menu, with the status pill at the bottom.
+/// - **Middle:** the category and « Stock actuel » — the quantity in the
+///   colour of its status, legible from a step back — each beside an icon,
+///   split by a hairline.
 /// - **Footer:** the minimum and the maximum quantity, and a chevron that says
 ///   the card opens.
+///
+/// The icons sit in the round green wash of the personnel pages' KPI tiles
+/// ([StatTile]).
+///
+/// [alertEdge] draws a red edge across the top — the catalogue sets it while
+/// « Stock faible uniquement » is on.
 ///
 /// **Nothing here sizes itself.** The grid hands every tile
 /// [itemCardHeightFor]; the top row takes what the fixed middle and footer
 /// leave, and the photo is as tall as that row (at most [_photoMaxSide]).
-class ItemCard extends ConsumerWidget {
+class ItemCard extends StatelessWidget {
   const ItemCard({
     required this.view,
     required this.onTap,
     this.selected = false,
+    this.alertEdge = false,
     super.key,
   });
 
   final ItemRowView view;
   final VoidCallback onTap;
   final bool selected;
+  final bool alertEdge;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final item = view.item;
     final status = stockStatusOf(item);
     final categoryIcon = categoryIconFor(view.categoryName);
-
-    String? supplierName;
-    final suppliers = ref.watch(suppliersProvider(item.storeId)).value;
-    for (final s in suppliers ?? const <Supplier>[]) {
-      if (s.id == item.defaultSupplierId) supplierName = s.name;
-    }
+    final theme = Theme.of(context);
 
     return AppCard(
       onTap: onTap,
       selected: selected,
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.md + 2,
-        AppSpacing.md + 2,
-        AppSpacing.md + 2,
-        AppSpacing.sm + 2,
-      ),
+      padding: EdgeInsets.zero,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          if (alertEdge)
+            const SizedBox(
+              key: ValueKey('item-card-alert-edge'),
+              height: _alertEdgeHeight,
+              child: ColoredBox(color: AppColors.error),
+            ),
           Expanded(
-            child: _TopRow(
-              view: view,
-              status: status,
-              categoryIcon: categoryIcon,
-              onOpen: onTap,
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(
+                AppSpacing.md + 2,
+                AppSpacing.md + 2 - (alertEdge ? _alertEdgeHeight : 0),
+                AppSpacing.md + 2,
+                AppSpacing.sm + 2,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(
+                    child: _TopRow(
+                      view: view,
+                      status: status,
+                      categoryIcon: categoryIcon,
+                      onOpen: onTap,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  IntrinsicHeight(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(
+                          child: _Fact(
+                            icon: categoryIcon,
+                            caption: l10n.inventoryFilterCategory,
+                            value: Text(
+                              view.categoryName,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: AppColors.textPrimary,
+                                fontWeight: FontWeight.w700,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.sm),
+                        VerticalDivider(
+                          width: 1,
+                          thickness: 1,
+                          color: AppColors.border.withValues(alpha: 0.6),
+                        ),
+                        const SizedBox(width: AppSpacing.md),
+                        Expanded(
+                          child: _Fact(
+                            icon: LucideIcons.package,
+                            caption: l10n.inventoryStockCurrent,
+                            value: ItemStockQuantity(
+                              view: view,
+                              status: status,
+                              style: AppTypography.numeric.copyWith(
+                                fontSize: 16,
+                                height: 1.2,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  // A light rule, a little short of the card's edges, rather
+                  // than a full-width line.
+                  Divider(
+                    height: 1,
+                    thickness: 0.5,
+                    indent: AppSpacing.sm,
+                    endIndent: AppSpacing.sm,
+                    color: AppColors.border.withValues(alpha: 0.6),
+                  ),
+                  const SizedBox(height: AppSpacing.sm + 2),
+                  _LimitsFooter(view: view),
+                ],
+              ),
             ),
           ),
-          const SizedBox(height: AppSpacing.md),
-          _FactsRow(
-            facts: [
-              (
-                LucideIcons.truck,
-                supplierName ?? l10n.itemDefaultSupplierNone,
-                l10n.inventoryFilterSupplier,
-              ),
-              (categoryIcon, view.categoryName, l10n.inventoryFilterCategory),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.md),
-          const Divider(height: 1, thickness: 1, color: AppColors.border),
-          const SizedBox(height: AppSpacing.sm + 2),
-          _LimitsFooter(view: view),
         ],
       ),
     );
   }
 }
 
-/// The photo, then who the product is and how much of it is left.
+/// The photo, then the name with its icon and menu, and the status at the
+/// bottom.
 class _TopRow extends StatelessWidget {
   const _TopRow({
     required this.view,
@@ -135,7 +202,6 @@ class _TopRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final l10n = AppLocalizations.of(context);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -149,64 +215,28 @@ class _TopRow extends StatelessWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _RoundIcon(icon: categoryIcon, size: 36, tinted: true),
+                _KpiIcon(icon: categoryIcon),
                 const SizedBox(width: AppSpacing.sm + 2),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        Formatters.capitalized(view.item.name),
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.textPrimary,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: AppSpacing.xs),
+                    child: Text(
+                      Formatters.capitalized(view.item.name),
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
                       ),
-                      Text(
-                        view.categoryName,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: AppColors.textSecondary,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                 ),
                 _CardMenu(view: view, onOpen: onOpen),
               ],
             ),
             const Spacer(),
-            Text(
-              l10n.inventoryStockCurrent,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: AppColors.textSecondary,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: AppSpacing.xxs),
-            Row(
-              children: [
-                Expanded(
-                  child: ItemStockQuantity(
-                    view: view,
-                    status: status,
-                    style: AppTypography.numeric.copyWith(
-                      fontSize: 22,
-                      height: 1.2,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.sm),
-                Flexible(child: StockStatusBadge(status: status)),
-              ],
-            ),
+            StockStatusBadge(status: status),
           ],
         );
 
@@ -229,39 +259,34 @@ class _TopRow extends StatelessWidget {
   }
 }
 
-/// Two facts side by side — a round icon, the value in bold, its caption
-/// under it — split by a hairline.
-class _FactsRow extends StatelessWidget {
-  const _FactsRow({required this.facts});
+/// One fact of the middle row: the icon, the value, its caption under it.
+class _Fact extends StatelessWidget {
+  const _Fact({
+    required this.icon,
+    required this.caption,
+    required this.value,
+  });
 
-  /// Icon, value, caption.
-  final List<(IconData, String, String)> facts;
+  final IconData icon;
+  final String caption;
+  final Widget value;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    Widget fact((IconData, String, String) f) => Row(
+    return Row(
       children: [
-        _RoundIcon(icon: f.$1, size: 34),
+        _KpiIcon(icon: icon),
         const SizedBox(width: AppSpacing.sm),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
+              value,
               Text(
-                f.$2,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: AppColors.textPrimary,
-                  fontWeight: FontWeight.w700,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              Text(
-                f.$3,
-                style: theme.textTheme.labelSmall?.copyWith(
+                caption,
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  fontSize: _captionSize,
                   color: AppColors.textSecondary,
                 ),
                 maxLines: 1,
@@ -271,26 +296,6 @@ class _FactsRow extends StatelessWidget {
           ),
         ),
       ],
-    );
-
-    return IntrinsicHeight(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          for (final (i, f) in facts.indexed) ...[
-            if (i > 0) ...[
-              const SizedBox(width: AppSpacing.sm),
-              const VerticalDivider(
-                width: 1,
-                thickness: 1,
-                color: AppColors.border,
-              ),
-              const SizedBox(width: AppSpacing.md),
-            ],
-            Expanded(child: fact(f)),
-          ],
-        ],
-      ),
     );
   }
 }
@@ -309,19 +314,21 @@ class _LimitsFooter extends StatelessWidget {
 
     Widget limit(IconData icon, String label, double value) => Row(
       children: [
-        Icon(icon, size: AppSizing.iconSm, color: AppColors.textSecondary),
+        Icon(icon, size: 14, color: AppColors.primary600),
         const SizedBox(width: AppSpacing.xs + 2),
         Flexible(
           child: Text.rich(
             TextSpan(
               text: '$label  ',
               style: theme.textTheme.bodySmall?.copyWith(
+                fontSize: _captionSize,
                 color: AppColors.textSecondary,
               ),
               children: [
                 TextSpan(
                   text: Formatters.quantityWithUnit(value, unit),
                   style: theme.textTheme.bodySmall?.copyWith(
+                    fontSize: _captionSize + 1,
                     color: AppColors.textPrimary,
                     fontWeight: FontWeight.w700,
                   ),
@@ -362,33 +369,26 @@ class _LimitsFooter extends StatelessWidget {
   }
 }
 
-/// An icon in a round seat — green-tinted for the category beside the name,
-/// as in the mock-up, grey elsewhere.
-class _RoundIcon extends StatelessWidget {
-  const _RoundIcon({
-    required this.icon,
-    required this.size,
-    this.tinted = false,
-  });
+/// An icon in the KPI tiles' round seat: a translucent wash of the brand
+/// green, the icon in the green itself — as [StatTile] draws it.
+class _KpiIcon extends StatelessWidget {
+  const _KpiIcon({required this.icon});
 
   final IconData icon;
-  final double size;
-  final bool tinted;
+
+  /// A touch under [AppSizing.statTileMedallion]: a card carries three.
+  static const double _size = 36;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: size,
-      height: size,
+      width: _size,
+      height: _size,
       decoration: BoxDecoration(
-        color: tinted ? AppColors.primaryContainer : AppColors.surfaceVariant,
+        color: AppColors.primary600.withValues(alpha: 0.10),
         shape: BoxShape.circle,
       ),
-      child: Icon(
-        icon,
-        size: AppSizing.iconSm,
-        color: tinted ? AppColors.primary600 : AppColors.textSecondary,
-      ),
+      child: Icon(icon, size: AppSizing.iconSm, color: AppColors.primary600),
     );
   }
 }

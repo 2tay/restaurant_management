@@ -51,16 +51,22 @@ void main() {
   }
 
   group('the product table', () {
-    for (final (name, size) in [('tablet', _tablet), ('phone', _phone)]) {
-      testApp('shows on a $name without overflowing', (tester) async {
-        await open(tester, size, Routes.toInventory(_store));
-        await tester.tap(find.byTooltip('Vue tableau').first);
-        await tester.pumpAndSettle();
+    testApp('shows on a tablet without overflowing', (tester) async {
+      await open(tester, _tablet, Routes.toInventory(_store));
+      await tester.tap(find.byTooltip('Vue tableau').first);
+      await tester.pumpAndSettle();
 
-        expect(tester.takeException(), isNull);
-        expect(find.byType(DataTable), findsOneWidget);
-      });
-    }
+      expect(tester.takeException(), isNull);
+      expect(find.byType(DataTable), findsOneWidget);
+    });
+
+    // The cards are the one view on a phone: no toggle, no table.
+    testApp('is not offered on a phone', (tester) async {
+      await open(tester, _phone, Routes.toInventory(_store));
+
+      expect(find.byTooltip('Vue tableau'), findsNothing);
+      expect(find.byType(DataTable), findsNothing);
+    });
 
     testApp('the Produit header sorts by name, and again the other way', (
       tester,

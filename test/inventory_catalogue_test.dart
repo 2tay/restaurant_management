@@ -151,7 +151,8 @@ void main() {
             find.descendant(of: card, matching: find.text(text));
 
         expect(inCard('Stock actuel'), findsOneWidget);
-        expect(inCard('Fournisseur'), findsOneWidget);
+        // No supplier on the card any more.
+        expect(inCard('Fournisseur'), findsNothing);
         expect(inCard('Catégorie'), findsOneWidget);
         expect(
           find.descendant(
@@ -170,6 +171,49 @@ void main() {
         expect(
           find.descendant(of: card, matching: find.byType(StockStatusBadge)),
           findsOneWidget,
+        );
+      });
+    }
+  });
+
+  group('the catalogue controls', () {
+    testApp('a phone has no grid / table toggle', (tester) async {
+      await _openInventory(tester, const Size(390, 844));
+
+      expect(find.byTooltip('Vue tableau'), findsNothing);
+      expect(find.byType(ItemCard), findsWidgets);
+    });
+
+    testApp('« Stock faible uniquement » puts a red edge on every card', (
+      tester,
+    ) async {
+      await _openInventory(tester, _tablet);
+      const edge = ValueKey('item-card-alert-edge');
+      expect(find.byKey(edge), findsNothing);
+
+      await tester.tap(find.text('Stock faible uniquement').first);
+      await tester.pumpAndSettle();
+
+      final cards = find.byType(ItemCard).evaluate().length;
+      expect(cards, greaterThan(0));
+      expect(find.byKey(edge), findsNWidgets(cards));
+    });
+
+    for (final size in [_tablet, _desktop]) {
+      testApp('the table does not scroll sideways at ${size.width.toInt()}', (
+        tester,
+      ) async {
+        await _openInventory(tester, size);
+        await _switchToList(tester);
+
+        expect(tester.takeException(), isNull);
+        expect(
+          find.byWidgetPredicate(
+            (w) =>
+                w is SingleChildScrollView &&
+                w.scrollDirection == Axis.horizontal,
+          ),
+          findsNothing,
         );
       });
     }
