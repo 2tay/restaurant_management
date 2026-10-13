@@ -766,8 +766,7 @@ class _GroupedList extends StatelessWidget {
     final today = DateTime(now.year, now.month, now.day);
     final yesterday = DateTime(now.year, now.month, now.day - 1);
 
-    // One heading per day, then that day's cards in the shared grid — one
-    // column on a phone, up to four as the width allows, like the catalogue.
+    // One heading per day, then that day's cards, one per line.
     final sections = <(DateTime, List<MovementRowView>)>[];
     for (final row in movements) {
       final at = row.movement.occurredAt;
@@ -798,11 +797,10 @@ class _GroupedList extends StatelessWidget {
               ).textTheme.labelLarge?.copyWith(color: AppColors.textSecondary),
             ),
           ),
-          ResponsiveCardGrid(
-            minCardWidth: 300,
-            equalRowHeights: true,
-            children: [for (final row in rows) rowBuilder(row)],
-          ),
+          for (final (j, row) in rows.indexed) ...[
+            if (j > 0) const SizedBox(height: AppSpacing.sm),
+            rowBuilder(row),
+          ],
         ],
       ],
     );

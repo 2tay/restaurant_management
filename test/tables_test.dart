@@ -16,7 +16,6 @@ import 'package:stock_inventory/features/stock_movement/presentation/widgets/mov
 import 'package:stock_inventory/features/stock_movement/presentation/widgets/movement_table.dart';
 import 'package:stock_inventory/shared/widgets/view_mode_toggle.dart';
 
-import 'package:stock_inventory/shared/widgets/card_grid.dart';
 
 import 'support/app_harness.dart';
 
@@ -133,17 +132,31 @@ void main() {
       expect(find.byType(MovementCard), findsWidgets);
     });
 
-    // Cards on every screen, laid out like the catalogue: side by side on a
-    // tablet, one per line on a phone.
-    testApp('a tablet lays the cards out in columns', (tester) async {
+    // One wide card per line on a tablet: the product, Quantité, Valeur,
+    // Par, with the type's colour as a stripe down the left edge.
+    testApp('a tablet shows one wide card per line', (tester) async {
       await open(tester, _tablet, Routes.toMovements(_store));
       expect(tester.takeException(), isNull);
 
       final cards = find.byType(MovementCard);
       final first = tester.getRect(cards.at(0));
       final second = tester.getRect(cards.at(1));
-      expect(second.top, moreOrLessEquals(first.top));
-      expect(second.left, greaterThan(first.right));
+      expect(second.top, greaterThan(first.bottom));
+      expect(second.left, moreOrLessEquals(first.left));
+      expect(
+        find.descendant(
+          of: cards.first,
+          matching: find.byKey(const ValueKey('movement-card-stripe')),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: cards.first,
+          matching: find.byKey(const ValueKey('movement-card-actor')),
+        ),
+        findsOneWidget,
+      );
     });
 
     testApp("the table is the product table's frame, titled after the "
@@ -228,7 +241,7 @@ void main() {
     final toggle = tester.getRect(
       find.byType(ViewModeToggle<MovementsViewMode>),
     );
-    final list = tester.getRect(find.byType(ResponsiveCardGrid).first);
+    final list = tester.getRect(find.byType(MovementCard).first);
     // Its right edge lines up with the list's, give or take a pixel.
     expect((toggle.right - list.right).abs(), lessThan(2));
   });
