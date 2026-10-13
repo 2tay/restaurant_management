@@ -13,14 +13,14 @@ import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 import '../../../orders/presentation/widgets/order_detail_view.dart';
 import 'movement_labels.dart';
-import 'movement_type_badge.dart';
+import 'movement_type_badge.dart' show movementQuantityColor;
 
 /// One movement, drawn like a product card — on every screen, in a grid of
 /// cards like the catalogue's:
 ///
-/// - **Top:** the product's photo; beside it the type's icon in a round wash,
-///   the product's name, the type badge right under it, then where the stock
-///   came from or went (supplier and commande, or the reason).
+/// - **Top:** the product's photo; beside it the product's name, the type
+///   badge right under it (shaped like the employees' role badge), then where
+///   the stock came from or went (supplier and commande, or the reason).
 /// - **Middle:** the quantity — signed, in the type's colour — and what it
 ///   was worth, each beside a round icon, split by a hairline.
 /// - **Footer:** who recorded it (their avatar, or initials) and when, in
@@ -86,11 +86,6 @@ class MovementCard extends ConsumerWidget {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _RoundIcon(
-                      icon: movementTypeIcon(movement.type),
-                      foreground: colors.foreground,
-                    ),
-                    const SizedBox(width: AppSpacing.sm + 2),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -111,7 +106,15 @@ class MovementCard extends ConsumerWidget {
                             ),
                           ),
                           const SizedBox(height: AppSpacing.xs),
-                          MovementTypeBadge(type: movement.type),
+                          // The role badge's shape ([EmployeeRoleBadge]).
+                          LabelChip(
+                            key: const ValueKey('movement-card-type'),
+                            label: movementTypeLabel(l10n, movement.type),
+                            icon: movementTypeIcon(movement.type),
+                            background: colors.container,
+                            foreground: colors.foreground,
+                            borderRadius: AppRadius.smAll,
+                          ),
                           const SizedBox(height: AppSpacing.xs),
                           Text(
                             source,
@@ -362,16 +365,15 @@ class _Fact extends StatelessWidget {
 }
 
 /// An icon in the KPI tiles' round seat — the brand green's translucent
-/// wash — or, given [foreground], the movement type's own colour.
+/// wash.
 class _RoundIcon extends StatelessWidget {
-  const _RoundIcon({required this.icon, this.foreground});
+  const _RoundIcon({required this.icon});
 
   final IconData icon;
-  final Color? foreground;
 
   @override
   Widget build(BuildContext context) {
-    final color = foreground ?? AppColors.primary600;
+    const color = AppColors.primary600;
     return Container(
       width: 36,
       height: 36,

@@ -82,7 +82,6 @@ class ItemCard extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final item = view.item;
     final status = stockStatusOf(item);
-    final categoryIcon = categoryIconFor(view.categoryName);
     final theme = Theme.of(context);
 
     return AppCard(
@@ -113,7 +112,6 @@ class ItemCard extends StatelessWidget {
                     child: _TopRow(
                       view: view,
                       status: status,
-                      categoryIcon: categoryIcon,
                       onOpen: onTap,
                     ),
                   ),
@@ -124,7 +122,7 @@ class ItemCard extends StatelessWidget {
                       children: [
                         Expanded(
                           child: _Fact(
-                            icon: categoryIcon,
+                            icon: LucideIcons.tag,
                             caption: l10n.inventoryFilterCategory,
                             value: Text(
                               view.categoryName,
@@ -147,7 +145,7 @@ class ItemCard extends StatelessWidget {
                         const SizedBox(width: AppSpacing.md),
                         Expanded(
                           child: _Fact(
-                            icon: LucideIcons.package,
+                            icon: LucideIcons.layers,
                             caption: l10n.inventoryStockCurrent,
                             value: ItemStockQuantity(
                               view: view,
@@ -191,13 +189,11 @@ class _TopRow extends StatelessWidget {
   const _TopRow({
     required this.view,
     required this.status,
-    required this.categoryIcon,
     required this.onOpen,
   });
 
   final ItemRowView view;
   final StockStatus status;
-  final IconData categoryIcon;
   final VoidCallback onOpen;
 
   @override
@@ -216,21 +212,35 @@ class _TopRow extends StatelessWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _KpiIcon(icon: categoryIcon),
+                // The same product icon on every card — the category has
+                // its own line under the name.
+                const _KpiIcon(icon: LucideIcons.package),
                 const SizedBox(width: AppSpacing.sm + 2),
                 Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.only(top: AppSpacing.xs),
-                    child: Text(
-                      Formatters.capitalized(view.item.name),
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        Formatters.capitalized(view.item.name),
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                      Text(
+                        view.categoryName,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          fontSize: _captionSize,
+                          color: AppColors.textSecondary,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
                   ),
                 ),
                 _CardMenu(view: view, onOpen: onOpen),
@@ -242,7 +252,7 @@ class _TopRow extends StatelessWidget {
                 top: AppSpacing.xs,
                 left: _KpiIcon.size + AppSpacing.sm + 2,
               ),
-              child: StockStatusBadge(status: status),
+              child: _StatusChip(status: status),
             ),
           ],
         );
@@ -355,6 +365,7 @@ class _LimitsFooter extends StatelessWidget {
       children: [
         Expanded(
           child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Flexible(
                 child: limit(
@@ -380,6 +391,28 @@ class _LimitsFooter extends StatelessWidget {
           color: AppColors.primary600,
         ),
       ],
+    );
+  }
+}
+
+/// The stock status in the shape of the employees' role badge
+/// ([EmployeeRoleBadge]): a small rounded rectangle, its icon then its label,
+/// in the status's colours.
+class _StatusChip extends StatelessWidget {
+  const _StatusChip({required this.status});
+
+  final StockStatus status;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = StockStatusBadge.colorsFor(status);
+    return LabelChip(
+      key: const ValueKey('item-card-status'),
+      label: StockStatusBadge.labelFor(AppLocalizations.of(context), status),
+      icon: StockStatusBadge.iconFor(status),
+      background: colors.container,
+      foreground: colors.foreground,
+      borderRadius: AppRadius.smAll,
     );
   }
 }
@@ -478,35 +511,6 @@ class _CardMenu extends StatelessWidget {
       ),
     );
   }
-}
-
-/// An icon for a category, read from its name — categories are free text,
-/// so the common restaurant ones are recognised and the rest get a box.
-IconData categoryIconFor(String categoryName) {
-  final name = categoryName.toLowerCase();
-  bool has(List<String> words) => words.any(name.contains);
-
-  if (has(['légume', 'legume', 'fruit'])) return LucideIcons.carrot;
-  if (has(['viande', 'boucher', 'volaille'])) return LucideIcons.beef;
-  if (has(['poisson', 'mer', 'fruits de mer'])) return LucideIcons.fish;
-  if (has(['laitier', 'fromage', 'lait', 'crèmerie'])) return LucideIcons.milk;
-  if (has(['boulang', 'pain', 'pâtisser', 'viennois'])) {
-    return LucideIcons.croissant;
-  }
-  if (has(['vin', 'alcool', 'spiritueux'])) return LucideIcons.wine;
-  if (has(['bière', 'biere'])) return LucideIcons.beer;
-  if (has(['boisson', 'soda', 'jus', 'eau'])) return LucideIcons.cupSoda;
-  if (has(['surgel', 'congel'])) return LucideIcons.snowflake;
-  if (has(['épice', 'epice', 'condiment', 'herbe'])) return LucideIcons.leaf;
-  if (has(['œuf', 'oeuf'])) return LucideIcons.egg;
-  if (has(['céréale', 'farine', 'riz', 'pâte', 'épicerie'])) {
-    return LucideIcons.wheat;
-  }
-  if (has(['entretien', 'nettoy', 'hygiène', 'produit d'])) {
-    return LucideIcons.sprayCan;
-  }
-  if (has(['voiture', 'véhicule'])) return LucideIcons.car;
-  return LucideIcons.package;
 }
 
 /// The quantity on hand, coloured by what that quantity means.

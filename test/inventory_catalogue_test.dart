@@ -24,7 +24,6 @@ import 'package:stock_inventory/features/inventory/presentation/pages/inventory_
 import 'package:stock_inventory/features/inventory/presentation/widgets/item_card.dart';
 import 'package:drift/drift.dart' show Value;
 
-import 'package:stock_inventory/shared/widgets/widgets.dart';
 
 import 'support/app_harness.dart';
 
@@ -168,8 +167,12 @@ void main() {
           ),
           findsOneWidget,
         );
+        // The status in the employees' role-badge shape.
         expect(
-          find.descendant(of: card, matching: find.byType(StockStatusBadge)),
+          find.descendant(
+            of: card,
+            matching: find.byKey(const ValueKey('item-card-status')),
+          ),
           findsOneWidget,
         );
       });

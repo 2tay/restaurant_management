@@ -14,7 +14,6 @@ import 'package:stock_inventory/features/inventory/presentation/widgets/item_det
 import 'package:stock_inventory/features/stock_movement/presentation/widgets/movement_card.dart';
 import 'package:stock_inventory/features/stock_movement/presentation/widgets/movement_row.dart';
 import 'package:stock_inventory/features/stock_movement/presentation/widgets/movement_table.dart';
-import 'package:stock_inventory/features/stock_movement/presentation/widgets/movement_type_badge.dart';
 import 'package:stock_inventory/shared/widgets/view_mode_toggle.dart';
 
 import 'package:stock_inventory/shared/widgets/card_grid.dart';
@@ -170,7 +169,10 @@ void main() {
       );
       expect(tester.widget<Text>(actor).data, view.movement.userName);
       expect(
-        find.descendant(of: card, matching: find.byType(MovementTypeBadge)),
+        find.descendant(
+          of: card,
+          matching: find.byKey(const ValueKey('movement-card-type')),
+        ),
         findsOneWidget,
       );
 

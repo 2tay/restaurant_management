@@ -556,22 +556,22 @@ void main() {
       'employee-menu-archive',
     ]);
     expect(find.text('Voir les détails'), findsNothing);
-    for (final item in items) {
-      expect(item.leadingIcon, isA<Icon>());
-    }
+    // Each row: a grey icon then the label, like the product card's menu.
+    Icon iconOf(String key) => tester.widget<Icon>(
+      find.descendant(
+        of: find.byKey(ValueKey(key)),
+        matching: find.byType(Icon),
+      ),
+    );
+    expect(iconOf('employee-menu-edit').color, const Color(0xFF4A565F));
     const red = Color(0xFFC62828);
     final retire = items.last;
-    expect((retire.leadingIcon! as Icon).color, red);
+    expect(iconOf('employee-menu-archive').color, red);
     expect(retire.style!.foregroundColor!.resolve(const {}), red);
-    // Hover: the rate block's green wash.
-    final hover = items.first.style!.overlayColor!.resolve(const {
-      WidgetState.hovered,
-    })!;
-    expect(hover.withValues(alpha: 1), const Color(0xFF0F766E));
-    expect(hover.a, lessThan(0.2));
   });
 
-  testApp('the ⋮ menu: white, 12dp corners, hairline border, 190–220dp', (
+  testApp('the ⋮ menu: white, 12dp corners, no border, 190–220dp — like '
+      'the product card menu', (
     tester,
   ) async {
     await _open(tester);
@@ -589,7 +589,7 @@ void main() {
     expect(style.backgroundColor!.resolve(none), Colors.white);
     final shape = style.shape!.resolve(none)! as RoundedRectangleBorder;
     expect(shape.borderRadius, BorderRadius.circular(12));
-    expect(shape.side.width, 0.5);
+    expect(shape.side, BorderSide.none);
     expect(style.elevation!.resolve(none), lessThanOrEqualTo(4));
 
     final width = tester.getSize(find.byType(MenuItemButton).first).width;

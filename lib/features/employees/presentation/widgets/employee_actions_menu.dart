@@ -20,8 +20,9 @@ import '../../../../models/models.dart';
 /// click is not swallowed, so pressing another employee's ⋮ closes this menu
 /// and opens theirs in one go.
 ///
-/// White, 12dp corners, a hairline border and a soft shadow, 190–220dp wide;
-/// each row an icon then a label, with the rate block's green wash on hover.
+/// Dressed like the product card's ⋮ menu: white, rounded, the popup's
+/// shadow and no border, 190–220dp wide; each row a grey icon then the label
+/// (Retirer in red).
 ///
 /// [includeHistories] is off where the two histories already have buttons of
 /// their own (the table's Actions column).
@@ -79,23 +80,17 @@ class _EmployeeActionsMenuState extends State<EmployeeActionsMenu> {
     super.dispose();
   }
 
-  /// The rate block's green wash — the items' hover, so the two read as one
-  /// family.
-  static final Color _hover = AppColors.primary600.withValues(alpha: 0.08);
-
   static const MenuStyle _menuStyle = MenuStyle(
     backgroundColor: WidgetStatePropertyAll(AppColors.surface),
     surfaceTintColor: WidgetStatePropertyAll(Colors.transparent),
+    // The popup menu's own elevation and shadow, as on the product card.
     elevation: WidgetStatePropertyAll(3),
-    shadowColor: WidgetStatePropertyAll(Color(0x33000000)),
+    shadowColor: WidgetStatePropertyAll(Colors.black),
     padding: WidgetStatePropertyAll(
-      EdgeInsets.symmetric(vertical: AppSpacing.xs + AppSpacing.xxs),
+      EdgeInsets.symmetric(vertical: AppSpacing.sm),
     ),
     shape: WidgetStatePropertyAll(
-      RoundedRectangleBorder(
-        borderRadius: AppRadius.mdAll,
-        side: BorderSide(color: AppColors.border, width: 0.5),
-      ),
+      RoundedRectangleBorder(borderRadius: AppRadius.mdAll),
     ),
   );
 
@@ -104,8 +99,10 @@ class _EmployeeActionsMenuState extends State<EmployeeActionsMenu> {
     required IconData icon,
     required String label,
     required VoidCallback onPressed,
-    Color color = AppColors.textPrimary,
+    bool destructive = false,
   }) {
+    final textColor = destructive ? AppColors.error : AppColors.textPrimary;
+    final iconColor = destructive ? AppColors.error : AppColors.textSecondary;
     return ConstrainedBox(
       constraints: const BoxConstraints(
         minWidth: _minWidth,
@@ -114,19 +111,33 @@ class _EmployeeActionsMenuState extends State<EmployeeActionsMenu> {
       child: MenuItemButton(
         key: ValueKey('employee-menu-$keyName'),
         onPressed: onPressed,
-        leadingIcon: Icon(icon, size: AppSizing.iconSm, color: color),
         style: ButtonStyle(
-          foregroundColor: WidgetStatePropertyAll(color),
-          overlayColor: WidgetStatePropertyAll(_hover),
+          foregroundColor: WidgetStatePropertyAll(textColor),
           padding: const WidgetStatePropertyAll(
-            EdgeInsets.symmetric(
-              horizontal: AppSpacing.md + AppSpacing.xxs,
-              vertical: AppSpacing.md,
-            ),
+            EdgeInsets.symmetric(horizontal: AppSpacing.md),
           ),
-          minimumSize: const WidgetStatePropertyAll(Size(_minWidth, 44)),
+          minimumSize: const WidgetStatePropertyAll(
+            Size(_minWidth, kMinInteractiveDimension),
+          ),
         ),
-        child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
+        // Icon, gap, label — the product card menu's row.
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: AppSizing.iconSm, color: iconColor),
+            const SizedBox(width: AppSpacing.md),
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(color: textColor),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -175,7 +186,7 @@ class _EmployeeActionsMenuState extends State<EmployeeActionsMenu> {
             icon: LucideIcons.userMinus,
             label: l10n.employeeArchiveConfirm,
             onPressed: widget.onArchive,
-            color: AppColors.error,
+            destructive: true,
           ),
       ],
       builder: (context, controller, _) => IconButton(
