@@ -24,6 +24,8 @@ import 'package:stock_inventory/features/inventory/presentation/pages/inventory_
 import 'package:stock_inventory/features/inventory/presentation/widgets/item_card.dart';
 import 'package:drift/drift.dart' show Value;
 
+import 'package:stock_inventory/shared/widgets/widgets.dart';
+
 import 'support/app_harness.dart';
 
 const _store = StoreIds.sablon;
@@ -113,78 +115,64 @@ void main() {
   });
 
   // The phone case is a unit rather than a pumped frame: at 390 logical
-  // pixels the shell around this screen — the top bar, the store selector
-  // behind it — overflows on its own, which no assertion about the catalogue
-  // can see past. These two functions are the whole of the grid's responsive
-  // behaviour, and they are what the phone case is actually about.
+  // pixels the shell around this screen overflows on its own, which no
+  // assertion about the catalogue can see past.
   group('the grid sizes itself', () {
-    test('two on a phone, more as the window grows', () {
-      // A phone shows two. It showed one until the card lost its "Stock
-      // actuel" caption and its arrow button: a 360dp screen leaves about
-      // 180dp a card, which was not enough for a name, a category and a
-      // quantity and now is.
-      expect(inventoryGridColumns(360), 2);
-      expect(inventoryGridColumns(390), 2);
-      expect(inventoryGridColumns(430), 2);
-      // Only a genuinely tiny window falls back to one.
-      expect(inventoryGridColumns(300), 1);
-      expect(inventoryGridColumns(640), 3);
-      expect(inventoryGridColumns(800), 4);
-      expect(inventoryGridColumns(1100), 5);
-      // Never a seventh column, however wide the window. A catalogue is
-      // navigated by scanning, but past six across the names are the first
-      // thing to go, and the name is what is being scanned.
-      expect(inventoryGridColumns(2400), 6);
+    test('one card per line on a phone, more as the window grows', () {
+      // The photo sits beside the name, so a card wants about 300dp.
+      expect(inventoryGridColumns(360), 1);
+      expect(inventoryGridColumns(430), 1);
+      expect(inventoryGridColumns(599), 1);
+      expect(inventoryGridColumns(640), 2);
+      expect(inventoryGridColumns(1000), 3);
+      // Never a fifth column, however wide the window.
+      expect(inventoryGridColumns(2400), 4);
     });
 
-    test('the picture stays a large share of the card at every width', () {
-      // Not a fixed share: the image is a ratio of the column width and the
-      // text block under it — identity and the « Stock actuel » panel — is a
-      // fixed height, so a narrow column gives the picture proportionally
-      // less. The band is what keeps a card from becoming either a poster or
-      // a caption with a thumbnail.
-      for (final cellWidth in [440.0, 300.0, 260.0, 220.0, 160.0]) {
-        final image = inventoryImageHeight(cellWidth);
-        final share = image / (image + itemCardTextHeight);
-        expect(share, greaterThan(0.36), reason: 'at a $cellWidth column');
-        expect(share, lessThan(0.5), reason: 'at a $cellWidth column');
-      }
-    });
-
-    test('and is bounded at both ends', () {
-      expect(inventoryImageHeight(120), 104);
-      expect(inventoryImageHeight(900), 160);
-    });
-
-    test('a card is not taller than it needs to be', () {
-      // The regression this guards, and how far it has come: the picture was
-      // three quarters of the column width with a 240dp ceiling and the text
-      // block was 140dp, which made a card 376dp tall — one and a half
-      // products on a phone, six on the 1280dp design baseline. It is now
-      // under 260 at every width, which is what makes a long catalogue
-      // navigable by scrolling rather than by searching. The « Stock actuel »
-      // panel added a line; the card still stays under 340.
-      for (final cellWidth in [440.0, 300.0, 230.0]) {
-        final tile = inventoryImageHeight(cellWidth) + itemCardTextHeight;
-        expect(tile, lessThan(340), reason: 'at a $cellWidth column');
-      }
-    });
-
-    test('a 1280dp window shows more than twice the products it used to', () {
-      // The design baseline, minus the sidebar and the page insets. Three
-      // cards across at 376dp tall was six products before a scroll; the
-      // assertion is about how many fit now, because that is the whole point
-      // of every number in this group.
+    test('a 1280dp window shows three cards across', () {
       const pane = 1280.0 - AppSizing.sidebarWidthExpanded - AppSpacing.xl * 2;
-      final columns = inventoryGridColumns(pane);
-      final cellWidth = (pane - AppSpacing.sm * (columns - 1)) / columns;
-      final tile = inventoryImageHeight(cellWidth) + itemCardTextHeight;
-
-      expect(columns, 5);
-      // Two and a half rows in an 800dp window, where three cards across at
-      // 376dp tall managed one and the top of a second.
-      expect(tile, lessThan(300));
+      expect(inventoryGridColumns(pane), 3);
+      expect(itemCardHeight, lessThan(260));
     });
+  });
+
+  // The mock-up: photo beside the name, « Stock actuel » with the status,
+  // supplier and category, then Qté min / Qté max where « Expire le » was.
+  group('the card', () {
+    for (final size in [const Size(390, 844), _tablet]) {
+      testApp('shows the mock-up\'s blocks at ${size.width.toInt()}', (
+        tester,
+      ) async {
+        await _openInventory(tester, size);
+        expect(tester.takeException(), isNull);
+
+        final card = find.byType(ItemCard).first;
+        Finder inCard(String text) =>
+            find.descendant(of: card, matching: find.text(text));
+
+        expect(inCard('Stock actuel'), findsOneWidget);
+        expect(inCard('Fournisseur'), findsOneWidget);
+        expect(inCard('Catégorie'), findsOneWidget);
+        expect(
+          find.descendant(
+            of: card,
+            matching: find.textContaining('Qté min', findRichText: true),
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(
+            of: card,
+            matching: find.textContaining('Qté max', findRichText: true),
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(of: card, matching: find.byType(StockStatusBadge)),
+          findsOneWidget,
+        );
+      });
+    }
   });
 
   group('ordering', () {

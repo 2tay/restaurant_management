@@ -1222,6 +1222,18 @@ abstract class AppLocalizations {
   /// **'En stock'**
   String get itemCardQuantityLabel;
 
+  /// Product card footer: the minimum quantity (alert threshold).
+  ///
+  /// In fr, this message translates to:
+  /// **'Qté min'**
+  String get itemCardQtyMin;
+
+  /// Product card footer: the maximum quantity.
+  ///
+  /// In fr, this message translates to:
+  /// **'Qté max'**
+  String get itemCardQtyMax;
+
   /// Product form section: the photo, the name and the barcode — what identifies this product.
   ///
   /// In fr, this message translates to:

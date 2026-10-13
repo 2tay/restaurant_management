@@ -169,7 +169,7 @@ class StoreSelectorPage extends ConsumerWidget {
 /// Stated rather than derived from a ratio: the picture band is a fixed 120dp
 /// and the text under it is a known number of single lines, so the tile is the
 /// two added up. It scales with the type size and is capped at 2x, the same
-/// bargain `itemCardTextHeightFor` makes in the catalogue grid.
+/// bargain `itemCardHeightFor` makes in the catalogue grid.
 double _tileHeight(BuildContext context) {
   final scale = MediaQuery.textScalerOf(context).scale(14) / 14;
   return 320 * scale.clamp(1.0, 2.0);

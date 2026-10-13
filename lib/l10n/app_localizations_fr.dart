@@ -659,6 +659,12 @@ class AppLocalizationsFr extends AppLocalizations {
   String get itemCardQuantityLabel => 'En stock';
 
   @override
+  String get itemCardQtyMin => 'Qté min';
+
+  @override
+  String get itemCardQtyMax => 'Qté max';
+
+  @override
   String get itemFormSectionIdentity => 'Identité';
 
   @override

@@ -828,24 +828,9 @@ class _ProductGrid extends StatelessWidget {
       builder: (context, constraints) {
         final columns = inventoryGridColumns(constraints.maxWidth);
 
-        // The tile's height is stated, not derived from a ratio.
-        //
-        // `childAspectRatio` sets the height from the width, which means the
-        // space left for the card's text varies with the column count — and on
-        // a narrow pane it went negative, collapsing the picture to nothing.
-        // Here the picture's height is computed from the column width and then
-        // bounded, the text block is a known height, and the tile is exactly
-        // the two added up, so neither can squeeze the other however the grid
-        // is sized.
-        //
-        // The tile is the card's *outer* height, so it carries the border too.
-        // `AppCard` draws one inside its own box and lays the card out in what
-        // is left, which is two pixels less than the tile — the amount every
-        // card in this grid was overflowing by before the allowance was added.
-        final spacing = AppSpacing.sm * (columns - 1);
-        final cellWidth = (constraints.maxWidth - spacing) / columns;
-        final imageHeight = inventoryImageHeight(cellWidth);
-
+        // The tile's height is stated, not derived from a ratio: the card is
+        // a known height (see [itemCardHeightFor]), and the tile carries the
+        // border allowance `AppCard` draws inside its own box.
         return GridView.builder(
           padding: EdgeInsets.zero,
           shrinkWrap: true,
@@ -856,16 +841,13 @@ class _ProductGrid extends StatelessWidget {
             mainAxisSpacing: AppSpacing.sm,
             crossAxisSpacing: AppSpacing.sm,
             mainAxisExtent:
-                imageHeight +
-                itemCardTextHeightFor(context) +
-                AppCard.verticalBorderAllowance,
+                itemCardHeightFor(context) + AppCard.verticalBorderAllowance,
           ),
           itemCount: rows.length,
           itemBuilder: (context, index) {
             final row = rows[index];
             return ItemCard(
               view: row,
-              imageHeight: imageHeight,
               selected: selectedId == row.item.id,
               onTap: () => onTap(row.item.id),
             );
@@ -1278,58 +1260,24 @@ void afterFrame(VoidCallback change) =>
 
 /// How many cards fit, given the width the grid actually has.
 ///
-/// Around 260 logical pixels per card: narrower and the French product names
-/// ellipsize into uselessness, wider and a full-width grid on a large tablet
-/// draws four enormous photographs. Capped at four for the same reason.
+/// The card lays its photo beside the name, so it wants about
+/// [_columnTarget] across: narrower and the name, the quantity and the status
+/// pill no longer share the right of the photo. Capped at four.
 ///
-/// The one column below [_singleColumn] is the phone case. Two cards across a
-/// 380-pixel screen leaves 180 pixels for a name, a category and a quantity,
-/// which is not enough for any of them; one full-width card per row is.
+/// One column below [_singleColumn] — a phone shows one card per line, as on
+/// the personnel pages.
 int inventoryGridColumns(double width) {
   if (width < _singleColumn) return 1;
   final columns = (width / _columnTarget).floor();
-  return columns.clamp(2, 6);
+  return columns.clamp(2, 4);
 }
 
-/// Roughly how wide a card wants to be.
-///
-/// 190dp, down from 230 and originally 260, with the ceiling now six columns.
-/// Every step spends the same currency: photograph size for how many products
-/// are on screen at once. A catalogue of two hundred articles is navigated by
-/// scanning, and scanning wants more cards per screen far more than it wants a
-/// bigger picture of a bag of flour. At 190 a 1280dp window draws five across
-/// where it drew three at the start.
-///
-/// The floor is the product name: below about 170dp French names ellipsize into
-/// uselessness, which is the thing this may not trade away.
-const double _columnTarget = 190;
+/// Roughly how wide a card wants to be: the 112dp photo, and about 180dp
+/// beside it for the name, the quantity and the status pill.
+const double _columnTarget = 300;
 
-/// Below this width the grid drops to a single column.
-///
-/// 320, down from 440 — which meant a phone showed one product per row. Two
-/// across a 360dp screen once left about 180dp for a name, a category and a
-/// quantity, and that was not enough for any of them. The card has since lost
-/// its "Stock actuel" caption and its arrow button, and gained a narrower
-/// picture, so the same 180dp now carries all three. Only a genuinely tiny
-/// window falls back to one.
-const double _singleColumn = 320;
-
-/// How tall the picture on a card is, for a column this wide.
-///
-/// Three fifths of the column's width. Since the card took its « Stock
-/// actuel » panel the text block under it is taller, so the picture is about
-/// two fifths of the card rather than half.
-/// Bounded at both ends: a single-column phone layout would otherwise draw a
-/// poster, and a six-column pane on a small tablet a postage stamp.
-///
-/// The ceiling came down from 190 to 136 with the same reasoning as
-/// [_columnTarget]: a photograph here is there to be recognised at a glance,
-/// not studied, and the ceiling only binds on a wide single-column phone card
-/// that would otherwise draw a poster. The floor of 104 is about where a plate
-/// of food stops being identifiable, and where the category tag and the status
-/// badge still sit on the picture without covering all of it.
-double inventoryImageHeight(double cellWidth) =>
-    (cellWidth * 0.6).clamp(104, 160);
+/// Below this width the grid is a single column.
+const double _singleColumn = 600;
 
 /// Distinguishes "this store has nothing yet" from "your filters matched
 /// nothing". They need different words and a different button.
