@@ -3934,6 +3934,14 @@ class AppLocalizationsFr extends AppLocalizations {
   String get payrollDetailPayNow => 'Payer ce jour';
 
   @override
+  String get payrollDayNotFinished =>
+      'Jour en cours : le paiement sera possible après la sortie.';
+
+  @override
+  String get payrollNothingToPay =>
+      'Aucune journée terminée à payer sur cette période.';
+
+  @override
   String get payrollPayAction => 'Payer';
 
   @override

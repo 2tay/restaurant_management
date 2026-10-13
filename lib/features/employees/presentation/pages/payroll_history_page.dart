@@ -431,7 +431,11 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
       from: from,
       to: to,
     );
-    if (!mounted || preview.isEmpty) return false;
+    if (!mounted) return false;
+    if (preview.isEmpty) {
+      AppSnackBar.warning(context, l10n.payrollNothingToPay);
+      return false;
+    }
 
     final rangeLabel = from == to
         ? Formatters.date(from)

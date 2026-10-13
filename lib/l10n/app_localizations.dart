@@ -6394,6 +6394,18 @@ abstract class AppLocalizations {
   /// **'Payer ce jour'**
   String get payrollDetailPayNow;
 
+  /// Payment detail drawer, in place of « Payer ce jour » while the day is unpaid but not finished yet (still working, on a break, exit not clocked).
+  ///
+  /// In fr, this message translates to:
+  /// **'Jour en cours : le paiement sera possible après la sortie.'**
+  String get payrollDayNotFinished;
+
+  /// Snackbar when « Payer » finds no finished unpaid day to settle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucune journée terminée à payer sur cette période.'**
+  String get payrollNothingToPay;
+
   /// The button under the table that settles the unpaid days.
   ///
   /// In fr, this message translates to:

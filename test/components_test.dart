@@ -1577,13 +1577,16 @@ void main() {
       createdAt: DateTime(2026),
     );
     // 09:00–12:00, then 18:00–22:30 with a 15-min break: 7 h 15 worked.
-    Attendance day({PaymentStatus status = PaymentStatus.unpaid}) =>
+    Attendance day({
+      PaymentStatus status = PaymentStatus.unpaid,
+      AttendanceStatus attendance = AttendanceStatus.done,
+    }) =>
         Attendance(
           id: 'a',
           storeId: 's',
           employeeId: 'e',
           date: DateTime(2026, 10, 24),
-          status: AttendanceStatus.done,
+          status: attendance,
           sessions: [
             AttendanceSession(clockInAt: at(9, 0), clockOutAt: at(12, 0)),
             AttendanceSession(
@@ -1697,6 +1700,21 @@ void main() {
       expect(value(tester, 'payroll-day-amount'), Formatters.price(72.5));
       expect(find.byType(PrimaryButton), findsNothing);
     });
+
+    // Only a finished day is payable: on a day still in progress the button
+    // found nothing to pay and did nothing — it now says when it can be paid.
+    for (final status in [AttendanceStatus.working, AttendanceStatus.onBreak]) {
+      testWidgets('an unpaid day still in progress (${status.name}): no '
+          'button, a line saying when it can be paid', (tester) async {
+        await pump(tester, day(attendance: status), onPay: () async => true);
+
+        expect(find.byType(PrimaryButton), findsNothing);
+        expect(
+          find.byKey(const ValueKey('payroll-day-not-finished')),
+          findsOneWidget,
+        );
+      });
+    }
 
     testWidgets('an unpaid day: « Payer ce jour » pays, then closes the '
         'drawer', (tester) async {

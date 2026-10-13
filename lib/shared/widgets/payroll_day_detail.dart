@@ -22,7 +22,9 @@ import 'primary_button.dart';
 /// 3. the sessions, each titled `Session N° x`;
 /// 4. the summary table — time worked, breaks, the hourly rate and the amount
 ///    (rate × time worked over every session), then when it was paid;
-/// 5. « Payer ce jour » while the day is unpaid and [onPay] is given.
+/// 5. « Payer ce jour » while the day is unpaid, finished and [onPay] is
+///    given — an unpaid day still in progress says when it can be paid
+///    instead (only finished days are payable).
 ///
 /// [rate] and [amount] are figured by the caller, so the drawer shows exactly
 /// what the table row beside it does: the rate frozen on the payroll run for a
@@ -63,10 +65,13 @@ class PayrollDayDetail extends StatelessWidget {
     final worked = workedDuration(entry);
     final rateLabel = l10n.payrollRatePerHour(Formatters.price(rate));
     final pay = onPay;
-    final payable =
+    final unpaid =
         pay != null &&
         employee != null &&
         entry.paymentStatus == PaymentStatus.unpaid;
+    // Only a finished day is payable: the button on a day still in progress
+    // found nothing to pay, and did nothing.
+    final payable = unpaid && entry.status == AttendanceStatus.done;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -130,6 +135,17 @@ class PayrollDayDetail extends StatelessWidget {
               ),
           ],
         ),
+        if (unpaid && !payable) ...[
+          const SizedBox(height: AppSpacing.xxl),
+          Text(
+            l10n.payrollDayNotFinished,
+            key: const ValueKey('payroll-day-not-finished'),
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ],
         if (payable) ...[
           const SizedBox(height: AppSpacing.xxl),
           PrimaryButton(
