@@ -36,10 +36,6 @@ double itemCardHeightFor(BuildContext context) {
 /// photo is as tall as the row.
 const double _photoMaxSide = 104;
 
-/// The red edge across the top of a card while « Stock faible uniquement »
-/// is on.
-const double _alertEdgeHeight = 3;
-
 /// The captions under a value, and the footer's labels: a step under
 /// `bodySmall`, so the figures carry the card.
 const double _captionSize = 11;
@@ -57,8 +53,8 @@ const double _captionSize = 11;
 /// The icons sit in the round green wash of the personnel pages' KPI tiles
 /// ([StatTile]).
 ///
-/// [alertEdge] draws a red edge across the top — the catalogue sets it while
-/// « Stock faible uniquement » is on.
+/// [alertEdge] outlines the card in dashed red, as a retired employee's card
+/// is — the catalogue sets it while « Stock faible uniquement » is on.
 ///
 /// **Nothing here sizes itself.** The grid hands every tile
 /// [itemCardHeightFor]; the top row takes what the fixed middle and footer
@@ -87,21 +83,17 @@ class ItemCard extends StatelessWidget {
     return AppCard(
       onTap: onTap,
       selected: selected,
+      // Dashed red, like a retired employee's card.
+      dashedBorderColor: alertEdge ? AppColors.error : null,
       padding: EdgeInsets.zero,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (alertEdge)
-            const SizedBox(
-              key: ValueKey('item-card-alert-edge'),
-              height: _alertEdgeHeight,
-              child: ColoredBox(color: AppColors.error),
-            ),
           Expanded(
             child: Padding(
-              padding: EdgeInsets.fromLTRB(
+              padding: const EdgeInsets.fromLTRB(
                 AppSpacing.md + 2,
-                AppSpacing.md + 2 - (alertEdge ? _alertEdgeHeight : 0),
+                AppSpacing.md + 2,
                 AppSpacing.md + 2,
                 AppSpacing.sm + 2,
               ),

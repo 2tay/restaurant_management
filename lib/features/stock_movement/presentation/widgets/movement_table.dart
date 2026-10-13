@@ -11,7 +11,7 @@ import '../../../../l10n/app_localizations.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 import 'movement_labels.dart';
-import 'movement_type_badge.dart';
+import 'movement_type_badge.dart' show movementQuantityColor;
 import '../../../inventory/presentation/widgets/product_drawer.dart';
 import '../../../orders/presentation/widgets/order_detail_view.dart';
 
@@ -32,63 +32,96 @@ final movementsViewModeProvider =
       MovementsViewModeNotifier.new,
     );
 
-/// The movement history as a table: when, which product (with its photo) and
-/// the detail, what kind, how much and what it was worth, and who.
+/// The movement history as a table, in the product table's frame
+/// ([DataTableWrapper]): when, which product (with its photo) and the
+/// detail, what kind, how much and what it was worth, and who.
 ///
-/// Entrées, sorties and ajustements stand apart at a glance: each row's
-/// type is a small soft badge in its colour, and its quantity is written in
-/// the same colour. Nothing else is tinted — no stripe, no coloured icon — so
-/// the table still reads as a table. On a narrow screen the value, the person and the receipt link drop
-/// out before anything scrolls sideways.
+/// [title] sits at the top left — « Tous les mouvements (128) », « Entrées
+/// (12) » — and follows the filters. Entrées, sorties and ajustements stand
+/// apart by their coloured dot and quantity, as the product table's status
+/// does. Nothing scrolls sideways: the value, the person and the receipt
+/// link drop out as the width shrinks.
 class MovementTable extends StatelessWidget {
   const MovementTable({
     required this.movements,
     required this.storeId,
+    this.title,
     super.key,
   });
 
   final List<MovementRowView> movements;
   final String storeId;
+  final String? title;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
 
-    return AppTable<MovementRowView>(
-      rows: movements,
-      shrinkWrap: true,
-      onRowTap: (view) => openProductDrawer(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final showValue = width >= 760;
+        final showBy = width >= 640;
+        final showReceipt = width >= 960;
+
+        return DataTableWrapper(
+          title: title,
+          minWidth: width,
+          scrollable: false,
+          columnSpacing: AppSpacing.xl,
+          columns: [
+            DataColumn(label: Text(l10n.tableColDate)),
+            DataColumn(label: Text(l10n.tableColProduct)),
+            DataColumn(label: Text(l10n.tableColType)),
+            DataColumn(label: Text(l10n.tableColQuantity), numeric: true),
+            if (showValue)
+              DataColumn(label: Text(l10n.tableColValue), numeric: true),
+            if (showBy) DataColumn(label: Text(l10n.tableColBy)),
+            if (showReceipt) const DataColumn(label: SizedBox.shrink()),
+          ],
+          rows: [
+            for (final view in movements)
+              _row(
+                context,
+                l10n,
+                theme,
+                view,
+                width: width,
+                showValue: showValue,
+                showBy: showBy,
+                showReceipt: showReceipt,
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  DataRow _row(
+    BuildContext context,
+    AppLocalizations l10n,
+    ThemeData theme,
+    MovementRowView view, {
+    required double width,
+    required bool showValue,
+    required bool showBy,
+    required bool showReceipt,
+  }) {
+    final movement = view.movement;
+    final unit = view.unitAbbreviation;
+
+    return DataRow(
+      onSelectChanged: (_) => openProductDrawer(
         context,
         storeId: storeId,
-        itemId: view.movement.itemId,
+        itemId: movement.itemId,
       ),
-      columns: [
-        AppTableColumn(label: l10n.tableColDate, width: 112),
-        AppTableColumn(label: l10n.tableColProduct, flex: 3),
-        AppTableColumn(label: l10n.tableColType, width: 140),
-        AppTableColumn(label: l10n.tableColQuantity, width: 120, numeric: true),
-        AppTableColumn(
-          label: l10n.tableColValue,
-          width: 112,
-          numeric: true,
-          minTableWidth: 780,
-        ),
-        AppTableColumn(label: l10n.tableColBy, flex: 2, minTableWidth: 660),
-        const AppTableColumn(label: '', width: 56, minTableWidth: 960),
-      ],
-      cell: (context, view, column) {
-        final movement = view.movement;
-        final unit = view.unitAbbreviation;
-
-        return switch (column) {
-          // Two lines, not one. "22/08/2026 à 14:32" is eighteen characters of
-          // grey squeezed into a 150dp cell, where the date and the time run
-          // together and neither is scannable down a column. The date leads in
-          // the body colour; the hour sits under it, quieter, because a column
-          // of movements is read by day first and by hour only once you are on
-          // the right day.
-          0 => Column(
+      cells: [
+        // The date leads; the hour sits under it, quieter — a column of
+        // movements is read by day first.
+        DataCell(
+          Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
@@ -99,7 +132,6 @@ class MovementTable extends StatelessWidget {
                   fontWeight: FontWeight.w600,
                 ),
                 maxLines: 1,
-                overflow: TextOverflow.ellipsis,
               ),
               Text(
                 Formatters.time(movement.occurredAt),
@@ -107,44 +139,65 @@ class MovementTable extends StatelessWidget {
                   color: AppColors.textSecondary,
                 ),
                 maxLines: 1,
-                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),
-          1 => Row(
-            children: [
-              ProductImage(imagePath: view.itemImagePath, size: 36, radius: 8),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      view.itemName,
-                      style: theme.textTheme.titleSmall,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    Text(
-                      movementDescription(
-                        l10n,
-                        movement,
-                        view.supplierName ?? '—',
-                        orderReference: view.orderReference,
-                        unit: unit,
-                        withType: false,
-                      ),
-                      style: theme.textTheme.bodySmall,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
+        ),
+        DataCell(
+          ConstrainedBox(
+            // A long name ellipsizes rather than widening the table.
+            constraints: BoxConstraints(
+              maxWidth: (width * 0.35).clamp(120.0, 280.0),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ProductImage(
+                  imagePath: view.itemImagePath,
+                  size: 40,
+                  radius: 8,
                 ),
-              ),
-            ],
+                const SizedBox(width: AppSpacing.md),
+                Flexible(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        Formatters.capitalized(view.itemName),
+                        style: theme.textTheme.titleSmall,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        movementDescription(
+                          l10n,
+                          movement,
+                          view.supplierName ?? '—',
+                          orderReference: view.orderReference,
+                          unit: unit,
+                          withType: false,
+                        ),
+                        style: theme.textTheme.bodySmall,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
-          2 => MovementTypeBadge(type: movement.type),
-          3 => Text(
+        ),
+        DataCell(
+          StatusDot(
+            color: movementColors(movement.type).solid,
+            label: movementTypeLabel(l10n, movement.type),
+          ),
+        ),
+        DataCell(
+          Text(
             Formatters.quantityDelta(movement.quantity, unit),
             style: AppTypography.numeric.copyWith(
               fontWeight: FontWeight.w700,
@@ -152,20 +205,28 @@ class MovementTable extends StatelessWidget {
             ),
             maxLines: 1,
           ),
-          4 => Text(
-            _value(movement),
-            style: AppTypography.numeric.copyWith(
-              color: AppColors.textSecondary,
+        ),
+        if (showValue)
+          DataCell(
+            Text(
+              _value(movement),
+              style: AppTypography.numeric.copyWith(
+                color: AppColors.textSecondary,
+              ),
+              maxLines: 1,
             ),
-            maxLines: 1,
           ),
-          5 => Text(
-            movement.userName,
-            style: theme.textTheme.bodyMedium,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+        if (showBy)
+          DataCell(
+            Text(
+              movement.userName,
+              style: theme.textTheme.bodyMedium,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
-          _ =>
+        if (showReceipt)
+          DataCell(
             movement.receiptId == null
                 ? const SizedBox.shrink()
                 : IconButton(
@@ -181,8 +242,8 @@ class MovementTable extends StatelessWidget {
                     ),
                     color: AppColors.textSecondary,
                   ),
-        };
-      },
+          ),
+      ],
     );
   }
 

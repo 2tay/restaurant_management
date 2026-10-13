@@ -146,6 +146,34 @@ void main() {
       expect(second.left, greaterThan(first.right));
     });
 
+    testApp("the table is the product table's frame, titled after the "
+        'filters', (tester) async {
+      await open(tester, _tablet, Routes.toMovements(_store));
+      await tester.tap(find.byTooltip('Vue tableau').first);
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(
+        find.descendant(
+          of: find.byType(MovementTable),
+          matching: find.byType(DataTable),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byWidgetPredicate(
+          (w) =>
+              w is SingleChildScrollView &&
+              w.scrollDirection == Axis.horizontal,
+        ),
+        findsNothing,
+      );
+      final title = tester
+          .widget<Text>(find.byKey(const ValueKey('table-title')))
+          .data!;
+      expect(title, startsWith('Tous les mouvements ('));
+    });
+
     testApp('a phone keeps the cards, and offers no table', (tester) async {
       await open(tester, _phone, Routes.toMovements(_store));
 

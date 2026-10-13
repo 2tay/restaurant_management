@@ -335,6 +335,13 @@ class _ListPane extends ConsumerWidget {
                     lowStockOnly: filter.lowStockOnly,
                   )
                 : _ProductTable(
+                    title: _tableTitle(
+                      AppLocalizations.of(context),
+                      filter,
+                      categories,
+                      suppliers,
+                      rows.length,
+                    ),
                     rows: rows,
                     onTap: onTap,
                     selectedId: selectedId,
@@ -879,6 +886,7 @@ class _ProductGrid extends StatelessWidget {
 /// secondary columns drop out rather than the table scrolling sideways.
 class _ProductTable extends StatelessWidget {
   const _ProductTable({
+    required this.title,
     required this.rows,
     required this.onTap,
     required this.selectedId,
@@ -886,6 +894,8 @@ class _ProductTable extends StatelessWidget {
     required this.onSort,
   });
 
+  /// « Tous les produits (24) » — see `_tableTitle`.
+  final String title;
   final List<ItemRowView> rows;
   final ValueChanged<String> onTap;
   final String? selectedId;
@@ -924,6 +934,7 @@ class _ProductTable extends StatelessWidget {
         };
 
         return DataTableWrapper(
+          title: title,
           minWidth: width,
           // The secondary columns drop out as the width shrinks, so the
           // table never needs to scroll sideways.
@@ -1358,4 +1369,44 @@ class _FilterMenu extends StatelessWidget {
       onSelected: onSelected,
     );
   }
+}
+
+/// The product table's title: what the filters keep, then how many —
+/// « Tous les produits (24) », « Stock faible · Légumes (3) ».
+String _tableTitle(
+  AppLocalizations l10n,
+  InventoryFilter filter,
+  List<Category> categories,
+  List<Supplier> suppliers,
+  int count,
+) {
+  String? nameIn<T>(List<T> list, String? id, String Function(T) idOf,
+      String Function(T) nameOf) {
+    for (final e in list) {
+      if (idOf(e) == id) return nameOf(e);
+    }
+    return null;
+  }
+
+  final query = filter.query.trim();
+  final parts = [
+    if (filter.lowStockOnly) l10n.tableTitleLowStock,
+    ?nameIn<Category>(
+      categories,
+      filter.categoryId,
+      (c) => c.id,
+      (c) => c.name,
+    ),
+    ?nameIn<Supplier>(
+      suppliers,
+      filter.supplierId,
+      (s) => s.id,
+      (s) => s.name,
+    ),
+    if (query.isNotEmpty) l10n.tableTitleSearch(query),
+  ];
+  return l10n.tableTitleCount(
+    parts.isEmpty ? l10n.tableTitleAllProducts : parts.join(' · '),
+    count,
+  );
 }

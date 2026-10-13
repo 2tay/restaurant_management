@@ -19,6 +19,7 @@ class DataTableWrapper extends StatefulWidget {
     this.tableKey,
     this.scrollable = true,
     this.columnSpacing,
+    this.title,
     super.key,
   });
 
@@ -42,6 +43,10 @@ class DataTableWrapper extends StatefulWidget {
 
   /// The gap between columns; null keeps [DataTable]'s 56.
   final double? columnSpacing;
+
+  /// A line at the top left of the frame, above the heading — what the table
+  /// holds and how many: « Tous les produits (24) », « Stock faible (3) ».
+  final String? title;
 
   @override
   State<DataTableWrapper> createState() => _DataTableWrapperState();
@@ -81,19 +86,58 @@ class _DataTableWrapperState extends State<DataTableWrapper> {
   Widget build(BuildContext context) {
     final columns = widget.columns;
     final rows = [for (final row in widget.rows) _withCursor(row)];
-    final minWidth = widget.minWidth;
-    final sortColumnIndex = widget.sortColumnIndex;
-    final sortAscending = widget.sortAscending;
-
     // Square corners and a hairline frame: the table reads as part of the
     // page rather than as a card floating on it.
+    final title = widget.title;
+
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surface,
         border: Border.all(color: AppColors.border, width: _rule),
       ),
       clipBehavior: Clip.antiAlias,
-      child: LayoutBuilder(
+      child: title == null
+          ? _body(context, columns, rows)
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.lg,
+                    vertical: AppSpacing.md,
+                  ),
+                  child: Text(
+                    title,
+                    key: const ValueKey('table-title'),
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const Divider(
+                  height: _rule,
+                  thickness: _rule,
+                  color: AppColors.border,
+                ),
+                _body(context, columns, rows),
+              ],
+            ),
+    );
+  }
+
+  Widget _body(
+    BuildContext context,
+    List<DataColumn> columns,
+    List<DataRow> rows,
+  ) {
+    final minWidth = widget.minWidth;
+    final sortColumnIndex = widget.sortColumnIndex;
+    final sortAscending = widget.sortAscending;
+
+    return LayoutBuilder(
         builder: (context, constraints) {
           // Floor the table at the wider of the available width and [minWidth],
           // then always allow horizontal scrolling. A DataTable sizes itself to
@@ -170,7 +214,6 @@ class _DataTableWrapperState extends State<DataTableWrapper> {
             ),
           );
         },
-      ),
     );
   }
 }

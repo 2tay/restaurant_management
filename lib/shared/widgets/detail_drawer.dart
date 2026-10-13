@@ -67,6 +67,12 @@ class DetailDrawer extends StatelessWidget {
       useSafeArea: true,
       showDragHandle: true,
       backgroundColor: AppColors.surface,
+      // Rises with the side panel's ease rather than the default snap.
+      sheetAnimationStyle: AnimationStyle(
+        duration: AppMotion.duration(context, AppMotion.drawer),
+        reverseDuration: AppMotion.duration(context, AppMotion.drawerExit),
+        curve: AppMotion.enter,
+      ),
       builder: (context) => DrawerScope(
         close: () => Navigator.of(context).pop(),
         child: FractionallySizedBox(
@@ -91,19 +97,33 @@ class DetailDrawer extends StatelessWidget {
       barrierDismissible: true,
       barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
       barrierColor: Colors.black.withValues(alpha: 0.25),
-      transitionDuration: AppMotion.duration(context, AppMotion.page),
+      transitionDuration: AppMotion.duration(context, AppMotion.drawer),
       // A link inside closes the drawer before it navigates — see
       // [DrawerScope] — so the page it opens is not hidden behind it.
       pageBuilder: (context, _, _) => DrawerScope(
         close: () => Navigator.of(context).pop(),
         child: builder(context),
       ),
+      // Slides in from the right and settles, fading up as it comes — the
+      // content arrives with the panel rather than being carried in on it.
       transitionBuilder: (context, animation, _, child) => SlideTransition(
         position: Tween<Offset>(
           begin: const Offset(1, 0),
           end: Offset.zero,
-        ).animate(CurvedAnimation(parent: animation, curve: AppMotion.enter)),
-        child: child,
+        ).animate(
+          CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeOutQuart,
+            reverseCurve: Curves.easeInCubic,
+          ),
+        ),
+        child: FadeTransition(
+          opacity: CurvedAnimation(
+            parent: animation,
+            curve: const Interval(0, 0.7, curve: Curves.easeOut),
+          ),
+          child: child,
+        ),
       ),
     );
   }

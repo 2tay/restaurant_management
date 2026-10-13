@@ -479,6 +479,34 @@ class AppLocalizationsFr extends AppLocalizations {
   String get tableColValue => 'Valeur';
 
   @override
+  String tableTitleCount(String label, int count) {
+    return '$label ($count)';
+  }
+
+  @override
+  String get tableTitleAllProducts => 'Tous les produits';
+
+  @override
+  String get tableTitleLowStock => 'Stock faible';
+
+  @override
+  String tableTitleSearch(String query) {
+    return '« $query »';
+  }
+
+  @override
+  String get tableTitleAllMovements => 'Tous les mouvements';
+
+  @override
+  String get tableTitleStockIn => 'Entrées';
+
+  @override
+  String get tableTitleStockOut => 'Sorties';
+
+  @override
+  String get tableTitleAdjustments => 'Ajustements';
+
+  @override
   String get tableColStatus => 'Statut';
 
   @override

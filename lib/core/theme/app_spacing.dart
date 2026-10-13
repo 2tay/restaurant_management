@@ -222,6 +222,13 @@ abstract final class AppMotion {
   /// Page transitions, which travel further.
   static const Duration page = Duration(milliseconds: 220);
 
+  /// A detail panel sliding in from the side, or a sheet rising on a phone:
+  /// a little longer than a page, so its arrival reads as a movement.
+  static const Duration drawer = Duration(milliseconds: 340);
+
+  /// The drawer's way out — quicker than its way in.
+  static const Duration drawerExit = Duration(milliseconds: 220);
+
   /// Decelerating — things arriving should settle rather than stop dead.
   static const Curve enter = Curves.easeOutCubic;
 

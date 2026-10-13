@@ -389,6 +389,7 @@ class _StockHistoryPageState extends ConsumerState<StockHistoryPage> {
                     // squeeze.
                     : viewMode == MovementsViewMode.table && !context.isPhone
                     ? MovementTable(
+                        title: _tableTitle(l10n, movements),
                         movements: movements.take(_shown).toList(),
                         storeId: widget.storeId,
                       )
@@ -512,6 +513,39 @@ class _StockHistoryPageState extends ConsumerState<StockHistoryPage> {
 /// equally, label over icon and count, and the label shrinks rather than
 /// being cut off. A scrolling row of chips hid "Ajustement" off the edge of a
 /// 360dp screen, where nobody knew to swipe for it.
+extension on _StockHistoryPageState {
+  /// The table's title: what the filters keep, then how many of them —
+  /// « Tous les mouvements (128) », « Sorties · Tomates (4) ».
+  String _tableTitle(
+    AppLocalizations l10n,
+    List<MovementRowView> movements,
+  ) {
+    String? productName;
+    if (_itemId != null) {
+      for (final m in movements) {
+        if (m.movement.itemId == _itemId) {
+          productName = Formatters.capitalized(m.itemName);
+          break;
+        }
+      }
+    }
+    final parts = [
+      ?switch (_type) {
+        StockMovementType.stockIn => l10n.tableTitleStockIn,
+        StockMovementType.stockOut => l10n.tableTitleStockOut,
+        StockMovementType.adjustment => l10n.tableTitleAdjustments,
+        null => null,
+      },
+      ?productName,
+      ?_userName,
+    ];
+    return l10n.tableTitleCount(
+      parts.isEmpty ? l10n.tableTitleAllMovements : parts.join(' · '),
+      movements.length,
+    );
+  }
+}
+
 class _TypeSegments extends StatelessWidget {
   const _TypeSegments({
     required this.selected,

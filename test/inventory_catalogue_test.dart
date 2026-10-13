@@ -25,6 +25,8 @@ import 'package:stock_inventory/features/inventory/presentation/widgets/item_car
 import 'package:drift/drift.dart' show Value;
 
 
+import 'package:stock_inventory/shared/widgets/widgets.dart';
+
 import 'support/app_harness.dart';
 
 const _store = StoreIds.sablon;
@@ -187,19 +189,42 @@ void main() {
       expect(find.byType(ItemCard), findsWidgets);
     });
 
-    testApp('« Stock faible uniquement » puts a red edge on every card', (
-      tester,
-    ) async {
+    testApp('« Stock faible uniquement » outlines every card in dashed red, '
+        'like a retired employee', (tester) async {
       await _openInventory(tester, _tablet);
-      const edge = ValueKey('item-card-alert-edge');
-      expect(find.byKey(edge), findsNothing);
+      List<Color?> outlines() => [
+        for (final card in tester.widgetList<AppCard>(
+          find.descendant(
+            of: find.byType(ItemCard),
+            matching: find.byType(AppCard),
+          ),
+        ))
+          card.dashedBorderColor,
+      ];
+      expect(outlines().whereType<Color>(), isEmpty);
 
       await tester.tap(find.text('Stock faible uniquement').first);
       await tester.pumpAndSettle();
 
-      final cards = find.byType(ItemCard).evaluate().length;
-      expect(cards, greaterThan(0));
-      expect(find.byKey(edge), findsNWidgets(cards));
+      final all = outlines();
+      expect(all, isNotEmpty);
+      expect(all, everyElement(AppColors.error));
+    });
+
+    testApp('the table names what it holds and how many, after the filters', (
+      tester,
+    ) async {
+      await _openInventory(tester, _desktop);
+      await _switchToList(tester);
+      String title() =>
+          tester.widget<Text>(find.byKey(const ValueKey('table-title'))).data!;
+
+      final all = _countShown(tester);
+      expect(title(), 'Tous les produits ($all)');
+
+      await tester.tap(find.text('Stock faible uniquement').first);
+      await tester.pumpAndSettle();
+      expect(title(), 'Stock faible (${_countShown(tester)})');
     });
 
     for (final size in [_tablet, _desktop]) {

@@ -892,6 +892,54 @@ abstract class AppLocalizations {
   /// **'Valeur'**
   String get tableColValue;
 
+  /// Line at the top left of a table: what it holds, then how many rows match the filters.
+  ///
+  /// In fr, this message translates to:
+  /// **'{label} ({count})'**
+  String tableTitleCount(String label, int count);
+
+  /// Product table title with no filter on.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tous les produits'**
+  String get tableTitleAllProducts;
+
+  /// Product table title part while « Stock faible uniquement » is on.
+  ///
+  /// In fr, this message translates to:
+  /// **'Stock faible'**
+  String get tableTitleLowStock;
+
+  /// Table title part for a text search.
+  ///
+  /// In fr, this message translates to:
+  /// **'« {query} »'**
+  String tableTitleSearch(String query);
+
+  /// Movement table title with no filter on.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tous les mouvements'**
+  String get tableTitleAllMovements;
+
+  /// Movement table title part: only stock-in movements.
+  ///
+  /// In fr, this message translates to:
+  /// **'Entrées'**
+  String get tableTitleStockIn;
+
+  /// Movement table title part: only stock-out movements.
+  ///
+  /// In fr, this message translates to:
+  /// **'Sorties'**
+  String get tableTitleStockOut;
+
+  /// Movement table title part: only adjustments.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ajustements'**
+  String get tableTitleAdjustments;
+
   /// Table column header: stock status.
   ///
   /// In fr, this message translates to:
