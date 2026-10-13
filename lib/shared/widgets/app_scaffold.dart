@@ -10,13 +10,16 @@ import '../../app/routes.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/utils/responsive.dart';
+import '../../data/current_employee.dart';
 import '../../data/providers.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/models.dart';
+import 'account_menu.dart';
 import 'action_density.dart';
 import 'app_breadcrumbs.dart';
 import 'app_sidebar.dart';
 import 'back_control.dart';
+import 'employee_avatar.dart';
 import 'error_state.dart';
 import 'loading_state.dart';
 import 'offline_banner.dart';
@@ -245,8 +248,72 @@ class _PhoneAppBar extends ConsumerWidget implements PreferredSizeWidget {
                 )
               : const Icon(LucideIcons.bell, size: AppSizing.iconMd),
         ),
+        _PhoneProfileButton(storeId: store.id),
         const SizedBox(width: AppSpacing.xs),
       ],
+    );
+  }
+}
+
+/// The avatar at the right of the phone bar: opens the user menu — the one
+/// the sidebar's profile row opens on a larger screen — dropped under it.
+class _PhoneProfileButton extends ConsumerWidget {
+  const _PhoneProfileButton({required this.storeId});
+
+  final String storeId;
+
+  /// Wide enough for « Mes établissements » on a 360dp phone.
+  static const double _menuWidth = 264;
+
+  void _open(BuildContext context, WidgetRef ref) {
+    final box = context.findRenderObject() as RenderBox?;
+    final overlay =
+        Overlay.of(context).context.findRenderObject() as RenderBox?;
+    if (box == null || overlay == null) return;
+
+    final bottomRight = box.localToGlobal(
+      box.size.bottomRight(Offset.zero),
+      ancestor: overlay,
+    );
+    final left = (bottomRight.dx - _menuWidth).clamp(
+      AppSpacing.sm,
+      overlay.size.width - _menuWidth - AppSpacing.sm,
+    );
+    final anchor = Rect.fromLTWH(
+      left,
+      bottomRight.dy + AppSpacing.xs,
+      _menuWidth,
+      0,
+    );
+    showAccountMenu(
+      context,
+      ref,
+      storeId: storeId,
+      width: _menuWidth,
+      position: RelativeRect.fromRect(anchor, Offset.zero & overlay.size),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final user = ref.watch(currentEmployeeProvider);
+
+    return IconButton(
+      key: const ValueKey('phone-profile-button'),
+      tooltip: l10n.topBarAccount,
+      onPressed: () => _open(context, ref),
+      icon: user == null
+          ? const Icon(LucideIcons.circleUser, size: AppSizing.iconMd)
+          // A white ring keeps the avatar's edge on the dark green.
+          : Container(
+              padding: const EdgeInsets.all(1.5),
+              decoration: const BoxDecoration(
+                color: AppColors.white,
+                shape: BoxShape.circle,
+              ),
+              child: EmployeeAvatar(employee: user, size: 28),
+            ),
     );
   }
 }

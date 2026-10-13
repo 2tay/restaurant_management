@@ -16,6 +16,7 @@ export 'card_date_header.dart';
 export 'card_grid.dart';
 export 'card_row.dart';
 export 'app_scaffold.dart';
+export 'account_menu.dart';
 export 'app_sidebar.dart';
 export 'app_table.dart';
 export 'app_snackbar.dart';

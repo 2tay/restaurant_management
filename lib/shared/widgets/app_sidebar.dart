@@ -14,6 +14,7 @@ import '../../data/current_employee.dart';
 import '../../data/providers.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/models.dart';
+import 'account_menu.dart';
 import 'employee_avatar.dart';
 import 'employee_role_badge.dart';
 
@@ -127,8 +128,16 @@ class _AppSidebarState extends ConsumerState<AppSidebar> {
               ),
             ),
           ),
-          const _SidebarDivider(),
-          _SidebarProfile(storeId: _storeId, collapsed: collapsed, l10n: l10n),
+          // On a phone the profile is the avatar in the green top bar
+          // (`AppScaffold`), so the drawer does not repeat it.
+          if (variant != SidebarVariant.drawer) ...[
+            const _SidebarDivider(),
+            _SidebarProfile(
+              storeId: _storeId,
+              collapsed: collapsed,
+              l10n: l10n,
+            ),
+          ],
         ],
       ),
     );
@@ -175,9 +184,6 @@ const Color _activeFill = AppColors.white;
 /// Hover on the green sidebar.
 final Color _hoverFill = AppColors.white.withValues(alpha: 0.10);
 
-/// Hover in the white user menu — the pale brand-green wash of the hourly-rate
-/// tile on the employee cards (`HighlightTile`).
-final Color _menuHoverFill = AppColors.primary600.withValues(alpha: 0.08);
 
 // -----------------------------------------------------------------------------
 // Header — the active store's icon and name, and the notification shortcut.
@@ -1019,54 +1025,13 @@ class _SidebarProfile extends ConsumerWidget {
     );
     final anchor = Rect.fromLTWH(left, anchorTop, _menuWidth, 0);
 
-    final selected = await showMenu<String>(
-      context: context,
-      color: AppColors.white,
-      // A real drop shadow, not an M3 surface tint, so the white menu lifts
-      // off the page as well as the green sidebar.
-      elevation: 12,
-      shadowColor: AppColors.neutral950.withValues(alpha: 0.35),
-      surfaceTintColor: Colors.transparent,
-      constraints: const BoxConstraints.tightFor(width: _menuWidth),
-      shape: const RoundedRectangleBorder(borderRadius: AppRadius.mdAll),
+    await showAccountMenu(
+      context,
+      ref,
+      storeId: storeId,
+      width: _menuWidth,
       position: RelativeRect.fromRect(anchor, Offset.zero & overlay.size),
-      items: [
-        PopupMenuItem<String>(
-          value: 'stores',
-          padding: EdgeInsets.zero,
-          child: _MenuRow(
-            icon: LucideIcons.building2,
-            label: l10n.sidebarMyStores,
-          ),
-        ),
-        PopupMenuItem<String>(
-          value: 'settings',
-          padding: EdgeInsets.zero,
-          child: _MenuRow(icon: LucideIcons.settings, label: l10n.navSettings),
-        ),
-        const PopupMenuDivider(color: AppColors.border),
-        PopupMenuItem<String>(
-          value: 'logout',
-          padding: EdgeInsets.zero,
-          child: _MenuRow(
-            icon: LucideIcons.logOut,
-            label: l10n.actionLogout,
-            destructive: true,
-          ),
-        ),
-      ],
     );
-
-    if (selected == null || !context.mounted) return;
-    switch (selected) {
-      case 'stores':
-        context.goSection(Routes.stores);
-      case 'settings':
-        context.goSection(Routes.toStoreSettings(storeId));
-      case 'logout':
-        await ref.read(currentEmployeeProvider.notifier).signOut();
-        if (context.mounted) context.goSection(Routes.login);
-    }
   }
 
   @override
@@ -1129,75 +1094,6 @@ class _SidebarProfile extends ConsumerWidget {
               ],
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-/// One row of the user menu, on white. On hover it takes the active
-/// navigation entry's pale-green fill and green text; [destructive] keeps
-/// "Se déconnecter" red, over a pale-red fill on hover.
-class _MenuRow extends StatefulWidget {
-  const _MenuRow({
-    required this.icon,
-    required this.label,
-    this.destructive = false,
-  });
-
-  final IconData icon;
-  final String label;
-  final bool destructive;
-
-  @override
-  State<_MenuRow> createState() => _MenuRowState();
-}
-
-class _MenuRowState extends State<_MenuRow> {
-  bool _hovered = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final Color foreground;
-    final Color iconColor;
-    final Color fill;
-    if (widget.destructive) {
-      foreground = iconColor = AppColors.error;
-      fill = _hovered
-          ? AppColors.error.withValues(alpha: 0.08)
-          : Colors.transparent;
-    } else if (_hovered) {
-      foreground = iconColor = AppColors.primary600;
-      fill = _menuHoverFill;
-    } else {
-      foreground = AppColors.textPrimary;
-      iconColor = AppColors.textSecondary;
-      fill = Colors.transparent;
-    }
-
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hovered = true),
-      onExit: (_) => setState(() => _hovered = false),
-      child: Container(
-        constraints: const BoxConstraints(minHeight: AppSizing.minTapTarget),
-        alignment: Alignment.centerLeft,
-        color: fill,
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-        child: Row(
-          children: [
-            Icon(widget.icon, size: AppSizing.iconMd, color: iconColor),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: Text(
-                widget.label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyMedium?.copyWith(color: foreground),
-              ),
-            ),
-          ],
         ),
       ),
     );
