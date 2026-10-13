@@ -23,6 +23,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:stock_inventory/app/router.dart';
 import 'package:stock_inventory/app/routes.dart';
 import 'package:stock_inventory/data/seed/dataset/dataset.dart';
+import 'package:stock_inventory/features/stock_movement/presentation/widgets/movement_card.dart';
 import 'package:stock_inventory/features/stock_movement/presentation/widgets/movement_row.dart';
 import 'package:stock_inventory/models/models.dart';
 import 'package:stock_inventory/shared/widgets/widgets.dart';
@@ -194,7 +195,8 @@ void main() {
       await tester.tap(segment('Sortie'));
       await tester.pumpAndSettle();
 
-      final rows = tester.widgetList<MovementRow>(find.byType(MovementRow));
+      // A phone draws each movement as a card.
+      final rows = tester.widgetList<MovementCard>(find.byType(MovementCard));
       expect(rows, isNotEmpty);
       for (final row in rows) {
         expect(row.view.movement.type, StockMovementType.stockOut);

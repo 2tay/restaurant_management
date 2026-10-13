@@ -16,6 +16,7 @@ import '../../../../data/view_models/view_models.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 import '../widgets/movement_labels.dart';
+import '../widgets/movement_card.dart';
 import '../widgets/movement_row.dart';
 import '../widgets/movement_table.dart';
 import '../../../inventory/presentation/widgets/product_drawer.dart';
@@ -394,15 +395,26 @@ class _StockHistoryPageState extends ConsumerState<StockHistoryPage> {
                       )
                     : _GroupedList(
                         movements: movements.take(_shown).toList(),
-                        rowBuilder: (view) => MovementRow(
-                          view: view,
-                          storeId: widget.storeId,
-                          onTap: () => openProductDrawer(
+                        // A phone gets the product-card layout; wider
+                        // screens keep the one-line row.
+                        rowBuilder: (view) {
+                          void open() => openProductDrawer(
                             context,
                             storeId: widget.storeId,
                             itemId: view.movement.itemId,
-                          ),
-                        ),
+                          );
+                          return context.isPhone
+                              ? MovementCard(
+                                  view: view,
+                                  storeId: widget.storeId,
+                                  onTap: open,
+                                )
+                              : MovementRow(
+                                  view: view,
+                                  storeId: widget.storeId,
+                                  onTap: open,
+                                );
+                        },
                       ),
               ),
               if (movements.length > _shown) ...[

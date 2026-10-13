@@ -11,8 +11,10 @@ import 'package:stock_inventory/app/router.dart';
 import 'package:stock_inventory/app/routes.dart';
 import 'package:stock_inventory/data/seed/dataset/dataset.dart';
 import 'package:stock_inventory/features/inventory/presentation/widgets/item_detail_view.dart';
+import 'package:stock_inventory/features/stock_movement/presentation/widgets/movement_card.dart';
 import 'package:stock_inventory/features/stock_movement/presentation/widgets/movement_row.dart';
 import 'package:stock_inventory/features/stock_movement/presentation/widgets/movement_table.dart';
+import 'package:stock_inventory/features/stock_movement/presentation/widgets/movement_type_badge.dart';
 import 'package:stock_inventory/shared/widgets/view_mode_toggle.dart';
 
 import 'support/app_harness.dart';
@@ -134,7 +136,32 @@ void main() {
       await open(tester, _phone, Routes.toMovements(_store));
 
       expect(find.byTooltip('Vue tableau'), findsNothing);
-      expect(find.byType(MovementRow), findsWidgets);
+      expect(find.byType(MovementCard), findsWidgets);
+      expect(find.byType(MovementRow), findsNothing);
+    });
+
+    // Built like a product card: who recorded it is on every card, and a
+    // tap opens the product.
+    testApp('a phone card names who made the movement, and opens the '
+        'product', (tester) async {
+      await open(tester, _phone, Routes.toMovements(_store));
+      expect(tester.takeException(), isNull);
+
+      final card = find.byType(MovementCard).first;
+      final view = tester.widget<MovementCard>(card).view;
+      final actor = find.descendant(
+        of: card,
+        matching: find.byKey(const ValueKey('movement-card-actor')),
+      );
+      expect(tester.widget<Text>(actor).data, view.movement.userName);
+      expect(
+        find.descendant(of: card, matching: find.byType(MovementTypeBadge)),
+        findsOneWidget,
+      );
+
+      await tester.tap(card);
+      await tester.pumpAndSettle();
+      expect(find.byType(ItemDetailView), findsOneWidget);
     });
   });
 
