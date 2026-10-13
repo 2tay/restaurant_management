@@ -129,6 +129,7 @@ class ItemCard extends StatelessWidget {
                             value: Text(
                               view.categoryName,
                               style: theme.textTheme.bodySmall?.copyWith(
+                                fontSize: 12,
                                 color: AppColors.textPrimary,
                                 fontWeight: FontWeight.w700,
                               ),
@@ -152,7 +153,7 @@ class ItemCard extends StatelessWidget {
                               view: view,
                               status: status,
                               style: AppTypography.numeric.copyWith(
-                                fontSize: 16,
+                                fontSize: 14,
                                 height: 1.2,
                                 fontWeight: FontWeight.w800,
                               ),
@@ -235,8 +236,14 @@ class _TopRow extends StatelessWidget {
                 _CardMenu(view: view, onOpen: onOpen),
               ],
             ),
-            const Spacer(),
-            StockStatusBadge(status: status),
+            // Right under the name, aligned with it.
+            Padding(
+              padding: const EdgeInsets.only(
+                top: AppSpacing.xs,
+                left: _KpiIcon.size + AppSpacing.sm + 2,
+              ),
+              child: StockStatusBadge(status: status),
+            ),
           ],
         );
 
@@ -313,6 +320,7 @@ class _LimitsFooter extends StatelessWidget {
     final unit = view.unitAbbreviation;
 
     Widget limit(IconData icon, String label, double value) => Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Icon(icon, size: 14, color: AppColors.primary600),
         const SizedBox(width: AppSpacing.xs + 2),
@@ -344,25 +352,35 @@ class _LimitsFooter extends StatelessWidget {
 
     return Row(
       children: [
+        // Room for the chevron on the left too, so the pair sits in the
+        // card's true middle.
+        const SizedBox(width: AppSizing.iconSm),
         Expanded(
-          child: limit(
-            LucideIcons.arrowDownToLine,
-            l10n.itemCardQtyMin,
-            view.item.lowStockThreshold,
-          ),
-        ),
-        const SizedBox(width: AppSpacing.sm),
-        Expanded(
-          child: limit(
-            LucideIcons.arrowUpToLine,
-            l10n.itemCardQtyMax,
-            view.item.maxStock,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Flexible(
+                child: limit(
+                  LucideIcons.arrowDownToLine,
+                  l10n.itemCardQtyMin,
+                  view.item.lowStockThreshold,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.lg),
+              Flexible(
+                child: limit(
+                  LucideIcons.arrowUpToLine,
+                  l10n.itemCardQtyMax,
+                  view.item.maxStock,
+                ),
+              ),
+            ],
           ),
         ),
         const Icon(
           LucideIcons.chevronRight,
           size: AppSizing.iconSm,
-          color: AppColors.textSecondary,
+          color: AppColors.primary600,
         ),
       ],
     );
@@ -377,13 +395,13 @@ class _KpiIcon extends StatelessWidget {
   final IconData icon;
 
   /// A touch under [AppSizing.statTileMedallion]: a card carries three.
-  static const double _size = 36;
+  static const double size = 36;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: _size,
-      height: _size,
+      width: size,
+      height: size,
       decoration: BoxDecoration(
         color: AppColors.primary600.withValues(alpha: 0.10),
         shape: BoxShape.circle,
