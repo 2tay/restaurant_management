@@ -671,6 +671,39 @@ class AppLocalizationsFr extends AppLocalizations {
   String get itemFormSectionNote => 'Note';
 
   @override
+  String get productWizardStepIdentity => 'Identité';
+
+  @override
+  String get productWizardStepClassification => 'Classification';
+
+  @override
+  String get productWizardStepStock => 'Gestion stock';
+
+  @override
+  String get productWizardStepReview => 'Vérification';
+
+  @override
+  String get productFormDescription =>
+      'Décrivez le produit, rangez-le, puis fixez ses seuils de stock.';
+
+  @override
+  String productFormEditDescription(String name) {
+    return 'Modifiez la fiche de $name.';
+  }
+
+  @override
+  String get productReviewEmpty => 'Non renseigné';
+
+  @override
+  String productReviewHolidayAuto(String value) {
+    return 'Automatique ($value)';
+  }
+
+  @override
+  String get productReviewHint =>
+      'Relisez la fiche avant d\'enregistrer. Touchez une étape plus haut pour la corriger.';
+
+  @override
   String get itemMaxStockLabel => 'Stock maximum';
 
   @override

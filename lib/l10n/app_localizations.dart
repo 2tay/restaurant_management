@@ -1246,6 +1246,60 @@ abstract class AppLocalizations {
   /// **'Note'**
   String get itemFormSectionNote;
 
+  /// Product wizard, step 1: photo, name and barcode.
+  ///
+  /// In fr, this message translates to:
+  /// **'Identité'**
+  String get productWizardStepIdentity;
+
+  /// Product wizard, step 2: category, unit and default supplier.
+  ///
+  /// In fr, this message translates to:
+  /// **'Classification'**
+  String get productWizardStepClassification;
+
+  /// Product wizard, step 3: stock thresholds and the note.
+  ///
+  /// In fr, this message translates to:
+  /// **'Gestion stock'**
+  String get productWizardStepStock;
+
+  /// Product wizard, step 4: a read-only summary before saving.
+  ///
+  /// In fr, this message translates to:
+  /// **'Vérification'**
+  String get productWizardStepReview;
+
+  /// Paragraph under the title of the product wizard when creating.
+  ///
+  /// In fr, this message translates to:
+  /// **'Décrivez le produit, rangez-le, puis fixez ses seuils de stock.'**
+  String get productFormDescription;
+
+  /// Paragraph under the title of the product wizard when editing.
+  ///
+  /// In fr, this message translates to:
+  /// **'Modifiez la fiche de {name}.'**
+  String productFormEditDescription(String name);
+
+  /// Product wizard review: an optional field left empty.
+  ///
+  /// In fr, this message translates to:
+  /// **'Non renseigné'**
+  String get productReviewEmpty;
+
+  /// Product wizard review: no busy-week minimum set, so it follows twice the minimum.
+  ///
+  /// In fr, this message translates to:
+  /// **'Automatique ({value})'**
+  String productReviewHolidayAuto(String value);
+
+  /// Product wizard review: paragraph above the summary.
+  ///
+  /// In fr, this message translates to:
+  /// **'Relisez la fiche avant d\'enregistrer. Touchez une étape plus haut pour la corriger.'**
+  String get productReviewHint;
+
   /// Label for the quantity a full shelf of this product holds. Sits directly under the alert threshold on the product form, and is the figure a commande tops up to.
   ///
   /// In fr, this message translates to:

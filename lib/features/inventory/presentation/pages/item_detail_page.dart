@@ -11,6 +11,7 @@ import '../../../../l10n/app_localizations.dart';
 import '../../../../shared/widgets/widgets.dart';
 import '../widgets/delete_item.dart';
 import '../widgets/item_detail_view.dart';
+import '../widgets/product_wizard_dialog.dart';
 
 /// Full-page item detail.
 ///
@@ -74,7 +75,7 @@ class ItemDetailPage extends ConsumerWidget {
           label: l10n.actionEdit,
           icon: LucideIcons.pencil,
           onPressed: () =>
-              context.pushScreen(Routes.toEditItem(storeId, item.id)),
+              showProductWizard(context, storeId: storeId, itemId: item.id),
         ),
         DestructiveButton(
           label: l10n.actionDelete,

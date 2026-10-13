@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
-import '../../../../app/routes.dart';
-import '../../../../app/navigation.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
@@ -23,6 +21,7 @@ import '../../../barcode/presentation/barcode_camera_page.dart';
 import '../../../barcode/presentation/barcode_flow.dart';
 import '../../../barcode/presentation/barcode_support.dart';
 import '../../../barcode/presentation/hardware_scan_listener.dart';
+import '../widgets/product_wizard_dialog.dart';
 
 /// How the visible products are ordered.
 ///
@@ -211,7 +210,7 @@ class InventoryListPage extends ConsumerWidget {
           label: l10n.actionAddItem,
           shortLabel: l10n.shortAddItem,
           icon: LucideIcons.plus,
-          onPressed: () => context.pushScreen(Routes.toAddItem(storeId)),
+          onPressed: () => showProductWizard(context, storeId: storeId),
         ),
       ],
       child: AsyncContent<List<ItemRowView>>(
@@ -1363,7 +1362,7 @@ class _EmptyList extends StatelessWidget {
       message: l10n.emptyStateNoItemsBody,
       actionLabel: l10n.actionAddItem,
       actionIcon: LucideIcons.plus,
-      onAction: () => context.pushScreen(Routes.toAddItem(storeId)),
+      onAction: () => showProductWizard(context, storeId: storeId),
     );
   }
 }

@@ -51,8 +51,6 @@ Map<String, String> _pushedScreens() {
 
   return {
     'item detail': Routes.toItem(_store, item),
-    'add item': Routes.toAddItem(_store),
-    'edit item': Routes.toEditItem(_store, item),
     'link supplier': Routes.toLinkSupplier(_store, item),
     'price history': Routes.toPriceHistory(_store, item, supplier),
     'stock in': Routes.toStockIn(_store),
@@ -330,7 +328,7 @@ void main() {
       await _pump(tester);
       appRouter.go(Routes.toInventory(_store));
       await tester.pumpAndSettle();
-      unawaited(appRouter.push(Routes.toAddItem(_store)));
+      unawaited(appRouter.push(Routes.toAddSupplier(_store)));
       await tester.pumpAndSettle();
 
       await tester.tap(find.byType(BackControl));
@@ -344,7 +342,7 @@ void main() {
       await _pump(tester);
       appRouter.go(Routes.toInventory(_store));
       await tester.pumpAndSettle();
-      unawaited(appRouter.push(Routes.toAddItem(_store)));
+      unawaited(appRouter.push(Routes.toAddSupplier(_store)));
       await tester.pumpAndSettle();
 
       await tester.enterText(find.byType(TextField).first, 'Chicons');
@@ -362,7 +360,7 @@ void main() {
       // Keeping the input leaves the user on the form.
       await tester.tap(find.text('Continuer la saisie'));
       await tester.pumpAndSettle();
-      expect(appRouter.state.uri.path, Routes.toAddItem(_store));
+      expect(appRouter.state.uri.path, Routes.toAddSupplier(_store));
 
       // Discarding leaves.
       await tester.tap(find.byType(BackControl));

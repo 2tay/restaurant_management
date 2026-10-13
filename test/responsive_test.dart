@@ -425,7 +425,7 @@ void main() {
         await _renderAt(
           tester,
           const Size(360, 780),
-          Routes.toAddItem(StoreIds.sablon),
+          Routes.toAddSupplier(StoreIds.sablon),
         ),
         isNull,
       );
@@ -442,7 +442,7 @@ void main() {
       await _renderAt(
         tester,
         const Size(1600, 900),
-        Routes.toAddItem(StoreIds.sablon),
+        Routes.toAddSupplier(StoreIds.sablon),
       );
 
       expect(

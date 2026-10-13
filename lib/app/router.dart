@@ -32,7 +32,6 @@ import '../features/auth/presentation/pages/onboarding_page.dart';
 import '../features/auth/presentation/pages/welcome_page.dart';
 import '../features/catalog/presentation/pages/categories_page.dart';
 import '../features/catalog/presentation/pages/units_page.dart';
-import '../features/inventory/presentation/pages/add_edit_item_page.dart';
 import '../features/inventory/presentation/pages/inventory_list_page.dart';
 import '../features/inventory/presentation/pages/item_detail_page.dart';
 import '../features/inventory/presentation/pages/item_price_history_page.dart';
@@ -280,26 +279,13 @@ final GoRouter appRouter = GoRouter(
 
         // --- Inventory -------------------------------------------------------
         //
-        // `new` is declared before `:itemId` because go_router matches in
-        // order — otherwise "new" would be read as an item id.
+        // No form routes: adding and editing a product is a wizard over the
+        // screen it is opened from (`showProductWizard`).
         GoRoute(
           path: Routes.inventory,
           pageBuilder: (context, state) => appPage(
             key: state.pageKey,
             child: InventoryListPage(storeId: _storeId(state)),
-          ),
-        ),
-        GoRoute(
-          path: Routes.addItem,
-          pageBuilder: (context, state) => appPage(
-            key: state.pageKey,
-            child: AddEditItemPage(
-              storeId: _storeId(state),
-              // From « Code inconnu » on a scan: the code filled in, and the
-              // new product's id handed back to the screen that was scanning.
-              initialBarcode: state.uri.queryParameters['barcode'],
-              returnCreatedId: state.uri.queryParameters['return'] == '1',
-            ),
           ),
         ),
         GoRoute(
@@ -309,16 +295,6 @@ final GoRouter appRouter = GoRouter(
             child: ItemDetailPage(
               storeId: _storeId(state),
               itemId: state.pathParameters['itemId']!,
-            ),
-          ),
-        ),
-        GoRoute(
-          path: Routes.editItem,
-          pageBuilder: (context, state) => appPage(
-            key: state.pageKey,
-            child: AddEditItemPage(
-              storeId: _storeId(state),
-              itemId: state.pathParameters['itemId'],
             ),
           ),
         ),
@@ -420,9 +396,9 @@ final GoRouter appRouter = GoRouter(
 
         // --- Orders ----------------------------------------------------------
         //
-        // `new` and `receipts` are declared before `:orderId` for the same
-        // ordering reason as the inventory routes: go_router matches in order,
-        // so a literal segment has to come first or it is read as an id.
+        // `new` and `receipts` are declared before `:orderId`: go_router
+        // matches in order, so a literal segment has to come first or it is
+        // read as an id.
         GoRoute(
           path: Routes.orders,
           pageBuilder: (context, state) => appPage(

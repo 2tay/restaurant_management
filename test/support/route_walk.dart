@@ -42,9 +42,7 @@ List<WalkableRoute> allRoutes() {
     (label: 'dashboard', path: Routes.toDashboard(store), inShell: true),
 
     (label: 'inventory', path: Routes.toInventory(store), inShell: true),
-    (label: 'add item', path: Routes.toAddItem(store), inShell: true),
     (label: 'item detail', path: Routes.toItem(store, item), inShell: true),
-    (label: 'edit item', path: Routes.toEditItem(store, item), inShell: true),
     (
       label: 'link supplier',
       path: Routes.toLinkSupplier(store, item),

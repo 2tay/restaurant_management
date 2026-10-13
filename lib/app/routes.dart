@@ -37,9 +37,7 @@ abstract final class Routes {
   static const String dashboard = '$storeBase/dashboard';
 
   static const String inventory = '$storeBase/inventory';
-  static const String addItem = '$inventory/new';
   static const String itemDetail = '$inventory/:itemId';
-  static const String editItem = '$itemDetail/edit';
   static const String linkSupplier = '$itemDetail/link-supplier';
   static const String itemPriceHistory =
       '$itemDetail/price-history/:supplierId';
@@ -110,13 +108,8 @@ abstract final class Routes {
 
   static String toInventory(String storeId) => '/store/$storeId/inventory';
 
-  static String toAddItem(String storeId) => '/store/$storeId/inventory/new';
-
   static String toItem(String storeId, String itemId) =>
       '/store/$storeId/inventory/$itemId';
-
-  static String toEditItem(String storeId, String itemId) =>
-      '/store/$storeId/inventory/$itemId/edit';
 
   static String toLinkSupplier(String storeId, String itemId) =>
       '/store/$storeId/inventory/$itemId/link-supplier';

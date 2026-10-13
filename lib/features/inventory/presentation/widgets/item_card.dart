@@ -12,6 +12,7 @@ import '../../../../data/view_models/view_models.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
+import 'product_wizard_dialog.dart';
 
 /// The height of a card below its picture.
 ///
@@ -415,8 +416,10 @@ class _CardMenu extends StatelessWidget {
       shape: const RoundedRectangleBorder(borderRadius: AppRadius.mdAll),
       onSelected: (action) => switch (action) {
         _CardAction.open => onOpen(),
-        _CardAction.edit => context.pushScreen(
-          Routes.toEditItem(item.storeId, item.id),
+        _CardAction.edit => showProductWizard(
+          context,
+          storeId: item.storeId,
+          itemId: item.id,
         ),
         _CardAction.movements => context.pushScreen(
           Routes.toMovements(item.storeId, itemId: item.id),

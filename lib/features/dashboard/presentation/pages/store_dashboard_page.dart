@@ -22,6 +22,7 @@ import '../../../stock_movement/presentation/widgets/movement_labels.dart';
 import '../../../stock_movement/presentation/widgets/movement_type_badge.dart';
 import '../widgets/summary_tile.dart';
 import '../../../inventory/presentation/widgets/product_drawer.dart';
+import '../../../inventory/presentation/widgets/product_wizard_dialog.dart';
 
 /// The store dashboard.
 ///
@@ -127,7 +128,7 @@ class StoreDashboardPage extends ConsumerWidget {
           message: l10n.dashboardEmptyStoreBody,
           actionLabel: l10n.actionAddItem,
           actionIcon: LucideIcons.plus,
-          onAction: () => context.pushScreen(Routes.toAddItem(storeId)),
+          onAction: () => showProductWizard(context, storeId: storeId),
         ),
       );
     }
@@ -255,7 +256,7 @@ class StoreDashboardPage extends ConsumerWidget {
                     colors: AppColors.onBreak,
                     compact: compact,
                     onPressed: () =>
-                        context.pushScreen(Routes.toAddItem(storeId)),
+                        showProductWizard(context, storeId: storeId),
                   ),
                 ],
               );

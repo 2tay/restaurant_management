@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
-import '../../../app/routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
@@ -16,6 +14,7 @@ import '../../stock_movement/presentation/widgets/picker/product_picker_sheet.da
 import 'barcode_camera_page.dart';
 import 'barcode_support.dart';
 import 'hardware_scan_listener.dart';
+import '../../inventory/presentation/widgets/product_wizard_dialog.dart';
 
 export 'barcode_camera_page.dart' show ScanOutcome, ScanOutcomeKind;
 
@@ -151,11 +150,11 @@ Future<String?> resolveUnknownBarcode(
     case _UnknownChoice.create:
       // The form comes back with the new product's id rather than going on
       // to the catalogue, so whatever was being scanned carries on.
-      final path = Uri(
-        path: Routes.toAddItem(storeId),
-        queryParameters: {'barcode': code, 'return': '1'},
-      ).toString();
-      return GoRouter.of(context).push<String>(path);
+      return showProductWizard(
+        context,
+        storeId: storeId,
+        initialBarcode: code,
+      );
 
     case _UnknownChoice.link:
       // Only products with no code yet: giving one that has a code another

@@ -21,6 +21,7 @@ import '../../../stock_movement/presentation/widgets/movement_labels.dart';
 import 'delete_item.dart';
 import 'supplier_price_row.dart';
 import '../../../orders/presentation/widgets/order_detail_view.dart';
+import 'product_wizard_dialog.dart';
 
 /// The body of the item detail screen.
 ///
@@ -733,8 +734,11 @@ class _ActionFooter extends ConsumerWidget {
       children: [
         Expanded(
           child: FilledButton.icon(
-            onPressed: () =>
-                context.pushScreen(Routes.toEditItem(storeId, item.id)),
+            onPressed: () => showProductWizard(
+              context,
+              storeId: storeId,
+              itemId: item.id,
+            ),
             style: FilledButton.styleFrom(shape: shape),
             icon: const Icon(LucideIcons.pencil, size: AppSizing.iconSm),
             label: Text(

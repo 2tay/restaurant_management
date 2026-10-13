@@ -19,6 +19,7 @@ import '../../../../shared/widgets/widgets.dart';
 import '../alerts_filter.dart';
 import '../../../calendar/presentation/busy_labels.dart';
 import '../../../inventory/presentation/widgets/product_drawer.dart';
+import '../../../inventory/presentation/widgets/product_wizard_dialog.dart';
 
 /// Everything at or below its threshold, worst first.
 ///
@@ -832,8 +833,10 @@ class _RowMenu extends StatelessWidget {
         _RowAction.movements => context.pushScreen(
           Routes.toMovements(storeId, itemId: itemId),
         ),
-        _RowAction.thresholds => context.pushScreen(
-          Routes.toEditItem(storeId, itemId),
+        _RowAction.thresholds => showProductWizard(
+          context,
+          storeId: storeId,
+          itemId: itemId,
         ),
       },
       itemBuilder: (context) => [
