@@ -9,6 +9,7 @@ class OrderLineView {
     required this.line,
     required this.itemName,
     required this.unitAbbreviation,
+    this.imagePath,
   });
 
   final PurchaseOrderLine line;
@@ -19,6 +20,9 @@ class OrderLineView {
   final String itemName;
 
   final String unitAbbreviation;
+
+  /// The article's photo, or null — drawn as the placeholder.
+  final String? imagePath;
 }
 
 /// One delivery against a commande, with its quotable number.
@@ -91,11 +95,15 @@ class ReceiptLineView {
     required this.line,
     required this.itemName,
     required this.unitAbbreviation,
+    this.imagePath,
   });
 
   final GoodsReceiptLine line;
   final String itemName;
   final String unitAbbreviation;
+
+  /// The article's photo, or null — drawn as the placeholder.
+  final String? imagePath;
 }
 
 /// Everything the bon de réception screen shows.

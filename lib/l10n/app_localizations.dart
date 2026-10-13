@@ -6790,6 +6790,36 @@ abstract class AppLocalizations {
   /// **'Copier la référence'**
   String get orderPanelCopyReference;
 
+  /// Order panel: short chip on a sent order whose lines can no longer change. The full explanation is its tooltip.
+  ///
+  /// In fr, this message translates to:
+  /// **'Verrouillée'**
+  String get orderPanelLocked;
+
+  /// Order panel: short chip with the quantity closed short on the order.
+  ///
+  /// In fr, this message translates to:
+  /// **'{quantity} non livrés'**
+  String orderPanelShortfall(String quantity);
+
+  /// Receipt panel: filter chip showing only the lines that did not match the order.
+  ///
+  /// In fr, this message translates to:
+  /// **'Écarts'**
+  String get receiptPanelFilterIssues;
+
+  /// Receipt panel footer: opens the order this delivery answers.
+  ///
+  /// In fr, this message translates to:
+  /// **'Voir la commande'**
+  String get receiptPanelOpenOrder;
+
+  /// Receipt panel footer: starts receiving what is still owed on the order.
+  ///
+  /// In fr, this message translates to:
+  /// **'Réceptionner le reste'**
+  String get receiptPanelReceiveRest;
+
   /// Main heading of the order PDF.
   ///
   /// In fr, this message translates to:

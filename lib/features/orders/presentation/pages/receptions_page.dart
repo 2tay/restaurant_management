@@ -220,8 +220,9 @@ class _Pending extends ConsumerWidget {
   }
 }
 
-/// One order waiting for its delivery: who, which, since when, how much has
-/// arrived — and, along the bottom, the button to receive it.
+/// One order waiting for its delivery, read at a glance: who and how much on
+/// top, how long it has been out and what is still owed as chips, a bar for
+/// what has arrived — and, along the bottom, the button to receive it.
 class _PendingCard extends StatelessWidget {
   const _PendingCard({
     required this.storeId,
@@ -288,6 +289,9 @@ class _PendingCard extends StatelessWidget {
                             order.reference,
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: AppColors.textSecondary,
+                              fontFeatures: const [
+                                FontFeature.tabularFigures(),
+                              ],
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -296,55 +300,37 @@ class _PendingCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: AppSpacing.sm),
-                    OrderStatusBadge(status: order.status),
+                    Text(
+                      Formatters.price(orderTotal(order)),
+                      style: AppTypography.numeric.copyWith(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: AppSpacing.md),
                 Wrap(
-                  spacing: AppSpacing.md,
+                  spacing: AppSpacing.xs,
                   runSpacing: AppSpacing.xs,
                   children: [
-                    MetaItem(
-                      icon: LucideIcons.send,
-                      label: l10n.receptionsSentOn(Formatters.date(sentAt)),
-                    ),
-                    MetaItem(
-                      icon: LucideIcons.clock,
+                    OrderStatusBadge(status: order.status),
+                    _Chip(
+                      icon: late
+                          ? LucideIcons.triangleAlert
+                          : LucideIcons.clock,
                       label: Formatters.relative(sentAt),
+                      tooltip: l10n.receptionsSentOn(Formatters.date(sentAt)),
+                      colors: late ? AppColors.lowStock : null,
                     ),
-                    if (late)
-                      MetaItem(
-                        icon: LucideIcons.triangleAlert,
-                        label: l10n.receptionsLate,
-                        color: AppColors.lowStock.foreground,
-                        emphasis: true,
-                      ),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        l10n.receptionsLinesLeft(linesLeft),
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.sm),
-                    Text(
-                      Formatters.price(orderTotal(order)),
-                      style: AppTypography.numeric.copyWith(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                      ),
+                    _Chip(
+                      icon: LucideIcons.packageOpen,
+                      label: '$linesLeft / ${order.lines.length}',
+                      tooltip: l10n.receptionsLinesLeft(linesLeft),
                     ),
                   ],
                 ),
-                const SizedBox(height: AppSpacing.sm),
+                const SizedBox(height: AppSpacing.md),
                 ReceivedProgress(
                   share: orderReceivedShare(order),
                   label: l10n.tableColReceived,
@@ -380,6 +366,52 @@ class _PendingCard extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+/// A fact in a couple of words on a soft chip; the sentence is its tooltip.
+class _Chip extends StatelessWidget {
+  const _Chip({
+    required this.icon,
+    required this.label,
+    this.tooltip,
+    this.colors,
+  });
+
+  final IconData icon;
+  final String label;
+  final String? tooltip;
+  final StockStatusColors? colors;
+
+  @override
+  Widget build(BuildContext context) {
+    final fg = colors?.foreground ?? AppColors.textSecondary;
+    final chip = Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.sm,
+        vertical: AppSpacing.xs,
+      ),
+      decoration: BoxDecoration(
+        color: colors?.container ?? AppColors.neutral100,
+        borderRadius: AppRadius.pillAll,
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: fg),
+          const SizedBox(width: AppSpacing.xs),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: fg,
+              fontWeight: FontWeight.w600,
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
+          ),
+        ],
+      ),
+    );
+    return tooltip == null ? chip : Tooltip(message: tooltip!, child: chip);
   }
 }
 
@@ -485,11 +517,6 @@ class _ReceiptTable extends StatelessWidget {
         AppTableColumn(label: l10n.tableColReceipt, width: 140),
         AppTableColumn(label: l10n.tableColSupplier, flex: 3),
         AppTableColumn(
-          label: l10n.tableColOrder,
-          width: 140,
-          minTableWidth: 900,
-        ),
-        AppTableColumn(
           label: l10n.tableColReceivedBy,
           flex: 2,
           minTableWidth: 1040,
@@ -548,14 +575,10 @@ class _ReceiptTable extends StatelessWidget {
           ],
         ),
         3 => MetaItem(
-          icon: LucideIcons.clipboardList,
-          label: row.orderReference,
-        ),
-        4 => MetaItem(
           icon: LucideIcons.user,
           label: row.receipt.receivedByName,
         ),
-        5 => Text(
+        4 => Text(
           Formatters.price(row.value),
           style: AppTypography.numeric.copyWith(
             fontSize: 15,
@@ -569,8 +592,9 @@ class _ReceiptTable extends StatelessWidget {
   }
 }
 
-/// A bon de réception on a phone: supplier and value on top, the paperwork
-/// underneath, conformity along the bottom.
+/// A bon de réception on a phone: supplier and value on top, when and who
+/// underneath, conformity as a single icon. The commande's number is already
+/// inside the bon's (`BR-CMD-…/2`), so it is not repeated.
 class _ReceiptCard extends StatelessWidget {
   const _ReceiptCard({required this.row, required this.onTap});
 
@@ -579,70 +603,92 @@ class _ReceiptCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    final conform = row.discrepancies == 0;
 
     return AppCard(
       onTap: onTap,
-      accentColor: row.discrepancies > 0 ? AppColors.lowStock.solid : null,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      accentColor: conform ? null : AppColors.lowStock.solid,
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.lg,
+        vertical: AppSpacing.md,
+      ),
+      child: Row(
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SupplierMonogram(name: row.supplierName, size: 40),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          SupplierMonogram(name: row.supplierName, size: 40),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  row.supplierName,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: AppSpacing.xxs),
+                Wrap(
+                  spacing: AppSpacing.md,
+                  runSpacing: AppSpacing.xxs,
                   children: [
-                    Text(
-                      row.supplierName,
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                    MetaItem(
+                      icon: LucideIcons.calendar,
+                      label: Formatters.dateTime(row.receipt.receivedAt),
                     ),
-                    const SizedBox(height: AppSpacing.xs),
-                    Wrap(
-                      spacing: AppSpacing.md,
-                      runSpacing: AppSpacing.xxs,
-                      children: [
-                        MetaItem(
-                          icon: LucideIcons.receiptText,
-                          label: row.reference,
-                        ),
-                        MetaItem(
-                          icon: LucideIcons.clipboardList,
-                          label: row.orderReference,
-                        ),
-                        MetaItem(
-                          icon: LucideIcons.calendar,
-                          label: Formatters.dateTime(row.receipt.receivedAt),
-                        ),
-                        MetaItem(
-                          icon: LucideIcons.user,
-                          label: row.receipt.receivedByName,
-                        ),
-                      ],
+                    MetaItem(
+                      icon: LucideIcons.user,
+                      label: row.receipt.receivedByName,
                     ),
                   ],
                 ),
-              ),
-              const SizedBox(width: AppSpacing.sm),
+              ],
+            ),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
               Text(
                 Formatters.price(row.value),
                 style: AppTypography.numeric.copyWith(
                   fontWeight: FontWeight.w700,
                 ),
               ),
+              const SizedBox(height: AppSpacing.xs),
+              Tooltip(
+                message: conform
+                    ? l10n.receptionsConform
+                    : l10n.receptionsDiscrepancies(row.discrepancies),
+                child: conform
+                    ? Icon(
+                        LucideIcons.circleCheck,
+                        size: AppSizing.iconSm,
+                        color: AppColors.inStock.foreground,
+                      )
+                    : Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            LucideIcons.triangleAlert,
+                            size: AppSizing.iconSm,
+                            color: AppColors.lowStock.foreground,
+                          ),
+                          const SizedBox(width: AppSpacing.xxs),
+                          Text(
+                            '${row.discrepancies}',
+                            style: theme.textTheme.labelMedium?.copyWith(
+                              color: AppColors.lowStock.foreground,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+              ),
             ],
-          ),
-          const SizedBox(height: AppSpacing.md),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: _Conformity(discrepancies: row.discrepancies),
           ),
         ],
       ),

@@ -368,6 +368,7 @@ class OrderRepository {
               line: line,
               itemName: items[line.itemId]?.name ?? '—',
               unitAbbreviation: items[line.itemId]?.unit ?? '',
+              imagePath: items[line.itemId]?.imagePath,
             ),
         ],
         receipts: [
@@ -383,8 +384,10 @@ class OrderRepository {
     });
   }
 
-  /// A name and a unit for a handful of article ids, in one joined query.
-  Future<Map<String, ReceiptDocumentItem>> _itemNames(Set<String> ids) async {
+  /// A name, a unit and a photo for a handful of article ids, in one joined
+  /// query.
+  Future<Map<String, ({String name, String unit, String? imagePath})>>
+  _itemNames(Set<String> ids) async {
     if (ids.isEmpty) return const {};
     final rows =
         await (_db.select(_db.items)
@@ -402,6 +405,7 @@ class OrderRepository {
         row.readTable(_db.items).id: (
           name: row.readTable(_db.items).name,
           unit: row.readTableOrNull(_db.units)?.abbreviation ?? '',
+          imagePath: row.readTable(_db.items).imagePath,
         ),
     };
   }
@@ -433,6 +437,7 @@ class OrderRepository {
             line: line,
             itemName: items[line.itemId]?.name ?? '—',
             unitAbbreviation: items[line.itemId]?.unit ?? '',
+            imagePath: items[line.itemId]?.imagePath,
           ),
       ],
     );

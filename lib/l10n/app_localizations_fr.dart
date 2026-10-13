@@ -4178,6 +4178,23 @@ class AppLocalizationsFr extends AppLocalizations {
   String get orderPanelCopyReference => 'Copier la référence';
 
   @override
+  String get orderPanelLocked => 'Verrouillée';
+
+  @override
+  String orderPanelShortfall(String quantity) {
+    return '$quantity non livrés';
+  }
+
+  @override
+  String get receiptPanelFilterIssues => 'Écarts';
+
+  @override
+  String get receiptPanelOpenOrder => 'Voir la commande';
+
+  @override
+  String get receiptPanelReceiveRest => 'Réceptionner le reste';
+
+  @override
   String get orderDocTitle => 'BON DE COMMANDE';
 
   @override
