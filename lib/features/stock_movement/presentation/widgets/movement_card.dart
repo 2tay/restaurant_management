@@ -15,7 +15,8 @@ import '../../../orders/presentation/widgets/order_detail_view.dart';
 import 'movement_labels.dart';
 import 'movement_type_badge.dart';
 
-/// One movement on a phone, drawn like a product card:
+/// One movement, drawn like a product card — on every screen, in a grid of
+/// cards like the catalogue's:
 ///
 /// - **Top:** the product's photo; beside it the type's icon in a round wash,
 ///   the product's name, the type badge right under it, then where the stock
@@ -23,7 +24,7 @@ import 'movement_type_badge.dart';
 /// - **Middle:** the quantity — signed, in the type's colour — and what it
 ///   was worth, each beside a round icon, split by a hairline.
 /// - **Footer:** who recorded it (their avatar, or initials) and when, in
-///   the middle, and a green chevron: the card opens the product.
+///   the left, and a green chevron: the card opens the product.
 ///
 /// The day is the list's heading, so the footer gives the time only.
 class MovementCard extends ConsumerWidget {
@@ -211,7 +212,7 @@ class MovementCard extends ConsumerWidget {
   }
 }
 
-/// Who recorded the movement and when, centred, then the chevron.
+/// Who recorded the movement and when, on the left, then the chevron.
 class _Footer extends ConsumerWidget {
   const _Footer({required this.view, required this.storeId});
 
@@ -234,12 +235,8 @@ class _Footer extends ConsumerWidget {
 
     return Row(
       children: [
-        // Room for the chevron on the left too, so the pair sits in the
-        // card's true middle.
-        const SizedBox(width: AppSizing.iconSm),
         Expanded(
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               if (employee != null)
                 EmployeeAvatar(employee: employee, size: 22)

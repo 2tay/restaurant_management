@@ -24,7 +24,6 @@ import 'package:stock_inventory/app/router.dart';
 import 'package:stock_inventory/app/routes.dart';
 import 'package:stock_inventory/data/seed/dataset/dataset.dart';
 import 'package:stock_inventory/features/stock_movement/presentation/widgets/movement_card.dart';
-import 'package:stock_inventory/features/stock_movement/presentation/widgets/movement_row.dart';
 import 'package:stock_inventory/models/models.dart';
 import 'package:stock_inventory/shared/widgets/widgets.dart';
 
@@ -91,7 +90,7 @@ void main() {
     expect(selectionOn(tester, _productPill), nameOf(itemId));
 
     // And every row built is that product's.
-    final rows = tester.widgetList<MovementRow>(find.byType(MovementRow));
+    final rows = tester.widgetList<MovementCard>(find.byType(MovementCard));
     expect(rows, isNotEmpty);
     for (final row in rows) {
       expect(row.view.itemName, nameOf(itemId));

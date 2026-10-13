@@ -307,7 +307,8 @@ class _Fact extends StatelessWidget {
   }
 }
 
-/// The footer: Qté min and Qté max, then the chevron.
+/// The footer: Qté min and Qté max side by side on the left, then the
+/// chevron.
 class _LimitsFooter extends StatelessWidget {
   const _LimitsFooter({required this.view});
 
@@ -352,12 +353,8 @@ class _LimitsFooter extends StatelessWidget {
 
     return Row(
       children: [
-        // Room for the chevron on the left too, so the pair sits in the
-        // card's true middle.
-        const SizedBox(width: AppSizing.iconSm),
         Expanded(
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Flexible(
                 child: limit(

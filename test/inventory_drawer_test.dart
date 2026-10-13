@@ -24,7 +24,7 @@ import 'package:stock_inventory/features/inventory/presentation/widgets/item_car
 import 'package:stock_inventory/features/inventory/presentation/widgets/item_detail_view.dart';
 import 'package:stock_inventory/features/inventory/presentation/widgets/supplier_price_row.dart';
 import 'package:stock_inventory/shared/widgets/widgets.dart';
-import 'package:stock_inventory/features/stock_movement/presentation/widgets/movement_row.dart';
+import 'package:stock_inventory/features/stock_movement/presentation/widgets/movement_card.dart';
 
 import 'support/app_harness.dart';
 
@@ -186,7 +186,7 @@ void main() {
       await openAndTapRow(
         tester,
         Routes.toMovements(_store),
-        find.byType(MovementRow),
+        find.byType(MovementCard),
       );
 
       expect(find.byType(ItemDetailView), findsOneWidget);

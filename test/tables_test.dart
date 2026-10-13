@@ -17,6 +17,8 @@ import 'package:stock_inventory/features/stock_movement/presentation/widgets/mov
 import 'package:stock_inventory/features/stock_movement/presentation/widgets/movement_type_badge.dart';
 import 'package:stock_inventory/shared/widgets/view_mode_toggle.dart';
 
+import 'package:stock_inventory/shared/widgets/card_grid.dart';
+
 import 'support/app_harness.dart';
 
 const Size _tablet = Size(1280, 800);
@@ -118,18 +120,31 @@ void main() {
   group('the movement history', () {
     testApp('switches between the list and the table', (tester) async {
       await open(tester, _tablet, Routes.toMovements(_store));
-      expect(find.byType(MovementRow), findsWidgets);
+      expect(find.byType(MovementCard), findsWidgets);
       expect(find.byType(MovementTable), findsNothing);
 
       await tester.tap(find.byTooltip('Vue tableau').first);
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
       expect(find.byType(MovementTable), findsOneWidget);
-      expect(find.byType(MovementRow), findsNothing);
+      expect(find.byType(MovementCard), findsNothing);
 
       await tester.tap(find.byTooltip('Vue liste').first);
       await tester.pumpAndSettle();
-      expect(find.byType(MovementRow), findsWidgets);
+      expect(find.byType(MovementCard), findsWidgets);
+    });
+
+    // Cards on every screen, laid out like the catalogue: side by side on a
+    // tablet, one per line on a phone.
+    testApp('a tablet lays the cards out in columns', (tester) async {
+      await open(tester, _tablet, Routes.toMovements(_store));
+      expect(tester.takeException(), isNull);
+
+      final cards = find.byType(MovementCard);
+      final first = tester.getRect(cards.at(0));
+      final second = tester.getRect(cards.at(1));
+      expect(second.top, moreOrLessEquals(first.top));
+      expect(second.left, greaterThan(first.right));
     });
 
     testApp('a phone keeps the cards, and offers no table', (tester) async {
@@ -183,7 +198,7 @@ void main() {
     final toggle = tester.getRect(
       find.byType(ViewModeToggle<MovementsViewMode>),
     );
-    final list = tester.getRect(find.byType(MovementRow).first);
+    final list = tester.getRect(find.byType(ResponsiveCardGrid).first);
     // Its right edge lines up with the list's, give or take a pixel.
     expect((toggle.right - list.right).abs(), lessThan(2));
   });

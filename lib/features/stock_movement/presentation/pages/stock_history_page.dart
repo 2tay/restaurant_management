@@ -17,7 +17,6 @@ import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 import '../widgets/movement_labels.dart';
 import '../widgets/movement_card.dart';
-import '../widgets/movement_row.dart';
 import '../widgets/movement_table.dart';
 import '../../../inventory/presentation/widgets/product_drawer.dart';
 
@@ -395,25 +394,17 @@ class _StockHistoryPageState extends ConsumerState<StockHistoryPage> {
                       )
                     : _GroupedList(
                         movements: movements.take(_shown).toList(),
-                        // A phone gets the product-card layout; wider
-                        // screens keep the one-line row.
                         rowBuilder: (view) {
                           void open() => openProductDrawer(
                             context,
                             storeId: widget.storeId,
                             itemId: view.movement.itemId,
                           );
-                          return context.isPhone
-                              ? MovementCard(
-                                  view: view,
-                                  storeId: widget.storeId,
-                                  onTap: open,
-                                )
-                              : MovementRow(
-                                  view: view,
-                                  storeId: widget.storeId,
-                                  onTap: open,
-                                );
+                          return MovementCard(
+                            view: view,
+                            storeId: widget.storeId,
+                            onTap: open,
+                          );
                         },
                       ),
               ),
@@ -737,55 +728,49 @@ class _GroupedList extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
 
-    // Headers and rows flattened into one list, so it stays lazy.
-    final entries = <Object>[];
-    DateTime? day;
-    for (final row in movements) {
-      final at = row.movement.occurredAt;
-      final rowDay = DateTime(at.year, at.month, at.day);
-      if (rowDay != day) {
-        entries.add(rowDay);
-        day = rowDay;
-      }
-      entries.add(row);
-    }
-
     final now = clock.now();
     final today = DateTime(now.year, now.month, now.day);
     final yesterday = DateTime(now.year, now.month, now.day - 1);
 
-    return ListView.builder(
-      shrinkWrap: true,
-      primary: false,
-      physics: const NeverScrollableScrollPhysics(),
-      padding: EdgeInsets.zero,
-      itemCount: entries.length,
-      itemBuilder: (context, index) {
-        final entry = entries[index];
-        if (entry is DateTime) {
-          final label = entry == today
-              ? l10n.dateToday
-              : entry == yesterday
-              ? l10n.dateYesterday
-              : Formatters.dateWithWeekday(entry);
-          return Padding(
+    // One heading per day, then that day's cards in the shared grid — one
+    // column on a phone, up to four as the width allows, like the catalogue.
+    final sections = <(DateTime, List<MovementRowView>)>[];
+    for (final row in movements) {
+      final at = row.movement.occurredAt;
+      final rowDay = DateTime(at.year, at.month, at.day);
+      if (sections.isEmpty || sections.last.$1 != rowDay) {
+        sections.add((rowDay, []));
+      }
+      sections.last.$2.add(row);
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (final (i, (day, rows)) in sections.indexed) ...[
+          Padding(
             padding: EdgeInsets.only(
-              top: index == 0 ? 0 : AppSpacing.md,
+              top: i == 0 ? 0 : AppSpacing.lg,
               bottom: AppSpacing.sm,
             ),
             child: Text(
-              label,
+              day == today
+                  ? l10n.dateToday
+                  : day == yesterday
+                  ? l10n.dateYesterday
+                  : Formatters.dateWithWeekday(day),
               style: Theme.of(
                 context,
               ).textTheme.labelLarge?.copyWith(color: AppColors.textSecondary),
             ),
-          );
-        }
-        return Padding(
-          padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-          child: rowBuilder(entry as MovementRowView),
-        );
-      },
+          ),
+          ResponsiveCardGrid(
+            minCardWidth: 300,
+            equalRowHeights: true,
+            children: [for (final row in rows) rowBuilder(row)],
+          ),
+        ],
+      ],
     );
   }
 }
