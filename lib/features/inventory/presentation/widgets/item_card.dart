@@ -377,6 +377,8 @@ class _LimitsFooter extends StatelessWidget {
             ],
           ),
         ),
+        // A little air between Qté max and the chevron.
+        const SizedBox(width: AppSpacing.md),
         const Icon(
           LucideIcons.chevronRight,
           size: AppSizing.iconSm,
