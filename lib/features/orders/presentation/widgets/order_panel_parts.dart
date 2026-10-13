@@ -172,16 +172,14 @@ class OrderPanelHero extends StatelessWidget {
     final locked =
         order.status == PurchaseOrderStatus.sent ||
         order.status == PurchaseOrderStatus.partial;
-    final tracksDelivery =
-        order.status != PurchaseOrderStatus.draft &&
-        order.status != PurchaseOrderStatus.cancelled;
 
     return Container(
       padding: const EdgeInsets.all(AppSpacing.lg),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
+      // A soft tint instead of a frame: the card reads as one block without
+      // a border competing with the lines' card under it.
+      decoration: const BoxDecoration(
+        color: AppColors.neutral50,
         borderRadius: AppRadius.lgAll,
-        border: Border.all(color: AppColors.hairline),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -238,16 +236,7 @@ class OrderPanelHero extends StatelessWidget {
               ],
             ],
           ),
-          if (tracksDelivery) ...[
-            const SizedBox(height: AppSpacing.md),
-            ReceivedProgress(
-              share: orderReceivedShare(order),
-              label: l10n.orderColumnReceived,
-            ),
-          ],
           const SizedBox(height: AppSpacing.lg),
-          const Divider(height: 1, color: AppColors.hairline),
-          const SizedBox(height: AppSpacing.md),
           _Journey(order: order, receiptDates: receiptDates),
         ],
       ),
