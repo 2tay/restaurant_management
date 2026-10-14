@@ -133,7 +133,7 @@ void main() {
     });
 
     // One wide card per line on a tablet: the product, Quantité, Valeur,
-    // Par, with the type's colour as a stripe down the left edge.
+    // Par — no stripe down the left edge.
     testApp('a tablet shows one wide card per line', (tester) async {
       await open(tester, _tablet, Routes.toMovements(_store));
       expect(tester.takeException(), isNull);
@@ -148,7 +148,7 @@ void main() {
           of: cards.first,
           matching: find.byKey(const ValueKey('movement-card-stripe')),
         ),
-        findsOneWidget,
+        findsNothing,
       );
       expect(
         find.descendant(

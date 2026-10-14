@@ -1085,10 +1085,15 @@ class _ProductTable extends StatelessWidget {
             ),
           ),
         if (showStatus)
+          // The product cards' status badge.
           DataCell(
-            StatusDot(
-              color: colors.solid,
+            LabelChip(
               label: StockStatusBadge.labelFor(l10n, status),
+              icon: StockStatusBadge.iconFor(status),
+              background: colors.container,
+              foreground: colors.foreground,
+              borderRadius: AppRadius.smAll,
+              dense: true,
             ),
           ),
       ],

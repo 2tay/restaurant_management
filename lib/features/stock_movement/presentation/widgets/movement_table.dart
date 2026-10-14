@@ -38,7 +38,7 @@ final movementsViewModeProvider =
 ///
 /// [title] sits at the top left — « Tous les mouvements (128) », « Entrées
 /// (12) » — and follows the filters. Entrées, sorties and ajustements stand
-/// apart by their coloured dot and quantity, as the product table's status
+/// apart by their coloured badge and quantity, as the product table's status
 /// does. Nothing scrolls sideways: the value, the person and the receipt
 /// link drop out as the width shrinks.
 class MovementTable extends StatelessWidget {
@@ -190,10 +190,15 @@ class MovementTable extends StatelessWidget {
             ),
           ),
         ),
+        // The cards' type badge, shaped like the employees' role badge.
         DataCell(
-          StatusDot(
-            color: movementColors(movement.type).solid,
+          LabelChip(
             label: movementTypeLabel(l10n, movement.type),
+            icon: movementTypeIcon(movement.type),
+            background: movementColors(movement.type).container,
+            foreground: movementColors(movement.type).foreground,
+            borderRadius: AppRadius.smAll,
+            dense: true,
           ),
         ),
         DataCell(

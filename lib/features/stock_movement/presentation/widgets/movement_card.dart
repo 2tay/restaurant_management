@@ -71,6 +71,7 @@ class MovementCard extends ConsumerWidget {
 
     return AppCard(
       onTap: onTap,
+      bordered: false,
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.md + 2,
         AppSpacing.md + 2,
@@ -165,6 +166,7 @@ class MovementCard extends ConsumerWidget {
                 Expanded(
                   child: _Fact(
                     icon: LucideIcons.package,
+                    color: colors.solid,
                     caption: l10n.tableColQuantity,
                     value: Text(
                       Formatters.quantityDelta(
@@ -191,13 +193,14 @@ class MovementCard extends ConsumerWidget {
                 Expanded(
                   child: _Fact(
                     icon: LucideIcons.euro,
+                    color: colors.solid,
                     caption: l10n.tableColValue,
                     value: Text(
                       value,
                       style: AppTypography.numeric.copyWith(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
+                        color: movementQuantityColor(movement.type),
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -232,8 +235,8 @@ class MovementCard extends ConsumerWidget {
 /// 4. Par: who recorded it, and the time under it;
 /// 5. the receipt link when there is one, and the green chevron.
 ///
-/// A thin stripe down the left edge carries the type's colour, so entries,
-/// exits and adjustments stand apart down the list. On a narrow pane the
+/// No outline: the type's colour on the quantity, the value and their icons
+/// is what sets entries, exits and adjustments apart down the list. On a narrow pane the
 /// value goes first, then « Par » joins the source line — nothing overflows,
 /// nothing scrolls sideways.
 class _WideMovementCard extends ConsumerWidget {
@@ -248,7 +251,6 @@ class _WideMovementCard extends ConsumerWidget {
   final VoidCallback? onTap;
 
   static const double _photoSide = 56;
-  static const double _stripe = 3;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -284,9 +286,11 @@ class _WideMovementCard extends ConsumerWidget {
     return AppCard(
       onTap: onTap,
       padding: EdgeInsets.zero,
+      bordered: false,
+      tintColor: colors.solid,
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final width = constraints.maxWidth - _stripe - AppSpacing.md * 2;
+          final width = constraints.maxWidth - AppSpacing.md * 2;
           final showBy = width >= 640;
           final showValue = width >= 760;
 
@@ -294,11 +298,6 @@ class _WideMovementCard extends ConsumerWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                SizedBox(
-                  key: const ValueKey('movement-card-stripe'),
-                  width: _stripe,
-                  child: ColoredBox(color: colors.solid),
-                ),
                 Expanded(
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(
@@ -374,6 +373,7 @@ class _WideMovementCard extends ConsumerWidget {
                           width: 140,
                           child: _Fact(
                             icon: LucideIcons.package,
+                            color: colors.solid,
                             caption: l10n.tableColQuantity,
                             value: Text(
                               Formatters.quantityDelta(
@@ -397,13 +397,14 @@ class _WideMovementCard extends ConsumerWidget {
                             width: 130,
                             child: _Fact(
                               icon: LucideIcons.euro,
+                              color: colors.solid,
                               caption: l10n.tableColValue,
                               value: Text(
                                 value,
                                 style: AppTypography.numeric.copyWith(
                                   fontSize: 15,
                                   fontWeight: FontWeight.w700,
-                                  color: AppColors.textPrimary,
+                                  color: movementQuantityColor(movement.type),
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -623,11 +624,13 @@ class _Initials extends StatelessWidget {
 class _Fact extends StatelessWidget {
   const _Fact({
     required this.icon,
+    required this.color,
     required this.caption,
     required this.value,
   });
 
   final IconData icon;
+  final Color color;
   final String caption;
   final Widget value;
 
@@ -635,7 +638,7 @@ class _Fact extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        _RoundIcon(icon: icon),
+        _RoundIcon(icon: icon, color: color),
         const SizedBox(width: AppSpacing.sm),
         Expanded(
           child: Column(
@@ -660,16 +663,16 @@ class _Fact extends StatelessWidget {
   }
 }
 
-/// An icon in the KPI tiles' round seat — the brand green's translucent
-/// wash.
+/// An icon in the KPI tiles' round seat — a translucent wash of the
+/// movement type's colour.
 class _RoundIcon extends StatelessWidget {
-  const _RoundIcon({required this.icon});
+  const _RoundIcon({required this.icon, required this.color});
 
   final IconData icon;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
-    const color = AppColors.primary600;
     return Container(
       width: 36,
       height: 36,

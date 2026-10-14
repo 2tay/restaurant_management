@@ -23,6 +23,7 @@ class AppCard extends StatefulWidget {
     this.bordered = true,
     this.dashedBorderColor,
     this.borderColor,
+    this.tintColor,
     this.elevated = true,
     super.key,
   });
@@ -55,6 +56,10 @@ class AppCard extends StatefulWidget {
   /// content does not move: it is inset by the hairline's width, like every
   /// other card in the row.
   final Color? borderColor;
+
+  /// The colour of the hover wash and the press splash, instead of the brand
+  /// green.
+  final Color? tintColor;
 
   /// False drops the shadow, at rest and on hover alike — a card inside a
   /// panel that is already its own surface (the product drawer), where a
@@ -173,8 +178,10 @@ class _AppCardState extends State<AppCard> {
               onTapCancel: _isInteractive
                   ? () => setState(() => _pressed = false)
                   : null,
-              hoverColor: AppColors.primary600.withValues(alpha: 0.03),
-              splashColor: AppColors.primary600.withValues(alpha: 0.06),
+              hoverColor: (widget.tintColor ?? AppColors.primary600)
+                  .withValues(alpha: widget.tintColor == null ? 0.03 : 0.06),
+              splashColor: (widget.tintColor ?? AppColors.primary600)
+                  .withValues(alpha: widget.tintColor == null ? 0.06 : 0.10),
               // The accent stripe is a positioned child rather than a Row
               // sibling or a thicker left border. A Row would need
               // CrossAxisAlignment.stretch, which demands a bounded height, and
