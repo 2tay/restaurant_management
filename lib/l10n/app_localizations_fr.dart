@@ -1729,6 +1729,17 @@ class AppLocalizationsFr extends AppLocalizations {
   String get alertsPriorityOk => 'Stock OK';
 
   @override
+  String get dashboardQuantityAdded => 'Quantité ajoutée';
+
+  @override
+  String get dashboardQuantityRemoved => 'Quantité retirée';
+
+  @override
+  String dashboardMinimumShort(String quantity) {
+    return 'min $quantity';
+  }
+
+  @override
   String get alertsCardInStock => 'en stock';
 
   @override

@@ -28,6 +28,16 @@ enum WindowSize {
 extension ResponsiveContext on BuildContext {
   double get screenWidth => MediaQuery.sizeOf(this).width;
 
+  /// The font size of a figure in a table cell — a quantity, a value. The
+  /// body's 17 reads as shouting in a row of 14px text; smaller still where
+  /// the columns are narrow.
+  double get tableFigureSize {
+    final width = screenWidth;
+    if (width < AppBreakpoints.sidebarCollapse) return 13;
+    if (width < 1440) return 14;
+    return 15;
+  }
+
   bool get isLandscape =>
       MediaQuery.orientationOf(this) == Orientation.landscape;
 
@@ -109,7 +119,12 @@ extension ResponsiveContext on BuildContext {
   /// answer. The middle bands fall back to the nearest one below them, so
   /// `responsive(phone: 1, expanded: 3)` gives 1, 1, 3, 3 rather than forcing
   /// every call site to spell out all four.
-  T responsive<T>({required T phone, T? compact, T? medium, required T expanded}) {
+  T responsive<T>({
+    required T phone,
+    T? compact,
+    T? medium,
+    required T expanded,
+  }) {
     switch (windowSize) {
       case WindowSize.phone:
         return phone;

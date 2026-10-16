@@ -660,6 +660,7 @@ class _StockLevel extends StatelessWidget {
         Text(
           facts.quantity(facts.item.quantity),
           style: AppTypography.numeric.copyWith(
+            fontSize: context.tableFigureSize,
             fontWeight: FontWeight.w700,
             color: facts.colors.foreground,
           ),
@@ -715,6 +716,7 @@ class _ToOrder extends StatelessWidget {
     return Text(
       amount > 0 ? facts.quantity(amount) : '—',
       style: AppTypography.numeric.copyWith(
+        fontSize: context.tableFigureSize,
         fontWeight: FontWeight.w700,
         color: facts.status == StockStatus.outOfStock
             ? AppColors.outOfStock.foreground
@@ -964,7 +966,7 @@ class _ProductIdentity extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                facts.item.name,
+                Formatters.capitalized(facts.item.name),
                 style: theme.textTheme.titleSmall?.copyWith(
                   fontWeight: FontWeight.w600,
                 ),
@@ -1082,6 +1084,7 @@ class _AlertsTable extends ConsumerWidget {
             Text(
               facts.quantity(facts.minimum),
               style: AppTypography.numeric.copyWith(
+                fontSize: context.tableFigureSize,
                 color: AppColors.textSecondary,
               ),
               maxLines: 1,

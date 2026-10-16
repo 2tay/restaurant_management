@@ -6,6 +6,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/formatters.dart';
+import '../../../../core/utils/responsive.dart';
 import '../../../../data/view_models/view_models.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../models/models.dart';
@@ -112,11 +113,8 @@ class MovementTable extends StatelessWidget {
     final unit = view.unitAbbreviation;
 
     return DataRow(
-      onSelectChanged: (_) => openProductDrawer(
-        context,
-        storeId: storeId,
-        itemId: movement.itemId,
-      ),
+      onSelectChanged: (_) =>
+          openProductDrawer(context, storeId: storeId, itemId: movement.itemId),
       cells: [
         // The date leads; the hour sits under it, quieter — a column of
         // movements is read by day first.
@@ -205,6 +203,7 @@ class MovementTable extends StatelessWidget {
           Text(
             Formatters.quantityDelta(movement.quantity, unit),
             style: AppTypography.numeric.copyWith(
+              fontSize: context.tableFigureSize,
               fontWeight: FontWeight.w700,
               color: movementQuantityColor(movement.type),
             ),
@@ -216,6 +215,7 @@ class MovementTable extends StatelessWidget {
             Text(
               _value(movement),
               style: AppTypography.numeric.copyWith(
+                fontSize: context.tableFigureSize,
                 color: AppColors.textSecondary,
               ),
               maxLines: 1,

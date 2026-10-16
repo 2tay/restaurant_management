@@ -2866,6 +2866,24 @@ abstract class AppLocalizations {
   /// **'Stock OK'**
   String get alertsPriorityOk;
 
+  /// Dashboard activity card: caption under a quantity that went into the stock.
+  ///
+  /// In fr, this message translates to:
+  /// **'Quantité ajoutée'**
+  String get dashboardQuantityAdded;
+
+  /// Dashboard activity card: caption under a quantity that left the stock.
+  ///
+  /// In fr, this message translates to:
+  /// **'Quantité retirée'**
+  String get dashboardQuantityRemoved;
+
+  /// Dashboard alert card: the minimum under the stock figure.
+  ///
+  /// In fr, this message translates to:
+  /// **'min {quantity}'**
+  String dashboardMinimumShort(String quantity);
+
   /// Alert card: caption under the quantity on the shelf.
   ///
   /// In fr, this message translates to:

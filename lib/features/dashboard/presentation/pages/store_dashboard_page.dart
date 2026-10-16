@@ -492,7 +492,16 @@ class _ActivityPanel extends StatelessWidget {
                 onAction: () => context.pushScreen(Routes.toStockIn(storeId)),
               ),
             )
-          : _ActivityTable(storeId: storeId, activity: activity),
+          // Below the split view — a phone or a tablet — a table would
+          // only squeeze its columns: one small card per movement instead.
+          : context.canSplitView
+          ? _ActivityTable(storeId: storeId, activity: activity)
+          : _CardList(
+              children: [
+                for (final view in activity)
+                  _ActivityCard(storeId: storeId, view: view),
+              ],
+            ),
     );
   }
 }
@@ -543,7 +552,7 @@ class _ActivityTable extends StatelessWidget {
                   DataCell(
                     _ProductCell(
                       imagePath: view.itemImagePath,
-                      name: view.itemName,
+                      name: Formatters.capitalized(view.itemName),
                       maxWidth: _productCellWidth(width),
                     ),
                   ),
@@ -556,6 +565,7 @@ class _ActivityTable extends StatelessWidget {
                         view.unitAbbreviation,
                       ),
                       style: AppTypography.numeric.copyWith(
+                        fontSize: context.tableFigureSize,
                         fontWeight: FontWeight.w700,
                         color: movementQuantityColor(view.movement.type),
                       ),
@@ -677,7 +687,14 @@ class _AlertsPanel extends StatelessWidget {
                 message: l10n.dashboardAllGoodBody,
               ),
             )
-          : _AlertsTable(storeId: storeId, alerts: shown),
+          : context.canSplitView
+          ? _AlertsTable(storeId: storeId, alerts: shown)
+          : _CardList(
+              children: [
+                for (final view in shown)
+                  _AlertCard(storeId: storeId, view: view),
+              ],
+            ),
     );
   }
 }
@@ -750,7 +767,7 @@ class _AlertsTable extends StatelessWidget {
         DataCell(
           _ProductCell(
             imagePath: item.imagePath,
-            name: item.name,
+            name: Formatters.capitalized(item.name),
             maxWidth: _productCellWidth(width),
           ),
         ),
@@ -766,6 +783,7 @@ class _AlertsTable extends StatelessWidget {
                   view.unitAbbreviation,
                 ),
                 style: AppTypography.numeric.copyWith(
+                  fontSize: context.tableFigureSize,
                   fontWeight: FontWeight.w600,
                   color: AppColors.textPrimary,
                 ),
@@ -841,11 +859,13 @@ class _TabbedPanelsState extends State<_TabbedPanels> {
           child: Row(
             children: [
               _Tab(
+                icon: LucideIcons.activity,
                 label: l10n.dashboardTabActivity,
                 selected: !_alerts,
                 onTap: () => setState(() => _alerts = false),
               ),
               _Tab(
+                icon: LucideIcons.eye,
                 label: l10n.dashboardTabAlerts,
                 count: widget.alerts.isEmpty ? null : widget.alerts.length,
                 selected: _alerts,
@@ -886,12 +906,14 @@ class _TabbedPanelsState extends State<_TabbedPanels> {
 
 class _Tab extends StatelessWidget {
   const _Tab({
+    required this.icon,
     required this.label,
     required this.selected,
     required this.onTap,
     this.count,
   });
 
+  final IconData icon;
   final String label;
   final bool selected;
   final VoidCallback onTap;
@@ -919,6 +941,14 @@ class _Tab extends StatelessWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  Icon(
+                    icon,
+                    size: AppSizing.iconSm,
+                    color: selected
+                        ? AppColors.primary600
+                        : AppColors.textSecondary,
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
                   Flexible(
                     child: Text(
                       label,
@@ -941,6 +971,335 @@ class _Tab extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+// -----------------------------------------------------------------------------
+// The cards — the two panels below the split view, a phone or a tablet.
+// -----------------------------------------------------------------------------
+
+/// Small cards one under the other, standing in for a dashboard table.
+class _CardList extends StatelessWidget {
+  const _CardList({required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (final (i, card) in children.indexed) ...[
+          if (i > 0) const SizedBox(height: AppSpacing.sm),
+          card,
+        ],
+      ],
+    );
+  }
+}
+
+/// The card's width from which the last column — the time, the status —
+/// gets room of its own.
+const double _roomyCardWidth = 480;
+
+/// One movement: the photo, the name and who recorded it, the signed
+/// quantity in a pill of the type's colour, the time, and a chevron — the
+/// card opens the product. Narrow, the time joins the line under the name.
+class _ActivityCard extends StatelessWidget {
+  const _ActivityCard({required this.storeId, required this.view});
+
+  final String storeId;
+  final MovementRowView view;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final movement = view.movement;
+    final colors = movementColors(movement.type);
+    final when = _ActivityTable._when(movement.occurredAt, clock.now());
+    final added = movement.quantity >= 0;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final roomy = constraints.maxWidth >= _roomyCardWidth;
+        return _DashboardCard(
+          onTap: () => openProductDrawer(
+            context,
+            storeId: storeId,
+            itemId: movement.itemId,
+          ),
+          tint: colors.solid,
+          imagePath: view.itemImagePath,
+          roomy: roomy,
+          name: view.itemName,
+          detail: roomy ? movement.userName : '${movement.userName} · $when',
+          figure: _FigurePill(
+            colors: colors,
+            icon: added ? LucideIcons.arrowUp : LucideIcons.arrowDown,
+            value: Formatters.quantityDelta(
+              movement.quantity,
+              view.unitAbbreviation,
+            ),
+            caption: added
+                ? l10n.dashboardQuantityAdded
+                : l10n.dashboardQuantityRemoved,
+          ),
+          trailing: roomy ? _Time(label: when) : null,
+        );
+      },
+    );
+  }
+}
+
+/// One product under its minimum: the photo, the name and category, the
+/// stock in a pill of the status colour with the minimum under it — and the
+/// status in words where there is room.
+class _AlertCard extends StatelessWidget {
+  const _AlertCard({required this.storeId, required this.view});
+
+  final String storeId;
+  final ItemRowView view;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final item = view.item;
+    final status = stockStatusOf(item);
+    final colors = StockStatusBadge.colorsFor(status);
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final roomy = constraints.maxWidth >= _roomyCardWidth;
+        return _DashboardCard(
+          onTap: () =>
+              openProductDrawer(context, storeId: storeId, itemId: item.id),
+          tint: colors.solid,
+          imagePath: item.imagePath,
+          roomy: roomy,
+          name: item.name,
+          detail: view.categoryName,
+          figure: _FigurePill(
+            colors: colors,
+            icon: StockStatusBadge.iconFor(status),
+            value: Formatters.quantityWithUnit(
+              item.quantity,
+              view.unitAbbreviation,
+            ),
+            caption: l10n.dashboardMinimumShort(
+              Formatters.quantityWithUnit(
+                item.lowStockThreshold,
+                view.unitAbbreviation,
+              ),
+            ),
+          ),
+          trailing: roomy
+              ? StatusDot(
+                  color: colors.solid,
+                  label: StockStatusBadge.labelFor(l10n, status),
+                )
+              : null,
+        );
+      },
+    );
+  }
+}
+
+/// The frame both dashboard cards share: photo, name over a muted line, the
+/// figure, an optional last column, and the chevron.
+class _DashboardCard extends StatelessWidget {
+  const _DashboardCard({
+    required this.onTap,
+    required this.tint,
+    required this.imagePath,
+    required this.roomy,
+    required this.name,
+    required this.detail,
+    required this.figure,
+    this.trailing,
+  });
+
+  final VoidCallback onTap;
+  final Color tint;
+  final String? imagePath;
+  final bool roomy;
+  final String name;
+  final String detail;
+  final Widget figure;
+  final Widget? trailing;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return AppCard(
+      onTap: onTap,
+      bordered: false,
+      tintColor: tint,
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.md,
+        AppSpacing.md,
+        AppSpacing.sm,
+        AppSpacing.md,
+      ),
+      child: Row(
+        children: [
+          ProductImage(
+            imagePath: imagePath,
+            size: roomy ? 52 : 44,
+            radius: AppRadius.md,
+            placeholder: ProductImagePlaceholder.disc,
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  Formatters.capitalized(name),
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: AppSpacing.xxs),
+                Text(
+                  detail,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: roomy ? 160 : 128),
+            child: figure,
+          ),
+          if (trailing != null) ...[
+            const SizedBox(width: AppSpacing.lg),
+            SizedBox(width: 96, child: trailing),
+          ],
+          const SizedBox(width: AppSpacing.xs),
+          const Icon(
+            LucideIcons.chevronRight,
+            size: AppSizing.iconSm,
+            color: AppColors.textSecondary,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A figure in a tinted pill — its icon in a solid disc — and what it means
+/// under it.
+class _FigurePill extends StatelessWidget {
+  const _FigurePill({
+    required this.colors,
+    required this.icon,
+    required this.value,
+    required this.caption,
+  });
+
+  final StockStatusColors colors;
+  final IconData icon;
+  final String value;
+  final String caption;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.xs,
+            AppSpacing.xs,
+            AppSpacing.md,
+            AppSpacing.xs,
+          ),
+          decoration: BoxDecoration(
+            color: colors.container.withValues(alpha: 0.7),
+            borderRadius: AppRadius.pillAll,
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 20,
+                height: 20,
+                decoration: BoxDecoration(
+                  color: colors.solid,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, size: 12, color: AppColors.surface),
+              ),
+              const SizedBox(width: AppSpacing.xs + 2),
+              Flexible(
+                child: Text(
+                  value,
+                  style: AppTypography.numeric.copyWith(
+                    fontSize: 14,
+                    height: 1.2,
+                    fontWeight: FontWeight.w800,
+                    color: colors.foreground,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: AppSpacing.xxs),
+        Padding(
+          padding: const EdgeInsets.only(left: AppSpacing.xs),
+          child: Text(
+            caption,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              fontSize: 11,
+              color: AppColors.textSecondary,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// The time — or the day — with a clock before it.
+class _Time extends StatelessWidget {
+  const _Time({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        const Icon(LucideIcons.clock, size: 14, color: AppColors.textSecondary),
+        const SizedBox(width: AppSpacing.xs + 2),
+        Flexible(
+          child: Text(
+            label,
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
     );
   }
 }
