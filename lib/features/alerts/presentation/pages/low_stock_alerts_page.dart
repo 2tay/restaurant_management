@@ -293,21 +293,28 @@ class _StatusTabs extends ConsumerWidget {
           value: AlertSeverity.all,
           label: l10n.alertsTabEvery,
           count: count(AlertSeverity.all, alerts),
+          icon: LucideIcons.layers,
         ),
         CountTab(
           value: AlertSeverity.busy,
           label: l10n.alertsBusyTab,
           count: busy == null ? null : count(AlertSeverity.busy, busy),
+          icon: LucideIcons.calendarClock,
+          colors: AppColors.lowStock,
         ),
         CountTab(
           value: AlertSeverity.outOfStock,
           label: l10n.alertsPriorityOut,
           count: count(AlertSeverity.outOfStock, alerts),
+          icon: StockStatusBadge.iconFor(StockStatus.outOfStock),
+          colors: AppColors.outOfStock,
         ),
         CountTab(
           value: AlertSeverity.lowStock,
           label: l10n.alertsSeverityLowStock,
           count: count(AlertSeverity.lowStock, alerts),
+          icon: StockStatusBadge.iconFor(StockStatus.lowStock),
+          colors: AppColors.lowStock,
         ),
       ],
     );
