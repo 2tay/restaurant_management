@@ -406,14 +406,14 @@ class _Toolbar extends ConsumerWidget {
             onSelected: ref.read(alertsViewModeProvider.notifier).select,
             options: [
               ViewModeOption(
-                value: AlertsViewMode.table,
+                value: AlertsViewMode.list,
                 icon: LucideIcons.list,
                 label: l10n.movementsViewList,
               ),
               ViewModeOption(
-                value: AlertsViewMode.grid,
-                icon: LucideIcons.layoutGrid,
-                label: l10n.viewModeGrid,
+                value: AlertsViewMode.table,
+                icon: LucideIcons.table,
+                label: l10n.movementsViewTable,
               ),
             ],
           ),
@@ -472,17 +472,15 @@ class _Results extends ConsumerWidget {
             for (final view in shown)
               _AlertCard(view: view, storeId: storeId, busy: busy),
           ];
-          body = context.isPhone
-              ? Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    for (final (i, card) in cards.indexed) ...[
-                      if (i > 0) const SizedBox(height: AppSpacing.sm),
-                      card,
-                    ],
-                  ],
-                )
-              : ResponsiveCardGrid(minCardWidth: 300, children: cards);
+          body = Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (final (i, card) in cards.indexed) ...[
+                if (i > 0) const SizedBox(height: AppSpacing.sm),
+                card,
+              ],
+            ],
+          );
         }
 
         return Column(
@@ -504,8 +502,7 @@ class _Results extends ConsumerWidget {
   }) {
     // Nothing narrowing the list: it is genuinely empty, which is good news
     // rather than a filter to clear.
-    final narrowed =
-        filter.query.trim().isNotEmpty || filter.hasActiveFilters;
+    final narrowed = filter.query.trim().isNotEmpty || filter.hasActiveFilters;
     if (!narrowed && busy) {
       return EmptyState(
         icon: LucideIcons.calendarCheck,
@@ -542,23 +539,42 @@ class _ResultsHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    final medallion = context.isPhone ? 36.0 : AppSizing.statTileMedallion;
 
     return ConstrainedBox(
       constraints: const BoxConstraints(minHeight: 40),
       child: Row(
         children: [
-          if (selectAll) ...[
-            _SelectAllCheckbox(alerts: alerts),
-            const SizedBox(width: AppSpacing.xxs),
-          ],
-          Expanded(
-            child: Text(
-              l10n.inventoryCount(alerts.length),
-              style: theme.textTheme.titleSmall?.copyWith(
-                color: AppColors.textSecondary,
-              ),
+          Container(
+            width: medallion,
+            height: medallion,
+            decoration: BoxDecoration(
+              color: AppColors.outOfStock.container,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              LucideIcons.bell,
+              size: AppSizing.iconSm,
+              color: AppColors.outOfStock.solid,
             ),
           ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Text(
+              l10n.alertsCount(alerts.length),
+              style:
+                  (context.isPhone
+                          ? theme.textTheme.titleMedium
+                          : theme.textTheme.titleLarge)
+                      ?.copyWith(fontWeight: FontWeight.w700),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          if (selectAll) ...[
+            const SizedBox(width: AppSpacing.xs),
+            _SelectAllCheckbox(alerts: alerts),
+          ],
         ],
       ),
     );
@@ -627,10 +643,9 @@ class _AlertFacts {
 /// The figure in its status colour, a slim bar under it, and what is already
 /// on its way when something is.
 class _StockLevel extends StatelessWidget {
-  const _StockLevel({required this.facts, this.showFigure = true});
+  const _StockLevel({required this.facts});
 
   final _AlertFacts facts;
-  final bool showFigure;
 
   @override
   Widget build(BuildContext context) {
@@ -642,18 +657,16 @@ class _StockLevel extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (showFigure) ...[
-          Text(
-            facts.quantity(facts.item.quantity),
-            style: AppTypography.numeric.copyWith(
-              fontWeight: FontWeight.w700,
-              color: facts.colors.foreground,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+        Text(
+          facts.quantity(facts.item.quantity),
+          style: AppTypography.numeric.copyWith(
+            fontWeight: FontWeight.w700,
+            color: facts.colors.foreground,
           ),
-          const SizedBox(height: AppSpacing.xs + 2),
-        ],
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        const SizedBox(height: AppSpacing.xs + 2),
         StockGauge(
           quantity: facts.item.quantity,
           minimum: facts.minimum,
@@ -765,9 +778,13 @@ class _Priority extends StatelessWidget {
 
 /// The row's checkbox.
 class _RowCheckbox extends ConsumerWidget {
-  const _RowCheckbox({required this.item});
+  const _RowCheckbox({required this.item, this.shrinkWrap = false});
 
   final Item item;
+
+  /// Drawn to its box alone — on the card's photo, where a full tap target
+  /// would cover the picture.
+  final bool shrinkWrap;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -776,6 +793,9 @@ class _RowCheckbox extends ConsumerWidget {
       value: selected,
       semanticLabel: item.name,
       visualDensity: VisualDensity.compact,
+      materialTapTargetSize: shrinkWrap
+          ? MaterialTapTargetSize.shrinkWrap
+          : null,
       onChanged: (_) =>
           ref.read(alertSelectionProvider.notifier).toggle(item.id),
     );
@@ -917,14 +937,9 @@ class _RowMenu extends StatelessWidget {
 /// The photo, the name, and the category in one muted line — with the
 /// supplier after it where no column of its own shows it.
 class _ProductIdentity extends StatelessWidget {
-  const _ProductIdentity({
-    required this.facts,
-    this.nameLines = 1,
-    this.showSupplier = false,
-  });
+  const _ProductIdentity({required this.facts, this.showSupplier = false});
 
   final _AlertFacts facts;
-  final int nameLines;
   final bool showSupplier;
 
   @override
@@ -953,7 +968,7 @@ class _ProductIdentity extends StatelessWidget {
                 style: theme.textTheme.titleSmall?.copyWith(
                   fontWeight: FontWeight.w600,
                 ),
-                maxLines: nameLines,
+                maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
               const SizedBox(height: AppSpacing.xxs),
@@ -1088,21 +1103,21 @@ class _AlertsTable extends ConsumerWidget {
 }
 
 // -----------------------------------------------------------------------------
-// The card — phones always, and the grid view on a wide screen.
+// The card — the default view, one per line.
 // -----------------------------------------------------------------------------
 
-/// The same row as a card, laid out for one hand:
+/// One alert, drawn like a movement card (`MovementCard`) so the two lists
+/// read alike — one card per line, and two shapes picked by the card's width:
 ///
-///     ☐ [photo] Carottes                          ⋮
-///               Fruits et légumes · Maroc Prime
-///     0 kg  / min 50 kg                   (✕ Rupture)
-///     ▭▭▭▭▭▭▭▭▭▭▭▭▭▭▭▭▭▭▭▭▭▭▭▭▭▭▭▭▭▭▭▭▭▭▭▭▭▭▭▭▭▭▭▭
-///     ─────────────────────────────────────────────
-///     À commander
-///     50 kg
+/// - **Narrow (a phone):** the photo with its checkbox on the corner; beside
+///   it the name, the status badge, the category and supplier, and the ⋮.
+///   Under them three facts split by hairlines: the stock, the minimum, and
+///   how much to order.
+/// - **Wide ([_wideMinWidth] and up):** one line — checkbox, product, then
+///   the same facts in blocks, the ⋮ and the chevron. On a narrower pane the
+///   minimum goes first.
 ///
-/// One figure, one bar and one quantity: everything that decides the row, and
-/// nothing that only restates it. The actions are in the ⋮, as on the table.
+/// The card opens the product; a long press ticks it for the selection bar.
 class _AlertCard extends ConsumerWidget {
   const _AlertCard({
     required this.view,
@@ -1114,105 +1129,456 @@ class _AlertCard extends ConsumerWidget {
   final String storeId;
   final bool busy;
 
+  /// The narrowest card drawn as one line.
+  static const double _wideMinWidth = 560;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
     final facts = _AlertFacts(view, busy: busy);
     final selected = ref.watch(alertSelectionProvider).contains(facts.item.id);
 
-    return AppCard(
-      onTap: () =>
-          openProductDrawer(context, storeId: storeId, itemId: facts.item.id),
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.xs,
-        AppSpacing.xs,
-        AppSpacing.xs,
-        AppSpacing.md,
-      ),
-      selected: selected,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              _RowCheckbox(item: facts.item),
-              Expanded(
-                child: _ProductIdentity(
-                  facts: facts,
-                  nameLines: 2,
-                  showSupplier: true,
-                ),
+    // The width is read outside the cards' IntrinsicHeight: a LayoutBuilder
+    // cannot answer the intrinsic-size questions IntrinsicHeight asks.
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final wide = constraints.maxWidth >= _wideMinWidth;
+        return GestureDetector(
+          onLongPress: () =>
+              ref.read(alertSelectionProvider.notifier).toggle(facts.item.id),
+          child: AppCard(
+            onTap: () => openProductDrawer(
+              context,
+              storeId: storeId,
+              itemId: facts.item.id,
+            ),
+            selected: selected,
+            bordered: false,
+            tintColor: facts.colors.solid,
+            padding: wide
+                ? const EdgeInsets.fromLTRB(
+                    AppSpacing.xs,
+                    AppSpacing.md,
+                    AppSpacing.md,
+                    AppSpacing.md,
+                  )
+                : const EdgeInsets.all(AppSpacing.md + 2),
+            child: wide
+                ? _WideAlertContent(
+                    facts: facts,
+                    storeId: storeId,
+                    width: constraints.maxWidth,
+                  )
+                : _NarrowAlertContent(facts: facts, storeId: storeId),
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// The card on a phone: the product on top, the three facts under it.
+class _NarrowAlertContent extends StatelessWidget {
+  const _NarrowAlertContent({required this.facts, required this.storeId});
+
+  final _AlertFacts facts;
+  final String storeId;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _CardThumb(facts: facts, size: 64),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(top: AppSpacing.xxs),
+                child: _CardIdentity(facts: facts, nameLines: 2),
               ),
-              _RowMenu(facts: facts, storeId: storeId),
+            ),
+            Transform.translate(
+              // Into the corner: its tap target is wider than its dots.
+              offset: const Offset(AppSpacing.sm, -AppSpacing.xs),
+              child: _RowMenu(facts: facts, storeId: storeId),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.md),
+        IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(child: _StockFact(facts: facts)),
+              const _FactRule(),
+              Expanded(child: _MinimumFact(facts: facts)),
+              const _FactRule(),
+              Expanded(child: _ToOrderFact(facts: facts)),
             ],
           ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+        ),
+        _OnOrderLine(facts: facts),
+      ],
+    );
+  }
+}
+
+/// The card on a tablet or a desktop: everything on one line.
+class _WideAlertContent extends StatelessWidget {
+  const _WideAlertContent({
+    required this.facts,
+    required this.storeId,
+    required this.width,
+  });
+
+  final _AlertFacts facts;
+  final String storeId;
+  final double width;
+
+  @override
+  Widget build(BuildContext context) {
+    final showMinimum = width >= 820;
+
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Center(child: _RowCheckbox(item: facts.item)),
+          const SizedBox(width: AppSpacing.xs),
+          // The product.
+          Expanded(
+            child: Row(
+              children: [
+                ProductImage(
+                  imagePath: facts.item.imagePath,
+                  size: 56,
+                  radius: AppRadius.md,
+                  placeholder: ProductImagePlaceholder.disc,
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(child: _CardIdentity(facts: facts, nameLines: 1)),
+              ],
+            ),
+          ),
+          const _FactRule(wide: true),
+          SizedBox(
+            width: 140,
             child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const SizedBox(height: AppSpacing.md),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text.rich(
-                        TextSpan(
-                          children: [
-                            TextSpan(
-                              text: facts.quantity(facts.item.quantity),
-                              style: AppTypography.numeric.copyWith(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w700,
-                                color: facts.colors.foreground,
-                              ),
-                            ),
-                            TextSpan(
-                              text:
-                                  '  / ${l10n.alertsColumnMinimum.toLowerCase()} '
-                                  '${facts.quantity(facts.minimum)}',
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: AppColors.textSecondary,
-                              ),
-                            ),
-                          ],
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.sm),
-                    Flexible(child: _Priority(facts: facts)),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                _StockLevel(facts: facts, showFigure: false),
-                const SizedBox(height: AppSpacing.md),
-                const Divider(height: 1, color: AppColors.hairline),
-                const SizedBox(height: AppSpacing.md),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            l10n.alertsColumnToOrder,
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: AppColors.textSecondary,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: AppSpacing.xxs),
-                          _ToOrder(facts: facts),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+                _StockFact(facts: facts),
+                _OnOrderLine(facts: facts, dense: true),
               ],
+            ),
+          ),
+          if (showMinimum) ...[
+            const _FactRule(wide: true),
+            SizedBox(width: 150, child: _MinimumFact(facts: facts)),
+          ],
+          const _FactRule(wide: true),
+          SizedBox(width: 140, child: _ToOrderFact(facts: facts)),
+          const SizedBox(width: AppSpacing.sm),
+          Center(
+            child: _RowMenu(facts: facts, storeId: storeId),
+          ),
+          const Center(
+            child: Icon(
+              LucideIcons.chevronRight,
+              size: AppSizing.iconSm,
+              color: AppColors.primary600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The name, the status badge under it, then the category and supplier.
+class _CardIdentity extends StatelessWidget {
+  const _CardIdentity({required this.facts, required this.nameLines});
+
+  final _AlertFacts facts;
+  final int nameLines;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final view = facts.view;
+    final supplierName = view.defaultSupplierName;
+    final status = facts.status;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          Formatters.capitalized(facts.item.name),
+          style: theme.textTheme.titleSmall?.copyWith(
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            color: AppColors.textPrimary,
+          ),
+          maxLines: nameLines,
+          overflow: TextOverflow.ellipsis,
+        ),
+        const SizedBox(height: AppSpacing.xs),
+        // The movement type badge's shape.
+        LabelChip(
+          label: switch (status) {
+            StockStatus.outOfStock => l10n.alertsPriorityOut,
+            StockStatus.lowStock => l10n.alertsPriorityLow,
+            StockStatus.inStock => l10n.alertsPriorityOk,
+          },
+          icon: StockStatusBadge.iconFor(status),
+          background: facts.colors.container,
+          foreground: facts.colors.foreground,
+          borderRadius: AppRadius.smAll,
+          dense: true,
+        ),
+        const SizedBox(height: AppSpacing.xs),
+        Text(
+          supplierName == null
+              ? view.row.categoryName
+              : '${view.row.categoryName} · $supplierName',
+          style: theme.textTheme.bodySmall?.copyWith(
+            fontSize: 11,
+            color: AppColors.textSecondary,
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ],
+    );
+  }
+}
+
+/// The photo, with the row's checkbox on its corner.
+class _CardThumb extends StatelessWidget {
+  const _CardThumb({required this.facts, required this.size});
+
+  final _AlertFacts facts;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox.square(
+      dimension: size,
+      child: Stack(
+        children: [
+          ProductImage(
+            imagePath: facts.item.imagePath,
+            size: size,
+            radius: 14,
+            placeholder: ProductImagePlaceholder.disc,
+          ),
+          Positioned(
+            left: AppSpacing.xs,
+            top: AppSpacing.xs,
+            child: Container(
+              width: 24,
+              height: 24,
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: AppRadius.smAll,
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.neutral950.withValues(alpha: 0.12),
+                    blurRadius: 4,
+                    offset: const Offset(0, 1),
+                  ),
+                ],
+              ),
+              child: Transform.scale(
+                scale: 0.85,
+                child: _RowCheckbox(item: facts.item, shrinkWrap: true),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// What is on the shelf, in the status colour.
+class _StockFact extends StatelessWidget {
+  const _StockFact({required this.facts});
+
+  final _AlertFacts facts;
+
+  @override
+  Widget build(BuildContext context) {
+    return _AlertFact(
+      icon: LucideIcons.package,
+      color: facts.colors.solid,
+      caption: AppLocalizations.of(context).alertsCardInStock,
+      value: facts.quantity(facts.item.quantity),
+      valueColor: facts.colors.foreground,
+    );
+  }
+}
+
+/// The minimum the stock should not fall under.
+class _MinimumFact extends StatelessWidget {
+  const _MinimumFact({required this.facts});
+
+  final _AlertFacts facts;
+
+  @override
+  Widget build(BuildContext context) {
+    return _AlertFact(
+      icon: LucideIcons.gauge,
+      color: AppColors.textSecondary,
+      caption: AppLocalizations.of(context).alertsColumnMinimum,
+      value: facts.quantity(facts.minimum),
+      valueColor: AppColors.textPrimary,
+    );
+  }
+}
+
+/// How much a commande started from here would ask for.
+class _ToOrderFact extends StatelessWidget {
+  const _ToOrderFact({required this.facts});
+
+  final _AlertFacts facts;
+
+  @override
+  Widget build(BuildContext context) {
+    final amount = facts.toOrder;
+    return _AlertFact(
+      icon: LucideIcons.shoppingCart,
+      color: facts.colors.solid,
+      caption: AppLocalizations.of(context).alertsColumnToOrder,
+      value: amount > 0 ? facts.quantity(amount) : '—',
+      valueColor: facts.colors.foreground,
+    );
+  }
+}
+
+/// One fact: the icon in its round seat, the value, its caption under it.
+class _AlertFact extends StatelessWidget {
+  const _AlertFact({
+    required this.icon,
+    required this.color,
+    required this.caption,
+    required this.value,
+    required this.valueColor,
+  });
+
+  final IconData icon;
+  final Color color;
+  final String caption;
+  final String value;
+  final Color valueColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final narrow = context.isPhone;
+    final seat = narrow ? 28.0 : 36.0;
+
+    return Row(
+      children: [
+        Container(
+          width: seat,
+          height: seat,
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.10),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, size: narrow ? 14 : AppSizing.iconSm, color: color),
+        ),
+        SizedBox(width: narrow ? AppSpacing.xs + 2 : AppSpacing.sm),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                value,
+                style: AppTypography.numeric.copyWith(
+                  fontSize: narrow ? 14 : 15,
+                  fontWeight: FontWeight.w800,
+                  color: valueColor,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              Text(
+                caption,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  fontSize: 11,
+                  color: AppColors.textSecondary,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// The hairline between two facts.
+class _FactRule extends StatelessWidget {
+  const _FactRule({this.wide = false});
+
+  final bool wide;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.symmetric(
+        horizontal: wide ? AppSpacing.md : AppSpacing.sm,
+      ),
+      child: VerticalDivider(
+        width: 1,
+        thickness: 1,
+        color: AppColors.border.withValues(alpha: 0.6),
+      ),
+    );
+  }
+}
+
+/// What is already on its way, when something is. Only stock genuinely on
+/// its way says so: silence means nothing is coming, which is the case that
+/// needs a commande.
+class _OnOrderLine extends StatelessWidget {
+  const _OnOrderLine({required this.facts, this.dense = false});
+
+  final _AlertFacts facts;
+  final bool dense;
+
+  @override
+  Widget build(BuildContext context) {
+    final onOrder = facts.view.onOrderQuantity;
+    if (onOrder <= 0) return const SizedBox.shrink();
+
+    return Padding(
+      padding: EdgeInsets.only(top: dense ? AppSpacing.xs : AppSpacing.sm),
+      child: Row(
+        children: [
+          const Icon(LucideIcons.truck, size: 12, color: AppColors.primary700),
+          const SizedBox(width: AppSpacing.xs),
+          Flexible(
+            child: Text(
+              AppLocalizations.of(
+                context,
+              ).alertsOnOrder(facts.quantity(onOrder)),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                fontSize: 11,
+                color: AppColors.primary700,
+                fontWeight: FontWeight.w600,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],

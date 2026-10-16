@@ -217,13 +217,14 @@ final alertsFilterProvider =
 
 /// A table or a grid of cards — kept for the session, like the orders list.
 ///
-/// The table is the default on a wide screen: one aligned line per product is
-/// what scans fastest. A phone always gets the cards, whatever is chosen here.
-enum AlertsViewMode { table, grid }
+/// The cards are the default, one per line as on the movement history; the
+/// table is the second choice on a wide screen. A phone always gets the
+/// cards, whatever is chosen here.
+enum AlertsViewMode { list, table }
 
 class AlertsViewModeNotifier extends Notifier<AlertsViewMode> {
   @override
-  AlertsViewMode build() => AlertsViewMode.table;
+  AlertsViewMode build() => AlertsViewMode.list;
 
   void select(AlertsViewMode mode) => state = mode;
 }

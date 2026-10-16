@@ -2866,6 +2866,18 @@ abstract class AppLocalizations {
   /// **'Stock OK'**
   String get alertsPriorityOk;
 
+  /// Alert card: caption under the quantity on the shelf.
+  ///
+  /// In fr, this message translates to:
+  /// **'en stock'**
+  String get alertsCardInStock;
+
+  /// Alerts screen: heading over the list, how many products it shows.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =0{Aucun produit en alerte} =1{1 produit en alerte} other{{count} produits en alerte}}'**
+  String alertsCount(int count);
+
   /// Alerts summary card: products under their busy-day minimum.
   ///
   /// In fr, this message translates to:

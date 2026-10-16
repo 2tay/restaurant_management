@@ -1729,6 +1729,21 @@ class AppLocalizationsFr extends AppLocalizations {
   String get alertsPriorityOk => 'Stock OK';
 
   @override
+  String get alertsCardInStock => 'en stock';
+
+  @override
+  String alertsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count produits en alerte',
+      one: '1 produit en alerte',
+      zero: 'Aucun produit en alerte',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get alertsSummaryBusy => 'Jours chargés';
 
   @override
