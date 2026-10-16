@@ -59,9 +59,6 @@ class OrderDetailBody extends ConsumerWidget {
   static const String tabLines = 'lines';
   static const String tabReceipts = 'receipts';
 
-  /// The timeline. A panel only: the page draws it in its header.
-  static const String tabHistory = 'history';
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
@@ -133,76 +130,59 @@ class OrderDetailBody extends ConsumerWidget {
     return body;
   }
 
-  /// The commande as a panel: a pinned header and footer around a scrolling
-  /// summary, tabs and their content.
+  /// The commande as a panel: a pinned header and footer, the hero card and
+  /// tabs, and the open tab stretched down to the footer. Figures and colours
+  /// carry it; the sentences the page spells out are tooltips here.
   Widget _panel(BuildContext context, OrderDetailView view) {
     final l10n = AppLocalizations.of(context);
     final order = view.order;
     final receipts = view.receipts;
+    final receiptDates = [for (final r in receipts) r.receipt.receivedAt];
+    final showReceipts = tab == tabReceipts;
 
-    // A shortfall only exists once somebody has closed lines short — it is
-    // the figure that answers "which suppliers under-deliver?".
-    var shortfall = 0.0;
-    for (final line in order.lines) {
-      shortfall += lineShortfall(line);
-    }
-
-    final Widget content;
-    if (tab == tabReceipts) {
-      content = _Receipts(
+    Widget content(bool pinned) {
+      if (!showReceipts) {
+        return OrderPanelLines(
+          order: order,
+          lines: view.lines,
+          pinned: pinned,
+          showProgress:
+              order.status != PurchaseOrderStatus.draft &&
+              order.status != PurchaseOrderStatus.cancelled,
+        );
+      }
+      final list = _Receipts(
         storeId: storeId,
         receipts: receipts,
         emptyMessage: l10n.orderReceiptsEmpty,
         onOpen: (receiptId) =>
             openReceiptPanel(context, storeId: storeId, receiptId: receiptId),
       );
-    } else if (tab == tabHistory) {
-      content = OrderPanelHistory(
-        order: order,
-        receiptDates: [for (final r in receipts) r.receipt.receivedAt],
-      );
-    } else {
-      content = Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          OrderPanelLines(lines: view.lines),
-          const SizedBox(height: AppSpacing.lg),
-          OrderPanelGrandTotal(order: order),
-        ],
-      );
+      return pinned ? SingleChildScrollView(child: list) : list;
     }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        OrderPanelHeader(
-          panel: panel!,
-          order: order,
-          supplierName: view.supplierName,
-        ),
-        const SizedBox(height: AppSpacing.xl),
         Expanded(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.only(bottom: AppSpacing.xl),
-            child: Column(
+          child: PanelFillLayout(
+            top: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                OrderPanelSummary(
+                OrderPanelHeader(
+                  panel: panel!,
                   order: order,
                   supplierName: view.supplierName,
                 ),
-                if (order.status == PurchaseOrderStatus.sent ||
-                    order.status == PurchaseOrderStatus.partial) ...[
+                const SizedBox(height: AppSpacing.lg),
+                OrderPanelHero(order: order, receiptDates: receiptDates),
+                if (order.note != null) ...[
                   const SizedBox(height: AppSpacing.md),
-                  _LockedNotice(message: l10n.orderLockedNotice),
+                  PanelNote(note: order.note!),
                 ],
-                if (shortfall > 0) ...[
-                  const SizedBox(height: AppSpacing.md),
-                  OrderPanelShortfall(shortfall: shortfall),
-                ],
-                const SizedBox(height: AppSpacing.xl),
+                const SizedBox(height: AppSpacing.lg),
                 OrderPanelTabs(
-                  current: tab,
+                  current: showReceipts ? tabReceipts : tabLines,
                   onSelected: onTabChanged,
                   tabs: [
                     OrderPanelTab(
@@ -216,26 +196,12 @@ class OrderDetailBody extends ConsumerWidget {
                       label: l10n.orderTabReceipts,
                       count: receipts.length,
                     ),
-                    OrderPanelTab(
-                      id: tabHistory,
-                      label: l10n.orderPanelTabHistory,
-                    ),
                   ],
                 ),
-                const SizedBox(height: AppSpacing.lg),
-                content,
-                if (order.note != null) ...[
-                  const SizedBox(height: AppSpacing.xl),
-                  SectionHeader(title: l10n.orderNoteLabel),
-                  AppCard(
-                    child: Text(
-                      order.note!,
-                      style: Theme.of(context).textTheme.bodyLarge,
-                    ),
-                  ),
-                ],
+                const SizedBox(height: AppSpacing.md),
               ],
             ),
+            fill: content,
           ),
         ),
         OrderPanelFooter(
@@ -301,7 +267,20 @@ Future<void> openOrderPanel(
     current.open(build());
     return Future.value();
   }
-  return showDetailPanel(context, builder: build());
+  return showDetailPanel(
+    context,
+    builder: build(),
+    width: orderPanelWidth(context),
+  );
+}
+
+/// How wide a commande or réception panel opens: the usual 560 on a
+/// desktop, most of the screen on a tablet — where 560 would leave a strip of
+/// list nobody can use beside it. A phone gets a bottom sheet regardless.
+double orderPanelWidth(BuildContext context) {
+  final screen = MediaQuery.sizeOf(context).width;
+  if (screen >= AppBreakpoints.expanded) return 600;
+  return (screen * 0.86).clamp(560.0, 720.0);
 }
 
 /// Opens a réception as a panel, walking forward when already in one.
@@ -322,7 +301,11 @@ Future<void> openReceiptPanel(
     current.open(build());
     return Future.value();
   }
-  return showDetailPanel(context, builder: build());
+  return showDetailPanel(
+    context,
+    builder: build(),
+    width: orderPanelWidth(context),
+  );
 }
 
 /// The figures and dates at the top of the order.
@@ -821,12 +804,14 @@ class _Receipts extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        for (final view in receipts)
+        // Oldest first, so the position is the number after the slash.
+        for (final (i, view) in receipts.indexed)
           Padding(
             padding: const EdgeInsets.only(bottom: AppSpacing.sm),
             child: _ReceiptCard(
               storeId: storeId,
               view: view,
+              sequence: i + 1,
               onOpen: () => onOpen(view.receipt.id),
             ),
           ),
@@ -835,19 +820,22 @@ class _Receipts extends StatelessWidget {
   }
 }
 
-/// One delivery against the commande.
-///
-/// One line with room; on a phone the value and the lines count move under
-/// the reference so nothing is pushed off the edge.
+/// One delivery against the commande, read at a glance: its number in a
+/// medallion tinted by whether it matched, the bon's reference, when and who,
+/// and on the right what it was worth with the verdict under it.
 class _ReceiptCard extends StatelessWidget {
   const _ReceiptCard({
     required this.storeId,
     required this.view,
+    required this.sequence,
     required this.onOpen,
   });
 
   final String storeId;
   final ReceiptRowView view;
+
+  /// 1 for the first delivery — the `/1` of its reference.
+  final int sequence;
   final VoidCallback onOpen;
 
   @override
@@ -855,70 +843,12 @@ class _ReceiptCard extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final receipt = view.receipt;
+    final discrepancies = receiptDiscrepancyCount(receipt);
+    final conform = discrepancies == 0;
+    final verdict = conform ? AppColors.inStock : AppColors.lowStock;
     final muted = theme.textTheme.bodySmall?.copyWith(
       color: AppColors.textSecondary,
     );
-
-    final medallion = Container(
-      width: 40,
-      height: 40,
-      decoration: BoxDecoration(
-        color: AppColors.inStock.container,
-        borderRadius: AppRadius.mdAll,
-      ),
-      child: Icon(
-        LucideIcons.packageCheck,
-        size: AppSizing.iconMd,
-        color: AppColors.inStock.foreground,
-      ),
-    );
-
-    // The document reference leads rather than the date: a three-delivery
-    // order shows three rows that otherwise differ only by timestamp, and the
-    // reference is what staff and the supplier actually name them by.
-    final reference = Text(
-      view.reference,
-      style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-    );
-
-    final meta = Wrap(
-      spacing: AppSpacing.md,
-      runSpacing: AppSpacing.xxs,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      children: [
-        MetaItem(
-          icon: LucideIcons.calendar,
-          label: Formatters.dateTime(receipt.receivedAt),
-        ),
-        EmployeeNameTag(
-          name: l10n.receiptReceivedBy(receipt.receivedByName),
-          employeeId: receipt.receivedByEmployeeId,
-          style: muted,
-          avatarSize: 18,
-        ),
-      ],
-    );
-
-    final value = Text(
-      Formatters.price(receiptValue(receipt)),
-      style: AppTypography.numeric.copyWith(
-        fontSize: 15,
-        fontWeight: FontWeight.w700,
-      ),
-      maxLines: 1,
-    );
-    final lines = Text(
-      l10n.ordersColumnLines(receipt.lines.length),
-      style: muted,
-      maxLines: 1,
-    );
-
-    // Straight from the list: the partial delivery somebody needs to send on
-    // is usually one of several on the order, and making them open each one
-    // to find it is how the feature ends up unused.
-    final document = ReceiptDocumentButton(receipt: receipt, compact: true);
 
     return AppCard(
       // Keyed by the réception it shows: it keeps the list stable when one is
@@ -929,73 +859,115 @@ class _ReceiptCard extends StatelessWidget {
       // the réception replaces what the panel shows and grows a back arrow.
       // On the page there is no panel, so it navigates as it always did.
       onTap: onOpen,
+      accentColor: conform ? null : verdict.solid,
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.lg,
         vertical: AppSpacing.md,
       ),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          if (constraints.maxWidth < 560) {
-            return Row(
+      child: Row(
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: verdict.container,
+              borderRadius: AppRadius.mdAll,
+            ),
+            child: Text(
+              '#$sequence',
+              style: theme.textTheme.titleSmall?.copyWith(
+                color: verdict.foreground,
+                fontWeight: FontWeight.w800,
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
+            ),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                medallion,
-                const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(child: reference),
-                          const SizedBox(width: AppSpacing.sm),
-                          value,
-                        ],
-                      ),
-                      const SizedBox(height: AppSpacing.xs),
-                      meta,
-                      const SizedBox(height: AppSpacing.xs),
-                      Row(
-                        children: [
-                          Expanded(child: lines),
-                          document,
-                        ],
-                      ),
-                    ],
+                // The reference leads rather than the date: it is what staff
+                // and the supplier actually name a delivery by.
+                Text(
+                  view.reference,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    fontFeatures: const [FontFeature.tabularFigures()],
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: AppSpacing.xxs),
+                Wrap(
+                  spacing: AppSpacing.md,
+                  runSpacing: AppSpacing.xxs,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    MetaItem(
+                      icon: LucideIcons.calendarClock,
+                      label: Formatters.dateTime(receipt.receivedAt),
+                    ),
+                    EmployeeNameTag(
+                      name: receipt.receivedByName,
+                      employeeId: receipt.receivedByEmployeeId,
+                      style: muted,
+                      avatarSize: 16,
+                    ),
+                  ],
                 ),
               ],
-            );
-          }
-
-          return Row(
+            ),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              medallion,
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              Text(
+                Formatters.price(receiptValue(receipt)),
+                style: AppTypography.numeric.copyWith(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                ),
+                maxLines: 1,
+              ),
+              const SizedBox(height: AppSpacing.xxs),
+              Tooltip(
+                message: conform
+                    ? l10n.receptionsConform
+                    : l10n.receptionsDiscrepancies(discrepancies),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    reference,
-                    const SizedBox(height: AppSpacing.xxs),
-                    meta,
+                    Icon(
+                      conform
+                          ? LucideIcons.circleCheck
+                          : LucideIcons.triangleAlert,
+                      size: 14,
+                      color: verdict.foreground,
+                    ),
+                    const SizedBox(width: AppSpacing.xxs),
+                    Text(
+                      conform
+                          ? '${receipt.lines.length}'
+                          : '$discrepancies / ${receipt.lines.length}',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: verdict.foreground,
+                        fontWeight: FontWeight.w700,
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                      ),
+                    ),
                   ],
                 ),
               ),
-              const SizedBox(width: AppSpacing.md),
-              lines,
-              const SizedBox(width: AppSpacing.lg),
-              value,
-              const SizedBox(width: AppSpacing.sm),
-              document,
-              const Icon(
-                LucideIcons.chevronRight,
-                size: AppSizing.iconSm,
-                color: AppColors.textDisabled,
-              ),
             ],
-          );
-        },
+          ),
+          const SizedBox(width: AppSpacing.xs),
+          // Straight from the list: the partial delivery somebody needs to
+          // send on is usually one of several on the order.
+          ReceiptDocumentButton(receipt: receipt, compact: true),
+        ],
       ),
     );
   }

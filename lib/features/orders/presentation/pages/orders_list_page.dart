@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,8 +10,8 @@ import '../../../../app/routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../../core/utils/dates.dart';
 import '../../../../core/utils/formatters.dart';
-import '../../../../core/utils/responsive.dart';
 import '../../../../core/utils/order_status.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../data/providers.dart';
@@ -21,139 +23,76 @@ import '../widgets/order_actions.dart';
 import '../widgets/order_status_badge.dart';
 import '../widgets/order_visuals.dart';
 import '../widgets/order_detail_view.dart';
+import 'create_order_page.dart';
 
-/// How many days back a date filter reaches. Null means no date filter.
-enum OrderDateRange { last7, last30, last90 }
-
-/// The status tabs across the top of the orders list.
-enum OrdersTab {
-  all,
-  drafts,
-  sent,
-  partial,
-
-  /// Fully received or cancelled — nothing left to do.
-  done;
-
-  bool matches(PurchaseOrder order) => switch (this) {
-    OrdersTab.all => true,
-    OrdersTab.drafts => order.status == PurchaseOrderStatus.draft,
-    OrdersTab.sent => order.status == PurchaseOrderStatus.sent,
-    OrdersTab.partial => order.status == PurchaseOrderStatus.partial,
-    OrdersTab.done =>
-      order.status == PurchaseOrderStatus.received ||
-          order.status == PurchaseOrderStatus.cancelled,
-  };
-
-  String label(AppLocalizations l10n) => switch (this) {
-    OrdersTab.all => l10n.ordersTabAll,
-    OrdersTab.drafts => l10n.ordersTabDrafts,
-    OrdersTab.sent => l10n.ordersTabSent,
-    OrdersTab.partial => l10n.ordersTabPartial,
-    OrdersTab.done => l10n.ordersTabDone,
-  };
-}
-
-/// Local filter state for the orders list. UI state only — no business rules.
-class OrdersFilter {
-  const OrdersFilter({this.tab = OrdersTab.all, this.supplierId, this.range});
-
-  /// Which status tab is open. Always on screen, so not counted as a filter.
-  final OrdersTab tab;
-  final String? supplierId;
-  final OrderDateRange? range;
-
-  bool get hasActiveFilters => activeFilterCount > 0;
-
-  /// How many filters are narrowing the list, for the button that stands in
-  /// for them on a phone.
-  int get activeFilterCount =>
-      (supplierId != null ? 1 : 0) + (range != null ? 1 : 0);
-
-  OrdersFilter copyWith({
-    OrdersTab? tab,
-    String? supplierId,
-    OrderDateRange? range,
-    bool clearSupplier = false,
-    bool clearRange = false,
-  }) {
-    return OrdersFilter(
-      tab: tab ?? this.tab,
-      supplierId: clearSupplier ? null : supplierId ?? this.supplierId,
-      range: clearRange ? null : range ?? this.range,
-    );
-  }
-}
-
-class OrdersFilterNotifier extends Notifier<OrdersFilter> {
-  @override
-  OrdersFilter build() => const OrdersFilter();
-
-  void setTab(OrdersTab tab) => state = state.copyWith(tab: tab);
-
-  void setSupplier(String? id) => id == null
-      ? state = state.copyWith(clearSupplier: true)
-      : state = state.copyWith(supplierId: id);
-
-  void setRange(OrderDateRange? value) => value == null
-      ? state = state.copyWith(clearRange: true)
-      : state = state.copyWith(range: value);
-
-  /// Clears the supplier and period, keeping the tab the user is on.
-  void clear() => state = OrdersFilter(tab: state.tab);
-}
+/// Below this width the table would have to scroll sideways to show its
+/// columns — a card per order reads better on a touch screen, as on the
+/// pointage history.
+const double _tableMinWidth = 860;
 
 /// A table column the orders can be sorted by.
 enum OrdersSortKey { date, reference, supplier, status, amount, received }
 
-/// The table's sort — null [key] keeps the newest-first order the list comes
-/// in with.
-class OrdersSort {
-  const OrdersSort({this.key, this.ascending = true});
-
-  final OrdersSortKey? key;
-  final bool ascending;
-}
-
-class OrdersSortNotifier extends Notifier<OrdersSort> {
-  @override
-  OrdersSort build() => const OrdersSort();
-
-  /// A new column sorts ascending; the same column again flips direction.
-  void toggle(OrdersSortKey key) => state = state.key == key
-      ? OrdersSort(key: key, ascending: !state.ascending)
-      : OrdersSort(key: key);
-}
-
-final ordersSortProvider = NotifierProvider<OrdersSortNotifier, OrdersSort>(
-  OrdersSortNotifier.new,
-);
-
-final ordersFilterProvider =
-    NotifierProvider<OrdersFilterNotifier, OrdersFilter>(
-      OrdersFilterNotifier.new,
-    );
-
-/// Every commande for the current store.
-class OrdersListPage extends ConsumerWidget {
+/// Every commande for the current store — laid out like the pointage history:
+/// KPI tiles, the search and filter strip, the active filters, then the table
+/// (cards on a narrow screen) and its paginator.
+class OrdersListPage extends ConsumerStatefulWidget {
   const OrdersListPage({required this.storeId, super.key});
 
   final String storeId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<OrdersListPage> createState() => _OrdersListPageState();
+}
+
+class _OrdersListPageState extends ConsumerState<OrdersListPage> {
+  String _query = '';
+  String? _supplierId;
+  PurchaseOrderStatus? _status;
+
+  /// The first day shown, or null for "since the first order" — nothing is
+  /// hidden until the manager narrows the period.
+  DateTime? _from;
+
+  /// The last day shown, or null for today.
+  DateTime? _to;
+
+  OrdersSortKey? _sortKey;
+  bool _sortAscending = true;
+  int _page = 0;
+  int _pageSize = Paginator.defaultPageSizes.first;
+
+  bool get _rangeIsDefault => _from == null && _to == null;
+
+  int get _activeFilterCount =>
+      (_rangeIsDefault ? 0 : 1) +
+      (_supplierId == null ? 0 : 1) +
+      (_status == null ? 0 : 1);
+
+  void _update(VoidCallback change) => setState(() {
+    change();
+    _page = 0;
+  });
+
+  void _clearFilters() => _update(() {
+    _from = null;
+    _to = null;
+    _supplierId = null;
+    _status = null;
+  });
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
 
     // Sending, receiving and cancelling all happen on screens pushed above this
     // one. The query watches the tables they write to, so the list is correct
     // when the user comes back rather than showing what it read on the way in.
-    final filter = ref.watch(ordersFilterProvider);
-    final notifier = ref.read(ordersFilterProvider.notifier);
-
-    final rows = ref.watch(orderRowsProvider(storeId));
-    final suppliers = ref.watch(suppliersProvider(storeId)).value ?? const [];
+    final rows = ref.watch(orderRowsProvider(widget.storeId));
+    final suppliers =
+        ref.watch(suppliersProvider(widget.storeId)).value ?? const [];
     final staleDays =
-        ref.watch(stalePartialOrderDaysProvider(storeId)).value ??
+        ref.watch(stalePartialOrderDaysProvider(widget.storeId)).value ??
         OrderRules.defaultStalePartialDays;
 
     return ShellPage(
@@ -164,147 +103,297 @@ class OrdersListPage extends ConsumerWidget {
           label: l10n.ordersNewAction,
           shortLabel: l10n.shortNewOrder,
           icon: LucideIcons.plus,
-          onPressed: () => context.pushScreen(Routes.toNewOrder(storeId)),
+          onPressed: () => createOrder(context, storeId: widget.storeId),
         ),
       ],
       child: AsyncContent<List<OrderRowView>>(
         value: rows,
-        onRetry: () => ref.invalidate(orderRowsProvider(storeId)),
-        builder: (context, all) {
-          final orders = _visible(all, filter);
-
-          final filters = <Widget>[
-            _SupplierMenu(
-              suppliers: suppliers,
-              selectedId: filter.supplierId,
-              onSelected: notifier.setSupplier,
-            ),
-            _RangeMenu(selected: filter.range, onSelected: notifier.setRange),
-          ];
-
-          // Counted over the supplier and period filters, so each tab says
-          // how many rows tapping it would show.
-          final beforeTab = _visible(all, filter.copyWith(tab: OrdersTab.all));
-          final counts = {
-            for (final tab in OrdersTab.values)
-              tab: beforeTab.where((view) => tab.matches(view.order)).length,
-          };
-          final count = _Summary(orders: orders);
-
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _StatusTabs(
-                tab: filter.tab,
-                counts: counts,
-                onSelected: notifier.setTab,
-              ),
-              const SizedBox(height: AppSpacing.md),
-              // Four filters and a count stack into five rows on a phone. They
-              // move behind one button there and stay on screen on a tablet,
-              // the same bargain the inventory and movement lists make.
-              if (context.isPhone)
-                Row(
-                  children: [
-                    FilterSheetButton(
-                      activeCount: filter.activeFilterCount,
-                      onPressed: () => FilterSheet.show(
-                        context,
-                        onClear: filter.hasActiveFilters
-                            ? notifier.clear
-                            : null,
-                        builder: (context) => Consumer(
-                          builder: (context, ref, _) {
-                            // Watched, not captured: the pills inside the sheet
-                            // have to follow the taps made on them.
-                            ref.watch(ordersFilterProvider);
-                            return Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                for (final (i, control) in filters.indexed) ...[
-                                  if (i > 0)
-                                    const SizedBox(height: AppSpacing.md),
-                                  Align(
-                                    alignment: Alignment.centerLeft,
-                                    child: control,
-                                  ),
-                                ],
-                              ],
-                            );
-                          },
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.md),
-                    Expanded(child: count),
-                  ],
-                )
-              else ...[
-                Wrap(
-                  spacing: AppSpacing.sm,
-                  runSpacing: AppSpacing.sm,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    ...filters,
-                    if (filter.hasActiveFilters)
-                      TextButton.icon(
-                        onPressed: notifier.clear,
-                        icon: const Icon(LucideIcons.x, size: AppSizing.iconSm),
-                        label: Text(l10n.inventoryClearFilters),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.md),
-                count,
-              ],
-              const SizedBox(height: AppSpacing.md),
-
-              // Part of the page: the whole page scrolls, title and filters
-              // included.
-              Builder(
-                builder: (context) => orders.isEmpty
-                    ? _Empty(
-                        storeId: storeId,
-                        storeHasOrders: all.isNotEmpty,
-                        onClearFilters: notifier.clear,
-                      )
-                    : _OrdersTable(
-                        storeId: storeId,
-                        orders: orders,
-                        stalePartialDays: staleDays,
-                      ),
-              ),
-            ],
-          );
-        },
+        onRetry: () => ref.invalidate(orderRowsProvider(widget.storeId)),
+        builder: (context, all) => _content(l10n, all, suppliers, staleDays),
       ),
     );
   }
 
-  /// The four filters, applied over rows already in hand.
-  ///
-  /// Kept in Dart: this is a screen for trying one filter after another, and
-  /// four optional predicates in SQL would be four shapes of query behind it.
-  List<OrderRowView> _visible(List<OrderRowView> rows, OrdersFilter filter) {
-    final now = clock.now();
+  Widget _content(
+    AppLocalizations l10n,
+    List<OrderRowView> all,
+    List<Supplier> suppliers,
+    int staleDays,
+  ) {
+    final today = dayOf(clock.now());
+    final to = _to ?? today;
+    final earliest = all.isEmpty
+        ? today
+        : all
+              .map((v) => dayOf(_dateOf(v.order)))
+              .reduce((a, b) => a.isBefore(b) ? a : b);
+    final from = _from ?? (earliest.isAfter(to) ? to : earliest);
+
+    final orders = _sorted(_visible(all));
+    final pageCount = math.max(1, (orders.length / _pageSize).ceil());
+    final page = math.min(_page, pageCount - 1);
+    final shown = orders
+        .skip(page * _pageSize)
+        .take(_pageSize)
+        .toList(growable: false);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _StatRow(orders: orders, staleDays: staleDays),
+        const SizedBox(height: AppSpacing.lg),
+        FilterToolbar(
+          activeCount: _activeFilterCount,
+          onClear: _clearFilters,
+          search: SearchField(
+            hint: l10n.ordersSearchHint,
+            initialValue: _query,
+            onChanged: (q) => _update(() => _query = q.trim()),
+          ),
+          filters: [
+            FilterMenu<String?>(
+              label: l10n.inventoryFilterSupplier,
+              selectedLabel: _supplierName(suppliers),
+              entries: {
+                null: l10n.inventoryFilterAllSuppliers,
+                for (final s in suppliers) s.id: s.name,
+              },
+              onSelected: (id) => _update(() => _supplierId = id),
+            ),
+            DateFilter(
+              key: const ValueKey('orders-date-from'),
+              label: l10n.historyFilterFrom,
+              value: from,
+              firstDate: DateTime(2000),
+              lastDate: to,
+              isDefault: _from == null,
+              onChanged: (d) => _update(() => _from = dayOf(d)),
+            ),
+            DateFilter(
+              key: const ValueKey('orders-date-to'),
+              label: l10n.historyFilterTo,
+              value: to,
+              firstDate: from,
+              lastDate: today,
+              isDefault: _to == null,
+              onChanged: (d) => _update(() {
+                _to = dayOf(d);
+                if (_from != null && _from!.isAfter(_to!)) _from = _to;
+              }),
+            ),
+            FilterMenu<PurchaseOrderStatus?>(
+              label: l10n.ordersFilterStatus,
+              selectedLabel: _status == null
+                  ? null
+                  : OrderStatusBadge.labelFor(l10n, _status!),
+              entries: {
+                null: l10n.ordersFilterAllStatuses,
+                for (final s in PurchaseOrderStatus.values)
+                  s: OrderStatusBadge.labelFor(l10n, s),
+              },
+              onSelected: (s) => _update(() => _status = s),
+            ),
+          ],
+        ),
+        if (_activeFilterCount > 0) ...[
+          const SizedBox(height: AppSpacing.sm),
+          Wrap(
+            spacing: AppSpacing.xs,
+            runSpacing: AppSpacing.xs,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              if (_supplierId != null)
+                RemovableFilterChip(
+                  label: _supplierName(suppliers) ?? '—',
+                  onRemove: () => _update(() => _supplierId = null),
+                ),
+              if (!_rangeIsDefault)
+                RemovableFilterChip(
+                  label: l10n.ordersFilterDateRange(
+                    Formatters.date(from),
+                    Formatters.date(to),
+                  ),
+                  onRemove: () => _update(() {
+                    _from = null;
+                    _to = null;
+                  }),
+                ),
+              if (_status != null)
+                RemovableFilterChip(
+                  label: OrderStatusBadge.labelFor(l10n, _status!),
+                  onRemove: () => _update(() => _status = null),
+                ),
+              TextButton(
+                onPressed: _clearFilters,
+                child: Text(l10n.inventoryClearFilters),
+              ),
+            ],
+          ),
+        ],
+        const SizedBox(height: AppSpacing.md),
+        Text(
+          l10n.ordersCount(orders.length),
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+        const SizedBox(height: AppSpacing.md),
+        if (orders.isEmpty)
+          ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 360),
+            child: _Empty(
+              storeId: widget.storeId,
+              storeHasOrders: all.isNotEmpty,
+              onClearFilters: _clearFilters,
+            ),
+          )
+        else ...[
+          LayoutBuilder(
+            builder: (context, constraints) =>
+                constraints.maxWidth >= _tableMinWidth
+                ? _OrdersTable(
+                    storeId: widget.storeId,
+                    orders: shown,
+                    staleDays: staleDays,
+                    sortKey: _sortKey,
+                    sortAscending: _sortAscending,
+                    onSort: (key) => setState(() {
+                      // A new column sorts ascending; the same column again
+                      // flips direction.
+                      _sortAscending = _sortKey == key ? !_sortAscending : true;
+                      _sortKey = key;
+                    }),
+                  )
+                : _OrderCards(
+                    storeId: widget.storeId,
+                    orders: shown,
+                    staleDays: staleDays,
+                  ),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Paginator(
+            page: page,
+            pageCount: pageCount,
+            totalCount: orders.length,
+            pageSize: _pageSize,
+            onChanged: (p) => setState(() => _page = p),
+            onPageSizeChanged: (size) => _update(() => _pageSize = size),
+          ),
+        ],
+      ],
+    );
+  }
+
+  String? _supplierName(List<Supplier> suppliers) {
+    final id = _supplierId;
+    if (id == null) return null;
+    for (final s in suppliers) {
+      if (s.id == id) return s.name;
+    }
+    return '—';
+  }
+
+  static DateTime _dateOf(PurchaseOrder order) =>
+      order.sentAt ?? order.createdAt;
+
+  /// The search and the filters, applied over rows already in hand.
+  List<OrderRowView> _visible(List<OrderRowView> rows) {
+    final query = _query.toLowerCase();
 
     return rows.where((view) {
       final order = view.order;
-      if (!filter.tab.matches(order)) return false;
-      if (filter.supplierId != null && order.supplierId != filter.supplierId) {
+      if (_status != null && order.status != _status) return false;
+      if (_supplierId != null && order.supplierId != _supplierId) {
         return false;
       }
-      if (filter.range != null) {
-        final days = switch (filter.range!) {
-          OrderDateRange.last7 => 7,
-          OrderDateRange.last30 => 30,
-          OrderDateRange.last90 => 90,
-        };
-        final date = order.sentAt ?? order.createdAt;
-        if (now.difference(date).inDays > days) return false;
+      final day = dayOf(_dateOf(order));
+      if (_from != null && day.isBefore(_from!)) return false;
+      if (_to != null && day.isAfter(_to!)) return false;
+      if (query.isNotEmpty &&
+          !order.reference.toLowerCase().contains(query) &&
+          !view.supplierName.toLowerCase().contains(query)) {
+        return false;
       }
       return true;
     }).toList();
+  }
+
+  /// Null [_sortKey] keeps the newest-first order the list comes in with.
+  List<OrderRowView> _sorted(List<OrderRowView> orders) {
+    final key = _sortKey;
+    if (key == null) return orders;
+
+    int compare(OrderRowView a, OrderRowView b) => switch (key) {
+      OrdersSortKey.date => _dateOf(a.order).compareTo(_dateOf(b.order)),
+      OrdersSortKey.reference => a.order.reference.compareTo(b.order.reference),
+      OrdersSortKey.supplier => a.supplierName.toLowerCase().compareTo(
+        b.supplierName.toLowerCase(),
+      ),
+      OrdersSortKey.status => a.order.status.index.compareTo(
+        b.order.status.index,
+      ),
+      OrdersSortKey.amount => orderTotal(
+        a.order,
+      ).compareTo(orderTotal(b.order)),
+      OrdersSortKey.received => orderReceivedShare(
+        a.order,
+      ).compareTo(orderReceivedShare(b.order)),
+    };
+
+    return [...orders]
+      ..sort((a, b) => _sortAscending ? compare(a, b) : compare(b, a));
+  }
+}
+
+// -----------------------------------------------------------------------------
+
+/// The KPI tiles over the orders the search and filters leave: how many, what
+/// they commit the store to, how many still expect goods, how many are late.
+class _StatRow extends StatelessWidget {
+  const _StatRow({required this.orders, required this.staleDays});
+
+  final List<OrderRowView> orders;
+  final int staleDays;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    var total = 0.0;
+    var toReceive = 0;
+    var late = 0;
+    for (final view in orders) {
+      final order = view.order;
+      total += orderTotal(order);
+      if (order.status == PurchaseOrderStatus.sent ||
+          order.status == PurchaseOrderStatus.partial) {
+        toReceive++;
+      }
+      if (orderIsStale(order, staleDays)) late++;
+    }
+
+    return StatTileRow(
+      tiles: [
+        StatTile(
+          label: l10n.ordersStatCount,
+          value: '${orders.length}',
+          icon: LucideIcons.clipboardList,
+        ),
+        StatTile(
+          label: l10n.ordersStatAmount,
+          value: Formatters.price(total),
+          icon: LucideIcons.wallet,
+        ),
+        StatTile(
+          label: l10n.ordersStatToReceive,
+          value: '$toReceive',
+          icon: LucideIcons.truck,
+        ),
+        StatTile(
+          label: l10n.ordersStatLate,
+          value: '$late',
+          icon: LucideIcons.clockAlert,
+          accent: late == 0 ? null : AppColors.lowStock,
+        ),
+      ],
+    );
   }
 }
 
@@ -339,138 +428,16 @@ class _Empty extends StatelessWidget {
       message: l10n.ordersEmptyBody,
       actionLabel: l10n.ordersEmptyAction,
       actionIcon: LucideIcons.plus,
-      onAction: () => context.pushScreen(Routes.toNewOrder(storeId)),
+      onAction: () => createOrder(context, storeId: storeId),
     );
   }
 }
 
-class _SupplierMenu extends StatelessWidget {
-  const _SupplierMenu({
-    required this.suppliers,
-    required this.selectedId,
-    required this.onSelected,
-  });
-
-  final List<Supplier> suppliers;
-  final String? selectedId;
-  final ValueChanged<String?> onSelected;
-
-  /// From the list the menu is already showing, so the label on the chip and
-  /// the entries below it cannot disagree.
-  String _nameOf(String id) {
-    for (final supplier in suppliers) {
-      if (supplier.id == id) return supplier.name;
-    }
-    return '—';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final selected = selectedId == null ? null : _nameOf(selectedId!);
-
-    return PopupMenuButton<String>(
-      tooltip: l10n.inventoryFilterSupplier,
-      shape: const RoundedRectangleBorder(borderRadius: AppRadius.mdAll),
-      onSelected: (value) => onSelected(value == _all ? null : value),
-      itemBuilder: (context) => [
-        PopupMenuItem<String>(
-          value: _all,
-          child: Text(l10n.inventoryFilterAllSuppliers),
-        ),
-        const PopupMenuDivider(),
-        for (final supplier in suppliers)
-          PopupMenuItem<String>(value: supplier.id, child: Text(supplier.name)),
-      ],
-      child: FilterPill(
-        label: l10n.inventoryFilterSupplier,
-        selectedLabel: selected,
-      ),
-    );
-  }
-
-  static const String _all = '__all__';
-}
-
-class _RangeMenu extends StatelessWidget {
-  const _RangeMenu({required this.selected, required this.onSelected});
-
-  final OrderDateRange? selected;
-  final ValueChanged<OrderDateRange?> onSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-
-    String label(OrderDateRange range) => switch (range) {
-      OrderDateRange.last7 => l10n.ordersFilterLast7,
-      OrderDateRange.last30 => l10n.ordersFilterLast30,
-      OrderDateRange.last90 => l10n.ordersFilterLast90,
-    };
-
-    return PopupMenuButton<String>(
-      tooltip: l10n.ordersFilterPeriod,
-      shape: const RoundedRectangleBorder(borderRadius: AppRadius.mdAll),
-      onSelected: (value) => onSelected(
-        value == _all
-            ? null
-            : OrderDateRange.values.firstWhere((r) => r.name == value),
-      ),
-      itemBuilder: (context) => [
-        PopupMenuItem<String>(
-          value: _all,
-          child: Text(l10n.ordersFilterAllPeriods),
-        ),
-        const PopupMenuDivider(),
-        for (final range in OrderDateRange.values)
-          PopupMenuItem<String>(value: range.name, child: Text(label(range))),
-      ],
-      child: FilterPill(
-        label: l10n.ordersFilterPeriod,
-        selectedLabel: selected == null ? null : label(selected!),
-      ),
-    );
-  }
-
-  static const String _all = '__all__';
-}
-
-/// The status tabs: one chip per status, each with how many orders it holds.
-/// One tap to the drafts waiting to be sent, or the orders waiting to arrive.
-class _StatusTabs extends StatelessWidget {
-  const _StatusTabs({
-    required this.tab,
-    required this.counts,
-    required this.onSelected,
-  });
-
-  final OrdersTab tab;
-  final Map<OrdersTab, int> counts;
-  final ValueChanged<OrdersTab> onSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    return CountTabs<OrdersTab>(
-      selected: tab,
-      onSelected: onSelected,
-      tabs: [
-        for (final value in OrdersTab.values)
-          CountTab(
-            value: value,
-            label: value.label(l10n),
-            count: counts[value] ?? 0,
-          ),
-      ],
-    );
-  }
-}
-
-/// The one thing to do next with an order, on its row: send a draft, receive
-/// a sent or partial one, reorder a finished one.
+/// The one thing to do next with an order: send a draft, receive a sent or
+/// partial one. A received or cancelled order has nothing left to do.
 ///
-/// [compact] draws it as an icon button with the label in a tooltip, for a
-/// table too narrow to give a worded button its column.
+/// [compact] draws it as an icon button with the label in a tooltip, for the
+/// table's action column.
 class _QuickAction extends ConsumerWidget {
   const _QuickAction({
     required this.storeId,
@@ -482,438 +449,235 @@ class _QuickAction extends ConsumerWidget {
   final OrderRowView view;
   final bool compact;
 
+  static bool hasAction(PurchaseOrder order) =>
+      order.status == PurchaseOrderStatus.draft ||
+      order.status == PurchaseOrderStatus.sent ||
+      order.status == PurchaseOrderStatus.partial;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final order = view.order;
+    if (!hasAction(order)) return const SizedBox.shrink();
 
-    final (label, icon, primary, onPressed) = switch (order.status) {
-      PurchaseOrderStatus.draft => (
-        l10n.orderActionSend,
-        LucideIcons.send,
-        false,
-        () => confirmSendOrder(context, ref, order, view.supplierName),
-      ),
-      PurchaseOrderStatus.sent || PurchaseOrderStatus.partial => (
-        l10n.receptionsReceive,
-        LucideIcons.packageCheck,
-        true,
-        () => context.pushScreen(Routes.toReceiveOrder(storeId, order.id)),
-      ),
-      PurchaseOrderStatus.received || PurchaseOrderStatus.cancelled => (
-        l10n.orderActionDuplicate,
-        LucideIcons.copy,
-        false,
-        () => duplicateOrder(context, ref, storeId, order),
-      ),
-    };
+    final draft = order.status == PurchaseOrderStatus.draft;
+    final label = draft ? l10n.orderActionSend : l10n.receptionsReceive;
+    final icon = draft ? LucideIcons.send : LucideIcons.packageCheck;
+    void onPressed() => draft
+        ? confirmSendOrder(context, ref, order, view.supplierName)
+        : context.pushScreen(Routes.toReceiveOrder(storeId, order.id));
 
     if (compact) {
       final glyph = Icon(icon, size: AppSizing.iconSm);
-      return primary
-          ? IconButton.filled(onPressed: onPressed, tooltip: label, icon: glyph)
-          : IconButton.outlined(
+      return draft
+          ? IconButton.outlined(
+              onPressed: onPressed,
+              tooltip: label,
+              icon: glyph,
+            )
+          : IconButton.filled(
               onPressed: onPressed,
               tooltip: label,
               icon: glyph,
             );
     }
 
-    return primary
-        ? PrimaryButton(label: label, icon: icon, onPressed: onPressed)
-        : SecondaryButton(label: label, icon: icon, onPressed: onPressed);
+    return draft
+        ? SecondaryButton(label: label, icon: icon, onPressed: onPressed)
+        : PrimaryButton(label: label, icon: icon, onPressed: onPressed);
   }
 }
 
-/// "12 commandes · 4 520,00 €" — how many rows the filters left, and what
-/// they commit the store to.
-class _Summary extends StatelessWidget {
-  const _Summary({required this.orders});
-
-  final List<OrderRowView> orders;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-    var total = 0.0;
-    for (final view in orders) {
-      total += orderTotal(view.order);
-    }
-
-    return Text.rich(
-      TextSpan(
-        children: [
-          TextSpan(
-            text: l10n.ordersCount(orders.length),
-            style: const TextStyle(
-              color: AppColors.textPrimary,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          if (orders.isNotEmpty) ...[
-            const TextSpan(text: '  ·  '),
-            TextSpan(
-              text: Formatters.price(total),
-              style: const TextStyle(
-                fontFeatures: [FontFeature.tabularFigures()],
-              ),
-            ),
-          ],
-        ],
-      ),
-      style: theme.textTheme.bodyMedium?.copyWith(
-        color: AppColors.textSecondary,
-      ),
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-    );
-  }
-}
-
-/// The orders, as the page's one view: date and time, reference, supplier,
-/// status, lines, amount, how much has arrived, and the next action.
-///
-/// Sortable by every column worth comparing. Shapes itself to the room it is
-/// given rather than to the screen, dropping columns in order of how rarely
-/// they are read — lines, then progress, then the reference — while action
-/// buttons fold to icons and the status pill to its glyph. What a dropped
-/// column said moves under the supplier's name.
-///
-/// Below [_stacksBelow] — a phone — there is no room left for columns at all,
-/// and each order becomes a stacked row inside the same frame instead: every
-/// figure still there, none of it panned off the side.
-class _OrdersTable extends ConsumerWidget {
+/// One line per order: Date / Référence / Fournisseur / Statut / Montant /
+/// Reçu, then the document and the next action. Clicking the row opens the
+/// order panel — the same table as the pointage history.
+class _OrdersTable extends StatelessWidget {
   const _OrdersTable({
     required this.storeId,
     required this.orders,
-    required this.stalePartialDays,
+    required this.staleDays,
+    required this.sortKey,
+    required this.sortAscending,
+    required this.onSort,
   });
 
   final String storeId;
   final List<OrderRowView> orders;
-  final int stalePartialDays;
+  final int staleDays;
+  final OrdersSortKey? sortKey;
+  final bool sortAscending;
+  final ValueChanged<OrdersSortKey> onSort;
 
-  // The widths each column needs to be shown at.
-  static const double _showsLines = 1180;
-  static const double _showsReceived = 1000;
-  static const double _showsReference = 700;
-  static const double _stacksBelow = 600;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-    final sort = ref.watch(ordersSortProvider);
-    final rows = _sorted(orders, sort);
-    final muted = theme.textTheme.bodySmall?.copyWith(
-      color: AppColors.textSecondary,
-    );
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final width = constraints.maxWidth;
-        if (width < _stacksBelow) {
-          return _StackedOrders(
-            storeId: storeId,
-            orders: rows,
-            stalePartialDays: stalePartialDays,
-          );
-        }
-        final compactStatus = width < _showsReference;
-        final compactActions = width < 900;
-        final showsReference = width >= _showsReference;
-
-        return AppTable<OrderRowView>(
-          rows: rows,
-          shrinkWrap: true,
-          rowHeight: 64,
-          sortKey: sort.key,
-          sortAscending: sort.ascending,
-          onSort: (key) => ref
-              .read(ordersSortProvider.notifier)
-              .toggle(key as OrdersSortKey),
-          // Only the orders that need chasing get an edge, so a long table
-          // still shows at a glance which deliveries are overdue.
-          rowAccent: (view) => orderIsStale(view.order, stalePartialDays)
-              ? AppColors.lowStock.solid
-              : null,
-          // A panel, as on Réceptions: a commande is read on the way through
-          // the list, and going back to the list should not be a navigation to
-          // undo. The full page stays for deep links and for the destructive
-          // actions the panel deliberately does not carry.
-          onRowTap: (view) =>
-              openOrderPanel(context, storeId: storeId, orderId: view.order.id),
-          columns: [
-            AppTableColumn(
-              label: l10n.tableColDate,
-              width: 124,
-              sortKey: OrdersSortKey.date,
-            ),
-            AppTableColumn(
-              label: l10n.tableColReference,
-              width: 150,
-              minTableWidth: _showsReference,
-              sortKey: OrdersSortKey.reference,
-            ),
-            AppTableColumn(
-              label: l10n.tableColSupplier,
-              flex: 3,
-              sortKey: OrdersSortKey.supplier,
-            ),
-            AppTableColumn(
-              label: l10n.tableColStatus,
-              width: compactStatus ? 60 : 144,
-              sortKey: compactStatus ? null : OrdersSortKey.status,
-            ),
-            AppTableColumn(
-              label: l10n.tableColLines,
-              width: 84,
-              numeric: true,
-              minTableWidth: _showsLines,
-            ),
-            AppTableColumn(
-              label: l10n.tableColAmount,
-              width: 128,
-              numeric: true,
-              sortKey: OrdersSortKey.amount,
-            ),
-            AppTableColumn(
-              label: l10n.tableColReceived,
-              width: 150,
-              minTableWidth: _showsReceived,
-              sortKey: OrdersSortKey.received,
-            ),
-            AppTableColumn(label: '', width: compactActions ? 128 : 228),
-          ],
-          cell: (context, view, column) {
-            final order = view.order;
-            final at = order.sentAt ?? order.createdAt;
-            return switch (column) {
-              0 => Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    Formatters.date(at),
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.textPrimary,
-                      fontFeatures: const [FontFeature.tabularFigures()],
-                    ),
-                    maxLines: 1,
-                  ),
-                  const SizedBox(height: AppSpacing.xxs),
-                  Text(Formatters.time(at), style: muted, maxLines: 1),
-                ],
-              ),
-              1 => Text(
-                order.reference,
-                style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              2 => _SupplierCell(
-                view: view,
-                // What the hidden reference column would have said.
-                subtitle: showsReference ? '' : order.reference,
-              ),
-              3 => Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Flexible(
-                    child: OrderStatusBadge(
-                      status: order.status,
-                      compact: compactStatus,
-                    ),
-                  ),
-                  if (!compactStatus &&
-                      orderIsStale(order, stalePartialDays)) ...[
-                    const SizedBox(width: AppSpacing.xs),
-                    Tooltip(
-                      message: l10n.dashboardStaleOrdersBody,
-                      child: Icon(
-                        LucideIcons.clock,
-                        size: AppSizing.iconSm,
-                        color: AppColors.lowStock.foreground,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-              4 => Text(
-                '${order.lines.length}',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  fontFeatures: const [FontFeature.tabularFigures()],
-                ),
-              ),
-              5 => Text(
-                Formatters.price(orderTotal(order)),
-                style: AppTypography.numeric.copyWith(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                ),
-                maxLines: 1,
-              ),
-              6 =>
-                order.status == PurchaseOrderStatus.draft ||
-                        order.status == PurchaseOrderStatus.cancelled
-                    ? Text(
-                        '—',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: AppColors.textDisabled,
-                        ),
-                      )
-                    : ReceivedProgress(share: orderReceivedShare(order)),
-              _ => Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  OrderDocumentButton(order: order, compact: true),
-                  const SizedBox(width: AppSpacing.xs),
-                  Flexible(
-                    child: _QuickAction(
-                      storeId: storeId,
-                      view: view,
-                      compact: compactActions,
-                    ),
-                  ),
-                ],
-              ),
-            };
-          },
-        );
-      },
-    );
-  }
-
-  static List<OrderRowView> _sorted(
-    List<OrderRowView> orders,
-    OrdersSort sort,
-  ) {
-    final key = sort.key;
-    if (key == null) return orders;
-
-    int compare(OrderRowView a, OrderRowView b) => switch (key) {
-      OrdersSortKey.date => (a.order.sentAt ?? a.order.createdAt).compareTo(
-        b.order.sentAt ?? b.order.createdAt,
-      ),
-      OrdersSortKey.reference => a.order.reference.compareTo(b.order.reference),
-      OrdersSortKey.supplier => a.supplierName.toLowerCase().compareTo(
-        b.supplierName.toLowerCase(),
-      ),
-      OrdersSortKey.status => a.order.status.index.compareTo(
-        b.order.status.index,
-      ),
-      OrdersSortKey.amount => orderTotal(
-        a.order,
-      ).compareTo(orderTotal(b.order)),
-      OrdersSortKey.received => orderReceivedShare(
-        a.order,
-      ).compareTo(orderReceivedShare(b.order)),
-    };
-
-    return [...orders]
-      ..sort((a, b) => sort.ascending ? compare(a, b) : compare(b, a));
-  }
-}
-
-/// The supplier with its initials, and underneath it whatever the narrower
-/// table had to leave out.
-class _SupplierCell extends StatelessWidget {
-  const _SupplierCell({required this.view, required this.subtitle});
-
-  final OrderRowView view;
-  final String subtitle;
+  /// The sort key of each column, in column order; null is not sortable.
+  static const _columnKeys = [
+    OrdersSortKey.date,
+    OrdersSortKey.reference,
+    OrdersSortKey.supplier,
+    OrdersSortKey.status,
+    OrdersSortKey.amount,
+    OrdersSortKey.received,
+    null,
+  ];
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final text = Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          view.supplierName,
-          style: theme.textTheme.bodyMedium?.copyWith(
-            fontWeight: FontWeight.w600,
-            color: AppColors.textPrimary,
+    final l10n = AppLocalizations.of(context);
+    final labels = [
+      l10n.tableColDate,
+      l10n.tableColReference,
+      l10n.tableColSupplier,
+      l10n.tableColStatus,
+      l10n.tableColAmount,
+      l10n.tableColReceived,
+      '',
+    ];
+    final sortIndex = sortKey == null ? null : _columnKeys.indexOf(sortKey);
+
+    return DataTableWrapper(
+      minWidth: _tableMinWidth,
+      sortColumnIndex: sortIndex,
+      sortAscending: sortAscending,
+      columns: [
+        for (final (i, key) in _columnKeys.indexed)
+          DataColumn(
+            label: Text(labels[i]),
+            numeric: key == OrdersSortKey.amount,
+            onSort: key == null ? null : (_, _) => onSort(key),
           ),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-        if (subtitle.isNotEmpty) ...[
-          const SizedBox(height: AppSpacing.xxs),
+      ],
+      rows: [for (final view in orders) _row(context, l10n, view)],
+    );
+  }
+
+  DataRow _row(BuildContext context, AppLocalizations l10n, OrderRowView view) {
+    final theme = Theme.of(context);
+    final order = view.order;
+    final at = order.sentAt ?? order.createdAt;
+    final stale = orderIsStale(order, staleDays);
+    final pending =
+        order.status == PurchaseOrderStatus.draft ||
+        order.status == PurchaseOrderStatus.cancelled;
+
+    return DataRow(
+      onSelectChanged: (_) =>
+          openOrderPanel(context, storeId: storeId, orderId: order.id),
+      cells: [
+        DataCell(WeekdayDate(at)),
+        DataCell(
           Text(
-            subtitle,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: AppColors.textSecondary,
+            order.reference,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              fontWeight: FontWeight.w600,
               fontFeatures: const [FontFeature.tabularFigures()],
             ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
           ),
-        ],
-      ],
-    );
-
-    return Row(
-      children: [
-        SupplierMonogram(name: view.supplierName, size: 32),
-        const SizedBox(width: AppSpacing.md),
-        Expanded(child: text),
+        ),
+        DataCell(
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SupplierMonogram(name: view.supplierName, size: 28),
+              const SizedBox(width: AppSpacing.sm),
+              Flexible(
+                child: Text(
+                  view.supplierName,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        ),
+        DataCell(
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              OrderStatusBadge(status: order.status),
+              if (stale) ...[
+                const SizedBox(width: AppSpacing.xs),
+                Tooltip(
+                  message: l10n.dashboardStaleOrdersBody,
+                  child: Icon(
+                    LucideIcons.clock,
+                    size: AppSizing.iconSm,
+                    color: AppColors.lowStock.foreground,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+        DataCell(
+          NumericCell(Formatters.price(orderTotal(order)), emphasis: true),
+        ),
+        DataCell(
+          pending
+              ? Text(
+                  '—',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: AppColors.textDisabled,
+                  ),
+                )
+              : SizedBox(
+                  width: 120,
+                  child: ReceivedProgress(share: orderReceivedShare(order)),
+                ),
+        ),
+        DataCell(
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              OrderDocumentButton(order: order, compact: true),
+              if (_QuickAction.hasAction(order)) ...[
+                const SizedBox(width: AppSpacing.xs),
+                _QuickAction(storeId: storeId, view: view, compact: true),
+              ],
+            ],
+          ),
+        ),
       ],
     );
   }
 }
 
-/// The orders on a phone: the table's frame and its rows, each row stacked
-/// rather than split into columns.
-///
-/// Supplier and amount on top, reference and date underneath, status beside
-/// them, and — for an order still expecting goods — how much has arrived with
-/// the button to receive the rest. Every row keeps a full-size, worded action:
-/// a thumb needs a target, and an unlabelled icon asks it to guess.
-class _StackedOrders extends StatelessWidget {
-  const _StackedOrders({
+/// The orders as a grid of cards — the table's small-screen alternative, the
+/// same [ResponsiveCardGrid] as the pointage history's day cards.
+class _OrderCards extends StatelessWidget {
+  const _OrderCards({
     required this.storeId,
     required this.orders,
-    required this.stalePartialDays,
+    required this.staleDays,
   });
 
   final String storeId;
   final List<OrderRowView> orders;
-  final int stalePartialDays;
+  final int staleDays;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: AppRadius.lgAll,
-        border: Border.all(color: AppColors.border),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          for (final (i, view) in orders.indexed) ...[
-            if (i > 0) const Divider(height: 1, color: AppColors.hairline),
-            _StackedOrderRow(
-              storeId: storeId,
-              view: view,
-              stale: orderIsStale(view.order, stalePartialDays),
-            ),
-          ],
-        ],
-      ),
+    return ResponsiveCardGrid(
+      children: [
+        for (final view in orders)
+          _OrderCard(
+            storeId: storeId,
+            view: view,
+            stale: orderIsStale(view.order, staleDays),
+          ),
+      ],
     );
   }
 }
 
-class _StackedOrderRow extends StatelessWidget {
-  const _StackedOrderRow({
+/// One order, as a card: the date and the status on top ([CardDateHeader]),
+/// the supplier and reference, the amount and how much has arrived side by
+/// side, then the document and the next action. The whole card opens the
+/// order panel.
+class _OrderCard extends StatelessWidget {
+  const _OrderCard({
     required this.storeId,
     required this.view,
     required this.stale,
@@ -928,110 +692,144 @@ class _StackedOrderRow extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final order = view.order;
-    final at = order.sentAt ?? order.createdAt;
-    final open =
-        order.status == PurchaseOrderStatus.sent ||
-        order.status == PurchaseOrderStatus.partial;
+    final pending =
+        order.status == PurchaseOrderStatus.draft ||
+        order.status == PurchaseOrderStatus.cancelled;
 
-    return Material(
-      color: AppColors.surface,
-      child: InkWell(
-        onTap: () =>
-            openOrderPanel(context, storeId: storeId, orderId: order.id),
-        hoverColor: AppColors.neutral50,
-        child: Container(
-          decoration: BoxDecoration(
-            border: Border(
-              left: BorderSide(
-                width: 3,
-                color: stale ? AppColors.lowStock.solid : Colors.transparent,
-              ),
-            ),
+    return AppCard(
+      onTap: () => openOrderPanel(context, storeId: storeId, orderId: order.id),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          CardDateHeader(
+            date: order.sentAt ?? order.createdAt,
+            status: OrderStatusBadge(status: order.status),
           ),
-          padding: const EdgeInsets.fromLTRB(
-            AppSpacing.md,
-            AppSpacing.md,
-            AppSpacing.lg,
-            AppSpacing.md,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+          const SizedBox(height: AppSpacing.md),
+          Row(
             children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SupplierMonogram(name: view.supplierName, size: 36),
-                  const SizedBox(width: AppSpacing.md),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+              SupplierMonogram(name: view.supplierName, size: 36),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      view.supplierName,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: AppSpacing.xxs),
+                    Wrap(
+                      spacing: AppSpacing.md,
+                      runSpacing: AppSpacing.xxs,
                       children: [
-                        Text(
-                          view.supplierName,
-                          style: theme.textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.w600,
+                        MetaItem(
+                          icon: LucideIcons.hash,
+                          label: order.reference,
+                        ),
+                        if (stale)
+                          MetaItem(
+                            icon: LucideIcons.clock,
+                            label: l10n.receptionsLate,
+                            color: AppColors.lowStock.foreground,
+                            emphasis: true,
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: AppSpacing.xxs),
-                        Wrap(
-                          spacing: AppSpacing.md,
-                          runSpacing: AppSpacing.xxs,
-                          children: [
-                            MetaItem(
-                              icon: LucideIcons.hash,
-                              label: order.reference,
-                            ),
-                            MetaItem(
-                              icon: LucideIcons.calendar,
-                              label:
-                                  '${Formatters.date(at)} · '
-                                  '${Formatters.time(at)}',
-                            ),
-                            if (stale)
-                              MetaItem(
-                                icon: LucideIcons.clock,
-                                label: l10n.receptionsLate,
-                                color: AppColors.lowStock.foreground,
-                                emphasis: true,
-                              ),
-                          ],
-                        ),
                       ],
                     ),
-                  ),
-                  const SizedBox(width: AppSpacing.sm),
-                  Text(
-                    Formatters.price(orderTotal(order)),
-                    style: AppTypography.numeric.copyWith(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                    ),
-                    maxLines: 1,
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.md),
-              Row(
-                children: [
-                  Flexible(child: OrderStatusBadge(status: order.status)),
-                  const SizedBox(width: AppSpacing.md),
-                  Expanded(
-                    child: open
-                        ? ReceivedProgress(share: orderReceivedShare(order))
-                        : const SizedBox.shrink(),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.md),
-              SizedBox(
-                width: double.infinity,
-                child: _QuickAction(storeId: storeId, view: view),
+                  ],
+                ),
               ),
             ],
           ),
-        ),
+          const SizedBox(height: AppSpacing.md),
+          // IntrinsicHeight so the two tiles match when one label wraps.
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: _CardFigure(
+                    label: l10n.tableColAmount,
+                    child: Text(
+                      Formatters.price(orderTotal(order)),
+                      style: AppTypography.numeric.copyWith(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                      ),
+                      maxLines: 1,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: _CardFigure(
+                    label: l10n.tableColReceived,
+                    child: pending
+                        ? Text(
+                            '—',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: AppColors.textDisabled,
+                            ),
+                          )
+                        : ReceivedProgress(share: orderReceivedShare(order)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Row(
+            children: [
+              OrderDocumentButton(order: order, compact: true),
+              if (_QuickAction.hasAction(order)) ...[
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: _QuickAction(storeId: storeId, view: view),
+                ),
+              ],
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// One figure on an [_OrderCard] — a small grey label over the value, on a
+/// grey tile, like the pointage history's cards.
+class _CardFigure extends StatelessWidget {
+  const _CardFigure({required this.label, required this.child});
+
+  final String label;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.sm),
+      decoration: const BoxDecoration(
+        color: AppColors.surfaceVariant,
+        borderRadius: AppRadius.mdAll,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label,
+            style: Theme.of(
+              context,
+            ).textTheme.labelSmall?.copyWith(color: AppColors.textSecondary),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 2),
+          child,
+        ],
       ),
     );
   }

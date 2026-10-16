@@ -21,12 +21,25 @@ class ReceiptDocumentButton extends ConsumerStatefulWidget {
     required this.receipt,
     this.compact = false,
     super.key,
-  });
+  }) : footer = false,
+       prominent = false;
+
+  /// A full-width button for a panel's footer — teal when [prominent],
+  /// outlined when something else holds the primary slot.
+  const ReceiptDocumentButton.footer({
+    required this.receipt,
+    this.prominent = false,
+    super.key,
+  }) : compact = false,
+       footer = true;
 
   final GoodsReceipt receipt;
 
   /// Icon only, for a row in a list. The full button carries its label.
   final bool compact;
+
+  final bool footer;
+  final bool prominent;
 
   @override
   ConsumerState<ReceiptDocumentButton> createState() =>
@@ -58,7 +71,17 @@ class _ReceiptDocumentButtonState extends ConsumerState<ReceiptDocumentButton> {
       );
     }
 
+    if (widget.footer && !widget.prominent) {
+      return SecondaryButton(
+        label: l10n.receiptDocAction,
+        icon: LucideIcons.fileDown,
+        fullWidth: true,
+        onPressed: _busy ? null : _share,
+      );
+    }
+
     return PrimaryButton(
+      fullWidth: widget.footer,
       label: l10n.receiptDocAction,
       icon: LucideIcons.fileDown,
       isBusy: _busy,

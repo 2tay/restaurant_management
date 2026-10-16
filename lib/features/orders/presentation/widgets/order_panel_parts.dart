@@ -12,15 +12,18 @@ import '../../../../l10n/app_localizations.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
 import '../../documents/order_document_button.dart';
-import 'order_detail_view.dart';
 import 'order_status_badge.dart';
 import 'order_visuals.dart';
 
-/// The pieces of a commande shown as a panel: a header that names it, a
-/// summary card, tabs, the lines, the total and a footer for the PDF.
+/// The pieces of a commande shown as a panel: a header that names it, a hero
+/// card, tabs, the lines and a footer for the PDF.
 ///
 /// Laid out by `OrderDetailBody`; kept apart from it so the page's layout and
 /// the panel's can each be read on their own.
+///
+/// **Read at a glance.** A panel is opened to check something on the way to
+/// something else, so it says with figures, colours and icons what the page
+/// says in sentences. The long explanations live in tooltips.
 
 /// The panel's top: the commande, who it is with, where it stands, and the
 /// way out.
@@ -38,299 +41,493 @@ class OrderPanelHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return PanelIdentityHeader(
+      panel: panel,
+      supplierName: supplierName,
+      reference: order.reference,
+      badge: OrderStatusBadge(status: order.status),
+      action: OrderDocumentButton(order: order, compact: true),
+    );
+  }
+}
+
+/// The top of a commande or réception panel: the supplier, the document's
+/// reference with its status, a document action and the way out.
+///
+/// With room it is one row. On a phone the actions take a row of their own
+/// beside the supplier's initials, and the name and reference get the whole
+/// width under it, wrapping rather than being cut.
+class PanelIdentityHeader extends StatelessWidget {
+  const PanelIdentityHeader({
+    required this.panel,
+    required this.supplierName,
+    required this.reference,
+    required this.badge,
+    required this.action,
+    super.key,
+  });
+
+  final PanelController panel;
+  final String supplierName;
+  final String reference;
+  final Widget badge;
+
+  /// The icon button for the PDF.
+  final Widget action;
+
+  static const double _stacksBelow = 400;
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (panel.canGoBack) ...[
-          IconButton(
+    final back = panel.canGoBack
+        ? IconButton(
             onPressed: panel.back,
             tooltip: l10n.actionBack,
             icon: const Icon(LucideIcons.arrowLeft, size: AppSizing.iconMd),
+          )
+        : null;
+    final close = IconButton(
+      onPressed: panel.close,
+      tooltip: l10n.actionClose,
+      icon: const Icon(LucideIcons.x, size: AppSizing.iconMd),
+    );
+    final identity = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          supplierName,
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w700,
           ),
-          const SizedBox(width: AppSpacing.xs),
-        ],
-        Container(
-          width: 48,
-          height: 48,
-          decoration: BoxDecoration(
-            color: AppColors.primaryContainer.withValues(alpha: 0.6),
-            borderRadius: AppRadius.mdAll,
-          ),
-          child: const Icon(
-            LucideIcons.fileText,
-            size: AppSizing.iconMd,
-            color: AppColors.primary700,
-          ),
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
         ),
-        const SizedBox(width: AppSpacing.md),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
+        const SizedBox(height: AppSpacing.xs),
+        Wrap(
+          spacing: AppSpacing.sm,
+          runSpacing: AppSpacing.xs,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            PanelReferenceCopy(reference: reference),
+            badge,
+          ],
+        ),
+      ],
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < _stacksBelow) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Wrap(
-                spacing: AppSpacing.sm,
-                runSpacing: AppSpacing.xs,
-                crossAxisAlignment: WrapCrossAlignment.center,
+              Row(
                 children: [
-                  Text(
-                    l10n.orderDetailTitle(order.reference),
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  OrderStatusBadge(status: order.status),
+                  ?back,
+                  SupplierMonogram(name: supplierName, size: 40),
+                  const Spacer(),
+                  action,
+                  close,
                 ],
               ),
-              const SizedBox(height: AppSpacing.xxs),
-              Text(
-                supplierName,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: AppColors.textSecondary,
+              const SizedBox(height: AppSpacing.md),
+              identity,
+            ],
+          );
+        }
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (back != null) ...[back, const SizedBox(width: AppSpacing.xs)],
+            SupplierMonogram(name: supplierName, size: 44),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(child: identity),
+            const SizedBox(width: AppSpacing.xs),
+            action,
+            close,
+          ],
+        );
+      },
+    );
+  }
+}
+
+/// The reference in tabular figures; tapping it copies it.
+class PanelReferenceCopy extends StatelessWidget {
+  const PanelReferenceCopy({required this.reference, super.key});
+
+  final String reference;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
+    return Tooltip(
+      message: l10n.orderPanelCopyReference,
+      child: InkWell(
+        borderRadius: AppRadius.smAll,
+        onTap: () async {
+          await Clipboard.setData(ClipboardData(text: reference));
+          if (context.mounted) {
+            AppSnackBar.success(context, l10n.orderPanelReferenceCopied);
+          }
+        },
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 2),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Flexible(
+                child: Text(
+                  reference,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppColors.textSecondary,
+                    fontWeight: FontWeight.w600,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(width: AppSpacing.xs),
+              const Icon(
+                LucideIcons.copy,
+                size: 12,
+                color: AppColors.textDisabled,
               ),
             ],
           ),
         ),
-        const SizedBox(width: AppSpacing.xs),
-        OrderDocumentButton(order: order, compact: true),
-        IconButton(
-          onPressed: panel.close,
-          tooltip: l10n.actionClose,
-          icon: const Icon(LucideIcons.x, size: AppSizing.iconMd),
+      ),
+    );
+  }
+}
+
+/// The one card that answers "how much, how far along, since when": the
+/// total, a progress bar for what has arrived, and the commande's journey as
+/// three steps — which is the timeline the history tab used to spell out.
+class OrderPanelHero extends StatelessWidget {
+  const OrderPanelHero({
+    required this.order,
+    required this.receiptDates,
+    super.key,
+  });
+
+  final PurchaseOrder order;
+
+  /// When each delivery arrived, oldest first.
+  final List<DateTime> receiptDates;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+
+    var shortfall = 0.0;
+    for (final line in order.lines) {
+      shortfall += lineShortfall(line);
+    }
+    final locked =
+        order.status == PurchaseOrderStatus.sent ||
+        order.status == PurchaseOrderStatus.partial;
+
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      // A soft tint instead of a frame: the card reads as one block without
+      // a border competing with the lines' card under it.
+      decoration: const BoxDecoration(
+        color: AppColors.neutral50,
+        borderRadius: AppRadius.lgAll,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final hasChips = locked || shortfall > 0;
+              final total = Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    l10n.orderTotalLabel,
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.xxs),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      Formatters.price(orderTotal(order)),
+                      style: AppTypography.numericHero,
+                      maxLines: 1,
+                    ),
+                  ),
+                ],
+              );
+              final chips = Wrap(
+                spacing: AppSpacing.xs,
+                runSpacing: AppSpacing.xs,
+                alignment: WrapAlignment.end,
+                children: [
+                  if (locked)
+                    _InfoChip(
+                      icon: LucideIcons.lock,
+                      label: l10n.orderPanelLocked,
+                      tooltip: l10n.orderLockedNotice,
+                    ),
+                  if (shortfall > 0)
+                    _InfoChip(
+                      icon: LucideIcons.packageX,
+                      label: l10n.orderPanelShortfall(
+                        Formatters.quantity(shortfall),
+                      ),
+                      colors: AppColors.lowStock,
+                    ),
+                ],
+              );
+              // A phone keeps the total on its own line; the chips go under.
+              if (constraints.maxWidth < 360) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    total,
+                    if (hasChips) ...[
+                      const SizedBox(height: AppSpacing.sm),
+                      chips,
+                    ],
+                  ],
+                );
+              }
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Expanded(child: total),
+                  if (hasChips) ...[
+                    const SizedBox(width: AppSpacing.sm),
+                    chips,
+                  ],
+                ],
+              );
+            },
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          _Journey(order: order, receiptDates: receiptDates),
+        ],
+      ),
+    );
+  }
+}
+
+/// Créée → Envoyée → Reçue (or Annulée), each step with its date. A step not
+/// reached yet is drawn hollow, so what comes next is visible too.
+class _Journey extends StatelessWidget {
+  const _Journey({required this.order, required this.receiptDates});
+
+  final PurchaseOrder order;
+  final List<DateTime> receiptDates;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final cancelled = order.status == PurchaseOrderStatus.cancelled;
+    final partial = order.status == PurchaseOrderStatus.partial;
+
+    final steps = <_Step>[
+      _Step(
+        icon: LucideIcons.filePlus,
+        label: l10n.orderTimelineCreated,
+        at: order.createdAt,
+        state: _StepState.done,
+      ),
+      _Step(
+        icon: LucideIcons.send,
+        label: l10n.orderTimelineSent,
+        at: order.sentAt,
+        state: order.sentAt != null ? _StepState.done : _StepState.todo,
+      ),
+      if (cancelled)
+        _Step(
+          icon: LucideIcons.ban,
+          label: l10n.orderTimelineCancelled,
+          at: order.closedAt,
+          state: _StepState.cancelled,
+        )
+      else
+        _Step(
+          icon: partial ? LucideIcons.clock : LucideIcons.packageCheck,
+          label: partial ? l10n.orderStatusPartial : l10n.orderStatusReceived,
+          at: order.status == PurchaseOrderStatus.received
+              ? order.closedAt
+              : (receiptDates.isEmpty ? null : receiptDates.last),
+          state: switch (order.status) {
+            PurchaseOrderStatus.received => _StepState.done,
+            PurchaseOrderStatus.partial => _StepState.current,
+            _ => _StepState.todo,
+          },
         ),
+    ];
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (final (i, step) in steps.indexed) ...[
+          if (i > 0)
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(top: 13),
+                child: Container(
+                  height: 2,
+                  color: step.state == _StepState.todo
+                      ? AppColors.hairline
+                      : AppColors.primary600.withValues(alpha: 0.5),
+                ),
+              ),
+            ),
+          _StepDot(step: step),
+        ],
       ],
     );
   }
 }
 
-/// The figures that answer "how much, and when", then the three facts the
-/// commande is looked up by.
-class OrderPanelSummary extends StatelessWidget {
-  const OrderPanelSummary({
-    required this.order,
-    required this.supplierName,
-    super.key,
+enum _StepState { done, current, todo, cancelled }
+
+@immutable
+class _Step {
+  const _Step({
+    required this.icon,
+    required this.label,
+    required this.at,
+    required this.state,
   });
 
-  final PurchaseOrder order;
-  final String supplierName;
+  final IconData icon;
+  final String label;
+  final DateTime? at;
+  final _StepState state;
+}
 
-  /// Below this the summary's cells stack instead of sharing a row.
-  static const double _stacksBelow = 420;
+class _StepDot extends StatelessWidget {
+  const _StepDot({required this.step});
+
+  final _Step step;
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    final (Color fill, Color fg, Color border) = switch (step.state) {
+      _StepState.done => (
+        AppColors.primary600,
+        AppColors.white,
+        AppColors.primary600,
+      ),
+      _StepState.current => (
+        AppColors.primaryContainer,
+        AppColors.primary700,
+        AppColors.primary600,
+      ),
+      _StepState.cancelled => (
+        AppColors.outOfStock.container,
+        AppColors.outOfStock.foreground,
+        AppColors.outOfStock.container,
+      ),
+      _StepState.todo => (
+        AppColors.surface,
+        AppColors.textDisabled,
+        AppColors.hairline,
+      ),
+    };
 
-    final total = _Cell(
-      label: l10n.orderTotalLabel,
-      child: Text(
-        Formatters.price(orderTotal(order)),
-        style: AppTypography.numericHero,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
-    );
-    final date = _Cell(
-      label: l10n.orderPanelDate,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
+    return SizedBox(
+      width: 76,
+      child: Column(
         children: [
-          const Icon(
-            LucideIcons.calendar,
-            size: AppSizing.iconSm,
-            color: AppColors.textSecondary,
-          ),
-          const SizedBox(width: AppSpacing.sm),
-          Flexible(
-            child: Text(
-              Formatters.dateTime(order.createdAt),
-              style: theme.textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
-              ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
+          Container(
+            width: 28,
+            height: 28,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: fill,
+              border: Border.all(color: border, width: 1.5),
             ),
+            child: Icon(step.icon, size: 14, color: fg),
           ),
-        ],
-      ),
-    );
-
-    final lines = _Cell(
-      label: l10n.orderTabLines,
-      child: Text(
-        l10n.orderPanelItems(order.lines.length),
-        style: theme.textTheme.titleSmall?.copyWith(
-          fontWeight: FontWeight.w600,
-        ),
-        maxLines: 1,
-      ),
-    );
-    final supplier = _Cell(
-      label: l10n.tableColSupplier,
-      child: Row(
-        children: [
-          SupplierMonogram(name: supplierName, size: 28),
-          const SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: Text(
-              supplierName,
-              style: theme.textTheme.bodySmall?.copyWith(
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
-              ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            step.label,
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: step.state == _StepState.todo
+                  ? AppColors.textDisabled
+                  : AppColors.textPrimary,
+              fontWeight: FontWeight.w600,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
           ),
-        ],
-      ),
-    );
-    final reference = _Cell(
-      label: l10n.tableColReference,
-      child: Row(
-        children: [
-          Flexible(
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: Text(
-                order.reference,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary,
-                  fontFeatures: const [FontFeature.tabularFigures()],
-                ),
-                maxLines: 1,
-              ),
-            ),
-          ),
-          IconButton(
-            tooltip: l10n.orderPanelCopyReference,
-            visualDensity: VisualDensity.compact,
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints.tightFor(width: 32, height: 32),
-            onPressed: () async {
-              await Clipboard.setData(ClipboardData(text: order.reference));
-              if (context.mounted) {
-                AppSnackBar.success(context, l10n.orderPanelReferenceCopied);
-              }
-            },
-            icon: const Icon(
-              LucideIcons.copy,
-              size: 16,
+          Text(
+            step.at == null ? '—' : Formatters.date(step.at!),
+            style: theme.textTheme.labelSmall?.copyWith(
               color: AppColors.textSecondary,
+              fontFeatures: const [FontFeature.tabularFigures()],
             ),
+            maxLines: 1,
+            textAlign: TextAlign.center,
           ),
         ],
-      ),
-    );
-
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: AppRadius.lgAll,
-        border: Border.all(color: AppColors.hairline),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final narrow = constraints.maxWidth < _stacksBelow;
-          const hDivider = Divider(height: 1, color: AppColors.hairline);
-          const vDivider = VerticalDivider(width: 1, color: AppColors.hairline);
-
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // The headline band, lightly tinted so the total reads first.
-              Container(
-                color: AppColors.neutral50,
-                child: IntrinsicHeight(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Expanded(child: total),
-                      vDivider,
-                      Expanded(child: date),
-                    ],
-                  ),
-                ),
-              ),
-              hDivider,
-              // On a phone the supplier, whose name is the longest of the
-              // three, takes a row of its own under the other two.
-              if (narrow) ...[
-                IntrinsicHeight(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Expanded(child: lines),
-                      vDivider,
-                      Expanded(child: reference),
-                    ],
-                  ),
-                ),
-                hDivider,
-                supplier,
-              ] else
-                IntrinsicHeight(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Expanded(flex: 2, child: lines),
-                      vDivider,
-                      Expanded(flex: 3, child: supplier),
-                      vDivider,
-                      Expanded(flex: 4, child: reference),
-                    ],
-                  ),
-                ),
-            ],
-          );
-        },
       ),
     );
   }
 }
 
-class _Cell extends StatelessWidget {
-  const _Cell({required this.label, required this.child});
+/// A small tinted chip — a fact in two words, its explanation in a tooltip.
+class _InfoChip extends StatelessWidget {
+  const _InfoChip({
+    required this.icon,
+    required this.label,
+    this.tooltip,
+    this.colors,
+  });
 
+  final IconData icon;
   final String label;
-  final Widget child;
+  final String? tooltip;
+  final StockStatusColors? colors;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
+    final fg = colors?.foreground ?? AppColors.steel800;
+    final chip = Container(
       padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.lg,
-        vertical: AppSpacing.md,
+        horizontal: AppSpacing.sm,
+        vertical: AppSpacing.xxs + 1,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
+      decoration: BoxDecoration(
+        color: colors?.container ?? AppColors.offlineContainer,
+        borderRadius: AppRadius.pillAll,
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
+          Icon(icon, size: 12, color: fg),
+          const SizedBox(width: AppSpacing.xs),
           Text(
             label,
-            style: Theme.of(
-              context,
-            ).textTheme.labelMedium?.copyWith(color: AppColors.textSecondary),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: fg,
+              fontWeight: FontWeight.w600,
+            ),
           ),
-          const SizedBox(height: AppSpacing.xs),
-          child,
         ],
       ),
     );
+    return tooltip == null ? chip : Tooltip(message: tooltip!, child: chip);
   }
 }
 
@@ -356,8 +553,8 @@ class OrderPanelTab {
 
 /// The panel's tabs: teal for the open one, each with what it holds.
 ///
-/// Scrolls sideways rather than wrapping when a phone cannot fit the three
-/// French labels — a bar broken over two lines reads as two bars.
+/// Scrolls sideways rather than wrapping when a phone cannot fit the French
+/// labels — a bar broken over two lines reads as two bars.
 class OrderPanelTabs extends StatelessWidget {
   const OrderPanelTabs({
     required this.tabs,
@@ -478,14 +675,70 @@ class _TabChip extends StatelessWidget {
   }
 }
 
-/// The ordered lines, one structured row each, in a single bordered card.
-class OrderPanelLines extends StatelessWidget {
-  const OrderPanelLines({required this.lines, super.key});
+/// A panel body that scrolls as one: [top] (header and summary) and [fill]
+/// (the list) move together, so nothing stays stuck while the rest scrolls.
+class PanelFillLayout extends StatelessWidget {
+  const PanelFillLayout({required this.top, required this.fill, super.key});
 
-  final List<OrderLineView> lines;
+  final Widget top;
+
+  /// Built with `pinned: false`: laid out at its natural size in the scroll.
+  final Widget Function(bool pinned) fill;
 
   @override
   Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.only(bottom: AppSpacing.lg),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [top, fill(false)],
+      ),
+    );
+  }
+}
+
+/// A bordered card holding a list of rows and, pinned along its bottom, a
+/// strip of totals. Pinned, the rows scroll inside it and the card reaches
+/// the bottom of the panel; unpinned, it is as tall as its rows.
+class PanelListCard extends StatelessWidget {
+  const PanelListCard({
+    required this.pinned,
+    required this.itemCount,
+    required this.itemBuilder,
+    this.footer,
+    super.key,
+  });
+
+  final bool pinned;
+  final int itemCount;
+  final IndexedWidgetBuilder itemBuilder;
+  final Widget? footer;
+
+  @override
+  Widget build(BuildContext context) {
+    final strip = footer == null
+        ? null
+        : Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.lg,
+              vertical: AppSpacing.md,
+            ),
+            decoration: const BoxDecoration(
+              color: AppColors.neutral50,
+              border: Border(top: BorderSide(color: AppColors.hairline)),
+            ),
+            child: footer,
+          );
+
+    Widget separated(int i) => Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (i > 0) const Divider(height: 1, color: AppColors.hairline),
+        itemBuilder(context, i),
+      ],
+    );
+
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surface,
@@ -494,27 +747,104 @@ class OrderPanelLines extends StatelessWidget {
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(
+        mainAxisSize: pinned ? MainAxisSize.max : MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          for (final (i, line) in lines.indexed) ...[
-            if (i > 0) const Divider(height: 1, color: AppColors.hairline),
-            _LineRow(view: line),
-          ],
+          if (pinned)
+            Expanded(
+              child: ListView.builder(
+                padding: EdgeInsets.zero,
+                itemCount: itemCount,
+                itemBuilder: (context, i) => separated(i),
+              ),
+            )
+          else
+            for (var i = 0; i < itemCount; i++) separated(i),
+          ?strip,
         ],
       ),
     );
   }
 }
 
-/// One line: the article and where it stands on top, its four figures in
-/// aligned columns underneath.
+/// The ordered lines, one row each with the product's photo, and the total
+/// along the bottom of the card.
+class OrderPanelLines extends StatelessWidget {
+  const OrderPanelLines({
+    required this.order,
+    required this.lines,
+    required this.showProgress,
+    required this.pinned,
+    super.key,
+  });
+
+  final PurchaseOrder order;
+  final List<OrderLineView> lines;
+
+  /// False on a draft or a cancelled commande, where nothing is expected to
+  /// arrive and a bar stuck at zero would only be noise.
+  final bool showProgress;
+  final bool pinned;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final settled = order.lines.where(lineIsSettled).length;
+
+    return PanelListCard(
+      pinned: pinned,
+      itemCount: lines.length,
+      itemBuilder: (context, i) =>
+          _LineRow(view: lines[i], showProgress: showProgress),
+      footer: Row(
+        children: [
+          Icon(
+            showProgress ? LucideIcons.packageCheck : LucideIcons.package,
+            size: AppSizing.iconSm,
+            color: AppColors.textSecondary,
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Text(
+              showProgress
+                  ? '$settled / ${order.lines.length}'
+                  : l10n.orderPanelItems(order.lines.length),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: AppColors.textSecondary,
+                fontWeight: FontWeight.w600,
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
+            ),
+          ),
+          Text(
+            Formatters.price(orderTotal(order)),
+            style: AppTypography.numeric.copyWith(
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+              color: AppColors.primary800,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// One line: the product's photo, its name with "received / ordered" and a
+/// slim bar, then the money. Its colour says where it stands — teal while
+/// owed, green once in, amber when closed short.
+///
+/// With room (a tablet, a desktop panel) the quantity and the unit price get
+/// columns of their own; on a phone they fold under the name and the total.
 class _LineRow extends StatelessWidget {
-  const _LineRow({required this.view});
+  const _LineRow({required this.view, required this.showProgress});
 
   final OrderLineView view;
+  final bool showProgress;
 
-  /// Below this the four figures take two rows of two.
-  static const double _figuresWrapBelow = 320;
+  /// From this width the figures sit in columns.
+  static const double _columnsFrom = 500;
 
   @override
   Widget build(BuildContext context) {
@@ -522,226 +852,211 @@ class _LineRow extends StatelessWidget {
     final theme = Theme.of(context);
     final line = view.line;
     final unit = view.unitAbbreviation;
-    final received = line.quantityReceived > 0;
+    final ordered = line.quantityOrdered;
+    final share = ordered <= 0
+        ? 0.0
+        : (line.quantityReceived / ordered).clamp(0.0, 1.0);
+    final complete = lineOutstanding(line) <= 0 && !line.closedShort;
 
-    final figures = [
-      _Figure(
-        label: l10n.orderColumnOrdered,
-        value: Formatters.quantityWithUnit(line.quantityOrdered, unit),
-      ),
-      _Figure(
-        label: l10n.orderColumnReceived,
-        value: Formatters.quantityWithUnit(line.quantityReceived, unit),
-        muted: !received,
-      ),
-      _Figure(
-        label: l10n.orderColumnUnitPrice,
-        value: Formatters.price(line.unitPrice),
-      ),
-      _Figure(
-        label: l10n.orderColumnLineTotal,
-        value: Formatters.price(lineTotal(line)),
-        strong: true,
-      ),
-    ];
+    final (Color color, IconData? icon, String? tip) = line.closedShort
+        ? (
+            AppColors.lowStock.solid,
+            LucideIcons.packageX,
+            l10n.orderLineClosedShort,
+          )
+        : complete
+        ? (
+            AppColors.inStock.solid,
+            LucideIcons.circleCheck,
+            l10n.orderStatusReceived,
+          )
+        : (AppColors.primary600, null, null);
 
-    return Padding(
-      padding: const EdgeInsets.all(AppSpacing.lg),
+    final figure = theme.textTheme.bodySmall?.copyWith(
+      color: AppColors.textSecondary,
+      fontWeight: FontWeight.w600,
+      fontFeatures: const [FontFeature.tabularFigures()],
+    );
+    final quantity = Text(
+      showProgress
+          ? '${Formatters.quantity(line.quantityReceived)} / '
+                '${Formatters.quantityWithUnit(ordered, unit)}'
+          : Formatters.quantityWithUnit(ordered, unit),
+      style: figure,
+      maxLines: 1,
+    );
+    final bar = ClipRRect(
+      borderRadius: AppRadius.pillAll,
+      child: LinearProgressIndicator(
+        value: share,
+        minHeight: 4,
+        color: color,
+        backgroundColor: AppColors.neutral100,
+      ),
+    );
+    final name = Row(
+      children: [
+        Flexible(
+          child: Text(
+            view.itemName,
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        if (showProgress && icon != null) ...[
+          const SizedBox(width: AppSpacing.xs),
+          Tooltip(
+            message: tip,
+            child: Icon(icon, size: 14, color: color),
+          ),
+        ],
+      ],
+    );
+    final total = Text(
+      Formatters.price(lineTotal(line)),
+      style: AppTypography.numeric.copyWith(
+        fontSize: 15,
+        fontWeight: FontWeight.w700,
+      ),
+      maxLines: 1,
+    );
+    final unitPrice = Text(
+      '× ${Formatters.price(line.unitPrice)}',
+      style: theme.textTheme.labelSmall?.copyWith(
+        color: AppColors.textSecondary,
+        fontFeatures: const [FontFeature.tabularFigures()],
+      ),
+      maxLines: 1,
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final wide = constraints.maxWidth >= _columnsFrom;
+        final photo = ProductImage(
+          imagePath: view.imagePath,
+          size: wide ? 52 : 44,
+          radius: 10,
+          placeholder: ProductImagePlaceholder.disc,
+        );
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.lg,
+            vertical: AppSpacing.md,
+          ),
+          child: Row(
+            children: [
+              photo,
+              const SizedBox(width: AppSpacing.md),
+              if (wide) ...[
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      name,
+                      if (showProgress) ...[
+                        const SizedBox(height: AppSpacing.sm),
+                        ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 200),
+                          child: bar,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.md),
+                SizedBox(
+                  width: 104,
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: quantity,
+                  ),
+                ),
+                SizedBox(
+                  width: 84,
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: unitPrice,
+                  ),
+                ),
+                SizedBox(
+                  width: 92,
+                  child: Align(alignment: Alignment.centerRight, child: total),
+                ),
+              ] else ...[
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      name,
+                      const SizedBox(height: AppSpacing.xs),
+                      Row(
+                        children: [
+                          quantity,
+                          if (showProgress) ...[
+                            const SizedBox(width: AppSpacing.sm),
+                            Expanded(
+                              child: ConstrainedBox(
+                                constraints: const BoxConstraints(
+                                  maxWidth: 140,
+                                ),
+                                child: bar,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    total,
+                    const SizedBox(height: AppSpacing.xxs),
+                    unitPrice,
+                  ],
+                ),
+              ],
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// A note left on the commande or the réception: an icon and the words, no
+/// heading.
+class PanelNote extends StatelessWidget {
+  const PanelNote({required this.note, super.key});
+
+  final String note;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.neutral50,
+        borderRadius: AppRadius.mdAll,
+        border: Border.all(color: AppColors.hairline),
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ExcludeSemantics(
-            child: Container(
-              width: 40,
-              height: 40,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: AppColors.neutral50,
-                borderRadius: AppRadius.mdAll,
-                border: Border.all(color: AppColors.hairline),
-              ),
-              child: Text(
-                SupplierMonogram.initialsOf(view.itemName),
-                style: theme.textTheme.labelMedium?.copyWith(
-                  color: AppColors.textSecondary,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: AppSpacing.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.only(top: 2),
-                        child: Text(
-                          view.itemName,
-                          style: theme.textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.sm),
-                    Flexible(
-                      child: OrderLineState(
-                        line: line,
-                        outstanding: lineOutstanding(line),
-                        unit: unit,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.md),
-                LayoutBuilder(
-                  builder: (context, constraints) {
-                    if (constraints.maxWidth < _figuresWrapBelow) {
-                      return Column(
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(child: figures[0]),
-                              Expanded(child: figures[1]),
-                            ],
-                          ),
-                          const SizedBox(height: AppSpacing.sm),
-                          Row(
-                            children: [
-                              Expanded(child: figures[2]),
-                              Expanded(child: figures[3]),
-                            ],
-                          ),
-                        ],
-                      );
-                    }
-                    return Row(
-                      children: [
-                        for (final figure in figures) Expanded(child: figure),
-                      ],
-                    );
-                  },
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _Figure extends StatelessWidget {
-  const _Figure({
-    required this.label,
-    required this.value,
-    this.muted = false,
-    this.strong = false,
-  });
-
-  final String label;
-  final String value;
-  final bool muted;
-  final bool strong;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: theme.textTheme.labelSmall?.copyWith(
+          const Icon(
+            LucideIcons.stickyNote,
+            size: AppSizing.iconSm,
             color: AppColors.textSecondary,
           ),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-        const SizedBox(height: AppSpacing.xxs),
-        Text(
-          value,
-          style: theme.textTheme.bodyMedium?.copyWith(
-            color: muted ? AppColors.textSecondary : AppColors.textPrimary,
-            fontWeight: strong ? FontWeight.w700 : FontWeight.w500,
-            fontFeatures: const [FontFeature.tabularFigures()],
-          ),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-      ],
-    );
-  }
-}
-
-/// The commande's total, set apart under its lines.
-class OrderPanelGrandTotal extends StatelessWidget {
-  const OrderPanelGrandTotal({required this.order, super.key});
-
-  final PurchaseOrder order;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      decoration: BoxDecoration(
-        color: AppColors.primaryContainer.withValues(alpha: 0.45),
-        borderRadius: AppRadius.lgAll,
-        border: Border.all(color: AppColors.primary600.withValues(alpha: 0.18)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: const BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: AppRadius.mdAll,
-            ),
-            child: const Icon(
-              LucideIcons.package,
-              size: AppSizing.iconMd,
-              color: AppColors.primary700,
-            ),
-          ),
-          const SizedBox(width: AppSpacing.md),
+          const SizedBox(width: AppSpacing.sm),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  l10n.orderPanelGrandTotal,
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    color: AppColors.onPrimaryContainer,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.xxs),
-                Text(
-                  Formatters.price(orderTotal(order)),
-                  style: AppTypography.numericHero.copyWith(
-                    color: AppColors.primary800,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-          Text(
-            l10n.orderPanelItems(order.lines.length),
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: AppColors.onPrimaryContainer,
-            ),
+            child: Text(note, style: Theme.of(context).textTheme.bodyMedium),
           ),
         ],
       ),
@@ -749,120 +1064,53 @@ class OrderPanelGrandTotal extends StatelessWidget {
   }
 }
 
-/// What happened to the commande, oldest first, as a vertical timeline.
-/// The steps still to come are not drawn; the status says what is next.
-class OrderPanelHistory extends StatelessWidget {
-  const OrderPanelHistory({
-    required this.order,
-    required this.receiptDates,
+/// A panel's bottom bar: a supporting action and the primary one.
+///
+/// Side by side and equal where there is room. On a phone the supporting
+/// action collapses to its icon (the label moves to a tooltip) so the teal
+/// button keeps its full wording instead of both being cut short.
+class PanelFooterBar extends StatelessWidget {
+  const PanelFooterBar({
+    required this.secondary,
+    required this.primary,
     super.key,
   });
 
-  final PurchaseOrder order;
-  final List<DateTime> receiptDates;
+  /// A `SecondaryButton`, or a widget that builds one, so it can collapse.
+  final Widget secondary;
+  final Widget primary;
+
+  static const double _compactBelow = 420;
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-
-    final events = <(String, DateTime, IconData)>[
-      (l10n.orderTimelineCreated, order.createdAt, LucideIcons.filePlus),
-      if (order.sentAt != null)
-        (l10n.orderTimelineSent, order.sentAt!, LucideIcons.send),
-      for (final (i, at) in receiptDates.indexed)
-        (l10n.orderTimelineReceipt(i + 1), at, LucideIcons.packageCheck),
-      if (order.closedAt != null)
-        order.status == PurchaseOrderStatus.cancelled
-            ? (l10n.orderTimelineCancelled, order.closedAt!, LucideIcons.ban)
-            : (
-                l10n.orderTimelineDone,
-                order.closedAt!,
-                LucideIcons.circleCheck,
-              ),
-    ];
-
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: AppRadius.lgAll,
-        border: Border.all(color: AppColors.hairline),
+      padding: const EdgeInsets.only(top: AppSpacing.lg),
+      decoration: const BoxDecoration(
+        border: Border(top: BorderSide(color: AppColors.hairline)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          for (final (i, (label, at, icon)) in events.indexed)
-            IntrinsicHeight(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  SizedBox(
-                    width: 32,
-                    child: Column(
-                      children: [
-                        Container(
-                          width: 32,
-                          height: 32,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: i == events.length - 1
-                                ? AppColors.primaryContainer
-                                : AppColors.neutral50,
-                            border: Border.all(color: AppColors.hairline),
-                          ),
-                          child: Icon(
-                            icon,
-                            size: 16,
-                            color: i == events.length - 1
-                                ? AppColors.primary700
-                                : AppColors.textSecondary,
-                          ),
-                        ),
-                        if (i < events.length - 1)
-                          Expanded(
-                            child: Container(
-                              width: 2,
-                              margin: const EdgeInsets.symmetric(
-                                vertical: AppSpacing.xxs,
-                              ),
-                              color: AppColors.hairline,
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: AppSpacing.md),
-                  Expanded(
-                    child: Padding(
-                      padding: EdgeInsets.only(
-                        top: 5,
-                        bottom: i < events.length - 1 ? AppSpacing.lg : 0,
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            label,
-                            style: theme.textTheme.titleSmall?.copyWith(
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          const SizedBox(height: AppSpacing.xxs),
-                          Text(
-                            Formatters.dateTime(at),
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-        ],
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          if (constraints.maxWidth < _compactBelow) {
+            return Row(
+              children: [
+                ActionDensityScope(
+                  density: ActionDensity.iconOnly,
+                  child: secondary,
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(child: primary),
+              ],
+            );
+          }
+          return Row(
+            children: [
+              Expanded(child: secondary),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(child: primary),
+            ],
+          );
+        },
       ),
     );
   }
@@ -890,70 +1138,16 @@ class OrderPanelFooter extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
 
-    return Container(
-      padding: const EdgeInsets.only(top: AppSpacing.lg),
-      decoration: const BoxDecoration(
-        border: Border(top: BorderSide(color: AppColors.hairline)),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: OrderDocumentButton.footer(order: order, preview: true),
-          ),
-          const SizedBox(width: AppSpacing.md),
-          Expanded(
-            child: onReceive == null
-                ? OrderDocumentButton.footer(order: order, prominent: true)
-                : PrimaryButton(
-                    label: l10n.shortReceive,
-                    icon: LucideIcons.packageCheck,
-                    fullWidth: true,
-                    onPressed: onReceive,
-                  ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// A one-line notice under the summary — the shortfall recorded on a closed
-/// commande.
-class OrderPanelShortfall extends StatelessWidget {
-  const OrderPanelShortfall({required this.shortfall, super.key});
-
-  final double shortfall;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.lg,
-        vertical: AppSpacing.md,
-      ),
-      decoration: BoxDecoration(
-        color: AppColors.lowStock.container,
-        borderRadius: AppRadius.mdAll,
-      ),
-      child: Row(
-        children: [
-          Icon(
-            LucideIcons.packageX,
-            size: AppSizing.iconSm,
-            color: AppColors.lowStock.foreground,
-          ),
-          const SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: Text(
-              l10n.orderShortfallNotice(Formatters.quantity(shortfall)),
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppColors.lowStock.foreground,
-              ),
+    return PanelFooterBar(
+      secondary: OrderDocumentButton.footer(order: order, preview: true),
+      primary: onReceive == null
+          ? OrderDocumentButton.footer(order: order, prominent: true)
+          : PrimaryButton(
+              label: l10n.shortReceive,
+              icon: LucideIcons.packageCheck,
+              fullWidth: true,
+              onPressed: onReceive,
             ),
-          ),
-        ],
-      ),
     );
   }
 }

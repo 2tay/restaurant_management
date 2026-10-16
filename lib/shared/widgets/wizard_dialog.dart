@@ -69,6 +69,7 @@ class WizardDialog extends StatelessWidget {
     this.isDirty = false,
     this.freeNavigation = false,
     this.onReset,
+    this.extraActions = const [],
     this.maxWidth = 880,
     super.key,
   }) : assert(steps.length > 1, 'a wizard has at least two steps');
@@ -92,6 +93,11 @@ class WizardDialog extends StatelessWidget {
   /// Puts the form back to where it started. Asked for first, and only
   /// offered once something has been typed ([isDirty]).
   final VoidCallback? onReset;
+
+  /// Supporting buttons placed just before the primary one — a commande's
+  /// « Enregistrer le brouillon » beside « Envoyer ». `SecondaryButton`s, so
+  /// they collapse to icons on a phone like the others.
+  final List<Widget> extraActions;
 
   final double maxWidth;
 
@@ -245,7 +251,7 @@ class WizardDialog extends StatelessWidget {
             onPressed: goNext,
           );
 
-    final forward = [?previous, ?secondaryNext, primary];
+    final forward = [?previous, ?secondaryNext, ...extraActions, primary];
 
     if (phone) {
       // One line: the secondary buttons as icons (their names move to
@@ -263,6 +269,10 @@ class WizardDialog extends StatelessWidget {
             if (previous != null) const SizedBox(width: AppSpacing.sm),
             ?secondaryNext,
             if (secondaryNext != null) const SizedBox(width: AppSpacing.sm),
+            for (final action in extraActions) ...[
+              action,
+              const SizedBox(width: AppSpacing.sm),
+            ],
             Expanded(child: primary),
           ],
         ),

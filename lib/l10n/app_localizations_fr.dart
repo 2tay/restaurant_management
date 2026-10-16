@@ -2435,19 +2435,24 @@ class AppLocalizationsFr extends AppLocalizations {
   String get ordersFilterAllStatuses => 'Tous les statuts';
 
   @override
-  String get ordersFilterPeriod => 'Période';
+  String get ordersSearchHint => 'Rechercher (référence, fournisseur)';
 
   @override
-  String get ordersFilterAllPeriods => 'Toutes les dates';
+  String ordersFilterDateRange(String from, String to) {
+    return '$from – $to';
+  }
 
   @override
-  String get ordersFilterLast7 => '7 derniers jours';
+  String get ordersStatCount => 'Commandes';
 
   @override
-  String get ordersFilterLast30 => '30 derniers jours';
+  String get ordersStatAmount => 'Montant total';
 
   @override
-  String get ordersFilterLast90 => '90 derniers jours';
+  String get ordersStatToReceive => 'À recevoir';
+
+  @override
+  String get ordersStatLate => 'En retard';
 
   @override
   String ordersColumnLines(int count) {
@@ -2641,6 +2646,10 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get createOrderTitle => 'Nouvelle commande';
+
+  @override
+  String get createOrderDescription =>
+      'Choisissez un fournisseur, ajoutez les produits, puis envoyez la commande ou gardez-la en brouillon.';
 
   @override
   String get editOrderTitle => 'Modifier la commande';
@@ -4094,27 +4103,21 @@ class AppLocalizationsFr extends AppLocalizations {
   String get orderPickProducts => 'Choisir des produits';
 
   @override
+  String get orderAddProductsTile => 'Ajouter des produits';
+
+  @override
+  String get orderAddNote => 'Ajouter une note';
+
+  @override
+  String get orderSuggestedShort => 'Stock bas';
+
+  @override
   String get orderActionDuplicate => 'Dupliquer';
 
   @override
   String orderDuplicated(String reference) {
     return 'Nouveau brouillon $reference créé';
   }
-
-  @override
-  String get ordersTabAll => 'Toutes';
-
-  @override
-  String get ordersTabDrafts => 'Brouillons';
-
-  @override
-  String get ordersTabSent => 'Envoyées';
-
-  @override
-  String get ordersTabPartial => 'Partielles';
-
-  @override
-  String get ordersTabDone => 'Terminées';
 
   @override
   String get tableColReference => 'Référence';
@@ -4251,6 +4254,23 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get orderPanelCopyReference => 'Copier la référence';
+
+  @override
+  String get orderPanelLocked => 'Verrouillée';
+
+  @override
+  String orderPanelShortfall(String quantity) {
+    return '$quantity non livrés';
+  }
+
+  @override
+  String get receiptPanelFilterIssues => 'Écarts';
+
+  @override
+  String get receiptPanelOpenOrder => 'Voir la commande';
+
+  @override
+  String get receiptPanelReceiveRest => 'Réceptionner le reste';
 
   @override
   String get orderDocTitle => 'BON DE COMMANDE';
