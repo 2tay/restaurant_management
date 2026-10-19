@@ -33,4 +33,20 @@ class DeviceRepository {
       return row.value;
     });
   }
+
+  /// This tablet's number in its restaurant — 2 for T2 — or null until the
+  /// server has given one (at registration, or on the first sync of a tablet
+  /// registered before numbers existed).
+  Future<int?> number() async {
+    final row = await (_db.select(
+      _db.meta,
+    )..where((m) => m.key.equals(MetaKeys.deviceNumber))).getSingleOrNull();
+    return row == null ? null : int.tryParse(row.value);
+  }
+
+  Future<void> saveNumber(int number) => _db
+      .into(_db.meta)
+      .insertOnConflictUpdate(
+        MetaCompanion.insert(key: MetaKeys.deviceNumber, value: '$number'),
+      );
 }

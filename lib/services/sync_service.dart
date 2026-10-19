@@ -128,6 +128,8 @@ class SyncRunner {
     final sent = await _push();
     if (sent.outcome != SyncOutcome.done) return sent;
 
+    await _learnDeviceNumber();
+
     // Again, now the rows are on the server: a photo of a brand-new store
     // is refused until its store exists there.
     await _quietly(photos.upload);
@@ -138,6 +140,21 @@ class SyncRunner {
 
     await _quietly(photos.downloadMissing);
     return received;
+  }
+
+  /// A tablet registered before device numbers existed asks for its number
+  /// once: registering again is harmless and answers with it. Never fails the
+  /// pass; without a number, references fall back to the device id's code.
+  Future<void> _learnDeviceNumber() async {
+    final device = DeviceRepository(_db);
+    if (await device.number() != null) return;
+    try {
+      await device.saveNumber(
+        await _backend.registerDevice(await device.deviceId()),
+      );
+    } on Object {
+      // Offline or refused: the next pass asks again.
+    }
   }
 
   /// Runs a photo step whose failure only means "next pass".

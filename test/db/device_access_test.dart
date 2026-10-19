@@ -106,6 +106,7 @@ void main() {
       expect(server.registeredDevices.keys, [
         await DeviceRepository(db).deviceId(),
       ]);
+      expect(await DeviceRepository(db).number(), 1, reason: 'it is T1');
     });
 
     test('replaces the demo with one establishment and its owner', () async {
@@ -193,6 +194,8 @@ void main() {
       expect(access.accountRole, 'manager');
       expect(access.organizationName, 'Brasserie');
       expect(await StoreRepository(db).stores(), isEmpty);
+      // The demo wipe clears `meta`; the number is saved after it.
+      expect(await DeviceRepository(db).number(), 1);
     });
 
     test('a wrong code changes nothing', () async {

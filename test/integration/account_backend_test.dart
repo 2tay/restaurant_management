@@ -52,7 +52,12 @@ void main() {
     expect(summary.organizationName, 'Resto $run');
     expect(summary.role, 'owner');
 
-    await owner.registerDevice('device-$run-a', name: 'Cuisine');
+    expect(await owner.registerDevice('device-$run-a', name: 'Cuisine'), 1);
+    expect(
+      await owner.registerDevice('device-$run-a'),
+      1,
+      reason: 'registering again keeps the number',
+    );
     final code = await owner.createJoinCode();
     expect(code, matches(RegExp(r'^[A-HJ-NP-Z2-9]{8}$')));
 
@@ -72,7 +77,7 @@ void main() {
     final managerSummary = await manager.myAccount();
     expect(managerSummary.organizationId, summary.organizationId);
     expect(managerSummary.role, 'manager');
-    await manager.registerDevice('device-$run-b', name: 'Bar');
+    expect(await manager.registerDevice('device-$run-b', name: 'Bar'), 2);
 
     await expectLater(
       manager.createJoinCode(),
@@ -87,8 +92,8 @@ void main() {
 
     final devices = await owner.devices();
     expect(
-      devices.map((d) => d.id),
-      containsAll(['device-$run-a', 'device-$run-b']),
+      {for (final d in devices) d.id: (d.number, d.name)},
+      {'device-$run-a': (1, 'Cuisine'), 'device-$run-b': (2, 'Bar')},
     );
     expect(await owner.removeDevice('device-$run-b'), isTrue);
     expect(

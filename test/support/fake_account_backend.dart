@@ -172,20 +172,31 @@ class FakeAccountBackend implements AccountBackend {
   }
 
   @override
-  Future<void> registerDevice(String deviceId, {String name = ''}) async {
+  Future<int> registerDevice(String deviceId, {String name = ''}) async {
     _maybeFail();
     final user = _signedIn();
     final existing = _deviceOrganization[deviceId];
     if (existing != null && existing != user.organizationId) {
       throw const AccountException(AccountErrorCode.notAllowed);
     }
-    _deviceOrganization[deviceId] = user.organizationId!;
+    final organization = user.organizationId!;
+    final known = registeredDevices[deviceId];
+    // As `register_device`: a counter per organization, never reused.
+    final number =
+        known?.number ??
+        (_deviceCount[organization] = (_deviceCount[organization] ?? 0) + 1);
+    _deviceOrganization[deviceId] = organization;
     registeredDevices[deviceId] = DeviceInfo(
       id: deviceId,
-      name: name,
-      createdAt: DateTime(2026, 9, 29),
+      name: name.isEmpty ? known?.name ?? '' : name,
+      createdAt: known?.createdAt ?? DateTime(2026, 9, 29),
+      number: number,
     );
+    return number;
   }
+
+  /// Devices numbered so far, by organization.
+  final Map<String, int> _deviceCount = {};
 
   @override
   Future<List<DeviceInfo>> devices() async {
@@ -291,6 +302,14 @@ class FakeAccountBackend implements AccountBackend {
               restore: refusal.restore,
             );
           }
+          final conflict = _conflictRefusal(table, sent, existing);
+          if (conflict != null) {
+            return PushResult(
+              id: change['id']! as int,
+              accepted: false,
+              reason: conflict,
+            );
+          }
           // As `push_changes`: a watched column the server holds with
           // another value than this edit started from was changed
           // meanwhile by another tablet.
@@ -330,6 +349,34 @@ class FakeAccountBackend implements AccountBackend {
           );
         }(),
     ];
+  }
+
+  /// As `push_changes`'s conflict rules: delete wins, and a commande's status
+  /// only moves forward and stays closed once closed.
+  String? _conflictRefusal(
+    String table,
+    Map<String, Object?> sent,
+    Map<String, Object?>? existing,
+  ) {
+    if (existing == null) return null;
+    if (existing['deleted_at'] != null && sent['deleted_at'] == null) {
+      return 'deleted';
+    }
+    if (table == 'purchase_orders' && sent['status'] != existing['status']) {
+      if (const {'received', 'cancelled'}.contains(existing['status'])) {
+        return 'status_closed';
+      }
+      int rank(Object? status) => switch (status) {
+        'draft' => 0,
+        'sent' => 1,
+        'partial' || 'cancelled' => 2,
+        _ => 3,
+      };
+      if (rank(sent['status']) < rank(existing['status'])) {
+        return 'status_backwards';
+      }
+    }
+    return null;
   }
 
   /// As `push_changes` (SYNC_PERSONNEL_PLAN.md, step 7): a day another

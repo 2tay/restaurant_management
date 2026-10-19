@@ -168,9 +168,12 @@ class DeviceAccessController extends Notifier<DeviceAccess> {
   /// remaining row and photo is queued, and the next sync sends them.
   Future<void> adoptLocalData(AccountSummary summary) async {
     final db = ref.read(databaseProvider);
-    await _backend.registerDevice(
-      await DeviceRepository(db).deviceId(),
-      name: deviceDisplayName(),
+    final device = DeviceRepository(db);
+    await device.saveNumber(
+      await _backend.registerDevice(
+        await device.deviceId(),
+        name: deviceDisplayName(),
+      ),
     );
     await _local.removeDemo();
     await _repository.writeAccount(
@@ -245,8 +248,9 @@ class DeviceAccessController extends Notifier<DeviceAccess> {
   /// the device held, and remembers the account.
   Future<void> _joinDevice(AccountSummary summary) async {
     final db = ref.read(databaseProvider);
-    await _backend.registerDevice(
-      await DeviceRepository(db).deviceId(),
+    final device = DeviceRepository(db);
+    final number = await _backend.registerDevice(
+      await device.deviceId(),
       name: deviceDisplayName(),
     );
 
@@ -258,6 +262,8 @@ class DeviceAccessController extends Notifier<DeviceAccess> {
       );
     }
 
+    // After the wipe, which clears every `meta` key but the device id.
+    await device.saveNumber(number);
     await _repository.writeAccount(
       email: summary.email,
       organizationId: summary.organizationId!,

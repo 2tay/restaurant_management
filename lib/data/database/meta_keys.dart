@@ -32,6 +32,12 @@ abstract final class MetaKeys {
   /// `DeviceRepository`.
   static const String deviceId = 'deviceId';
 
+  /// This tablet's number in its restaurant, given by the server when the
+  /// device registers: `2` is T2, as in the commande reference
+  /// `CMD-2026-T2-018`. Local only; an account sign-out removes it, and
+  /// registering again brings the same number back.
+  static const String deviceNumber = 'deviceNumber';
+
   /// Present while a write must not be queued for sending: rows received from
   /// the server, the demo seed, a stock rebuild. The `*_outbox_*` triggers
   /// stay silent while it exists. Only `SyncQuiet` writes it, inside the same

@@ -254,10 +254,16 @@ All server code lives in `supabase/`. It is plain SQL, versioned in git, applied
 ```
 organizations (id, name)                   one restaurant business
 members       (user_id, organization_id, role: owner | manager)   one organization per login
-devices       (id, organization_id, name, last_seen_at)
+devices       (id, organization_id, name, last_seen_at, number)
 create_organization(name)  → the owner's restaurant
-register_device(id, name)  → ties a tablet to the restaurant
+register_device(id, name)  → ties a tablet to the restaurant, returns its number (1 = T1)
 ```
+
+**Tablet numbers** (`20261019000100_device_numbers.sql`): each tablet of a restaurant gets
+T1, T2… from a counter on `organizations`, never reused. The app keeps it in `meta`
+(`deviceNumber`) and puts it in commande references, `CMD-2026-T2-018`, because "the largest
+number + 1" made the same reference on two offline tablets. A tablet registered before this
+asks for its number at its next sync.
 
 ### 3.2 Mirror tables (generated)
 

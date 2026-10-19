@@ -4,7 +4,7 @@
 
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(15);
+select plan(18);
 
 insert into auth.users (id, email) values
   ('aaaaaaaa-0000-0000-0000-000000000001', 'owner@example.be'),
@@ -31,8 +31,10 @@ insert into codes
   select public.create_join_code(), (public.my_account() ->> 'organization_id')::uuid;
 select matches((select code from codes), '^[A-HJ-NP-Z2-9]{8}$',
   'a code is eight characters with no look-alikes');
-select lives_ok($$ select public.register_device('tablet-1', 'Cuisine') $$,
-  'the owner registers a device');
+select is(public.register_device('tablet-1', 'Cuisine'), 1,
+  'the owner registers a device: it is tablet 1');
+select is(public.register_device('tablet-1'), 1,
+  'registering it again keeps its number');
 
 -- The manager joins, typing the code in lower case with a dash.
 set local request.jwt.claims to
@@ -44,6 +46,8 @@ select is(
   (select organization_id from codes),
   'a manager joins with the code, typed loosely');
 select is(public.my_account() ->> 'role', 'manager', 'as a manager');
+select is(public.register_device('tablet-2', 'Bar'), 2,
+  'the manager''s tablet is tablet 2');
 select throws_ok($$ select public.create_join_code() $$, '42501', null,
   'a manager cannot invite');
 select throws_ok($$ select public.remove_device('tablet-1') $$, '42501', null,
@@ -66,6 +70,8 @@ select is(
   public.push_changes('tablet-1', '[{"id": 1, "table": "categories",
     "payload": {}}]'::jsonb) -> 0 ->> 'reason',
   'device_unknown', 'a removed device can no longer push');
+select is(public.register_device('tablet-3', 'Salle'), 3,
+  'a removed tablet''s number is never given again');
 
 select * from finish();
 rollback;

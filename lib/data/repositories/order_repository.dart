@@ -14,6 +14,8 @@ import '../view_models/order_detail_view.dart';
 import '../view_models/order_document_sources.dart';
 import '../view_models/receipt_document_sources.dart';
 import 'account_repository.dart';
+import 'device_access_repository.dart';
+import 'device_repository.dart';
 import 'movement_repository.dart';
 import 'new_id.dart';
 import 'soft_delete.dart';
@@ -1018,6 +1020,14 @@ class OrderRepository {
   /// The scan is in Dart rather than SQL because the rule is "the largest
   /// trailing number", which `MAX(CAST(substr(...)))` only answers while every
   /// reference has the same number of digits.
+  ///
+  /// On an account device the number also carries this tablet's number —
+  /// `CMD-2026-T2-018` — because "the largest number + 1" is only what this
+  /// tablet has seen: two tablets offline would both make `CMD-2026-018`. The
+  /// server gives each tablet of a restaurant its own number, so the two
+  /// references differ. A tablet that has no number yet (registered before
+  /// numbers existed, and not synced since) uses its device id's first four
+  /// characters instead. A demo is one device, so it keeps the short form.
   Future<String> _nextReference() async {
     final rows = await (_db.select(
       _db.purchaseOrders,
@@ -1031,7 +1041,16 @@ class OrderRepository {
     }
 
     final year = clock.now().year;
-    return 'CMD-$year-${(highest + 1).toString().padLeft(3, '0')}';
+    final number = (highest + 1).toString().padLeft(3, '0');
+    final access = await DeviceAccessRepository(_db).read();
+    if (access.mode != DeviceMode.account) return 'CMD-$year-$number';
+    final device = DeviceRepository(_db);
+    final code =
+        switch (await device.number()) {
+          final int tablet => 'T$tablet',
+          null => (await device.deviceId()).substring(0, 4).toUpperCase(),
+        };
+    return 'CMD-$year-$code-$number';
   }
   // ---------------------------------------------------------------------------
 

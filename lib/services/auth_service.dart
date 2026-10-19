@@ -46,7 +46,9 @@ abstract interface class AccountBackend {
   /// A new join code for a manager. Owners only.
   Future<String> createJoinCode();
 
-  Future<void> registerDevice(String deviceId, {String name = ''});
+  /// Ties this device to the caller's restaurant, and returns its number
+  /// there (2 for T2). Registering again keeps the number.
+  Future<int> registerDevice(String deviceId, {String name = ''});
 
   Future<List<DeviceInfo>> devices();
 
@@ -207,12 +209,16 @@ class DeviceInfo {
     required this.name,
     required this.createdAt,
     this.lastSeenAt,
+    this.number,
   });
 
   final String id;
   final String name;
   final DateTime createdAt;
   final DateTime? lastSeenAt;
+
+  /// 2 for T2.
+  final int? number;
 }
 
 enum AccountErrorCode {
@@ -290,7 +296,7 @@ class UnconfiguredAccountBackend implements AccountBackend {
   Future<String> createJoinCode() => Future.error(_refusal);
 
   @override
-  Future<void> registerDevice(String deviceId, {String name = ''}) =>
+  Future<int> registerDevice(String deviceId, {String name = ''}) =>
       Future.error(_refusal);
 
   @override
@@ -424,18 +430,20 @@ class SupabaseAccountBackend implements AccountBackend {
       _guard(() async => await _client.rpc('create_join_code') as String);
 
   @override
-  Future<void> registerDevice(String deviceId, {String name = ''}) => _guard(
-    () => _client.rpc(
-      'register_device',
-      params: {'p_device_id': deviceId, 'p_name': name},
-    ),
+  Future<int> registerDevice(String deviceId, {String name = ''}) => _guard(
+    () async =>
+        await _client.rpc(
+              'register_device',
+              params: {'p_device_id': deviceId, 'p_name': name},
+            )
+            as int,
   );
 
   @override
   Future<List<DeviceInfo>> devices() => _guard(() async {
     final rows = await _client
         .from('devices')
-        .select('id, name, created_at, last_seen_at')
+        .select('id, name, created_at, last_seen_at, number')
         .order('created_at');
     return [
       for (final row in rows)
@@ -446,6 +454,7 @@ class SupabaseAccountBackend implements AccountBackend {
           lastSeenAt: row['last_seen_at'] == null
               ? null
               : DateTime.parse(row['last_seen_at'] as String).toLocal(),
+          number: row['number'] as int?,
         ),
     ];
   });

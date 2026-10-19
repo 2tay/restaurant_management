@@ -161,7 +161,12 @@ class _RestaurantAccountSectionState
                   for (final device in snapshot.data!)
                     IconInfoCard(
                       icon: LucideIcons.tablet,
-                      title: device.name.isEmpty ? device.id : device.name,
+                      // "T2 · CUISINE-PC (windows)": the T2 of the
+                      // commandes this tablet made (CMD-2026-T2-018).
+                      title: [
+                        if (device.number != null) 'T${device.number}',
+                        device.name.isEmpty ? device.id : device.name,
+                      ].join(' · '),
                       value: device.id == _thisDevice
                           ? l10n.accountDeviceThis
                           : l10n.accountDeviceLastSeen(
