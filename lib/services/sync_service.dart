@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/database/app_database.dart';
 import '../data/database/meta_keys.dart';
+import '../data/database/sync_tables.dart';
 import '../data/device_access.dart';
 import '../data/providers.dart';
 import '../core/utils/attendance_status.dart';
@@ -283,14 +284,41 @@ class SyncRunner {
     'table': entry.changedTable,
     'row_key': entry.rowKey,
     'store_id': entry.storeId,
-    'payload': entry.payload,
+    'payload': _withDaysSent(entry.changedTable, entry.payload),
     // Only the columns that changed, for an edit of a personnel row; absent
     // for a new row or a whole-row table.
     if (entry.changedColumns != null)
       'columns': jsonDecode(entry.changedColumns!) as List<Object?>,
     if (entry.baseValues != null)
-      'base': jsonDecode(entry.baseValues!) as Map<String, Object?>,
+      'base': _daysSent(
+        entry.changedTable,
+        jsonDecode(entry.baseValues!) as Map<String, Object?>,
+      ),
   };
+
+  /// [payload] with its calendar days as every tablet sends them (see
+  /// `SyncTables.dayColumns`), so a day means the same date on the server
+  /// and on a tablet in another time zone.
+  static String _withDaysSent(String table, String payload) {
+    if (!SyncTables.dayColumns.containsKey(table)) return payload;
+    return jsonEncode(
+      _daysSent(table, jsonDecode(payload) as Map<String, Object?>),
+    );
+  }
+
+  static Map<String, Object?> _daysSent(
+    String table,
+    Map<String, Object?> row,
+  ) {
+    final days = SyncTables.dayColumns[table];
+    if (days == null) return row;
+    return {
+      for (final MapEntry(:key, :value) in row.entries)
+        key: value is String && days.contains(key)
+            ? SyncTables.daySent(value)
+            : value,
+    };
+  }
 
   /// Rules E2 and E5: this tablet's change of an hourly rate, a role, or
   /// the retirement replaced another tablet's, made meanwhile. The last

@@ -10,7 +10,7 @@
 
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(34);
+select plan(37);
 
 -- ---------------------------------------------------------------------------
 -- Fixtures
@@ -258,6 +258,15 @@ select is(
     tests.entry(22, 'categories', tests.category('c-m', 's-a', 'Poissons'))
   )) -> 0 ->> 'reason', 'owner_only',
   'a manager cannot change a store, but works in it');
+
+-- Calendar days: the nearest midnight UTC (20261019000200_calendar_days.sql).
+reset role;
+select is(private.calendar_day('2026-10-02 22:00+00'), '2026-10-03 00:00+00'::timestamptz,
+  'a day sent from Brussels in summer (UTC+2) lands on its date');
+select is(private.calendar_day('2026-10-03 05:00+00'), '2026-10-03 00:00+00'::timestamptz,
+  'a day sent from five hours behind UTC lands on its date');
+select is(private.calendar_day('2026-10-03 00:00+00'), '2026-10-03 00:00+00'::timestamptz,
+  'a day already at midnight UTC stays');
 
 select * from finish();
 rollback;

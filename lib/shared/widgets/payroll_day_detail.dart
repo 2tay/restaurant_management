@@ -55,8 +55,11 @@ class PayrollDayDetail extends StatelessWidget {
   final DateTime? paidAt;
 
   /// Pays this one day. Resolves true once paid, which closes the drawer —
-  /// its figures would otherwise go stale under the refreshed table.
-  final Future<bool> Function()? onPay;
+  /// its figures would otherwise go stale under the refreshed table. False
+  /// when it could not pay and said why: the drawer closes too, because the
+  /// page's message shows under it and a phone's drawer covers the page.
+  /// Null when the person cancelled: the drawer stays.
+  final Future<bool?> Function()? onPay;
 
   @override
   Widget build(BuildContext context) {
@@ -154,7 +157,7 @@ class PayrollDayDetail extends StatelessWidget {
             fullWidth: true,
             onPressed: () async {
               final paid = await pay();
-              if (paid && context.mounted) {
+              if (paid != null && context.mounted) {
                 DrawerScope.maybeOf(context)?.close();
               }
             },

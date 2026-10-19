@@ -376,7 +376,7 @@ class AttendanceRepository {
         _db,
         clock: _clock,
       ).current(entry.storeId);
-      if (open != null && open.date == entry.date) return null;
+      if (open != null && dayOf(open.date) == dayOf(entry.date)) return null;
       return endShift(attendanceId, at, setByEmployeeId: correctedByEmployeeId);
     });
   }
@@ -629,8 +629,10 @@ class AttendanceRepository {
       query.where((a) => a.date.isBiggerOrEqualValue(lower));
     }
     if (to != null) {
-      final upper = dayOf(to);
-      query.where((a) => a.date.isSmallerOrEqualValue(upper));
+      // Before the next day rather than up to midnight: a day received from a
+      // tablet in another time zone could sit at 01:00.
+      final next = DateTime(to.year, to.month, to.day + 1);
+      query.where((a) => a.date.isSmallerThanValue(next));
     }
     if (status != null) {
       query.where((a) => a.status.equalsValue(status));

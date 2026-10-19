@@ -138,8 +138,11 @@ class PayrollRepository {
       var lower = requestedLower;
       if (lower == null || lower.isBefore(hire)) lower = hire;
 
-      if (entry.date.isBefore(lower)) continue;
-      if (upper != null && entry.date.isAfter(upper)) continue;
+      // By calendar day: a day received from a tablet in another time zone
+      // could sit at 01:00 rather than midnight.
+      final day = dayOf(entry.date);
+      if (day.isBefore(lower)) continue;
+      if (upper != null && day.isAfter(upper)) continue;
 
       matched.add(entry);
       worked += workedDuration(entry) ?? Duration.zero;
@@ -363,8 +366,9 @@ class PayrollRepository {
     final entries = await _assemble(rows);
     final days = [
       for (final entry in entries)
-        if ((lower == null || !entry.date.isBefore(lower)) &&
-            (upper == null || !entry.date.isAfter(upper)))
+        // By calendar day, as `days` above.
+        if ((lower == null || !dayOf(entry.date).isBefore(lower)) &&
+            (upper == null || !dayOf(entry.date).isAfter(upper)))
           entry,
     ]..sort((a, b) => b.date.compareTo(a.date));
     return days;

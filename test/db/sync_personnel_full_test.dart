@@ -88,6 +88,9 @@ void main() {
           email: '$first@resto.be',
           role: role,
           pay: 15,
+          // Hired before the October days the tests pay: pay only counts
+          // days from the hire date, which would otherwise be today.
+          hireDate: DateTime(2026, 1, 1),
         ))!;
     final owner = await employee('Léa', 'PIN-LEA', EmployeeRole.owner);
     final cook = await employee('Karim', 'PIN-KARIM', EmployeeRole.staff);

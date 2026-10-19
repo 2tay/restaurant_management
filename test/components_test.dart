@@ -1605,7 +1605,7 @@ void main() {
       Attendance entry, {
       double rate = 12,
       DateTime? paidAt,
-      Future<bool> Function()? onPay,
+      Future<bool?> Function()? onPay,
       VoidCallback? onClose,
     }) async {
       await initializeDateFormatting(Formatters.locale);
@@ -1742,7 +1742,7 @@ void main() {
       await pump(
         tester,
         day(),
-        onPay: () async => false,
+        onPay: () async => null,
         onClose: () => closed++,
       );
       final button = find.widgetWithText(PrimaryButton, 'Payer ce jour');
@@ -1750,6 +1750,24 @@ void main() {
       await tester.tap(button);
       await tester.pumpAndSettle();
       expect(closed, 0);
+    });
+
+    // On a phone the drawer covers the page, and the page's message about
+    // why nothing was paid showed under it: « Payer ce jour » did nothing.
+    testWidgets('a payment that could not be made closes the drawer, so its '
+        'message shows', (tester) async {
+      var closed = 0;
+      await pump(
+        tester,
+        day(),
+        onPay: () async => false,
+        onClose: () => closed++,
+      );
+      final button = find.widgetWithText(PrimaryButton, 'Payer ce jour');
+      await tester.ensureVisible(button);
+      await tester.tap(button);
+      await tester.pumpAndSettle();
+      expect(closed, 1);
     });
 
     testWidgets('no onPay: no button', (tester) async {

@@ -1239,6 +1239,11 @@ class SyncApplier {
             ? value
             : (value is num ? value != 0 : value == 'true');
       case DriftSqlType.dateTime:
+        // A calendar day is midnight of its date here, whatever time zone
+        // the tablet that sent it was in.
+        if (SyncTables.dayColumns[table]?.contains(column.name) ?? false) {
+          return SyncTables.dayReceived(value as String);
+        }
         final parsed = DateTime.parse(value as String);
         final isStamp = column.name == 'updated_at' && table != 'items';
         return isStamp ? parsed.toUtc() : parsed.toLocal();

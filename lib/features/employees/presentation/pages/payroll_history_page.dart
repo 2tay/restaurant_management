@@ -417,8 +417,9 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
 
   /// Settles [employee]'s unpaid finished days from [from] to [to] — the
   /// page's filtered range from the button under the table, a single day from
-  /// the drawer. Resolves true once paid.
-  Future<bool> _confirmPay(
+  /// the drawer. Resolves true once paid, false when it could not pay and
+  /// showed why, null when the person cancelled.
+  Future<bool?> _confirmPay(
     Employee employee, {
     required DateTime from,
     required DateTime to,
@@ -431,7 +432,7 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
       from: from,
       to: to,
     );
-    if (!mounted) return false;
+    if (!mounted) return null;
     if (preview.isEmpty) {
       AppSnackBar.warning(context, l10n.payrollNothingToPay);
       return false;
@@ -451,10 +452,14 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
       ),
       confirmLabel: l10n.payrollPayAction,
     );
-    if (!ok || !mounted) return false;
+    if (!ok || !mounted) return null;
 
     final actorId = ref.read(currentEmployeeProvider)?.id;
-    if (actorId == null) return false;
+    if (actorId == null) {
+      // Nobody signed in to pay as: said, not silent.
+      AppSnackBar.error(context, l10n.payrollPayFailed);
+      return false;
+    }
 
     // The person settling the days confirms with their own PIN — the same
     // check as the pointage board: unlimited tries, no lockout.
@@ -465,7 +470,7 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
       verify: (pin) =>
           ref.read(credentialRepositoryProvider).verifyPin(pin, actorId),
     );
-    if (!identityOk || !mounted) return false;
+    if (!identityOk || !mounted) return null;
 
     // Pays exactly what was confirmed, or nothing (audit L9).
     final PayrollPeriod? period;
@@ -479,12 +484,12 @@ class _PayrollHistoryPageState extends ConsumerState<PayrollHistoryPage> {
         expected: preview,
       );
     } on PayrollPreviewOutdated {
-      if (!mounted) return false;
+      if (!mounted) return null;
       ref.invalidate(payrollDaysProvider);
       AppSnackBar.error(context, l10n.payrollPreviewOutdated);
       return false;
     }
-    if (!mounted) return false;
+    if (!mounted) return null;
     if (period == null) {
       AppSnackBar.error(context, l10n.payrollPayFailed);
       return false;
