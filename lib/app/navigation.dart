@@ -55,13 +55,22 @@ extension AppNavigation on BuildContext {
     router.push(path);
   }
 
-  /// Go back one level.
+  /// Open a screen that answers when it closes: a form asked for a new
+  /// supplier gets that supplier back, through [backTo]'s `result`.
+  Future<T?> pushForResult<T>(String path) {
+    final router = GoRouter.of(this);
+    DrawerScope.maybeOf(this)?.close();
+    return router.push<T>(path);
+  }
+
+  /// Go back one level, handing [result] to the screen below when it asked
+  /// for one ([pushForResult]).
   ///
   /// [fallback] is where to land when there is nothing on the stack — reached
   /// by deep link, or after a hot restart mid-navigation.
-  void backTo(String fallback) {
+  void backTo(String fallback, {Object? result}) {
     if (canPop()) {
-      pop();
+      pop(result);
     } else {
       go(fallback);
     }

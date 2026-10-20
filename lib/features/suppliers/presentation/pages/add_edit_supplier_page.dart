@@ -258,6 +258,7 @@ class _SupplierFormState extends ConsumerState<_SupplierForm> {
     final l10n = AppLocalizations.of(context);
     final suppliers = ref.read(supplierRepositoryProvider);
 
+    Supplier? created;
     if (_isEditing) {
       await suppliers.update(
         widget.existing!.id,
@@ -272,7 +273,7 @@ class _SupplierFormState extends ConsumerState<_SupplierForm> {
         clearNote: _note.text.trim().isEmpty,
       );
     } else {
-      await suppliers.create(
+      created = await suppliers.create(
         storeId: widget.storeId,
         name: _name.text,
         contactName: _contactName.text,
@@ -290,16 +291,20 @@ class _SupplierFormState extends ConsumerState<_SupplierForm> {
       context,
       _isEditing ? l10n.supplierUpdated : l10n.supplierCreated,
     );
-    _leave();
+    _leave(created?.id);
   }
 
-  void _leave() {
-    if (_isEditing) {
-      context.pushScreen(
-        Routes.toSupplier(widget.storeId, widget.existing!.id),
-      );
-    } else {
-      context.goSection(Routes.toSuppliers(widget.storeId));
-    }
+  /// Back to where the form was opened from: the supplier's page for an
+  /// edit, the list or the form that asked for a new supplier (« Associer un
+  /// fournisseur ») for a creation, handing it the new supplier's id to
+  /// select. Never a page pushed on top, which would leave this form behind
+  /// it for back to return to.
+  void _leave(String? createdId) {
+    context.backTo(
+      _isEditing
+          ? Routes.toSupplier(widget.storeId, widget.existing!.id)
+          : Routes.toSuppliers(widget.storeId),
+      result: createdId,
+    );
   }
 }

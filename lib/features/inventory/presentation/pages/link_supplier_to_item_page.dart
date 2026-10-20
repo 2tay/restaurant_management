@@ -81,7 +81,9 @@ class _LinkSupplierToItemPageState
 
     // Suppliers this article is already linked to are left out of the menu
     // rather than offered and then refused — linking the same pair twice is
-    // the one thing the write below cannot do.
+    // the one thing the write below cannot do. Except the one chosen: once
+    // linked, it is linked too, while the form is still on screen for its
+    // closing transition, and a menu missing its own value throws.
     final alreadyLinked = {
       for (final entry in pricing.prices) entry.price.supplierId,
     };
@@ -89,13 +91,19 @@ class _LinkSupplierToItemPageState
     final available = <DropdownOption<String>>[
       for (final supplier
           in ref.watch(suppliersProvider(widget.storeId)).value ?? const [])
-        if (!alreadyLinked.contains(supplier.id))
+        if (!alreadyLinked.contains(supplier.id) || supplier.id == _supplierId)
           DropdownOption(
             value: supplier.id,
             label: supplier.name,
             secondaryLabel: supplier.city,
           ),
     ];
+
+    // A supplier just created is chosen before its row reaches the menu's
+    // list; the menu shows it once it is there, never a value it lacks.
+    final shown = available.any((option) => option.value == _supplierId)
+        ? _supplierId
+        : null;
 
     return FormScaffold(
       title: l10n.linkSupplierTitle,
@@ -124,12 +132,15 @@ class _LinkSupplierToItemPageState
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 AppDropdown<String>(
+                  // The menu keeps the value it was built with; a new key
+                  // builds it again when the choice changes from outside it
+                  // (a supplier just created).
+                  key: ValueKey(shown),
                   label: l10n.linkSupplierPick,
-                  value: _supplierId,
+                  value: shown,
                   options: available,
                   onChanged: (value) => setState(() => _supplierId = value),
-                  onCreateNew: () =>
-                      context.pushScreen(Routes.toAddSupplier(widget.storeId)),
+                  onCreateNew: _createSupplier,
                   createNewLabel: l10n.linkSupplierCreate,
                 ),
                 const SizedBox(height: AppSpacing.lg),
@@ -189,6 +200,15 @@ class _LinkSupplierToItemPageState
     );
   }
 
+  /// « + Nouveau fournisseur »: the supplier form, which comes back here
+  /// with the new supplier, chosen.
+  Future<void> _createSupplier() async {
+    final created = await context.pushForResult<String>(
+      Routes.toAddSupplier(widget.storeId),
+    );
+    if (created != null && mounted) setState(() => _supplierId = created);
+  }
+
   double? get _parsedPrice =>
       double.tryParse(_priceController.text.replaceAll(',', '.').trim());
 
@@ -205,7 +225,11 @@ class _LinkSupplierToItemPageState
 
     if (!mounted) return;
     AppSnackBar.success(context, l10n.supplierLinked);
-    context.pushScreen(Routes.toItem(widget.storeId, itemId));
+    // Back to where the link was asked for (the product, the alerts, a stock
+    // entry), which now shows it. Not the product pushed on top: back would
+    // return to this form, whose supplier is no longer in its menu, and the
+    // menu throws on a value it does not offer.
+    context.backTo(Routes.toItem(widget.storeId, itemId));
   }
 }
 

@@ -1161,6 +1161,12 @@ class _OrderFormPageState extends ConsumerState<_OrderForm> {
       Navigator.of(context).pop(orderId);
       return;
     }
+    // An edit was opened from the order's page: back to it, not a second
+    // copy of it on top.
+    if (_isEditing) {
+      context.backTo(Routes.toOrder(widget.storeId, orderId));
+      return;
+    }
     context.replaceScreen(Routes.toOrder(widget.storeId, orderId));
   }
 
