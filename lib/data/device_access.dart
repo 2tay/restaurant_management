@@ -1,5 +1,6 @@
 import 'dart:io' show File, Platform;
 
+import 'package:flutter/foundation.dart' show ChangeNotifier;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/employee.dart';
@@ -30,6 +31,20 @@ void seedDeviceAccessSnapshot(DeviceAccess access) {
   deviceAccessSnapshot = access;
 }
 
+/// Rings when the device stops belonging to anything (an account sign-out),
+/// for the router to run its guard again: it sends the device to the welcome
+/// screen, whichever page was open. The router only runs its guard when
+/// someone navigates, and the page that signed out may be gone by then.
+///
+/// Only then: in the other changes (an account joined, its data arrived) the
+/// account pages finish what they show and navigate themselves, and a guard
+/// running underneath them would cut that short.
+final DeviceSignOutSignal deviceSignOutSignal = DeviceSignOutSignal();
+
+class DeviceSignOutSignal extends ChangeNotifier {
+  void ring() => notifyListeners();
+}
+
 /// What this installation is, and every step that changes it
 /// (SYNC_PLAN.md, Phase 4).
 ///
@@ -51,10 +66,13 @@ class DeviceAccessController extends Notifier<DeviceAccess> {
       DeviceAccessRepository(ref.read(databaseProvider));
 
   void _set(DeviceAccess access) {
+    final signedOut =
+        access.mode == DeviceMode.none && state.mode != DeviceMode.none;
     // The router's copy first: setting `state` runs listeners at once, and a
     // listener that navigates sends the router reading this copy.
     deviceAccessSnapshot = access;
     state = access;
+    if (signedOut) deviceSignOutSignal.ring();
   }
 
   /// Reads the mode from the database. Called by `main()` before the first
@@ -254,6 +272,11 @@ class DeviceAccessController extends Notifier<DeviceAccess> {
       // Offline: the local session is dropped all the same.
     }
     await ref.read(currentEmployeeProvider.notifier).signOut();
+    // The device belongs to nothing before the wipe starts: the router leaves
+    // the restaurant's screens for the welcome one, rather than showing them
+    // empty (« Aucun établissement ») while their rows disappear, and sync
+    // stops before the queue it reads is cleared.
+    _set(const DeviceAccess(mode: DeviceMode.none, hasLocalData: false));
     await _repository.wipe(
       deleteEmployeePhotos: ref.read(employeePhotoStoreProvider).deleteFor,
     );

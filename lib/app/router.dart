@@ -208,6 +208,7 @@ final GoRouter appRouter = GoRouter(
   initialLocation: Routes.login,
   debugLogDiagnostics: false,
   redirect: _guard,
+  refreshListenable: deviceSignOutSignal,
   routes: [
     // -------------------------------------------------------------------------
     // Auth and store selection — no shell
