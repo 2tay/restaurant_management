@@ -239,6 +239,9 @@ enum AccountErrorCode {
 
   /// The account's session ended and could not be renewed: sign in again.
   sessionExpired,
+
+  /// Reconnecting with an account of another restaurant than this device's.
+  otherRestaurant,
   unknown,
 }
 

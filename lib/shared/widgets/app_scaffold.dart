@@ -24,6 +24,7 @@ import 'error_state.dart';
 import 'loading_state.dart';
 import 'offline_banner.dart';
 import 'section_tabs.dart';
+import 'session_expired_banner.dart';
 
 /// Whether the shell's navigation sidebar is hidden so the current page's
 /// content fills the whole window.
@@ -100,6 +101,7 @@ class AppScaffold extends ConsumerWidget {
 
     final content = Column(
       children: [
+        const SessionExpiredBanner(),
         const OfflineBanner(),
         Expanded(child: child),
       ],

@@ -5221,4 +5221,15 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get offlineBannerServer => 'Serveur injoignable';
+
+  @override
+  String get accountErrorOtherRestaurant =>
+      'Ce compte n\'est pas celui du restaurant de cet appareil.';
+
+  @override
+  String get sessionBannerTitle => 'Les modifications ne sont plus envoyées';
+
+  @override
+  String get sessionBannerAskOwner =>
+      'Prévenez le responsable pour reconnecter le compte.';
 }

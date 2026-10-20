@@ -8386,6 +8386,24 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Serveur injoignable'**
   String get offlineBannerServer;
+
+  /// Account error: reconnecting with an account of another restaurant.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ce compte n\'est pas celui du restaurant de cet appareil.'**
+  String get accountErrorOtherRestaurant;
+
+  /// Red bar on every screen while the account's session has expired.
+  ///
+  /// In fr, this message translates to:
+  /// **'Les modifications ne sont plus envoyées'**
+  String get sessionBannerTitle;
+
+  /// Red bar, for someone who cannot reconnect the account.
+  ///
+  /// In fr, this message translates to:
+  /// **'Prévenez le responsable pour reconnecter le compte.'**
+  String get sessionBannerAskOwner;
 }
 
 class _AppLocalizationsDelegate

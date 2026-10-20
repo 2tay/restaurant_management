@@ -3006,5 +3006,11 @@
   "syncPhotosPending": "Photos en attente d'envoi",
   "@syncPhotosPending": {"description": "Sync page: photos not uploaded yet."},
   "offlineBannerServer": "Serveur injoignable",
-  "@offlineBannerServer": {"description": "Offline banner on an account device: the server cannot be reached."}
+  "@offlineBannerServer": {"description": "Offline banner on an account device: the server cannot be reached."},
+  "accountErrorOtherRestaurant": "Ce compte n'est pas celui du restaurant de cet appareil.",
+  "@accountErrorOtherRestaurant": {"description": "Account error: reconnecting with an account of another restaurant."},
+  "sessionBannerTitle": "Les modifications ne sont plus envoyées",
+  "@sessionBannerTitle": {"description": "Red bar on every screen while the account's session has expired."},
+  "sessionBannerAskOwner": "Prévenez le responsable pour reconnecter le compte.",
+  "@sessionBannerAskOwner": {"description": "Red bar, for someone who cannot reconnect the account."}
 }

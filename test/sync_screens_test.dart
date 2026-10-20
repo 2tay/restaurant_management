@@ -15,9 +15,11 @@ import 'package:stock_inventory/data/database/app_database.dart';
 import 'package:stock_inventory/data/device_access.dart';
 import 'package:stock_inventory/data/providers.dart';
 import 'package:stock_inventory/data/repositories/repositories.dart';
+import 'package:stock_inventory/features/settings/presentation/widgets/account_sync_view.dart';
 import 'package:stock_inventory/data/seed/dataset/dataset.dart'
     show EmployeeIds, StoreIds;
 import 'package:stock_inventory/services/sync_service.dart';
+import 'package:stock_inventory/shared/widgets/session_expired_banner.dart';
 
 import 'support/app_harness.dart';
 import 'support/db_fixture.dart';
@@ -34,7 +36,11 @@ class _FixedSync extends SyncController {
 
 void main() {
   /// An account device with data, the owner signed in, the sync state fixed.
-  Future<AppDatabase> pumpAccount(WidgetTester tester, SyncState state) async {
+  Future<AppDatabase> pumpAccount(
+    WidgetTester tester,
+    SyncState state, {
+    FakeAccountBackend? backend,
+  }) async {
     tester.view.physicalSize = const Size(1280, 800);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
@@ -57,7 +63,9 @@ void main() {
       ProviderScope(
         overrides: [
           databaseProvider.overrideWithValue(db),
-          accountBackendProvider.overrideWithValue(FakeAccountBackend()),
+          accountBackendProvider.overrideWithValue(
+            backend ?? FakeAccountBackend(),
+          ),
           syncControllerProvider.overrideWith(() => _FixedSync(state)),
         ],
         child: const StockInventoryApp(),
@@ -120,7 +128,8 @@ void main() {
       ),
     );
     expect(find.textContaining('session du compte a expiré'), findsOneWidget);
-    expect(find.text('Se reconnecter'), findsOneWidget);
+    // On the page, and in the red bar every screen shows meanwhile.
+    expect(find.text('Se reconnecter'), findsNWidgets(2));
   });
 
   testApp('signing in again closes the dialog without an error', (
@@ -133,7 +142,12 @@ void main() {
         problem: SyncOutcome.sessionExpired,
       ),
     );
-    await tester.tap(find.text('Se reconnecter'));
+    await tester.tap(
+      find.descendant(
+        of: find.byType(AccountSyncView),
+        matching: find.text('Se reconnecter'),
+      ),
+    );
     await tester.pumpAndSettle();
     expect(find.text('Reconnecter le compte'), findsOneWidget);
 
@@ -155,6 +169,105 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Reconnecter le compte'), findsNothing);
     expect(tester.takeException(), isNull);
+  });
+
+  /// Types [password] in the reconnect dialog opened from the red bar.
+  Future<void> reconnectFromBar(WidgetTester tester, String password) async {
+    await tester.tap(
+      find.descendant(
+        of: find.byType(SessionExpiredBanner),
+        matching: find.text('Se reconnecter'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.byType(EditableText),
+      ),
+      password,
+    );
+    await tester.tap(
+      find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.text('Se reconnecter'),
+      ),
+    );
+    await tester.pumpAndSettle();
+  }
+
+  testApp('an expired session shows a red bar on every screen', (tester) async {
+    await pumpAccount(
+      tester,
+      const SyncState(
+        status: SyncStatus.error,
+        problem: SyncOutcome.sessionExpired,
+      ),
+    );
+    appRouter.go(Routes.toDashboard(StoreIds.sablon));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Les modifications ne sont plus envoyées'),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byType(SessionExpiredBanner),
+        matching: find.text('Se reconnecter'),
+      ),
+      findsOneWidget,
+    );
+    // Not the steel offline bar: this one is an error.
+    expect(find.text('Serveur injoignable'), findsNothing);
+  });
+
+  testApp('no red bar while the session is fine', (tester) async {
+    await pumpAccount(tester, const SyncState(status: SyncStatus.offline));
+    appRouter.go(Routes.toDashboard(StoreIds.sablon));
+    await tester.pumpAndSettle();
+    expect(find.text('Les modifications ne sont plus envoyées'), findsNothing);
+  });
+
+  testApp("reconnecting with the same restaurant's account keeps it", (
+    tester,
+  ) async {
+    final backend = FakeAccountBackend()
+      ..addUser('owner@resto.be', 'secret', organizationId: 'org-1');
+    await pumpAccount(
+      tester,
+      const SyncState(
+        status: SyncStatus.error,
+        problem: SyncOutcome.sessionExpired,
+      ),
+      backend: backend,
+    );
+    await reconnectFromBar(tester, 'secret');
+
+    expect(backend.currentUser?.email, 'owner@resto.be');
+    expect(find.textContaining("n'est pas celui du restaurant"), findsNothing);
+  });
+
+  testApp("reconnecting with another restaurant's account is refused", (
+    tester,
+  ) async {
+    final backend = FakeAccountBackend()
+      ..addUser('owner@resto.be', 'secret', organizationId: 'org-2');
+    await pumpAccount(
+      tester,
+      const SyncState(
+        status: SyncStatus.error,
+        problem: SyncOutcome.sessionExpired,
+      ),
+      backend: backend,
+    );
+    await reconnectFromBar(tester, 'secret');
+
+    expect(
+      find.text("Ce compte n'est pas celui du restaurant de cet appareil."),
+      findsOneWidget,
+    );
+    expect(backend.currentUser, isNull);
   });
 
   testApp('things to check are listed in words, and can be dismissed', (

@@ -80,6 +80,22 @@ class DeviceAccessController extends Notifier<DeviceAccess> {
     return _backend.myAccount();
   }
 
+  /// Signs this device's account in again after its session expired, keeping
+  /// everything on the device: the changes waiting to be sent leave with the
+  /// next pass.
+  ///
+  /// The e-mail is the device's own, but its account may since belong to
+  /// another restaurant; sending this device's data there would mix two
+  /// restaurants, so that sign-in is undone and refused.
+  Future<void> reconnect(String password) async {
+    await _backend.signIn(email: state.accountEmail ?? '', password: password);
+    final summary = await _backend.myAccount();
+    if (summary.organizationId != state.organizationId) {
+      await _backend.signOut();
+      throw const AccountException(AccountErrorCode.otherRestaurant);
+    }
+  }
+
   /// The signed-in account, when a sign-in happened earlier (a set-up page
   /// reopened after the app restarted).
   Future<AccountSummary?> currentSummary() async {
