@@ -145,10 +145,7 @@ class AccountSyncView extends ConsumerWidget {
         ),
         if (rejected.isNotEmpty) ...[
           const SizedBox(height: AppSpacing.xl),
-          SectionHeader(
-            title: l10n.syncRejectedTitle,
-            count: rejected.length,
-          ),
+          SectionHeader(title: l10n.syncRejectedTitle, count: rejected.length),
           AppCard(
             padding: EdgeInsets.zero,
             child: Column(
@@ -242,32 +239,11 @@ class AccountSyncView extends ConsumerWidget {
   Future<void> _reconnect(BuildContext context, WidgetRef ref) async {
     final l10n = AppLocalizations.of(context);
     final email = ref.read(deviceAccessProvider).accountEmail ?? '';
-    final password = TextEditingController();
-    final confirmed = await showDialog<bool>(
+    final typed = await showDialog<String>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.syncReconnectTitle),
-        content: AppTextField(
-          label: l10n.syncReconnectBody(email),
-          controller: password,
-          obscureText: true,
-          autofocus: true,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text(l10n.actionCancel),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: Text(l10n.syncReconnect),
-          ),
-        ],
-      ),
+      builder: (_) => _ReconnectDialog(email: email),
     );
-    final typed = password.text;
-    password.dispose();
-    if (confirmed != true || !context.mounted) return;
+    if (typed == null || !context.mounted) return;
 
     try {
       await ref
@@ -279,6 +255,54 @@ class AccountSyncView extends ConsumerWidget {
         AppSnackBar.warning(context, accountErrorMessage(l10n, error));
       }
     }
+  }
+}
+
+/// Asks the account's password again; pops with it, or null when cancelled.
+///
+/// The dialog owns its field's controller: the field is still on screen
+/// during the closing animation, so the controller is freed with the dialog,
+/// not when [showDialog] returns.
+class _ReconnectDialog extends StatefulWidget {
+  const _ReconnectDialog({required this.email});
+
+  final String email;
+
+  @override
+  State<_ReconnectDialog> createState() => _ReconnectDialogState();
+}
+
+class _ReconnectDialogState extends State<_ReconnectDialog> {
+  final _password = TextEditingController();
+
+  @override
+  void dispose() {
+    _password.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return AlertDialog(
+      title: Text(l10n.syncReconnectTitle),
+      content: AppTextField(
+        label: l10n.syncReconnectBody(widget.email),
+        controller: _password,
+        obscureText: true,
+        autofocus: true,
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(l10n.actionCancel),
+        ),
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(_password.text),
+          child: Text(l10n.syncReconnect),
+        ),
+      ],
+    );
   }
 }
 
@@ -354,7 +378,10 @@ class SyncStatusBanner extends StatelessWidget {
           Container(
             width: small ? 44 : 56,
             height: small ? 44 : 56,
-            decoration: BoxDecoration(color: background, shape: BoxShape.circle),
+            decoration: BoxDecoration(
+              color: background,
+              shape: BoxShape.circle,
+            ),
             child: Icon(icon, size: small ? 22 : 26, color: foreground),
           ),
           SizedBox(width: small ? AppSpacing.md : AppSpacing.lg),

@@ -123,6 +123,40 @@ void main() {
     expect(find.text('Se reconnecter'), findsOneWidget);
   });
 
+  testApp('signing in again closes the dialog without an error', (
+    tester,
+  ) async {
+    await pumpAccount(
+      tester,
+      const SyncState(
+        status: SyncStatus.error,
+        problem: SyncOutcome.sessionExpired,
+      ),
+    );
+    await tester.tap(find.text('Se reconnecter'));
+    await tester.pumpAndSettle();
+    expect(find.text('Reconnecter le compte'), findsOneWidget);
+
+    await tester.enterText(
+      find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.byType(EditableText),
+      ),
+      'secret',
+    );
+    await tester.tap(
+      find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.text('Se reconnecter'),
+      ),
+    );
+    // The closing animation still shows the password field: its controller
+    // must outlive it.
+    await tester.pumpAndSettle();
+    expect(find.text('Reconnecter le compte'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
   testApp('things to check are listed in words, and can be dismissed', (
     tester,
   ) async {

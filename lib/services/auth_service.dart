@@ -488,10 +488,7 @@ class SupabaseAccountBackend implements AccountBackend {
   Future<List<PushResult>> pushChanges(
     String deviceId,
     List<Map<String, Object?>> changes,
-  ) => _guard(() async {
-    if (_client.auth.currentSession == null) {
-      throw const AccountException(AccountErrorCode.sessionExpired);
-    }
+  ) => _signedIn(() async {
     final answer =
         await _client.rpc(
               'push_changes',
@@ -510,8 +507,9 @@ class SupabaseAccountBackend implements AccountBackend {
               column as String,
           ],
           restore: [
-            for (final entry in ((item['restore'] as List<dynamic>?) ?? [])
-                .whereType<Map<String, dynamic>>())
+            for (final entry
+                in ((item['restore'] as List<dynamic>?) ?? [])
+                    .whereType<Map<String, dynamic>>())
               if (entry['row'] is Map<String, dynamic>)
                 (
                   table: entry['table'] as String,
@@ -523,10 +521,7 @@ class SupabaseAccountBackend implements AccountBackend {
   });
 
   @override
-  Future<List<String>> storeIds() => _guard(() async {
-    if (_client.auth.currentSession == null) {
-      throw const AccountException(AccountErrorCode.sessionExpired);
-    }
+  Future<List<String>> storeIds() => _signedIn(() async {
     // Row level security returns the caller's organization's stores only.
     final rows = await _client.from('stores').select('id').order('created_at');
     return [for (final row in rows) row['id'] as String];
@@ -537,10 +532,7 @@ class SupabaseAccountBackend implements AccountBackend {
     String storeId, {
     required int after,
     int limit = 500,
-  }) => _guard(() async {
-    if (_client.auth.currentSession == null) {
-      throw const AccountException(AccountErrorCode.sessionExpired);
-    }
+  }) => _signedIn(() async {
     final answer =
         await _client.rpc(
               'pull_changes',
@@ -650,6 +642,32 @@ class SupabaseAccountBackend implements AccountBackend {
     return AccountUser(id: user.id, email: user.email ?? '');
   }
 
+  /// Runs a sync call with a valid access token.
+  ///
+  /// The access token lasts an hour and Supabase renews it in the background,
+  /// but only while the app runs and is online: a tablet that slept or lost
+  /// Wi-Fi wakes with an expired one, and its first pass starts before the
+  /// renewal. So an expired token is renewed first, and a call the server
+  /// refuses for its token (`PGRST301`, also what a tablet whose clock runs
+  /// late gets, since it believes its token still valid) is renewed and run
+  /// once more. Only a renewal the server refuses means signing in again.
+  Future<T> _signedIn<T>(Future<T> Function() body) => _guard(() async {
+    final session = _client.auth.currentSession;
+    if (session == null) {
+      throw const AccountException(AccountErrorCode.sessionExpired);
+    }
+    if (session.isExpired) await _client.auth.refreshSession();
+    try {
+      return await body();
+    } on PostgrestException catch (error) {
+      if (_databaseCode(error.code) != AccountErrorCode.sessionExpired) {
+        rethrow;
+      }
+      await _client.auth.refreshSession();
+      return await body();
+    }
+  });
+
   /// Turns Supabase's errors into the few the screens can put into words.
   Future<T> _guard<T>(Future<T> Function() body) async {
     try {
@@ -698,6 +716,9 @@ class SupabaseAccountBackend implements AccountBackend {
         return AccountErrorCode.sessionExpired;
     }
     if (error is AuthRetryableFetchException) return AccountErrorCode.network;
+    if (error is AuthSessionMissingException) {
+      return AccountErrorCode.sessionExpired;
+    }
     return AccountErrorCode.unknown;
   }
 
