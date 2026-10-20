@@ -132,18 +132,17 @@ class _BrandMark extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
+        // The hat is dark on cream, so it sits on its own tile to stay
+        // legible on the dark brand panel as well as on the light page.
         Container(
           width: 48,
           height: 48,
+          padding: const EdgeInsets.all(AppSpacing.sm),
           decoration: const BoxDecoration(
-            color: AppColors.primary600,
+            color: AppColors.brandCream,
             borderRadius: AppRadius.mdAll,
           ),
-          child: const Icon(
-            LucideIcons.chefHat,
-            color: AppColors.white,
-            size: AppSizing.iconLg,
-          ),
+          child: Image.asset('assets/branding/logo_mark.png'),
         ),
         const SizedBox(width: AppSpacing.md),
         Flexible(

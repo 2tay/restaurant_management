@@ -4,9 +4,9 @@
     <!-- The owner's phone push (Android 13+ asks the owner first). -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <application
-        android:label="stock_inventory"
+        android:label="Brigade"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/launcher_icon">
         <activity
             android:name=".MainActivity"
             android:exported="true"

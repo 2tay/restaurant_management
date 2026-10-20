@@ -33,6 +33,10 @@ abstract final class AppColors {
   static const Color neutral50 = Color(0xFFF5F7F9);
   static const Color white = Color(0xFFFFFFFF);
 
+  /// The cream behind the Brigade chef hat — the app icon's background, and
+  /// the tile the logo sits on inside the app.
+  static const Color brandCream = Color(0xFFFAF6F2);
+
   // ---------------------------------------------------------------------------
   // Steel — the app chrome. Navigation rail and top bar.
   // ---------------------------------------------------------------------------

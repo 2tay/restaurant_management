@@ -1,5 +1,5 @@
 name: stock_inventory
-description: "Gestion de stock multi-établissements pour restaurants."
+description: "Brigade — gestion de stock multi-établissements pour restaurants."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -116,6 +116,11 @@ dev_dependencies:
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
 
+  # Generates the launcher icons of every platform from assets/branding/
+  # (config `flutter_launcher_icons` at the end of this file). Rerun with
+  # `dart run flutter_launcher_icons` after changing the logo.
+  flutter_launcher_icons: ^0.14.4
+
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 
@@ -129,6 +134,8 @@ flutter:
   assets:
     - fonts/Roboto-Regular.ttf
     - fonts/Roboto-Bold.ttf
+    # The Brigade mark, shown on the welcome and onboarding screens.
+    - assets/branding/logo_mark.png
 
   # Runs gen-l10n on build, driven by l10n.yaml. Generates AppLocalizations
   # from lib/l10n/*.arb. See lib/l10n/README.md.
@@ -149,3 +156,26 @@ flutter:
           weight: 600
         - asset: fonts/Inter-Bold.ttf
           weight: 700
+
+# The app icon, one source for every platform: the Brigade chef hat on cream.
+# Android 8+ gets an adaptive icon (mark inside the safe zone, cream behind).
+flutter_launcher_icons:
+  image_path: "assets/branding/app_icon.png"
+  android: "launcher_icon"
+  adaptive_icon_background: "#FAF6F2"
+  adaptive_icon_foreground: "assets/branding/app_icon_foreground.png"
+  min_sdk_android: 21
+  ios: true
+  remove_alpha_ios: true
+  web:
+    generate: true
+    image_path: "assets/branding/app_icon.png"
+    background_color: "#FAF6F2"
+    theme_color: "#1F242B"
+  windows:
+    generate: true
+    image_path: "assets/branding/app_icon.png"
+    icon_size: 256
+  macos:
+    generate: true
+    image_path: "assets/branding/app_icon.png"

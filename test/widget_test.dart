@@ -23,7 +23,7 @@ void main() {
     final context = tester.element(find.byType(Scaffold).first);
 
     expect(Localizations.localeOf(context), const Locale('fr', 'BE'));
-    expect(AppLocalizations.of(context).appTitle, 'Gestion de Stock');
+    expect(AppLocalizations.of(context).appTitle, 'Brigade');
     expect(AppLocalizations.of(context).stockStatusLowStock, 'Stock faible');
   });
 

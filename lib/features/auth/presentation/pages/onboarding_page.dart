@@ -36,15 +36,12 @@ class OnboardingPage extends StatelessWidget {
                     child: Container(
                       width: 72,
                       height: 72,
+                      padding: const EdgeInsets.all(AppSpacing.md),
                       decoration: const BoxDecoration(
-                        color: AppColors.primary600,
+                        color: AppColors.brandCream,
                         borderRadius: AppRadius.lgAll,
                       ),
-                      child: const Icon(
-                        LucideIcons.chefHat,
-                        color: AppColors.white,
-                        size: 36,
-                      ),
+                      child: Image.asset('assets/branding/logo_mark.png'),
                     ),
                   ),
                   const SizedBox(height: AppSpacing.xl),

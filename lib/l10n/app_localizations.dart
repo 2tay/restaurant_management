@@ -97,7 +97,7 @@ abstract class AppLocalizations {
   /// Application name, shown on the login screen and in the app switcher.
   ///
   /// In fr, this message translates to:
-  /// **'Gestion de Stock'**
+  /// **'Brigade'**
   String get appTitle;
 
   /// Sidebar label for the store dashboard.
