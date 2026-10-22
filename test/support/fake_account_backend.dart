@@ -105,6 +105,25 @@ class FakeAccountBackend implements AccountBackend {
   Future<void> sendPasswordReset(String email) async => _maybeFail();
 
   @override
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    _maybeFail();
+    final user = _signedIn();
+    if (user.password != currentPassword) {
+      throw const AccountException(AccountErrorCode.badCredentials);
+    }
+    if (newPassword.length < 8) {
+      throw const AccountException(AccountErrorCode.weakPassword);
+    }
+    if (newPassword == currentPassword) {
+      throw const AccountException(AccountErrorCode.samePassword);
+    }
+    user.password = newPassword;
+  }
+
+  @override
   Future<AccountSummary> myAccount() async {
     _maybeFail();
     final user = _signedIn();
@@ -553,7 +572,7 @@ class _FakeUser {
 
   final String id;
   final String email;
-  final String password;
+  String password;
   String? organizationId;
   String? role;
 }

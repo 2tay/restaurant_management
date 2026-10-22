@@ -34,6 +34,14 @@ abstract interface class AccountBackend {
 
   Future<void> sendPasswordReset(String email);
 
+  /// Changes the signed-in account's password. [currentPassword] is checked
+  /// first by signing in with it again: that proves the owner is at the
+  /// screen, and gives the server the recent sign-in it asks before a change.
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  });
+
   /// The account's organization and role; both null before it has one.
   Future<AccountSummary> myAccount();
 
@@ -242,6 +250,9 @@ enum AccountErrorCode {
 
   /// Reconnecting with an account of another restaurant than this device's.
   otherRestaurant,
+
+  /// A new password that is the one already in use.
+  samePassword,
   unknown,
 }
 
@@ -285,6 +296,12 @@ class UnconfiguredAccountBackend implements AccountBackend {
 
   @override
   Future<void> sendPasswordReset(String email) => Future.error(_refusal);
+
+  @override
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) => Future.error(_refusal);
 
   @override
   Future<AccountSummary> myAccount() => Future.error(_refusal);
@@ -401,6 +418,22 @@ class SupabaseAccountBackend implements AccountBackend {
   @override
   Future<void> sendPasswordReset(String email) =>
       _guard(() => _client.auth.resetPasswordForEmail(email.trim()));
+
+  @override
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) => _guard(() async {
+    final email = _client.auth.currentUser?.email;
+    if (email == null) {
+      throw const AccountException(AccountErrorCode.sessionExpired);
+    }
+    await _client.auth.signInWithPassword(
+      email: email,
+      password: currentPassword,
+    );
+    await _client.auth.updateUser(UserAttributes(password: newPassword));
+  });
 
   @override
   Future<AccountSummary> myAccount() => _guard(() async {
@@ -710,6 +743,8 @@ class SupabaseAccountBackend implements AccountBackend {
         return AccountErrorCode.emailTaken;
       case 'weak_password':
         return AccountErrorCode.weakPassword;
+      case 'same_password':
+        return AccountErrorCode.samePassword;
       case 'email_not_confirmed':
         return AccountErrorCode.confirmEmail;
       case 'refresh_token_not_found':

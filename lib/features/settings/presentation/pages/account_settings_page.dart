@@ -6,12 +6,15 @@ import '../../../../app/routes.dart';
 import '../../../../app/navigation.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/utils/employee_status.dart';
 import '../../../../core/utils/permissions.dart';
 import '../../../../data/current_employee.dart';
+import '../../../../data/device_access.dart';
 import '../../../../data/providers.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../models/models.dart';
 import '../../../../shared/widgets/widgets.dart';
+import '../widgets/change_account_password_dialog.dart';
 import '../widgets/restaurant_account_section.dart';
 import '../widgets/settings_tabs.dart';
 
@@ -31,6 +34,7 @@ class AccountSettingsPage extends ConsumerWidget {
     // is a query.
     final user = ref.watch(currentEmployeeProvider);
     final stores = ref.watch(storesProvider);
+    final ownsAccount = ref.watch(deviceAccessProvider).isOwnerAccount;
 
     return ShellPage(
       tabs: SettingsTabs(
@@ -51,7 +55,18 @@ class AccountSettingsPage extends ConsumerWidget {
           if (user == null) return const ErrorState();
           // The owner spans stores; everyone else is scoped to their own.
           final visible = visibleStores(user, stores);
-          return _body(context, l10n, theme, user, visible);
+          // The account's password is the owner's alone, and only a device of
+          // the account has one to change.
+          final canChangePassword =
+              ownsAccount && user.role == EmployeeRole.owner;
+          return _body(
+            context,
+            l10n,
+            theme,
+            user,
+            visible,
+            canChangePassword: canChangePassword,
+          );
         },
       ),
     );
@@ -62,8 +77,9 @@ class AccountSettingsPage extends ConsumerWidget {
     AppLocalizations l10n,
     ThemeData theme,
     Employee user,
-    List<Store> stores,
-  ) {
+    List<Store> stores, {
+    required bool canChangePassword,
+  }) {
     // The établissement page's look: blocks straight on the page, fields in
     // the search bar's white borderless style.
     return AppTextFieldVariantScope(
@@ -84,19 +100,30 @@ class AccountSettingsPage extends ConsumerWidget {
           ),
           FieldGrid(
             children: [
+              // Never shown whole, and not changed here: it is the CIN.
               ReadOnlyValueField(
-                label: l10n.accountChangePassword,
-                value: '••••••••',
-                icon: LucideIcons.lock,
-                // The pencil, as on the blocks' titles: it fits at any text
-                // size where « Modifier » in words did not.
-                trailing: IconButton(
-                  onPressed: () => context.goSection(Routes.forgotPassword),
-                  tooltip: l10n.actionEdit,
-                  icon: const Icon(LucideIcons.pencil, size: AppSizing.iconSm),
-                  color: AppColors.primary600,
-                ),
+                label: l10n.employeeFormPin,
+                value: maskedPin(user.pin),
+                icon: LucideIcons.idCard,
               ),
+              if (canChangePassword)
+                ReadOnlyValueField(
+                  label: l10n.accountOnlinePassword,
+                  value: '••••••••',
+                  icon: LucideIcons.lock,
+                  // The pencil, as on the blocks' titles: it fits at any text
+                  // size where « Modifier » in words did not.
+                  trailing: IconButton(
+                    key: const ValueKey('account-change-password'),
+                    onPressed: () => changeAccountPassword(context),
+                    tooltip: l10n.accountChangePassword,
+                    icon: const Icon(
+                      LucideIcons.pencil,
+                      size: AppSizing.iconSm,
+                    ),
+                    color: AppColors.primary600,
+                  ),
+                ),
             ],
           ),
           const SizedBox(height: AppSpacing.xxl),

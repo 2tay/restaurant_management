@@ -2038,7 +2038,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get accountSecurityDescription =>
-      'Le mot de passe qui protège l\'accès à votre compte.';
+      'Votre PIN, avec votre adresse e-mail, ouvre l\'application : c\'est le numéro de votre carte d\'identité, et le propriétaire le corrige depuis Personnel.';
 
   @override
   String get accountLinkedStoresDescription =>
@@ -2073,7 +2073,34 @@ class AppLocalizationsFr extends AppLocalizations {
   String get accountSecurity => 'Sécurité';
 
   @override
-  String get accountChangePassword => 'Changer le mot de passe';
+  String get accountChangePassword => 'Changer le mot de passe du compte';
+
+  @override
+  String get accountOnlinePassword => 'Mot de passe du compte';
+
+  @override
+  String get accountCurrentPassword => 'Mot de passe actuel';
+
+  @override
+  String get accountNewPassword => 'Nouveau mot de passe';
+
+  @override
+  String get accountConfirmPassword => 'Confirmer le nouveau mot de passe';
+
+  @override
+  String get accountPasswordMismatch =>
+      'Les deux nouveaux mots de passe ne sont pas identiques.';
+
+  @override
+  String get accountCurrentPasswordWrong => 'Mot de passe actuel incorrect.';
+
+  @override
+  String get accountPasswordChanged => 'Mot de passe du compte modifié.';
+
+  @override
+  String accountPasswordChangeNote(String email) {
+    return 'Ce mot de passe sert à connecter une tablette au compte $email.';
+  }
 
   @override
   String get accountLinkedStores => 'Établissements liés';
@@ -4823,6 +4850,10 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get accountErrorNotAllowed => 'Seul le propriétaire peut faire cela.';
+
+  @override
+  String get accountErrorSamePassword =>
+      'Le nouveau mot de passe doit être différent de l\'actuel.';
 
   @override
   String get accountErrorUnknown => 'Une erreur est survenue. Réessayez.';

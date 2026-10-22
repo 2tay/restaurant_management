@@ -3409,7 +3409,7 @@ abstract class AppLocalizations {
   /// Account settings: paragraph under the security heading.
   ///
   /// In fr, this message translates to:
-  /// **'Le mot de passe qui protège l\'accès à votre compte.'**
+  /// **'Votre PIN, avec votre adresse e-mail, ouvre l\'application : c\'est le numéro de votre carte d\'identité, et le propriétaire le corrige depuis Personnel.'**
   String get accountSecurityDescription;
 
   /// Account settings: paragraph under the linked stores heading.
@@ -3472,11 +3472,59 @@ abstract class AppLocalizations {
   /// **'Sécurité'**
   String get accountSecurity;
 
-  /// Action opening the password change flow.
+  /// Title of the dialog changing the restaurant account's password.
   ///
   /// In fr, this message translates to:
-  /// **'Changer le mot de passe'**
+  /// **'Changer le mot de passe du compte'**
   String get accountChangePassword;
+
+  /// Account settings, security block: the restaurant account's password, owner only.
+  ///
+  /// In fr, this message translates to:
+  /// **'Mot de passe du compte'**
+  String get accountOnlinePassword;
+
+  /// Change-password dialog: the current password field.
+  ///
+  /// In fr, this message translates to:
+  /// **'Mot de passe actuel'**
+  String get accountCurrentPassword;
+
+  /// Change-password dialog: the new password field.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nouveau mot de passe'**
+  String get accountNewPassword;
+
+  /// Change-password dialog: the new password typed again.
+  ///
+  /// In fr, this message translates to:
+  /// **'Confirmer le nouveau mot de passe'**
+  String get accountConfirmPassword;
+
+  /// Change-password dialog: the confirmation differs.
+  ///
+  /// In fr, this message translates to:
+  /// **'Les deux nouveaux mots de passe ne sont pas identiques.'**
+  String get accountPasswordMismatch;
+
+  /// Change-password dialog: the current password was refused.
+  ///
+  /// In fr, this message translates to:
+  /// **'Mot de passe actuel incorrect.'**
+  String get accountCurrentPasswordWrong;
+
+  /// Snackbar after the account password was changed.
+  ///
+  /// In fr, this message translates to:
+  /// **'Mot de passe du compte modifié.'**
+  String get accountPasswordChanged;
+
+  /// Change-password dialog: what the password is for.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ce mot de passe sert à connecter une tablette au compte {email}.'**
+  String accountPasswordChangeNote(String email);
 
   /// Section listing the stores on this account.
   ///
@@ -7810,6 +7858,12 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Seul le propriétaire peut faire cela.'**
   String get accountErrorNotAllowed;
+
+  /// Account error.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le nouveau mot de passe doit être différent de l\'actuel.'**
+  String get accountErrorSamePassword;
 
   /// Account error.
   ///
