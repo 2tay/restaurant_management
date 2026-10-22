@@ -26,7 +26,8 @@ screen**, in « French quotes ».
 - [ ] An **Android phone** for the owner, only for the push tests (part 9).
 - [ ] **The same app version** on every device.
 - [ ] **Automatic date and time** turned on, on every device. Some rules compare hours.
-- [ ] Two **e-mail addresses** you can open (one for the owner, one for a manager).
+- [ ] One **e-mail address** you can open, for the owner's account. Every tablet signs in
+      with it; there are no invitation codes.
 - [ ] The cloud "dev" server is ready: the migrations in `supabase/migrations/` are applied
       (`supabase db push`), and `config/dev.json` holds its URL and publishable key.
 
@@ -131,34 +132,32 @@ Then continue with the next test, unless the KO blocks it.
 
 ---
 
-### AC3 — A manager joins with a code on tablet B
+### AC3 — Tablet B joins with the owner's account
 
-**Goal:** a second person and a second tablet join the same restaurant.
+**Goal:** a second tablet joins the same restaurant.
 **Before:** AC1 done. Tablet B has a fresh install.
 
 **Steps:**
-1. **A (owner):** « Paramètres » → « Compte » → « Inviter un gérant ». Write down the
-   8-character code.
-2. **B:** « Créer un compte » with the **manager's** e-mail. Confirm the e-mail if asked.
-3. **B:** on « Votre restaurant », open the « Rejoindre » tab, type the code in
-   « Code d'invitation », tap « Rejoindre le restaurant ».
+1. **B:** « Se connecter » with the **owner's** e-mail and password.
 
 **Expected:**
 - B shows « Presque prêt » and « Téléchargement des données… N éléments », then opens.
 - B shows the same restaurant, the same store and the same data as A.
-- On B, « Paramètres » → « Compte »: the role is « Gérant ».
+- On B, « Paramètres » → « Compte »: the role is « Propriétaire ».
 
 **Result:** - [ ] OK   - [ ] KO — notes:
 
 ---
 
-### AC4 — A code works only once
+### AC4 — There are no invitation codes
 
 **Steps:**
-1. Use the **same code** from AC3 again, with a third e-mail, on any device.
-2. Type a made-up code, for example `ABCD1234`.
+1. **A (owner):** « Paramètres » → « Compte ».
+2. On a fresh install, « Créer un compte » with a new e-mail, until « Votre restaurant ».
 
-**Expected:** both times, « Code invalide ou expiré. »
+**Expected:**
+- Step 1: no « Inviter un gérant » button.
+- Step 2: only « Créer le restaurant »; no « Rejoindre » tab, no « Code d'invitation ».
 
 **Result:** - [ ] OK   - [ ] KO — notes:
 
@@ -226,7 +225,7 @@ Then continue with the next test, unless the KO blocks it.
   « 1 modification n'a pas encore été envoyée et sera perdue. »
 - Step 4: B goes back to the welcome page « Bienvenue ». Nothing of the restaurant is left on B.
 - A still has everything, including the change B sent before signing out.
-- **Then:** sign B in again with the manager account. B downloads everything again.
+- **Then:** sign B in again with the owner's account. B downloads everything again.
 
 **Result:** - [ ] OK   - [ ] KO — notes:
 
@@ -1186,8 +1185,7 @@ shows « Seul le propriétaire peut modifier un établissement. » A keeps the o
 ### TD1 — A third device joins
 
 **Steps:**
-1. On device **C** (Windows PC or a third tablet), sign in with a manager account of the
-   restaurant (invite one more manager if needed).
+1. On device **C** (Windows PC or a third tablet), sign in with the owner's account.
 
 **Expected:** C downloads everything and shows the same data as A and B. Write down how long the
 first download takes: ______
@@ -1232,8 +1230,8 @@ first download takes: ______
 |---|---|---|---|---|
 | AC1 | Owner creates restaurant on A | — | | |
 | AC2 | Account errors | error texts | | |
-| AC3 | Manager joins on B with a code | — | | |
-| AC4 | Code used twice / wrong code | « Code invalide ou expiré. » | | |
+| AC3 | B joins with the owner's account | — | | |
+| AC4 | No invitation codes | no « Rejoindre », no « Inviter un gérant » | | |
 | AC5 | Device list | — | | |
 | AC6 | No demo | no « Essayer la démo » | | |
 | AC9 | Owner removes a device | device removed message | | |

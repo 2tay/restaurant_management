@@ -252,27 +252,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get loginSubmit => 'Se connecter';
 
   @override
-  String get forgotTitle => 'Réinitialiser le mot de passe';
-
-  @override
-  String get forgotBody =>
-      'Saisissez votre adresse e-mail et nous vous enverrons un lien de réinitialisation.';
-
-  @override
-  String get forgotSubmit => 'Envoyer le lien';
-
-  @override
-  String get forgotSentTitle => 'Vérifiez votre boîte mail';
-
-  @override
-  String forgotSentBody(String email) {
-    return 'Si un compte existe pour $email, un lien de réinitialisation vient d\'être envoyé.';
-  }
-
-  @override
-  String get forgotBackToLogin => 'Retour à la connexion';
-
-  @override
   String get onboardingTitle => 'Bienvenue';
 
   @override
@@ -4744,13 +4723,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get setupSubtitle =>
-      'Créez votre restaurant, ou rejoignez-en un avec le code du propriétaire.';
-
-  @override
-  String get setupCreateTab => 'Créer';
-
-  @override
-  String get setupJoinTab => 'Rejoindre';
+      'Créez votre restaurant : vous en serez le propriétaire. Pour une autre tablette du même restaurant, connectez-vous plutôt avec le compte du propriétaire.';
 
   @override
   String get setupRestaurantName => 'Nom du restaurant';
@@ -4776,15 +4749,6 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get setupCreateSubmit => 'Créer le restaurant';
-
-  @override
-  String get setupJoinCode => 'Code d\'invitation';
-
-  @override
-  String get setupJoinCodeHint => '8 caractères, donnés par le propriétaire';
-
-  @override
-  String get setupJoinSubmit => 'Rejoindre le restaurant';
 
   @override
   String setupSignedInAs(String email) {
@@ -5156,11 +5120,6 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String existingDataOnDevice(String stores) {
     return 'Cet appareil contient déjà : $stores. Créez le restaurant avec ces données, ou commencez vide (elles seront sauvegardées dans un fichier).';
-  }
-
-  @override
-  String existingDataJoinNotice(String stores) {
-    return 'Cet appareil contient déjà : $stores. Elles seront sauvegardées dans un fichier, puis remplacées par les données du restaurant rejoint.';
   }
 
   @override

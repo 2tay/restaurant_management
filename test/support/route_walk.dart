@@ -27,7 +27,6 @@ List<WalkableRoute> allRoutes() {
 
   return [
     (label: 'login', path: Routes.login, inShell: false),
-    (label: 'forgot password', path: Routes.forgotPassword, inShell: false),
     (label: 'onboarding', path: Routes.onboarding, inShell: false),
     // The account screens (Phase 4), open on a device with no account so it can
     // connect to the restaurant. The waiting screen is account-only.

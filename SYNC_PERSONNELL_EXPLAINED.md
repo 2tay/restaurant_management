@@ -368,7 +368,8 @@ et la CIN d'un gérant peut se connecter à sa place.
   c'est celle dont le PIN correspond qui se connecte. Une fiche archivée ou de rôle Employé n'est
   refusée **qu'après** un PIN correct, pour ne rien révéler sur un e-mail. Rien n'est compté, rien
   n'est écrit. L'écran demande l'e-mail puis le PIN (masqué) ; le lien « Mot de passe oublié » n'y
-  est plus (la page reste pour le compte Supabase, depuis les Paramètres).
+  est plus, et la page a été retirée ; le propriétaire change le mot de passe du compte depuis
+  Paramètres → Compte.
 - **Assistant employé** (`10412ce`) : deux étapes, « Informations personnelles » puis « Tarif et
   rôle », avec un bandeau qui dit comment le rôle accède à l'application. Plus de mot de passe dans
   `EmployeeRepository.create/update`, ni à la création du compte du restaurant.

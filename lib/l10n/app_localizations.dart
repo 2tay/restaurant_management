@@ -544,42 +544,6 @@ abstract class AppLocalizations {
   /// **'Se connecter'**
   String get loginSubmit;
 
-  /// Password reset screen heading.
-  ///
-  /// In fr, this message translates to:
-  /// **'Réinitialiser le mot de passe'**
-  String get forgotTitle;
-
-  /// Instructions on the password reset screen.
-  ///
-  /// In fr, this message translates to:
-  /// **'Saisissez votre adresse e-mail et nous vous enverrons un lien de réinitialisation.'**
-  String get forgotBody;
-
-  /// Primary action on the password reset form.
-  ///
-  /// In fr, this message translates to:
-  /// **'Envoyer le lien'**
-  String get forgotSubmit;
-
-  /// Confirmation state heading after requesting a reset link.
-  ///
-  /// In fr, this message translates to:
-  /// **'Vérifiez votre boîte mail'**
-  String get forgotSentTitle;
-
-  /// Confirmation body. Deliberately does not confirm whether the account exists, which would leak which addresses are registered.
-  ///
-  /// In fr, this message translates to:
-  /// **'Si un compte existe pour {email}, un lien de réinitialisation vient d\'être envoyé.'**
-  String forgotSentBody(String email);
-
-  /// Link back to the login screen.
-  ///
-  /// In fr, this message translates to:
-  /// **'Retour à la connexion'**
-  String get forgotBackToLogin;
-
   /// Onboarding screen heading.
   ///
   /// In fr, this message translates to:
@@ -7670,20 +7634,8 @@ abstract class AppLocalizations {
   /// Under the set-up heading.
   ///
   /// In fr, this message translates to:
-  /// **'Créez votre restaurant, ou rejoignez-en un avec le code du propriétaire.'**
+  /// **'Créez votre restaurant : vous en serez le propriétaire. Pour une autre tablette du même restaurant, connectez-vous plutôt avec le compte du propriétaire.'**
   String get setupSubtitle;
-
-  /// Set-up tab: create a restaurant.
-  ///
-  /// In fr, this message translates to:
-  /// **'Créer'**
-  String get setupCreateTab;
-
-  /// Set-up tab: join with a code.
-  ///
-  /// In fr, this message translates to:
-  /// **'Rejoindre'**
-  String get setupJoinTab;
 
   /// Set-up field.
   ///
@@ -7732,24 +7684,6 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Créer le restaurant'**
   String get setupCreateSubmit;
-
-  /// Set-up field: the join code.
-  ///
-  /// In fr, this message translates to:
-  /// **'Code d\'invitation'**
-  String get setupJoinCode;
-
-  /// Hint under the join code.
-  ///
-  /// In fr, this message translates to:
-  /// **'8 caractères, donnés par le propriétaire'**
-  String get setupJoinCodeHint;
-
-  /// Set-up button: join.
-  ///
-  /// In fr, this message translates to:
-  /// **'Rejoindre le restaurant'**
-  String get setupJoinSubmit;
 
   /// Set-up: which account is signed in.
   ///
@@ -8272,12 +8206,6 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Cet appareil contient déjà : {stores}. Créez le restaurant avec ces données, ou commencez vide (elles seront sauvegardées dans un fichier).'**
   String existingDataOnDevice(String stores);
-
-  /// Set-up page, join tab, own data on the device.
-  ///
-  /// In fr, this message translates to:
-  /// **'Cet appareil contient déjà : {stores}. Elles seront sauvegardées dans un fichier, puis remplacées par les données du restaurant rejoint.'**
-  String existingDataJoinNotice(String stores);
 
   /// After choosing to send the device's data.
   ///

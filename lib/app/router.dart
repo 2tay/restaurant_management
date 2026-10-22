@@ -25,7 +25,6 @@ import '../features/auth/presentation/pages/account_forgot_page.dart';
 import '../features/auth/presentation/pages/account_setup_page.dart';
 import '../features/auth/presentation/pages/account_sign_up_page.dart';
 import '../features/auth/presentation/pages/account_waiting_page.dart';
-import '../features/auth/presentation/pages/forgot_password_page.dart';
 import '../features/auth/presentation/pages/login_page.dart';
 import '../features/auth/presentation/pages/onboarding_page.dart';
 import '../features/auth/presentation/pages/welcome_page.dart';
@@ -127,7 +126,6 @@ String _storeId(GoRouterState state) => state.pathParameters['storeId']!;
 /// The screens reachable without a session.
 const Set<String> _authRoutes = {
   Routes.login,
-  Routes.forgotPassword,
   Routes.onboarding,
 };
 
@@ -236,10 +234,6 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: Routes.accountExistingData,
       builder: (context, state) => const AccountExistingDataPage(),
-    ),
-    GoRoute(
-      path: Routes.forgotPassword,
-      builder: (context, state) => const ForgotPasswordPage(),
     ),
     GoRoute(
       path: Routes.onboarding,

@@ -25,8 +25,7 @@ import 'package:stock_inventory/features/auth/presentation/pages/login_page.dart
 import 'package:stock_inventory/features/auth/presentation/pages/welcome_page.dart';
 import 'package:stock_inventory/data/repositories/session_repository.dart';
 import 'package:stock_inventory/data/repositories/store_repository.dart';
-import 'support/seed/dataset/dataset.dart'
-    show EmployeeIds, StoreIds;
+import 'support/seed/dataset/dataset.dart' show EmployeeIds, StoreIds;
 import 'package:stock_inventory/services/auth_service.dart';
 import 'package:stock_inventory/services/sync_service.dart';
 
@@ -112,9 +111,7 @@ void main() {
     expect(find.text('78.02.14-153.24'), findsNothing, reason: 'no demo PIN');
   });
 
-  testApp('a build with no server says so, and offers nothing', (
-    tester,
-  ) async {
+  testApp('a build with no server says so, and offers nothing', (tester) async {
     await pumpDevice(
       tester,
       openEmptyDatabase(),
@@ -171,29 +168,23 @@ void main() {
     );
   });
 
-  testApp('signing in without a restaurant leads to set-up, then joining', (
-    tester,
-  ) async {
-    final db = openEmptyDatabase();
-    server.addUser('manager@resto.be', 'motdepasse');
-    final code = server.codeFor(server.addOrganization('Brasserie'));
-    await pumpDevice(tester, db);
+  testApp(
+    'signing in without a restaurant leads to creating one, not joining',
+    (tester) async {
+      server.addUser('owner@resto.be', 'motdepasse');
+      await pumpDevice(tester, openEmptyDatabase());
 
-    await tester.enterText(find.byType(TextField).at(0), 'manager@resto.be');
-    await tester.enterText(find.byType(TextField).at(1), 'motdepasse');
-    await tester.tap(find.text('Se connecter'));
-    await tester.pumpAndSettle();
-    expect(find.byType(AccountSetupPage), findsOneWidget);
+      await tester.enterText(find.byType(TextField).at(0), 'owner@resto.be');
+      await tester.enterText(find.byType(TextField).at(1), 'motdepasse');
+      await tester.tap(find.text('Se connecter'));
+      await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Rejoindre'));
-    await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextField), code);
-    await tester.tap(find.text('Rejoindre le restaurant'));
-    await tester.pumpAndSettle();
-
-    expect(find.byType(AccountWaitingPage), findsOneWidget);
-    expect(find.textContaining('Brasserie'), findsOneWidget);
-  });
+      expect(find.byType(AccountSetupPage), findsOneWidget);
+      expect(find.text('Créer le restaurant'), findsOneWidget);
+      expect(find.text('Rejoindre'), findsNothing);
+      expect(find.textContaining('invitation'), findsNothing);
+    },
+  );
 
   testApp('a wrong password is said in words', (tester) async {
     server.addUser('owner@resto.be', 'motdepasse');
@@ -211,9 +202,7 @@ void main() {
     expect(find.byType(WelcomePage), findsOneWidget);
   });
 
-  testApp('an account device shows the real sync state', (
-    tester,
-  ) async {
+  testApp('an account device shows the real sync state', (tester) async {
     final db = await openSeededDatabase();
     final organization = server.addOrganization('Brasserie');
     server.addUser(

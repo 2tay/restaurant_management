@@ -14,8 +14,8 @@ import '../widgets/auth_layout.dart';
 import '../widgets/auth_notice.dart';
 
 /// The step after signing up (SYNC_PLAN.md, Phase 4): an account with no
-/// restaurant either creates one (it becomes the owner) or joins one with the
-/// code an owner gave (it becomes a manager).
+/// restaurant creates one, and becomes its owner. Another tablet of the
+/// restaurant does not come here: it signs in with the owner's account.
 class AccountSetupPage extends ConsumerStatefulWidget {
   const AccountSetupPage({super.key});
 
@@ -29,7 +29,6 @@ class _AccountSetupPageState extends ConsumerState<AccountSetupPage> {
       .currentSummary()
       .catchError((Object _) => null);
 
-  bool _joining = false;
   bool _busy = false;
   String? _error;
 
@@ -53,7 +52,7 @@ class _AccountSetupPageState extends ConsumerState<AccountSetupPage> {
     if (mounted) setState(() => _ownStores = names);
   }
 
-  bool get _fromLocalData => !_joining && _ownStores.isNotEmpty && _useLocalData;
+  bool get _fromLocalData => _ownStores.isNotEmpty && _useLocalData;
 
   final _restaurant = TextEditingController();
   final _city = TextEditingController();
@@ -61,7 +60,6 @@ class _AccountSetupPageState extends ConsumerState<AccountSetupPage> {
   final _firstName = TextEditingController();
   final _lastName = TextEditingController();
   final _pin = TextEditingController();
-  final _code = TextEditingController();
 
   @override
   void dispose() {
@@ -72,7 +70,6 @@ class _AccountSetupPageState extends ConsumerState<AccountSetupPage> {
       _firstName,
       _lastName,
       _pin,
-      _code,
     ]) {
       controller.dispose();
     }
@@ -108,74 +105,46 @@ class _AccountSetupPageState extends ConsumerState<AccountSetupPage> {
                 l10n.setupSignedInAs(summary.email),
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
-              const SizedBox(height: AppSpacing.lg),
-              SegmentedButton<bool>(
-                segments: [
-                  ButtonSegment(
-                    value: false,
-                    label: Text(l10n.setupCreateTab),
-                    icon: const Icon(LucideIcons.store),
-                  ),
-                  ButtonSegment(
-                    value: true,
-                    label: Text(l10n.setupJoinTab),
-                    icon: const Icon(LucideIcons.ticket),
-                  ),
-                ],
-                selected: {_joining},
-                onSelectionChanged: (value) => setState(() {
-                  _joining = value.first;
-                  _error = null;
-                }),
-              ),
               const SizedBox(height: AppSpacing.xl),
               if (_ownStores.isNotEmpty) ...[
                 AuthNotice.info(
-                  _joining
-                      ? l10n.existingDataJoinNotice(_ownStores.join(', '))
-                      : l10n.existingDataOnDevice(_ownStores.join(', ')),
+                  l10n.existingDataOnDevice(_ownStores.join(', ')),
                 ),
                 const SizedBox(height: AppSpacing.md),
-                if (!_joining) ...[
-                  SegmentedButton<bool>(
-                    segments: [
-                      ButtonSegment(
-                        value: true,
-                        label: Text(l10n.existingDataUse),
-                        icon: const Icon(LucideIcons.cloudUpload),
-                      ),
-                      ButtonSegment(
-                        value: false,
-                        label: Text(l10n.existingDataStartEmpty),
-                        icon: const Icon(LucideIcons.archive),
-                      ),
-                    ],
-                    selected: {_useLocalData},
-                    onSelectionChanged: (value) => setState(() {
-                      _useLocalData = value.first;
-                      _error = null;
-                    }),
-                  ),
-                  const SizedBox(height: AppSpacing.lg),
-                ],
+                SegmentedButton<bool>(
+                  segments: [
+                    ButtonSegment(
+                      value: true,
+                      label: Text(l10n.existingDataUse),
+                      icon: const Icon(LucideIcons.cloudUpload),
+                    ),
+                    ButtonSegment(
+                      value: false,
+                      label: Text(l10n.existingDataStartEmpty),
+                      icon: const Icon(LucideIcons.archive),
+                    ),
+                  ],
+                  selected: {_useLocalData},
+                  onSelectionChanged: (value) => setState(() {
+                    _useLocalData = value.first;
+                    _error = null;
+                  }),
+                ),
+                const SizedBox(height: AppSpacing.lg),
               ],
-              ...(_joining
-                  ? _joinForm(l10n)
-                  : _fromLocalData
-                  ? _nameOnlyForm(l10n)
-                  : _createForm(l10n)),
+              ...(_fromLocalData ? _nameOnlyForm(l10n) : _createForm(l10n)),
               if (_error != null) ...[
                 const SizedBox(height: AppSpacing.md),
                 AuthNotice.error(_error!),
               ],
               const SizedBox(height: AppSpacing.xl),
               PrimaryButton(
-                label: _joining ? l10n.setupJoinSubmit : l10n.setupCreateSubmit,
-                icon: _joining ? LucideIcons.logIn : LucideIcons.store,
+                label: l10n.setupCreateSubmit,
+                icon: LucideIcons.store,
                 fullWidth: true,
                 large: true,
                 isBusy: _busy,
-                onPressed: _busy ? null : (_joining ? _join : _create),
+                onPressed: _busy ? null : _create,
               ),
             ],
           ],
@@ -243,17 +212,6 @@ class _AccountSetupPageState extends ConsumerState<AccountSetupPage> {
     ),
   ];
 
-  List<Widget> _joinForm(AppLocalizations l10n) => [
-    AppTextField(
-      label: l10n.setupJoinCode,
-      helperText: l10n.setupJoinCodeHint,
-      controller: _code,
-      prefixIcon: LucideIcons.ticket,
-      textInputAction: TextInputAction.done,
-      onSubmitted: (_) => _join(),
-    ),
-  ];
-
   Future<void> _create() async {
     final l10n = AppLocalizations.of(context);
     if (_fromLocalData) {
@@ -271,14 +229,7 @@ class _AccountSetupPageState extends ConsumerState<AccountSetupPage> {
       });
       return;
     }
-    final required = [
-      _restaurant,
-      _city,
-      _phone,
-      _firstName,
-      _lastName,
-      _pin,
-    ];
+    final required = [_restaurant, _city, _phone, _firstName, _lastName, _pin];
     if (required.any((c) => c.text.trim().isEmpty)) {
       setState(() => _error = l10n.setupFieldsRequired);
       return;
@@ -305,25 +256,13 @@ class _AccountSetupPageState extends ConsumerState<AccountSetupPage> {
     });
   }
 
-  Future<void> _join() async {
-    final l10n = AppLocalizations.of(context);
-    if (_code.text.trim().isEmpty) {
-      setState(() => _error = l10n.setupFieldsRequired);
-      return;
-    }
-    await _run(() async {
-      await _backupOwnData();
-      await ref.read(deviceAccessProvider.notifier).joinWithCode(_code.text);
-      if (!mounted) return;
-      context.goSection(Routes.login);
-    });
-  }
-
   /// Before the device's own data is replaced, a copy goes to a file, and
   /// the screen says where.
   Future<void> _backupOwnData() async {
     if (_ownStores.isEmpty) return;
-    final file = await ref.read(deviceAccessProvider.notifier).backupLocalData();
+    final file = await ref
+        .read(deviceAccessProvider.notifier)
+        .backupLocalData();
     if (!mounted) return;
     AppSnackBar.success(
       context,

@@ -21,7 +21,6 @@ abstract final class Routes {
   static const String accountForgot = '/welcome/forgot';
   static const String accountWaiting = '/welcome/waiting';
   static const String accountExistingData = '/welcome/existing-data';
-  static const String forgotPassword = '/forgot-password';
   static const String onboarding = '/onboarding';
   static const String stores = '/stores';
   static const String addStore = '/stores/add';
