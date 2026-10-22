@@ -1,4 +1,4 @@
-import '../../../models/store.dart';
+import 'package:stock_inventory/models/store.dart';
 import 'reference.dart';
 
 /// Store ids, referenced throughout the rest of the mock data.

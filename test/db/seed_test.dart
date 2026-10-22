@@ -14,17 +14,14 @@
 // group of their own here — they are exactly the ones the database will not
 // check for us.
 
-import 'package:drift/drift.dart' hide isNotNull, isNull;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stock_inventory/core/utils/stock_status.dart';
 import 'package:stock_inventory/data/database/app_database.dart';
-import 'package:stock_inventory/data/database/bootstrap.dart';
+import 'package:stock_inventory/data/database/clear_all_data.dart';
 import 'package:stock_inventory/data/database/meta_keys.dart';
 import 'package:stock_inventory/data/mappers/mappers.dart';
-import 'package:stock_inventory/data/repositories/demo_repository.dart';
 import 'package:stock_inventory/data/repositories/new_id.dart';
-import 'package:stock_inventory/data/seed/dataset/dataset.dart';
-import 'package:stock_inventory/data/seed/demo_seed.dart';
+import '../support/seed/dataset/dataset.dart';
 import 'package:stock_inventory/models/models.dart';
 
 import '../support/db_fixture.dart';
@@ -335,19 +332,7 @@ void main() {
     });
   });
 
-  group('first launch and reset', () {
-    test('an empty database is seeded, and a seeded one is left alone',
-        () async {
-      final fresh = openEmptyDatabase();
-
-      expect(await seedIfEmpty(fresh), isTrue);
-      final seeded = await fresh.select(fresh.items).get();
-      expect(seeded, isNotEmpty);
-
-      expect(await seedIfEmpty(fresh), isFalse);
-      expect(await fresh.select(fresh.items).get(), hasLength(seeded.length));
-    });
-
+  group('clearing', () {
     test('clearing empties every table', () async {
       await clearAllData(db);
 
@@ -365,24 +350,6 @@ void main() {
             .getSingle();
         expect(count.read<int>('n'), 0, reason: table);
       }
-    });
-
-    test('a reset undoes a change rather than only re-counting rows', () async {
-      final before = await (db.select(
-        db.items,
-      )..where((i) => i.storeId.equals(StoreIds.sablon))).get();
-      final target = before.first;
-
-      await (db.update(db.items)..where((i) => i.id.equals(target.id))).write(
-        ItemsCompanion(quantity: Value(target.quantity + 999)),
-      );
-
-      await DemoRepository(db).resetDemo();
-
-      final after = await (db.select(
-        db.items,
-      )..where((i) => i.id.equals(target.id))).getSingle();
-      expect(after.quantity, target.quantity);
     });
 
     test('a generated id can never collide with a seeded one', () async {

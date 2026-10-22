@@ -1,7 +1,7 @@
 // Data already on a device at its first account connection
 // (SYNC_PLAN.md, Phase 9).
 //
-//   only the demo                      -> wiped (Phase 4)
+//   only the old demo                  -> wiped (Phase 4)
 //   own data, the account is empty     -> sent to the account
 //   own data, the account has data     -> backed up to a file, then replaced
 
@@ -16,7 +16,7 @@ import 'package:stock_inventory/data/device_access.dart';
 import 'package:stock_inventory/data/employee_photo_store.dart';
 import 'package:stock_inventory/data/providers.dart';
 import 'package:stock_inventory/data/repositories/repositories.dart';
-import 'package:stock_inventory/data/seed/dataset/dataset.dart' show StoreIds;
+import '../support/seed/dataset/dataset.dart' show StoreIds;
 import 'package:stock_inventory/models/models.dart';
 import 'package:stock_inventory/services/sync_service.dart';
 
@@ -35,7 +35,7 @@ void main() {
   });
 
   tearDown(() {
-    seedDeviceAccessSnapshot(DeviceAccess.demo);
+    seedDeviceAccessSnapshot(DeviceAccess.local);
     seedCurrentEmployeeSnapshot(null);
   });
 

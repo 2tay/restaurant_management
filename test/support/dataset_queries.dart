@@ -18,7 +18,7 @@
 import 'package:stock_inventory/core/utils/order_status.dart';
 import 'package:stock_inventory/core/utils/stock_cost.dart';
 import 'package:stock_inventory/core/utils/stock_status.dart';
-import 'package:stock_inventory/data/seed/dataset/dataset.dart';
+import 'seed/dataset/dataset.dart';
 import 'package:stock_inventory/models/models.dart';
 
 /// The Phase 1 read layer, over the demo dataset's lists.

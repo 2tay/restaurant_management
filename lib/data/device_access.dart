@@ -6,7 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/employee.dart';
 import '../services/auth_service.dart';
 import 'current_employee.dart';
-import 'database/bootstrap.dart';
 import 'providers.dart';
 import 'repositories/device_access_repository.dart';
 import 'repositories/device_repository.dart';
@@ -22,9 +21,10 @@ export 'repositories/local_data_repository.dart' show LocalDataKind;
 /// which runs inside a go_router `redirect` and cannot await. Same pattern as
 /// `currentEmployeeSnapshot`.
 ///
-/// Defaults to the demo, which is what every screen test that pumps the app
-/// without hydrating has always been.
-DeviceAccess deviceAccessSnapshot = DeviceAccess.demo;
+/// Defaults to [DeviceAccess.local], which is what every screen test that
+/// pumps the app without hydrating runs as. `main()` hydrates it before the
+/// first frame.
+DeviceAccess deviceAccessSnapshot = DeviceAccess.local;
 
 /// Test-only: seed [deviceAccessSnapshot] directly.
 void seedDeviceAccessSnapshot(DeviceAccess access) {
@@ -52,7 +52,6 @@ class DeviceSignOutSignal extends ChangeNotifier {
 /// spans the server, the local database and both sessions, and has to leave
 /// all of them consistent:
 ///
-/// - [startDemo]: the demo, offline, as the app has always been;
 /// - [signIn] / [signUp]: the account login. They do not change the device
 ///   yet; the screen then either finishes ([finishWithAccount]) or sets up
 ///   a restaurant ([createRestaurant]) / joins one ([joinWithCode]);
@@ -78,15 +77,6 @@ class DeviceAccessController extends Notifier<DeviceAccess> {
   /// Reads the mode from the database. Called by `main()` before the first
   /// frame, and after anything that changes it.
   Future<void> hydrate() async => _set(await _repository.read());
-
-  /// Opens the demo: seeds it if the device is empty, and remembers the
-  /// choice.
-  Future<void> startDemo() async {
-    final db = ref.read(databaseProvider);
-    await seedIfEmpty(db);
-    await _repository.writeDemo();
-    await hydrate();
-  }
 
   Future<AccountSummary> signIn(String email, String password) async {
     await _backend.signIn(email: email, password: password);
@@ -181,7 +171,7 @@ class DeviceAccessController extends Notifier<DeviceAccess> {
   LocalDataRepository get _local =>
       LocalDataRepository(ref.read(databaseProvider));
 
-  /// Whether the device holds nothing, only the demo, or its own data.
+  /// Whether the device holds nothing, only an old demo, or its own data.
   Future<LocalDataKind> localData() => _local.kind();
 
   /// The names of the device's own establishments.
@@ -283,8 +273,8 @@ class DeviceAccessController extends Notifier<DeviceAccess> {
     await hydrate();
   }
 
-  /// Registers the device with the server, clears the demo if that is what
-  /// the device held, and remembers the account.
+  /// Registers the device with the server, clears whatever the device held
+  /// before, and remembers the account.
   Future<void> _joinDevice(AccountSummary summary) async {
     final db = ref.read(databaseProvider);
     final device = DeviceRepository(db);
@@ -293,7 +283,8 @@ class DeviceAccessController extends Notifier<DeviceAccess> {
       name: deviceDisplayName(),
     );
 
-    // The demo never mixes with a restaurant's real data.
+    // An old demo never mixes with a restaurant's real data; data of the
+    // device's own reached here only after the screens offered to keep it.
     if (state.mode != DeviceMode.account) {
       await ref.read(currentEmployeeProvider.notifier).signOut();
       await _repository.wipe(

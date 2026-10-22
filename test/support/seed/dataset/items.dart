@@ -1,4 +1,4 @@
-import '../../../models/item.dart';
+import 'package:stock_inventory/models/item.dart';
 import 'categories.dart';
 import 'reference.dart';
 import 'stores.dart';

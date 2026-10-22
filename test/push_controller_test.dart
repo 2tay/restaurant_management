@@ -15,7 +15,7 @@ import 'package:stock_inventory/data/device_access.dart';
 import 'package:stock_inventory/data/employee_photo_store.dart';
 import 'package:stock_inventory/data/providers.dart';
 import 'package:stock_inventory/data/repositories/repositories.dart';
-import 'package:stock_inventory/data/seed/dataset/dataset.dart'
+import 'support/seed/dataset/dataset.dart'
     show EmployeeIds, StoreIds;
 import 'package:stock_inventory/services/auth_service.dart';
 import 'package:stock_inventory/services/push_service.dart';
@@ -34,7 +34,7 @@ void main() {
   });
 
   tearDown(() {
-    seedDeviceAccessSnapshot(DeviceAccess.demo);
+    seedDeviceAccessSnapshot(DeviceAccess.local);
     seedCurrentEmployeeSnapshot(null);
   });
 
@@ -163,7 +163,7 @@ void main() {
     expect(messaging.deleted, isTrue, reason: 'and the address dropped');
   });
 
-  test('the demo never registers', () async {
+  test('a device with no account never registers', () async {
     final (c, _) = await accountDevice(account: false);
 
     await signIn(c, EmployeeIds.marc);

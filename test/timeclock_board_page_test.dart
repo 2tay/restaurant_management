@@ -12,7 +12,7 @@ import 'package:stock_inventory/core/theme/app_colors.dart';
 import 'package:stock_inventory/core/utils/formatters.dart';
 import 'package:stock_inventory/data/database/app_database.dart';
 import 'package:stock_inventory/data/repositories/repositories.dart';
-import 'package:stock_inventory/data/seed/dataset/dataset.dart';
+import 'support/seed/dataset/dataset.dart';
 import 'package:stock_inventory/features/employees/presentation/widgets/close_business_day_dialog.dart';
 import 'package:stock_inventory/models/models.dart';
 import 'package:stock_inventory/shared/widgets/widgets.dart';

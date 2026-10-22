@@ -4,7 +4,6 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../app/navigation.dart';
 import '../../../../app/routes.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../data/device_access.dart';
 import '../../../../data/providers.dart';
@@ -14,7 +13,7 @@ import '../widgets/auth_layout.dart';
 import '../widgets/auth_notice.dart';
 
 /// The first screen of a fresh install (SYNC_PLAN.md, Phase 4): sign in to
-/// the restaurant's account, create one, or try the demo.
+/// the restaurant's account, or create one.
 ///
 /// This is the **account** login (e-mail, once per device). The employee
 /// login (PIN) comes after it, on `/login`, as before.
@@ -43,16 +42,14 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final hasServer = ref.watch(accountBackendProvider).isAvailable;
-    final access = ref.watch(deviceAccessProvider);
 
     return AuthLayout(
       title: l10n.welcomeTitle,
       subtitle: l10n.welcomeSubtitle,
       children: [
-        if (!hasServer) ...[
-          AuthNotice.info(l10n.accountServerMissing),
-          const SizedBox(height: AppSpacing.xl),
-        ] else ...[
+        if (!hasServer)
+          AuthNotice.info(l10n.accountServerMissing)
+        else ...[
           AppTextField(
             label: l10n.accountEmail,
             controller: _email,
@@ -83,10 +80,6 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
               child: Text(l10n.accountForgotLink),
             ),
           ),
-          if (access.mode == DeviceMode.demo) ...[
-            const SizedBox(height: AppSpacing.sm),
-            AuthNotice.info(l10n.accountDemoWipeWarning),
-          ],
           if (_error != null) ...[
             const SizedBox(height: AppSpacing.md),
             AuthNotice.error(_error!),
@@ -109,36 +102,7 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
                 ? null
                 : () => context.goSection(Routes.accountSignUp),
           ),
-          const SizedBox(height: AppSpacing.xl),
-          Row(
-            children: [
-              const Expanded(child: Divider()),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-                child: Text(
-                  l10n.welcomeOr,
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-              ),
-              const Expanded(child: Divider()),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.xl),
         ],
-        SecondaryButton(
-          label: l10n.welcomeTryDemo,
-          icon: LucideIcons.chefHat,
-          fullWidth: true,
-          onPressed: _busy ? null : _startDemo,
-        ),
-        const SizedBox(height: AppSpacing.sm),
-        Text(
-          l10n.welcomeDemoHint,
-          style: Theme.of(
-            context,
-          ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
-          textAlign: TextAlign.center,
-        ),
       ],
     );
   }
@@ -176,13 +140,5 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
     } finally {
       if (mounted) setState(() => _busy = false);
     }
-  }
-
-  Future<void> _startDemo() async {
-    setState(() => _busy = true);
-    await ref.read(deviceAccessProvider.notifier).startDemo();
-    if (!mounted) return;
-    setState(() => _busy = false);
-    context.goSection(Routes.login);
   }
 }

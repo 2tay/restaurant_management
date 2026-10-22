@@ -1,5 +1,5 @@
-import '../../../models/purchase_order.dart';
-import '../../../models/purchase_order_line.dart';
+import 'package:stock_inventory/models/purchase_order.dart';
+import 'package:stock_inventory/models/purchase_order_line.dart';
 import 'items.dart';
 import 'reference.dart';
 import 'stores.dart';

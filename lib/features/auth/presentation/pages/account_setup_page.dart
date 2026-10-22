@@ -34,7 +34,7 @@ class _AccountSetupPageState extends ConsumerState<AccountSetupPage> {
   String? _error;
 
   /// The device's own establishments, when it holds some (Phase 9). Empty
-  /// for a fresh install or the demo.
+  /// for a fresh install.
   List<String> _ownStores = const [];
 
   /// Create the restaurant from the device's own data, rather than empty.
@@ -158,10 +158,6 @@ class _AccountSetupPageState extends ConsumerState<AccountSetupPage> {
                   ),
                   const SizedBox(height: AppSpacing.lg),
                 ],
-              ] else if (ref.watch(deviceAccessProvider).mode ==
-                  DeviceMode.demo) ...[
-                AuthNotice.info(l10n.accountDemoWipeWarning),
-                const SizedBox(height: AppSpacing.lg),
               ],
               ...(_joining
                   ? _joinForm(l10n)

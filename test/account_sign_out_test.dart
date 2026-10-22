@@ -12,7 +12,7 @@ import 'package:stock_inventory/data/current_employee.dart';
 import 'package:stock_inventory/data/device_access.dart';
 import 'package:stock_inventory/data/providers.dart';
 import 'package:stock_inventory/data/repositories/repositories.dart';
-import 'package:stock_inventory/data/seed/dataset/dataset.dart'
+import 'support/seed/dataset/dataset.dart'
     show EmployeeIds, StoreIds;
 
 import 'support/app_harness.dart';
@@ -35,7 +35,7 @@ void main() {
       role: 'owner',
     );
     seedDeviceAccessSnapshot(await DeviceAccessRepository(db).read());
-    addTearDown(() => seedDeviceAccessSnapshot(DeviceAccess.demo));
+    addTearDown(() => seedDeviceAccessSnapshot(DeviceAccess.local));
     seedCurrentEmployeeSnapshot(
       await SessionRepository(db).signIn(EmployeeIds.marc),
     );

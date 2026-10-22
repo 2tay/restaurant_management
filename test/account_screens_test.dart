@@ -5,7 +5,7 @@
 //   nothing chosen yet          -> the welcome screen
 //   an account, no data yet     -> the waiting screen
 //   an account with data        -> the employee PIN login
-//   the demo                    -> as the app has always been
+//   data and no account         -> as it was (an install from before accounts)
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -25,7 +25,7 @@ import 'package:stock_inventory/features/auth/presentation/pages/login_page.dart
 import 'package:stock_inventory/features/auth/presentation/pages/welcome_page.dart';
 import 'package:stock_inventory/data/repositories/session_repository.dart';
 import 'package:stock_inventory/data/repositories/store_repository.dart';
-import 'package:stock_inventory/data/seed/dataset/dataset.dart'
+import 'support/seed/dataset/dataset.dart'
     show EmployeeIds, StoreIds;
 import 'package:stock_inventory/services/auth_service.dart';
 import 'package:stock_inventory/services/sync_service.dart';
@@ -79,7 +79,7 @@ void main() {
 
     seedCurrentEmployeeSnapshot(null);
     seedDeviceAccessSnapshot(await DeviceAccessRepository(db).read());
-    addTearDown(() => seedDeviceAccessSnapshot(DeviceAccess.demo));
+    addTearDown(() => seedDeviceAccessSnapshot(DeviceAccess.local));
 
     await tester.pumpWidget(
       ProviderScope(
@@ -98,23 +98,23 @@ void main() {
   testApp('a fresh install opens on the welcome screen', (tester) async {
     await pumpDevice(tester, openEmptyDatabase());
     expect(find.byType(WelcomePage), findsOneWidget);
-    expect(find.text('Essayer la démo'), findsOneWidget);
+    expect(find.text('Se connecter'), findsOneWidget);
+    expect(find.textContaining('démo'), findsNothing, reason: 'no demo');
   });
 
-  testApp('trying the demo lands on the pre-filled PIN login', (tester) async {
-    final db = openEmptyDatabase();
-    await pumpDevice(tester, db);
+  testApp('an install from before accounts opens on an empty PIN login', (
+    tester,
+  ) async {
+    await pumpDevice(tester, await openSeededDatabase());
 
-    await tester.ensureVisible(find.text('Essayer la démo'));
-    await tester.tap(find.text('Essayer la démo'));
-    await tester.pumpAndSettle();
-
+    expect(deviceAccessSnapshot.mode, DeviceMode.local);
     expect(find.byType(LoginPage), findsOneWidget);
-    expect(find.text('78.02.14-153.24'), findsOneWidget);
-    expect(deviceAccessSnapshot.mode, DeviceMode.demo);
+    expect(find.text('78.02.14-153.24'), findsNothing, reason: 'no demo PIN');
   });
 
-  testApp('a build with no server offers only the demo', (tester) async {
+  testApp('a build with no server says so, and offers nothing', (
+    tester,
+  ) async {
     await pumpDevice(
       tester,
       openEmptyDatabase(),
@@ -125,7 +125,7 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Se connecter'), findsNothing);
-    expect(find.text('Essayer la démo'), findsOneWidget);
+    expect(find.textContaining('démo'), findsNothing);
   });
 
   testApp('an account with no data yet waits for the first sync', (
@@ -161,7 +161,6 @@ void main() {
 
     expect(find.byType(LoginPage), findsOneWidget);
     expect(find.text('78.02.14-153.24'), findsNothing, reason: 'no demo PIN');
-    expect(find.textContaining('Prototype de démonstration'), findsNothing);
 
     appRouter.go(Routes.welcome);
     await tester.pumpAndSettle();
@@ -212,7 +211,7 @@ void main() {
     expect(find.byType(WelcomePage), findsOneWidget);
   });
 
-  testApp('an account device shows the real sync state, and no demo reset', (
+  testApp('an account device shows the real sync state', (
     tester,
   ) async {
     final db = await openSeededDatabase();
@@ -240,7 +239,6 @@ void main() {
 
     expect(find.text('Synchroniser maintenant'), findsOneWidget);
     expect(find.text('À jour'), findsOneWidget);
-    expect(find.text('Réinitialiser la démonstration'), findsNothing);
   });
 
   testApp('a slow first download still opens the PIN login', (tester) async {

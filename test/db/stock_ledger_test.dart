@@ -17,7 +17,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:stock_inventory/data/database/app_database.dart';
 import 'package:stock_inventory/data/mappers/mappers.dart';
 import 'package:stock_inventory/data/repositories/repositories.dart';
-import 'package:stock_inventory/data/seed/dataset/dataset.dart'
+import '../support/seed/dataset/dataset.dart'
     show CategoryIds, ItemIds, StoreIds, UnitIds;
 import 'package:stock_inventory/models/models.dart';
 

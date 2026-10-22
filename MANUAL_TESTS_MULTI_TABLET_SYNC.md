@@ -179,56 +179,17 @@ Then continue with the next test, unless the KO blocks it.
 
 ---
 
-### AC6 — The demo never goes to the server
+### AC6 — There is no demo
 
-**Goal:** demo data stays on the device.
-
-**Steps:**
-1. On a **third** device (or after a reinstall), on the welcome page, tap « Essayer la démo ».
-2. Make a change (for example a stock out).
-3. Open the sync page.
-4. On A, Sync.
-
-**Expected:**
-- The demo sync page says « Démonstration — rien n'est envoyé ».
-- A and B **never** show the demo stores (Brasserie du Sablon, Taverne Saint-Gilles…).
-
-**Result:** - [ ] OK   - [ ] KO — notes:
-
----
-
-### AC7 — A demo device connects to the account
-
-**Goal:** turning a demo device into a real one removes the demo data.
+**Goal:** the app delivered to the restaurant has no demo restaurant.
 
 **Steps:**
-1. On the demo device of AC6: « Paramètres » → « Compte » → « Connecter un compte ».
-2. Sign in with the **manager's** account (or a new invited manager).
+1. On a **third** device (or after a reinstall), open the app.
 
 **Expected:**
-- The app warns « Les données de démonstration de cet appareil seront effacées. »
-- After sign-in, the device shows only the real restaurant. No demo store is left.
-- A and B still show no demo data.
-
-**Result:** - [ ] OK   - [ ] KO — notes:
-
----
-
-### AC8 — A device with its own data joins an account that already has data
-
-**Goal:** local data is saved to a backup file before it is replaced.
-**Before:** a device in demo mode where you created your **own** store (not a demo store) with
-a few products.
-
-**Steps:**
-1. On that device, connect to the restaurant account (as in AC7).
-
-**Expected:**
-- The page « Données déjà sur cet appareil » appears and says that the account already contains
-  data and that the data of this device will be saved to a backup file.
-- Tap « Sauvegarder et continuer ».
-- A message « Sauvegarde enregistrée : … » shows the path of the file. The file exists.
-- The device then shows the account's data only.
+- The welcome page offers only « Se connecter » and « Créer un compte ». No « Essayer la démo ».
+- The PIN login, once reached, starts with empty fields.
+- No screen says « démonstration ».
 
 **Result:** - [ ] OK   - [ ] KO — notes:
 
@@ -237,7 +198,7 @@ a few products.
 ### AC9 — The owner removes a device
 
 **Steps:**
-1. **A (owner):** « Paramètres » → « Compte » → « Appareils » → on the device of AC7/AC8,
+1. **A (owner):** « Paramètres » → « Compte » → « Appareils » → on the device of AC6,
    tap « Retirer » and confirm.
 2. On that removed device, make a change and Sync.
 
@@ -1274,9 +1235,7 @@ first download takes: ______
 | AC3 | Manager joins on B with a code | — | | |
 | AC4 | Code used twice / wrong code | « Code invalide ou expiré. » | | |
 | AC5 | Device list | — | | |
-| AC6 | Demo stays local | « Démonstration — rien n'est envoyé » | | |
-| AC7 | Demo device joins account | demo wipe warning | | |
-| AC8 | Own data, account already full | backup file | | |
+| AC6 | No demo | no « Essayer la démo » | | |
 | AC9 | Owner removes a device | device removed message | | |
 | AC10 | Sign out wipes tablet | pending changes warning | | |
 | BS1 | Created on A, seen on B (live) | — | | |

@@ -349,7 +349,6 @@ l'enregistrement.
 ┌───────▼─────────────────────────────────────────────────────────────┐
 │  lib/data/database/  app_database.dart (schéma v2, migration,        │
 │  PRAGMA foreign_keys) · tables/…  · migrations/ (snapshots JSON)     │
-│  lib/data/seed/demo_seed.dart                                        │
 └─────────────────────────────────────────────────────────────────────┘
                 │
         SQLite (fichier) — via package drift
@@ -832,10 +831,10 @@ copier que le `.sqlite` d'une base ouverte peut perdre les dernières écritures
 
 | Moment | Ce qui se passe | Code |
 |---|---|---|
-| **1er lancement** | `main()` → `openAppDatabase()` ouvre/crée le fichier → `MigrationStrategy.onCreate` crée les 19 tables → `seedIfEmpty` : si la table `stores` est vide, `seedDemoData` écrit le jeu de démo (stock + employés) en une transaction. | `lib/main.dart`, `lib/data/database/bootstrap.dart`, `lib/data/seed/demo_seed.dart` |
-| **Lancements suivants** | Le fichier existe et contient des établissements → `seedIfEmpty` ne fait **rien**, les données de l'utilisateur sont conservées. `beforeOpen` exécute `PRAGMA foreign_keys = ON` à chaque ouverture. | `app_database.dart:133` |
+| **1er lancement** | `main()` → `openAppDatabase()` ouvre/crée le fichier → `MigrationStrategy.onCreate` crée les tables. La base reste **vide** : l'accueil demande de se connecter au compte du restaurant, dont les données arrivent par la synchronisation. | `lib/main.dart`, `lib/data/database/bootstrap.dart` |
+| **Lancements suivants** | Le fichier existe : les données de l'utilisateur sont conservées. `beforeOpen` exécute `PRAGMA foreign_keys = ON` à chaque ouverture. | `app_database.dart:133` |
 | **Install v1 mise à niveau** | `onUpgrade` (from < 2) : `createTable` des 5 tables employé + leurs 9 index + `addColumn` des 5 colonnes de pointage/paie sur `stores`, avec les défauts = constantes `core/utils/`. | `app_database.dart:99` |
-| **Réinitialiser la démonstration** | `DemoRepository.resetDemo()` : `clearAllData` (DELETE de toutes les tables, en ordre FK inverse) puis `seedDemoData` **ré-ancré à maintenant**, le tout en une transaction. Le fichier reste, son **contenu** est remplacé. | `lib/data/repositories/demo_repository.dart` |
+| **Déconnexion du compte** | `DeviceAccessRepository.wipe()` : `clearAllData` (DELETE de toutes les tables, en ordre FK inverse), la file d'envoi et les photos. Seul l'identifiant de l'appareil reste. | `lib/data/repositories/device_access_repository.dart`, `lib/data/database/clear_all_data.dart` |
 | **Désinstallation de l'app** | Le fichier part avec le stockage privé de l'app (Android/iOS). Sur desktop il reste dans « Documents » jusqu'à suppression manuelle. | — |
 
 ### En test — aucun fichier
@@ -872,7 +871,7 @@ des secrets.
 | Sélecteur d'employé (combobox) | `lib/shared/widgets/employee_selector.dart` — kiosque + historiques |
 | Session (Notifier) | `lib/data/current_employee.dart` |
 | Providers | `lib/data/providers.dart` |
-| Seed de démo | `lib/data/seed/demo_seed.dart` |
+| Jeu de données des tests (l'ancienne démo) | `test/support/seed/demo_seed.dart` |
 | Garde `unique writer` | `tool/ux_audit.py` (`SINGLE_WRITER_COMPANIONS`) |
 | Tests | `test/db/{schema,migration,employee_seed,employee_queries,employees,auth,attendance,payroll,store_settings}_test.dart`, `test/employee_photo_store_test.dart`, `test/components_test.dart` (IdentityPromptDialog), `test/payroll_history_page_test.dart` |
 | Écrans (cible Stage 9) | `lib/features/employees/presentation/pages/`, `lib/features/auth/presentation/pages/login_page.dart`, `lib/features/settings/presentation/pages/store_settings_page.dart`, `lib/app/router.dart` (`_guard`) |

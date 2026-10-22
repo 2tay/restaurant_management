@@ -17,7 +17,8 @@ import '../../../auth/presentation/widgets/auth_notice.dart';
 /// The restaurant's account, on the account settings screen
 /// (SYNC_PLAN.md, Phase 4).
 ///
-/// In the demo: an invitation to connect a real account. With an account:
+/// With no account (an install from before accounts): an invitation to
+/// connect the restaurant's account. With an account:
 /// who is signed in, the join code for a manager and the device list (owner),
 /// and signing the account out, which wipes the device.
 class RestaurantAccountSection extends ConsumerStatefulWidget {
@@ -70,7 +71,7 @@ class _RestaurantAccountSectionState
               AdaptiveCell(
                 flex: 1,
                 child: Text(
-                  l10n.accountSectionDemo,
+                  l10n.accountSectionLocal,
                   style: theme.textTheme.bodyMedium,
                 ),
               ),

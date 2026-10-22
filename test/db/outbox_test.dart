@@ -11,7 +11,7 @@
 //   - a delete is an entry with `deleted_at` set;
 //   - the figures every device recomputes never travel;
 //   - the seed, a stock rebuild and anything run through `SyncQuiet` queue
-//     nothing, and a demo reset empties the queue.
+//     nothing.
 
 import 'dart:convert';
 
@@ -23,7 +23,7 @@ import 'package:stock_inventory/data/database/meta_keys.dart';
 import 'package:stock_inventory/data/database/sync_tables.dart';
 import 'package:stock_inventory/data/providers.dart';
 import 'package:stock_inventory/data/repositories/repositories.dart';
-import 'package:stock_inventory/data/seed/dataset/dataset.dart'
+import '../support/seed/dataset/dataset.dart'
     show CategoryIds, EmployeeIds, ItemIds, StoreIds, SupplierIds, UnitIds;
 import 'package:stock_inventory/models/models.dart';
 import 'package:stock_inventory/shared/widgets/offline_banner.dart';
@@ -237,14 +237,6 @@ void main() {
       });
       expect(await outbox.pendingCount(), 0);
     });
-  });
-
-  test('a demo reset empties the queue', () async {
-    await newItem('Walkthrough');
-    expect(await outbox.pendingCount(), greaterThan(0));
-
-    await DemoRepository(db).resetDemo();
-    expect(await outbox.pendingCount(), 0);
   });
 
   test('the banner count follows the queue', () async {

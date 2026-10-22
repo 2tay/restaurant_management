@@ -127,9 +127,6 @@ final StreamProvider<List<RejectedChange>> syncErrorsProvider =
       (ref) => ref.watch(syncErrorRepositoryProvider).watchRejected(),
     );
 
-final Provider<DemoRepository> demoRepositoryProvider =
-    Provider<DemoRepository>((ref) => DemoRepository(ref.watch(databaseProvider)));
-
 final Provider<SessionRepository> sessionRepositoryProvider =
     Provider<SessionRepository>(
       (ref) => SessionRepository(ref.watch(databaseProvider)),
@@ -610,12 +607,6 @@ final unreadCountProvider = StreamProvider.family<int, String>(
         storeId,
         viewer: ref.watch(notificationViewerProvider),
       ),
-);
-
-/// When the local dataset was last written wholesale — the honest version of
-/// the sync screen's "last synchronised".
-final seededAtProvider = StreamProvider<DateTime?>(
-  (ref) => ref.watch(demoRepositoryProvider).watchSeededAt(),
 );
 
 // --- Reports -----------------------------------------------------------------

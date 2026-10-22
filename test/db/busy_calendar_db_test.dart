@@ -8,7 +8,7 @@ import 'package:stock_inventory/core/utils/formatters.dart';
 import 'package:stock_inventory/data/database/app_database.dart';
 import 'package:stock_inventory/data/notifications/notification_engine.dart';
 import 'package:stock_inventory/data/repositories/repositories.dart';
-import 'package:stock_inventory/data/seed/dataset/dataset.dart' show StoreIds;
+import '../support/seed/dataset/dataset.dart' show StoreIds;
 import 'package:stock_inventory/models/models.dart';
 
 import '../support/db_fixture.dart';

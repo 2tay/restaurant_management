@@ -430,12 +430,6 @@ abstract class AppLocalizations {
   /// **'Changer d\'établissement'**
   String get storeSwitcherChange;
 
-  /// Offline banner headline. Offline is the app's normal state in a kitchen, not a failure — the tone should stay informational.
-  ///
-  /// In fr, this message translates to:
-  /// **'Mode hors ligne'**
-  String get offlineBannerTitle;
-
   /// Count of local changes waiting to sync, shown in the offline banner.
   ///
   /// In fr, this message translates to:
@@ -549,12 +543,6 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Se connecter'**
   String get loginSubmit;
-
-  /// Honest notice on the login screen. Phase 1 authenticates nothing and the demo should not imply otherwise.
-  ///
-  /// In fr, this message translates to:
-  /// **'Mode démonstration : restaurant fictif, rien n\'est envoyé.'**
-  String get loginDemoNotice;
 
   /// Password reset screen heading.
   ///
@@ -3586,40 +3574,10 @@ abstract class AppLocalizations {
   /// **'Synchroniser maintenant'**
   String get syncNow;
 
-  /// Snackbar shown when a sync is triggered.
+  /// Sync page on a device with no account (an install from before accounts): nothing is sent until an account is connected.
   ///
   /// In fr, this message translates to:
-  /// **'Synchronisation en cours…'**
-  String get syncStarted;
-
-  /// Connection status: online.
-  ///
-  /// In fr, this message translates to:
-  /// **'Connecté'**
-  String get syncOnline;
-
-  /// Connection status: offline.
-  ///
-  /// In fr, this message translates to:
-  /// **'Hors ligne'**
-  String get syncOffline;
-
-  /// Debug toggle letting the offline experience be demoed on demand. The brief asks for this explicitly.
-  ///
-  /// In fr, this message translates to:
-  /// **'Simuler le mode hors ligne'**
-  String get syncDemoToggle;
-
-  /// Explains that the offline toggle is a demo aid, not a real setting.
-  ///
-  /// In fr, this message translates to:
-  /// **'Pour la démonstration : affiche la bannière hors ligne dans toute l\'application.'**
-  String get syncDemoToggleBody;
-
-  /// Honest note that sync between devices is not implemented yet.
-  ///
-  /// In fr, this message translates to:
-  /// **'Démonstration : les données restent sur cet appareil. Connectez le compte de votre restaurant (Paramètres → Compte) pour les partager entre appareils.'**
+  /// **'Cet appareil n\'est relié à aucun compte : ses données restent ici. Connectez le compte de votre restaurant (Paramètres → Compte) pour les envoyer et les partager entre appareils.'**
   String get syncLocalOnlyNote;
 
   /// Global search screen heading.
@@ -5079,42 +5037,6 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Une commande partiellement reçue est signalée sur le tableau de bord passé ce délai. Par défaut : 7 jours.'**
   String get storeSettingsStaleDaysHelp;
-
-  /// Section and action that puts the prototype's data back to how it shipped. Present because a client demo gets walked several times in one sitting and the second run should not start from the first one's leftovers.
-  ///
-  /// In fr, this message translates to:
-  /// **'Réinitialiser la démonstration'**
-  String get demoResetTitle;
-
-  /// Explains what the reset action does and, implicitly, that nothing persists anyway.
-  ///
-  /// In fr, this message translates to:
-  /// **'Remet les produits, les stocks, les commandes et les prix dans leur état d\'origine. Les modifications faites pendant la démonstration ne sont conservées que le temps de la session.'**
-  String get demoResetBody;
-
-  /// Confirmation before resetting.
-  ///
-  /// In fr, this message translates to:
-  /// **'Réinitialiser la démonstration ?'**
-  String get demoResetConfirmTitle;
-
-  /// Body of the reset confirmation.
-  ///
-  /// In fr, this message translates to:
-  /// **'Tout ce qui a été créé, modifié ou réceptionné depuis le démarrage sera annulé.'**
-  String get demoResetConfirmBody;
-
-  /// Confirms the reset.
-  ///
-  /// In fr, this message translates to:
-  /// **'Réinitialiser'**
-  String get demoResetConfirmAction;
-
-  /// Snackbar after resetting the demo data.
-  ///
-  /// In fr, this message translates to:
-  /// **'Démonstration réinitialisée.'**
-  String get demoResetDone;
 
   /// Sole button on a dialog that explains why something cannot be done. Not 'OK' — the user is acknowledging an explanation, not approving an action.
   ///
@@ -7643,34 +7565,10 @@ abstract class AppLocalizations {
   /// **'Mot de passe oublié ?'**
   String get accountForgotLink;
 
-  /// Opens the demo restaurant, offline.
-  ///
-  /// In fr, this message translates to:
-  /// **'Essayer la démo'**
-  String get welcomeTryDemo;
-
-  /// Under the demo button.
-  ///
-  /// In fr, this message translates to:
-  /// **'Un restaurant fictif, sur cet appareil seulement. Rien n\'est envoyé.'**
-  String get welcomeDemoHint;
-
-  /// Separator between the account login and the demo.
-  ///
-  /// In fr, this message translates to:
-  /// **'ou'**
-  String get welcomeOr;
-
-  /// Shown on the account screens when the device holds the demo.
-  ///
-  /// In fr, this message translates to:
-  /// **'Les données de démonstration de cet appareil seront effacées.'**
-  String get accountDemoWipeWarning;
-
   /// Welcome screen, build without a server.
   ///
   /// In fr, this message translates to:
-  /// **'Aucun serveur n\'est configuré dans cette version. La démo reste disponible.'**
+  /// **'Aucun serveur n\'est configuré dans cette version.'**
   String get accountServerMissing;
 
   /// Account sign-up heading.
@@ -7925,13 +7823,13 @@ abstract class AppLocalizations {
   /// **'Compte du restaurant'**
   String get accountSectionTitle;
 
-  /// Account settings in demo mode.
+  /// Account settings on a device with no account (an install from before accounts).
   ///
   /// In fr, this message translates to:
-  /// **'Cet appareil utilise la démo. Connectez le compte de votre restaurant pour travailler sur plusieurs appareils.'**
-  String get accountSectionDemo;
+  /// **'Cet appareil n\'est relié à aucun compte. Connectez le compte de votre restaurant pour envoyer ses données et travailler sur plusieurs appareils.'**
+  String get accountSectionLocal;
 
-  /// Account settings in demo mode.
+  /// Account settings on a device with no account: opens the account sign-in.
   ///
   /// In fr, this message translates to:
   /// **'Connecter un compte'**

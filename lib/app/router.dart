@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../data/providers.dart';
-import '../dev/theme_gallery_page.dart';
 import '../features/alerts/presentation/pages/low_stock_alerts_page.dart';
 import '../features/alerts/presentation/pages/notifications_page.dart';
 import '../features/calendar/presentation/pages/calendar_page.dart';
@@ -75,7 +74,7 @@ import 'routes.dart';
 ///
 
 /// The account screens (SYNC_PLAN.md, Phase 4), reachable before any account
-/// or demo is set up. The waiting screen is apart: it is only for an account
+/// is set up. The waiting screen is apart: it is only for an account
 /// device whose data has not arrived yet.
 const Set<String> _accountRoutes = {
   Routes.welcome,
@@ -91,8 +90,8 @@ const Set<String> _accountRoutes = {
 /// - an account whose restaurant data has not arrived → the waiting screen
 /// - an account with data → never back to the account pages; the employee
 ///   rules below take over
-/// - the demo → as the app has always been, plus the account pages, which is
-///   how a demo device connects to a real restaurant
+/// - data and no account (an install from before accounts) → as it was, plus
+///   the account pages, which is how it connects to the restaurant's account
 ///
 /// Returns where to go, `null` to stay, or [_continue] to let the employee
 /// rules decide.
@@ -112,7 +111,7 @@ String? _deviceGuard(String location) {
         return Routes.login;
       }
       return _continue;
-    case DeviceMode.demo:
+    case DeviceMode.local:
       if (_accountRoutes.contains(location)) return null;
       if (location == Routes.accountWaiting) return Routes.login;
       return _continue;
@@ -253,13 +252,6 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: Routes.addStore,
       builder: (context, state) => const AddStorePage(),
-    ),
-
-    // Development only. Reachable at /dev/gallery, linked from nothing —
-    // it is a reference for whoever is building screens, not a feature.
-    GoRoute(
-      path: Routes.devGallery,
-      builder: (context, state) => const ThemeGalleryPage(),
     ),
 
     // -------------------------------------------------------------------------
@@ -638,8 +630,8 @@ final GoRouter appRouter = GoRouter(
     ),
   ],
 
-  // A 404 in a demo is worse than a 404 in production — there is nobody to file
-  // a bug, only a client watching. Offer a way back.
+  // A 404 in a kitchen has nobody to file a bug, only someone who needs to
+  // get back to work. Offer a way back.
   errorBuilder: (context, state) => Scaffold(
     body: Center(
       child: Column(

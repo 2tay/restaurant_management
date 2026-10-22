@@ -4,7 +4,6 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../app/routes.dart';
 import '../../../../app/navigation.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../data/providers.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -162,14 +161,6 @@ class _AddStorePageState extends ConsumerState<AddStorePage> {
                         onPressed: _canSubmit ? _submit : null,
                       ),
                     ],
-                  ),
-                  const SizedBox(height: AppSpacing.lg),
-                  Text(
-                    l10n.loginDemoNotice,
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: AppColors.textDisabled,
-                    ),
                   ),
                 ],
               ),

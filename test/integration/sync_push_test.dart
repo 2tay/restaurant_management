@@ -54,7 +54,7 @@ void main() {
         ],
       );
       addTearDown(container.dispose);
-      addTearDown(() => seedDeviceAccessSnapshot(DeviceAccess.demo));
+      addTearDown(() => seedDeviceAccessSnapshot(DeviceAccess.local));
       final controller = container.read(deviceAccessProvider.notifier);
       await controller.hydrate();
 

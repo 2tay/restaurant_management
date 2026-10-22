@@ -1,5 +1,6 @@
-// The device level of the app (SYNC_PLAN.md, Phase 4): demo, account, or
-// nothing chosen yet, and every flow that moves between them.
+// The device level of the app (SYNC_PLAN.md, Phase 4): an account, data and
+// no account (an install from before accounts, or the demo earlier versions
+// offered), or nothing chosen yet, and every flow that moves between them.
 //
 // The server is `FakeAccountBackend`; `test/integration/` runs the real
 // Supabase backend against the local stack.
@@ -28,7 +29,7 @@ void main() {
   });
 
   tearDown(() {
-    seedDeviceAccessSnapshot(DeviceAccess.demo);
+    seedDeviceAccessSnapshot(DeviceAccess.local);
     seedCurrentEmployeeSnapshot(null);
   });
 
@@ -58,23 +59,19 @@ void main() {
       expect(deviceAccessSnapshot.mode, DeviceMode.none);
     });
 
-    test(
-      'an install from before accounts is the demo it already holds',
-      () async {
-        final c = await containerFor(await openSeededDatabase());
-        expect(accessOf(c).mode, DeviceMode.demo);
-      },
-    );
-
-    test('trying the demo seeds it and remembers the choice', () async {
-      final db = openEmptyDatabase();
-      final c = await containerFor(db);
-      await controllerOf(c).startDemo();
-
-      expect(accessOf(c).mode, DeviceMode.demo);
+    test('an install from before accounts keeps the data it holds', () async {
+      final c = await containerFor(await openSeededDatabase());
+      expect(accessOf(c).mode, DeviceMode.local);
       expect(accessOf(c).hasLocalData, isTrue);
-      expect(await StoreRepository(db).stores(), isNotEmpty);
-      expect(await OutboxRepository(db).pendingCount(), 0);
+    });
+
+    test('a device left in the old demo mode keeps its data too', () async {
+      final db = await openSeededDatabase();
+      await db
+          .into(db.meta)
+          .insert(MetaCompanion.insert(key: MetaKeys.deviceMode, value: 'demo'));
+      final c = await containerFor(db);
+      expect(accessOf(c).mode, DeviceMode.local);
     });
   });
 
@@ -213,7 +210,7 @@ void main() {
           ),
         ),
       );
-      expect(accessOf(c).mode, DeviceMode.demo);
+      expect(accessOf(c).mode, DeviceMode.local);
       expect(await StoreRepository(db).stores(), isNotEmpty);
     });
 

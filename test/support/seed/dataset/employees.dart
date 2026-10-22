@@ -1,4 +1,4 @@
-import '../../../models/employee.dart';
+import 'package:stock_inventory/models/employee.dart';
 import 'reference.dart';
 import 'stores.dart';
 

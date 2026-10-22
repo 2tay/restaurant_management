@@ -8,7 +8,6 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/permissions.dart';
 import '../../../../data/current_employee.dart';
-import '../../../../data/device_access.dart';
 import '../../../../data/providers.dart';
 import '../../../../data/repositories/credential_repository.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -29,16 +28,8 @@ class LoginPage extends ConsumerStatefulWidget {
 }
 
 class _LoginPageState extends ConsumerState<LoginPage> {
-  /// The seeded owner, pre-filled as a demo courtesy.
-  static const _demoEmail = 'marc.delvaux@brasserie-sablon.be';
-  static const _demoPin = '78.02.14-153.24';
-
-  /// Pre-filled only in the demo. On a restaurant's own account the fields
-  /// start empty, and the demo notice below is not shown.
-  late final bool _isDemo =
-      ref.read(deviceAccessProvider).mode == DeviceMode.demo;
-  late final _email = TextEditingController(text: _isDemo ? _demoEmail : '');
-  late final _pin = TextEditingController(text: _isDemo ? _demoPin : '');
+  final _email = TextEditingController();
+  final _pin = TextEditingController();
   bool _rememberMe = true;
   bool _obscurePin = true;
   String? _error;
@@ -118,33 +109,6 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           large: true,
           onPressed: () => _signIn(),
         ),
-        if (_isDemo) ...[
-          const SizedBox(height: AppSpacing.xl),
-          Container(
-            padding: const EdgeInsets.all(AppSpacing.md),
-            decoration: BoxDecoration(
-              color: AppColors.surfaceVariant,
-              borderRadius: AppRadius.mdAll,
-              border: Border.all(color: AppColors.border),
-            ),
-            child: Row(
-              children: [
-                const Icon(
-                  LucideIcons.info,
-                  size: AppSizing.iconMd,
-                  color: AppColors.textSecondary,
-                ),
-                const SizedBox(width: AppSpacing.sm),
-                Expanded(
-                  child: Text(
-                    l10n.loginDemoNotice,
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
       ],
     );
   }

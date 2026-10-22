@@ -1,5 +1,5 @@
-import '../../../models/goods_receipt.dart';
-import '../../../models/goods_receipt_line.dart';
+import 'package:stock_inventory/models/goods_receipt.dart';
+import 'package:stock_inventory/models/goods_receipt_line.dart';
 import 'items.dart';
 import 'purchase_orders.dart';
 import 'reference.dart';

@@ -14,7 +14,7 @@ import '../repositories/item_repository.dart';
 /// happened.
 ///
 /// Until now nothing in the app ever wrote a notification: the feed held ten
-/// rows from `seed/dataset/notifications.dart` and the bell counted them
+/// rows from the demo dataset (now `test/support/seed/`) and the bell counted them
 /// forever. This is the other half — the repositories call in after a write has
 /// succeeded, and the engine decides whether that event is worth saying out
 /// loud.

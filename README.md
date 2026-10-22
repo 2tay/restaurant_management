@@ -143,24 +143,12 @@ lib/
     mappers/     row <-> model, one file per aggregate
     repositories/ the write and read layer — one file per aggregate
     view_models/ what one screen needs, resolved in one query
-    seed/        the demo dataset and the code that writes it
     providers.dart  the bridge: one provider per screen-level query
   services/      Phase 3 stubs — empty classes, no logic
   l10n/         .arb translations + generated AppLocalizations
-  dev/          development-only reference. Not product — see below.
 tool/
   ux_audit.py   re-runnable check against the UX rules below
 ```
-
-### The theme gallery
-
-`lib/dev/theme_gallery_page.dart` renders every design-system primitive and shared
-component on one page, interactively. Reachable at **`/dev/gallery`**, linked from nothing.
-
-It was originally going to be deleted at handoff. It is kept because it is the fastest way
-to see what components exist and how they behave, and re-deriving that from 35 screens is
-worse. **A production build should drop `lib/dev/` and its route.** Nothing outside that
-folder imports it, so removing it is a two-line change.
 
 ---
 
@@ -181,7 +169,6 @@ if a file under `features/` imports `data/database/` or drift itself.
 | `data/mappers/` | Row ↔ model, one file per aggregate. Models stay plain Dart with no persistence annotations |
 | `data/repositories/` | Every query and every write. **`movement_repository.dart` is the only file that changes an item's quantity or average cost** |
 | `data/view_models/` | What one screen needs, in one query. A row in a list is handed text, not ids |
-| `data/seed/` | The demo dataset, and the transaction that writes it on a first launch |
 | `data/providers.dart` | One provider per screen-level query, keyed the way the screen keys it |
 
 **Queries are streams.** A write anywhere re-runs every query whose tables it touched, and

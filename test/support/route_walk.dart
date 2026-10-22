@@ -6,7 +6,7 @@
 // a route was added, and the copy that was not updated would go on passing.
 
 import 'package:stock_inventory/app/routes.dart';
-import 'package:stock_inventory/data/seed/dataset/dataset.dart';
+import 'seed/dataset/dataset.dart';
 
 /// One walkable destination. [inShell] is false for the auth and
 /// store-selection screens, which render outside `AppScaffold` because there is
@@ -29,8 +29,8 @@ List<WalkableRoute> allRoutes() {
     (label: 'login', path: Routes.login, inShell: false),
     (label: 'forgot password', path: Routes.forgotPassword, inShell: false),
     (label: 'onboarding', path: Routes.onboarding, inShell: false),
-    // The account screens (Phase 4), open in the demo so a demo device can
-    // connect to a real restaurant. The waiting screen is account-only.
+    // The account screens (Phase 4), open on a device with no account so it can
+    // connect to the restaurant. The waiting screen is account-only.
     (label: 'welcome', path: Routes.welcome, inShell: false),
     (label: 'account sign-up', path: Routes.accountSignUp, inShell: false),
     (label: 'account set-up', path: Routes.accountSetup, inShell: false),

@@ -11,7 +11,7 @@ import 'package:stock_inventory/app/router.dart';
 import 'package:stock_inventory/app/routes.dart';
 import 'package:stock_inventory/data/database/app_database.dart';
 import 'package:stock_inventory/data/repositories/repositories.dart';
-import 'package:stock_inventory/data/seed/dataset/dataset.dart';
+import 'support/seed/dataset/dataset.dart';
 import 'package:stock_inventory/data/view_models/view_models.dart';
 import 'package:stock_inventory/features/orders/presentation/pages/receive_order_page.dart';
 import 'package:stock_inventory/features/orders/presentation/widgets/order_status_badge.dart';

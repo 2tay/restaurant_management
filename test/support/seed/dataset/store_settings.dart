@@ -1,6 +1,6 @@
-import '../../../core/utils/attendance_status.dart';
-import '../../../core/utils/order_status.dart';
-import '../../../models/store_settings.dart';
+import 'package:stock_inventory/core/utils/attendance_status.dart';
+import 'package:stock_inventory/core/utils/order_status.dart';
+import 'package:stock_inventory/models/store_settings.dart';
 import 'stores.dart';
 
 /// One settings row per store — the break allowance and the stale-order

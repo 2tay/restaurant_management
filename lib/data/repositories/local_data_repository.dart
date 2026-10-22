@@ -8,7 +8,6 @@ import 'package:path/path.dart' as p;
 import '../database/app_database.dart';
 import '../database/meta_keys.dart';
 import '../database/sync_tables.dart';
-import '../seed/dataset/stores.dart';
 import 'sync_quiet.dart';
 
 /// What a device holds before it first connects to an account.
@@ -16,7 +15,7 @@ enum LocalDataKind {
   /// Nothing: a fresh install.
   none,
 
-  /// Only the demo restaurant.
+  /// Only the demo restaurant an earlier version of the app offered.
   demo,
 
   /// Establishments the restaurant created itself.
@@ -35,9 +34,15 @@ class LocalDataRepository {
 
   final AppDatabase _db;
 
-  /// The demo's establishment ids. Every row of the demo belongs to one.
-  static final Set<String> demoStoreIds = {
-    for (final store in mockStores) store.id,
+  /// The establishment ids of the demo earlier versions offered. Every row of
+  /// that demo belongs to one. The app no longer has a demo, but a device that
+  /// opened it may still hold it, and it must never reach a restaurant's
+  /// account.
+  static const Set<String> demoStoreIds = {
+    'store-sablon',
+    'store-liege',
+    'store-saint-gilles',
+    'store-test-calcul',
   };
 
   /// Whether the device holds nothing, only the demo, or its own data.

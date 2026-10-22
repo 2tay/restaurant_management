@@ -20,7 +20,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stock_inventory/app/router.dart';
 import 'package:stock_inventory/app/routes.dart';
-import 'package:stock_inventory/data/seed/dataset/dataset.dart';
+import 'support/seed/dataset/dataset.dart';
 import 'package:stock_inventory/features/inventory/presentation/pages/inventory_list_page.dart';
 import 'package:stock_inventory/features/inventory/presentation/widgets/product_wizard_dialog.dart';
 import 'package:stock_inventory/shared/widgets/widgets.dart';

@@ -10,8 +10,6 @@ database/       the drift schema and the AppDatabase class
 mappers/        row <-> model, one file per aggregate
 repositories/   the only code allowed to read or write the database
 view_models/    what one screen needs, resolved in one query
-seed/           the demo dataset, loaded on first launch
-  dataset/        the data itself — thirteen files of hand-written restaurant
 providers.dart  the bridge: one provider per screen-level query
 ```
 

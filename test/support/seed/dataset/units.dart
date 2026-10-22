@@ -1,4 +1,4 @@
-import '../../../models/unit_of_measure.dart';
+import 'package:stock_inventory/models/unit_of_measure.dart';
 import 'stores.dart';
 
 abstract final class UnitIds {

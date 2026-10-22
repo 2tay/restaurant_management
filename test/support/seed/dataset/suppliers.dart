@@ -1,4 +1,4 @@
-import '../../../models/supplier.dart';
+import 'package:stock_inventory/models/supplier.dart';
 import 'stores.dart';
 
 abstract final class SupplierIds {

@@ -308,7 +308,7 @@ void main() {
         ],
       );
       addTearDown(container.dispose);
-      addTearDown(() => seedDeviceAccessSnapshot(DeviceAccess.demo));
+      addTearDown(() => seedDeviceAccessSnapshot(DeviceAccess.local));
       await container.read(deviceAccessProvider.notifier).hydrate();
       expect(container.read(deviceAccessProvider).hasLocalData, isFalse);
 
@@ -335,7 +335,7 @@ void main() {
           ],
         );
         addTearDown(container.dispose);
-        addTearDown(() => seedDeviceAccessSnapshot(DeviceAccess.demo));
+        addTearDown(() => seedDeviceAccessSnapshot(DeviceAccess.local));
         await container.read(deviceAccessProvider.notifier).hydrate();
         expect(container.read(deviceAccessProvider).hasLocalData, isFalse);
 
@@ -370,7 +370,7 @@ void main() {
           ],
         );
         addTearDown(container.dispose);
-        addTearDown(() => seedDeviceAccessSnapshot(DeviceAccess.demo));
+        addTearDown(() => seedDeviceAccessSnapshot(DeviceAccess.local));
         await container.read(deviceAccessProvider.notifier).hydrate();
         container.listen(syncControllerProvider, (_, _) {});
         // Let the start pass finish and the live subscription open.

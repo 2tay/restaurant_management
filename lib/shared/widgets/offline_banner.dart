@@ -9,49 +9,22 @@ import '../../data/providers.dart';
 import '../../l10n/app_localizations.dart';
 import '../../services/sync_service.dart';
 
-/// Whether the app is pretending to be offline.
-///
-/// Local UI state, which is the only thing Riverpod is permitted to hold in
-/// Phase 1. There is no connectivity check behind it — the sync status screen
-/// exposes a toggle so the offline experience can be demoed on demand rather
-/// than by unplugging the tablet's wifi mid-presentation.
-///
-/// Written as a [Notifier] rather than the older `StateProvider`, which
-/// Riverpod 3 moved out of the main package.
-class OfflineMode extends Notifier<bool> {
-  @override
-  bool build() => false;
-
-  void toggle() => state = !state;
-
-  // ignore: use_setters_to_change_properties
-  void set(bool value) => state = value;
-}
-
-final offlineModeProvider = NotifierProvider<OfflineMode, bool>(
-  OfflineMode.new,
-);
-
 /// Number of local changes waiting to sync: the size of the outbox, live.
 ///
-/// Every change to shared data queues itself (SYNC_PLAN.md, Phase 2), demo
-/// mode included, so the number moves during a walkthrough and the demo reset
-/// puts it back to zero. Zero while the count is still loading, which is also
-/// what an empty queue reads as.
+/// Every change to shared data queues itself (SYNC_PLAN.md, Phase 2). Zero
+/// while the count is still loading, which is also what an empty queue reads
+/// as.
 final Provider<int> pendingChangesProvider = Provider<int>(
   (ref) => ref.watch(outboxPendingCountProvider).value ?? 0,
 );
 
 /// Whether the app should say it is offline (SYNC_PLAN.md, Phase 10).
 ///
-/// On a restaurant's account device, the truth: the last sync could not reach
-/// the server. In the demo, which never syncs, the switch on the sync page
-/// that lets a walkthrough show the offline experience on demand.
+/// The last sync could not reach the server. A device with no account never
+/// syncs, so it is never offline in this sense.
 final Provider<bool> isOfflineProvider = Provider<bool>((ref) {
-  if (ref.watch(deviceAccessProvider).isAccount) {
-    return ref.watch(syncControllerProvider).status == SyncStatus.offline;
-  }
-  return ref.watch(offlineModeProvider);
+  if (!ref.watch(deviceAccessProvider).isAccount) return false;
+  return ref.watch(syncControllerProvider).status == SyncStatus.offline;
 });
 
 /// A slim persistent bar shown above the content area when offline.
@@ -66,7 +39,6 @@ class OfflineBanner extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final isOffline = ref.watch(isOfflineProvider);
     if (!isOffline) return const SizedBox.shrink();
-    final isAccount = ref.watch(deviceAccessProvider).isAccount;
 
     final l10n = AppLocalizations.of(context);
     final pending = ref.watch(pendingChangesProvider);
@@ -87,7 +59,7 @@ class OfflineBanner extends ConsumerWidget {
             ),
             const SizedBox(width: AppSpacing.md),
             Text(
-              isAccount ? l10n.offlineBannerServer : l10n.offlineBannerTitle,
+              l10n.offlineBannerServer,
               style: Theme.of(
                 context,
               ).textTheme.labelLarge?.copyWith(color: AppColors.offline),

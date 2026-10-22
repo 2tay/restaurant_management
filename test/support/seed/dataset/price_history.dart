@@ -1,4 +1,4 @@
-import '../../../models/price_history_entry.dart';
+import 'package:stock_inventory/models/price_history_entry.dart';
 import 'items.dart';
 import 'reference.dart';
 import 'suppliers.dart';

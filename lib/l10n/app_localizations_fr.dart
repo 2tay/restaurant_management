@@ -179,9 +179,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get storeSwitcherChange => 'Changer d\'établissement';
 
   @override
-  String get offlineBannerTitle => 'Mode hors ligne';
-
-  @override
   String offlineBannerPending(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -253,10 +250,6 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get loginSubmit => 'Se connecter';
-
-  @override
-  String get loginDemoNotice =>
-      'Mode démonstration : restaurant fictif, rien n\'est envoyé.';
 
   @override
   String get forgotTitle => 'Réinitialiser le mot de passe';
@@ -2137,24 +2130,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get syncNow => 'Synchroniser maintenant';
 
   @override
-  String get syncStarted => 'Synchronisation en cours…';
-
-  @override
-  String get syncOnline => 'Connecté';
-
-  @override
-  String get syncOffline => 'Hors ligne';
-
-  @override
-  String get syncDemoToggle => 'Simuler le mode hors ligne';
-
-  @override
-  String get syncDemoToggleBody =>
-      'Pour la démonstration : affiche la bannière hors ligne dans toute l\'application.';
-
-  @override
   String get syncLocalOnlyNote =>
-      'Démonstration : les données restent sur cet appareil. Connectez le compte de votre restaurant (Paramètres → Compte) pour les partager entre appareils.';
+      'Cet appareil n\'est relié à aucun compte : ses données restent ici. Connectez le compte de votre restaurant (Paramètres → Compte) pour les envoyer et les partager entre appareils.';
 
   @override
   String get searchTitle => 'Recherche';
@@ -3079,26 +3056,6 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get storeSettingsStaleDaysHelp =>
       'Une commande partiellement reçue est signalée sur le tableau de bord passé ce délai. Par défaut : 7 jours.';
-
-  @override
-  String get demoResetTitle => 'Réinitialiser la démonstration';
-
-  @override
-  String get demoResetBody =>
-      'Remet les produits, les stocks, les commandes et les prix dans leur état d\'origine. Les modifications faites pendant la démonstration ne sont conservées que le temps de la session.';
-
-  @override
-  String get demoResetConfirmTitle => 'Réinitialiser la démonstration ?';
-
-  @override
-  String get demoResetConfirmBody =>
-      'Tout ce qui a été créé, modifié ou réceptionné depuis le démarrage sera annulé.';
-
-  @override
-  String get demoResetConfirmAction => 'Réinitialiser';
-
-  @override
-  String get demoResetDone => 'Démonstration réinitialisée.';
 
   @override
   String get actionUnderstood => 'Compris';
@@ -4728,22 +4685,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get accountForgotLink => 'Mot de passe oublié ?';
 
   @override
-  String get welcomeTryDemo => 'Essayer la démo';
-
-  @override
-  String get welcomeDemoHint =>
-      'Un restaurant fictif, sur cet appareil seulement. Rien n\'est envoyé.';
-
-  @override
-  String get welcomeOr => 'ou';
-
-  @override
-  String get accountDemoWipeWarning =>
-      'Les données de démonstration de cet appareil seront effacées.';
-
-  @override
   String get accountServerMissing =>
-      'Aucun serveur n\'est configuré dans cette version. La démo reste disponible.';
+      'Aucun serveur n\'est configuré dans cette version.';
 
   @override
   String get signUpTitle => 'Créer un compte';
@@ -4888,8 +4831,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get accountSectionTitle => 'Compte du restaurant';
 
   @override
-  String get accountSectionDemo =>
-      'Cet appareil utilise la démo. Connectez le compte de votre restaurant pour travailler sur plusieurs appareils.';
+  String get accountSectionLocal =>
+      'Cet appareil n\'est relié à aucun compte. Connectez le compte de votre restaurant pour envoyer ses données et travailler sur plusieurs appareils.';
 
   @override
   String get accountConnect => 'Connecter un compte';

@@ -12,7 +12,7 @@ import 'package:stock_inventory/data/database/app_database.dart';
 import 'package:stock_inventory/data/database/meta_keys.dart';
 import 'package:stock_inventory/data/providers.dart';
 import 'package:stock_inventory/data/repositories/repositories.dart';
-import 'package:stock_inventory/data/seed/dataset/dataset.dart'
+import '../support/seed/dataset/dataset.dart'
     show EmployeeIds, StoreIds;
 
 import '../support/db_fixture.dart';
@@ -91,18 +91,6 @@ void main() {
       expect(
         (await stores.settings(StoreIds.liege)).maxBreakMinutes,
         liegeBefore.maxBreakMinutes,
-      );
-    });
-
-    test('a demo reset restores the shipped values', () async {
-      final shipped = await stores.settings(StoreIds.sablon);
-      await stores.updateStoreSettings(StoreIds.sablon, maxBreakMinutes: 90);
-
-      await DemoRepository(db).resetDemo();
-
-      expect(
-        (await stores.settings(StoreIds.sablon)).maxBreakMinutes,
-        shipped.maxBreakMinutes,
       );
     });
   });

@@ -33,7 +33,7 @@ A synced table follows four rules:
   `sync_triggers.drift`, unless the write set it itself.
 - **Nothing is deleted from it.** A delete sets `deleted_at`, through
   `repositories/soft_delete.dart`, which also writes out the cascades the foreign keys
-  used to do. The demo reset is the one exception: the demo never syncs.
+  used to do. A device wipe (account sign-out) is the one exception.
 - **Every read skips deleted rows.** Each query says `deletedAt IS NULL`, joins included
   (in the `ON` clause of a left join, so the left row survives). The three reads that must
   see deleted rows, because a unique index does, say so in a comment: the attendance day
@@ -44,7 +44,7 @@ A synced table follows four rules:
 **Stock is derived.** `items.quantity` and `items.average_cost` are what replaying the
 movements not marked `in_baseline` on top of `baseline_quantity` and
 `baseline_average_cost` produces. `repositories/stock_ledger.dart` does the replay. The
-version 15 upgrade and the demo seed set the baseline to the stock the article already
+version 15 upgrade and the test dataset set the baseline to the stock the article already
 held, because the history before that is incomplete.
 
 ## The outbox (schema version 16)
@@ -60,11 +60,10 @@ Every change to a synced table queues itself in `outbox`, in the same transactio
   place of the row's first change, so a parent is always ahead of its children.
 - **A delete is just an entry with `deleted_at` set.** There is no delete entry.
 - **`items.quantity` and `items.average_cost` never travel.** Every device recomputes them.
-- **Some writes are quiet.** The demo seed, a stock rebuild, and later the rows received
-  from the server run inside `SyncQuiet.run`, and queue nothing. The demo reset also
-  empties the queue.
+- **Some writes are quiet.** A stock rebuild and the rows received from the server run
+  inside `SyncQuiet.run`, and queue nothing.
 
-The offline banner and the sync page show the queue's size, demo mode included.
+The offline banner and the sync page show the queue's size.
 
 ## Two things that are easy to get wrong
 

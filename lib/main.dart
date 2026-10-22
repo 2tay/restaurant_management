@@ -32,18 +32,13 @@ Future<void> main() async {
   Intl.defaultLocale = Formatters.locale;
 
   // Open the local database. Awaited before the first frame: the router has to
-  // know whether this device is a demo, an account or neither before it picks
-  // the first screen.
+  // know whether this device belongs to an account before it picks the first
+  // screen.
   //
   // Nothing else in the app opens a database. This instance is handed to
   // `databaseProvider` below and every repository is built from it, which is
   // what makes one connection, one file, and one place to look when something
   // is wrong with either.
-  //
-  // Putting the demo back is `DemoRepository.resetDemo()` now, behind
-  // *Paramètres → Synchronisation*. Phase 1 snapshotted the dataset in memory
-  // here because a restart was the only other way back; a re-seed writes the
-  // dataset again from `data/seed/dataset/`, and survives the restart too.
   final AppDatabase database = await openAppDatabase();
 
   // The employee photo folder, resolved once so avatars can read it without
@@ -98,7 +93,7 @@ Future<void> main() async {
 
   // Starts sending the outbox on an account device (SYNC_PLAN.md, Phase 5).
   // It watches the device mode, so it also starts when the device joins a
-  // restaurant later, and stops on sign-out; in the demo it does nothing.
+  // restaurant later, and stops on sign-out; with no account it does nothing.
   container.read(syncControllerProvider);
 
   // Registers the phone while the owner is signed in on it, and opens the

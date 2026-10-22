@@ -14,10 +14,11 @@ import 'package:clock/clock.dart';
 import 'package:drift/drift.dart' hide isNull, isNotNull;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stock_inventory/data/database/app_database.dart';
+import 'package:stock_inventory/data/database/clear_all_data.dart';
 import 'package:stock_inventory/data/database/meta_keys.dart';
 import 'package:stock_inventory/data/database/sync_tables.dart';
 import 'package:stock_inventory/data/repositories/repositories.dart';
-import 'package:stock_inventory/data/seed/dataset/dataset.dart'
+import '../support/seed/dataset/dataset.dart'
     show CategoryIds, ItemIds, StoreIds, SupplierIds, UnitIds;
 import 'package:stock_inventory/models/models.dart';
 
@@ -413,14 +414,14 @@ void main() {
       expect(await devices.deviceId(), first);
     });
 
-    test('survives a demo reset', () async {
+    test('survives a wipe', () async {
       final id = await DeviceRepository(db).deviceId();
-      await DemoRepository(db).resetDemo();
+      await clearAllData(db);
       expect(await DeviceRepository(db).deviceId(), id);
       final seeded = await (db.select(
         db.meta,
       )..where((m) => m.key.equals(MetaKeys.seededAt))).getSingleOrNull();
-      expect(seeded, isNotNull, reason: 'the rest of meta is rewritten');
+      expect(seeded, isNull, reason: 'the rest of meta is cleared');
     });
 
     test('two installations get different ids', () async {

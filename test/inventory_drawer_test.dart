@@ -19,7 +19,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stock_inventory/app/router.dart';
 import 'package:stock_inventory/app/routes.dart';
-import 'package:stock_inventory/data/seed/dataset/dataset.dart';
+import 'support/seed/dataset/dataset.dart';
 import 'package:stock_inventory/features/inventory/presentation/widgets/item_card.dart';
 import 'package:stock_inventory/features/inventory/presentation/widgets/item_detail_view.dart';
 import 'package:stock_inventory/features/inventory/presentation/widgets/supplier_price_row.dart';

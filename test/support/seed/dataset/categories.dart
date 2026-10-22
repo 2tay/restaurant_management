@@ -1,4 +1,4 @@
-import '../../../models/category.dart';
+import 'package:stock_inventory/models/category.dart';
 import 'stores.dart';
 
 abstract final class CategoryIds {

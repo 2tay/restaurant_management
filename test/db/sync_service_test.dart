@@ -12,7 +12,7 @@ import 'package:stock_inventory/data/database/meta_keys.dart';
 import 'package:stock_inventory/data/device_access.dart';
 import 'package:stock_inventory/data/providers.dart';
 import 'package:stock_inventory/data/repositories/repositories.dart';
-import 'package:stock_inventory/data/seed/dataset/dataset.dart'
+import '../support/seed/dataset/dataset.dart'
     show CategoryIds, ItemIds, StoreIds, SupplierIds;
 import 'package:stock_inventory/models/models.dart';
 import 'package:stock_inventory/services/auth_service.dart';
@@ -218,15 +218,15 @@ void main() {
       );
       addTearDown(container.dispose);
       await container.read(deviceAccessProvider.notifier).hydrate();
-      addTearDown(() => seedDeviceAccessSnapshot(DeviceAccess.demo));
+      addTearDown(() => seedDeviceAccessSnapshot(DeviceAccess.local));
       container.listen(syncControllerProvider, (_, _) {});
       await pumpEventQueue();
       return container;
     }
 
-    test('does nothing in the demo', () async {
+    test('does nothing with no account', () async {
       final container = await containerFor(account: false);
-      await newCategory('Démo');
+      await newCategory('Local');
 
       await container.read(syncControllerProvider.notifier).syncNow();
 

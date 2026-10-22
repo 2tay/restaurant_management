@@ -1,9 +1,9 @@
 import 'package:drift/drift.dart';
 
 import '../database/app_database.dart';
+import '../database/clear_all_data.dart';
 import '../database/meta_keys.dart';
 import '../images/product_images.dart';
-import '../seed/demo_seed.dart';
 import 'outbox_repository.dart';
 
 /// What this installation is (SYNC_PLAN.md, Phase 4).
@@ -12,8 +12,10 @@ enum DeviceMode {
   /// screen.
   none,
 
-  /// The demo dataset, fully offline, never synced.
-  demo,
+  /// Data on the device and no account: an install from before accounts
+  /// existed, usable as it was until it connects one (Phase 9). A fresh
+  /// install never gets here; it goes from [none] to [account].
+  local,
 
   /// Signed in to a restaurant's account. Its data is (or will be) synced.
   account,
@@ -33,10 +35,10 @@ class DeviceAccess {
     this.accountRole,
   });
 
-  /// What a test that pumps the app without hydrating sees: the demo, with
-  /// its data, exactly as every screen test has always run.
-  static const DeviceAccess demo = DeviceAccess(
-    mode: DeviceMode.demo,
+  /// What a test that pumps the app without hydrating sees: data on the
+  /// device and no account, so nothing syncs.
+  static const DeviceAccess local = DeviceAccess(
+    mode: DeviceMode.local,
     hasLocalData: true,
   );
 
@@ -71,9 +73,8 @@ class DeviceAccessRepository {
 
     final DeviceMode mode = switch (meta[MetaKeys.deviceMode]) {
       'account' => DeviceMode.account,
-      'demo' => DeviceMode.demo,
-      // Installs from before Phase 4 hold the demo the first launch seeded.
-      _ => hasData ? DeviceMode.demo : DeviceMode.none,
+      // Installs from before Phase 4, and the demo earlier versions offered.
+      _ => hasData ? DeviceMode.local : DeviceMode.none,
     };
 
     return DeviceAccess(
@@ -85,8 +86,6 @@ class DeviceAccessRepository {
       accountRole: meta[MetaKeys.accountRole],
     );
   }
-
-  Future<void> writeDemo() => _put({MetaKeys.deviceMode: 'demo'});
 
   Future<void> writeAccount({
     required String email,

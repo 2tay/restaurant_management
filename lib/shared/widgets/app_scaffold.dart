@@ -29,10 +29,8 @@ import 'session_expired_banner.dart';
 /// Whether the shell's navigation sidebar is hidden so the current page's
 /// content fills the whole window.
 ///
-/// Local UI state — see `offline_banner.dart`'s `OfflineMode` for the same
-/// reasoning: this is the only thing Riverpod is permitted to hold in Phase
-/// 1, and a `Notifier<bool>` rather than a page's own `State` because the
-/// toggle lives on a page (the pointage kiosk board) while the thing it
+/// Local UI state, a `Notifier<bool>` rather than a page's own `State`
+/// because the toggle lives on a page (the pointage kiosk board) while the thing it
 /// controls, [AppScaffold], is that page's ancestor.
 ///
 /// Off by default. A page offering the toggle owns turning it back off in its

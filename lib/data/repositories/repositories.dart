@@ -10,7 +10,6 @@ export 'calendar_repository.dart';
 export 'business_day_repository.dart';
 export 'catalog_repository.dart';
 export 'credential_repository.dart';
-export 'demo_repository.dart';
 export 'device_access_repository.dart';
 export 'device_repository.dart';
 export 'employee_repository.dart';

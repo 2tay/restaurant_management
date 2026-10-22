@@ -16,7 +16,7 @@ import 'package:stock_inventory/core/utils/attendance_status.dart';
 import 'package:stock_inventory/data/database/app_database.dart';
 import 'package:stock_inventory/data/mappers/mappers.dart';
 import 'package:stock_inventory/data/repositories/repositories.dart';
-import 'package:stock_inventory/data/seed/dataset/dataset.dart';
+import '../support/seed/dataset/dataset.dart';
 import 'package:stock_inventory/models/models.dart';
 
 import '../support/db_fixture.dart';

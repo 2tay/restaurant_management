@@ -26,10 +26,6 @@ abstract final class Routes {
   static const String stores = '/stores';
   static const String addStore = '/stores/add';
 
-  /// Development only — the design-system gallery. Linked from nothing; a
-  /// production build should drop this route along with `lib/dev/`.
-  static const String devGallery = '/dev/gallery';
-
   // --- Inside the shell -----------------------------------------------------
 
   static const String storeBase = '/store/:storeId';

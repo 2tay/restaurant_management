@@ -1,5 +1,5 @@
-import '../../../core/utils/payroll_math.dart';
-import '../../../models/payroll_period.dart';
+import 'package:stock_inventory/core/utils/payroll_math.dart';
+import 'package:stock_inventory/models/payroll_period.dart';
 import 'attendances.dart';
 import 'employees.dart';
 import 'reference.dart';

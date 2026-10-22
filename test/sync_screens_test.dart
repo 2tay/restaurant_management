@@ -16,7 +16,7 @@ import 'package:stock_inventory/data/device_access.dart';
 import 'package:stock_inventory/data/providers.dart';
 import 'package:stock_inventory/data/repositories/repositories.dart';
 import 'package:stock_inventory/features/settings/presentation/widgets/account_sync_view.dart';
-import 'package:stock_inventory/data/seed/dataset/dataset.dart'
+import 'support/seed/dataset/dataset.dart'
     show EmployeeIds, StoreIds;
 import 'package:stock_inventory/services/sync_service.dart';
 import 'package:stock_inventory/shared/widgets/session_expired_banner.dart';
@@ -53,7 +53,7 @@ void main() {
       role: 'owner',
     );
     seedDeviceAccessSnapshot(await DeviceAccessRepository(db).read());
-    addTearDown(() => seedDeviceAccessSnapshot(DeviceAccess.demo));
+    addTearDown(() => seedDeviceAccessSnapshot(DeviceAccess.local));
     seedCurrentEmployeeSnapshot(
       await SessionRepository(db).signIn(EmployeeIds.marc),
     );
@@ -89,7 +89,6 @@ void main() {
     expect(find.text('Cet appareil'), findsOneWidget);
     expect(find.text('Photos en attente d\'envoi'), findsOneWidget);
     expect(find.text('Jamais'), findsNothing);
-    expect(find.text('Réinitialiser la démonstration'), findsNothing);
     expect(find.text('Serveur injoignable'), findsNothing);
   });
 
@@ -319,14 +318,15 @@ void main() {
     expect(find.text('Compris'), findsOneWidget);
   });
 
-  testApp('the demo keeps its own honest notice', (tester) async {
+  testApp('a device with no account says nothing is sent', (tester) async {
     await pumpApp(tester, size: const Size(1280, 800));
     appRouter.go(Routes.toSyncStatus(StoreIds.sablon));
     await tester.pumpAndSettle();
     expect(
-      find.textContaining('Démonstration : les données restent'),
+      find.textContaining("Cet appareil n'est relié à aucun compte"),
       findsOneWidget,
     );
-    expect(find.text('Réinitialiser la démonstration'), findsWidgets);
+    expect(find.textContaining('démonstration'), findsNothing);
+    expect(find.text('Simuler le mode hors ligne'), findsNothing);
   });
 }

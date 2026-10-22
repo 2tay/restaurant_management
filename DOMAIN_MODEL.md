@@ -852,7 +852,7 @@ never happens inside a widget.
 | Employees, credentials, pointage, paie, the session | `lib/data/repositories/{employee,credential,attendance,payroll,session}_repository.dart` |
 | What one screen needs, in one query | `lib/data/view_models/` |
 | The bridge to the widgets | `lib/data/providers.dart` |
-| The demo dataset | `lib/data/seed/dataset/` |
+| The test dataset (the former demo) | `test/support/seed/dataset/` |
 
 The three `core/utils/` files above are the reason the port was safe: they are pure
 functions over already-loaded objects, they were reused verbatim, and their tests never
