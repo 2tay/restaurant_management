@@ -7901,24 +7901,6 @@ abstract class AppLocalizations {
   /// **'Gérant'**
   String get accountRoleManager;
 
-  /// Button: create a join code.
-  ///
-  /// In fr, this message translates to:
-  /// **'Inviter un gérant'**
-  String get accountInvite;
-
-  /// Dialog heading.
-  ///
-  /// In fr, this message translates to:
-  /// **'Code d\'invitation'**
-  String get accountInviteTitle;
-
-  /// Dialog body. Narrow no-break space before the colon.
-  ///
-  /// In fr, this message translates to:
-  /// **'Donnez ce code au gérant : il l\'entre après avoir créé son compte. Valable 7 jours, une seule fois.'**
-  String get accountInviteBody;
-
   /// Account settings: device list heading.
   ///
   /// In fr, this message translates to:

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
@@ -19,7 +18,7 @@ import '../../../auth/presentation/widgets/auth_notice.dart';
 ///
 /// With no account (an install from before accounts): an invitation to
 /// connect the restaurant's account. With an account:
-/// who is signed in, the join code for a manager and the device list (owner),
+/// who is signed in, the device list (owner),
 /// and signing the account out, which wipes the device.
 class RestaurantAccountSection extends ConsumerStatefulWidget {
   const RestaurantAccountSection({super.key});
@@ -118,13 +117,6 @@ class _RestaurantAccountSectionState
           spacing: AppSpacing.sm,
           runSpacing: AppSpacing.sm,
           children: [
-            if (access.isOwnerAccount)
-              SecondaryButton(
-                label: l10n.accountInvite,
-                icon: LucideIcons.userPlus,
-                tone: SecondaryButtonTone.surface,
-                onPressed: _busy ? null : _invite,
-              ),
             SecondaryButton(
               label: l10n.accountSignOut,
               icon: LucideIcons.logOut,
@@ -190,48 +182,6 @@ class _RestaurantAccountSectionState
         ],
       ],
     );
-  }
-
-  Future<void> _invite() async {
-    final l10n = AppLocalizations.of(context);
-    setState(() => _busy = true);
-    try {
-      final code = await ref.read(accountBackendProvider).createJoinCode();
-      if (!mounted) return;
-      await showDialog<void>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: Text(l10n.accountInviteTitle),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              SelectableText(
-                '${code.substring(0, 4)}-${code.substring(4)}',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.displaySmall,
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              Text(l10n.accountInviteBody),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Clipboard.setData(ClipboardData(text: code)),
-              child: const Icon(LucideIcons.copy),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text(l10n.actionClose),
-            ),
-          ],
-        ),
-      );
-    } catch (error) {
-      if (mounted) _snack(accountErrorMessage(l10n, error));
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
   }
 
   Future<void> _remove(DeviceInfo device) async {

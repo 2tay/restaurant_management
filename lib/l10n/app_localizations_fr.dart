@@ -4875,16 +4875,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get accountRoleManager => 'Gérant';
 
   @override
-  String get accountInvite => 'Inviter un gérant';
-
-  @override
-  String get accountInviteTitle => 'Code d\'invitation';
-
-  @override
-  String get accountInviteBody =>
-      'Donnez ce code au gérant : il l\'entre après avoir créé son compte. Valable 7 jours, une seule fois.';
-
-  @override
   String get accountDevices => 'Appareils';
 
   @override
