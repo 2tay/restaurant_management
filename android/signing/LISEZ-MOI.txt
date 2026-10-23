@@ -1,0 +1,11 @@
+Clé de signature Android de l'application Brigade (be.brigade.app)
+====================================================================
+
+Conservée dans le dépôt privé (mot de passe aussi dans android/key.properties). Ne jamais la publier hors de l'équipe.
+Sans ce fichier et ce mot de passe, aucune mise à jour de l'application ne pourra
+être installée par-dessus celle du client.
+
+Fichier de clé : android/signing/brigade-release.jks (dans le dépôt privé)
+Alias          : brigade
+Mot de passe   : Ay2KNUOJhKjoGqqgK1jvWBoU1VRIf7Hj
+(le même pour le magasin et pour la clé)

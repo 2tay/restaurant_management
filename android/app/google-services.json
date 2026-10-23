@@ -7,6 +7,25 @@
   "client": [
     {
       "client_info": {
+        "mobilesdk_app_id": "1:127585641408:android:cc57b0e98daa1d1a061e25",
+        "android_client_info": {
+          "package_name": "be.brigade.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCEqIZ0Ojm4XUfbOSRyBylZMBBCZ_h7k_8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
         "mobilesdk_app_id": "1:127585641408:android:62f535f89e686ca6061e25",
         "android_client_info": {
           "package_name": "com.clientproject.stock_inventory"

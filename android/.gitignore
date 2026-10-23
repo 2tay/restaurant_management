@@ -12,3 +12,8 @@ GeneratedPluginRegistrant.java
 key.properties
 **/*.keystore
 **/*.jks
+
+# Brigade's release key and its password are committed on purpose: the
+# repository is private and every developer signs with the same key.
+!key.properties
+!signing/brigade-release.jks
