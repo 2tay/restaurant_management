@@ -4,7 +4,7 @@ Version 1.0.0
 
 Ce dossier contient :
   - Brigade-1.0.0.apk             l'application pour téléphones et tablettes Android
-  - Brigade-1.0.0-Windows.zip     l'application pour ordinateurs Windows (64 bits)
+  - Brigade-Setup-1.0.0.exe       le programme d'installation pour Windows (64 bits)
   - INSTALLATION.txt              ce document
 
 
@@ -29,19 +29,17 @@ une application qui n'est pas distribuée par le Play Store.
 2. SUR UN ORDINATEUR WINDOWS
 ----------------------------
 
-1. Faites un clic droit sur « Brigade-1.0.0-Windows.zip » puis
-   « Extraire tout… ». Choisissez un dossier durable, par exemple
-   C:\Brigade (pas le dossier Téléchargements).
-2. Dans le dossier extrait, double-cliquez sur « Brigade.exe ».
-3. Au premier lancement, Windows peut afficher « Windows a protégé votre
-   ordinateur » : cliquez sur « Informations complémentaires », puis
-   « Exécuter quand même ».
-4. Pour la retrouver facilement : clic droit sur « Brigade.exe » →
-   « Afficher d'autres options » → « Envoyer vers » → « Bureau (créer un
-   raccourci) ».
+1. Double-cliquez sur « Brigade-Setup-1.0.0.exe ».
+2. Windows peut afficher « Windows a protégé votre ordinateur » : cliquez sur
+   « Informations complémentaires », puis « Exécuter quand même ».
+3. Suivez l'assistant : « Suivant », puis « Installer », puis « Terminer ».
+   Aucun mot de passe administrateur n'est demandé.
 
-Ne déplacez pas « Brigade.exe » seul hors de son dossier : il a besoin des
-fichiers qui l'accompagnent.
+Brigade s'ouvre, et se retrouve ensuite comme toute autre application :
+  - l'icône « Brigade » sur le Bureau ;
+  - « Brigade » dans le menu Démarrer et dans la recherche Windows.
+
+Pour la désinstaller : Paramètres → Applications → Brigade → Désinstaller.
 
 
 3. PREMIÈRE UTILISATION
@@ -68,9 +66,9 @@ envoie les modifications dès que la connexion revient.
 Android : installez le nouveau fichier .apk par-dessus l'ancien, sans
 désinstaller. Les données de l'appareil sont conservées.
 
-Windows : fermez Brigade, remplacez le contenu du dossier (par exemple
-C:\Brigade) par celui de la nouvelle version, puis relancez « Brigade.exe ».
-Les données sont enregistrées ailleurs et sont conservées.
+Windows : lancez le nouveau programme d'installation (« Brigade-Setup-… .exe »).
+Il remplace l'ancienne version ; les données sont conservées, même après une
+désinstallation.
 
 Attention : désinstaller l'application Android efface les données de cet
 appareil qui n'ont pas encore été envoyées.
